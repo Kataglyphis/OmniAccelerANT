@@ -1,0 +1,3 @@
+[submodule "ExternalLib/jotrockenmitlockenrepo"]
+	path = ExternalLib/jotrockenmitlockenrepo
+	url = https://github.com/Kataglyphis/jotrockenmitlockenrepo.git
