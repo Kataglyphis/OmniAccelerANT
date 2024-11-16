@@ -106,7 +106,7 @@ This enumeration also includes submodules.
 
 1. Clone the repo
    ```sh
-   git clone --recurse-submodules git@github.com:Kataglyphis/....git
+   git clone --recurse-submodules git@github.com:Kataglyphis/Kataglyphis-Inference-Engine.git
    ```
 
 ## Tests
