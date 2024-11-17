@@ -13,13 +13,15 @@
   <a href="https://jonasheinle.de"><img src="images/glm_logo.png" alt="VulkanEngine" width="200"></a>
 </h1> -->
 
-<h4 align="center">A template <a href="https://jonasheinle.de" target="_blank"></a>.</h4>
+<h4 align="center">An inference engine with flutter/dart frontend an rust backend. <a href="https://jonasheinle.de" target="_blank"></a>.</h4>
 
-<!-- [![Linux build](https://github.com/Kataglyphis/GraphicsEngineVulkan/actions/workflows/Linux.yml/badge.svg)](https://github.com/Kataglyphis/GraphicsEngineVulkan/actions/workflows/Linux.yml)
-[![Windows build](https://github.com/Kataglyphis/GraphicsEngineVulkan/actions/workflows/Windows.yml/badge.svg)](https://github.com/Kataglyphis/GraphicsEngineVulkan/actions/workflows/Windows.yml)
-[![TopLang](https://img.shields.io/github/languages/top/Kataglyphis/GraphicsEngineVulkan)]() -->
-[![Donate](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://www.paypal.com/paypalme/JonasHeinle)
+[![Build + run + test on Linux](https://github.com/Kataglyphis/Kataglyphis-Inference-Engine/actions/workflows/dart.yml/badge.svg)](https://github.com/Kataglyphis/Kataglyphis-Inference-Engine/actions/workflows/dart.yml)
+[![TopLang](https://img.shields.io/github/languages/top/Kataglyphis/Kataglyphis-Inference-Engine)]()
+[![Donate](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://www.paypal.com/donate/?hosted_button_id=BX9AVVES2P9LN)
 [![Twitter](https://img.shields.io/twitter/follow/Cataglyphis_?style=social)](https://twitter.com/Cataglyphis_)
+[![YouTube](https://img.shields.io/youtube/channel/subscribers/UC3LZiH4sZzzaVBCUV8knYeg?style=social)](https://www.youtube.com/channel/UC3LZiH4sZzzaVBCUV8knYeg)
+
+[**__Official homepage__**](https://kataglyphisinferenceengine.jonasheinle.de)
 
 <p align="center">
   <a href="#about-the-project">About The Project</a> •
@@ -63,7 +65,7 @@
 
 <!-- ABOUT THE PROJECT -->
 ## About The Project
-
+Building a high performance native inference engine with a frontend is quite challenging. This project discovers possibilities in doing it using Flutter/Dart and Rust.  
 <!-- <h1 align="center">
   <br>
   <a href="https://jonasheinle.de"><img src="images/Screenshot1.png" alt="VulkanEngine" width="400"></a>
