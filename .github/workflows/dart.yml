@@ -47,6 +47,15 @@ jobs:
           cd ExternalLib/jotrockenmitlockenrepo
           flutter pub get
 
+      - name: Install linux deps
+        run: |
+          sudo apt-get install -y curl git unzip xz-utils zip libglu1-mesa
+          sudo apt-get install \
+                  clang cmake git \
+                  ninja-build pkg-config \
+                  libgtk-3-dev liblzma-dev \
+                  libstdc++-12-dev
+
       # Uncomment this step to verify the use of 'dart format' on each commit.
       - name: Verify formatting
         continue-on-error: true
