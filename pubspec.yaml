@@ -41,6 +41,9 @@ dependencies:
   flutter_rust_bridge: 2.6.0
   go_router: 14.6.0
   font_awesome_flutter: any
+  flutter_localizations:
+    sdk: flutter
+  intl: any
 
 dev_dependencies:
   mockito: ^5.4.4
@@ -56,6 +59,7 @@ dev_dependencies:
 
 # The following section is specific to Flutter packages.
 flutter:
+  generate: true
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in
   # the material Icons class.
