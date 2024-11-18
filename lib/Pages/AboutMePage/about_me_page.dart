@@ -36,10 +36,10 @@ class AboutMePageState extends State<AboutMePage> {
       ),
     ];
     List<Widget> childWidgetsRightPage = [
-      const PerfectDay(),
-      const SizedBox(
-        height: 40,
-      ),
+      // const PerfectDay(),
+      // const SizedBox(
+      //   height: 40,
+      // ),
       SkillTable(
         aboutMeFile: aboutMeFile,
         userSettings: userSettings,
