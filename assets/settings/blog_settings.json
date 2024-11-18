@@ -1,0 +1,99 @@
+[
+	{
+		"routingName":"/aiBlog",
+		"shortDescriptionEN":"AI playground",
+		"shortDescriptionDE":"AI Spielwiese",
+		"filePath":"assets/documents/blog/aiBlogPageEn.md",
+
+		"imageDir":"assets/images/aiBlog",
+		"githubRepo":"MachineLearningAlgorithms",
+		"fileTitle": "AIBlog.pdf",
+		"fileAdditionalInfo": "PDF version",
+		"fileBaseDir": "assets/documents/blog/",
+		"lastModified":"03.04.2024",
+		"landingPageAlignment":"left",
+		"landingPageEntryImagePath": "assets/images/funny_programmer.gif",
+		"landingPageEntryImageCaptioning": "image source: https://learnopengl.com",
+		"docsDesc": [
+			{
+				"baseDir":"assets/documents/cv/",
+				"title":"CV_Jonas_Heinle_english.pdf",
+				"additionalInfo": "~3.7MB English"
+			},
+			{
+				"baseDir": "assets/documents/cv/",
+				"title": "CV_Jonas_Heinle_german.pdf",
+				"additionalInfo": "~3.7MB German"
+			},
+			{
+				"baseDir": "assets/data/",
+				"title": "WorleyNoiseTextures.zip",
+				"additionalInfo": "Use it for you own projects."
+			}
+		]
+	},
+	{
+		"routingName":"/aiBlog2",
+		"shortDescriptionEN":"AI playground 2",
+		"shortDescriptionDE":"AI Spielwiese 2",
+		"filePath":"assets/documents/blog/aiBlogPageEn.md",
+		"imageDir":"assets/images/aiBlog",
+		"githubRepo":"MachineLearningAlgorithms",
+		"fileTitle": "AIBlog.pdf",
+		"fileAdditionalInfo": "PDF version",
+		"fileBaseDir": "assets/documents/blog/",
+		"lastModified":"03.04.2024",
+		"landingPageAlignment":"left",
+		"landingPageEntryImagePath": "assets/images/ML_CV.jpeg",
+		"landingPageEntryImageCaptioning": "image source: https://pyimagesearch.com/2023/03/30/machine-learning-computer-vision/",
+		"docsDesc": [
+			{
+				"baseDir":"assets/documents/cv/",
+				"title":"CV_Jonas_Heinle_english.pdf",
+				"additionalInfo": "~3.7MB English"
+			},
+			{
+				"baseDir": "assets/documents/cv/",
+				"title": "CV_Jonas_Heinle_german.pdf",
+				"additionalInfo": "~3.7MB German"
+			},
+			{
+				"baseDir": "assets/data/",
+				"title": "WorleyNoiseTextures.zip",
+				"additionalInfo": "Use it for you own projects."
+			}
+		]
+	},
+	{
+		"routingName":"/rendering",
+		"shortDescriptionEN":"Rendering Playground",
+		"shortDescriptionDE":"Rendering Spielwiese",
+		"filePath":"assets/documents/blog/renderingBlogPageEn.md",
+		"imageDir":"assets/images/aiBlog",
+		"githubRepo":"GraphicsEngineVulkan",
+		"fileTitle": "AIBlog.pdf",
+		"fileAdditionalInfo": "PDF version",
+		"fileBaseDir": "assets/documents/blog/",
+		"lastModified":"03.04.2024",
+		"landingPageAlignment":"right",
+		"landingPageEntryImagePath": "assets/images/cat-computer.gif",
+		"landingPageEntryImageCaptioning": "image source: https://tenor.com/de/view/cat-computer-typing-fast-gif-5368357",
+		"docsDesc": [
+			{
+				"baseDir":"assets/documents/cv/",
+				"title":"CV_Jonas_Heinle_english.pdf",
+				"additionalInfo": "~3.7MB English"
+			},
+			{
+				"baseDir": "assets/documents/cv/",
+				"title": "CV_Jonas_Heinle_german.pdf",
+				"additionalInfo": "~3.7MB German"
+			},
+			{
+				"baseDir": "assets/data/",
+				"title": "WorleyNoiseTextures.zip",
+				"additionalInfo": "Use it for you own projects."
+			}
+		]
+	}
+]

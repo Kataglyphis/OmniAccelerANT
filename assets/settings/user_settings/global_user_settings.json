@@ -1,0 +1,41 @@
+{
+	"businessEmail": "contact@jonasheinle.de",
+    "myQuotation":
+        "»As soon as it works, no-one calls it AI anymore.« (John McCarthy)",
+    "firstName": "Jonas",
+    "lastName": "Heinle",
+    "assetPathImgOfMe":
+        "assets/images/Pages/AboutMe/Bewerbungsbilder/a95a64ca_runterskaliert.jpg",
+    "aboutMeFileDe": "assets/settings/user_settings/user_skills_de.json",
+    "aboutMeFileEn": "assets/settings/user_settings/user_skills_en.json",
+	"socialMediaLinksConfig": {
+		"Facebook": {
+			"host": "www.facebook.com",
+			"path": "jonas.heinle/"
+		},
+		"GitHub": {
+			"host":"www.github.com",
+			"path":"Kataglyphis/"
+		},
+		"YouTube": {
+			"host":"www.youtube.com",
+			"path":"channel/UC3LZiH4sZzzaVBCUV8knYeg"
+		},
+		"X": {
+			"host":"www.twitter.com",
+			"path":"Cataglyphis_"
+		},
+		"LinkedIn": {
+			"host":"www.linkedin.com",
+			"path":"in/jonas-heinle-0b2a301a0/"
+		},
+		"Instagram": {
+			"host":"www.instagram.com",
+			"path":"jotrockenmitlocken"
+		},
+		"PayPal": {
+			"host":"www.paypal.me",
+			"path":"/JonasHeinle"
+		}
+	}
+}
