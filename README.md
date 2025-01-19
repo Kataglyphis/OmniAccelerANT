@@ -110,6 +110,12 @@ This enumeration also includes submodules.
    ```sh
    git clone --recurse-submodules git@github.com:Kataglyphis/Kataglyphis-Inference-Engine.git
    ```
+### Upgrades
+Upgrading the flutter/dart bridge dependencies is as simple as this command:  
+[see source](https://cjycode.com/flutter_rust_bridge/guides/miscellaneous/upgrade/regular)
+```bash
+cargo install flutter_rust_bridge_codegen && flutter_rust_bridge_codegen generate
+```
 
 ## Tests
 
