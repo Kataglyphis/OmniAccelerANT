@@ -1,0 +1,77 @@
+{
+    // Verwendet IntelliSense zum Ermitteln möglicher Attribute.
+    // Zeigen Sie auf vorhandene Attribute, um die zugehörigen Beschreibungen anzuzeigen.
+    // Weitere Informationen finden Sie unter https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Flutter",
+            "type": "dart",
+            "request": "launch",
+            "program": "lib/main.dart"
+        },
+        {
+            "name": "Kataglyphis-Inference-Engine",
+            "request": "launch",
+            "type": "dart"
+        },
+        {
+            "name": "Kataglyphis-Inference-Engine (profile mode)",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "profile"
+        },
+        {
+            "name": "Kataglyphis-Inference-Engine (release mode)",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "release"
+        },
+        {
+            "name": "rust_builder",
+            "cwd": "rust_builder",
+            "request": "launch",
+            "type": "dart"
+        },
+        {
+            "name": "rust_builder (profile mode)",
+            "cwd": "rust_builder",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "profile"
+        },
+        {
+            "name": "rust_builder (release mode)",
+            "cwd": "rust_builder",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "release"
+        },
+        {
+            "name": "jotrockenmitlockenrepo",
+            "cwd": "ExternalLib/jotrockenmitlockenrepo",
+            "request": "launch",
+            "type": "dart"
+        },
+        {
+            "name": "jotrockenmitlockenrepo (profile mode)",
+            "cwd": "ExternalLib/jotrockenmitlockenrepo",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "profile"
+        },
+        {
+            "name": "jotrockenmitlockenrepo (release mode)",
+            "cwd": "ExternalLib/jotrockenmitlockenrepo",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "release"
+        },
+        {
+            "name": "build_tool",
+            "cwd": "rust_builder/cargokit/build_tool",
+            "request": "launch",
+            "type": "dart"
+        }
+    ]
+}

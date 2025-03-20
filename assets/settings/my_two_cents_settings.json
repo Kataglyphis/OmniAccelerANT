@@ -1,0 +1,58 @@
+[
+	{
+		"routingName":"/books/fuenfGeheimnisse",
+		"filePath":"assets/documents/books/fuenfGeheimnisse.md",
+		"imageDir":"assets/images/aiBlog",
+		"mediaTitle":"Die fünf Geheimnisse, die Sie entdecken sollten, bevor Sie sterben",
+		"fileBaseDir": "assets/documents/books/",
+		"docsDesc": [
+			{
+				"baseDir":"assets/documents/cv/",
+				"title":"CV_Jonas_Heinle_english.pdf",
+				"additionalInfo": "~3.7MB English"
+			},
+			{
+				"baseDir": "assets/documents/cv/",
+				"title": "CV_Jonas_Heinle_german.pdf",
+				"additionalInfo": "~3.7MB German"
+			},
+			{
+				"baseDir": "assets/data/",
+				"title": "WorleyNoiseTextures.zip",
+				"additionalInfo": "Use it for you own projects."
+			}
+		]
+	},
+	{
+		"routingName":"/books/ArnoAnzenbacherEinfuehrungPhilosophie",
+		"filePath":"assets/documents/books/Einführung in die Philosophie - Arno Anzenbacher.md",
+		"imageDir":"assets/images/books",
+		"mediaTitle":"Einführung in die Philosophie",
+		"fileBaseDir": "assets/documents/books/",
+		"docsDesc": []
+	},
+	{
+		"routingName":"/games/Gothic1",
+		"filePath":"assets/documents/games/Gothic1.md",
+		"imageDir":"assets/images/aiBlog",
+		"mediaTitle":"Gothic 1",
+		"fileBaseDir": "assets/documents/games/",
+		"docsDesc": [
+			{
+				"baseDir":"assets/documents/cv/",
+				"title":"CV_Jonas_Heinle_english.pdf",
+				"additionalInfo": "~3.7MB English"
+			},
+			{
+				"baseDir": "assets/documents/cv/",
+				"title": "CV_Jonas_Heinle_german.pdf",
+				"additionalInfo": "~3.7MB German"
+			},
+			{
+				"baseDir": "assets/data/",
+				"title": "WorleyNoiseTextures.zip",
+				"additionalInfo": "Use it for you own projects."
+			}
+		]
+	}
+]

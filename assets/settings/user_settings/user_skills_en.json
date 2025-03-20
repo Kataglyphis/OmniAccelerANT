@@ -1,0 +1,20 @@
+{
+    "Programming Languages (extensive experience in projects)":["C++", "Python", "Java", "GLSL", "C", "Dart"],
+    "Programming Languages (basic knowledge and personal experience in projects)": ["Rust","C#", "JavaScript", "R", "PHP", "SQL", "TypeScript", "Pascal", "Bash/Shell"],
+    "Programming Languages (basic knowledge)": ["Haskell", "Prolog", "Matlab", "NoSQL", "PowerShell"],
+    "Other languages":["LaTeX", "HTML", "CSS", "Markdown"],
+    "Data banks (basic knowledge and personal experience in projects)": ["MySQL", "MariaDB", "SQLite", "Firebase Realtime Database"],
+    "Data banks (basic knowledge)": ["PostgreSQL", "Microsoft SQL Server", "MongoDB"],
+	"Web frameworks and technologies (extensive experience in projects)": ["Node.js", "React.js"],
+    "Web frameworks and technologies (basic knowledge and personal experience in projects)": ["jQuery", "Express"],
+    "Web frameworks and technologies (basic knowledge)": ["Django", "Angular"],
+    "OS (frequently in use and development)": ["Windows", "Linux (mainly different debian derivatives)"],
+    "Other frameworks and libraries": [".NET", "NumPy", "Spring", "Pandas", "TensorFlow", "Flutter", "Scikit-learn", "Torch/PyTorch", "Qt", "Keras", "Matplotlib"],
+    "APIs": ["Vulkan","OpenGL"],
+    "IDEs": ["Visual Studio (Code)", "Eclipse", "IntelliJ"],
+    "Other tools":["Git","Unity 3D", "npm", "Docker", "Raspberry Pi", "Jupyter"],
+    "Languages": ["German native speaker", "Schwäbisch", "English level B2", "French level B1", "Latin"],
+    "Hobbies": ["Powerbuilding", "Guitar", "Politics", "Philosophy"],
+    "Driving license": ["Class B", "Class L", "Class AM"],
+    "Other licenses": ["Chainsaw"]
+}

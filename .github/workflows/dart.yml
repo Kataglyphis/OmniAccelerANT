@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-24.04
 
     steps:
-      - uses: actions/checkout@v4.2.0
+      - uses: actions/checkout@v4.2.2
 
       - name: Prepare python env for sphynx
         run: |
@@ -35,10 +35,10 @@ jobs:
           local-dir: "./docs/build/html/"
 
       - name: Setup Flutter SDK
-        uses: flutter-actions/setup-flutter@v3.6
+        uses: flutter-actions/setup-flutter@v4.0
         with:
           channel: stable
-          version: 3.24.5
+          version: 3.29.1
 
       - name: Install dependencies
         run: |

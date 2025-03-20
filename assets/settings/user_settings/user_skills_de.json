@@ -1,0 +1,20 @@
+{
+    "Programmiersprachen (umfangreiche Erfahrung in Projekten)":["C++", "Python", "Java", "GLSL", "Dart", "C"],
+    "Programmiersprachen (Grundwissen und persönliche Erfahrung in Projekten)": ["Rust", "C#", "JavaScript", "R", "PHP", "SQL", "TypeScript", "Pascal", "Bash/Shell"],
+    "Programmiersprachen (Grundwissen)": ["Haskell", "Prolog", "Matlab", "NoSQL", "PowerShell"],
+    "Andere Sprachen":["LaTeX", "HTML", "CSS", "Markdown"],
+    "Datenbanken (Grundwissen und persönliche Erfahrung in Projekten)": ["MySQL", "MariaDB", "SQLite", "Firebase Realtime Database"],
+    "Datenbanken (Grundwissen)": ["PostgreSQL", "Microsoft SQL Server", "MongoDB"],
+	"Web Frameworks und Technologien (umfangreiche Erfahrung in Projekten)": ["Node.js", "React.js"],
+    "Web Frameworks und Technologien (Grundwissen und persönliche Erfahrung in Projekten)": ["Node.js", "React.js", "jQuery", "Express"],
+    "Web Frameworks und Technologien (Grundwissen)": ["Django", "Angular"],
+    "Betriebssysteme (häufig im Einsatz)": ["Windows", "Linux (hauptsächlich verschiedene Debian Derivative)"],
+    "Andere Frameworks and Bibliotheken": [".NET", "Spring", "NumPy", "Pandas", "TensorFlow", "Flutter", "Scikit-learn", "Torch/PyTorch", "Qt", "Keras", "Matplotlib"],
+    "APIs": ["Vulkan","OpenGL"],
+    "IDEs": ["Visual Studio (Code)", "Eclipse", "IntelliJ"],
+    "Andere Werkzeuge":["Git","Unity 3D", "npm", "Docker", "Raspberry Pi", "Jupyter"],
+    "Sprachen": ["Deutsch Muttersprachler", "Schwäbisch", "English Level B2", "Französisch Level B1", "Latein"],
+    "Hobbies": ["Powerbuilding", "Gitarre", "Politik", "Philosophie"],
+    "Führerschein": ["Klasse B", "Klasse L", "Klasse AM"],
+    "Weitere Lizenzen": ["Kettensäge"]
+}

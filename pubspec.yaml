@@ -4,23 +4,11 @@ homepage: https://jonasheinle.de
 
 publish_to: "none" # Remove this line if you wish to publish to pub.dev
 
-# The following defines the version and build number for your application.
-# A version number is three numbers separated by dots, like 1.2.43
-# followed by an optional build number separated by a +.
-# Both the version and the builder number may be overridden in flutter
-# build by specifying --build-name and --build-number, respectively.
-# In Android, build-name is used as versionName while build-number used as versionCode.
-# Read more about Android versioning at https://developer.android.com/studio/publish/versioning
-# In iOS, build-name is used as CFBundleShortVersionString while build-number is used as CFBundleVersion.
-# Read more about iOS versioning at
-# https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
-# In Windows, build-name is used as the major, minor, and patch parts
-# of the product and file versions while build-number is used as the build suffix.
 version: 1.0.0+1
 
 environment:
-  sdk: ">=3.4.4 <4.0.0"
-  flutter: ">=3.24.5"
+  sdk: ">=3.7.0 <4.0.0"
+  flutter: ">=3.29.1"
 
 # Dependencies specify other packages that your package needs in order to work.
 # To automatically upgrade your package dependencies to the latest versions
@@ -38,17 +26,20 @@ dependencies:
   cupertino_icons: ^1.0.8
   rust_lib_kataglyphis_inference_engine:
     path: rust_builder
-  flutter_rust_bridge: 2.6.0
-  go_router: 14.6.0
+  flutter_rust_bridge: ^2.8.0
+  go_router: ^14.8.1
   font_awesome_flutter: any
+  flutter_localizations:
+    sdk: flutter
+  intl: any
 
 dev_dependencies:
-  mockito: ^5.4.4
+  mockito: ^5.4.5
   flutter_test:
     sdk: flutter
   integration_test:
     sdk: flutter
-  flutter_launcher_icons: ^0.14.1
+  flutter_launcher_icons: ^0.14.3
   flutter_lints: ^5.0.0
 
 # For information on the generic Dart part of this file, see the
@@ -56,10 +47,86 @@ dev_dependencies:
 
 # The following section is specific to Flutter packages.
 flutter:
-  # The following line ensures that the Material Icons font is
-  # included with your application, so that you can use the icons in
-  # the material Icons class.
+  generate: true
   uses-material-design: true
+  assets:
+    - assets/images/
+    - assets/images/Pages/AboutMe/
+    - assets/images/Pages/AboutMe/Bewerbungsbilder/
+    - assets/images/Pages/Data/
+    - assets/images/Pages/Error/
+    - assets/images/Pages/Blog/
+    - assets/images/Pages/Blog/VulkanRenderer/
+    - assets/images/cats/
+    - assets/images/aiBlog/
+    - assets/images/books/
+    - assets/documents/
+    - assets/documents/footer/
+    - assets/documents/blog/
+    - assets/documents/books/
+    - assets/documents/games/
+    - assets/documents/thesis/
+    - assets/documents/cv/
+    - assets/data/
+    - assets/settings/
+    - assets/settings/user_settings/
+
+fonts:
+  - family: Montserrat
+    fonts:
+      - asset: static/Montserrat-Thin.ttf
+      - asset: static/Montserrat-ExtraLight.ttf
+      - asset: static/Montserrat-Light.ttf
+      - asset: static/Montserrat-Regular.ttf
+      - asset: static/Montserrat-Medium.ttf
+      - asset: static/Montserrat-SemiBold.ttf
+      - asset: static/Montserrat-Bold.ttf
+      - asset: static/Montserrat-ExtraBold.ttf
+      - asset: static/Montserrat-Black.ttf
+      - asset: static/Montserrat-ThinItalic.ttf
+        style: italic
+      - asset: static/Montserrat-ExtraLightItalic.ttf
+        style: italic
+      - asset: static/Montserrat-LightItalic.ttf
+        style: italic
+      - asset: static/Montserrat-Italic.ttf
+        style: italic
+      - asset: static/Montserrat-MediumItalic.ttf
+        style: italic
+      - asset: static/Montserrat-SemiBoldItalic.ttf
+        style: italic
+      - asset: static/Montserrat-BoldItalic.ttf
+        style: italic
+      - asset: static/Montserrat-ExtraBoldItalic.ttf
+        style: italic
+      - asset: static/Montserrat-BlackItalic.ttf
+        style: italic
+  - family: Roboto
+    fonts:
+      - asset: Roboto-Black.ttf
+      - asset: Roboto-BlackItalic.ttf
+        style: italic
+      - asset: Roboto-Bold.ttf
+        weight: 700
+      - asset: Roboto-BoldItalic.ttf
+        style: italic
+        weight: 700
+      - asset: Roboto-Italic.ttf
+        style: italic
+      - asset: Roboto-Light.ttf
+      - asset: Roboto-LightItalic.ttf
+        style: italic
+      - asset: Roboto-Medium.ttf
+        weight: 400
+      - asset: Roboto-MediumItalic.ttf
+        weight: 400
+        style: italic
+      - asset: Roboto-Regular.ttf
+      - asset: Roboto-Thin.ttf
+        weight: 200
+      - asset: Roboto-ThinItalic.ttf
+        weight: 200
+        style: italic
 
   # To add assets to your application, add an assets section, like this:
   # assets:
