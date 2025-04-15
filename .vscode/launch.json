@@ -8,7 +8,7 @@
             "name": "Flutter",
             "type": "dart",
             "request": "launch",
-            "program": "lib/main.dart"
+            "program": "lib/main.dart",
         },
         {
             "name": "Kataglyphis-Inference-Engine",
@@ -19,7 +19,7 @@
             "name": "Kataglyphis-Inference-Engine (profile mode)",
             "request": "launch",
             "type": "dart",
-            "flutterMode": "profile"
+            "flutterMode": "profile",
         },
         {
             "name": "Kataglyphis-Inference-Engine (release mode)",

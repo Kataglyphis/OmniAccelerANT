@@ -6,11 +6,9 @@ import 'package:kataglyphis_inference_engine/src/rust/frb_generated.dart';
 // found in the LICENSE file.
 
 import 'dart:convert';
-
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:kataglyphis_inference_engine/l10n/app_localizations.dart';
 
 import 'package:go_router/go_router.dart';
 
@@ -60,12 +58,9 @@ class _AppState extends State<App> with SingleTickerProviderStateMixin {
   late final AnimationController controller;
   late final CurvedAnimation railAnimation;
   late Future<
-      (
-        AppSettings,
-        UserSettings,
-        List<BlogPageConfig>,
-        List<MyTwoCentsConfig>
-      )> _settings;
+    (AppSettings, UserSettings, List<BlogPageConfig>, List<MyTwoCentsConfig>)
+  >
+  _settings;
   final String userSettingsFilePath =
       "assets/settings/user_settings/global_user_settings.json";
   final String appSettingsFilePath = "assets/settings/app_settings.json";
@@ -130,40 +125,45 @@ class _AppState extends State<App> with SingleTickerProviderStateMixin {
   }
 
   Future<
-      (
-        AppSettings,
-        UserSettings,
-        List<BlogPageConfig>,
-        List<MyTwoCentsConfig>
-      )> _loadAppSettings() async {
-    final userSettingsJsonString =
-        await rootBundle.loadString(userSettingsFilePath);
-    final Map<String, dynamic> userSettingsJson =
-        json.decode(userSettingsJsonString);
+    (AppSettings, UserSettings, List<BlogPageConfig>, List<MyTwoCentsConfig>)
+  >
+  _loadAppSettings() async {
+    final userSettingsJsonString = await rootBundle.loadString(
+      userSettingsFilePath,
+    );
+    final Map<String, dynamic> userSettingsJson = json.decode(
+      userSettingsJsonString,
+    );
     UserSettings userSettings = UserSettings.fromJsonFile(userSettingsJson);
 
-    final appSettingsJsonString =
-        await rootBundle.loadString(appSettingsFilePath);
-    final Map<String, dynamic> appSettingsJson =
-        json.decode(appSettingsJsonString);
+    final appSettingsJsonString = await rootBundle.loadString(
+      appSettingsFilePath,
+    );
+    final Map<String, dynamic> appSettingsJson = json.decode(
+      appSettingsJsonString,
+    );
     AppSettings appSettings = AppSettings.fromJsonFile(appSettingsJson);
 
-    final blogSettingsJsonString =
-        await rootBundle.loadString(blogSettingsFilePath);
+    final blogSettingsJsonString = await rootBundle.loadString(
+      blogSettingsFilePath,
+    );
     final List<dynamic> blogSettingsJson = json.decode(blogSettingsJsonString);
     List<BlogPageConfig> blogConfigs = [];
     for (var e in blogSettingsJson) {
       blogConfigs.add(BlogPageConfig.fromJsonFile(e as Map<String, dynamic>));
     }
 
-    final twoCentsSettingsJsonString =
-        await rootBundle.loadString(twoCentsSettingsFilePath);
-    final List<dynamic> twoCentsSettingsJson =
-        json.decode(twoCentsSettingsJsonString);
+    final twoCentsSettingsJsonString = await rootBundle.loadString(
+      twoCentsSettingsFilePath,
+    );
+    final List<dynamic> twoCentsSettingsJson = json.decode(
+      twoCentsSettingsJsonString,
+    );
     List<MyTwoCentsConfig> twoCentsConfigs = [];
     for (var e in twoCentsSettingsJson) {
-      twoCentsConfigs
-          .add(MyTwoCentsConfig.fromJsonFile(e as Map<String, dynamic>));
+      twoCentsConfigs.add(
+        MyTwoCentsConfig.fromJsonFile(e as Map<String, dynamic>),
+      );
     }
     return (appSettings, userSettings, blogConfigs, twoCentsConfigs);
   }
@@ -211,69 +211,77 @@ class _AppState extends State<App> with SingleTickerProviderStateMixin {
       brightness: Brightness.light,
     );
     return FutureBuilder(
-        future: _settings,
-        builder: (context, data) {
-          if (data.hasData) {
-            JotrockenmitLockenScreenConfigurations screenConfigurations =
-                JotrockenmitLockenScreenConfigurations.fromBlogAndDataConfigs(
-                    blogPageConfigs: data.requireData.$3,
-                    twoCentsConfigs: data.requireData.$4);
-            BlogDependentAppAttributes blogDependentAppAttributes =
-                BlogDependentAppAttributes(
-                    blogDependentScreenConfigurations: screenConfigurations,
-                    twoCentsConfigs: data.requireData.$4,
-                    blockSettings: data.requireData.$3);
-            AppAttributes appAttributes = AppAttributes(
-              footerConfig: JoTrockenMitLockenFooterConfig(),
-              homeConfig: JotrockenMitLockenHomeConfig(),
-              appSettings: data.requireData.$1,
-              userSettings: data.requireData.$2,
-              screenConfigurations: screenConfigurations,
-              railAnimation: railAnimation,
-              showMediumSizeLayout: showMediumSizeLayout,
-              showLargeSizeLayout: showLargeSizeLayout,
-              useOtherLanguageMode: useOtherLanguageMode,
-              useLightMode: useLightMode,
-              colorSelected: colorSelected,
-              handleBrightnessChange: handleBrightnessChange,
-              handleLanguageChange: handleLanguageChange,
-              handleColorSelect: handleColorSelect,
-            );
+      future: _settings,
+      builder: (context, data) {
+        if (data.hasData) {
+          JotrockenmitLockenScreenConfigurations screenConfigurations =
+              JotrockenmitLockenScreenConfigurations.fromBlogAndDataConfigs(
+                blogPageConfigs: data.requireData.$3,
+                twoCentsConfigs: data.requireData.$4,
+              );
+          BlogDependentAppAttributes blogDependentAppAttributes =
+              BlogDependentAppAttributes(
+                blogDependentScreenConfigurations: screenConfigurations,
+                twoCentsConfigs: data.requireData.$4,
+                blockSettings: data.requireData.$3,
+              );
+          AppAttributes appAttributes = AppAttributes(
+            footerConfig: JoTrockenMitLockenFooterConfig(),
+            homeConfig: JotrockenMitLockenHomeConfig(),
+            appSettings: data.requireData.$1,
+            userSettings: data.requireData.$2,
+            screenConfigurations: screenConfigurations,
+            railAnimation: railAnimation,
+            showMediumSizeLayout: showMediumSizeLayout,
+            showLargeSizeLayout: showLargeSizeLayout,
+            useOtherLanguageMode: useOtherLanguageMode,
+            useLightMode: useLightMode,
+            colorSelected: colorSelected,
+            handleBrightnessChange: handleBrightnessChange,
+            handleLanguageChange: handleLanguageChange,
+            handleColorSelect: handleColorSelect,
+          );
 
-            RoutesCreator routesCreator = JotrockenMitLockenRoutes(
-                blogDependentAppAttributes: blogDependentAppAttributes);
+          RoutesCreator routesCreator = JotrockenMitLockenRoutes(
+            blogDependentAppAttributes: blogDependentAppAttributes,
+          );
 
-            final GoRouter routerConfig = routesCreator.getRouterConfig(
-                appAttributes, controller, handlePageChange, currentPageIndex);
-            var supportedLanguages = data.requireData.$1.supportedLocales!
-                .map((element) => Locale(element))
-                .toList();
-            return MaterialApp.router(
-                debugShowCheckedModeBanner: false,
-                localizationsDelegates: localizationsDelegate,
-                onGenerateTitle: (context) =>
+          final GoRouter routerConfig = routesCreator.getRouterConfig(
+            appAttributes,
+            controller,
+            handlePageChange,
+            currentPageIndex,
+          );
+          var supportedLanguages =
+              data.requireData.$1.supportedLocales!
+                  .map((element) => Locale(element))
+                  .toList();
+          return MaterialApp.router(
+            debugShowCheckedModeBanner: false,
+            localizationsDelegates: localizationsDelegate,
+            onGenerateTitle:
+                (context) =>
                     (Localizations.localeOf(context) == const Locale("de"))
                         ? appAttributes.appSettings.appTitleDe
                         : appAttributes.appSettings.appTitleEn,
-                themeMode: themeMode,
-                locale: supportedLanguages[0],
-                supportedLocales: supportedLanguages,
-                theme: lightTheme,
-                darkTheme: darkTheme,
-                routerConfig: routerConfig);
-          } else if (data.hasError) {
-            return Text("${data.error}");
-          } else {
-            return Center(
-              child: CircularProgressIndicator(
-                color: ColorSeed.baseColor.color,
-              ),
-            );
-          }
-        });
+            themeMode: themeMode,
+            locale: supportedLanguages[0],
+            supportedLocales: supportedLanguages,
+            theme: lightTheme,
+            darkTheme: darkTheme,
+            routerConfig: routerConfig,
+          );
+        } else if (data.hasError) {
+          return Text("${data.error}");
+        } else {
+          return Center(
+            child: CircularProgressIndicator(color: ColorSeed.baseColor.color),
+          );
+        }
+      },
+    );
   }
 }
-
 
 // class MyApp extends StatelessWidget {
 //   const MyApp({super.key});

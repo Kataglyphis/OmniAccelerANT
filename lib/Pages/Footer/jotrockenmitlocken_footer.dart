@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:jotrockenmitlockenrepo/Pages/Footer/footer_config.dart';
 import 'package:jotrockenmitlockenrepo/Url/external_link_config.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:kataglyphis_inference_engine/l10n/app_localizations.dart';
 
 class JoTrockenMitLockenFooterConfig extends FooterConfig {
   @override
   List<ExternalLinkConfig> getExternalLinks(BuildContext context) {
     return [
       ExternalLinkConfig(host: 'johannes-heinle.de', path: ''),
-      ExternalLinkConfig(host: 'dom-wuest.de', path: '')
+      ExternalLinkConfig(host: 'dom-wuest.de', path: ''),
     ];
   }
 

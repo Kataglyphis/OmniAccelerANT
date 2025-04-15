@@ -6,14 +6,11 @@ import 'package:jotrockenmitlockenrepo/Media/email_button.dart';
 import 'package:jotrockenmitlockenrepo/SocialMedia/social_media_widgets.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:jotrockenmitlockenrepo/Decoration/col_divider.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:kataglyphis_inference_engine/l10n/app_localizations.dart';
 import 'package:jotrockenmitlockenrepo/user_settings.dart';
 
 class AboutMeTable extends StatefulWidget {
-  const AboutMeTable({
-    super.key,
-    required this.userSettings,
-  });
+  const AboutMeTable({super.key, required this.userSettings});
 
   final UserSettings userSettings;
   @override
@@ -21,9 +18,7 @@ class AboutMeTable extends StatefulWidget {
 }
 
 class AboutMeTableState extends State<AboutMeTable> {
-  AboutMeTableState({
-    Key? key,
-  });
+  AboutMeTableState({Key? key});
 
   @override
   Widget build(BuildContext context) {

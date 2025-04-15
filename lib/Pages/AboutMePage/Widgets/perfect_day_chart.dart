@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:jotrockenmitlockenrepo/Decoration/Charts/pie_chart.dart';
 import 'package:jotrockenmitlockenrepo/Decoration/Charts/pie_chart_data_entry.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:kataglyphis_inference_engine/l10n/app_localizations.dart';
 import 'package:jotrockenmitlockenrepo/constants.dart';
 
 class PerfectDay extends StatefulWidget {
@@ -25,7 +25,7 @@ class PerfectDayState extends State<PerfectDay> {
       AppLocalizations.of(context)!.sports: getDayHourPercantage(2),
       AppLocalizations.of(context)!.meditation: getDayHourPercantage(1),
       AppLocalizations.of(context)!.guitar: getDayHourPercantage(1),
-      AppLocalizations.of(context)!.familyFriends: getDayHourPercantage(4)
+      AppLocalizations.of(context)!.familyFriends: getDayHourPercantage(4),
     };
 
     final List<PieChartDataEntry> chartData = [];
