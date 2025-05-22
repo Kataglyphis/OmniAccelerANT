@@ -24,7 +24,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get blockEntryOverview => 'Overview of all my blog posts';
 
   @override
-  String get blockEntryOverviewDescription => 'Does not include reviews of books/movies/games';
+  String get blockEntryOverviewDescription =>
+      'Does not include reviews of books/movies/games';
 
   @override
   String get books => 'Books';
@@ -51,7 +52,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get documents => 'Documents';
 
   @override
-  String get quotationsDescription => 'Collection of various quotations I am inspired by or just can laugh about';
+  String get quotationsDescription =>
+      'Collection of various quotations I am inspired by or just can laugh about';
 
   @override
   String get switchLang => 'Switch (DE/EN)';
@@ -60,7 +62,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get mailMe => 'Mail Me';
 
   @override
-  String get shortDescriptionTextMyPersona => 'Interested in many things. I love breathing life into artificial neurons.';
+  String get shortDescriptionTextMyPersona =>
+      'Interested in many things. I love breathing life into artificial neurons.';
 
   @override
   String get sleep => 'Sleep';
@@ -120,10 +123,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get declarationOnAccessibility => 'Declaration on accessibility';
 
   @override
-  String get disclaimer => 'Disclaimer: I accept no liability for the content of external links.';
+  String get disclaimer =>
+      'Disclaimer: I accept no liability for the content of external links.';
 
   @override
-  String get copyright => 'Copyright © 2024 Jonas Heinle. \nAll rights reserved.';
+  String get copyright =>
+      'Copyright © 2024 Jonas Heinle. \nAll rights reserved.';
 
   @override
   String get copyrightFooterTitle => 'Copyright';

@@ -12,20 +12,19 @@ class NavigationDrawerWidget extends StatefulWidget {
 }
 
 class _NavigationDrawerWidgetState extends State<NavigationDrawerWidget> {
-  Widget buildHeader(bool isCollapsed) =>
-      isCollapsed
-          ? Image.asset("assets/images/barbell.png", width: 48)
-          : Row(
-            children: [
-              const SizedBox(width: 24),
-              Image.asset("assets/images/barbell.png", width: 48),
-              const SizedBox(width: 24),
-              const Text(
-                'Pump IT',
-                style: TextStyle(fontSize: 32, color: Colors.black),
-              ),
-            ],
-          );
+  Widget buildHeader(bool isCollapsed) => isCollapsed
+      ? Image.asset("assets/images/barbell.png", width: 48)
+      : Row(
+          children: [
+            const SizedBox(width: 24),
+            Image.asset("assets/images/barbell.png", width: 48),
+            const SizedBox(width: 24),
+            const Text(
+              'Pump IT',
+              style: TextStyle(fontSize: 32, color: Colors.black),
+            ),
+          ],
+        );
 
   Widget buildCollapseIcon(BuildContext context, bool isCollapsed) {
     const double size = 52;
@@ -78,17 +77,16 @@ class _NavigationDrawerWidgetState extends State<NavigationDrawerWidget> {
 
     return Material(
       color: Colors.transparent,
-      child:
-          isCollapsed
-              ? ListTile(title: leading, onTap: onClicked)
-              : ListTile(
-                leading: leading,
-                title: Text(
-                  text,
-                  style: const TextStyle(color: color, fontSize: 16),
-                ),
-                onTap: onClicked,
+      child: isCollapsed
+          ? ListTile(title: leading, onTap: onClicked)
+          : ListTile(
+              leading: leading,
+              title: Text(
+                text,
+                style: const TextStyle(color: color, fontSize: 16),
               ),
+              onTap: onClicked,
+            ),
     );
   }
 

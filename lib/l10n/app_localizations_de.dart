@@ -21,10 +21,12 @@ class AppLocalizationsDe extends AppLocalizations {
   String get quotations => 'Zitate';
 
   @override
-  String get blockEntryOverview => 'Übersicht aller meiner verfassten Blogbeiträge';
+  String get blockEntryOverview =>
+      'Übersicht aller meiner verfassten Blogbeiträge';
 
   @override
-  String get blockEntryOverviewDescription => 'Beinhaltet nicht die Kritiken zu Büchern/Filmen/Spielen';
+  String get blockEntryOverviewDescription =>
+      'Beinhaltet nicht die Kritiken zu Büchern/Filmen/Spielen';
 
   @override
   String get books => 'Bücher';
@@ -33,7 +35,8 @@ class AppLocalizationsDe extends AppLocalizations {
   String get games => 'Spiele';
 
   @override
-  String get gamesDescription => 'Bemerkenswerte Spiele und was es zu wissen gibt';
+  String get gamesDescription =>
+      'Bemerkenswerte Spiele und was es zu wissen gibt';
 
   @override
   String get booksDescription => 'Lesenswerte Bücher';
@@ -51,7 +54,8 @@ class AppLocalizationsDe extends AppLocalizations {
   String get documents => 'Dokumente';
 
   @override
-  String get quotationsDescription => 'Sammlung verschiedener Zitate, die mich inspirieren oder über die ich einfach lachen kann';
+  String get quotationsDescription =>
+      'Sammlung verschiedener Zitate, die mich inspirieren oder über die ich einfach lachen kann';
 
   @override
   String get switchLang => 'Wechsel (DE/EN)';
@@ -60,7 +64,8 @@ class AppLocalizationsDe extends AppLocalizations {
   String get mailMe => 'Schreib mir';
 
   @override
-  String get shortDescriptionTextMyPersona => 'Interessiert in vielen Sachen. Ich liebe es künstlichen Neuronen Leben einzuhauchen.​';
+  String get shortDescriptionTextMyPersona =>
+      'Interessiert in vielen Sachen. Ich liebe es künstlichen Neuronen Leben einzuhauchen.​';
 
   @override
   String get sleep => 'Schlaf';
@@ -120,10 +125,12 @@ class AppLocalizationsDe extends AppLocalizations {
   String get declarationOnAccessibility => 'Erklärung zur Barrierefreiheit';
 
   @override
-  String get disclaimer => 'Haftungsausschluss: Für die Inhalte externer \nLinks übernehme ich keine Haftung.';
+  String get disclaimer =>
+      'Haftungsausschluss: Für die Inhalte externer \nLinks übernehme ich keine Haftung.';
 
   @override
-  String get copyright => 'Copyright © 2024 Jonas Heinle. \nAlle Rechte vorbehalten.';
+  String get copyright =>
+      'Copyright © 2024 Jonas Heinle. \nAlle Rechte vorbehalten.';
 
   @override
   String get copyrightFooterTitle => 'Urheberrecht';

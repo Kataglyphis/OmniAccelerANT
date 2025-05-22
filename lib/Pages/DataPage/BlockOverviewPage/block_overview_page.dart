@@ -25,19 +25,19 @@ class BlockOverviewPage extends StatefulWidget {
 class BlockOverviewPageState extends State<BlockOverviewPage> {
   @override
   Widget build(BuildContext context) {
-    List<BlockEntry> blockEntries =
-        widget.blogDependentAppAttributes.blockSettings
-            .map(
-              (config) => BlockEntry(
-                title:
-                    (Localizations.localeOf(context) == const Locale("de"))
-                        ? config.shortDescriptionDE
-                        : config.shortDescriptionEN,
-                date: config.lastModified,
-                comment: config.routingName,
-              ),
-            )
-            .toList();
+    List<BlockEntry> blockEntries = widget
+        .blogDependentAppAttributes
+        .blockSettings
+        .map(
+          (config) => BlockEntry(
+            title: (Localizations.localeOf(context) == const Locale("de"))
+                ? config.shortDescriptionDE
+                : config.shortDescriptionEN,
+            date: config.lastModified,
+            comment: config.routingName,
+          ),
+        )
+        .toList();
     return SinglePage(
       footer: widget.footer,
       appAttributes: widget.appAttributes,

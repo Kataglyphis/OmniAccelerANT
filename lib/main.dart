@@ -252,18 +252,16 @@ class _AppState extends State<App> with SingleTickerProviderStateMixin {
             handlePageChange,
             currentPageIndex,
           );
-          var supportedLanguages =
-              data.requireData.$1.supportedLocales!
-                  .map((element) => Locale(element))
-                  .toList();
+          var supportedLanguages = data.requireData.$1.supportedLocales!
+              .map((element) => Locale(element))
+              .toList();
           return MaterialApp.router(
             debugShowCheckedModeBanner: false,
             localizationsDelegates: localizationsDelegate,
-            onGenerateTitle:
-                (context) =>
-                    (Localizations.localeOf(context) == const Locale("de"))
-                        ? appAttributes.appSettings.appTitleDe
-                        : appAttributes.appSettings.appTitleEn,
+            onGenerateTitle: (context) =>
+                (Localizations.localeOf(context) == const Locale("de"))
+                ? appAttributes.appSettings.appTitleDe
+                : appAttributes.appSettings.appTitleEn,
             themeMode: themeMode,
             locale: supportedLanguages[0],
             supportedLocales: supportedLanguages,

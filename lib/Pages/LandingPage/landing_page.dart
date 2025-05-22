@@ -30,9 +30,10 @@ class LandingPageState extends State<LandingPage> {
     const colDivider = SizedBox(height: 10);
     List<Widget> childWidgetsLeftPage = [];
     List<Widget> childWidgetsRightPage = [];
-    List<BlogPageConfig> blogPagesConfig =
-        widget.blogDependentAppAttributes.blogDependentScreenConfigurations
-            .getBlogPagesConfig();
+    List<BlogPageConfig> blogPagesConfig = widget
+        .blogDependentAppAttributes
+        .blogDependentScreenConfigurations
+        .getBlogPagesConfig();
 
     // lets add a button to the overall overview of all blog entries as the first entry
     childWidgetsLeftPage.add(
@@ -63,10 +64,9 @@ class LandingPageState extends State<LandingPage> {
         fileTitle: blogPagesConfig[i].fileTitle,
         fileAdditionalInfo: blogPagesConfig[i].fileAdditionalInfo,
         fileBaseDir: blogPagesConfig[i].fileBaseDir,
-        label:
-            Localizations.localeOf(context) == const Locale("de")
-                ? blogPagesConfig[i].shortDescriptionDE
-                : blogPagesConfig[i].shortDescriptionEN,
+        label: Localizations.localeOf(context) == const Locale("de")
+            ? blogPagesConfig[i].shortDescriptionDE
+            : blogPagesConfig[i].shortDescriptionEN,
         routerPath: blogPagesConfig[i].getRoutingName(),
         headline: AppLocalizations.of(context)!.visitBlogEntry,
         githubRepo: githubRepo,

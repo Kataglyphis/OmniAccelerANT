@@ -10,8 +10,9 @@ class JotrockenMitLockenHomeConfig extends HomeConfig {
     return ButtonNames(
       brightness: AppLocalizations.of(context)!.toogleBrightness,
       // for now i want my app color NOT selectable in production
-      color:
-          (kDebugMode) ? AppLocalizations.of(context)!.selectSeedColor : null,
+      color: (kDebugMode)
+          ? AppLocalizations.of(context)!.selectSeedColor
+          : null,
       language: AppLocalizations.of(context)!.switchLang,
     );
   }
