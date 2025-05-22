@@ -1,12 +1,12 @@
-import 'package:jotrockenmitlockenrepo/Pages/stateful_branch_info_provider.dart';
+import "package:jotrockenmitlockenrepo/Pages/stateful_branch_info_provider.dart";
 
 class MyTwoCentsConfig extends StatefulBranchInfoProvider {
   MyTwoCentsConfig.fromJsonFile(Map<String, dynamic> jsonFile)
-      : routingName = jsonFile["routingName"] as String,
-        filePath = jsonFile["filePath"] as String,
-        imageDir = jsonFile["imageDir"] as String,
-        mediaTitle = jsonFile["mediaTitle"] as String,
-        fileBaseDir = jsonFile["fileBaseDir"] as String {
+    : routingName = jsonFile["routingName"] as String,
+      filePath = jsonFile["filePath"] as String,
+      imageDir = jsonFile["imageDir"] as String,
+      mediaTitle = jsonFile["mediaTitle"] as String,
+      fileBaseDir = jsonFile["fileBaseDir"] as String {
     var docsDescJsonFile = jsonFile["docsDesc"] as List<dynamic>;
     for (var element in docsDescJsonFile) {
       docsDesc.add({

@@ -1,4 +1,4 @@
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:kataglyphis_inference_engine/l10n/app_localizations.dart';
 import 'package:go_router/go_router.dart';
 import 'package:jotrockenmitlockenrepo/Decoration/row_divider.dart';
 import 'package:jotrockenmitlockenrepo/Decoration/component_group_decoration.dart';
@@ -88,7 +88,9 @@ class DataPageEntryState extends State<DataPageEntry> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           ComponentGroupDecoration(
-              label: widget.label, children: <Widget>[...undecoratedChilds]),
+            label: widget.label,
+            children: <Widget>[...undecoratedChilds],
+          ),
         ],
       ),
     );

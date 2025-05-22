@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:kataglyphis_inference_engine/l10n/app_localizations.dart';
 import 'package:kataglyphis_inference_engine/Pages/DataPage/data_page_entry.dart';
 import 'package:jotrockenmitlockenrepo/Decoration/row_divider.dart';
 
@@ -10,8 +10,11 @@ import 'package:jotrockenmitlockenrepo/app_attributes.dart';
 class DataPage extends StatefulWidget {
   final AppAttributes appAttributes;
   final Footer footer;
-  const DataPage(
-      {super.key, required this.appAttributes, required this.footer});
+  const DataPage({
+    super.key,
+    required this.appAttributes,
+    required this.footer,
+  });
 
   @override
   State<StatefulWidget> createState() => DataPageState();
@@ -63,12 +66,13 @@ class DataPageState extends State<DataPage> {
     var homePagesLeftRight = _createLandingPageChildWidgets(context);
 
     return OneTwoTransitionPage(
-        childWidgetsLeftPage: homePagesLeftRight[0],
-        childWidgetsRightPage: homePagesLeftRight[1],
-        appAttributes: widget.appAttributes,
-        footer: widget.footer,
-        showMediumSizeLayout: widget.appAttributes.showMediumSizeLayout,
-        showLargeSizeLayout: widget.appAttributes.showLargeSizeLayout,
-        railAnimation: widget.appAttributes.railAnimation);
+      childWidgetsLeftPage: homePagesLeftRight[0],
+      childWidgetsRightPage: homePagesLeftRight[1],
+      appAttributes: widget.appAttributes,
+      footer: widget.footer,
+      showMediumSizeLayout: widget.appAttributes.showMediumSizeLayout,
+      showLargeSizeLayout: widget.appAttributes.showLargeSizeLayout,
+      railAnimation: widget.appAttributes.railAnimation,
+    );
   }
 }

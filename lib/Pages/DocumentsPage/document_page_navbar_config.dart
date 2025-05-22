@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:kataglyphis_inference_engine/l10n/app_localizations.dart';
 import 'package:jotrockenmitlockenrepo/Pages/navbar_page_config.dart';
 
 class DocumentPageNavBarConfig extends NavBarPageConfig {

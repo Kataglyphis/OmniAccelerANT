@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:kataglyphis_inference_engine/Widgets/Navigation/old/Navbar/mobile/drawer_item.dart';
 import 'package:kataglyphis_inference_engine/Widgets/Navigation/old/Navbar/mobile/navigation_drawer_change_notifier.dart';
 import 'package:provider/provider.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:kataglyphis_inference_engine/l10n/app_localizations.dart';
 
 class NavigationDrawerWidget extends StatefulWidget {
   const NavigationDrawerWidget({super.key});
@@ -13,17 +13,11 @@ class NavigationDrawerWidget extends StatefulWidget {
 
 class _NavigationDrawerWidgetState extends State<NavigationDrawerWidget> {
   Widget buildHeader(bool isCollapsed) => isCollapsed
-      ? Image.asset(
-          "assets/images/barbell.png",
-          width: 48,
-        )
+      ? Image.asset("assets/images/barbell.png", width: 48)
       : Row(
           children: [
             const SizedBox(width: 24),
-            Image.asset(
-              "assets/images/barbell.png",
-              width: 48,
-            ),
+            Image.asset("assets/images/barbell.png", width: 48),
             const SizedBox(width: 24),
             const Text(
               'Pump IT',
@@ -45,13 +39,15 @@ class _NavigationDrawerWidgetState extends State<NavigationDrawerWidget> {
         color: Colors.transparent,
         child: InkWell(
           child: SizedBox(
-              width: width,
-              height: size,
-              child: Icon(icon, color: Colors.black)),
+            width: width,
+            height: size,
+            child: Icon(icon, color: Colors.black),
+          ),
           onTap: () {
             final provider = Provider.of<NavigationDrawerChangeNotifier>(
-                context,
-                listen: false);
+              context,
+              listen: false,
+            );
             provider.toggleIsCollapsed();
           },
         ),
@@ -70,25 +66,25 @@ class _NavigationDrawerWidgetState extends State<NavigationDrawerWidget> {
     }
   }
 
-  buildMenuItem(
-      {required bool isCollapsed,
-      required String text,
-      required IconData icon,
-      required void Function() onClicked}) {
+  buildMenuItem({
+    required bool isCollapsed,
+    required String text,
+    required IconData icon,
+    required void Function() onClicked,
+  }) {
     const color = Colors.black;
     final leading = Icon(icon, color: color);
 
     return Material(
       color: Colors.transparent,
       child: isCollapsed
-          ? ListTile(
-              title: leading,
-              onTap: onClicked,
-            )
+          ? ListTile(title: leading, onTap: onClicked)
           : ListTile(
               leading: leading,
-              title: Text(text,
-                  style: const TextStyle(color: color, fontSize: 16)),
+              title: Text(
+                text,
+                style: const TextStyle(color: color, fontSize: 16),
+              ),
               onTap: onClicked,
             ),
     );
@@ -97,11 +93,13 @@ class _NavigationDrawerWidgetState extends State<NavigationDrawerWidget> {
   buildList({required BuildContext context, required bool isCollapsed}) {
     List<DrawerItem> items = [
       DrawerItem(
-          title: AppLocalizations.of(context)!.homepage,
-          icon: Icons.account_box_outlined),
+        title: AppLocalizations.of(context)!.homepage,
+        icon: Icons.account_box_outlined,
+      ),
       DrawerItem(
-          title: AppLocalizations.of(context)!.aboutme,
-          icon: Icons.speaker_outlined),
+        title: AppLocalizations.of(context)!.aboutme,
+        icon: Icons.speaker_outlined,
+      ),
     ];
     return ListView.separated(
       shrinkWrap: true,
@@ -125,8 +123,9 @@ class _NavigationDrawerWidgetState extends State<NavigationDrawerWidget> {
   Widget build(BuildContext context) {
     final provider = Provider.of<NavigationDrawerChangeNotifier>(context);
     final isCollapsed = provider.isCollapsed;
-    final safeArea =
-        EdgeInsets.only(top: MediaQuery.of(context).viewPadding.top);
+    final safeArea = EdgeInsets.only(
+      top: MediaQuery.of(context).viewPadding.top,
+    );
     return SizedBox(
       width: isCollapsed ? MediaQuery.of(context).size.width * 0.2 : null,
       child: Drawer(
@@ -135,15 +134,13 @@ class _NavigationDrawerWidgetState extends State<NavigationDrawerWidget> {
           child: Column(
             children: [
               Container(
-                  padding:
-                      const EdgeInsets.symmetric(vertical: 24).add(safeArea),
-                  child: buildHeader(isCollapsed)),
+                padding: const EdgeInsets.symmetric(vertical: 24).add(safeArea),
+                child: buildHeader(isCollapsed),
+              ),
               buildList(context: context, isCollapsed: isCollapsed),
               const Spacer(),
               buildCollapseIcon(context, isCollapsed),
-              const SizedBox(
-                height: 12,
-              ),
+              const SizedBox(height: 12),
             ],
           ),
         ),
