@@ -99,4 +99,4 @@ jobs:
           server: ${{ secrets.SERVER }}
           username: ${{ secrets.USERNAME }}
           password: ${{ secrets.PW }}
-          local-dir: "./doc/api"
+          local-dir: "./doc/api/"
