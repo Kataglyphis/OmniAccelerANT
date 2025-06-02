@@ -88,3 +88,15 @@ jobs:
         continue-on-error: true
         run: |
           flutter build linux --release
+
+      - name: Build docs 
+        run: |
+          dart doc
+
+      - name: 📂 Sync files to domain
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.SERVER }}
+          username: ${{ secrets.USERNAME }}
+          password: ${{ secrets.PW }}
+          local-dir: "./doc/api"
