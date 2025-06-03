@@ -11,3 +11,5 @@ dartdoc:
       displayName: Great
   categoryOrder: [awesome, great]
   showUndocumentedCategories: true
+  additional-docs:
+    - docs/INTRODUCTION.md
