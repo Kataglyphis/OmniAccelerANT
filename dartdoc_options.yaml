@@ -1,15 +1,12 @@
 # “additional-docs” tells Dartdoc: “Here are extra markdown files to render
 #  as top-level pages in the generated doc site.” Each entry is a path
 #  (relative to the project root).
-additional-docs:
-  - docs/INTRODUCTION.md
-  - docs/USAGE.md
-  - docs/TUTORIAL.md
-
-# You can also group them under a logical “folder” name in the nav:
-# navigation:
-#   - name: "Guides"
-#     children:
-#       - docs/INTRODUCTION.md
-#       - docs/USAGE.md
-#       - docs/TUTORIAL.md
+dartdoc:
+  categories:
+    awesome:
+      markdown: docs/INTRODUCTION.md
+      displayName: Awesome
+    great:
+      markdown: docs/INTRODUCTION.md
+      displayName: Great
+  categoryOrder: [awesome, great]
