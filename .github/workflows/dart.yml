@@ -67,12 +67,6 @@ jobs:
         run: |
           flutter build linux --release
 
-        # Build Linux Desktop App (Dev Branch) with a fallback
-      - name: "Build Linux Desktop App"
-        continue-on-error: true
-        run: |
-          flutter build linux --release
-
       - name: Build docs 
         run: |
           dart doc
