@@ -22,7 +22,7 @@ jobs:
         uses: flutter-actions/setup-flutter@v4.0
         with:
           channel: stable
-          version: 3.32.4
+          version: 3.32.5
 
       - name: Install dependencies
         run: |
