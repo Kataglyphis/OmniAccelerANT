@@ -1,0 +1,28 @@
+name: Windows CMake (clang-cl)
+
+on: [ push, pull_request ]
+
+jobs:
+  build-clang:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Visual Studio dev cmd
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          vs-version: '17.0'
+
+      - name: Configure (clang-cl)
+        run: cmake -S . -B build -G "Visual Studio 17 2022" -A x64 -T clang-cl -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: cmake --build build --config Release -- /m
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-clang-build
+          path: build
