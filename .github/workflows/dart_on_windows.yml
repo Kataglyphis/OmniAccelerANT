@@ -54,8 +54,15 @@ jobs:
       #flutter build windows --release
       - name: "Build Windows Desktop App"
         run: |
-         cmake -S windows -B build/windows/x64 -G "Ninja" -DCMAKE_C_COMPILER=clang-cl -DCMAKE_CXX_COMPILER=clang-cl
-          cmake --build build/windows/x64 --config Release
+          # Set C compiler to clang-cl
+          set CC=clang-cl.exe
+          # Set C++ compiler to clang-cl
+          set CXX=clang-cl.exe
+          # (Optional, but often helpful) Set the linker to lld-link
+          set LD=lld-link.exe 
+          flutter build windows --release
+          # cmake -S windows -B build/windows/x64 -G "Ninja" -DCMAKE_C_COMPILER=clang-cl -DCMAKE_CXX_COMPILER=clang-cl
+          # cmake --build build/windows/x64 --config Release
   
       - name: Upload artifact
         uses: actions/upload-artifact@v4
