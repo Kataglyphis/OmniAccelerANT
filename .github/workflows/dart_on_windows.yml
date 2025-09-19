@@ -54,7 +54,7 @@ jobs:
       #flutter build windows --release
       - name: "Build Windows Desktop App"
         run: |
-         cmake -S windows -B build/windows/x64 -G "Ninja" -DCMAKE_C_COMPILER=clang-cl -DCMAKE_CXX_COMPILER=windows-clang-buildTARGET_PLATFORM=windows-x64
+         cmake -S windows -B build/windows/x64 -G "Ninja" -DCMAKE_C_COMPILER=clang-cl -DCMAKE_CXX_COMPILER=clang-cl
           cmake --build build/windows/x64 --config Release
   
       - name: Upload artifact
