@@ -67,7 +67,6 @@ jobs:
         run: |
           flutter build linux --release
        
-      - name: Download build artifact (if separate job)
         # skip if running after your build and checkout; otherwise download artifact
       - name: Create tar.gz
         run: |
