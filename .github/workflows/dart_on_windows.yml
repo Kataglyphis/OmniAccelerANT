@@ -51,10 +51,15 @@ jobs:
           flutter config --enable-windows-desktop
 
       # Build Linux Desktop App for Production (Main Branch)
+      #flutter build windows --release
       - name: "Build Windows Desktop App"
         run: |
-          flutter build windows --release
-       
+         cmake -S windows -B build/windows/x64 \
+         -G "Ninja" -A x64 \
+         -DCMAKE_C_COMPILER=clang-cl -DCMAKE_CXX_COMPILER=clang-cl \
+         -DFLUTTER_TARGET_PLATFORM=windows-x64
+         cmake --build build/windows/x64 --config Release
+  
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
