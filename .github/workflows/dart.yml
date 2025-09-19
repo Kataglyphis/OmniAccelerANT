@@ -66,7 +66,22 @@ jobs:
       - name: "Build Linux Desktop App"
         run: |
           flutter build linux --release
+       
+      - name: Download build artifact (if separate job)
+        # skip if running after your build and checkout; otherwise download artifact
+      - name: Create tar.gz
+        run: |
+          mkdir -p out
+          cp -r build/linux/x64/release/bundle out/myapp-bundle
+          tar -C out -czf myapp-linux-x64.tar.gz myapp-bundle
+          
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: myapp-linux-tar
+          path: myapp-linux-x64.tar.gz
 
+      
       - name: Build docs 
         run: |
           dart doc
