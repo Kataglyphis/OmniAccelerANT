@@ -46,21 +46,15 @@ jobs:
         run: |
           flutter test
 
-      - name: Enable Flutter Linux Desktop
+      - name: Enable Flutter Windows Desktop
         run: |
           flutter config --enable-windows-desktop
 
       # Build Linux Desktop App for Production (Main Branch)
-      - name: "Build Linux Desktop App"
+      - name: "Build Windows Desktop App"
         run: |
           flutter build windows --release
-      
-      - name: Configure (clang-cl)
-        run: cmake -S . -B build -G "Visual Studio 17 2022" -A x64 -T clang-cl -DCMAKE_BUILD_TYPE=Release
-
-      - name: Build
-        run: cmake --build build --config Release -- /m
-
+       
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
