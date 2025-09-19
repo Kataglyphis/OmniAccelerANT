@@ -54,14 +54,11 @@ jobs:
       #flutter build windows --release
       - name: "Build Windows Desktop App"
         run: |
-         cmake -S windows -B build/windows/x64 \
-         -G "Ninja" -A x64 \
-         -DCMAKE_C_COMPILER=clang-cl -DCMAKE_CXX_COMPILER=clang-cl \
-         -DFLUTTER_TARGET_PLATFORM=windows-x64
-         cmake --build build/windows/x64 --config Release
+         cmake -S windows -B build/windows/x64 -G "Ninja" -A x64 -DCMAKE_C_COMPILER=clang-cl -DCMAKE_CXX_COMPILER=windows-clang-buildTARGET_PLATFORM=windows-x64
+          cmake --build build/windows/x64 --config Release
   
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: windows-clang-build
+          name: wi ws-clang-build
           path: build
