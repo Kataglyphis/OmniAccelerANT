@@ -20,6 +20,35 @@ jobs:
         uses: ilammy/msvc-dev-cmd@v1
         with:
           vs-version: '17.0'
+
+      - name: Install dependencies
+        run: |
+          git submodule update --init --recursive
+          flutter pub get
+          cd ExternalLib/jotrockenmitlockenrepo
+          flutter pub get
+
+      # Uncomment this step to verify the use of 'dart format' on each commit.
+      - name: Verify formatting
+        continue-on-error: true
+        run: dart format --output=none --set-exit-if-changed .
+
+      # Consider passing '--fatal-infos' for slightly stricter analysis.
+      - name: Analyze project source
+        continue-on-error: true
+        run: dart analyze
+
+      # Your project will need to have tests in test/ and a dependency on
+      # package:test for this step to succeed. Note that Flutter projects will
+      # want to change this to 'flutter test'.
+      - name: Run tests
+        continue-on-error: true
+        run: |
+          flutter test
+
+      - name: Enable Flutter Linux Desktop
+        run: |
+          flutter config --enable-windows-desktop
       
       - name: Configure (clang-cl)
         run: cmake -S . -B build -G "Visual Studio 17 2022" -A x64 -T clang-cl -DCMAKE_BUILD_TYPE=Release
