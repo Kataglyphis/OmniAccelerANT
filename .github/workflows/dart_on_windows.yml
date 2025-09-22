@@ -2,6 +2,9 @@ name: Windows CMake (clang-cl)
 
 on: [ push, pull_request ]
 
+env:
+  BUILD_DIR_RELEASE: build/windows/x64/runner
+
 jobs:
   build-clang:
     runs-on: windows-latest
@@ -15,11 +18,6 @@ jobs:
         with:
           channel: stable
           version: 3.35.4
-      
-      - name: Setup Visual Studio dev cmd
-        uses: ilammy/msvc-dev-cmd@v1
-        with:
-          vs-version: '17.0'
 
       - name: Install dependencies
         run: |
@@ -50,22 +48,35 @@ jobs:
         run: |
           flutter config --enable-windows-desktop
 
-      # Build Linux Desktop App for Production (Main Branch)
+      # Build Windows Desktop App for Production (Main Branch)
+      - name: "Build Windows Desktop App"
+        run: |
+          cd rust
+          cargo build --release
+          cp "${{ github.workspace }}/rust/target/release/rust_lib_kataglyphis_inference_engine.dll" `
+            "${{ github.workspace }}/build/windows/x64/plugins/rust_lib_kataglyphis_inference_engine"
+        shell: pwsh
+
+      # Build Windows Desktop App for Production (Main Branch)
       #flutter build windows --release
       - name: "Build Windows Desktop App"
         run: |
-          # Set C compiler to clang-cl
-          set CC=clang-cl.exe
-          # Set C++ compiler to clang-cl
-          set CXX=clang-cl.exe
-          # (Optional, but often helpful) Set the linker to lld-link
-          set LD=lld-link.exe 
-          flutter build windows --release
-          # cmake -S windows -B build/windows/x64 -G "Ninja" -DCMAKE_C_COMPILER=clang-cl -DCMAKE_CXX_COMPILER=clang-cl
-          # cmake --build build/windows/x64 --config Release
-  
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
+          cmake `
+            "${{ github.workspace }}/windows" `
+            -B "${{ github.workspace }}/build/windows/x64" `
+            -G "Ninja" `
+            -DFLUTTER_TARGET_PLATFORM=windows-x64 `
+            -DCMAKE_CXX_COMPILER='clang-cl' `
+            -DCMAKE_CXX_COMPILER_TARGET=x86_64-pc-windows-msvc
+          cmake --build "${{ github.workspace }}/build/windows/x64" --config Release --target install --verbose 
+        shell: pwsh
+
+      # see also the install commands in the bottom of the CMakeLists.txt
+      - name: Upload files & Zip
+        uses: actions/upload-artifact@v4.6.2
         with:
-          name: wi ws-clang-build
-          path: build
+          name: windows-files
+          path: |
+            ${{ env.BUILD_DIR_RELEASE }}/**/*.exe
+            ${{ env.BUILD_DIR_RELEASE }}/**/*.dll
+            ${{ env.BUILD_DIR_RELEASE }}/data/**/*

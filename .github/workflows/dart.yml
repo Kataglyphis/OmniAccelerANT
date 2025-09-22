@@ -11,6 +11,9 @@ on:
   pull_request:
     branches: ["main", "develop"]
 
+env:
+  APP_NAME: kataglyphis-inference-engine
+
 jobs:
   build:
     runs-on: ubuntu-24.04
@@ -71,14 +74,14 @@ jobs:
       - name: Create tar.gz
         run: |
           mkdir -p out
-          cp -r build/linux/x64/release/bundle out/myapp-bundle
-          tar -C out -czf myapp-linux-x64.tar.gz myapp-bundle
+          cp -r build/linux/x64/release/bundle out/${APP_NAME}-bundle
+          tar -C out -czf ${APP_NAME}-linux-x64.tar.gz ${APP_NAME}-bundle
           
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: myapp-linux-tar
-          path: myapp-linux-x64.tar.gz
+          name: ${{ env.APP_NAME }}-linux-tar
+          path: ${{ env.APP_NAME }}-linux-x64.tar.gz
 
       
       - name: Build docs 
