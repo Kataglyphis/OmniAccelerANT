@@ -48,11 +48,17 @@ jobs:
         run: |
           flutter config --enable-windows-desktop
 
+      # this is a bit hacky; creates ephemeral project but we remove build artifacts
+      # for we build it our own in next step
+      - name: "Create ephemeral project"
+        continue-on-error: true
+        run: |
+          flutter build windows
+          Remove-Item -Recurse -Force .\build
 
-      # Build Windows Desktop App for Production (Main Branch)
-      #flutter build windows --release
       - name: "Configure Windows Desktop App"
         run: |
+          
           cmake `
             "${{ github.workspace }}/windows" `
             -B "${{ github.workspace }}/build/windows/x64" `
@@ -60,7 +66,6 @@ jobs:
             -DFLUTTER_TARGET_PLATFORM=windows-x64 `
             -DCMAKE_CXX_COMPILER='clang-cl' `
             -DCMAKE_CXX_COMPILER_TARGET=x86_64-pc-windows-msvc
-          cmake --build "${{ github.workspace }}/build/windows/x64" --config Release --target install --verbose 
         shell: pwsh
 
       # Build Windows Desktop App for Production (Main Branch)
