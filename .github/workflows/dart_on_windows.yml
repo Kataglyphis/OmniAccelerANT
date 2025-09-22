@@ -52,6 +52,7 @@ jobs:
       - name: "Build Windows Desktop App"
         run: |
           cd rust
+          cargo install flutter_rust_bridge_codegen
           cargo build --release
           cp "${{ github.workspace }}/rust/target/release/rust_lib_kataglyphis_inference_engine.dll" `
             "${{ github.workspace }}/build/windows/x64/plugins/rust_lib_kataglyphis_inference_engine"
