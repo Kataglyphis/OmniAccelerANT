@@ -11,19 +11,26 @@ import 'package:jotrockenmitlockenrepo/user_settings.dart';
 import 'package:kataglyphis_inference_engine/src/rust/api/simple.dart';
 import 'package:kataglyphis_inference_engine/src/rust/frb_generated.dart';
 
+/// {@category awesome}
 class AboutMePage extends StatefulWidget {
   final AppAttributes appAttributes;
   final Footer footer;
-  const AboutMePage(
-      {super.key, required this.appAttributes, required this.footer});
+  const AboutMePage({
+    super.key,
+    required this.appAttributes,
+    required this.footer,
+  });
 
   @override
   State<StatefulWidget> createState() => AboutMePageState();
 }
 
 class AboutMePageState extends State<AboutMePage> {
-  List<List<Widget>> _createAboutMeChildPages(UserSettings userSettings,
-      ColorSeed colorSelected, BuildContext context) {
+  List<List<Widget>> _createAboutMeChildPages(
+    UserSettings userSettings,
+    ColorSeed colorSelected,
+    BuildContext context,
+  ) {
     String aboutMeFile = userSettings.aboutMeFileEn!;
     if (Localizations.localeOf(context) == const Locale('de')) {
       aboutMeFile = userSettings.aboutMeFileDe!;
@@ -32,7 +39,8 @@ class AboutMePageState extends State<AboutMePage> {
       AboutMeTable(userSettings: userSettings),
       Center(
         child: Text(
-            'Action: Call Rust `greet("Tom")`\nResult: `${greet(name: "Tom")}`'),
+          'Action: Call Rust `greet("Tom")`\nResult: `${greet(name: "Tom")}`',
+        ),
       ),
     ];
     List<Widget> childWidgetsRightPage = [
@@ -40,10 +48,7 @@ class AboutMePageState extends State<AboutMePage> {
       // const SizedBox(
       //   height: 40,
       // ),
-      SkillTable(
-        aboutMeFile: aboutMeFile,
-        userSettings: userSettings,
-      ),
+      SkillTable(aboutMeFile: aboutMeFile, userSettings: userSettings),
 
       //widget.footer
     ];
@@ -54,16 +59,18 @@ class AboutMePageState extends State<AboutMePage> {
   @override
   Widget build(BuildContext context) {
     var aboutMePagesLeftRight = _createAboutMeChildPages(
-        widget.appAttributes.userSettings,
-        widget.appAttributes.colorSelected,
-        context);
+      widget.appAttributes.userSettings,
+      widget.appAttributes.colorSelected,
+      context,
+    );
     return OneTwoTransitionPage(
-        childWidgetsLeftPage: aboutMePagesLeftRight[0],
-        childWidgetsRightPage: aboutMePagesLeftRight[1],
-        appAttributes: widget.appAttributes,
-        footer: widget.footer,
-        showMediumSizeLayout: widget.appAttributes.showMediumSizeLayout,
-        showLargeSizeLayout: widget.appAttributes.showLargeSizeLayout,
-        railAnimation: widget.appAttributes.railAnimation);
+      childWidgetsLeftPage: aboutMePagesLeftRight[0],
+      childWidgetsRightPage: aboutMePagesLeftRight[1],
+      appAttributes: widget.appAttributes,
+      footer: widget.footer,
+      showMediumSizeLayout: widget.appAttributes.showMediumSizeLayout,
+      showLargeSizeLayout: widget.appAttributes.showLargeSizeLayout,
+      railAnimation: widget.appAttributes.railAnimation,
+    );
   }
 }

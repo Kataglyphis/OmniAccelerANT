@@ -117,6 +117,33 @@ Upgrading the flutter/dart bridge dependencies is as simple as this command:
 cargo install flutter_rust_bridge_codegen && flutter_rust_bridge_codegen generate
 ```
 
+### Windows
+For windows we absolutely do not want to be dependent on MSVC compiler.  
+Therefore I use [clang-cl](https://clang.llvm.org/docs/MSVCCompatibility.html).  
+Using clang-cl instead of MSVC needed adjustment. Therefore i give some instructions here.  
+
+#### Flutter generated cmake project
+Adjust the CXX-Flags in the auto-generated Cmake project. Find the folloeing line 
+and adjust accordingly:
+
+```cmake
+# comment this line
+# target_compile_options(${TARGET} PRIVATE /W4 /WX /wd"4100")
+# add the following:
+# target_compile_options(${TARGET} PRIVATE /W3 /WX /wd4100 -Wno-cast-function-type-mismatch -Wno-unused-function)
+```
+
+Now you can build the project by running following commands:  
+**__Attention:__** Adjust paths accordingly.
+
+```powershell
+cd rust
+cargo build --release
+cp rust\target\release\rust_lib_kataglyphis_inference_engine.dll build\windows\x64\plugins\rust_lib_kataglyphis_inference_engine
+cmake C:\GitHub\Kataglyphis-Inference-Engine\windows -B C:\GitHub\Kataglyphis-Inference-Engine\build\windows\x64 -G "Ninja" -DFLUTTER_TARGET_PLATFORM=windows-x64 -DCMAKE_CXX_COMPILER="C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Tools\Llvm\bin\clang-cl.exe" -DCMAKE_CXX_COMPILER_TARGET=x86_64-pc-windows-msvc
+cmake --build C:\GitHub\Kataglyphis-Inference-Engine\build\windows\x64 --config Release --target install --verbose
+```
+
 ## Tests
 
 <!-- ROADMAP -->
@@ -160,40 +187,5 @@ Project Link: [https://github.com/Kataglyphis/...](https://github.com/Kataglyphi
 
 Some very helpful literature, tutorials, etc. 
 
-<!-- CMake/C++
-* [Cpp best practices](https://github.com/cpp-best-practices/cppbestpractices)
-
-Vulkan
-* [Udemy course by Ben Cook](https://www.udemy.com/share/102M903@JMHgpMsdMW336k2s5Ftz9FMx769wYAEQ7p6GMAPBsFuVUbWRgq7k2uY6qBCG6UWNPQ==/)
-* [Vulkan Tutorial](https://vulkan-tutorial.com/)
-* [Vulkan Raytracing Tutorial](https://developer.nvidia.com/rtx/raytracing/vkray)
-* [Vulkan Tutorial; especially chapter about integrating imgui](https://frguthmann.github.io/posts/vulkan_imgui/)
-* [NVidia Raytracing tutorial with Vulkan](https://nvpro-samples.github.io/vk_raytracing_tutorial_KHR/)
-* [Blog from Sascha Willems](https://www.saschawillems.de/)
-
-Physically Based Shading
-* [Advanced Global Illumination by Dutre, Bala, Bekaert](https://www.oreilly.com/library/view/advanced-global-illumination/9781439864951/)
-* [The Bible: PBR book](https://pbr-book.org/3ed-2018/Reflection_Models/Microfacet_Models)
-* [Real shading in Unreal engine 4](https://blog.selfshadow.com/publications/s2013-shading-course/karis/s2013_pbs_epic_notes_v2.pdf)
-* [Physically Based Shading at Disney](https://blog.selfshadow.com/publications/s2012-shading-course/burley/s2012_pbs_disney_brdf_notes_v3.pdf)
-* [RealTimeRendering](https://www.realtimerendering.com/)
-* [Understanding the Masking-Shadowing Function in Microfacet-Based BRDFs](https://hal.inria.fr/hal-01024289/)
-* [Sampling the GGX Distribution of Visible Normals](https://pdfs.semanticscholar.org/63bc/928467d760605cdbf77a25bb7c3ad957e40e.pdf)
-
-Path tracing
-* [NVIDIA Path tracing Tutorial](https://github.com/nvpro-samples/vk_mini_path_tracer/blob/main/vk_mini_path_tracer/main.cpp) -->
-
-<!-- MARKDOWN LINKS & IMAGES -->
-<!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
-[contributors-shield]: https://img.shields.io/github/contributors/othneildrew/Best-README-Template.svg?style=for-the-badge
-[contributors-url]: https://github.com/othneildrew/Best-README-Template/graphs/contributors
-[forks-shield]: https://img.shields.io/github/forks/othneildrew/Best-README-Template.svg?style=for-the-badge
-[forks-url]: https://github.com/othneildrew/Best-README-Template/network/members
-[stars-shield]: https://img.shields.io/github/stars/othneildrew/Best-README-Template.svg?style=for-the-badge
-[stars-url]: https://github.com/othneildrew/Best-README-Template/stargazers
-[issues-shield]: https://img.shields.io/github/issues/othneildrew/Best-README-Template.svg?style=for-the-badge
-[issues-url]: https://github.com/othneildrew/Best-README-Template/issues
-[license-shield]: https://img.shields.io/github/license/othneildrew/Best-README-Template.svg?style=for-the-badge
-[license-url]: https://github.com/othneildrew/Best-README-Template/blob/master/LICENSE.txt
-[linkedin-shield]: https://img.shields.io/badge/-LinkedIn-black.svg?style=for-the-badge&logo=linkedin&colorB=555
-[linkedin-url]: https://www.linkedin.com/in/jonas-heinle-0b2a301a0/
+CMake/C++
+* [clang-cl](https://clang.llvm.org/docs/MSVCCompatibility.html)

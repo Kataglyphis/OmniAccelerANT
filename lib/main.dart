@@ -6,8 +6,6 @@ import 'package:kataglyphis_inference_engine/src/rust/frb_generated.dart';
 // found in the LICENSE file.
 
 import 'dart:convert';
-
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:kataglyphis_inference_engine/l10n/app_localizations.dart';

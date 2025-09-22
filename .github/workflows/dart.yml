@@ -7,38 +7,25 @@ name: Build + run + test on Linux
 
 on:
   push:
-    branches: ["main"]
+    branches: ["main", "develop"]
   pull_request:
-    branches: ["main"]
+    branches: ["main", "develop"]
+
+env:
+  APP_NAME: kataglyphis-inference-engine
 
 jobs:
   build:
     runs-on: ubuntu-24.04
 
     steps:
-      - uses: actions/checkout@v4.2.2
-
-      - name: Prepare python env for sphynx
-        run: |
-          pip install -r requirements.txt
-      - name: Create docs
-        run: |
-          cd docs 
-          make html
-
-      - name: 📂 Sync files to dev domain
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
-        with:
-          server: ${{ secrets.SERVER }}
-          username: ${{ secrets.USERNAME }}
-          password: ${{ secrets.PW }}
-          local-dir: "./docs/build/html/"
+      - uses: actions/checkout@v5.0.0
 
       - name: Setup Flutter SDK
         uses: flutter-actions/setup-flutter@v4.0
         with:
           channel: stable
-          version: 3.32.0
+          version: 3.35.4
 
       - name: Install dependencies
         run: |
@@ -82,9 +69,29 @@ jobs:
       - name: "Build Linux Desktop App"
         run: |
           flutter build linux --release
-
-        # Build Linux Desktop App (Dev Branch) with a fallback
-      - name: "Build Linux Desktop App"
-        continue-on-error: true
+       
+        # skip if running after your build and checkout; otherwise download artifact
+      - name: Create tar.gz
         run: |
-          flutter build linux --release
+          mkdir -p out
+          cp -r build/linux/x64/release/bundle out/${APP_NAME}-bundle
+          tar -C out -czf ${APP_NAME}-linux-x64.tar.gz ${APP_NAME}-bundle
+          
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.APP_NAME }}-linux-tar
+          path: ${{ env.APP_NAME }}-linux-x64.tar.gz
+
+      
+      - name: Build docs 
+        run: |
+          dart doc
+
+      - name: 📂 Sync files to domain
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.6
+        with:
+          server: ${{ secrets.SERVER }}
+          username: ${{ secrets.USERNAME }}
+          password: ${{ secrets.PW }}
+          local-dir: "./doc/api/"

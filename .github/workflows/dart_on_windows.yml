@@ -1,0 +1,96 @@
+name: Windows CMake (clang-cl)
+
+on: [ push, pull_request ]
+
+env:
+  BUILD_DIR_RELEASE: build/windows/x64/runner
+
+jobs:
+  build-clang:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5.0.0
+
+      - name: Setup Flutter SDK
+        uses: flutter-actions/setup-flutter@v4.0
+        with:
+          channel: stable
+          version: 3.35.4
+
+      - name: Install dependencies
+        run: |
+          git submodule update --init --recursive
+          flutter pub get
+          cd ExternalLib/jotrockenmitlockenrepo
+          flutter pub get
+
+      # Uncomment this step to verify the use of 'dart format' on each commit.
+      - name: Verify formatting
+        continue-on-error: true
+        run: dart format --output=none --set-exit-if-changed .
+
+      # Consider passing '--fatal-infos' for slightly stricter analysis.
+      - name: Analyze project source
+        continue-on-error: true
+        run: dart analyze
+
+      # Your project will need to have tests in test/ and a dependency on
+      # package:test for this step to succeed. Note that Flutter projects will
+      # want to change this to 'flutter test'.
+      - name: Run tests
+        continue-on-error: true
+        run: |
+          flutter test
+
+      - name: Enable Flutter Windows Desktop
+        run: |
+          flutter config --enable-windows-desktop
+
+      # this is a bit hacky; creates ephemeral project but we remove build artifacts
+      # for we build it our own in next step
+      - name: "Create ephemeral project"
+        continue-on-error: true
+        run: |
+          flutter build windows
+          Remove-Item -Recurse -Force .\build
+
+      - name: "Configure Windows Desktop App"
+        run: |
+          
+          cmake `
+            "${{ github.workspace }}/windows" `
+            -B "${{ github.workspace }}/build/windows/x64" `
+            -G "Ninja" `
+            -DFLUTTER_TARGET_PLATFORM=windows-x64 `
+            -DCMAKE_CXX_COMPILER='clang-cl' `
+            -DCMAKE_CXX_COMPILER_TARGET=x86_64-pc-windows-msvc
+        shell: pwsh
+
+      # Build Windows Desktop App for Production (Main Branch)
+      - name: "Build Rust crate"
+        run: |
+          cd rust
+          cargo install flutter_rust_bridge_codegen
+          cargo build --release
+          cp "${{ github.workspace }}/rust/target/release/rust_lib_kataglyphis_inference_engine.dll" `
+            "${{ github.workspace }}/build/windows/x64/plugins/rust_lib_kataglyphis_inference_engine"
+        shell: pwsh
+
+      # Build Windows Desktop App for Production (Main Branch)
+      #flutter build windows --release
+      - name: "Build Windows Desktop App"
+        run: |
+          cmake --build "${{ github.workspace }}/build/windows/x64" --config Release --target install --verbose 
+        shell: pwsh
+
+      # see also the install commands in the bottom of the CMakeLists.txt
+      - name: Upload files & Zip
+        uses: actions/upload-artifact@v4.6.2
+        with:
+          name: windows-files
+          path: |
+            ${{ env.BUILD_DIR_RELEASE }}/**/*.exe
+            ${{ env.BUILD_DIR_RELEASE }}/**/*.dll
+            ${{ env.BUILD_DIR_RELEASE }}/data/**/*

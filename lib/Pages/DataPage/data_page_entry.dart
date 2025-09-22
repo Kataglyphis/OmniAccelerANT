@@ -50,11 +50,12 @@ class DataPageEntryState extends State<DataPageEntry> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           FilledButton.tonal(
-            onPressed: isDisabled
-                ? null
-                : () {
-                    context.go(widget.routerPath);
-                  },
+            onPressed:
+                isDisabled
+                    ? null
+                    : () {
+                      context.go(widget.routerPath);
+                    },
             child: Text(
               AppLocalizations.of(context)!.follow,
               style: Theme.of(context).textTheme.titleSmall,
