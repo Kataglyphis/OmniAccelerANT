@@ -4,14 +4,31 @@ on: [ push, pull_request ]
 
 env:
   BUILD_DIR_RELEASE: build/windows/x64/runner
+  CLANG_VERSION: 21.1.1
+  LLVM_BIN: 'C:\Program Files\LLVM\bin'
+
+defaults:
+  run:
+    shell: pwsh # Set PowerShell as default shell for all steps
 
 jobs:
   build-clang:
-    runs-on: windows-latest
+    runs-on: windows-2025
 
     steps:
       - name: Checkout
         uses: actions/checkout@v5.0.0
+        with:
+            fetch-depth: 0
+            submodules: recursive
+
+      # - name: Add LLVM to PATH
+      #   run: echo "${{ env.LLVM_BIN }}" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+      #   shell: pwsh
+
+      - name: Install dependencies
+        run: |
+          ./scripts/windows/setup-dependencies.ps1 -ClangVersion ${{ env.CLANG_VERSION }}
 
       - name: Setup Flutter SDK
         uses: flutter-actions/setup-flutter@v4.0
@@ -19,9 +36,9 @@ jobs:
           channel: stable
           version: 3.35.4
 
+      # git submodule update --init --recursive
       - name: Install dependencies
         run: |
-          git submodule update --init --recursive
           flutter pub get
           cd ExternalLib/jotrockenmitlockenrepo
           flutter pub get
@@ -58,7 +75,6 @@ jobs:
 
       - name: "Configure Windows Desktop App"
         run: |
-          
           cmake `
             "${{ github.workspace }}/windows" `
             -B "${{ github.workspace }}/build/windows/x64" `
