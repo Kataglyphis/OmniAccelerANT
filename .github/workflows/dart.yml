@@ -40,6 +40,7 @@ jobs:
 
       - name: Set up Flutter
         if: matrix.arch == 'arm64'
+        continue-on-error: true
         run: |
           # Download Flutter SDK
           wget -q https://storage.googleapis.com/flutter_infra_release/releases/stable/linux/flutter_linux_3.35.5-stable.tar.xz
@@ -52,6 +53,8 @@ jobs:
 
           # Add to current session PATH
           export PATH="$PWD/flutter/bin:$PATH"
+
+          rm -r "$PWD/flutter/bin/cache"
 
           # Verify installation
           flutter --version
