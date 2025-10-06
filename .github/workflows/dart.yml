@@ -43,6 +43,7 @@ jobs:
         run: |
           chmod +x scripts/linux/setup-dependencies.sh
           ./scripts/linux/setup-dependencies.sh
+          echo "/usr/bin" >> $GITHUB_PATH
 
       # Uncomment this step to verify the use of 'dart format' on each commit.
       - name: Verify formatting
