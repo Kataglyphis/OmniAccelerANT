@@ -22,7 +22,7 @@ jobs:
         include:
           - os: ubuntu-24.04
             arch: x64
-          - os: ubuntu-24.04-arm64  # GitHub's ARM64 runner
+          - os: ubuntu-24.04-arm  # GitHub's ARM64 runner
             arch: arm64
 
     steps:
