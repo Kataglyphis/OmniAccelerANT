@@ -47,8 +47,6 @@ jobs:
       - name: Install dependencies
         run: |
           flutter pub get
-          cd ExternalLib/jotrockenmitlockenrepo
-          flutter pub get
           cmake --version
 
       # Uncomment this step to verify the use of 'dart format' on each commit.
@@ -72,13 +70,6 @@ jobs:
       - name: Enable Flutter Windows Desktop
         run: |
           flutter config --enable-windows-desktop
-      
-      # Install the CMake version you need (change to 4.1.1 or whichever)
-      - name: Install CMake 4.1.1
-        uses: lukka/get-cmake@latest
-        with:
-          cmakeVersion: '4.1.1'
-          arch: 'x64'
 
       # this is a bit hacky; creates ephemeral project but we remove build artifacts
       # for we build it our own in next step
