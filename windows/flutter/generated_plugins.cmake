@@ -3,6 +3,7 @@
 #
 
 list(APPEND FLUTTER_PLUGIN_LIST
+  kataglyphis_native_inference
   url_launcher_windows
 )
 
