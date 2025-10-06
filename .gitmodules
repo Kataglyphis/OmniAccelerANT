@@ -1,3 +1,7 @@
 [submodule "ExternalLib/jotrockenmitlockenrepo"]
 	path = ExternalLib/jotrockenmitlockenrepo
 	url = https://github.com/Kataglyphis/jotrockenmitlockenrepo.git
+[submodule "ExternalLib/Kataglyphis_NativeInferencePlugin"]
+	path = ExternalLib/Kataglyphis_NativeInferencePlugin
+	url = git@github.com:Kataglyphis/Kataglyphis-NativeInferencePlugin.git
+	branch = main
