@@ -30,14 +30,16 @@ jobs:
           channel: stable
           version: 3.35.5
 
+      - name: Remove system cmake
+        run: |
+          sudo apt-get purge --auto-remove -y cmake
+
       # git submodule update --init --recursive
-      - name: Install dependencies
+      - name: Install flutter dependencies
         run: |
           flutter pub get
-          cd ExternalLib/jotrockenmitlockenrepo
-          flutter pub get
 
-      - name: Install dependencies
+      - name: Install system dependencies
         run: |
           chmod +x scripts/linux/setup-dependencies.sh
           ./scripts/linux/setup-dependencies.sh
@@ -68,22 +70,22 @@ jobs:
       - name: "Build Linux Desktop App"
         run: |
           flutter build linux --release
-       
+
         # skip if running after your build and checkout; otherwise download artifact
       - name: Create tar.gz
         run: |
           mkdir -p out
           cp -r build/linux/x64/release/bundle out/${APP_NAME}-bundle
           tar -C out -czf ${APP_NAME}-linux-x64.tar.gz ${APP_NAME}-bundle
-          
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: ${{ env.APP_NAME }}-linux-tar
           path: ${{ env.APP_NAME }}-linux-x64.tar.gz
 
-      
-      - name: Build docs 
+
+      - name: Build docs
         run: |
           dart doc
 
