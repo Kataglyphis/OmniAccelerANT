@@ -88,6 +88,21 @@ jobs:
 
           # Verify
           cmake --version
+
+          # Remove any VS CMake paths from PATH
+          $pathParts = $env:PATH -split ';' | Where-Object { 
+            $_ -notlike '*Visual Studio*' -and 
+            $_ -notlike '*Microsoft Visual Studio*' 
+          }
+          $env:PATH = ($pathParts -join ';')
+
+          # Add our CMake at the start
+          $env:PATH = "$cmakePath;$env:PATH"
+    
+          # Verify
+          Get-Command cmake | Format-List
+          cmake --version
+
           flutter build windows
           Remove-Item -Recurse -Force .\build
 
