@@ -76,6 +76,8 @@ jobs:
       # this is a bit hacky; creates ephemeral project but we remove build artifacts
       # for we build it our own in next step
       - name: "Create ephemeral project"
+        env:
+          CMAKE_PATH: "C:\Program Files\CMake\bin"
         continue-on-error: true
         run: |
           $cmakePath = "C:\Program Files\CMake\bin"
