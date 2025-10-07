@@ -11,6 +11,8 @@ import 'package:jotrockenmitlockenrepo/user_settings.dart';
 import 'package:kataglyphis_inference_engine/src/rust/api/simple.dart';
 import 'package:kataglyphis_inference_engine/src/rust/frb_generated.dart';
 
+import 'package:kataglyphis_native_inference/kataglyphis_native_inference.dart';
+
 /// {@category awesome}
 class AboutMePage extends StatefulWidget {
   final AppAttributes appAttributes;
@@ -42,6 +44,21 @@ class AboutMePageState extends State<AboutMePage> {
           'Action: Call Rust `greet("Tom")`\nResult: `${greet(name: "Tom")}`',
         ),
       ),
+      Center(
+        child: FutureBuilder<int>(
+          future: KataglyphisNativeInference.add(3, 4), // call native method
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const CircularProgressIndicator();
+            }
+            if (snapshot.hasError) {
+              return Text('Error: ${snapshot.error}');
+            }
+            final value = snapshot.data ?? 0;
+            return Text('Native result: $value');
+          },
+        ),
+      )
     ];
     List<Widget> childWidgetsRightPage = [
       // const PerfectDay(),
