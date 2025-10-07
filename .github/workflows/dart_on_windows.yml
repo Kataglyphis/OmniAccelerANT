@@ -85,6 +85,7 @@ jobs:
             "${{ github.workspace }}/windows" `
             -B "${{ github.workspace }}/build/windows/x64" `
             -G "Ninja" `
+            -DCMAKE_INSTALL_PREFIX="${{ github.workspace }}/build/windows/x64/install" `
             -DFLUTTER_TARGET_PLATFORM=windows-x64 `
             -DCMAKE_CXX_COMPILER='clang-cl' `
             -DCMAKE_C_COMPILER='clang-cl' `
