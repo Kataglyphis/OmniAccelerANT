@@ -74,7 +74,6 @@ jobs:
       # this is a bit hacky; creates ephemeral project but we remove build artifacts
       # for we build it our own in next step
       - name: "Create ephemeral project"
-        shell: cmd
         continue-on-error: true
         run: |
           flutter build windows
