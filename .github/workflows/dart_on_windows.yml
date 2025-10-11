@@ -14,7 +14,6 @@ defaults:
 jobs:
   build-clang:
     runs-on: windows-2025 
-    container: ghcr.io/kataglyphis/kataglyphis_beschleuniger_windows2025 # windows-2025
 
     steps:
 
