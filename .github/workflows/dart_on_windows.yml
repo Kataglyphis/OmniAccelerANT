@@ -76,7 +76,7 @@ jobs:
       - name: "Create ephemeral project"
         continue-on-error: true
         run: |
-          flutter build windows
+          flutter build windows --release
           Remove-Item -Recurse -Force .\build
 
       - name: "Configure Windows Desktop App"
