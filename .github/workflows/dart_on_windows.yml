@@ -103,15 +103,32 @@ jobs:
             "${{ github.workspace }}/build/windows/x64/plugins/rust_lib_kataglyphis_inference_engine"
         shell: pwsh
 
-      - name: "Remove pre-existing native_assets/windows (avoid install collision)"
+      - name: "Debug install: dump cmake_install.cmake and inspect native_assets"
         run: |
-          $p = "${{ github.workspace }}\build\native_assets\windows"
-          if (Test-Path $p) {
-            Write-Host "Removing pre-existing path: $p"
-            Remove-Item -Recurse -Force $p
+          $ci = "${{ github.workspace }}\build\windows\x64\cmake_install.cmake"
+          Write-Host "=== cmake_install.cmake exists? $(Test-Path $ci)"
+          if (Test-Path $ci) {
+            Write-Host "`n--- Lines around 100..140 in cmake_install.cmake ---"
+            Get-Content $ci | Select-Object -Index 90..150
+            Write-Host "`n--- All lines mentioning native_assets ---"
+            Select-String -Path $ci -Pattern "native_assets" -Context 3,3 || Write-Host "no matches"
           } else {
-            Write-Host "No pre-existing native_assets/windows found"
+            Write-Host "cmake_install.cmake not found at $ci"
           }
+
+          $p = "D:\a\Kataglyphis-Inference-Engine\Kataglyphis-Inference-Engine\build\native_assets\windows"
+          Write-Host "`n=== Inspecting path: $p ==="
+          if (Test-Path $p) {
+            Write-Host "Exists: True"
+            Get-Item -LiteralPath $p | Format-List * -Force
+            Write-Host "`n--- Directory listing of parent ---"
+            Get-ChildItem -LiteralPath (Split-Path $p -Parent) -Force | Format-Table Mode,LastWriteTime,Length,Name
+          } else {
+            Write-Host "Path does not exist: $p"
+          }
+
+          Write-Host "`n--- Search for native_assets under build ---"
+          Get-ChildItem "${{ github.workspace }}\build" -Recurse -Depth 3 -Force | Where-Object { $_.FullName -match "native_assets" } | Select-Object FullName,Mode,Length
         shell: pwsh
 
       # Build Windows Desktop App for Production (Main Branch)
