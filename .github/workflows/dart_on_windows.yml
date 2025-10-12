@@ -103,13 +103,13 @@ jobs:
             "${{ github.workspace }}/build/windows/x64/plugins/rust_lib_kataglyphis_inference_engine"
         shell: pwsh
 
-      - name: "Debug install: dump cmake_install.cmake and inspect native_assets"
+      - name: "Debug install: dump cmake_install.cmake and inspect native_assets (fixed)"
         run: |
           $ci = "${{ github.workspace }}\build\windows\x64\cmake_install.cmake"
           Write-Host "=== cmake_install.cmake exists? $(Test-Path $ci)"
           if (Test-Path $ci) {
-            Write-Host "`n--- Lines around 100..140 in cmake_install.cmake ---"
-            Get-Content $ci | Select-Object -Index 90..150
+            Write-Host "`n--- Lines around 90..150 in cmake_install.cmake ---"
+            Get-Content $ci | Select-Object -Skip 90 -First 61
             Write-Host "`n--- All lines mentioning native_assets ---"
             Select-String -Path $ci -Pattern "native_assets" -Context 3,3 || Write-Host "no matches"
           } else {
@@ -120,15 +120,16 @@ jobs:
           Write-Host "`n=== Inspecting path: $p ==="
           if (Test-Path $p) {
             Write-Host "Exists: True"
-            Get-Item -LiteralPath $p | Format-List * -Force
+            Get-Item -LiteralPath $p -Force | Format-List *
             Write-Host "`n--- Directory listing of parent ---"
             Get-ChildItem -LiteralPath (Split-Path $p -Parent) -Force | Format-Table Mode,LastWriteTime,Length,Name
           } else {
             Write-Host "Path does not exist: $p"
           }
 
-          Write-Host "`n--- Search for native_assets under build ---"
-          Get-ChildItem "${{ github.workspace }}\build" -Recurse -Depth 3 -Force | Where-Object { $_.FullName -match "native_assets" } | Select-Object FullName,Mode,Length
+          Write-Host "`n--- Search for native_assets under build (depth 5) ---"
+          Get-ChildItem "${{ github.workspace }}\build" -Recurse -Depth 5 -Force |
+            Where-Object { $_.FullName -match "native_assets" } | Select-Object FullName,Mode,Length
         shell: pwsh
 
       # Build Windows Desktop App for Production (Main Branch)
