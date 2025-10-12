@@ -103,6 +103,17 @@ jobs:
             "${{ github.workspace }}/build/windows/x64/plugins/rust_lib_kataglyphis_inference_engine"
         shell: pwsh
 
+      - name: "Remove pre-existing native_assets/windows (avoid install collision)"
+        run: |
+          $p = "${{ github.workspace }}\build\native_assets\windows"
+          if (Test-Path $p) {
+            Write-Host "Removing pre-existing path: $p"
+            Remove-Item -Recurse -Force $p
+          } else {
+            Write-Host "No pre-existing native_assets/windows found"
+          }
+        shell: pwsh
+
       # Build Windows Desktop App for Production (Main Branch)
       #flutter build windows --release
       - name: "Build Windows Desktop App"
