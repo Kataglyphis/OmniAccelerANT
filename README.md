@@ -106,6 +106,10 @@ This enumeration also includes submodules.
 <!-- GETTING STARTED -->
 ## Getting Started
 
+```bash
+git submodule update --init --recursive
+```
+
 ### Prerequisites
 
 ### Installation
