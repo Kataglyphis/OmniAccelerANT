@@ -14,6 +14,7 @@ on:
 env:
   APP_NAME: kataglyphis-inference-engine
   FLUTTER_VERSION: 3.35.6   # change here to update version for the whole workflow
+  VULKAN_VERSION: 1.4.321.1
 
 jobs:
   build:
@@ -32,12 +33,35 @@ jobs:
             fetch-depth: 0
             submodules: recursive
 
-      - name: Setup Flutter SDK
-        if: matrix.arch == 'x64'
-        uses: flutter-actions/setup-flutter@v4.1
+      #################################################################################################################
+      ######################################## Prepare deps ###########################################################
+      #################################################################################################################
+      - name: Install deps
+        uses: ./.github/actions/install-deps
         with:
-          channel: stable
-          version: ${{ env.FLUTTER_VERSION }}
+          vulkan-version: ${{ env.VULKAN_VERSION }}
+      # - name: Install system dependencies
+      #   run: |
+      #     chmod +x scripts/linux/setup-dependencies.sh
+      #     ./scripts/linux/setup-dependencies.sh
+      #     echo "/usr/bin" >> $GITHUB_PATH
+
+      - name: Set up Flutter
+        if: matrix.arch == 'x64'
+        continue-on-error: true
+        run: |
+          chmod +x scripts/linux/setup-flutter-x86-64.sh
+          ./scripts/linux/setup-flutter-x86-64.sh ${{ env.FLUTTER_VERSION }}
+          # Add to PATH
+          echo "$PWD/flutter/bin" >> $GITHUB_PATH
+          # Verify installation
+          flutter --version
+      # - name: Setup Flutter SDK
+      #   if: matrix.arch == 'x64'
+      #   uses: flutter-actions/setup-flutter@v4.1
+      #   with:
+      #     channel: stable
+      #     version: ${{ env.FLUTTER_VERSION }}
 
       - name: Set up Flutter
         if: matrix.arch == 'arm64'
@@ -51,20 +75,14 @@ jobs:
           # Verify installation
           flutter --version
 
-      - name: Remove system cmake
-        run: |
-          sudo apt-get purge --auto-remove -y cmake
+      # - name: Remove system cmake
+      #   run: |
+      #     sudo apt-get purge --auto-remove -y cmake
 
       # git submodule update --init --recursive
       - name: Install flutter dependencies
         run: |
           flutter pub get
-
-      - name: Install system dependencies
-        run: |
-          chmod +x scripts/linux/setup-dependencies.sh
-          ./scripts/linux/setup-dependencies.sh
-          echo "/usr/bin" >> $GITHUB_PATH
 
       # Uncomment this step to verify the use of 'dart format' on each commit.
       - name: Verify formatting
