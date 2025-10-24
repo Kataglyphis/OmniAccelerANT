@@ -43,7 +43,7 @@ jobs:
         uses: flutter-actions/setup-flutter@v4.1
         with:
           channel: stable
-          version: 3.35.6
+          version: 3.35.7
 
       # git submodule update --init --recursive
       - name: Install dependencies
