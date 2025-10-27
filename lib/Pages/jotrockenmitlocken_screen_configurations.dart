@@ -4,7 +4,7 @@ import 'package:kataglyphis_inference_engine/Pages/DataPage/BooksPage/books_page
 import 'package:kataglyphis_inference_engine/Pages/DataPage/FilmsPage/films_page_config.dart';
 import 'package:kataglyphis_inference_engine/Pages/DataPage/GamesPage/games_page_config.dart';
 import 'package:kataglyphis_inference_engine/Pages/DataPage/data_pages_navbar_page_config.dart';
-import 'package:kataglyphis_inference_engine/Pages/DocumentsPage/document_page_navbar_config.dart';
+import 'package:kataglyphis_inference_engine/Pages/StreamPage/stream_page_navbar_config.dart';
 import 'package:kataglyphis_inference_engine/Pages/ErrorPage/error_page_stateful_branch_info_provider.dart';
 import 'package:kataglyphis_inference_engine/Pages/Footer/Pages/configs/contact_footer_config.dart';
 import 'package:kataglyphis_inference_engine/Pages/Footer/Pages/configs/cookie_declaration_footer_config.dart';
@@ -26,8 +26,10 @@ class JotrockenmitLockenScreenConfigurations extends ScreenConfigurations
     with BlogDependentScreenConfigurations {
   List<BlogPageConfig> blogPageConfigs;
   List<MyTwoCentsConfig> twoCentsConfigs;
-  JotrockenmitLockenScreenConfigurations.fromBlogAndDataConfigs(
-      {required this.blogPageConfigs, required this.twoCentsConfigs});
+  JotrockenmitLockenScreenConfigurations.fromBlogAndDataConfigs({
+    required this.blogPageConfigs,
+    required this.twoCentsConfigs,
+  });
 
   @override
   List<StatefulBranchInfoProvider> getAllPagesConfigs() {
@@ -62,7 +64,7 @@ class JotrockenmitLockenScreenConfigurations extends ScreenConfigurations
       LandingPageNavBarConfig(),
       AboutMePageNavBarConfig(),
       DataPageNavBarConfig(),
-      DocumentPageNavBarConfig(),
+      StreamPageNavBarConfig(),
     ];
   }
 
@@ -79,7 +81,7 @@ class JotrockenmitLockenScreenConfigurations extends ScreenConfigurations
       PrivacyPolicyFooterConfig(),
       CookieDeclarationFooterConfig(),
       DeclarationOnAccessibilityFooterConfig(),
-      CopyRightFooterConfig()
+      CopyRightFooterConfig(),
     ];
   }
 

@@ -51,7 +51,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get data => 'Data';
 
   @override
-  String get documents => 'Dokumente';
+  String get stream => 'Stream';
 
   @override
   String get quotationsDescription =>
