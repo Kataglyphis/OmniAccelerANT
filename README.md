@@ -197,3 +197,6 @@ Some very helpful literature, tutorials, etc.
 
 CMake/C++
 * [clang-cl](https://clang.llvm.org/docs/MSVCCompatibility.html)
+
+Flutter/Dart
+* [Linux Native Textures](https://github.com/flutter/flutter/blob/master/examples/texture/lib/main.dart)
