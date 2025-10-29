@@ -131,6 +131,27 @@ jobs:
       # Build Linux Desktop App for Production (Main Branch)
       - name: "Build Linux Desktop App"
         run: |
+          # GStreamer prefix
+          GSTREAMER_PREFIX="/opt/gstreamer"
+          export GSTREAMER_PREFIX
+
+          # detect architecture and pick the appropriate multiarch directory
+          _arch="$(uname -m)"
+          case "${_arch}" in
+            x86_64) MULTIARCH_DIR="lib/x86_64-linux-gnu" ;;   # amd64
+            aarch64|arm64) MULTIARCH_DIR="lib/aarch64-linux-gnu" ;; # aarch64
+            i386|i486|i586|i686) MULTIARCH_DIR="lib/i386-linux-gnu" ;;
+            *) MULTIARCH_DIR="lib/multiarch" ;; # fallback — adjust if needed
+          esac
+          export MULTIARCH_DIR
+
+          # export GStreamer-related env vars using chosen multiarch dir
+          export PATH="${GSTREAMER_PREFIX}/bin:${PATH}"
+          export PKG_CONFIG_PATH="${GSTREAMER_PREFIX}/${MULTIARCH_DIR}/pkgconfig:${PKG_CONFIG_PATH}"
+          export LD_LIBRARY_PATH="${GSTREAMER_PREFIX}/${MULTIARCH_DIR}:${LD_LIBRARY_PATH}"
+          export GST_PLUGIN_PATH="${GSTREAMER_PREFIX}/${MULTIARCH_DIR}/gstreamer-1.0:${GST_PLUGIN_PATH}"
+          export GI_TYPELIB_PATH="${GSTREAMER_PREFIX}/${MULTIARCH_DIR}/girepository-1.0:${GI_TYPELIB_PATH}"
+
           flutter build linux --release
 
       - name: Create tar.gz
