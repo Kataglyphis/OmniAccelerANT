@@ -59,6 +59,8 @@ jobs:
       #     chmod +x scripts/linux/setup-dependencies.sh
       #     ./scripts/linux/setup-dependencies.sh
       #     echo "/usr/bin" >> $GITHUB_PATH
+      - name: Mark workspace safe for git
+        run: git config --global --add safe.directory "${GITHUB_WORKSPACE}"
 
       - name: Set up Flutter
         if: matrix.arch == 'x64'
