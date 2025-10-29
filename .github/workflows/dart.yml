@@ -59,8 +59,14 @@ jobs:
       #     chmod +x scripts/linux/setup-dependencies.sh
       #     ./scripts/linux/setup-dependencies.sh
       #     echo "/usr/bin" >> $GITHUB_PATH
-      - name: Mark workspace safe for git
-        run: git config --global --add safe.directory "${GITHUB_WORKSPACE}"
+      # Robustly mark the workspace (and flutter subdir) as safe for git inside the container
+      - name: Mark workspace safe for git (robust)
+        run: |
+          echo "GITHUB_WORKSPACE=${GITHUB_WORKSPACE}"
+          # Add the workspace root
+          git config --global --add safe.directory "${GITHUB_WORKSPACE}" || true
+          # The error referenced /flutter specifically — add that too
+          git config --global --add safe.directory "${GITHUB_WORKSPACE}/flutter" || true
 
       - name: Set up Flutter
         if: matrix.arch == 'x64'
