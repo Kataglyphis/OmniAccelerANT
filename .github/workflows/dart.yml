@@ -18,14 +18,28 @@ env:
 
 jobs:
   build:
+
     runs-on: ${{ matrix.os }}
+
     strategy:
       matrix:
         include:
           - os: ubuntu-24.04
             arch: x64
-          - os: ubuntu-24.04-arm  # GitHub's ARM64 runner
+            image: ghcr.io/kataglyphis/kataglyphis_beschleuniger:amd64
+          - os: ubuntu-24.04-arm
             arch: arm64
+            image: ghcr.io/kataglyphis/kataglyphis_beschleuniger:arm64
+
+    defaults:
+      run:
+        shell: bash
+    # Run this job inside the GHCR container:
+    container:
+      image: ${{ matrix.image }}
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GHCR_PAT }}
 
     steps:
       - uses: actions/checkout@v5.0.0
