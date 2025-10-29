@@ -26,10 +26,10 @@ jobs:
         include:
           - os: ubuntu-24.04
             arch: x64
-            image: ghcr.io/kataglyphis/kataglyphis_beschleuniger:amd64
+            image: ghcr.io/kataglyphis/kataglyphis_beschleuniger:latest_multiarch
           - os: ubuntu-24.04-arm
             arch: arm64
-            image: ghcr.io/kataglyphis/kataglyphis_beschleuniger:arm64
+            image: ghcr.io/kataglyphis/kataglyphis_beschleuniger:latest_multiarch
 
     defaults:
       run:
