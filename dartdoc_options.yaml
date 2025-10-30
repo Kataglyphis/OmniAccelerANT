@@ -2,6 +2,8 @@
 #  as top-level pages in the generated doc site.” Each entry is a path
 #  (relative to the project root).
 dartdoc:
+  include:
+  - "kataglyphis_inference_engine"
   exclude:
   - "dart:_http"
   - "dart:ui_web"
