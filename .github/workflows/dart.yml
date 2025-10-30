@@ -77,7 +77,7 @@ jobs:
           # Add to PATH
           echo "$PWD/flutter/bin" >> $GITHUB_PATH
           # Verify installation
-          flutter --version
+          # flutter --version
       # - name: Setup Flutter SDK
       #   if: matrix.arch == 'x64'
       #   uses: flutter-actions/setup-flutter@v4.1
@@ -95,7 +95,7 @@ jobs:
           echo "$PWD/flutter/bin" >> $GITHUB_PATH
 
           # Verify installation
-          flutter --version
+          # flutter --version
 
       # - name: Remove system cmake
       #   run: |
@@ -152,7 +152,7 @@ jobs:
           export GST_PLUGIN_PATH="${GSTREAMER_PREFIX}/${MULTIARCH_DIR}/gstreamer-1.0:${GST_PLUGIN_PATH}"
           export GI_TYPELIB_PATH="${GSTREAMER_PREFIX}/${MULTIARCH_DIR}/girepository-1.0:${GI_TYPELIB_PATH}"
 
-          flutter build linux --release
+          flutter build linux --release --verbose
 
       - name: Create tar.gz
         run: |
