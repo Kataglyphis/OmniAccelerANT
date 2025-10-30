@@ -131,6 +131,14 @@ jobs:
       # Build Linux Desktop App for Production (Main Branch)
       - name: "Build Linux Desktop App"
         run: |
+
+          sudo apt-get -s purge 'gstreamer*' 'gstreamer1.0*' 'libgstreamer*'
+
+          # if OK, actually run
+          sudo apt-get purge -y 'gstreamer*' 'gstreamer1.0*' 'libgstreamer*'
+          sudo apt-get autoremove --purge -y
+          sudo ldconfig
+          
           # GStreamer prefix
           GSTREAMER_PREFIX="/opt/gstreamer"
           export GSTREAMER_PREFIX
