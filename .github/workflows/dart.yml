@@ -185,7 +185,7 @@ jobs:
       - name: Build docs
         if: matrix.arch == 'x64'
         run: |
-          dart doc
+          dart doc --no-auto-include-dependencies
 
       - name: 📂 Sync files to domain
         if: matrix.arch == 'x64'
