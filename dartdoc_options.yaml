@@ -2,6 +2,8 @@
 #  as top-level pages in the generated doc site.” Each entry is a path
 #  (relative to the project root).
 dartdoc:
+  ignore:
+    - unresolved-doc-reference
   categories:
     awesome:
       markdown: docs/INTRODUCTION.md
