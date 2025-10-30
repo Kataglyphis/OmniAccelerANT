@@ -26,17 +26,15 @@ jobs:
         include:
           - os: ubuntu-24.04
             arch: x64
-            image: ghcr.io/kataglyphis/kataglyphis_beschleuniger:latest_multiarch
-          # - os: ubuntu-24.04-arm
-          #  arch: arm64
-          #  image: ghcr.io/kataglyphis/kataglyphis_beschleuniger:latest_multiarch
+          - os: ubuntu-24.04-arm
+            arch: arm64
 
     defaults:
       run:
         shell: bash
     # Run this job inside the GHCR container:
     container:
-      image: ${{ matrix.image }}
+      image: ghcr.io/kataglyphis/kataglyphis_beschleuniger:latest_multiarch
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.GHCR_PAT }}
@@ -60,7 +58,7 @@ jobs:
       #     ./scripts/linux/setup-dependencies.sh
       #     echo "/usr/bin" >> $GITHUB_PATH
       # Robustly mark the workspace (and flutter subdir) as safe for git inside the container
-      - name: Mark workspace safe for git (robust)
+      - name: Mark workspace safe for git (robust, needed for flutter pub get)
         run: |
           echo "GITHUB_WORKSPACE=${GITHUB_WORKSPACE}"
           # Add the workspace root
@@ -164,8 +162,10 @@ jobs:
           # export GStreamer-related env vars using chosen multiarch dir
           # BUT prioritize system libraries for Pango compatibility
           export PATH="${GSTREAMER_PREFIX}/bin:${PATH}"
-          export PKG_CONFIG_PATH="${SYSTEM_LIB}/pkgconfig:${GSTREAMER_PREFIX}/${MULTIARCH_DIR}/pkgconfig:${PKG_CONFIG_PATH}"
-          export LD_LIBRARY_PATH="${SYSTEM_LIB}:${GSTREAMER_PREFIX}/${MULTIARCH_DIR}:${LD_LIBRARY_PATH}"
+          # ${SYSTEM_LIB}/pkgconfig:
+          # ${SYSTEM_LIB}:
+          export PKG_CONFIG_PATH="${GSTREAMER_PREFIX}/${MULTIARCH_DIR}/pkgconfig:${PKG_CONFIG_PATH}"
+          export LD_LIBRARY_PATH="${GSTREAMER_PREFIX}/${MULTIARCH_DIR}:${LD_LIBRARY_PATH}"
           export GST_PLUGIN_PATH="${GSTREAMER_PREFIX}/${MULTIARCH_DIR}/gstreamer-1.0:${GST_PLUGIN_PATH}"
           export GI_TYPELIB_PATH="${GSTREAMER_PREFIX}/${MULTIARCH_DIR}/girepository-1.0:${GI_TYPELIB_PATH}"
           flutter build linux --release --verbose
