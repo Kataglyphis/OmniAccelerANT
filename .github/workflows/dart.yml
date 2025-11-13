@@ -14,7 +14,6 @@ on:
 env:
   APP_NAME: kataglyphis-inference-engine
   FLUTTER_VERSION: 3.38.0   # change here to update version for the whole workflow
-  VULKAN_VERSION: 1.4.321.1
 
 jobs:
   build:
@@ -48,15 +47,11 @@ jobs:
       #################################################################################################################
       ######################################## Prepare deps ###########################################################
       #################################################################################################################
-      - name: Install deps
-        uses: ./.github/actions/install-deps
-        with:
-          vulkan-version: ${{ env.VULKAN_VERSION }}
-      # - name: Install system dependencies
-      #   run: |
-      #     chmod +x scripts/linux/setup-dependencies.sh
-      #     ./scripts/linux/setup-dependencies.sh
-      #     echo "/usr/bin" >> $GITHUB_PATH
+      #- name: Install deps
+      #  uses: ./.github/actions/install-deps
+      #  with:
+      #    vulkan-version: ${{ env.VULKAN_VERSION }}
+  
       # Robustly mark the workspace (and flutter subdir) as safe for git inside the container
       - name: Mark workspace safe for git (robust, needed for flutter pub get)
         run: |
@@ -76,12 +71,6 @@ jobs:
           echo "$PWD/flutter/bin" >> $GITHUB_PATH
           # Verify installation
           # flutter --version
-      # - name: Setup Flutter SDK
-      #   if: matrix.arch == 'x64'
-      #   uses: flutter-actions/setup-flutter@v4.1
-      #   with:
-      #     channel: stable
-      #     version: ${{ env.FLUTTER_VERSION }}
 
       - name: Set up Flutter
         if: matrix.arch == 'arm64'
@@ -94,10 +83,6 @@ jobs:
 
           # Verify installation
           # flutter --version
-
-      # - name: Remove system cmake
-      #   run: |
-      #     sudo apt-get purge --auto-remove -y cmake
 
       # git submodule update --init --recursive
       - name: Install flutter dependencies
