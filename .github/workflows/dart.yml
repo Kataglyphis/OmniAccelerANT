@@ -39,6 +39,20 @@ jobs:
         password: ${{ secrets.GHCR_PAT }}
 
     steps:
+
+      # CRITICAL: This runs on the HOST before container starts
+      # It cleans up the host filesystem that the container will use
+      - name: Free Disk Space (runs on host)
+        uses: jlumbroso/free-disk-space@main
+        with:
+          tool-cache: true
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: true
+          docker-images: false  # Keep Docker available for our container
+          swap-storage: true
+    
       - uses: actions/checkout@v5.0.0
         with:
             fetch-depth: 0
