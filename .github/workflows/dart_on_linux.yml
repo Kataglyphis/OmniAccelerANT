@@ -66,7 +66,7 @@ jobs:
         run: |
           for i in 1 2 3; do
             echo "Attempt $i to pull container..."
-            if timeout 900 docker pull ghcr.io/kataglyphis/kataglyphis_beschleuniger:latest_multiarch; then
+            if timeout 900 docker pull ghcr.io/kataglyphis/kataglyphis_beschleuniger:latest; then
               echo "Successfully pulled container"
               exit 0
             fi
