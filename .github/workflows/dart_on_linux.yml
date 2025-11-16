@@ -1,0 +1,169 @@
+# This workflow uses actions that are not certified by GitHub.
+# They are provided by a third-party and are governed by
+# separate terms of service, privacy policy, and support
+# documentation.
+
+name: Build + run + test on Linux
+
+on:
+  push:
+    branches: ["main", "develop"]
+  pull_request:
+    branches: ["main", "develop"]
+
+env:
+  APP_NAME: kataglyphis-inference-engine
+  FLUTTER_VERSION: 3.38.0   # change here to update version for the whole workflow
+
+jobs:
+  build:
+
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            arch: x64
+          - os: ubuntu-24.04-arm
+            arch: arm64
+
+    steps:
+      # CRITICAL: These first steps run on HOST (no container specified yet)
+      - name: Free Disk Space on Host
+        uses: jlumbroso/free-disk-space@main
+        with:
+          tool-cache: true
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: true
+          docker-images: false
+          swap-storage: true
+
+      - name: Check disk space on host after cleanup
+        run: |
+          echo "=== Disk space on HOST after cleanup ==="
+          df -h
+          
+      - uses: actions/checkout@v5.0.0
+        with:
+            fetch-depth: 0
+            submodules: recursive
+
+      # NOW we switch to running in container for the rest
+      - name: Login to GitHub Container Registry
+        run: echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Pull container image
+        run: docker pull ghcr.io/kataglyphis/kataglyphis_beschleuniger:latest_multiarch
+
+      - name: Build and test in container
+        run: |
+          docker run --rm \
+            -v ${{ github.workspace }}:/workspace \
+            -w /workspace \
+            -e FLUTTER_VERSION=${{ env.FLUTTER_VERSION }} \
+            -e APP_NAME=${{ env.APP_NAME }} \
+            -e MATRIX_ARCH=${{ matrix.arch }} \
+            ghcr.io/kataglyphis/kataglyphis_beschleuniger:latest_multiarch \
+            bash -c '
+            set -e
+            
+            echo "=== Disk space inside container ==="
+            df -h
+            
+            # Mark workspace safe for git
+            git config --global --add safe.directory /workspace || true
+            git config --global --add safe.directory /workspace/flutter || true
+            
+            # Set up Flutter based on architecture
+            if [ "$MATRIX_ARCH" = "x64" ]; then
+              chmod +x scripts/linux/setup-flutter-x86-64.sh
+              ./scripts/linux/setup-flutter-x86-64.sh $FLUTTER_VERSION
+            else
+              chmod +x scripts/linux/setup-flutter-arm64.sh
+              ./scripts/linux/setup-flutter-arm64.sh $FLUTTER_VERSION
+            fi
+            
+            export PATH="$PWD/flutter/bin:$PATH"
+            
+            # Install flutter dependencies
+            flutter pub get
+            
+            # Verify formatting
+            dart format --output=none --set-exit-if-changed . || true
+            
+            # Analyze project source
+            dart analyze || true
+            
+            # Run tests
+            flutter test || true
+            
+            # Enable Flutter Linux Desktop
+            flutter config --enable-linux-desktop
+            
+            echo "=== Disk space before build ==="
+            df -h
+            
+            # Build Linux Desktop App
+            GSTREAMER_PREFIX="/opt/gstreamer"
+            export GSTREAMER_PREFIX
+            
+            _arch="$(uname -m)"
+            case "${_arch}" in
+              x86_64) MULTIARCH_DIR="lib/x86_64-linux-gnu" ;;
+              aarch64|arm64) MULTIARCH_DIR="lib/aarch64-linux-gnu" ;;
+              i386|i486|i586|i686) MULTIARCH_DIR="lib/i386-linux-gnu" ;;
+              *) MULTIARCH_DIR="lib/multiarch" ;;
+            esac
+            export MULTIARCH_DIR
+            
+            case "${_arch}" in
+              x86_64) SYSTEM_LIB="/usr/lib/x86_64-linux-gnu" ;;
+              aarch64|arm64) SYSTEM_LIB="/usr/lib/aarch64-linux-gnu" ;;
+              i386|i486|i586|i686) SYSTEM_LIB="/usr/lib/i386-linux-gnu" ;;
+              *) SYSTEM_LIB="/usr/lib" ;;
+            esac
+            
+            export PATH="${GSTREAMER_PREFIX}/bin:${PATH}"
+            export PKG_CONFIG_PATH="${SYSTEM_LIB}/pkgconfig:${GSTREAMER_PREFIX}/${MULTIARCH_DIR}/pkgconfig:${PKG_CONFIG_PATH}"
+            export LD_LIBRARY_PATH="${SYSTEM_LIB}:${GSTREAMER_PREFIX}/${MULTIARCH_DIR}:${LD_LIBRARY_PATH}"
+            export GST_PLUGIN_PATH="${GSTREAMER_PREFIX}/${MULTIARCH_DIR}/gstreamer-1.0:${GST_PLUGIN_PATH}"
+            export GI_TYPELIB_PATH="${GSTREAMER_PREFIX}/${MULTIARCH_DIR}/girepository-1.0:${GI_TYPELIB_PATH}"
+            
+            flutter build linux --release --verbose
+            
+            echo "=== Disk space after build ==="
+            df -h
+            
+            # Clean up intermediate build files
+            rm -rf build/linux/$MATRIX_ARCH/release/obj || true
+            rm -rf ~/.pub-cache/hosted || true
+            
+            # Create tar.gz
+            mkdir -p out
+            cp -r build/linux/$MATRIX_ARCH/release/bundle out/${APP_NAME}-bundle
+            tar -C out -czf ${APP_NAME}-linux-$MATRIX_ARCH.tar.gz ${APP_NAME}-bundle
+            
+            # Build docs (only for x64)
+            if [ "$MATRIX_ARCH" = "x64" ]; then
+              flutter clean
+              dart doc
+            fi
+            '
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.APP_NAME }}-linux-${{ matrix.arch }}-tar
+          path: ${{ env.APP_NAME }}-linux-${{ matrix.arch }}.tar.gz
+
+      - name: 📂 Sync files to domain
+        if: matrix.arch == 'x64'
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.6
+        with:
+          server: ${{ secrets.SERVER }}
+          username: ${{ secrets.USERNAME }}
+          password: ${{ secrets.PW }}
+          local-dir: "./doc/api/"
