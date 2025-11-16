@@ -17,7 +17,7 @@ wget -q "https://storage.googleapis.com/flutter_infra_release/releases/stable/li
 tar xf "flutter_linux_${FLUTTER_VERSION}-stable.tar.xz"
 
 # Add Flutter to PATH for subsequent GitHub Action steps
-echo "$PWD/flutter/bin" >> "$GITHUB_PATH"
+# echo "$PWD/flutter/bin" >> "$GITHUB_PATH"
 
 # Add Flutter to PATH for current shell session
 export PATH="$PWD/flutter/bin:$PATH"
