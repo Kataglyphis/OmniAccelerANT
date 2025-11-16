@@ -72,7 +72,15 @@ jobs:
 
       - name: Build and test in container
         run: |
+          # Set platform based on architecture
+          if [ "${{ matrix.arch }}" = "x64" ]; then
+            PLATFORM="linux/amd64"
+          else
+            PLATFORM="linux/arm64"
+          fi
+          
           docker run --rm \
+            --platform ${PLATFORM} \
             -v ${{ github.workspace }}:/workspace \
             -w /workspace \
             -e FLUTTER_VERSION=${{ env.FLUTTER_VERSION }} \
