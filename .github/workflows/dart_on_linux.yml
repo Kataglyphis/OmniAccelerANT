@@ -85,7 +85,7 @@ jobs:
             -e FLUTTER_VERSION=${{ env.FLUTTER_VERSION }} \
             -e APP_NAME=${{ env.APP_NAME }} \
             -e MATRIX_ARCH=${{ matrix.arch }} \
-            ghcr.io/kataglyphis/kataglyphis_beschleuniger:latest_multiarch \
+            ghcr.io/kataglyphis/kataglyphis_beschleuniger:latest \
             bash -lc '
             set -e
 
