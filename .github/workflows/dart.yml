@@ -115,12 +115,12 @@ jobs:
       - name: "Build Linux Desktop App"
         run: |
 
-          sudo apt-get -s purge 'gstreamer*' 'gstreamer1.0*' 'libgstreamer*'
+          # sudo apt-get -s purge 'gstreamer*' 'gstreamer1.0*' 'libgstreamer*'
 
           # if OK, actually run
-          sudo apt-get purge -y 'gstreamer*' 'gstreamer1.0*' 'libgstreamer*'
-          sudo apt-get autoremove --purge -y
-          sudo ldconfig
+          # sudo apt-get purge -y 'gstreamer*' 'gstreamer1.0*' 'libgstreamer*'
+          # sudo apt-get autoremove --purge -y
+          # sudo ldconfig
           
           # GStreamer prefix
           GSTREAMER_PREFIX="/opt/gstreamer"
@@ -153,7 +153,7 @@ jobs:
           export LD_LIBRARY_PATH="${SYSTEM_LIB}:${GSTREAMER_PREFIX}/${MULTIARCH_DIR}:${LD_LIBRARY_PATH}"
           export GST_PLUGIN_PATH="${GSTREAMER_PREFIX}/${MULTIARCH_DIR}/gstreamer-1.0:${GST_PLUGIN_PATH}"
           export GI_TYPELIB_PATH="${GSTREAMER_PREFIX}/${MULTIARCH_DIR}/girepository-1.0:${GI_TYPELIB_PATH}"
-          flutter build linux --release --verbose --obfuscate --split-debug-info v3
+          flutter build linux --release --verbose #--obfuscate --split-debug-info v3
 
       - name: Create tar.gz
         run: |
