@@ -17,7 +17,6 @@ env:
 
 jobs:
   build:
-    # Use a proper matrix with a runs_on field that maps to valid runner labels.
     strategy:
       matrix:
         include:
@@ -31,7 +30,6 @@ jobs:
     runs-on: ${{ matrix.runs_on }}
 
     steps:
-      # CRITICAL: These first steps run on HOST (no container specified yet)
       - name: Free Disk Space on Host
         uses: jlumbroso/free-disk-space@main
         with:
@@ -61,13 +59,11 @@ jobs:
           ls -l /bin/bash /usr/bin/bash || true
           file /bin/bash || true
 
-      # NOW we switch to running actions that use the container image
       - name: Login to GitHub Container Registry
         run: echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
       - name: Pull container image
         run: |
-          # Pull with timeout and retry logic
           for i in 1 2 3; do
             echo "Attempt $i to pull container..."
             if timeout 900 docker pull ghcr.io/kataglyphis/kataglyphis_beschleuniger:latest_multiarch; then
@@ -96,11 +92,9 @@ jobs:
             echo "=== Disk space inside container ==="
             df -h
 
-            # Mark workspace safe for git
             git config --global --add safe.directory /workspace || true
             git config --global --add safe.directory /workspace/flutter || true
 
-            # Set up Flutter based on architecture
             if [ "$MATRIX_ARCH" = "x64" ]; then
               chmod +x scripts/linux/setup-flutter-x86-64.sh
               ./scripts/linux/setup-flutter-x86-64.sh $FLUTTER_VERSION
@@ -111,25 +105,15 @@ jobs:
 
             export PATH="$PWD/flutter/bin:$PATH"
 
-            # Install flutter dependencies
             flutter pub get
-
-            # Verify formatting (do not fail the job on format issues)
             dart format --output=none --set-exit-if-changed . || true
-
-            # Analyze project source (do not fail the job on analyzer warnings)
             dart analyze || true
-
-            # Run tests (do not fail the job on test failures)
             flutter test || true
-
-            # Enable Flutter Linux Desktop
             flutter config --enable-linux-desktop
 
             echo "=== Disk space before build ==="
             df -h
 
-            # Setup GStreamer environment variables expected by your build
             GSTREAMER_PREFIX="/opt/gstreamer"
             export GSTREAMER_PREFIX
 
@@ -155,29 +139,24 @@ jobs:
             export GST_PLUGIN_PATH="${GSTREAMER_PREFIX}/${MULTIARCH_DIR}/gstreamer-1.0:${GST_PLUGIN_PATH}"
             export GI_TYPELIB_PATH="${GSTREAMER_PREFIX}/${MULTIARCH_DIR}/girepository-1.0:${GI_TYPELIB_PATH}"
 
-            # Build Linux Desktop App
             flutter build linux --release --verbose
 
             echo "=== Disk space after build ==="
             df -h
 
-            # Clean up intermediate build files
             rm -rf build/linux/$MATRIX_ARCH/release/obj || true
             rm -rf ~/.pub-cache/hosted || true
 
-            # Create tar.gz
             mkdir -p out
             cp -r build/linux/$MATRIX_ARCH/release/bundle out/${APP_NAME}-bundle
             tar -C out -czf ${APP_NAME}-linux-$MATRIX_ARCH.tar.gz ${APP_NAME}-bundle
 
-            # Build docs (only for x64)
             if [ "$MATRIX_ARCH" = "x64" ]; then
               flutter clean
               dart doc
             fi
 
             '
-
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
