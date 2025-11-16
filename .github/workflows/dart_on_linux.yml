@@ -55,13 +55,20 @@ jobs:
       - name: Login to GitHub Container Registry
         run: echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
-      - name: Pull container image with retry
-        uses: nick-fields/retry-action@v3
-        with:
-          timeout_minutes: 15
-          max_attempts: 3
-          retry_wait_seconds: 30
-          command: docker pull ghcr.io/kataglyphis/kataglyphis_beschleuniger:latest_multiarch
+      - name: Pull container image
+        run: |
+          # Pull with timeout and retry logic
+          for i in 1 2 3; do
+            echo "Attempt $i to pull container..."
+            if timeout 900 docker pull ghcr.io/kataglyphis/kataglyphis_beschleuniger:latest_multiarch; then
+              echo "Successfully pulled container"
+              exit 0
+            fi
+            echo "Pull failed, waiting before retry..."
+            sleep 30
+          done
+          echo "Failed to pull container after 3 attempts"
+          exit 1
 
       - name: Build and test in container
         run: |
