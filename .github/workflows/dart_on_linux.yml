@@ -114,6 +114,12 @@ jobs:
             echo "=== Disk space before build ==="
             df -h
 
+            apt-get -s purge 'gstreamer*' 'gstreamer1.0*' 'libgstreamer*'
+            # if OK, actually run
+            apt-get purge -y 'gstreamer*' 'gstreamer1.0*' 'libgstreamer*'
+            apt-get autoremove --purge -y
+            ldconfig
+            
             GSTREAMER_PREFIX="/opt/gstreamer"
             export GSTREAMER_PREFIX
 
