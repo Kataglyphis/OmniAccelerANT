@@ -159,6 +159,13 @@ jobs:
             if [ "$MATRIX_ARCH" = "x64" ]; then
               flutter clean
               dart doc
+
+               # Fix ownership of generated docs to match the host user
+               # Get the UID and GID of the workspace directory (owned by runner)
+               OWNER_UID=$(stat -c "%u" /workspace)
+               OWNER_GID=$(stat -c "%g" /workspace)
+               echo "Fixing ownership of doc/api to ${OWNER_UID}:${OWNER_GID}"
+               chown -R ${OWNER_UID}:${OWNER_GID} /workspace/doc || true
             fi
 
             '
