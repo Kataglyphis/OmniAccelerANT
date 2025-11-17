@@ -76,22 +76,17 @@ jobs:
           echo "Failed to pull container after 3 attempts"
           exit 1
 
-      - name: Build and test in container
+      - name: Setup Flutter in container
         run: |
           docker run --rm \
             --platform ${{ matrix.platform }} \
             -v ${{ github.workspace }}:/workspace \
             -w /workspace \
             -e FLUTTER_VERSION=${{ env.FLUTTER_VERSION }} \
-            -e APP_NAME=${{ env.APP_NAME }} \
             -e MATRIX_ARCH=${{ matrix.arch }} \
             ghcr.io/kataglyphis/kataglyphis_beschleuniger:latest \
             bash -lc '
             set -e
-
-            echo "=== Disk space inside container ==="
-            df -h
-
             git config --global --add safe.directory /workspace || true
             git config --global --add safe.directory /workspace/flutter || true
 
@@ -102,41 +97,61 @@ jobs:
               chmod +x scripts/linux/setup-flutter-arm64.sh
               ./scripts/linux/setup-flutter-arm64.sh $FLUTTER_VERSION
             fi
+            '
 
+      - name: Run Flutter checks and tests
+        run: |
+          docker run --rm \
+            --platform ${{ matrix.platform }} \
+            -v ${{ github.workspace }}:/workspace \
+            -w /workspace \
+            ghcr.io/kataglyphis/kataglyphis_beschleuniger:latest \
+            bash -lc '
+            set -e
             export PATH="$PWD/flutter/bin:$PATH"
-
             flutter pub get
             dart format --output=none --set-exit-if-changed . || true
             dart analyze || true
             flutter test || true
             flutter config --enable-linux-desktop
+            '
 
-            echo "=== Disk space before build ==="
-            df -h
-
-            apt-get -s purge 'gstreamer*' 'gstreamer1.0*' 'libgstreamer*'
-            # if OK, actually run
-            apt-get purge -y 'gstreamer*' 'gstreamer1.0*' 'libgstreamer*'
+      - name: Setup GStreamer environment
+        run: |
+          docker run --rm \
+            --platform ${{ matrix.platform }} \
+            -v ${{ github.workspace }}:/workspace \
+            -w /workspace \
+            -e MATRIX_ARCH=${{ matrix.arch }} \
+            ghcr.io/kataglyphis/kataglyphis_beschleuniger:latest \
+            bash -lc '
+            set -e
+            apt-get -s purge "gstreamer*" "gstreamer1.0*" "libgstreamer*"
+            apt-get purge -y "gstreamer*" "gstreamer1.0*" "libgstreamer*"
             apt-get autoremove --purge -y
             ldconfig
+            '
+
+      - name: Build Flutter Linux app
+        run: |
+          docker run --rm \
+            --platform ${{ matrix.platform }} \
+            -v ${{ github.workspace }}:/workspace \
+            -w /workspace \
+            -e APP_NAME=${{ env.APP_NAME }} \
+            -e MATRIX_ARCH=${{ matrix.arch }} \
+            ghcr.io/kataglyphis/kataglyphis_beschleuniger:latest \
+            bash -lc '
+            set -e
+            export PATH="$PWD/flutter/bin:$PATH"
             
             GSTREAMER_PREFIX="/opt/gstreamer"
-            export GSTREAMER_PREFIX
-
             _arch="$(uname -m)"
             case "${_arch}" in
-              x86_64) MULTIARCH_DIR="lib/x86_64-linux-gnu" ;;
-              aarch64|arm64) MULTIARCH_DIR="lib/aarch64-linux-gnu" ;;
-              i386|i486|i586|i686) MULTIARCH_DIR="lib/i386-linux-gnu" ;;
-              *) MULTIARCH_DIR="lib/multiarch" ;;
-            esac
-            export MULTIARCH_DIR
-
-            case "${_arch}" in
-              x86_64) SYSTEM_LIB="/usr/lib/x86_64-linux-gnu" ;;
-              aarch64|arm64) SYSTEM_LIB="/usr/lib/aarch64-linux-gnu" ;;
-              i386|i486|i586|i686) SYSTEM_LIB="/usr/lib/i386-linux-gnu" ;;
-              *) SYSTEM_LIB="/usr/lib" ;;
+              x86_64) MULTIARCH_DIR="lib/x86_64-linux-gnu"; SYSTEM_LIB="/usr/lib/x86_64-linux-gnu" ;;
+              aarch64|arm64) MULTIARCH_DIR="lib/aarch64-linux-gnu"; SYSTEM_LIB="/usr/lib/aarch64-linux-gnu" ;;
+              i386|i486|i586|i686) MULTIARCH_DIR="lib/i386-linux-gnu"; SYSTEM_LIB="/usr/lib/i386-linux-gnu" ;;
+              *) MULTIARCH_DIR="lib/multiarch"; SYSTEM_LIB="/usr/lib" ;;
             esac
 
             export PATH="${GSTREAMER_PREFIX}/bin:${PATH}"
@@ -144,31 +159,48 @@ jobs:
             export LD_LIBRARY_PATH="${SYSTEM_LIB}:${GSTREAMER_PREFIX}/${MULTIARCH_DIR}:${LD_LIBRARY_PATH}"
             export GST_PLUGIN_PATH="${GSTREAMER_PREFIX}/${MULTIARCH_DIR}/gstreamer-1.0:${GST_PLUGIN_PATH}"
             export GI_TYPELIB_PATH="${GSTREAMER_PREFIX}/${MULTIARCH_DIR}/girepository-1.0:${GI_TYPELIB_PATH}"
+            
             flutter build linux --release
+            '
 
-            echo "=== Disk space after build ==="
-            df -h
-
+      - name: Package build artifacts
+        run: |
+          docker run --rm \
+            --platform ${{ matrix.platform }} \
+            -v ${{ github.workspace }}:/workspace \
+            -w /workspace \
+            -e APP_NAME=${{ env.APP_NAME }} \
+            -e MATRIX_ARCH=${{ matrix.arch }} \
+            ghcr.io/kataglyphis/kataglyphis_beschleuniger:latest \
+            bash -lc '
+            set -e
             rm -rf build/linux/$MATRIX_ARCH/release/obj || true
             rm -rf ~/.pub-cache/hosted || true
-
             mkdir -p out
             cp -r build/linux/$MATRIX_ARCH/release/bundle out/${APP_NAME}-bundle
             tar -C out -czf ${APP_NAME}-linux-$MATRIX_ARCH.tar.gz ${APP_NAME}-bundle
-
-            if [ "$MATRIX_ARCH" = "x64" ]; then
-              flutter clean
-              dart doc
-
-               # Fix ownership of generated docs to match the host user
-               # Get the UID and GID of the workspace directory (owned by runner)
-               OWNER_UID=$(stat -c "%u" /workspace)
-               OWNER_GID=$(stat -c "%g" /workspace)
-               echo "Fixing ownership of doc/api to ${OWNER_UID}:${OWNER_GID}"
-               chown -R ${OWNER_UID}:${OWNER_GID} /workspace/doc || true
-            fi
-
             '
+
+      - name: Generate documentation
+        if: ${{ matrix.arch == 'x64' }}
+        run: |
+          docker run --rm \
+            --platform ${{ matrix.platform }} \
+            -v ${{ github.workspace }}:/workspace \
+            -w /workspace \
+            ghcr.io/kataglyphis/kataglyphis_beschleuniger:latest \
+            bash -lc '
+            set -e
+            export PATH="$PWD/flutter/bin:$PATH"
+            flutter clean
+            dart doc
+            
+            OWNER_UID=$(stat -c "%u" /workspace)
+            OWNER_GID=$(stat -c "%g" /workspace)
+            echo "Fixing ownership of doc/api to ${OWNER_UID}:${OWNER_GID}"
+            chown -R ${OWNER_UID}:${OWNER_GID} /workspace/doc || true
+            '
+            
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
