@@ -23,9 +23,9 @@ jobs:
           - runs_on: ubuntu-24.04
             arch: x64
             platform: linux/amd64
-          #- runs_on: ubuntu-24.04-arm
-          #  arch: arm64
-          #  platform: linux/arm64
+          - runs_on: ubuntu-24.04-arm
+            arch: arm64
+            platform: linux/arm64
 
     runs-on: ${{ matrix.runs_on }}
 
@@ -138,8 +138,7 @@ jobs:
             export LD_LIBRARY_PATH="${SYSTEM_LIB}:${GSTREAMER_PREFIX}/${MULTIARCH_DIR}:${LD_LIBRARY_PATH}"
             export GST_PLUGIN_PATH="${GSTREAMER_PREFIX}/${MULTIARCH_DIR}/gstreamer-1.0:${GST_PLUGIN_PATH}"
             export GI_TYPELIB_PATH="${GSTREAMER_PREFIX}/${MULTIARCH_DIR}/girepository-1.0:${GI_TYPELIB_PATH}"
-
-            flutter build linux --release --verbose
+            flutter build linux --release
 
             echo "=== Disk space after build ==="
             df -h
