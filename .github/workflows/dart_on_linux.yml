@@ -41,23 +41,10 @@ jobs:
           docker-images: false
           swap-storage: true
 
-      - name: Check disk space on host after cleanup
-        run: |
-          echo "=== Disk space on HOST after cleanup ==="
-          df -h
-
       - uses: actions/checkout@v5.0.0
         with:
           fetch-depth: 0
           submodules: recursive
-
-      - name: Debug runner (optional; helpful when debugging 126/127)
-        run: |
-          uname -a
-          arch || true
-          which bash || true
-          ls -l /bin/bash /usr/bin/bash || true
-          file /bin/bash || true
 
       - name: Login to GitHub Container Registry
         run: echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
@@ -109,6 +96,8 @@ jobs:
             bash -lc '
             set -e
             export PATH="$PWD/flutter/bin:$PATH"
+            git config --global --add safe.directory /workspace || true
+            git config --global --add safe.directory /workspace/flutter || true
             flutter pub get
             dart format --output=none --set-exit-if-changed . || true
             dart analyze || true
