@@ -133,7 +133,8 @@ jobs:
             bash -lc '
             set -e
             export PATH="$PWD/flutter/bin:$PATH"
-            
+            git config --global --add safe.directory /workspace || true
+            git config --global --add safe.directory /workspace/flutter || true
             GSTREAMER_PREFIX="/opt/gstreamer"
             _arch="$(uname -m)"
             case "${_arch}" in
@@ -181,6 +182,8 @@ jobs:
             bash -lc '
             set -e
             export PATH="$PWD/flutter/bin:$PATH"
+            git config --global --add safe.directory /workspace || true
+            git config --global --add safe.directory /workspace/flutter || true
             flutter clean
             dart doc
             
