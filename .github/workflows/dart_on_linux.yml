@@ -103,23 +103,6 @@ jobs:
             dart analyze || true
             flutter test || true
             flutter config --enable-linux-desktop
-            '
-
-      - name: Setup GStreamer environment
-        run: |
-          docker run --rm \
-            --platform ${{ matrix.platform }} \
-            -v ${{ github.workspace }}:/workspace \
-            -w /workspace \
-            -e MATRIX_ARCH=${{ matrix.arch }} \
-            ghcr.io/kataglyphis/kataglyphis_beschleuniger:latest \
-            bash -lc '
-            set -e
-            apt-get -s purge "gstreamer*" "gstreamer1.0*" "libgstreamer*"
-            apt-get purge -y "gstreamer*" "gstreamer1.0*" "libgstreamer*"
-            apt-get autoremove --purge -y
-            ldconfig
-            '
 
       - name: Build Flutter Linux app
         run: |
@@ -132,6 +115,10 @@ jobs:
             ghcr.io/kataglyphis/kataglyphis_beschleuniger:latest \
             bash -lc '
             set -e
+            apt-get -s purge "gstreamer*" "gstreamer1.0*" "libgstreamer*"
+            apt-get purge -y "gstreamer*" "gstreamer1.0*" "libgstreamer*"
+            apt-get autoremove --purge -y
+            ldconfig
             export PATH="$PWD/flutter/bin:$PATH"
             git config --global --add safe.directory /workspace || true
             git config --global --add safe.directory /workspace/flutter || true
