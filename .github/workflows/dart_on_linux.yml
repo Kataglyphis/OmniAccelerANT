@@ -103,6 +103,7 @@ jobs:
             dart analyze || true
             flutter test || true
             flutter config --enable-linux-desktop
+            '
 
       - name: Build Flutter Linux app
         run: |
