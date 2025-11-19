@@ -13,7 +13,7 @@ on:
 
 env:
   APP_NAME: kataglyphis-inference-engine
-  FLUTTER_VERSION: 3.38.1   # change here to update version for the whole workflow
+  FLUTTER_VERSION: 3.38.2   # change here to update version for the whole workflow
 
 jobs:
   build:
@@ -116,10 +116,6 @@ jobs:
             ghcr.io/kataglyphis/kataglyphis_beschleuniger:latest \
             bash -lc '
             set -e
-            # apt-get -s purge "gstreamer*" "gstreamer1.0*" "libgstreamer*"
-            # apt-get purge -y "gstreamer*" "gstreamer1.0*" "libgstreamer*"
-            # apt-get autoremove --purge -y
-            # ldconfig
             export PATH="$PWD/flutter/bin:$PATH"
             git config --global --add safe.directory /workspace || true
             git config --global --add safe.directory /workspace/flutter || true
