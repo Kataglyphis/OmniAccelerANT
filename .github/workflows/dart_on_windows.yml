@@ -1,4 +1,4 @@
-Namensform: Windows CMake (clang-cl)
+name: Windows CMake (clang-cl)
 
 on: [ push, pull_request ]
 
@@ -22,7 +22,7 @@ jobs:
         run: Get-Volume C | Format-Table -AutoSize # Check initial free space
         shell: powershell
 
-      - name: Aggressive cleanup: extra caches & SDKs
+      - name: Aggressive cleanup
         shell: powershell
         run: |
           $ErrorActionPreference = 'Continue'
