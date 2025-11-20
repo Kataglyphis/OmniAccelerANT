@@ -30,19 +30,33 @@ jobs:
           Write-Host "=== Disk before cleanup ==="
           Get-PSDrive -PSProvider FileSystem | Format-Table Name,Free,Used,@{Label='FreeGB';Expression={"{0:N2}" -f ($_.Free/1GB)}},@{Label='UsedGB';Expression={"{0:N2}" -f ($_.Used/1GB)}}
 
-          # -------------------------
-          # Helpful diagnostics: top folders
-          # -------------------------
+          # --- REPLACE THIS BLOCK INSTEAD OF THE ORIGINAL 'Top-level C:\ folders by estimated size' CODE ---
+          Write-Host "=== Disk before cleanup ==="
+          Get-PSDrive -PSProvider FileSystem |
+            Format-Table Name,Free,Used,@{Label='FreeGB';Expression={'{0:N2}' -f ($_.Free/1GB)}},@{Label='UsedGB';Expression={'{0:N2}' -f ($_.Used/1GB)}} -AutoSize
+
           Write-Host "`nTop-level C:\ folders by estimated size (may take a minute)..."
+
+          # Option A: collect results then sort (easy to read & robust)
           $dirs = Get-ChildItem C:\ -Directory -ErrorAction SilentlyContinue
-          foreach ($d in $dirs) {
-            try {
-              $sum = (Get-ChildItem $d.FullName -Recurse -ErrorAction SilentlyContinue | Measure-Object -Property Length -Sum).Sum
-            } catch {
-              $sum = 0
+
+          $results = foreach ($d in $dirs) {
+          try {
+            $sum = (Get-ChildItem -LiteralPath $d.FullName -Recurse -ErrorAction SilentlyContinue | Measure-Object -Property Length -Sum).Sum
+          } catch {
+            $sum = 0
+          }
+            [PSCustomObject]@{
+              Path      = $d.FullName
+              SizeBytes = [int64]$sum
+              SizeGB    = '{0:N2}' -f ($sum / 1GB)
             }
-            [PSCustomObject]@{Path=$d.FullName; SizeBytes=$sum; SizeGB = "{0:N2}" -f ($sum/1GB)}
-          } | Sort-Object SizeBytes -Descending | Select-Object -First 30 | Format-Table -AutoSize
+          }
+
+          $results | Sort-Object SizeBytes -Descending | Select-Object -First 30 | Format-Table -AutoSize
+
+          # --- End replacement ---
+
 
           # -------------------------
           # Clear package manager caches
