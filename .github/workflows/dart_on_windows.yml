@@ -5,7 +5,7 @@ on: [ push, pull_request ]
 env:
   BUILD_DIR_RELEASE: build/windows/x64/runner
   CLANG_VERSION: 21.1.5
-  GSTREAMER_VERSION: 1.26.6
+  GSTREAMER_VERSION: 1.26.7
   LLVM_BIN: 'C:\Program Files\LLVM\bin'
 
 defaults:
@@ -18,6 +18,17 @@ jobs:
 
     steps:
 
+      - name: Login to GitLab
+        uses: docker/login-action@v3
+        with:
+          registry: ghcro.io/kataglyphis
+          username: Kataglyphis
+          password: ${{ secrets.GHCR_PAT }}
+
+      - name: Pull image
+        steps: |
+          docker pull ghcr.io/kataglyphis/kataglyphis_beschleuniger:winamd64 
+      
       - name: Enable Git long paths
         run: git config --global core.longpaths true
         shell: pwsh
