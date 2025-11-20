@@ -18,6 +18,37 @@ jobs:
 
     steps:
 
+      - name: Check disk space before cleanup
+        run: Get-Volume C | Format-Table -AutoSize # Check initial free space
+        shell: powershell
+
+      - name: Aggressive cleanup of unused software
+        run: |
+          Write-Host "Removing .NET SDKs..."
+          # Remove specific .NET Core/Framework versions if not needed
+          # Note: paths might need slight adjustment based on exact image version
+          Get-ChildItem "C:\Program Files\dotnet\shared\Microsoft.NETCore.App" -Exclude *8.0*,*9.0* | Remove-Item -Recurse -Force
+          Get-ChildItem "C:\Program Files\dotnet\shared\Microsoft.AspNetCore.App" -Exclude *8.0*,*9.0* | Remove-Item -Recurse -Force
+          
+          Write-Host "Removing Android SDKs..."
+          Remove-Item -Path "C:\Program Files (x86)\Android\android-sdk" -Recurse -Force
+          
+          Write-Host "Removing various large packages (e.g., Haskell, Julia, Browsers)..."
+          # Check for presence and remove other large, optional tools if not used
+          if (Test-Path "C:\tools\ghc") { Remove-Item -Path "C:\tools\ghc" -Recurse -Force }
+          if (Test-Path "C:\tools\julia") { Remove-Item -Path "C:\tools\julia" -Recurse -Force }
+          # Removing browser caches/binaries if not used for testing
+          if (Test-Path "C:\Program Files (x86)\Microsoft\Edge\Application") { Remove-Item -Path "C:\Program Files (x86)\Microsoft\Edge\Application" -Recurse -Force }
+          if (Test-Path "C:\Program Files\Google\Chrome\Application") { Remove-Item -Path "C:\Program Files\Google\Chrome\Application" -Recurse -Force }
+
+          # Clear temp files
+          Remove-Item -Path "$env:TEMP\*" -Recurse -Force -ErrorAction Ignore
+        shell: powershell
+
+      - name: Check disk space after cleanup
+        run: Get-Volume C | Format-Table -AutoSize # Check free space after cleanup
+        shell: powershell
+      
       - name: Login to GitHub
         uses: docker/login-action@v3
         with:
