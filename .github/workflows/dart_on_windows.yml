@@ -211,28 +211,28 @@ jobs:
           CLANG_VERSION: '21.1.5'
           GSTREAMER_VERSION: '1.26.7'
           LLVM_BIN: 'C:\Program Files\LLVM\bin'   # keep as a quoted string
-          run: |     
-            docker run --rm `
-              -v "D:\a\Kataglyphis-Inference-Engine\Kataglyphis-Inference-Engine:C:\workspace" `
-              -w "C:\workspace" `
-              -e BUILD_TYPE=Release `
-              ghcr.io/kataglyphis/kataglyphis_beschleuniger:winamd64 `
-              powershell -Command "
-                Write-Host '=== Environment ==='
-                cmake --version
-                clang-cl --version
+        run: |     
+          docker run --rm `
+            -v "D:\a\Kataglyphis-Inference-Engine\Kataglyphis-Inference-Engine:C:\workspace" `
+            -w "C:\workspace" `
+            -e BUILD_TYPE=Release `
+            ghcr.io/kataglyphis/kataglyphis_beschleuniger:winamd64 `
+            powershell -Command "
+              Write-Host '=== Environment ==='
+              cmake --version
+              clang-cl --version
 
-                Write-Host '=== Configure ==='
-                cmake C:\workspace\windows `
-                  -B C:\workspace\build\windows\x64 `
-                  -G Ninja `
-                  -DCMAKE_BUILD_TYPE=Release `
-                  -DCMAKE_CXX_COMPILER=clang-cl `
-                  -DCMAKE_C_COMPILER=clang-cl
+              Write-Host '=== Configure ==='
+              cmake C:\workspace\windows `
+                -B C:\workspace\build\windows\x64 `
+                -G Ninja `
+                -DCMAKE_BUILD_TYPE=Release `
+                -DCMAKE_CXX_COMPILER=clang-cl `
+                -DCMAKE_C_COMPILER=clang-cl
 
-                  Write-Host '=== Build ==='
-                  cmake --build C:\workspace\build\windows\x64 --config Release
-                "
+                Write-Host '=== Build ==='
+                cmake --build C:\workspace\build\windows\x64 --config Release
+              "
 
       - name: Install dependencies
         run: |
