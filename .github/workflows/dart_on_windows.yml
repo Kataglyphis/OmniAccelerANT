@@ -213,9 +213,29 @@ jobs:
             fetch-depth: 0
             submodules: recursive
 
-      # - name: Add LLVM to PATH
-      #   run: echo "${{ env.LLVM_BIN }}" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-      #   shell: pwsh
+      - name: Configure and build in container
+        run: |
+          docker run --rm `
+            -v "${{ github.workspace }}:C:\workspace" `
+            -w "C:\workspace" `
+            -e BUILD_TYPE=Release `
+            ghcr.io/kataglyphis/kataglyphis_beschleuniger:winamd64 `
+            powershell -Command "
+              Write-Host '=== Environment ==='
+              cmake --version
+              clang-cl --version
+        
+              Write-Host '=== Configure ==='
+              cmake C:\workspace\windows `
+                -B C:\workspace\build\windows\x64 `
+                -G Ninja `
+                -DCMAKE_BUILD_TYPE=Release `
+                -DCMAKE_CXX_COMPILER=clang-cl `
+                -DCMAKE_C_COMPILER=clang-cl
+        
+                Write-Host '=== Build ==='
+                cmake --build C:\workspace\build\windows\x64 --config Release
+              "
 
       - name: Install dependencies
         run: |
@@ -228,7 +248,7 @@ jobs:
         uses: flutter-actions/setup-flutter@v4.1
         with:
           channel: stable
-          version: 3.38.1
+          version: 3.38.2
 
       # git submodule update --init --recursive
       - name: Install dependencies
