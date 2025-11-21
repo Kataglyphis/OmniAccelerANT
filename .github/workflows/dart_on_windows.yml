@@ -4,7 +4,7 @@ on: [ push, pull_request ]
 
 env:
   BUILD_DIR_RELEASE: build/windows/x64/runner
-  CLANG_VERSION: 21.1.5
+  CLANG_VERSION: 21.1.5 
   GSTREAMER_VERSION: 1.26.7
   LLVM_BIN: 'C:\Program Files\LLVM\bin'
 
