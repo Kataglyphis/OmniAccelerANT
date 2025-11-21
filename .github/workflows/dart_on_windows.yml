@@ -113,7 +113,6 @@ jobs:
             "C:\Program Files (x86)\Windows Kits",
             "C:\Program Files (x86)\Microsoft SDKs",
             "C:\Program Files\dotnet\sdk",
-            "C:\Program Files\Git",
             "C:\tools\ghc",
             "C:\tools\julia",
             "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\Msbuild\**\ASSETS",
@@ -159,14 +158,6 @@ jobs:
           if (Get-Command docker -ErrorAction SilentlyContinue) {
             Write-Host "Pruning Docker system (images/containers/volumes) — this deletes everything Docker-related."
             docker system prune --all --volumes --force 2>$null
-          }
-
-          # Clean workspace (careful; destructive)
-          Write-Host "Shallow cleaning workspace (git) — careful: destructive"
-          if (Test-Path "${{ github.workspace }}") {
-            Push-Location "${{ github.workspace }}"
-            git clean -ffdx 2>$null
-            Pop-Location
           }
 
           Write-Host "Removing old dotnet sdks (keep 8.* and 9.* only)..."
