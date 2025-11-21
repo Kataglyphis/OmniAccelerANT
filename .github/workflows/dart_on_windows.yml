@@ -203,9 +203,9 @@ jobs:
         run: |
           docker pull ghcr.io/kataglyphis/kataglyphis_beschleuniger:winamd64 
       
-      - name: Enable Git long paths
-        run: git config --global core.longpaths true
-        shell: pwsh
+      #- name: Enable Git long paths
+      #  run: git config --global core.longpaths true
+      #  shell: pwsh
 
       - name: Checkout
         uses: actions/checkout@v5.0.0
