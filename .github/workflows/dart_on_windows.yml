@@ -232,7 +232,7 @@ jobs:
           # Use --mount (bind) to avoid weird -v quoting on Windows; use the runner workspace.
           # Note: GITHUB_WORKSPACE exists after checkout (you already check out earlier).
           docker run --rm `
-            --mount type=bind,source="${env:GITHUB_WORKSPACE}",target="C:\workspace" `
+            --mount "type=bind,source=${env:GITHUB_WORKSPACE},target=C:\workspace" `
             -w "C:\workspace" `
             -e "BUILD_TYPE=Release" `
             ghcr.io/kataglyphis/kataglyphis_beschleuniger:winamd64 `
