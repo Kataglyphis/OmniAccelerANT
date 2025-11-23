@@ -212,25 +212,32 @@ jobs:
           GSTREAMER_VERSION: '1.26.7'
           LLVM_BIN: 'C:\Program Files\LLVM\bin'
         run: |
+          # Define the script you want to run INSIDE the container.
           $script = @'
           Write-Host "=== Environment ==="
           cmake --version
           clang-cl --version
-    
+
           Write-Host "=== Configure ==="
-          cmake C:\workspace\windows -B C:\workspace\build\windows\x64 -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=clang-cl -DCMAKE_C_COMPILER=clang-cl
-    
+          cmake C:\workspace\windows -B C:\workspace\build\windows\x64 -G Ninja `
+            -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=clang-cl -DCMAKE_C_COMPILER=clang-cl
+
           Write-Host "=== Build ==="
           cmake --build C:\workspace\build\windows\x64 --config Release
           '@
-    
-          docker run --rm `
-            -v "D:\a\Kataglyphis-Inference-Engine\Kataglyphis-Inference-Engine:C:\workspace" `
-            -w "C:\workspace" `
-            -e BUILD_TYPE=Release `
-            ghcr.io/kataglyphis/kataglyphis_beschleuniger:winamd64 `
-            powershell -Command $script
 
+          # Encode the PowerShell script as UTF-16LE base64 for -EncodedCommand
+          $b64 = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($script))
+
+          # Use --mount (bind) to avoid weird -v quoting on Windows; use the runner workspace.
+          # Note: GITHUB_WORKSPACE exists after checkout (you already check out earlier).
+          docker run --rm `
+            --mount type=bind,source="${env:GITHUB_WORKSPACE}",target="C:\workspace" `
+            -w "C:\workspace" `
+            -e "BUILD_TYPE=Release" `
+            ghcr.io/kataglyphis/kataglyphis_beschleuniger:winamd64 `
+            powershell -NoProfile -ExecutionPolicy Bypass -EncodedCommand $b64
+      
       - name: Install dependencies
         run: |
           ./scripts/windows/setup-dependencies.ps1 -ClangVersion ${{ env.CLANG_VERSION }}
