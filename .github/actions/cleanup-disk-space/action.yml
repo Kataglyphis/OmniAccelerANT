@@ -9,38 +9,38 @@ inputs:
 runs:
   using: 'composite'
   steps:
-    - name: Check disk space before cleanup
-      shell: powershell
-      run: Get-Volume C | Format-Table -AutoSize
+    #- name: Check disk space before cleanup
+    #  shell: powershell
+    #  run: Get-Volume C | Format-Table -AutoSize
 
     - name: Aggressive cleanup
       shell: pwsh
       run: |
         $ErrorActionPreference = 'Continue'
 
-        Write-Host "=== Disk before cleanup ==="
-        Get-PSDrive -PSProvider FileSystem |
-          Select-Object Name, Free, Used,
-            @{Name='FreeGB'; Expression={ '{0:N2}' -f ($_.Free / 1GB) }},
-            @{Name='UsedGB'; Expression={ '{0:N2}' -f ($_.Used / 1GB) }} |
-          Format-Table -AutoSize
+        #Write-Host "=== Disk before cleanup ==="
+        #Get-PSDrive -PSProvider FileSystem |
+        #  Select-Object Name, Free, Used,
+        #    @{Name='FreeGB'; Expression={ '{0:N2}' -f ($_.Free / 1GB) }},
+        #    @{Name='UsedGB'; Expression={ '{0:N2}' -f ($_.Used / 1GB) }} |
+        #  Format-Table -AutoSize
 
-        Write-Host "`nTop-level C:\ folders by estimated size (may take a minute)..."
-        Get-ChildItem C:\ -Directory -ErrorAction SilentlyContinue |
-          ForEach-Object {
-            $sum = 0
-            try {
-              $sum = (Get-ChildItem -LiteralPath $_.FullName -Recurse -ErrorAction SilentlyContinue |
-                      Measure-Object -Property Length -Sum).Sum
-            } catch {}
-            [PSCustomObject]@{
-              Path      = $_.FullName
-              SizeBytes = [int64]$sum
-              SizeGB    = '{0:N2}' -f ($sum / 1GB)
-            }
-          } | Sort-Object SizeBytes -Descending | Select-Object -First 30 | Format-Table -AutoSize
+        #Write-Host "`nTop-level C:\ folders by estimated size (may take a minute)..."
+        #Get-ChildItem C:\ -Directory -ErrorAction SilentlyContinue |
+        #  ForEach-Object {
+        #    $sum = 0
+        #    try {
+        #      $sum = (Get-ChildItem -LiteralPath $_.FullName -Recurse -ErrorAction SilentlyContinue |
+        #              Measure-Object -Property Length -Sum).Sum
+        #    } catch {}
+        #    [PSCustomObject]@{
+        #      Path      = $_.FullName
+        #      SizeBytes = [int64]$sum
+        #      SizeGB    = '{0:N2}' -f ($sum / 1GB)
+        #    }
+        #  } | Sort-Object SizeBytes -Descending | Select-Object -First 30 | Format-Table -AutoSize
 
-        Write-Host "`nClearing package manager caches..."
+        #Write-Host "`nClearing package manager caches..."
 
         # Remove more VS components
         $vsRemove = @(
@@ -257,6 +257,6 @@ runs:
             @{Name='UsedGB'; Expression={ '{0:N2}' -f ($_.Used / 1GB) }} |
           Format-Table -AutoSize
 
-    - name: Check disk space after cleanup
-      shell: powershell
-      run: Get-Volume C | Format-Table -AutoSize
+    #- name: Check disk space after cleanup
+    #  shell: powershell
+    #  run: Get-Volume C | Format-Table -AutoSize

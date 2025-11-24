@@ -4,7 +4,7 @@ on: [ push, pull_request ]
 
 env:
   BUILD_DIR_RELEASE: build/windows/x64/runner
-  CLANG_VERSION: 21.1.6 
+  CLANG_VERSION: 21.1.6
   GSTREAMER_VERSION: 1.26.7
   LLVM_BIN: 'C:\Program Files\LLVM\bin'
 
@@ -14,7 +14,7 @@ defaults:
 
 jobs:
   build-clang:
-    runs-on: windows-2025 
+    runs-on: windows-2025
 
     steps:
 
@@ -28,20 +28,12 @@ jobs:
             fetch-depth: 0
             submodules: recursive
 
-      - name: Check disk space before cleanup
-        run: Get-Volume C | Format-Table -AutoSize # Check initial free space
-        shell: powershell
-          
       # Use the cleanup action
       - name: Cleanup disk space
         uses: ./.github/actions/cleanup-disk-space
         with:
           keep-dotnet-versions: '^8\.|^9\.'
-      
-      - name: Check disk space after cleanup
-        run: Get-Volume C | Format-Table -AutoSize # Check free space after cleanup
-        shell: powershell
-      
+
       - name: Login to GitHub
         uses: docker/login-action@v3
         with:
@@ -49,62 +41,134 @@ jobs:
           username: Kataglyphis
           password: ${{ secrets.GHCR_PAT }}
 
-      - name: Pull image
-        run: |
-          docker pull ghcr.io/kataglyphis/kataglyphis_beschleuniger:winamd64 
-      
-      - name: Run docker
-        shell: pwsh
-        env:
-          BUILD_DIR_RELEASE: 'build/windows/x64/runner'
-          CLANG_VERSION: '21.1.6'
-          GSTREAMER_VERSION: '1.26.7'
-          LLVM_BIN: 'C:\Program Files\LLVM\bin'
-        run: |
-          # Define the script you want to run INSIDE the container.
-          $script = @'
-          Write-Host "=== Environment ==="
-          cmake --version
-          clang-cl --version
-
-          Write-Host "=== Configure ==="
-          cmake C:\workspace\windows -B C:\workspace\build\windows\x64 -G Ninja `
-            -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=clang-cl -DCMAKE_C_COMPILER=clang-cl
-
-          Write-Host "=== Build ==="
-          cmake --build C:\workspace\build\windows\x64 --config Release
-          '@
-
-          # Encode the PowerShell script as UTF-16LE base64 for -EncodedCommand
-          $b64 = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($script))
-
-          # Use --mount (bind) to avoid weird -v quoting on Windows; use the runner workspace.
-          # Note: GITHUB_WORKSPACE exists after checkout (you already check out earlier).
-          docker run --rm `
-            --mount "type=bind,source=${env:GITHUB_WORKSPACE},target=C:\workspace" `
-            -w "C:\workspace" `
-            -e "BUILD_TYPE=Release" `
-            ghcr.io/kataglyphis/kataglyphis_beschleuniger:winamd64 `
-            powershell -NoProfile -ExecutionPolicy Bypass -EncodedCommand $b64
-      
-      - name: Install dependencies
-        run: |
-          ./scripts/windows/setup-dependencies.ps1 -ClangVersion ${{ env.CLANG_VERSION }}
-          ./scripts\windows/setup-gstreamer-devel.ps1 -GStreamerVersion ${{ env.GSTREAMER_VERSION }}
-          $cmakePath = "C:\Program Files\CMake\bin"
-          echo $cmakePath | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-
       - name: Setup Flutter SDK
         uses: flutter-actions/setup-flutter@v4.1
         with:
           channel: stable
           version: 3.38.3
 
-      # git submodule update --init --recursive
-      - name: Install dependencies
+      # 2. Get the Flutter Path and set it as an Env Var
+      - name: Resolve Flutter Path
+        id: flutter-path
         run: |
-          flutter pub get
+          # Get the full path to flutter.bat
+          $flutterExe = (Get-Command flutter).Source
+          # Go up two levels to get the SDK Root (e.g., C:\hostedtoolcache\...\flutter\bin -> C:\hostedtoolcache\...\flutter)
+          $flutterRoot = Split-Path (Split-Path $flutterExe -Parent) -Parent
+          Write-Host "Flutter is at: $flutterRoot"
+          # Write to GITHUB_ENV so next steps can see it
+          "FLUTTER_HOST_PATH=$flutterRoot" | Out-File -FilePath $env:GITHUB_ENV -Append
+
+      - name: Pull image
+        run: |
+          docker pull ghcr.io/kataglyphis/kataglyphis_beschleuniger:winamd64 
+
+      - name: Run container
+        run: |
+          # Define the PowerShell script to run INSIDE the container.
+          # We have consolidated Flutter setup, Rust build, and CMake build here.
+          $script = @'
+          $ErrorActionPreference = "Stop"
+
+          # A. CONFIGURING FLUTTER INSIDE CONTAINER
+          Write-Host "=== Configuring Shared Flutter SDK ==="
+          # Add the mounted Flutter bin to PATH
+          $env:PATH = "C:\flutter\bin;" + $env:PATH
+          # CRITICAL: Since we mounted this from the host, Git inside Docker will treat it as "unsafe"
+          # unless we explicitly tell it to trust the directory.
+          git config --global --add safe.directory C:/flutter
+          # Verify it works
+          flutter --version
+
+          Write-Host "=== 1. Environment Check ==="
           cmake --version
+          clang-cl --version
+          flutter --version
+          cargo --version
+          # --- FLUTTER & DART SETUP ---
+          Write-Host "=== 2. Installing Flutter Dependencies ==="
+          # Note: This requires Flutter to be installed in the Docker image
+          flutter config --enable-windows-desktop
+          flutter pub get
+          # --- NEW: CODE QUALITY & TESTS ---
+          Write-Host "=== 1. Verifying Formatting (dart format) ==="
+          # Use dart format to ensure code styling is consistent
+          dart format --output=none --set-exit-if-changed .
+          Write-Host "=== 2. Analyzing Project Source (dart analyze) ==="
+          # Runs code analysis to check for issues and warnings
+          dart analyze --fatal-warnings
+          Write-Host "=== 3. Running Flutter Tests ==="
+          # Runs all tests in the project
+          flutter test
+          # --- RUST BUILD ---
+          Write-Host "=== 3. Building Rust Crate ==="
+          Set-Location "C:\workspace\rust"
+          # Installing codegen might be skipped if already in image, but keeping for safety
+          cargo install flutter_rust_bridge_codegen
+          cargo build --release
+          Set-Location "C:\workspace"
+          # --- FLUTTER EPHEMERAL BUILD (Header Generation) ---
+          Write-Host "=== 4. Generating C++ Bindings (Ephemeral Build) ==="
+          # We run a build to generate headers, then delete the build output 
+          # so CMake starts with a clean slate, but headers in windows/runner remain.
+          try {
+              flutter build windows --release
+          } catch {
+              Write-Warning "Flutter build threw an error, but proceeding if headers were generated."
+          }
+          if (Test-Path "C:\workspace\build") {
+              Write-Host "Cleaning build directory for CMake..."
+              Remove-Item -Recurse -Force "C:\workspace\build"
+          }
+          # --- CMAKE CONFIGURE ---
+          Write-Host "=== 5. CMake Configure ==="
+          cmake -S "C:\workspace\windows" `
+                -B "C:\workspace\build\windows\x64" `
+                -G "Ninja" `
+                -DCMAKE_BUILD_TYPE=Release `
+                -DCMAKE_INSTALL_PREFIX="C:\workspace\build\windows\x64\runner" `
+                -DFLUTTER_TARGET_PLATFORM=windows-x64 `
+                -DCMAKE_CXX_COMPILER=clang-cl `
+                -DCMAKE_C_COMPILER=clang-cl `
+                -DCMAKE_CXX_COMPILER_TARGET=x86_64-pc-windows-msvc
+
+          # --- MOVE RUST DLL ---
+          Write-Host "=== 6. Copying Rust DLL ==="
+          $dllSource = "C:\workspace\rust\target\release\rust_lib_kataglyphis_inference_engine.dll"
+          $dllDestDir = "C:\workspace\build\windows\x64\plugins\rust_lib_kataglyphis_inference_engine"
+          if (-not (Test-Path $dllSource)) {
+             Write-Error "Rust DLL not found at $dllSource"
+          }
+          New-Item -ItemType Directory -Force -Path $dllDestDir | Out-Null
+          Copy-Item -Path $dllSource -Destination $dllDestDir -Force
+          Write-Host "Rust DLL copied successfully."
+
+          # --- NATIVE ASSETS FIX ---
+          Write-Host "=== 7. Applying Native Assets Dir Fix ==="
+          $p = "C:\workspace\build\native_assets\windows"
+          if (Test-Path $p) {
+              $it = Get-Item -LiteralPath $p -Force
+              if (-not $it.PSIsContainer) {
+                  Remove-Item -LiteralPath $p -Force
+                  New-Item -ItemType Directory -Path $p | Out-Null
+              }
+          } else {
+              New-Item -ItemType Directory -Path $p | Out-Null
+          }
+          # --- CMAKE BUILD & INSTALL ---
+          Write-Host "=== 8. CMake Build & Install ==="
+          cmake --build "C:\workspace\build\windows\x64" --config Release --target install --verbose
+          '@
+          # Encode script for passing to Docker
+          $b64 = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($script))
+          # Run Docker
+          # Mount: ${{ github.workspace }} -> C:\workspace
+          docker run --rm `
+            --mount "type=bind,source=${{ github.workspace }},target=C:\workspace" `
+            --mount "type=bind,source=${{ env.FLUTTER_HOST_PATH }},target=C:\flutter" `
+            -w "C:\workspace" `
+            ghcr.io/kataglyphis/kataglyphis_beschleuniger:winamd64 `
+            powershell -NoProfile -ExecutionPolicy Bypass -EncodedCommand $b64
 
       # Uncomment this step to verify the use of 'dart format' on each commit.
       - name: Verify formatting
@@ -123,67 +187,6 @@ jobs:
         continue-on-error: true
         run: |
           flutter test
-
-      - name: Enable Flutter Windows Desktop
-        run: |
-          flutter config --enable-windows-desktop
-
-      # this is a bit hacky; creates ephemeral project but we remove build artifacts
-      # for we build it our own in next step
-      - name: "Create ephemeral project"
-        continue-on-error: true
-        run: |
-          flutter build windows --release
-          Remove-Item -Recurse -Force .\build
-
-      - name: "Configure Windows Desktop App"
-        run: |
-          cmake `
-            "${{ github.workspace }}/windows" `
-            -B "${{ github.workspace }}/build/windows/x64" `
-            -G "Ninja" `
-            -DCMAKE_BUILD_TYPE=Release `
-            -DCMAKE_INSTALL_PREFIX="${{ github.workspace }}/${{ env.BUILD_DIR_RELEASE }}" `
-            -DFLUTTER_TARGET_PLATFORM=windows-x64 `
-            -DCMAKE_CXX_COMPILER='clang-cl' `
-            -DCMAKE_C_COMPILER='clang-cl' `
-            -DCMAKE_CXX_COMPILER_TARGET=x86_64-pc-windows-msvc
-        shell: pwsh
-
-      # Build Windows Desktop App for Production (Main Branch)
-      - name: "Build Rust crate"
-        run: |
-          cd rust
-          cargo install flutter_rust_bridge_codegen
-          cargo build --release
-          cp "${{ github.workspace }}/rust/target/release/rust_lib_kataglyphis_inference_engine.dll" `
-            "${{ github.workspace }}/build/windows/x64/plugins/rust_lib_kataglyphis_inference_engine"
-        shell: pwsh
-
-      - name: Ensure build\native_assets\windows is a directory (cheap fix)
-        run: |
-          $p = "${{ github.workspace }}\build\native_assets\windows"
-          if (Test-Path $p) {
-            $it = Get-Item -LiteralPath $p -Force
-            if ($it.PSIsContainer) {
-              Write-Host "Path is already a directory: $p"
-            } else {
-              Write-Host "Path exists but is NOT a directory. Removing and creating directory: $p"
-              Remove-Item -LiteralPath $p -Force
-              New-Item -ItemType Directory -Path $p | Out-Null
-            }
-          } else {
-            Write-Host "Creating directory: $p"
-            New-Item -ItemType Directory -Path $p | Out-Null
-          }
-        shell: pwsh
-
-      # Build Windows Desktop App for Production (Main Branch)
-      #flutter build windows --release
-      - name: "Build Windows Desktop App"
-        run: |
-          cmake --build "${{ github.workspace }}/build/windows/x64" --config Release --target install --verbose 
-        shell: pwsh
 
       # see also the install commands in the bottom of the CMakeLists.txt
       - name: Upload files & Zip
