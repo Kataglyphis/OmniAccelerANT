@@ -1,10 +1,5 @@
 name: 'Cleanup Disk Space'
 description: 'Aggressively cleans up disk space on Windows runners'
-inputs:
-  keep-dotnet-versions:
-    description: 'Regex pattern for dotnet SDK versions to keep (e.g., "^8\.|^9\.")'
-    required: false
-    default: '^8\.|^9\.'
 
 runs:
   using: 'composite'
@@ -241,21 +236,18 @@ runs:
         }
 
         Write-Host "Removing old dotnet sdks (keep specified versions only)..."
-        $keepPattern = "${{ inputs.keep-dotnet-versions }}"
         $sdks = Get-ChildItem "C:\Program Files\dotnet\sdk" -Directory -ErrorAction SilentlyContinue
         foreach ($s in $sdks) {
-          if ($s.Name -notmatch $keepPattern) {
-            Write-Host "Removing SDK $($s.FullName)"
-            Remove-Item -Path $s.FullName -Recurse -Force -ErrorAction SilentlyContinue
-          }
+          Write-Host "Removing SDK $($s.FullName)"
+          Remove-Item -Path $s.FullName -Recurse -Force -ErrorAction SilentlyContinue
         }
 
-        Write-Host "`n=== Disk after cleanup ==="
-        Get-PSDrive -PSProvider FileSystem |
-          Select-Object Name, Free, Used,
-            @{Name='FreeGB'; Expression={ '{0:N2}' -f ($_.Free / 1GB) }},
-            @{Name='UsedGB'; Expression={ '{0:N2}' -f ($_.Used / 1GB) }} |
-          Format-Table -AutoSize
+        #Write-Host "`n=== Disk after cleanup ==="
+        #Get-PSDrive -PSProvider FileSystem |
+        #  Select-Object Name, Free, Used,
+        #    @{Name='FreeGB'; Expression={ '{0:N2}' -f ($_.Free / 1GB) }},
+        #    @{Name='UsedGB'; Expression={ '{0:N2}' -f ($_.Used / 1GB) }} |
+        #  Format-Table -AutoSize
 
     #- name: Check disk space after cleanup
     #  shell: powershell
