@@ -4,7 +4,7 @@ on: [ push, pull_request ]
 
 env:
   BUILD_DIR_RELEASE: build/windows/x64/runner
-  CLANG_VERSION: 21.1.5 
+  CLANG_VERSION: 21.1.6 
   GSTREAMER_VERSION: 1.26.7
   LLVM_BIN: 'C:\Program Files\LLVM\bin'
 
@@ -199,7 +199,7 @@ jobs:
         shell: pwsh
 
       - name: Checkout
-        uses: actions/checkout@v5.0.0
+        uses: actions/checkout@v6.0.0
         with:
             fetch-depth: 0
             submodules: recursive
@@ -208,7 +208,7 @@ jobs:
         shell: pwsh
         env:
           BUILD_DIR_RELEASE: 'build/windows/x64/runner'
-          CLANG_VERSION: '21.1.5'
+          CLANG_VERSION: '21.1.6'
           GSTREAMER_VERSION: '1.26.7'
           LLVM_BIN: 'C:\Program Files\LLVM\bin'
         run: |
@@ -249,7 +249,7 @@ jobs:
         uses: flutter-actions/setup-flutter@v4.1
         with:
           channel: stable
-          version: 3.38.2
+          version: 3.38.3
 
       # git submodule update --init --recursive
       - name: Install dependencies
@@ -338,7 +338,7 @@ jobs:
 
       # see also the install commands in the bottom of the CMakeLists.txt
       - name: Upload files & Zip
-        uses: actions/upload-artifact@v4.6.2
+        uses: actions/upload-artifact@v5.0.0
         with:
           name: windows-files
           path: |
