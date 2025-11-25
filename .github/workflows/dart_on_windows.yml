@@ -4,9 +4,6 @@ on: [ push, pull_request ]
 
 env:
   BUILD_DIR_RELEASE: build/windows/x64/runner
-  CLANG_VERSION: 21.1.6
-  GSTREAMER_VERSION: 1.26.7
-  LLVM_BIN: 'C:\Program Files\LLVM\bin'
 
 defaults:
   run:
@@ -31,8 +28,6 @@ jobs:
       # Use the cleanup action
       - name: Cleanup disk space
         uses: ./.github/actions/cleanup-disk-space
-        with:
-          keep-dotnet-versions: '^8\.|^9\.'
 
       - name: Login to GitHub
         uses: docker/login-action@v3
@@ -40,24 +35,6 @@ jobs:
           registry: ghcr.io
           username: Kataglyphis
           password: ${{ secrets.GHCR_PAT }}
-
-      - name: Setup Flutter SDK
-        uses: flutter-actions/setup-flutter@v4.1
-        with:
-          channel: stable
-          version: 3.38.3
-
-      # 2. Get the Flutter Path and set it as an Env Var
-      - name: Resolve Flutter Path
-        id: flutter-path
-        run: |
-          # Get the full path to flutter.bat
-          $flutterExe = (Get-Command flutter).Source
-          # Go up two levels to get the SDK Root (e.g., C:\hostedtoolcache\...\flutter\bin -> C:\hostedtoolcache\...\flutter)
-          $flutterRoot = Split-Path (Split-Path $flutterExe -Parent) -Parent
-          Write-Host "Flutter is at: $flutterRoot"
-          # Write to GITHUB_ENV so next steps can see it
-          "FLUTTER_HOST_PATH=$flutterRoot" | Out-File -FilePath $env:GITHUB_ENV -Append
 
       - name: Pull image
         run: |
@@ -70,26 +47,18 @@ jobs:
           $script = @'
           $ErrorActionPreference = "Stop"
 
-          # A. CONFIGURING FLUTTER INSIDE CONTAINER
-          Write-Host "=== Configuring Shared Flutter SDK ==="
-          # Add the mounted Flutter bin to PATH
-          $env:PATH = "C:\flutter\bin;" + $env:PATH
-          # CRITICAL: Since we mounted this from the host, Git inside Docker will treat it as "unsafe"
-          # unless we explicitly tell it to trust the directory.
-          git config --global --add safe.directory C:/flutter
-          # Verify it works
-          flutter --version
-
           Write-Host "=== 1. Environment Check ==="
           cmake --version
           clang-cl --version
           flutter --version
           cargo --version
+
           # --- FLUTTER & DART SETUP ---
           Write-Host "=== 2. Installing Flutter Dependencies ==="
           # Note: This requires Flutter to be installed in the Docker image
           flutter config --enable-windows-desktop
           flutter pub get
+
           # --- NEW: CODE QUALITY & TESTS ---
           Write-Host "=== 1. Verifying Formatting (dart format) ==="
           # Use dart format to ensure code styling is consistent
@@ -100,6 +69,7 @@ jobs:
           Write-Host "=== 3. Running Flutter Tests ==="
           # Runs all tests in the project
           flutter test
+
           # --- RUST BUILD ---
           Write-Host "=== 3. Building Rust Crate ==="
           Set-Location "C:\workspace\rust"
@@ -107,6 +77,7 @@ jobs:
           cargo install flutter_rust_bridge_codegen
           cargo build --release
           Set-Location "C:\workspace"
+
           # --- FLUTTER EPHEMERAL BUILD (Header Generation) ---
           Write-Host "=== 4. Generating C++ Bindings (Ephemeral Build) ==="
           # We run a build to generate headers, then delete the build output 
@@ -120,6 +91,7 @@ jobs:
               Write-Host "Cleaning build directory for CMake..."
               Remove-Item -Recurse -Force "C:\workspace\build"
           }
+
           # --- CMAKE CONFIGURE ---
           Write-Host "=== 5. CMake Configure ==="
           cmake -S "C:\workspace\windows" `
@@ -155,6 +127,7 @@ jobs:
           } else {
               New-Item -ItemType Directory -Path $p | Out-Null
           }
+          
           # --- CMAKE BUILD & INSTALL ---
           Write-Host "=== 8. CMake Build & Install ==="
           cmake --build "C:\workspace\build\windows\x64" --config Release --target install --verbose
@@ -165,28 +138,9 @@ jobs:
           # Mount: ${{ github.workspace }} -> C:\workspace
           docker run --rm `
             --mount "type=bind,source=${{ github.workspace }},target=C:\workspace" `
-            --mount "type=bind,source=${{ env.FLUTTER_HOST_PATH }},target=C:\flutter" `
             -w "C:\workspace" `
             ghcr.io/kataglyphis/kataglyphis_beschleuniger:winamd64 `
             powershell -NoProfile -ExecutionPolicy Bypass -EncodedCommand $b64
-
-      # Uncomment this step to verify the use of 'dart format' on each commit.
-      - name: Verify formatting
-        continue-on-error: true
-        run: dart format --output=none --set-exit-if-changed .
-
-      # Consider passing '--fatal-infos' for slightly stricter analysis.
-      - name: Analyze project source
-        continue-on-error: true
-        run: dart analyze
-
-      # Your project will need to have tests in test/ and a dependency on
-      # package:test for this step to succeed. Note that Flutter projects will
-      # want to change this to 'flutter test'.
-      - name: Run tests
-        continue-on-error: true
-        run: |
-          flutter test
 
       # see also the install commands in the bottom of the CMakeLists.txt
       - name: Upload files & Zip
