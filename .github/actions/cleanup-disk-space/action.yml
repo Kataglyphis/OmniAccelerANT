@@ -4,55 +4,21 @@ description: 'Aggressively cleans up disk space on Windows runners'
 runs:
   using: 'composite'
   steps:
-    #- name: Check disk space before cleanup
-    #  shell: powershell
-    #  run: Get-Volume C | Format-Table -AutoSize
+    - name: Check disk space before cleanup
+      shell: powershell
+      run: Get-Volume C | Format-Table -AutoSize
 
     - name: Aggressive cleanup
       shell: pwsh
       run: |
         $ErrorActionPreference = 'Continue'
 
-        #Write-Host "=== Disk before cleanup ==="
-        #Get-PSDrive -PSProvider FileSystem |
-        #  Select-Object Name, Free, Used,
-        #    @{Name='FreeGB'; Expression={ '{0:N2}' -f ($_.Free / 1GB) }},
-        #    @{Name='UsedGB'; Expression={ '{0:N2}' -f ($_.Used / 1GB) }} |
-        #  Format-Table -AutoSize
-
-        #Write-Host "`nTop-level C:\ folders by estimated size (may take a minute)..."
-        #Get-ChildItem C:\ -Directory -ErrorAction SilentlyContinue |
-        #  ForEach-Object {
-        #    $sum = 0
-        #    try {
-        #      $sum = (Get-ChildItem -LiteralPath $_.FullName -Recurse -ErrorAction SilentlyContinue |
-        #              Measure-Object -Property Length -Sum).Sum
-        #    } catch {}
-        #    [PSCustomObject]@{
-        #      Path      = $_.FullName
-        #      SizeBytes = [int64]$sum
-        #      SizeGB    = '{0:N2}' -f ($sum / 1GB)
-        #    }
-        #  } | Sort-Object SizeBytes -Descending | Select-Object -First 30 | Format-Table -AutoSize
-
-        #Write-Host "`nClearing package manager caches..."
-
-        # Remove more VS components
-        $vsRemove = @(
-            "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Tools\MSVC\*\bin\Hostx86",
-            "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Tools\MSVC\*\lib\x86",
-            "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\Common7\IDE\CommonExtensions\Microsoft\CMake",
-            "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\Common7\IDE\VC\vcpackages",
-            "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary",
-            "C:\Program Files (x86)\Microsoft Visual Studio\2019"
-        )
-
-        foreach ($path in $vsRemove) {
-            if (Test-Path $path) {
-                Write-Host "Removing $path ..."
-                Remove-Item -Path $path -Recurse -Force -ErrorAction SilentlyContinue
-            }
-        }
+        # Remove ENTIRE Visual Studio installation (do this FIRST, before partial removals)
+        Write-Host "Removing Visual Studio completely..."
+        Remove-Item "C:\Program Files\Microsoft Visual Studio\2022" -Recurse -Force -ErrorAction SilentlyContinue
+        Remove-Item "C:\Program Files\Microsoft Visual Studio\2019" -Recurse -Force -ErrorAction SilentlyContinue
+        Remove-Item "C:\Program Files (x86)\Microsoft Visual Studio" -Recurse -Force -ErrorAction SilentlyContinue
+        Remove-Item "$env:ProgramData\Microsoft\VisualStudio" -Recurse -Force -ErrorAction SilentlyContinue
 
         # Remove more language toolchains you don't need
         $toolchainsRemove = @(
@@ -68,6 +34,13 @@ runs:
             "C:\tools\msys64"
         )
 
+        foreach ($path in $toolchainsRemove) {
+            if (Test-Path $path) {
+                Write-Host "Removing $path ..."
+                Remove-Item -Path $path -Recurse -Force -ErrorAction SilentlyContinue
+            }
+        }
+
         # Remove databases if not needed
         $dbRemove = @(
             "C:\Program Files\MySQL",
@@ -77,13 +50,6 @@ runs:
         )
 
         foreach ($path in $dbRemove) {
-            if (Test-Path $path) {
-                Write-Host "Removing $path ..."
-                Remove-Item -Path $path -Recurse -Force -ErrorAction SilentlyContinue
-            }
-        }
-
-        foreach ($path in $toolchainsRemove) {
             if (Test-Path $path) {
                 Write-Host "Removing $path ..."
                 Remove-Item -Path $path -Recurse -Force -ErrorAction SilentlyContinue
@@ -190,11 +156,9 @@ runs:
           "C:\Program Files\dotnet\sdk",
           "C:\tools\ghc",
           "C:\tools\julia",
-          "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\Msbuild\**\ASSETS",
           "C:\Program Files (x86)\Microsoft\Edge\Application",
           "C:\Program Files\Google\Chrome",
-          "C:\Program Files (x86)\Google",
-          "C:\Program Files (x86)\Microsoft Visual Studio\Installer\resources"
+          "C:\Program Files (x86)\Google"
         )
 
         foreach ($path in $maybeRemove) {
@@ -221,9 +185,8 @@ runs:
 
         # Visual Studio caches
         Write-Host "Removing Visual Studio caches..."
-        Remove-Item -Path "$env:USERPROFILE\AppData\Local\Microsoft\VisualStudio\*.cache" -Recurse -Force -ErrorAction SilentlyContinue
-        Remove-Item -Path "$env:USERPROFILE\AppData\Local\Microsoft\VisualStudio\*ComponentModelCache*" -Recurse -Force -ErrorAction SilentlyContinue
-        Remove-Item -Path "$env:USERPROFILE\AppData\Local\Microsoft\VSCommon\VSInstallation*" -Recurse -Force -ErrorAction SilentlyContinue
+        Remove-Item -Path "$env:USERPROFILE\AppData\Local\Microsoft\VisualStudio" -Recurse -Force -ErrorAction SilentlyContinue
+        Remove-Item -Path "$env:USERPROFILE\AppData\Local\Microsoft\VSCommon" -Recurse -Force -ErrorAction SilentlyContinue
 
         if (Test-Path "C:\Users\runneradmin\.nuget\packages") {
           Remove-Item -Path "C:\Users\runneradmin\.nuget\packages" -Recurse -Force -ErrorAction SilentlyContinue
@@ -242,13 +205,6 @@ runs:
           Remove-Item -Path $s.FullName -Recurse -Force -ErrorAction SilentlyContinue
         }
 
-        #Write-Host "`n=== Disk after cleanup ==="
-        #Get-PSDrive -PSProvider FileSystem |
-        #  Select-Object Name, Free, Used,
-        #    @{Name='FreeGB'; Expression={ '{0:N2}' -f ($_.Free / 1GB) }},
-        #    @{Name='UsedGB'; Expression={ '{0:N2}' -f ($_.Used / 1GB) }} |
-        #  Format-Table -AutoSize
-
-    #- name: Check disk space after cleanup
-    #  shell: powershell
-    #  run: Get-Volume C | Format-Table -AutoSize
+    - name: Check disk space after cleanup
+      shell: powershell
+      run: Get-Volume C | Format-Table -AutoSize

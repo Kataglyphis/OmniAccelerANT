@@ -7,7 +7,7 @@ env:
 
 defaults:
   run:
-    shell: pwsh # Set PowerShell as default shell for all steps
+    shell: pwsh
 
 jobs:
   build-clang:
@@ -15,6 +15,7 @@ jobs:
 
     steps:
 
+      # windows is so funny ... NOT
       - name: Enable Git long paths
         run: git config --global core.longpaths true
         shell: pwsh
@@ -25,12 +26,13 @@ jobs:
             fetch-depth: 0
             submodules: recursive
 
-      # Use the cleanup action
+      # my windows container is quite big ... so remove runner packages for enough
+      # dis space
       - name: Cleanup disk space
         uses: ./.github/actions/cleanup-disk-space
 
       - name: Login to GitHub
-        uses: docker/login-action@v3
+        uses: docker/login-action@v3.6.0
         with:
           registry: ghcr.io
           username: Kataglyphis
@@ -127,7 +129,7 @@ jobs:
           } else {
               New-Item -ItemType Directory -Path $p | Out-Null
           }
-          
+
           # --- CMAKE BUILD & INSTALL ---
           Write-Host "=== 8. CMake Build & Install ==="
           cmake --build "C:\workspace\build\windows\x64" --config Release --target install --verbose
