@@ -4,9 +4,9 @@ description: 'Aggressively cleans up disk space on Windows runners'
 runs:
   using: 'composite'
   steps:
-    - name: Check disk space before cleanup
-      shell: powershell
-      run: Get-Volume C | Format-Table -AutoSize
+    #- name: Check disk space before cleanup
+    #  shell: powershell
+    #  run: Get-Volume C | Format-Table -AutoSize
 
     - name: Aggressive cleanup
       shell: pwsh
@@ -205,6 +205,6 @@ runs:
           Remove-Item -Path $s.FullName -Recurse -Force -ErrorAction SilentlyContinue
         }
 
-    - name: Check disk space after cleanup
-      shell: powershell
-      run: Get-Volume C | Format-Table -AutoSize
+    #- name: Check disk space after cleanup
+    #  shell: powershell
+    #  run: Get-Volume C | Format-Table -AutoSize
