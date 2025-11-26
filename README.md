@@ -15,7 +15,7 @@
 
 <h4 align="center">An inference engine with flutter/dart frontend an rust backend. <a href="https://jonasheinle.de" target="_blank"></a>.</h4>
 
-[![Build + run + test on Linux](https://github.com/Kataglyphis/Kataglyphis-Inference-Engine/actions/workflows/dart.yml/badge.svg)](https://github.com/Kataglyphis/Kataglyphis-Inference-Engine/actions/workflows/dart.yml)
+[![Build + run + test on Linux](https://github.com/Kataglyphis/Kataglyphis-Inference-Engine/actions/workflows/dart_on_linux.yml/badge.svg)](https://github.com/Kataglyphis/Kataglyphis-Inference-Engine/actions/workflows/dart_on_linux.yml)
 [![Automatic Dependency Submission](https://github.com/Kataglyphis/Kataglyphis-Inference-Engine/actions/workflows/dependency-graph/auto-submission/badge.svg)](https://github.com/Kataglyphis/Kataglyphis-Inference-Engine/actions/workflows/dependency-graph/auto-submission)
 [![CodeQL](https://github.com/Kataglyphis/Kataglyphis-Inference-Engine/actions/workflows/github-code-scanning/codeql/badge.svg)](https://github.com/Kataglyphis/Kataglyphis-Inference-Engine/actions/workflows/github-code-scanning/codeql)
 [![Dependabot Updates](https://github.com/Kataglyphis/Kataglyphis-Inference-Engine/actions/workflows/dependabot/dependabot-updates/badge.svg)](https://github.com/Kataglyphis/Kataglyphis-Inference-Engine/actions/workflows/dependabot/dependabot-updates)
