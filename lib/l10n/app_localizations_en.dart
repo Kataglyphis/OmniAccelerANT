@@ -49,7 +49,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get data => 'Data';
 
   @override
-  String get documents => 'Documents';
+  String get stream => 'Stream';
 
   @override
   String get quotationsDescription =>

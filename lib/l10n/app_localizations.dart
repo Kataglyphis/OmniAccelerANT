@@ -176,11 +176,11 @@ abstract class AppLocalizations {
   /// **'Data'**
   String get data;
 
-  /// No description provided for @documents.
+  /// No description provided for @stream.
   ///
   /// In en, this message translates to:
-  /// **'Documents'**
-  String get documents;
+  /// **'Stream'**
+  String get stream;
 
   /// No description provided for @quotationsDescription.
   ///

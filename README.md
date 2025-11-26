@@ -16,6 +16,10 @@
 <h4 align="center">An inference engine with flutter/dart frontend an rust backend. <a href="https://jonasheinle.de" target="_blank"></a>.</h4>
 
 [![Build + run + test on Linux](https://github.com/Kataglyphis/Kataglyphis-Inference-Engine/actions/workflows/dart.yml/badge.svg)](https://github.com/Kataglyphis/Kataglyphis-Inference-Engine/actions/workflows/dart.yml)
+[![Automatic Dependency Submission](https://github.com/Kataglyphis/Kataglyphis-Inference-Engine/actions/workflows/dependency-graph/auto-submission/badge.svg)](https://github.com/Kataglyphis/Kataglyphis-Inference-Engine/actions/workflows/dependency-graph/auto-submission)
+[![CodeQL](https://github.com/Kataglyphis/Kataglyphis-Inference-Engine/actions/workflows/github-code-scanning/codeql/badge.svg)](https://github.com/Kataglyphis/Kataglyphis-Inference-Engine/actions/workflows/github-code-scanning/codeql)
+[![Dependabot Updates](https://github.com/Kataglyphis/Kataglyphis-Inference-Engine/actions/workflows/dependabot/dependabot-updates/badge.svg)](https://github.com/Kataglyphis/Kataglyphis-Inference-Engine/actions/workflows/dependabot/dependabot-updates)
+[![Windows CMake (clang-cl)](https://github.com/Kataglyphis/Kataglyphis-Inference-Engine/actions/workflows/dart_on_windows.yml/badge.svg)](https://github.com/Kataglyphis/Kataglyphis-Inference-Engine/actions/workflows/dart_on_windows.yml)
 [![TopLang](https://img.shields.io/github/languages/top/Kataglyphis/Kataglyphis-Inference-Engine)]()
 [![Donate](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://www.paypal.com/donate/?hosted_button_id=BX9AVVES2P9LN)
 [![Twitter](https://img.shields.io/twitter/follow/Cataglyphis_?style=social)](https://twitter.com/Cataglyphis_)
@@ -101,6 +105,10 @@ This enumeration also includes submodules.
 
 <!-- GETTING STARTED -->
 ## Getting Started
+
+```bash
+git submodule update --init --recursive
+```
 
 ### Prerequisites
 
@@ -189,3 +197,6 @@ Some very helpful literature, tutorials, etc.
 
 CMake/C++
 * [clang-cl](https://clang.llvm.org/docs/MSVCCompatibility.html)
+
+Flutter/Dart
+* [Linux Native Textures](https://github.com/flutter/flutter/blob/master/examples/texture/lib/main.dart)

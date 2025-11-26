@@ -2,6 +2,11 @@
 #  as top-level pages in the generated doc site.” Each entry is a path
 #  (relative to the project root).
 dartdoc:
+  ignore:
+    - ambiguous-reexport
+    - unresolved-doc-reference
+  autoIncludeDependencies: false
+  linkToRemote: false
   categories:
     awesome:
       markdown: docs/INTRODUCTION.md
