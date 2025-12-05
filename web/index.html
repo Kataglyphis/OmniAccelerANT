@@ -1,7 +1,8 @@
 <!DOCTYPE html>
 <html>
+
 <head>
-  <!--
+    <!--
     If you are serving your web app in a path other than the root, change the
     href value below to reflect the base path you are serving from.
 
@@ -14,25 +15,91 @@
     This is a placeholder for base href that will be replaced by the value of
     the `--base-href` argument provided to `flutter build`.
   -->
-  <base href="$FLUTTER_BASE_HREF">
+    <base href="$FLUTTER_BASE_HREF">
 
-  <meta charset="UTF-8">
-  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="A new Flutter project.">
+    <meta charset="UTF-8">
+    <meta content="IE=Edge" http-equiv="X-UA-Compatible">
+    <meta name="description" content="Interesting web app applications.">
 
-  <!-- iOS meta tags & icons -->
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="kataglyphis_inference_engine">
-  <link rel="apple-touch-icon" href="icons/Icon-192.png">
+    <!-- iOS meta tags & icons -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="apple-mobile-web-app-title" content="kataglyphis-webfrontendproject">
+    <link rel="apple-touch-icon" href="icons/Icon-192.png">
 
-  <!-- Favicon -->
-  <link rel="icon" type="image/png" href="favicon.png"/>
+    <!-- For rust web assembly -->
+    <meta http-equiv="Cross-Origin-Opener-Policy" content="same-origin">
+    <meta http-equiv="Cross-Origin-Embedder-Policy" content="require-corp">
+    <meta http-equiv="Cross-Origin-Resource-Policy" content="cross-origin">
 
-  <title>kataglyphis_inference_engine</title>
-  <link rel="manifest" href="manifest.json">
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="favicon.png" />
+
+    <title>kataglyphis-webfrontendproject</title>
+    <link rel="manifest" href="manifest.json">
+
+    <script src="javascript/utils.js"></script>
+    <script src="javascript/cookies.js"></script>
+
+    <link rel="stylesheet" type="text/css" href="css/cookie.css">
+    <link rel="stylesheet" type="text/css" href="css/loading_animation.css">
+    <style>
+        :root {
+            --kPrimaryColor: rgb(105, 240, 174);
+        }
+    </style>
+
 </head>
+
 <body>
-  <script src="flutter_bootstrap.js" async></script>
+    <div>
+        <!-- Cookie notice -->
+        <section id="cookie-notice">
+            <div class="container">
+                <div id="message"></div>
+                <button id="cookie-consent">Okay</button>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        var userLanguage = navigator.language || navigator.userLanguage;
+        var messageEn = `I only use technically necessary cookies to provide services.\n
+			Further information can be found in the cookie statement at
+			the bottom of the website.\n Have fun :)`;
+        var messageDe = `Ich verwende ausschließlich technisch notwendige Cookies, um Dienstleistungen zu erbringen.
+			Weitere informationen finden Sie in der Cookie Erklärung im unteren Teil der Website. Viel Spaß :)`;
+        setMessage(userLanguage.substring(0, 2), 'message', messageDe, messageEn);
+        setMessage(userLanguage.substring(0, 2), 'loading-message', messageDe, messageEn);
+        initCookieNotice();
+    </script>
+
+    <div id="background-animation"></div>
+
+    <div class="loading">
+        <div class="loader"></div>
+        <div id="loading-message"></div>
+        <script>
+            var messageEn = `You will be there soon ...`;
+            var messageDe = `Noch etwas Geduld ... `;
+            setMessage(userLanguage.substring(0, 2), 'loading-message', messageDe, messageEn);
+        </script>
+    </div>
+    <script>
+        if (!window.SharedArrayBuffer) {
+            console.warn('SharedArrayBuffer nicht verfügbar');
+        } else {
+            console.log('SharedArrayBuffer verfügbar');
+        }
+    </script>
+    <!-- Load ESM and attach to window -->
+    <script type="module">
+        import GstWebRTCAPI from './javascript/webrtc/gstwebrtc-api-3.0.0.esm.js';
+        window.GstWebRTCAPI = GstWebRTCAPI;
+        console.log('GstWebRTCAPI attached:', typeof window.GstWebRTCAPI);
+    </script>
+    <script src="flutter_bootstrap.js" async></script>
 </body>
+
 </html>

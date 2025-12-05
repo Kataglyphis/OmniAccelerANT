@@ -1,9 +1,5 @@
 import 'package:kataglyphis_inference_engine/Pages/AboutMePage/about_me_page_navbar_config.dart';
 import 'package:kataglyphis_inference_engine/Pages/DataPage/BlockOverviewPage/block_overview_page_config.dart';
-import 'package:kataglyphis_inference_engine/Pages/DataPage/BooksPage/books_page_config.dart';
-import 'package:kataglyphis_inference_engine/Pages/DataPage/FilmsPage/films_page_config.dart';
-import 'package:kataglyphis_inference_engine/Pages/DataPage/GamesPage/games_page_config.dart';
-import 'package:kataglyphis_inference_engine/Pages/DataPage/data_pages_navbar_page_config.dart';
 import 'package:kataglyphis_inference_engine/Pages/StreamPage/stream_page_navbar_config.dart';
 import 'package:kataglyphis_inference_engine/Pages/ErrorPage/error_page_stateful_branch_info_provider.dart';
 import 'package:kataglyphis_inference_engine/Pages/Footer/Pages/configs/contact_footer_config.dart';
@@ -13,7 +9,6 @@ import 'package:kataglyphis_inference_engine/Pages/Footer/Pages/configs/declarat
 import 'package:kataglyphis_inference_engine/Pages/Footer/Pages/configs/imprint_footer_config.dart';
 import 'package:kataglyphis_inference_engine/Pages/Footer/Pages/configs/privacy_policy_config.dart';
 import 'package:kataglyphis_inference_engine/Pages/LandingPage/landing_page_navbar_page_config.dart';
-import 'package:kataglyphis_inference_engine/Pages/DataPage/QuotesPage/quotations_page_config.dart';
 import 'package:kataglyphis_inference_engine/Pages/blog_dependent_screen_configurations.dart';
 import 'package:kataglyphis_inference_engine/blog_page_config.dart';
 import 'package:jotrockenmitlockenrepo/Pages/Footer/footer_page_config.dart';
@@ -61,10 +56,9 @@ class JotrockenmitLockenScreenConfigurations extends ScreenConfigurations
   @override
   List<NavBarPageConfig> getNavRailPagesConfig() {
     return [
+      StreamPageNavBarConfig(),
       LandingPageNavBarConfig(),
       AboutMePageNavBarConfig(),
-      DataPageNavBarConfig(),
-      StreamPageNavBarConfig(),
     ];
   }
 
@@ -98,12 +92,6 @@ class JotrockenmitLockenScreenConfigurations extends ScreenConfigurations
 
   @override
   List<StatefulBranchInfoProvider> getDataPagesConfig() {
-    return [
-      QuotationsPageConfig(),
-      BooksPageConfig(),
-      FilmsPageConfig(),
-      GamesPageConfig(),
-      BlockOverviewPageConfig(),
-    ];
+    return [BlockOverviewPageConfig()];
   }
 }

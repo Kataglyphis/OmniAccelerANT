@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:kataglyphis_inference_engine/Pages/AboutMePage/Widgets/about_me_table.dart';
-import 'package:kataglyphis_inference_engine/Pages/AboutMePage/Widgets/perfect_day_chart.dart';
 import 'package:kataglyphis_inference_engine/Pages/AboutMePage/Widgets/skill_table.dart';
 import 'package:jotrockenmitlockenrepo/Layout/ResponsiveDesign/one_two_transition_widget.dart';
 import 'package:jotrockenmitlockenrepo/Pages/Footer/footer.dart';
@@ -8,8 +7,9 @@ import 'package:jotrockenmitlockenrepo/app_attributes.dart';
 import 'package:jotrockenmitlockenrepo/constants.dart';
 import 'package:jotrockenmitlockenrepo/user_settings.dart';
 
+import 'package:flutter/foundation.dart';
+
 import 'package:kataglyphis_inference_engine/src/rust/api/simple.dart';
-import 'package:kataglyphis_inference_engine/src/rust/frb_generated.dart';
 
 import 'package:kataglyphis_native_inference/kataglyphis_native_inference.dart';
 
@@ -44,21 +44,22 @@ class AboutMePageState extends State<AboutMePage> {
           'Action: Call Rust `greet("Tom")`\nResult: `${greet(name: "Tom")}`',
         ),
       ),
-      Center(
-        child: FutureBuilder<int>(
-          future: KataglyphisNativeInference.add(3, 4), // call native method
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const CircularProgressIndicator();
-            }
-            if (snapshot.hasError) {
-              return Text('Error: ${snapshot.error}');
-            }
-            final value = snapshot.data ?? 0;
-            return Text('Native result: $value');
-          },
+      if (!kIsWeb)
+        Center(
+          child: FutureBuilder<int>(
+            future: KataglyphisNativeInference.add(3, 4),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const CircularProgressIndicator();
+              }
+              if (snapshot.hasError) {
+                return Text('Error: ${snapshot.error}');
+              }
+              final value = snapshot.data ?? 0;
+              return Text('Native result: $value');
+            },
+          ),
         ),
-      )
     ];
     List<Widget> childWidgetsRightPage = [
       // const PerfectDay(),

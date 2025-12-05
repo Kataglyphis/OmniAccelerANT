@@ -1,14 +1,20 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:kataglyphis_inference_engine/l10n/app_localizations.dart';
 import 'package:jotrockenmitlockenrepo/Pages/Footer/footer.dart';
 import 'package:jotrockenmitlockenrepo/Layout/ResponsiveDesign/single_page.dart';
 import 'package:jotrockenmitlockenrepo/app_attributes.dart';
 import 'package:jotrockenmitlockenrepo/constants.dart';
 
+// Web imports (only loaded on web)
+import 'package:kataglyphis_inference_engine/Pages/StreamPage/webrtc_view.dart'
+    if (dart.library.html) 'package:kataglyphis_inference_engine/Pages/StreamPage/webrtc_view.dart'
+    as webrtc_import;
+
 class StreamPage extends StatefulWidget {
   final AppAttributes appAttributes;
   final Footer footer;
+
   const StreamPage({
     super.key,
     required this.appAttributes,
@@ -20,6 +26,7 @@ class StreamPage extends StatefulWidget {
 }
 
 class StreamPageState extends State<StreamPage> {
+  // Native GStreamer setup
   static const MethodChannel channel = MethodChannel(
     'kataglyphis_native_inference',
   );
@@ -34,11 +41,17 @@ class StreamPageState extends State<StreamPage> {
   @override
   void initState() {
     super.initState();
-    // Create the texture once.
+
+    // Only initialize native components on non-web platforms
+    if (!kIsWeb) {
+      _initializeNative();
+    }
+  }
+
+  void _initializeNative() {
     textureId = channel
         .invokeMethod<int>('create', <int>[textureWidth, textureHeight])
         .then((id) {
-          // Nach erfolgreicher Textur-Erstellung eine Standard-Pipeline setzen
           _setPipeline(_buildPipelineString('v4l2src'));
           return id;
         })
@@ -72,15 +85,11 @@ class StreamPageState extends State<StreamPage> {
         _errorMessage = null;
       });
 
-      // Stoppe zuerst die alte Pipeline
       if (_isPlaying) {
         await channel.invokeMethod('stop');
       }
 
-      // Setze neue Pipeline
       await channel.invokeMethod('setPipeline', pipelineString);
-
-      // Starte die Pipeline
       await channel.invokeMethod('play');
 
       setState(() {
@@ -139,10 +148,54 @@ class StreamPageState extends State<StreamPage> {
 
   @override
   Widget build(BuildContext context) {
-    bool isMobileDevice =
-        MediaQuery.of(context).size.width <= narrowScreenWidthThreshold;
-    Locale currentLocale = Localizations.localeOf(context);
+    // Render web version
+    if (kIsWeb) {
+      return _buildWebView();
+    }
 
+    // Render native version
+    return _buildNativeView();
+  }
+
+  Widget _buildWebView() {
+    return SinglePage(
+      footer: widget.footer,
+      appAttributes: widget.appAttributes,
+      showMediumSizeLayout: widget.appAttributes.showMediumSizeLayout,
+      showLargeSizeLayout: widget.appAttributes.showLargeSizeLayout,
+      children: [
+        Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            spacing: 10,
+            children: [
+              Container(
+                constraints: const BoxConstraints(
+                  maxWidth: 800,
+                  maxHeight: 600,
+                ),
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.grey, width: 2),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: webrtc_import.WebRTCView(
+                  signalingUrl: 'ws://127.0.0.1:8443',
+                  producerIdToConsume: null,
+                ),
+              ),
+              const SizedBox(height: 20),
+              const Text(
+                'WebRTC Stream',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildNativeView() {
     return SinglePage(
       footer: widget.footer,
       appAttributes: widget.appAttributes,
@@ -154,7 +207,7 @@ class StreamPageState extends State<StreamPage> {
             mainAxisAlignment: MainAxisAlignment.center,
             spacing: 10,
             children: <Widget>[
-              // Fehlermeldung anzeigen
+              // Error message
               if (_errorMessage != null)
                 Container(
                   padding: const EdgeInsets.all(8),
@@ -165,7 +218,7 @@ class StreamPageState extends State<StreamPage> {
                   ),
                 ),
 
-              // Textur-Widget
+              // Texture widget
               FutureBuilder<int?>(
                 future: textureId,
                 builder: (BuildContext context, AsyncSnapshot<int?> snapshot) {
@@ -200,7 +253,7 @@ class StreamPageState extends State<StreamPage> {
                 },
               ),
 
-              // Status-Anzeige
+              // Status display
               Text(
                 _isPlaying ? 'Playing' : 'Paused',
                 style: TextStyle(
@@ -215,7 +268,7 @@ class StreamPageState extends State<StreamPage> {
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
 
-              // Play/Pause Button
+              // Play/Pause buttons
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 spacing: 10,
@@ -239,7 +292,7 @@ class StreamPageState extends State<StreamPage> {
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
 
-              // GStreamer Pipeline Buttons
+              // Pipeline buttons
               Wrap(
                 spacing: 10,
                 runSpacing: 10,
@@ -286,7 +339,7 @@ class StreamPageState extends State<StreamPage> {
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
 
-              // Original Color Buttons
+              // Color buttons
               Wrap(
                 spacing: 10,
                 runSpacing: 10,
@@ -329,87 +382,3 @@ class StreamPageState extends State<StreamPage> {
     );
   }
 }
-//   @override
-//   Widget build(BuildContext context) {
-//     bool isMobileDevice =
-//         MediaQuery.of(context).size.width <= narrowScreenWidthThreshold;
-//     Locale currentLocale = Localizations.localeOf(context);
-//     // const int textureWidth = 300;
-//     // const int textureHeight = 300;
-//     // const MethodChannel channel = MethodChannel('kataglyphis_native_inference');
-//     // final Future<int?> textureId = channel.invokeMethod('create', <int>[
-//     //   textureWidth,
-//     //   textureHeight,
-//     // ]);
-
-//     // // Set the color of the texture.
-//     // Future<void> setColor(int r, int g, int b) async {
-//     //   await channel.invokeMethod('setColor', <int>[r, g, b]);
-//     // }
-
-//     return SinglePage(
-//       footer: widget.footer,
-//       appAttributes: widget.appAttributes,
-//       showMediumSizeLayout: widget.appAttributes.showMediumSizeLayout,
-//       showLargeSizeLayout: widget.appAttributes.showLargeSizeLayout,
-//       children: [
-//         Center(
-//           child: Column(
-//             mainAxisAlignment: MainAxisAlignment.center,
-//             spacing: 10,
-//             children: <Widget>[
-//               FutureBuilder<int?>(
-//                 future: textureId,
-//                 builder: (BuildContext context, AsyncSnapshot<int?> snapshot) {
-//                   if (snapshot.connectionState == ConnectionState.waiting) {
-//                     return const Text('Creating texture...');
-//                   }
-//                   if (snapshot.hasError) {
-//                     return Text('Error creating texture: ${snapshot.error}');
-//                   }
-//                   if (!snapshot.hasData || snapshot.data == null) {
-//                     return const Text('Error creating texture (null id)');
-//                   }
-
-//                   return SizedBox(
-//                     width: textureWidth.toDouble(),
-//                     height: textureHeight.toDouble(),
-//                     child: Texture(textureId: snapshot.data!),
-//                   );
-//                 },
-//               ),
-//               OutlinedButton(
-//                 child: const Text('Flutter Navy'),
-//                 onPressed: () => setColor(0x04, 0x2b, 0x59),
-//               ),
-//               OutlinedButton(
-//                 child: const Text('Flutter Blue'),
-//                 onPressed: () => setColor(0x05, 0x53, 0xb1),
-//               ),
-//               OutlinedButton(
-//                 child: const Text('Flutter Sky'),
-//                 onPressed: () => setColor(0x02, 0x7d, 0xfd),
-//               ),
-//               OutlinedButton(
-//                 child: const Text('Red'),
-//                 onPressed: () => setColor(0xf2, 0x5d, 0x50),
-//               ),
-//               OutlinedButton(
-//                 child: const Text('Yellow'),
-//                 onPressed: () => setColor(0xff, 0xf2, 0x75),
-//               ),
-//               OutlinedButton(
-//                 child: const Text('Purple'),
-//                 onPressed: () => setColor(0x62, 0x00, 0xee),
-//               ),
-//               OutlinedButton(
-//                 child: const Text('Green'),
-//                 onPressed: () => setColor(0x1c, 0xda, 0xc5),
-//               ),
-//             ],
-//           ),
-//         ),
-//       ],
-//     );
-//   }
-// }

@@ -1,0 +1,84 @@
+# This workflow uses actions that are not certified by GitHub.
+# They are provided by a third-party and are governed by
+# separate terms of service, privacy policy, and support
+# documentation.
+
+name: Deploy website with all dependencies
+
+env:
+  LOCAL_ASSETS_FOLDER: "assets"
+  BUILD_DIR_RELEASE: "build/web"
+
+on:
+  push:
+    branches: ["main", "dev"]
+
+jobs:
+  build:
+    name: 🚀 Deploy website on push
+    #runs-on: windows-latest
+    runs-on: ubuntu-24.04
+    steps:
+      - name: 🚚 Get latest code
+        uses: actions/checkout@v6.0.0
+        with:
+          fetch-depth: 0
+          submodules: recursive
+
+      - name: Setup Flutter SDK
+        uses: flutter-actions/setup-flutter@v4.1
+        with:
+          channel: stable
+          version: 3.38.3
+
+      # git submodule update --init --recursive
+      - name: Install dependencies
+        run: |
+          flutter pub get
+          cd ExternalLib/jotrockenmitlockenrepo
+          flutter pub get
+
+      # Uncomment this step to verify the use of 'dart format' on each commit.
+      - name: Verify formatting
+        continue-on-error: true
+        run: dart format --output=none --set-exit-if-changed .
+
+      # Consider passing '--fatal-infos' for slightly stricter analysis.
+      - name: Analyze project source
+        continue-on-error: true
+        run: dart analyze
+
+      # Your project will need to have tests in test/ and a dependency on
+      # package:test for this step to succeed. Note that Flutter projects will
+      # want to change this to 'flutter test'.
+      - name: Run tests
+        run: |
+          flutter test
+
+      - name: Enable flutter web
+        run: |
+          flutter config --enable-web
+
+      # for production I do not use wasm yet! 
+      - name: "Build Web App"
+        run: |
+          WASM_FLAGS="-Ctarget-feature=+atomics \
+          -Clink-args=--shared-memory \
+          -Clink-args=--max-memory=1073741824 \
+          -Clink-args=--import-memory \
+          -Clink-args=--export=__wasm_init_tls \
+          -Clink-args=--export=__tls_size \
+          -Clink-args=--export=__tls_align \
+          -Clink-args=--export=__tls_base"
+
+          flutter_rust_bridge_codegen build-web \
+            --wasm-pack-rustflags "$WASM_FLAGS" \
+            --release
+          flutter build web --release --wasm
+
+      - name: Upload Web App Files for Deployment
+        uses: actions/upload-artifact@v5.0.0
+        with:
+          name: gstreamer-ai-web-frontend
+          path: ${{ env.BUILD_DIR_RELEASE }}/**
+          if-no-files-found: error

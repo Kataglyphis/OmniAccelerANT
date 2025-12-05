@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:kataglyphis_inference_engine/Pages/DataPage/BooksPage/book.dart';
+import 'package:kataglyphis_inference_engine/Pages/DataPage/BlockOverviewPage/block_entry.dart';
 import 'package:jotrockenmitlockenrepo/Media/DataTable/data_list.dart';
 import 'package:jotrockenmitlockenrepo/Media/DataTable/datacell_content_strategies.dart';
 import 'package:jotrockenmitlockenrepo/app_attributes.dart';
@@ -24,7 +24,7 @@ class BlockEntryList extends DataList {
   final AppAttributes appAttributes;
 }
 
-class _BlockEntryListState extends DataListState<Book, BlockEntryList> {
+class _BlockEntryListState extends DataListState<BlockEntry, BlockEntryList> {
   @override
   List<double> getSpacing(bool isMobileDevice) {
     if (isMobileDevice) {
@@ -39,7 +39,7 @@ class _BlockEntryListState extends DataListState<Book, BlockEntryList> {
     return [
       DataCellContentStrategies.text,
       DataCellContentStrategies.text,
-      DataCellContentStrategies.textButton
+      DataCellContentStrategies.textButton,
     ];
   }
 }
