@@ -58,6 +58,7 @@ jobs:
 
       - name: Enable flutter web
         run: |
+          cargo install flutter_rust_bridge_codegen
           flutter config --enable-web
 
       # for production I do not use wasm yet! 
