@@ -7,9 +7,10 @@ import 'package:jotrockenmitlockenrepo/app_attributes.dart';
 import 'package:jotrockenmitlockenrepo/constants.dart';
 
 // Web imports (only loaded on web)
-import 'package:kataglyphis_inference_engine/Pages/StreamPage/webrtc_view.dart'
-    if (dart.library.html) 'package:kataglyphis_inference_engine/Pages/StreamPage/webrtc_view.dart'
-    as webrtc_import;
+// conditional import: stub for non-web, web impl for web
+import 'package:kataglyphis_inference_engine/Pages/StreamPage/webrtc_view_stub.dart'
+  if (dart.library.html) 'package:kataglyphis_inference_engine/Pages/StreamPage/webrtc_view.dart'
+  as webrtc_import;
 
 class StreamPage extends StatefulWidget {
   final AppAttributes appAttributes;
