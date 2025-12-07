@@ -3,7 +3,7 @@
 # separate terms of service, privacy policy, and support
 # documentation.
 
-name: Build + run + test on Linux
+name: Build + run + test on Linux natively - x86-64/arm64
 
 on:
   push:

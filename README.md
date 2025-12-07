@@ -27,27 +27,66 @@ Kataglyphis-Inference-Engine bundles a Flutter/Dart frontend, a Rust/C++ inferen
 - 🐳 **Containerized development flow** plus native instructions for Windows, Linux, web.
 - 🐍 **Python inference demos** for rapid experimentation alongside the Rust core.
 
-### 📊 Feature Status
+### 📊 Feature Status Matrix
 
-| Category | Feature | Status |
-|----------|---------|--------|
-| **Camera Streaming** | 📹 GStreamer WebRTC Livestream | ✔️ |
-| **Supported Cameras** | 🔌 USB Devices | ✔️ |
-| | 🍓 Raspberry Pi Camera | ✔️ |
-| | 🟠 Orange Pi Camera | ✔️ |
-| **Infrastructure** | 🐳 Dockerfile & Docker Compose | ✔️ |
-| | 🎨 GTK Native Integration (Linux) | ✔️ |
-| | 🌉 flutter_rust_bridge Bridge | ✔️ |
-| **Testing** | 🧪 Advanced unit testing | 🔶 |
-| | ⚡ Advanced performance testing | 🔶 |
-| | 🔍 Advanced fuzz testing | 🔶 |
-| **Frontend** | 🦋 Flutter Web Support | ✔️ |
-| | 💻 Flutter Desktop (Linux) | ✔️ |
+#### Core Features
+
+| Category | Feature | Win x64 | Linux x64 | Linux ARM64 | Linux RISC-V | Android |
+|----------|---------|:-------:|:---------:|:-----------:|:------------:|:-------:|
+| **Camera Streaming** | 📹 GStreamer WebRTC Livestream | ✔️ | ✔️ | ✔️ | ✔️ | ✔️ |
+| **Supported Cameras** | 🔌 USB Devices | ✔️ | ✔️ | ✔️ | ✔️ | ✔️ |
+| | 🍓 Raspberry Pi Camera | N/A | ✔️ | ✔️ | ✔️ | N/A |
+| | 🟠 Orange Pi Camera | N/A | ✔️ | ✔️ | ✔️ | N/A |
+| | 📱 Native Camera API | N/A | N/A | N/A | N/A | ✔️ |
+
+#### Infrastructure & Build
+
+| Category | Feature | Win x64 | Linux x64 | Linux ARM64 | Linux RISC-V | Android |
+|----------|---------|:-------:|:---------:|:-----------:|:------------:|:-------:|
+| **Containerization** | 🐳 Dockerfile | N/A | ✔️ | ✔️ | ✔️ | N/A |
+| | 🐳 Docker Compose | N/A | ✔️ | ✔️ | ✔️ | N/A |
+| **Native Integration** | 🎨 GTK Integration | N/A | ✔️ | ✔️ | ✔️ | N/A |
+| | 🪟 Win32 API | ✔️ | N/A | N/A | N/A | N/A |
+| | 🤖 Android NDK | N/A | N/A | N/A | N/A | ✔️ |
+| **Bridge Layer** | 🌉 flutter_rust_bridge | ✔️ | ✔️ | ✔️ | ✔️ | ✔️ |
+| **Compiler** | 🔧 Clang-CL | ✔️ | N/A | N/A | N/A | N/A |
+| | 🔧 GCC/Clang | N/A | ✔️ | ✔️ | ✔️ | ✔️ |
+
+#### Testing & Quality Assurance
+
+| Category | Feature | Win x64 | Linux x64 | Linux ARM64 | Linux RISC-V | Android |
+|----------|---------|:-------:|:---------:|:-----------:|:------------:|:-------:|
+| **Unit Testing** | 🧪 Advanced unit testing | 🔶 | 🔶 | 🔶 | 🔶 | 🔶 |
+| **Performance** | ⚡ Advanced performance testing | 🔶 | 🔶 | 🔶 | 🔶 | 🔶 |
+| **Security** | 🔍 Advanced fuzz testing | 🔶 | 🔶 | 🔶 | 🔶 | 🔶 |
+
+#### Frontend Platforms
+
+| Category | Feature | Win x64 | Linux x64 | Linux ARM64 | Linux RISC-V | Android |
+|----------|---------|:-------:|:---------:|:-----------:|:------------:|:-------:|
+| **Flutter UI** | 🦋 Flutter Web Support | ✔️ | ✔️ | ✔️ | ✔️ | ✔️ |
+| | 💻 Flutter Desktop | ✔️ | ✔️ | ✔️ | ✔️ | N/A |
+| | 📱 Flutter Mobile | N/A | N/A | N/A | N/A | ✔️ |
+
+---
+
+#### Platform Summary
+
+| Platform | Architecture | Status | Notes |
+|----------|-------------|:------:|-------|
+| 🪟 **Windows** | x86-64 | ✔️ | Built with clang-cl, Win32 integration |
+| 🐧 **Linux** | x86-64 | ✔️ | Full GTK support, Docker ready |
+| 🐧 **Linux** | ARM64 | ✔️ | SBC optimized (RPi, OPi support) |
+| 🐧 **Linux** | RISC-V | ✔️ | Emerging architecture support |
+| 🤖 **Android** | ARM64/x86-64 | ✔️ | Native camera, NDK integration |
+
+---
 
 **Legend:**
-- ✔️ Completed
-- 🔶 In progress
-- ❌ Not started
+- ✔️ **Completed** - Feature fully implemented and tested
+- 🔶 **In Progress** - Active development underway
+- ❌ **Not Started** - Planned but not yet begun
+- **N/A** - Not applicable for this platform
 
 ## Quick Start
 
