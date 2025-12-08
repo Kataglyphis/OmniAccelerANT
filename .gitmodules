@@ -5,3 +5,6 @@
 	path = ExternalLib/Kataglyphis_NativeInferencePlugin
 	url = git@github.com:Kataglyphis/Kataglyphis-NativeInferencePlugin.git
 	branch = main
+[submodule "ExternalLib/Kataglyphis-ContainerHub"]
+	path = ExternalLib/Kataglyphis-ContainerHub
+	url = git@github.com:Kataglyphis/Kataglyphis-ContainerHub.git

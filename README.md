@@ -1,6 +1,6 @@
 # Kataglyphis-Inference-Engine
 
-An inference engine with Flutter/Dart frontend and Rust/C++ backend, showcasing Gstreamer capabilities enhancd with AI. Read further if you are interested in cross platform AI inference.
+An inference engine with Flutter/Dart frontend and Rust/C++ backend, showcasing Gstreamer capabilities enhanced with AI. Read further if you are interested in cross platform AI inference.
 
 [![Build + run + test on Linux natively](https://github.com/Kataglyphis/Kataglyphis-Inference-Engine/actions/workflows/dart_on_native_linux.yml/badge.svg)](https://github.com/Kataglyphis/Kataglyphis-Inference-Engine/actions/workflows/dart_on_native_linux.yml) [![Windows CMake (clang-cl) natively](https://github.com/Kataglyphis/Kataglyphis-Inference-Engine/actions/workflows/dart_on_native_windows.yml/badge.svg)](https://github.com/Kataglyphis/Kataglyphis-Inference-Engine/actions/workflows/dart_on_native_windows.yml) [![Build + run + test for web](https://github.com/Kataglyphis/Kataglyphis-Inference-Engine/actions/workflows/dart_on_web_linux.yml/badge.svg)](https://github.com/Kataglyphis/Kataglyphis-Inference-Engine/actions/workflows/dart_on_web_linux.yml)  
 [![Automatic Dependency Submission](https://github.com/Kataglyphis/Kataglyphis-Inference-Engine/actions/workflows/dependency-graph/auto-submission/badge.svg)](https://github.com/Kataglyphis/Kataglyphis-Inference-Engine/actions/workflows/dependency-graph/auto-submission)
@@ -33,17 +33,17 @@ Kataglyphis-Inference-Engine bundles a Flutter/Dart frontend, a Rust/C++ inferen
 
 | Category | Feature | Win x64 | Linux x64 | Linux ARM64 | Linux RISC-V | Android |
 |----------|---------|:-------:|:---------:|:-----------:|:------------:|:-------:|
-| **Camera Streaming** | 📹 GStreamer WebRTC Livestream | ✔️ | ✔️ | ✔️ | ✔️ | ✔️ |
-| **Supported Cameras** | 🔌 USB Devices | ✔️ | ✔️ | ✔️ | ✔️ | ✔️ |
+| **Camera Streaming** | 📹 GStreamer WebRTC Livestream | ✔️ | ✔️ | ✔️ | ✔️ | N/A |
+| **Supported Cameras** | 🔌 USB Devices | ✔️ | ✔️ | ✔️ | ✔️ | N/A |
 | | 🍓 Raspberry Pi Camera | N/A | ✔️ | ✔️ | ✔️ | N/A |
-| | 🟠 Orange Pi Camera | N/A | ✔️ | ✔️ | ✔️ | N/A |
+| | 🟠 Orange Pi Camera | N/A | ❌ | ❌ | ❌ | N/A |
 | | 📱 Native Camera API | N/A | N/A | N/A | N/A | ✔️ |
 
 #### Infrastructure & Build
 
 | Category | Feature | Win x64 | Linux x64 | Linux ARM64 | Linux RISC-V | Android |
 |----------|---------|:-------:|:---------:|:-----------:|:------------:|:-------:|
-| **Containerization** | 🐳 Dockerfile | N/A | ✔️ | ✔️ | ✔️ | N/A |
+| **Containerization** | 🐳 Dockerfile | ✔️ | ✔️ | ✔️ | ✔️ | N/A |
 | | 🐳 Docker Compose | N/A | ✔️ | ✔️ | ✔️ | N/A |
 | **Native Integration** | 🎨 GTK Integration | N/A | ✔️ | ✔️ | ✔️ | N/A |
 | | 🪟 Win32 API | ✔️ | N/A | N/A | N/A | N/A |
@@ -95,7 +95,8 @@ Kataglyphis-Inference-Engine bundles a Flutter/Dart frontend, a Rust/C++ inferen
    git clone --recurse-submodules git@github.com:Kataglyphis/Kataglyphis-Inference-Engine.git
    cd Kataglyphis-Inference-Engine
    ```
-2. Initialize submodules if needed:
+2. Initialize submodules if needed.  
+   If u used `--recurse-submodules` while cloning you are already good 
    ```bash
    git submodule update --init --recursive
    ```
@@ -121,7 +122,7 @@ Testing infrastructure is under active development. Track progress on the roadma
 ## Roadmap
 
 Upcoming features and improvements will be documented in this repository.  
-Please have a look [docs/source/roadmap.md] for more deetails.
+Please have a look [docs/source/roadmap.md](docs/source/roadmap.md) for more deetails.
 
 ## Contributing
 

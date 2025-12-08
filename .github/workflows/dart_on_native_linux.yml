@@ -3,7 +3,7 @@
 # separate terms of service, privacy policy, and support
 # documentation.
 
-name: Build + run + test on Linux natively - x86-64/arm64
+name: Build + test + run on Linux natively - x86-64/arm64
 
 on:
   push:
@@ -119,7 +119,7 @@ jobs:
             export PATH="$PWD/flutter/bin:$PATH"
             git config --global --add safe.directory /workspace || true
             git config --global --add safe.directory /workspace/flutter || true
-            
+
             flutter build linux --release
             '
 
@@ -156,13 +156,13 @@ jobs:
             git config --global --add safe.directory /workspace/flutter || true
             flutter clean
             dart doc
-            
+
             OWNER_UID=$(stat -c "%u" /workspace)
             OWNER_GID=$(stat -c "%g" /workspace)
             echo "Fixing ownership of doc/api to ${OWNER_UID}:${OWNER_GID}"
             chown -R ${OWNER_UID}:${OWNER_GID} /workspace/doc || true
             '
-            
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
@@ -174,7 +174,7 @@ jobs:
         run: |
           chmod -R 755 ./doc/api/
           ls -la ./doc/api/
-      
+
       - name: 📂 Sync files to domain
         if: ${{ matrix.arch == 'x64' }}
         uses: SamKirkland/FTP-Deploy-Action@v4.3.6
