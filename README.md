@@ -1,202 +1,183 @@
-<h1 align="center">
-  <br>
-  <a href="https://jonasheinle.de"><img src="images/logo.png" alt="logo" width="200"></a>
-  <br>
-  Kataglyphis-Inference-Engine
-  <br>
-</h1>
+# Kataglyphis-Inference-Engine
 
-<!-- <h1 align="center">
-  <br>
-  <a href="https://jonasheinle.de"><img src="images/vulkan-logo.png" alt="VulkanEngine" width="200"></a>
-  <a href="https://jonasheinle.de"><img src="images/Engine_logo.png" alt="VulkanEngine" width="200"></a>
-  <a href="https://jonasheinle.de"><img src="images/glm_logo.png" alt="VulkanEngine" width="200"></a>
-</h1> -->
+An inference engine with Flutter/Dart frontend and Rust/C++ backend, showcasing Gstreamer capabilities enhancd with AI. Read further if you are interested in cross platform AI inference.
 
-<h4 align="center">An inference engine with flutter/dart frontend an rust backend. <a href="https://jonasheinle.de" target="_blank"></a>.</h4>
-
-[![Build + run + test on Linux](https://github.com/Kataglyphis/Kataglyphis-Inference-Engine/actions/workflows/dart_on_linux.yml/badge.svg)](https://github.com/Kataglyphis/Kataglyphis-Inference-Engine/actions/workflows/dart_on_linux.yml)
+[![Build + run + test on Linux natively](https://github.com/Kataglyphis/Kataglyphis-Inference-Engine/actions/workflows/dart_on_native_linux.yml/badge.svg)](https://github.com/Kataglyphis/Kataglyphis-Inference-Engine/actions/workflows/dart_on_native_linux.yml) [![Windows CMake (clang-cl) natively](https://github.com/Kataglyphis/Kataglyphis-Inference-Engine/actions/workflows/dart_on_native_windows.yml/badge.svg)](https://github.com/Kataglyphis/Kataglyphis-Inference-Engine/actions/workflows/dart_on_native_windows.yml) [![Build + run + test for web](https://github.com/Kataglyphis/Kataglyphis-Inference-Engine/actions/workflows/dart_on_web_linux.yml/badge.svg)](https://github.com/Kataglyphis/Kataglyphis-Inference-Engine/actions/workflows/dart_on_web_linux.yml)  
 [![Automatic Dependency Submission](https://github.com/Kataglyphis/Kataglyphis-Inference-Engine/actions/workflows/dependency-graph/auto-submission/badge.svg)](https://github.com/Kataglyphis/Kataglyphis-Inference-Engine/actions/workflows/dependency-graph/auto-submission)
-[![CodeQL](https://github.com/Kataglyphis/Kataglyphis-Inference-Engine/actions/workflows/github-code-scanning/codeql/badge.svg)](https://github.com/Kataglyphis/Kataglyphis-Inference-Engine/actions/workflows/github-code-scanning/codeql)
+[![CodeQL](https://github.com/Kataglyphis/Kataglyphis-Inference-Engine/actions/workflows/github-code-scanning/codeql/badge.svg)](https://github.com/Kataglyphis/Kataglyphis-Inference-Engine/actions/workflows/github-code-scanning/codeql)  
 [![Dependabot Updates](https://github.com/Kataglyphis/Kataglyphis-Inference-Engine/actions/workflows/dependabot/dependabot-updates/badge.svg)](https://github.com/Kataglyphis/Kataglyphis-Inference-Engine/actions/workflows/dependabot/dependabot-updates)
-[![Windows CMake (clang-cl)](https://github.com/Kataglyphis/Kataglyphis-Inference-Engine/actions/workflows/dart_on_windows.yml/badge.svg)](https://github.com/Kataglyphis/Kataglyphis-Inference-Engine/actions/workflows/dart_on_windows.yml)
 [![TopLang](https://img.shields.io/github/languages/top/Kataglyphis/Kataglyphis-Inference-Engine)]()
 [![Donate](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://www.paypal.com/donate/?hosted_button_id=BX9AVVES2P9LN)
 [![Twitter](https://img.shields.io/twitter/follow/Cataglyphis_?style=social)](https://twitter.com/Cataglyphis_)
 [![YouTube](https://img.shields.io/youtube/channel/subscribers/UC3LZiH4sZzzaVBCUV8knYeg?style=social)](https://www.youtube.com/channel/UC3LZiH4sZzzaVBCUV8knYeg)
 
-[**__Official homepage__**](https://kataglyphisinferenceengine.jonasheinle.de)
+[**Official homepage**](https://kataglyphisinferenceengine.jonasheinle.de)
 
-<p align="center">
-  <a href="#about-the-project">About The Project</a> •
-  <a href="#getting-started">Getting Started</a> •
-  <a href="#license">License</a> •
-  <a href="#literature">Literature</a>
-</p>
+## Overview
 
-<!-- TABLE OF CONTENTS -->
-<details open="open">
-  <summary>Table of Contents</summary>
-  <ol>
-    <li>
-      <a href="#about-the-project">About The Project</a>
-      <ul>
-        <li><a href="#key-features">Key Features</a></li>
-      </ul>
-      <ul>
-        <li><a href="#dependencies">Dependencies</a></li>
-      </ul>
-      <ul>
-        <li><a href="#useful-tools">Useful tools</a></li>
-      </ul>
-    </li>
-    <li>
-      <a href="#getting-started">Getting Started</a>
-      <ul>
-        <li><a href="#prerequisites">Prerequisites</a></li>
-        <li><a href="#installation">Installation</a></li>
-      </ul>
-    </li>
-    <li><a href="#tests">Tests</a></li>
-    <li><a href="#roadmap">Roadmap</a></li>
-    <li><a href="#contributing">Contributing</a></li>
-    <li><a href="#license">License</a></li>
-    <li><a href="#contact">Contact</a></li>
-    <li><a href="#acknowledgements">Acknowledgements</a></li>
-    <li><a href="#literature">Literature</a></li>
-  </ol>
-</details>
+Kataglyphis-Inference-Engine bundles a Flutter/Dart frontend, a Rust/C++ inference core, and a rich set of camera streaming pipelines powered by GStreamer. The repository acts as an end-to-end reference for building cross-platform inference products that target desktop, web, and embedded devices.
 
-<!-- ABOUT THE PROJECT -->
-## About The Project
-Building a high performance native inference engine with a frontend is quite challenging. This project discovers possibilities in doing it using Flutter/Dart and Rust.  
-<!-- <h1 align="center">
-  <br>
-  <a href="https://jonasheinle.de"><img src="images/Screenshot1.png" alt="VulkanEngine" width="400"></a>
-  <a href="https://jonasheinle.de"><img src="images/Screenshot2.png" alt="VulkanEngine" width="400"></a>
-  <a href="https://jonasheinle.de"><img src="images/Screenshot3.png" alt="VulkanEngine" width="700"></a>
-</h1> -->
+## Highlights & Key Features – Kataglyphis-Inference-Engine
 
-<!-- [![Kataglyphis Engine][product-screenshot1]](https://jonasheinle.de)
-[![Kataglyphis Engine][product-screenshot2]](https://jonasheinle.de)
-[![Kataglyphis Engine][product-screenshot3]](https://jonasheinle.de) -->
+### 🌟 Highlights
 
-This project is a template. 
+- 🎨 **GStreamer native GTK integration** – Leveraging users to write beautiful Linux AI inference apps.
+- 📹 **GStreamer WebRTC livestreaming** with ready-to-use pipelines for USB, Raspberry Pi, and Orange Pi cameras.
+- 🌉 **flutter_rust_bridge integration** – Ensures a seamless API boundary between Dart UI and Rust logic.
+- 🐳 **Containerized development flow** plus native instructions for Windows, Linux, web.
+- 🐍 **Python inference demos** for rapid experimentation alongside the Rust core.
 
-### Key Features
+### 📊 Feature Status Matrix
 
-<!-- ❌  -->
-<!-- |          Feature                    |   Implement Status |
-| ------------------------------------| :----------------: |
-| Rasterizer                          |         ✔️         |
-| Raytracing                          |         ✔️         |
-| Path tracing                        |         ✔️         |
-| PBR support (UE4,disney,... etc.)   |         ✔️         |
-| .obj Model loading                  |         ✔️         |
-| Mip Mapping                         |         ✔️         | -->
+#### Core Features
 
-### Dependencies
-This enumeration also includes submodules.
-<!-- * [Vulkan 1.3](https://www.vulkan.org/) -->
+| Category | Feature | Win x64 | Linux x64 | Linux ARM64 | Linux RISC-V | Android |
+|----------|---------|:-------:|:---------:|:-----------:|:------------:|:-------:|
+| **Camera Streaming** | 📹 GStreamer WebRTC Livestream | ✔️ | ✔️ | ✔️ | ✔️ | ✔️ |
+| **Supported Cameras** | 🔌 USB Devices | ✔️ | ✔️ | ✔️ | ✔️ | ✔️ |
+| | 🍓 Raspberry Pi Camera | N/A | ✔️ | ✔️ | ✔️ | N/A |
+| | 🟠 Orange Pi Camera | N/A | ✔️ | ✔️ | ✔️ | N/A |
+| | 📱 Native Camera API | N/A | N/A | N/A | N/A | ✔️ |
 
-### Useful tools
+#### Infrastructure & Build
 
-<!-- * [cppcheck](https://cppcheck.sourceforge.io/) -->
+| Category | Feature | Win x64 | Linux x64 | Linux ARM64 | Linux RISC-V | Android |
+|----------|---------|:-------:|:---------:|:-----------:|:------------:|:-------:|
+| **Containerization** | 🐳 Dockerfile | N/A | ✔️ | ✔️ | ✔️ | N/A |
+| | 🐳 Docker Compose | N/A | ✔️ | ✔️ | ✔️ | N/A |
+| **Native Integration** | 🎨 GTK Integration | N/A | ✔️ | ✔️ | ✔️ | N/A |
+| | 🪟 Win32 API | ✔️ | N/A | N/A | N/A | N/A |
+| | 🤖 Android NDK | N/A | N/A | N/A | N/A | ✔️ |
+| **Bridge Layer** | 🌉 flutter_rust_bridge | ✔️ | ✔️ | ✔️ | ✔️ | ✔️ |
+| **Compiler** | 🔧 Clang-CL | ✔️ | N/A | N/A | N/A | N/A |
+| | 🔧 GCC/Clang | N/A | ✔️ | ✔️ | ✔️ | ✔️ |
 
-<!-- GETTING STARTED -->
-## Getting Started
+#### Testing & Quality Assurance
 
-```bash
-git submodule update --init --recursive
-```
+| Category | Feature | Win x64 | Linux x64 | Linux ARM64 | Linux RISC-V | Android |
+|----------|---------|:-------:|:---------:|:-----------:|:------------:|:-------:|
+| **Unit Testing** | 🧪 Advanced unit testing | 🔶 | 🔶 | 🔶 | 🔶 | 🔶 |
+| **Performance** | ⚡ Advanced performance testing | 🔶 | 🔶 | 🔶 | 🔶 | 🔶 |
+| **Security** | 🔍 Advanced fuzz testing | 🔶 | 🔶 | 🔶 | 🔶 | 🔶 |
 
-### Prerequisites
+#### Frontend Platforms
 
-### Installation
+| Category | Feature | Win x64 | Linux x64 | Linux ARM64 | Linux RISC-V | Android |
+|----------|---------|:-------:|:---------:|:-----------:|:------------:|:-------:|
+| **Flutter UI** | 🦋 Flutter Web Support | ✔️ | ✔️ | ✔️ | ✔️ | ✔️ |
+| | 💻 Flutter Desktop | ✔️ | ✔️ | ✔️ | ✔️ | N/A |
+| | 📱 Flutter Mobile | N/A | N/A | N/A | N/A | ✔️ |
 
-1. Clone the repo
-   ```sh
+---
+
+#### Platform Summary
+
+| Platform | Architecture | Status | Notes |
+|----------|-------------|:------:|-------|
+| 🪟 **Windows** | x86-64 | ✔️ | Built with clang-cl, Win32 integration |
+| 🐧 **Linux** | x86-64 | ✔️ | Full GTK support, Docker ready |
+| 🐧 **Linux** | ARM64 | ✔️ | SBC optimized (RPi, OPi support) |
+| 🐧 **Linux** | RISC-V | ✔️ | Emerging architecture support |
+| 🤖 **Android** | ARM64/x86-64 | ✔️ | Native camera, NDK integration |
+
+---
+
+**Legend:**
+- ✔️ **Completed** - Feature fully implemented and tested
+- 🔶 **In Progress** - Active development underway
+- ❌ **Not Started** - Planned but not yet begun
+- **N/A** - Not applicable for this platform
+
+## Quick Start
+
+1. Clone the repository with submodules:
+   ```bash
    git clone --recurse-submodules git@github.com:Kataglyphis/Kataglyphis-Inference-Engine.git
+   cd Kataglyphis-Inference-Engine
    ```
-### Upgrades
-Upgrading the flutter/dart bridge dependencies is as simple as this command:  
-[see source](https://cjycode.com/flutter_rust_bridge/guides/miscellaneous/upgrade/regular)
-```bash
-cargo install flutter_rust_bridge_codegen && flutter_rust_bridge_codegen generate
-```
+2. Initialize submodules if needed:
+   ```bash
+   git submodule update --init --recursive
+   ```
 
-### Windows
-For windows we absolutely do not want to be dependent on MSVC compiler.  
-Therefore I use [clang-cl](https://clang.llvm.org/docs/MSVCCompatibility.html).  
-Using clang-cl instead of MSVC needed adjustment. Therefore i give some instructions here.  
+Refer to the detailed docs below for platform-specific requirements, camera streaming pipelines, and deployment workflows.
 
-#### Flutter generated cmake project
-Adjust the CXX-Flags in the auto-generated Cmake project. Find the folloeing line 
-and adjust accordingly:
 
-```cmake
-# comment this line
-# target_compile_options(${TARGET} PRIVATE /W4 /WX /wd"4100")
-# add the following:
-# target_compile_options(${TARGET} PRIVATE /W3 /WX /wd4100 -Wno-cast-function-type-mismatch -Wno-unused-function)
-```
+## Documentation
 
-Now you can build the project by running following commands:  
-**__Attention:__** Adjust paths accordingly.
+| Topic | Location | Description |
+|-------|----------|-------------|
+| Getting Started | [docs/source/getting-started.md](docs/source/getting-started.md) | Environment prerequisites, installation, and run commands. |
+| Platform Guides | [docs/source/platforms.md](docs/source/platforms.md) | Container, Windows, Raspberry Pi, and web build instructions. |
+| Camera Streaming | [docs/source/camera-streaming.md](docs/source/camera-streaming.md) | GStreamer WebRTC pipelines and Python inference demos. |
+| Upgrade guide | [docs/source/upgrade-guide.md](docs/source/upgrade-guide.md) | How to keep things up-to-date. |
 
-```powershell
-cd rust
-cargo build --release
-cp rust\target\release\rust_lib_kataglyphis_inference_engine.dll build\windows\x64\plugins\rust_lib_kataglyphis_inference_engine
-cmake C:\GitHub\Kataglyphis-Inference-Engine\windows -B C:\GitHub\Kataglyphis-Inference-Engine\build\windows\x64 -G "Ninja" -DFLUTTER_TARGET_PLATFORM=windows-x64 -DCMAKE_CXX_COMPILER="C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Tools\Llvm\bin\clang-cl.exe" -DCMAKE_CXX_COMPILER_TARGET=x86_64-pc-windows-msvc
-cmake --build C:\GitHub\Kataglyphis-Inference-Engine\build\windows\x64 --config Release --target install --verbose
-```
+Build the full Sphinx documentation from the `docs/` directory when you need a browsable site.
 
 ## Tests
 
-<!-- ROADMAP -->
+Testing infrastructure is under active development. Track progress on the roadmap or contribute test plans via pull requests.
+
 ## Roadmap
-Upcoming :)
-<!-- See the [open issues](https://github.com/othneildrew/Best-README-Template/issues) for a list of proposed features (and known issues). -->
 
+Upcoming features and improvements will be documented in this repository.  
+Please have a look [docs/source/roadmap.md] for more deetails.
 
-
-<!-- CONTRIBUTING -->
 ## Contributing
 
-Contributions are what make the open source community such an amazing place to be learn, inspire, and create. Any contributions you make are **greatly appreciated**.
+Contributions are what make the open-source community amazing. Any contributions are **greatly appreciated**.
 
-1. Fork the Project
-2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the Branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+1. Fork the project.
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`).
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`).
+4. Push to the branch (`git push origin feature/AmazingFeature`).
+5. Open a Pull Request.
 
-
-<!-- LICENSE -->
 ## License
 
-<!-- CONTACT -->
-## Contact
+MIT (see [here](LICENSE))
 
-Jonas Heinle - [@Cataglyphis_](https://twitter.com/Cataglyphis_) - jonasheinle@googlemail.com
-
-Project Link: [https://github.com/Kataglyphis/...](https://github.com/Kataglyphis/...)
-
-
-<!-- ACKNOWLEDGEMENTS -->
 ## Acknowledgements
 
-<!-- Thanks for free 3D Models: 
-* [Morgan McGuire, Computer Graphics Archive, July 2017 (https://casual-effects.com/data)](http://casual-effects.com/data/)
-* [Viking room](https://sketchfab.com/3d-models/viking-room-a49f1b8e4f5c4ecf9e1fe7d81915ad38) -->
+Thanks to the open-source community and all contributors!
 
-## Literature 
+## Literature
 
-Some very helpful literature, tutorials, etc. 
+Helpful tutorials, documentation, and resources:
 
-CMake/C++
-* [clang-cl](https://clang.llvm.org/docs/MSVCCompatibility.html)
+### Multimedia
+- [GStreamer](https://gstreamer.freedesktop.org/)
 
-Flutter/Dart
-* [Linux Native Textures](https://github.com/flutter/flutter/blob/master/examples/texture/lib/main.dart)
+### Rust
+- [GStreamer-rs tutorial](https://gstreamer.freedesktop.org/documentation/rswebrtc/index.html?gi-language=c)
+- [gst-plugins-rs](https://github.com/GStreamer/gst-plugins-rs)
+- [GStreamer WebRTC](https://github.com/GStreamer/gst-plugins-rs/tree/main/net/webrtc)
+
+### Raspberry Pi
+- [GStreamer on Raspberry Pi](https://www.raspberrypi.com/documentation/computers/camera_software.html)
+- [libcamera](https://libcamera.org/)
+- [libcamera on Raspberry Pi](https://github.com/raspberrypi/libcamera)
+
+### CMake/C++
+- [clang-cl](https://clang.llvm.org/docs/MSVCCompatibility.html)
+
+### Flutter/Dart
+- [Linux Native Textures](https://github.com/flutter/flutter/blob/master/examples/texture/lib/main.dart)
+- [flutter_rust_bridge](https://cjycode.com/flutter_rust_bridge/)
+
+### Protocols
+- [WebRTC](https://webrtc.org/?hl=de)
+
+### Tooling
+- [tmux](https://github.com/tmux/tmux/wiki)
+- [zellij](https://zellij.dev/)
+
+## Contact
+
+**Jonas Heinle**  
+Twitter: [@Cataglyphis_](https://twitter.com/Cataglyphis_)  
+Email: cataglyphis@jonasheinle.de
+
+**Project Links:**
+- GitHub: [Kataglyphis-Inference-Engine](https://github.com/Kataglyphis/Kataglyphis-Inference-Engine)
+- Homepage: [Official Site](https://kataglyphisinferenceengine.jonasheinle.de)

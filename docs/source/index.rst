@@ -16,4 +16,7 @@ documentation for details.
    :caption: Contents:
 
    README.md
+   getting-started.md
+   platforms.md
+   camera-streaming.md
 

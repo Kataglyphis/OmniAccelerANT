@@ -1,11 +1,11 @@
 {
-    "name": "kataglyphis_inference_engine",
-    "short_name": "kataglyphis_inference_engine",
+    "name": "kataglyphis-webfrontendproject",
+    "short_name": "kataglyphis-webfrontendproject",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "description": "Find out about ME",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

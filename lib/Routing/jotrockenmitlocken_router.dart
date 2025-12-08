@@ -2,10 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:kataglyphis_inference_engine/Pages/AboutMePage/about_me_page.dart';
 import 'package:kataglyphis_inference_engine/Pages/Blog/blog_page.dart';
 import 'package:kataglyphis_inference_engine/Pages/DataPage/BlockOverviewPage/block_overview_page.dart';
-import 'package:kataglyphis_inference_engine/Pages/DataPage/BooksPage/books_page.dart';
-import 'package:kataglyphis_inference_engine/Pages/DataPage/FilmsPage/films_page.dart';
-import 'package:kataglyphis_inference_engine/Pages/DataPage/GamesPage/games_page.dart';
-import 'package:kataglyphis_inference_engine/Pages/DataPage/data_page.dart';
 import 'package:kataglyphis_inference_engine/Pages/DataPage/media_critics_page.dart';
 import 'package:kataglyphis_inference_engine/Pages/StreamPage/stream_page.dart';
 import 'package:kataglyphis_inference_engine/Pages/ErrorPage/error_page.dart';
@@ -13,7 +9,6 @@ import 'package:kataglyphis_inference_engine/blog_dependent_app_attributes.dart'
 
 import 'package:jotrockenmitlockenrepo/Pages/Footer/footer_page.dart';
 import 'package:kataglyphis_inference_engine/Pages/LandingPage/landing_page.dart';
-import 'package:kataglyphis_inference_engine/Pages/DataPage/QuotesPage/quotes_page.dart';
 import 'package:jotrockenmitlockenrepo/Pages/Footer/footer.dart';
 import 'package:jotrockenmitlockenrepo/Pages/Footer/footer_page_config.dart';
 import 'package:kataglyphis_inference_engine/blog_page_config.dart';
@@ -66,21 +61,6 @@ class JotrockenMitLockenRoutes extends RoutesCreator {
         blogDependentAppAttributes.blogDependentScreenConfigurations
             .getDataPagesConfig();
     List<Widget> dataPages = [
-      QuotesPage(
-        footer: getFooter(appAttributes),
-        appAttributes: appAttributes,
-      ),
-      BooksPage(
-        footer: getFooter(appAttributes),
-        appAttributes: appAttributes,
-        blogDependentAppAttributes: blogDependentAppAttributes,
-      ),
-      FilmsPage(footer: getFooter(appAttributes), appAttributes: appAttributes),
-      GamesPage(
-        footer: getFooter(appAttributes),
-        appAttributes: appAttributes,
-        blogDependentAppAttributes: blogDependentAppAttributes,
-      ),
       BlockOverviewPage(
         footer: getFooter(appAttributes),
         appAttributes: appAttributes,
@@ -101,17 +81,16 @@ class JotrockenMitLockenRoutes extends RoutesCreator {
         .screenConfigurations
         .getNavRailPagesConfig();
     List<Widget> navBarPages = [
+      StreamPage(
+        footer: getFooter(appAttributes),
+        appAttributes: appAttributes,
+      ),
       LandingPage(
         footer: getFooter(appAttributes),
         appAttributes: appAttributes,
         blogDependentAppAttributes: blogDependentAppAttributes,
       ),
       AboutMePage(
-        footer: getFooter(appAttributes),
-        appAttributes: appAttributes,
-      ),
-      DataPage(footer: getFooter(appAttributes), appAttributes: appAttributes),
-      StreamPage(
         footer: getFooter(appAttributes),
         appAttributes: appAttributes,
       ),
