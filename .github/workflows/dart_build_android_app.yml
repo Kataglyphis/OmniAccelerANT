@@ -3,7 +3,7 @@
 # separate terms of service, privacy policy, and support
 # documentation.
 
-name: Build + run + test android app
+name: Build + test + run android app
 
 on:
   push:
