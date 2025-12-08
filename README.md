@@ -173,6 +173,9 @@ Helpful tutorials, documentation, and resources:
 - [tmux](https://github.com/tmux/tmux/wiki)
 - [zellij](https://zellij.dev/)
 
+### Android
+- [Gstreamer+flutter+android](https://github.com/hpdragon1618/flutter_gstreamer_player)
+
 ## Contact
 
 **Jonas Heinle**  

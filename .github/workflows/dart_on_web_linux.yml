@@ -63,7 +63,6 @@ jobs:
           cargo install flutter_rust_bridge_codegen
           flutter config --enable-web
 
-      # for production I do not use wasm yet! 
       - name: "Build Web App"
         run: |
           WASM_FLAGS="-Ctarget-feature=+atomics \
