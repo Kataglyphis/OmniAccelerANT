@@ -62,6 +62,13 @@ cmake --build C:\GitHub\Kataglyphis-Inference-Engine\build\windows\x64 `
   --verbose
 ```
 
+## Anroid
+
+Recreate android project.
+```bash
+flutter create --platforms=android .
+```
+
 ## Raspberry Pi
 
 Run GStreamer commands **outside** Docker for Pi devices.

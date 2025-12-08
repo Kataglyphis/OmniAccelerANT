@@ -1,12 +1,11 @@
 package com.example.kataglyphis_inference_engine
 
 import io.flutter.embedding.android.FlutterActivity
-import org.freedesktop.gstreamer.GStreamer
 
 import android.os.Bundle
 import android.util.Log
 
-class MainActivity: FlutterActivity()
+import org.freedesktop.gstreamer.GStreamer
 
 class MainActivity: FlutterActivity() {
   override fun onCreate(savedInstanceState: Bundle?) {
@@ -15,3 +14,5 @@ class MainActivity: FlutterActivity() {
     GStreamer.init(this);
   }
 }
+
+/**class MainActivity : FlutterActivity()*/
