@@ -1,0 +1,141 @@
+# This workflow uses actions that are not certified by GitHub.
+# They are provided by a third-party and are governed by
+# separate terms of service, privacy policy, and support
+# documentation.
+
+name: Build + run + test android app
+
+on:
+  push:
+    branches: ["main", "develop"]
+  pull_request:
+    branches: ["main", "develop"]
+
+env:
+  APP_NAME: kataglyphis-inference-engine-apk
+  FLUTTER_VERSION: 3.38.3   # change here to update version for the whole workflow
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - runs_on: ubuntu-24.04
+            arch: x64
+            platform: linux/amd64
+
+    runs-on: ${{ matrix.runs_on }}
+
+    steps:
+      - name: Free Disk Space on Host
+        uses: jlumbroso/free-disk-space@main
+        with:
+          tool-cache: true
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: true
+          docker-images: false
+          swap-storage: true
+
+      - uses: actions/checkout@v6.0.0
+        with:
+          fetch-depth: 0
+          submodules: recursive
+
+      - name: Login to GitHub Container Registry
+        run: echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Pull container image
+        run: |
+          for i in 1 2 3; do
+            echo "Attempt $i to pull container..."
+            if timeout 900 docker pull ghcr.io/kataglyphis/kataglyphis_beschleuniger:latest; then
+              echo "Successfully pulled container"
+              exit 0
+            fi
+            echo "Pull failed, waiting before retry..."
+            sleep 30
+          done
+          echo "Failed to pull container after 3 attempts"
+          exit 1
+
+      - name: Setup Flutter in container
+        run: |
+          docker run --rm \
+            --platform ${{ matrix.platform }} \
+            -v ${{ github.workspace }}:/workspace \
+            -w /workspace \
+            -e FLUTTER_VERSION=${{ env.FLUTTER_VERSION }} \
+            -e MATRIX_ARCH=${{ matrix.arch }} \
+            ghcr.io/kataglyphis/kataglyphis_beschleuniger:latest \
+            bash -lc '
+            set -e
+            git config --global --add safe.directory /workspace || true
+            git config --global --add safe.directory /workspace/flutter || true
+
+            chmod +x scripts/linux/setup-flutter-x86-64.sh
+            ./scripts/linux/setup-flutter-x86-64.sh $FLUTTER_VERSION
+            '
+
+      - name: Run Flutter checks and tests
+        run: |
+          docker run --rm \
+            --platform ${{ matrix.platform }} \
+            -v ${{ github.workspace }}:/workspace \
+            -w /workspace \
+            ghcr.io/kataglyphis/kataglyphis_beschleuniger:latest \
+            bash -lc '
+            set -e
+            export PATH="$PWD/flutter/bin:$PATH"
+            git config --global --add safe.directory /workspace || true
+            git config --global --add safe.directory /workspace/flutter || true
+            flutter pub get
+            dart format --output=none --set-exit-if-changed . || true
+            dart analyze || true
+            flutter test || true
+            flutter config --enable-android 
+            '
+
+      - name: Build Flutter Android app
+        run: |
+          docker run --rm \
+            --platform ${{ matrix.platform }} \
+            -v ${{ github.workspace }}:/workspace \
+            -w /workspace \
+            -e APP_NAME=${{ env.APP_NAME }} \
+            -e MATRIX_ARCH=${{ matrix.arch }} \
+            ghcr.io/kataglyphis/kataglyphis_beschleuniger:latest \
+            bash -lc '
+            set -e
+            export PATH="$PWD/flutter/bin:$PATH"
+            git config --global --add safe.directory /workspace || true
+            git config --global --add safe.directory /workspace/flutter || true
+            
+            flutter build apk --release
+            '
+
+      - name: Package build artifacts
+        run: |
+          docker run --rm \
+            --platform ${{ matrix.platform }} \
+            -v ${{ github.workspace }}:/workspace \
+            -w /workspace \
+            -e APP_NAME=${{ env.APP_NAME }} \
+            -e MATRIX_ARCH=${{ matrix.arch }} \
+            ghcr.io/kataglyphis/kataglyphis_beschleuniger:latest \
+            bash -lc '
+            set -e
+            rm -rf build/linux/$MATRIX_ARCH/release/obj || true
+            rm -rf ~/.pub-cache/hosted || true
+            mkdir -p out
+            cp -r build/linux/$MATRIX_ARCH/release/bundle out/${APP_NAME}-bundle
+            tar -C out -czf ${APP_NAME}-linux-$MATRIX_ARCH.tar.gz ${APP_NAME}-bundle
+            '
+            
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.APP_NAME }}-linux-${{ matrix.arch }}-tar
+          path: ${{ env.APP_NAME }}-linux-${{ matrix.arch }}.tar.gz
+    
