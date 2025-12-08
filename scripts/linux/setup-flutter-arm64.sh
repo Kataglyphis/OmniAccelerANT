@@ -6,7 +6,7 @@ set -e  # exit on any error
 # ------------------------------------------
 
 # Allow passing version as an argument
-FLUTTER_VERSION="${1:-3.35.6}"  # default if not provided
+FLUTTER_VERSION="${1:-3.38.3}"  # default if not provided
 
 echo "📦 Setting up Flutter $FLUTTER_VERSION for ARM64..."
 
