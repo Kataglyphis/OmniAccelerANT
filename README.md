@@ -90,13 +90,17 @@ Kataglyphis-Inference-Engine bundles a Flutter/Dart frontend, a Rust/C++ inferen
 
 ## Quick Start
 
-1. Clone the repository with submodules:
+1. Clone the repository with submodules:  
+  > **__NOTE:__**
+  > On Windows I use [Git Bash](https://git-scm.com/install/windows) instead of  
+  > Powershell or cmd
    ```bash
-   git clone --recurse-submodules git@github.com:Kataglyphis/Kataglyphis-Inference-Engine.git
+   git clone --recurse-submodules --branch develop git@github.com:Kataglyphis/Kataglyphis-Inference-Engine.git
    cd Kataglyphis-Inference-Engine
    ```
 2. Initialize submodules if needed.  
-   If u used `--recurse-submodules` while cloning you are already good 
+   If u used `--recurse-submodules` while cloning you are already good.  
+   Otherwise you can use this :smile:
    ```bash
    git submodule update --init --recursive
    ```

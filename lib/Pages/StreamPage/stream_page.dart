@@ -9,8 +9,8 @@ import 'package:jotrockenmitlockenrepo/constants.dart';
 // Web imports (only loaded on web)
 // conditional import: stub for non-web, web impl for web
 import 'package:kataglyphis_inference_engine/Pages/StreamPage/webrtc_view_stub.dart'
-  if (dart.library.html) 'package:kataglyphis_inference_engine/Pages/StreamPage/webrtc_view.dart'
-  as webrtc_import;
+    if (dart.library.html) 'package:kataglyphis_inference_engine/Pages/StreamPage/webrtc_view.dart'
+    as webrtc_import;
 
 class StreamPage extends StatefulWidget {
   final AppAttributes appAttributes;
@@ -37,23 +37,39 @@ class StreamPageState extends State<StreamPage> {
 
   bool _isPlaying = false;
   String? _errorMessage;
-  String _currentPipeline = 'v4l2src';
+  late final String _defaultNativeSource;
+  late String _currentPipeline;
+
+  bool get _isWindows => defaultTargetPlatform == TargetPlatform.windows;
+  bool get _isLinux => defaultTargetPlatform == TargetPlatform.linux;
+  bool get _isMacOS => defaultTargetPlatform == TargetPlatform.macOS;
+  bool get _isAndroid => defaultTargetPlatform == TargetPlatform.android;
 
   @override
   void initState() {
     super.initState();
 
-    // Only initialize native components on non-web platforms
-    if (!kIsWeb) {
+    _defaultNativeSource = _pickDefaultSource();
+    _currentPipeline = _defaultNativeSource;
+
+    // Native Integration für Desktop + Android initialisieren
+    if (!kIsWeb && (_isWindows || _isLinux || _isMacOS || _isAndroid)) {
       _initializeNative();
     }
+  }
+
+  String _pickDefaultSource() {
+    if (_isWindows) return 'ksvideosrc';
+    if (_isLinux) return 'v4l2src';
+    if (_isMacOS) return 'avfvideosrc';
+    return 'videotestsrc';
   }
 
   void _initializeNative() {
     textureId = channel
         .invokeMethod<int>('create', <int>[textureWidth, textureHeight])
         .then((id) {
-          _setPipeline(_buildPipelineString('v4l2src'));
+          _setPipeline(_buildPipelineString(_defaultNativeSource));
           return id;
         })
         .catchError((e) {
@@ -71,6 +87,10 @@ class StreamPageState extends State<StreamPage> {
         return 'videotestsrc pattern=ball ! videoconvert ! video/x-raw,format=RGBA,width=$textureWidth,height=$textureHeight,framerate=30/1 ! appsink name=sink emit-signals=true sync=false';
       case 'v4l2src':
         return 'v4l2src device=/dev/video0 ! image/jpeg,width=$textureWidth,height=$textureHeight,framerate=30/1 ! jpegdec ! videoconvert ! video/x-raw,format=RGBA,width=$textureWidth,height=$textureHeight ! appsink name=sink emit-signals=true sync=false';
+      case 'ksvideosrc':
+        return 'ksvideosrc device-index=0 ! videoconvert ! video/x-raw,format=RGBA,width=$textureWidth,height=$textureHeight,framerate=30/1 ! appsink name=sink emit-signals=true sync=false';
+      case 'avfvideosrc':
+        return 'avfvideosrc capture-raw-data=true ! videoconvert ! video/x-raw,format=RGBA,width=$textureWidth,height=$textureHeight,framerate=30/1 ! appsink name=sink emit-signals=true sync=false';
       case 'pattern-smpte':
         return 'videotestsrc pattern=smpte ! videoconvert ! video/x-raw,format=RGBA,width=$textureWidth,height=$textureHeight,framerate=30/1 ! appsink name=sink emit-signals=true sync=false';
       case 'pattern-snow':
@@ -149,13 +169,19 @@ class StreamPageState extends State<StreamPage> {
 
   @override
   Widget build(BuildContext context) {
-    // Render web version
+    // Web: vollwertige WebRTC-Ansicht
     if (kIsWeb) {
       return _buildWebView();
     }
 
-    // Render native version
-    return _buildNativeView();
+    // Desktop + Android: Native GStreamer-/Texture-Ansicht
+    if (_isWindows || _isLinux || _isMacOS || _isAndroid) {
+      return _buildNativeView();
+    }
+
+    // Fallback für andere Plattformen:
+    // Zeige die WebRTC-Stub-Ansicht (reine Flutter-UI, kein Native-Code).
+    return _buildWebView();
   }
 
   Widget _buildWebView() {
@@ -323,14 +349,33 @@ class StreamPageState extends State<StreamPage> {
                       _setPipeline(_buildPipelineString('pattern-snow'));
                     },
                   ),
-                  OutlinedButton.icon(
-                    icon: const Icon(Icons.videocam),
-                    label: const Text('Webcam (/dev/video0)'),
-                    onPressed: () {
-                      _currentPipeline = 'v4l2src';
-                      _setPipeline(_buildPipelineString('v4l2src'));
-                    },
-                  ),
+                  if (_isWindows)
+                    OutlinedButton.icon(
+                      icon: const Icon(Icons.videocam),
+                      label: const Text('Windows Camera (ksvideosrc)'),
+                      onPressed: () {
+                        _currentPipeline = 'ksvideosrc';
+                        _setPipeline(_buildPipelineString('ksvideosrc'));
+                      },
+                    ),
+                  if (_isLinux)
+                    OutlinedButton.icon(
+                      icon: const Icon(Icons.videocam),
+                      label: const Text('Webcam (/dev/video0)'),
+                      onPressed: () {
+                        _currentPipeline = 'v4l2src';
+                        _setPipeline(_buildPipelineString('v4l2src'));
+                      },
+                    ),
+                  if (_isMacOS)
+                    OutlinedButton.icon(
+                      icon: const Icon(Icons.videocam),
+                      label: const Text('Mac Camera (avfvideosrc)'),
+                      onPressed: () {
+                        _currentPipeline = 'avfvideosrc';
+                        _setPipeline(_buildPipelineString('avfvideosrc'));
+                      },
+                    ),
                 ],
               ),
 
