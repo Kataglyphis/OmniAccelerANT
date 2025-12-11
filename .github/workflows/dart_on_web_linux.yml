@@ -3,7 +3,7 @@
 # separate terms of service, privacy policy, and support
 # documentation.
 
-name: Build web application
+name: Build + test + run for web
 
 env:
   LOCAL_ASSETS_FOLDER: "assets"
@@ -29,7 +29,7 @@ jobs:
         uses: flutter-actions/setup-flutter@v4.1
         with:
           channel: stable
-          version: 3.38.3
+          version: 3.38.4
 
       # git submodule update --init --recursive
       - name: Install dependencies

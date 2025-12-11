@@ -94,6 +94,9 @@ Recreate android project.
 flutter create --platforms=android .
 ```
 
+Recreate plugins.
+flutter create --template=plugin --platforms=android .
+
 ## Raspberry Pi
 
 Run GStreamer commands **outside** Docker for Pi devices.
