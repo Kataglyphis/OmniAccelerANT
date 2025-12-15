@@ -5,12 +5,13 @@ import 'package:jotrockenmitlockenrepo/Pages/Footer/footer.dart';
 import 'package:jotrockenmitlockenrepo/Layout/ResponsiveDesign/single_page.dart';
 import 'package:jotrockenmitlockenrepo/app_attributes.dart';
 import 'package:jotrockenmitlockenrepo/constants.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 // Web imports (only loaded on web)
 // conditional import: stub for non-web, web impl for web
 import 'package:kataglyphis_inference_engine/Pages/StreamPage/webrtc_view_stub.dart'
-  if (dart.library.html) 'package:kataglyphis_inference_engine/Pages/StreamPage/webrtc_view.dart'
-  as webrtc_import;
+    if (dart.library.html) 'package:kataglyphis_inference_engine/Pages/StreamPage/webrtc_view.dart'
+    as webrtc_import;
 
 class StreamPage extends StatefulWidget {
   final AppAttributes appAttributes;
@@ -37,51 +38,156 @@ class StreamPageState extends State<StreamPage> {
 
   bool _isPlaying = false;
   String? _errorMessage;
-  String _currentPipeline = 'v4l2src';
+  bool _nativeInitFailed = false;
+  late final String _defaultNativeSource;
+  late String _currentPipeline;
+  static const int _androidWidth = 320;
+  static const int _androidHeight = 240;
+  static const int _androidFps = 15;
+  final List<String> _androidSourceCandidates = <String>[
+    'ahc2src',
+    'ahcsrc',
+    'autovideosrc',
+    'videotestsrc',
+    'androidvideosource',
+  ];
+  int _androidSourceIndex = 0;
+
+  int get _targetTextureWidth => _isAndroid ? _androidWidth : textureWidth;
+  int get _targetTextureHeight => _isAndroid ? _androidHeight : textureHeight;
+
+  bool get _isWindows => defaultTargetPlatform == TargetPlatform.windows;
+  bool get _isLinux => defaultTargetPlatform == TargetPlatform.linux;
+  bool get _isMacOS => defaultTargetPlatform == TargetPlatform.macOS;
+  bool get _isAndroid => defaultTargetPlatform == TargetPlatform.android;
 
   @override
   void initState() {
     super.initState();
 
-    // Only initialize native components on non-web platforms
-    if (!kIsWeb) {
-      _initializeNative();
-    }
+    _defaultNativeSource = _pickDefaultSource();
+    _currentPipeline = _defaultNativeSource;
+
+    // Native Integration für Desktop + Android initialisieren (nach Android-Permission)
+    textureId = _initNativeIfNeeded();
   }
 
-  void _initializeNative() {
-    textureId = channel
-        .invokeMethod<int>('create', <int>[textureWidth, textureHeight])
-        .then((id) {
-          _setPipeline(_buildPipelineString('v4l2src'));
+  String _pickDefaultSource() {
+    if (_isWindows) return 'ksvideosrc';
+    if (_isLinux) return 'v4l2src';
+    if (_isMacOS) return 'avfvideosrc';
+    // On Android, start with videotestsrc to test GStreamer infrastructure
+    // then user can try real camera sources via UI buttons
+    if (_isAndroid) return 'videotestsrc';
+    return 'videotestsrc';
+  }
+
+  Future<int?> _initNativeIfNeeded() async {
+    if (kIsWeb || !(_isWindows || _isLinux || _isMacOS || _isAndroid)) {
+      return null;
+    }
+
+    if (_isAndroid) {
+      final bool granted = await _ensureCameraPermission();
+      if (!granted) return null;
+    }
+
+    return _initializeNative();
+  }
+
+  Future<bool> _ensureCameraPermission() async {
+    final PermissionStatus status = await Permission.camera.request();
+
+    if (status.isGranted) return true;
+
+    if (mounted) {
+      setState(() {
+        _errorMessage = 'Camera permission is required to start the stream.';
+      });
+    }
+
+    if (status.isPermanentlyDenied) {
+      await openAppSettings();
+    }
+
+    return false;
+  }
+
+  Future<int?> _initializeNative() {
+    return channel
+        .invokeMethod<int>('create', <int>[
+          _targetTextureWidth,
+          _targetTextureHeight,
+        ])
+        .then((id) async {
+          await _setPipeline(
+            _buildPipelineString(_defaultNativeSource),
+            source: _defaultNativeSource,
+          );
           return id;
         })
         .catchError((e) {
           debugPrint('create texture error: $e');
-          setState(() {
-            _errorMessage = 'Texture creation failed: $e';
-          });
+          if (mounted) {
+            setState(() {
+              _errorMessage = 'Texture creation failed: $e';
+              _nativeInitFailed = true;
+            });
+          }
           throw e;
         });
   }
 
   String _buildPipelineString(String source) {
+    final bool useOverlaySink = _isAndroid;
+    // Force RGBA on Android to avoid NV12/AHardwareBuffer format negotiation errors on Adreno.
+    const String pixelFormat = 'RGBA';
+    final int w = _isAndroid ? _androidWidth : textureWidth;
+    final int h = _isAndroid ? _androidHeight : textureHeight;
+    final int fps = _isAndroid ? _androidFps : 30;
+
+    // Use glimagesink on Android for hardware rendering, appsink for other platforms
+    final String sink = useOverlaySink
+        ? 'glimagesink name=overlay qos=true sync=false max-lateness=20000000'
+        : 'appsink name=sink emit-signals=true sync=false';
+
     switch (source) {
       case 'videotestsrc':
-        return 'videotestsrc pattern=ball ! videoconvert ! video/x-raw,format=RGBA,width=$textureWidth,height=$textureHeight,framerate=30/1 ! appsink name=sink emit-signals=true sync=false';
+        // Test pattern: safe baseline to verify GStreamer/glimagesink works
+        // Removed videoconvert - let GStreamer handle format conversion automatically
+        return 'videotestsrc pattern=ball ! video/x-raw,width=$w,height=$h,framerate=$fps/1 ! $sink';
+      case 'ahc2src':
+        // Modern Android Camera2 NDK-based source (preferred for Pixel 4)
+        // Ultra-minimal - let GStreamer negotiate all caps
+        return 'ahc2src ! $sink';
+      case 'ahcsrc':
+        // Legacy Android Camera NDK source (older GStreamer builds)
+        return 'ahcsrc ! $sink';
+      case 'autovideosrc':
+        // Generic autodetect: lets GStreamer pick the best available platform source
+        // Ultra-minimal pipeline - no format constraints
+        return 'autovideosrc ! $sink';
+      case 'androidvideosource':
+        // Legacy Android camera source
+        return 'androidvideosource camera-index=0 ! $sink';
       case 'v4l2src':
-        return 'v4l2src device=/dev/video0 ! image/jpeg,width=$textureWidth,height=$textureHeight,framerate=30/1 ! jpegdec ! videoconvert ! video/x-raw,format=RGBA,width=$textureWidth,height=$textureHeight ! appsink name=sink emit-signals=true sync=false';
+        return 'v4l2src device=/dev/video0 ! image/jpeg,width=$w,height=$h,framerate=$fps/1 ! jpegdec ! videoconvert ! video/x-raw,format=$pixelFormat,width=$w,height=$h ! $sink';
+      case 'ksvideosrc':
+        return 'ksvideosrc device-index=0 ! videoconvert ! video/x-raw,format=$pixelFormat,width=$w,height=$h,framerate=$fps/1 ! $sink';
+      case 'avfvideosrc':
+        return 'avfvideosrc capture-raw-data=true ! videoconvert ! video/x-raw,format=$pixelFormat,width=$w,height=$h,framerate=$fps/1 ! $sink';
       case 'pattern-smpte':
-        return 'videotestsrc pattern=smpte ! videoconvert ! video/x-raw,format=RGBA,width=$textureWidth,height=$textureHeight,framerate=30/1 ! appsink name=sink emit-signals=true sync=false';
+        return 'videotestsrc pattern=smpte ! video/x-raw,width=$w,height=$h,framerate=$fps/1 ! $sink';
       case 'pattern-snow':
-        return 'videotestsrc pattern=snow ! videoconvert ! video/x-raw,format=RGBA,width=$textureWidth,height=$textureHeight,framerate=30/1 ! appsink name=sink emit-signals=true sync=false';
+        return 'videotestsrc pattern=snow ! video/x-raw,width=$w,height=$h,framerate=$fps/1 ! $sink';
       default:
-        return 'videotestsrc pattern=ball ! videoconvert ! video/x-raw,format=RGBA,width=$textureWidth,height=$textureHeight,framerate=30/1 ! appsink name=sink emit-signals=true sync=false';
+        return 'videotestsrc pattern=ball ! video/x-raw,width=$w,height=$h,framerate=$fps/1 ! $sink';
     }
   }
 
-  Future<void> _setPipeline(String pipelineString) async {
+  Future<void> _setPipeline(String pipelineString, {String? source}) async {
     try {
+      if (!mounted) return;
       setState(() {
         _errorMessage = null;
       });
@@ -93,6 +199,7 @@ class StreamPageState extends State<StreamPage> {
       await channel.invokeMethod('setPipeline', pipelineString);
       await channel.invokeMethod('play');
 
+      if (!mounted) return;
       setState(() {
         _isPlaying = true;
       });
@@ -100,28 +207,67 @@ class StreamPageState extends State<StreamPage> {
       debugPrint('Pipeline set and playing: $pipelineString');
     } on PlatformException catch (e) {
       debugPrint('setPipeline failed: $e');
+      final message = e.message ?? '';
+      final bool missingElement =
+          message.contains('no element') || message.contains('not found');
+      final bool shouldRetryAndroid =
+          _isAndroid &&
+          source != null &&
+          (missingElement || e.code == 'command_failed');
+
+      if (shouldRetryAndroid) {
+        final String? nextSource = _nextAndroidSource(source);
+        if (nextSource != null) {
+          _androidSourceIndex = _androidSourceCandidates.indexOf(nextSource);
+          _currentPipeline = nextSource;
+          debugPrint(
+            'Android pipeline "$source" missing; trying "$nextSource"',
+          );
+          await _setPipeline(
+            _buildPipelineString(nextSource),
+            source: nextSource,
+          );
+          return;
+        }
+      }
+
+      if (!mounted) return;
       setState(() {
-        _errorMessage = 'Pipeline error: ${e.message}';
+        _errorMessage = _isAndroid && shouldRetryAndroid
+            ? 'GStreamer on Android is missing required elements (tried: ${_androidSourceCandidates.join(', ')}). Update your GStreamer build to include camera/test sources.'
+            : 'Pipeline error: ${e.message}';
         _isPlaying = false;
       });
     }
+  }
+
+  String? _nextAndroidSource(String failedSource) {
+    final int idx = _androidSourceCandidates.indexOf(failedSource);
+    if (idx == -1) return null;
+    if (idx + 1 < _androidSourceCandidates.length) {
+      return _androidSourceCandidates[idx + 1];
+    }
+    return null;
   }
 
   Future<void> _togglePlayPause() async {
     try {
       if (_isPlaying) {
         await channel.invokeMethod('pause');
+        if (!mounted) return;
         setState(() {
           _isPlaying = false;
         });
       } else {
         await channel.invokeMethod('play');
+        if (!mounted) return;
         setState(() {
           _isPlaying = true;
         });
       }
     } on PlatformException catch (e) {
       debugPrint('togglePlayPause failed: $e');
+      if (!mounted) return;
       setState(() {
         _errorMessage = 'Play/Pause error: ${e.message}';
       });
@@ -131,12 +277,22 @@ class StreamPageState extends State<StreamPage> {
   Future<void> _stopPipeline() async {
     try {
       await channel.invokeMethod('stop');
+      if (!mounted) return;
       setState(() {
         _isPlaying = false;
       });
     } on PlatformException catch (e) {
       debugPrint('stop failed: $e');
     }
+  }
+
+  @override
+  void dispose() {
+    channel
+        .invokeMethod('stop')
+        .catchError((e) => debugPrint('stop on dispose failed: $e'));
+    _isPlaying = false;
+    super.dispose();
   }
 
   Future<void> setColor(int r, int g, int b) async {
@@ -149,13 +305,19 @@ class StreamPageState extends State<StreamPage> {
 
   @override
   Widget build(BuildContext context) {
-    // Render web version
+    // Web: vollwertige WebRTC-Ansicht
     if (kIsWeb) {
       return _buildWebView();
     }
 
-    // Render native version
-    return _buildNativeView();
+    // Desktop + Android: Native GStreamer-/Texture-Ansicht
+    if (_isWindows || _isLinux || _isMacOS || _isAndroid) {
+      return _buildNativeView();
+    }
+
+    // Fallback für andere Plattformen:
+    // Zeige die WebRTC-Stub-Ansicht (reine Flutter-UI, kein Native-Code).
+    return _buildWebView();
   }
 
   Widget _buildWebView() {
@@ -225,12 +387,15 @@ class StreamPageState extends State<StreamPage> {
                 builder: (BuildContext context, AsyncSnapshot<int?> snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return SizedBox(
-                      width: textureWidth.toDouble(),
-                      height: textureHeight.toDouble(),
+                      width: _targetTextureWidth.toDouble(),
+                      height: _targetTextureHeight.toDouble(),
                       child: const Center(child: CircularProgressIndicator()),
                     );
                   }
                   if (snapshot.hasError) {
+                    if (_isAndroid) {
+                      return _buildAndroidFallback(snapshot.error?.toString());
+                    }
                     return SizedBox(
                       width: textureWidth.toDouble(),
                       height: textureHeight.toDouble(),
@@ -238,7 +403,16 @@ class StreamPageState extends State<StreamPage> {
                     );
                   }
                   if (!snapshot.hasData || snapshot.data == null) {
+                    if (_isAndroid) {
+                      return _buildAndroidFallback(
+                        'Error creating texture (null id)',
+                      );
+                    }
                     return const Text('Error creating texture (null id)');
+                  }
+
+                  if (_isAndroid && _nativeInitFailed) {
+                    return _buildAndroidFallback('Native init failed');
                   }
 
                   return Container(
@@ -246,8 +420,8 @@ class StreamPageState extends State<StreamPage> {
                       border: Border.all(color: Colors.grey, width: 2),
                     ),
                     child: SizedBox(
-                      width: textureWidth.toDouble(),
-                      height: textureHeight.toDouble(),
+                      width: _targetTextureWidth.toDouble(),
+                      height: _targetTextureHeight.toDouble(),
                       child: Texture(textureId: snapshot.data!),
                     ),
                   );
@@ -299,84 +473,180 @@ class StreamPageState extends State<StreamPage> {
                 runSpacing: 10,
                 alignment: WrapAlignment.center,
                 children: [
-                  OutlinedButton.icon(
-                    icon: const Icon(Icons.sports_soccer),
-                    label: const Text('Test Pattern (Ball)'),
-                    onPressed: () {
-                      _currentPipeline = 'videotestsrc';
-                      _setPipeline(_buildPipelineString('videotestsrc'));
-                    },
-                  ),
-                  OutlinedButton.icon(
-                    icon: const Icon(Icons.grid_on),
-                    label: const Text('SMPTE Pattern'),
-                    onPressed: () {
-                      _currentPipeline = 'pattern-smpte';
-                      _setPipeline(_buildPipelineString('pattern-smpte'));
-                    },
-                  ),
-                  OutlinedButton.icon(
-                    icon: const Icon(Icons.grain),
-                    label: const Text('Snow Pattern'),
-                    onPressed: () {
-                      _currentPipeline = 'pattern-snow';
-                      _setPipeline(_buildPipelineString('pattern-snow'));
-                    },
-                  ),
-                  OutlinedButton.icon(
-                    icon: const Icon(Icons.videocam),
-                    label: const Text('Webcam (/dev/video0)'),
-                    onPressed: () {
-                      _currentPipeline = 'v4l2src';
-                      _setPipeline(_buildPipelineString('v4l2src'));
-                    },
-                  ),
+                  if (_isAndroid) ...[
+                    // Test pattern - safe baseline
+                    OutlinedButton.icon(
+                      icon: const Icon(Icons.sports_soccer),
+                      label: const Text('Test Pattern'),
+                      onPressed: () {
+                        _currentPipeline = 'videotestsrc';
+                        _androidSourceIndex = 0;
+                        _setPipeline(
+                          _buildPipelineString('videotestsrc'),
+                          source: 'videotestsrc',
+                        );
+                      },
+                    ),
+                    // Camera2 (Modern Pixel 4)
+                    OutlinedButton.icon(
+                      icon: const Icon(Icons.videocam),
+                      label: const Text('Camera (ahc2src)'),
+                      onPressed: () {
+                        _currentPipeline = 'ahc2src';
+                        _androidSourceIndex = 0;
+                        _setPipeline(
+                          _buildPipelineString('ahc2src'),
+                          source: 'ahc2src',
+                        );
+                      },
+                    ),
+                    // Autodetect - best available
+                    OutlinedButton.icon(
+                      icon: const Icon(Icons.auto_awesome),
+                      label: const Text('Auto Camera'),
+                      onPressed: () {
+                        _currentPipeline = 'autovideosrc';
+                        _androidSourceIndex = 2;
+                        _setPipeline(
+                          _buildPipelineString('autovideosrc'),
+                          source: 'autovideosrc',
+                        );
+                      },
+                    ),
+                  ],
+                  if (!_isAndroid)
+                    OutlinedButton.icon(
+                      icon: const Icon(Icons.sports_soccer),
+                      label: const Text('Test Pattern (Ball)'),
+                      onPressed: () {
+                        _currentPipeline = 'videotestsrc';
+                        _setPipeline(_buildPipelineString('videotestsrc'));
+                      },
+                    ),
+                  if (!_isAndroid)
+                    OutlinedButton.icon(
+                      icon: const Icon(Icons.grid_on),
+                      label: const Text('SMPTE Pattern'),
+                      onPressed: () {
+                        _currentPipeline = 'pattern-smpte';
+                        _setPipeline(_buildPipelineString('pattern-smpte'));
+                      },
+                    ),
+                  if (!_isAndroid)
+                    OutlinedButton.icon(
+                      icon: const Icon(Icons.grain),
+                      label: const Text('Snow Pattern'),
+                      onPressed: () {
+                        _currentPipeline = 'pattern-snow';
+                        _setPipeline(_buildPipelineString('pattern-snow'));
+                      },
+                    ),
+                  if (_isWindows)
+                    OutlinedButton.icon(
+                      icon: const Icon(Icons.videocam),
+                      label: const Text('Windows Camera (ksvideosrc)'),
+                      onPressed: () {
+                        _currentPipeline = 'ksvideosrc';
+                        _setPipeline(_buildPipelineString('ksvideosrc'));
+                      },
+                    ),
+                  if (_isLinux)
+                    OutlinedButton.icon(
+                      icon: const Icon(Icons.videocam),
+                      label: const Text('Webcam (/dev/video0)'),
+                      onPressed: () {
+                        _currentPipeline = 'v4l2src';
+                        _setPipeline(_buildPipelineString('v4l2src'));
+                      },
+                    ),
+                  if (_isMacOS)
+                    OutlinedButton.icon(
+                      icon: const Icon(Icons.videocam),
+                      label: const Text('Mac Camera (avfvideosrc)'),
+                      onPressed: () {
+                        _currentPipeline = 'avfvideosrc';
+                        _setPipeline(_buildPipelineString('avfvideosrc'));
+                      },
+                    ),
                 ],
               ),
 
-              const Divider(),
-              const Text(
-                'Static Colors (Legacy)',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
+              if (!_isAndroid) ...[
+                const Divider(),
+                const Text(
+                  'Static Colors (Legacy)',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
 
-              // Color buttons
-              Wrap(
-                spacing: 10,
-                runSpacing: 10,
-                alignment: WrapAlignment.center,
-                children: [
-                  OutlinedButton(
-                    child: const Text('Flutter Navy'),
-                    onPressed: () => setColor(0x04, 0x2b, 0x59),
-                  ),
-                  OutlinedButton(
-                    child: const Text('Flutter Blue'),
-                    onPressed: () => setColor(0x05, 0x53, 0xb1),
-                  ),
-                  OutlinedButton(
-                    child: const Text('Flutter Sky'),
-                    onPressed: () => setColor(0x02, 0x7d, 0xfd),
-                  ),
-                  OutlinedButton(
-                    child: const Text('Red'),
-                    onPressed: () => setColor(0xf2, 0x5d, 0x50),
-                  ),
-                  OutlinedButton(
-                    child: const Text('Yellow'),
-                    onPressed: () => setColor(0xff, 0xf2, 0x75),
-                  ),
-                  OutlinedButton(
-                    child: const Text('Purple'),
-                    onPressed: () => setColor(0x62, 0x00, 0xee),
-                  ),
-                  OutlinedButton(
-                    child: const Text('Green'),
-                    onPressed: () => setColor(0x1c, 0xda, 0xc5),
-                  ),
-                ],
-              ),
+                // Color buttons (only relevant for videotestsrc)
+                Wrap(
+                  spacing: 10,
+                  runSpacing: 10,
+                  alignment: WrapAlignment.center,
+                  children: [
+                    OutlinedButton(
+                      child: const Text('Flutter Navy'),
+                      onPressed: () => setColor(0x04, 0x2b, 0x59),
+                    ),
+                    OutlinedButton(
+                      child: const Text('Flutter Blue'),
+                      onPressed: () => setColor(0x05, 0x53, 0xb1),
+                    ),
+                    OutlinedButton(
+                      child: const Text('Flutter Sky'),
+                      onPressed: () => setColor(0x02, 0x7d, 0xfd),
+                    ),
+                    OutlinedButton(
+                      child: const Text('Red'),
+                      onPressed: () => setColor(0xf2, 0x5d, 0x50),
+                    ),
+                    OutlinedButton(
+                      child: const Text('Yellow'),
+                      onPressed: () => setColor(0xff, 0xf2, 0x75),
+                    ),
+                    OutlinedButton(
+                      child: const Text('Purple'),
+                      onPressed: () => setColor(0x62, 0x00, 0xee),
+                    ),
+                    OutlinedButton(
+                      child: const Text('Green'),
+                      onPressed: () => setColor(0x1c, 0xda, 0xc5),
+                    ),
+                  ],
+                ),
+              ],
             ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAndroidFallback(String? reason) {
+    final String message =
+        reason ?? _errorMessage ?? 'Native texture unavailable';
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(8),
+          color: Colors.orange.withOpacity(0.1),
+          child: Text(
+            'Falling back to WebRTC preview on Android. Reason: $message',
+            style: const TextStyle(color: Colors.orange),
+            textAlign: TextAlign.center,
+          ),
+        ),
+        const SizedBox(height: 12),
+        Container(
+          constraints: const BoxConstraints(maxWidth: 800, maxHeight: 600),
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.grey, width: 2),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: webrtc_import.WebRTCView(
+            signalingUrl: 'ws://127.0.0.1:8443',
+            producerIdToConsume: null,
           ),
         ),
       ],

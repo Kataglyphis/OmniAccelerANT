@@ -28,6 +28,31 @@ docker run -it --rm \
 
 Windows builds rely on [clang-cl](https://clang.llvm.org/docs/MSVCCompatibility.html) to avoid MSVC dependencies.
 
+### Run local script
+
+#### Standard-Build
+
+powershell -ExecutionPolicy Bypass -File .\add-gstreamer-to-path.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows\build-windows.ps1
+
+#### Mit benutzerdefiniertem Workspace
+
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows\build-windows.ps1 -WorkspaceDir "C:\GitHub\Kataglyphis-Inference-Engine"
+
+#### Debug-Build ohne Tests
+
+.\build.ps1 -BuildType Debug -SkipTests
+
+#### Vollständig konfiguriert
+
+.\build.ps1 `
+    -WorkspaceRoot "E:\flutter-project" `
+    -BuildType Release `
+    -Architecture x64 `
+    -CMakeGenerator "Ninja" `
+    -SkipFormatCheck `
+    -CleanBuild $true
+
 ### CMake Adjustments
 
 Update the Flutter-generated CMake project to relax warnings and silence unused helper code:
@@ -68,6 +93,9 @@ Recreate android project.
 ```bash
 flutter create --platforms=android .
 ```
+
+Recreate plugins.
+flutter create --template=plugin --platforms=android .
 
 ## Raspberry Pi
 

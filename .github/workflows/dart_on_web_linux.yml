@@ -3,7 +3,7 @@
 # separate terms of service, privacy policy, and support
 # documentation.
 
-name: Build web application
+name: Build + test + run for web
 
 env:
   LOCAL_ASSETS_FOLDER: "assets"
@@ -29,7 +29,7 @@ jobs:
         uses: flutter-actions/setup-flutter@v4.1
         with:
           channel: stable
-          version: 3.38.3
+          version: 3.38.5
 
       # git submodule update --init --recursive
       - name: Install dependencies
@@ -65,17 +65,8 @@ jobs:
 
       - name: "Build Web App"
         run: |
-          WASM_FLAGS="-Ctarget-feature=+atomics \
-          -Clink-args=--shared-memory \
-          -Clink-args=--max-memory=1073741824 \
-          -Clink-args=--import-memory \
-          -Clink-args=--export=__wasm_init_tls \
-          -Clink-args=--export=__tls_size \
-          -Clink-args=--export=__tls_align \
-          -Clink-args=--export=__tls_base"
-
           flutter_rust_bridge_codegen build-web \
-            --wasm-pack-rustflags "$WASM_FLAGS" \
+            --wasm-pack-rustflags "-Ctarget-feature=+atomics -Clink-args=--shared-memory -Clink-args=--max-memory=1073741824 -Clink-args=--import-memory -Clink-args=--export=__wasm_init_tls -Clink-args=--export=__tls_size -Clink-args=--export=__tls_align -Clink-args=--export=__tls_base" \
             --release
           flutter build web --release --wasm
 

@@ -1,8 +1,16 @@
-# Kataglyphis-Inference-Engine
+<div align="center">
+  <a href="https://jonasheinle.de">
+    <img src="images/logo.png" alt="logo" width="200" />
+  </a>
 
-An inference engine with Flutter/Dart frontend and Rust/C++ backend, showcasing Gstreamer capabilities enhanced with AI. Read further if you are interested in cross platform AI inference.
+  <h1>Kataglyphis-Inference-Engine</h1>
 
-[![Build + run + test on Linux natively](https://github.com/Kataglyphis/Kataglyphis-Inference-Engine/actions/workflows/dart_on_native_linux.yml/badge.svg)](https://github.com/Kataglyphis/Kataglyphis-Inference-Engine/actions/workflows/dart_on_native_linux.yml) [![Windows CMake (clang-cl) natively](https://github.com/Kataglyphis/Kataglyphis-Inference-Engine/actions/workflows/dart_on_native_windows.yml/badge.svg)](https://github.com/Kataglyphis/Kataglyphis-Inference-Engine/actions/workflows/dart_on_native_windows.yml) [![Build + run + test for web](https://github.com/Kataglyphis/Kataglyphis-Inference-Engine/actions/workflows/dart_on_web_linux.yml/badge.svg)](https://github.com/Kataglyphis/Kataglyphis-Inference-Engine/actions/workflows/dart_on_web_linux.yml)  
+  <h4>An inference engine with Flutter/Dart frontend and Rust/C++ backend, showcasing Gstreamer capabilities enhanced with AI. Read further if you are interested in cross platform AI inference. </h4>
+</div>
+
+
+
+[![Build + run + test on Linux natively](https://github.com/Kataglyphis/Kataglyphis-Inference-Engine/actions/workflows/dart_on_native_linux.yml/badge.svg)](https://github.com/Kataglyphis/Kataglyphis-Inference-Engine/actions/workflows/dart_on_native_linux.yml) [![Windows CMake (clang-cl) natively](https://github.com/Kataglyphis/Kataglyphis-Inference-Engine/actions/workflows/dart_on_native_windows.yml/badge.svg)](https://github.com/Kataglyphis/Kataglyphis-Inference-Engine/actions/workflows/dart_on_native_windows.yml) [![Build + test + run for web](https://github.com/Kataglyphis/Kataglyphis-Inference-Engine/actions/workflows/dart_on_web_linux.yml/badge.svg)](https://github.com/Kataglyphis/Kataglyphis-Inference-Engine/actions/workflows/dart_on_web_linux.yml)  
  [![Build + test + run android app](https://github.com/Kataglyphis/Kataglyphis-Inference-Engine/actions/workflows/dart_build_android_app.yml/badge.svg)](https://github.com/Kataglyphis/Kataglyphis-Inference-Engine/actions/workflows/dart_build_android_app.yml)[![Automatic Dependency Submission](https://github.com/Kataglyphis/Kataglyphis-Inference-Engine/actions/workflows/dependency-graph/auto-submission/badge.svg)](https://github.com/Kataglyphis/Kataglyphis-Inference-Engine/actions/workflows/dependency-graph/auto-submission)
 [![CodeQL](https://github.com/Kataglyphis/Kataglyphis-Inference-Engine/actions/workflows/github-code-scanning/codeql/badge.svg)](https://github.com/Kataglyphis/Kataglyphis-Inference-Engine/actions/workflows/github-code-scanning/codeql)  
 [![Dependabot Updates](https://github.com/Kataglyphis/Kataglyphis-Inference-Engine/actions/workflows/dependabot/dependabot-updates/badge.svg)](https://github.com/Kataglyphis/Kataglyphis-Inference-Engine/actions/workflows/dependabot/dependabot-updates)
@@ -24,7 +32,7 @@ Kataglyphis-Inference-Engine bundles a Flutter/Dart frontend, a Rust/C++ inferen
 - 🎨 **GStreamer native GTK integration** – Leveraging users to write beautiful Linux AI inference apps.
 - 📹 **GStreamer WebRTC livestreaming** with ready-to-use pipelines for USB, Raspberry Pi, and Orange Pi cameras.
 - 🌉 **flutter_rust_bridge integration** – Ensures a seamless API boundary between Dart UI and Rust logic.
-- 🐳 **Containerized development flow** plus native instructions for Windows, Linux, web.
+- 🐳 **Containerized development flow** plus native instructions for Windows, Linux, web. For details in my build environment look into [Kataglyphis-ContainerHub](https://github.com/Kataglyphis/Kataglyphis-ContainerHub)
 - 🐍 **Python inference demos** for rapid experimentation alongside the Rust core.
 
 ### 📊 Feature Status Matrix
@@ -90,13 +98,17 @@ Kataglyphis-Inference-Engine bundles a Flutter/Dart frontend, a Rust/C++ inferen
 
 ## Quick Start
 
-1. Clone the repository with submodules:
+1. Clone the repository with submodules:  
+  > **__NOTE:__**
+  > On Windows I use [Git Bash](https://git-scm.com/install/windows) instead of  
+  > Powershell or cmd
    ```bash
-   git clone --recurse-submodules git@github.com:Kataglyphis/Kataglyphis-Inference-Engine.git
+   git clone --recurse-submodules --branch develop git@github.com:Kataglyphis/Kataglyphis-Inference-Engine.git
    cd Kataglyphis-Inference-Engine
    ```
 2. Initialize submodules if needed.  
-   If u used `--recurse-submodules` while cloning you are already good 
+   If u used `--recurse-submodules` while cloning you are already good.  
+   Otherwise you can use this :smile:
    ```bash
    git submodule update --init --recursive
    ```
