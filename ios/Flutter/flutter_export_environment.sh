@@ -1,6 +1,6 @@
 #!/bin/sh
 # This is a generated file; do not edit or check into version control.
-export "FLUTTER_ROOT=/home/jones/flutter"
+export "FLUTTER_ROOT=/home/jones/develop/flutter"
 export "FLUTTER_APPLICATION_PATH=/home/jones/GitHub/Kataglyphis-Inference-Engine"
 export "COCOAPODS_PARALLEL_CODE_SIGN=true"
 export "FLUTTER_TARGET=lib/main.dart"

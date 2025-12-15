@@ -8,3 +8,9 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
 String greet({required String name}) =>
     RustLib.instance.api.crateApiSimpleGreet(name: name);
+
+int heavyComputation({required int input}) =>
+    RustLib.instance.api.crateApiSimpleHeavyComputation(input: input);
+
+Future<int> asyncHeavyWork({required int input}) =>
+    RustLib.instance.api.crateApiSimpleAsyncHeavyWork(input: input);

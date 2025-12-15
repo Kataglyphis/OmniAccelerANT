@@ -89,6 +89,14 @@ cmake --build C:\GitHub\Kataglyphis-Inference-Engine\build\windows\x64 `
 
 ## Anroid
 
+>  **__NOTE__:**: 
+>  You might encounter weired Java SDK Stuff ... in this case stop gradlew daemon
+>  ./gradlew --stop
+
+```bash
+cd android && ./gradlew assembleRelease
+```
+
 Recreate android project.
 ```bash
 flutter create --platforms=android .

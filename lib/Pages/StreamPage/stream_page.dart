@@ -4,7 +4,6 @@ import 'package:flutter/services.dart';
 import 'package:jotrockenmitlockenrepo/Pages/Footer/footer.dart';
 import 'package:jotrockenmitlockenrepo/Layout/ResponsiveDesign/single_page.dart';
 import 'package:jotrockenmitlockenrepo/app_attributes.dart';
-import 'package:jotrockenmitlockenrepo/constants.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 // Web imports (only loaded on web)
@@ -40,18 +39,16 @@ class StreamPageState extends State<StreamPage> {
   String? _errorMessage;
   bool _nativeInitFailed = false;
   late final String _defaultNativeSource;
-  late String _currentPipeline;
   static const int _androidWidth = 320;
   static const int _androidHeight = 240;
   static const int _androidFps = 15;
   final List<String> _androidSourceCandidates = <String>[
+    'androidvideosource',
     'ahc2src',
     'ahcsrc',
     'autovideosrc',
     'videotestsrc',
-    'androidvideosource',
   ];
-  int _androidSourceIndex = 0;
 
   int get _targetTextureWidth => _isAndroid ? _androidWidth : textureWidth;
   int get _targetTextureHeight => _isAndroid ? _androidHeight : textureHeight;
@@ -66,7 +63,6 @@ class StreamPageState extends State<StreamPage> {
     super.initState();
 
     _defaultNativeSource = _pickDefaultSource();
-    _currentPipeline = _defaultNativeSource;
 
     // Native Integration für Desktop + Android initialisieren (nach Android-Permission)
     textureId = _initNativeIfNeeded();
@@ -76,9 +72,8 @@ class StreamPageState extends State<StreamPage> {
     if (_isWindows) return 'ksvideosrc';
     if (_isLinux) return 'v4l2src';
     if (_isMacOS) return 'avfvideosrc';
-    // On Android, start with videotestsrc to test GStreamer infrastructure
-    // then user can try real camera sources via UI buttons
-    if (_isAndroid) return 'videotestsrc';
+    // On Android, prefer the real camera first (fallback will try others).
+    if (_isAndroid) return 'androidvideosource';
     return 'videotestsrc';
   }
 
@@ -151,24 +146,53 @@ class StreamPageState extends State<StreamPage> {
         ? 'glimagesink name=overlay qos=true sync=false max-lateness=20000000'
         : 'appsink name=sink emit-signals=true sync=false';
 
+    // Android conversion chain for camera-like sources.
+    // Do NOT force AHardwareBuffer/NV12 here: different sources/devices negotiate different
+    // memory types and formats. We keep caps to size/fps and convert to RGBA for the sink.
+    final String androidGlConvertCamera =
+        'video/x-raw,width=$w,height=$h,framerate=$fps/1 '
+        // Some Android camera sources output formats (e.g. NV21) that glupload can't always
+        // negotiate directly; videoconvert makes the pipeline far more robust.
+        '! videoconvert ! video/x-raw,format=RGBA,width=$w,height=$h '
+        '! glupload ! glcolorconvert ! video/x-raw,format=RGBA,width=$w,height=$h';
+
+    // Android conversion chain for videotestsrc.
+    // videotestsrc produces system-memory frames; forcing AHardwareBuffer caps breaks preroll.
+    final String androidGlConvertTest =
+        'video/x-raw,width=$w,height=$h,framerate=$fps/1 '
+        '! glupload ! glcolorconvert';
+
     switch (source) {
       case 'videotestsrc':
         // Test pattern: safe baseline to verify GStreamer/glimagesink works
-        // Removed videoconvert - let GStreamer handle format conversion automatically
+        if (_isAndroid) {
+          return 'videotestsrc pattern=ball ! $androidGlConvertTest ! $sink';
+        }
         return 'videotestsrc pattern=ball ! video/x-raw,width=$w,height=$h,framerate=$fps/1 ! $sink';
       case 'ahc2src':
         // Modern Android Camera2 NDK-based source (preferred for Pixel 4)
-        // Ultra-minimal - let GStreamer negotiate all caps
+        if (_isAndroid) {
+          return 'ahc2src ! $androidGlConvertCamera ! $sink';
+        }
         return 'ahc2src ! $sink';
       case 'ahcsrc':
         // Legacy Android Camera NDK source (older GStreamer builds)
+        if (_isAndroid) {
+          return 'ahcsrc ! $androidGlConvertCamera ! $sink';
+        }
         return 'ahcsrc ! $sink';
       case 'autovideosrc':
         // Generic autodetect: lets GStreamer pick the best available platform source
         // Ultra-minimal pipeline - no format constraints
+        if (_isAndroid) {
+          return 'autovideosrc ! $androidGlConvertCamera ! $sink';
+        }
         return 'autovideosrc ! $sink';
       case 'androidvideosource':
         // Legacy Android camera source
+        if (_isAndroid) {
+          return 'androidvideosource camera-index=0 ! $androidGlConvertCamera ! $sink';
+        }
         return 'androidvideosource camera-index=0 ! $sink';
       case 'v4l2src':
         return 'v4l2src device=/dev/video0 ! image/jpeg,width=$w,height=$h,framerate=$fps/1 ! jpegdec ! videoconvert ! video/x-raw,format=$pixelFormat,width=$w,height=$h ! $sink';
@@ -177,10 +201,19 @@ class StreamPageState extends State<StreamPage> {
       case 'avfvideosrc':
         return 'avfvideosrc capture-raw-data=true ! videoconvert ! video/x-raw,format=$pixelFormat,width=$w,height=$h,framerate=$fps/1 ! $sink';
       case 'pattern-smpte':
+        if (_isAndroid) {
+          return 'videotestsrc pattern=smpte ! $androidGlConvertTest ! $sink';
+        }
         return 'videotestsrc pattern=smpte ! video/x-raw,width=$w,height=$h,framerate=$fps/1 ! $sink';
       case 'pattern-snow':
+        if (_isAndroid) {
+          return 'videotestsrc pattern=snow ! $androidGlConvertTest ! $sink';
+        }
         return 'videotestsrc pattern=snow ! video/x-raw,width=$w,height=$h,framerate=$fps/1 ! $sink';
       default:
+        if (_isAndroid) {
+          return 'videotestsrc pattern=ball ! $androidGlConvertTest ! $sink';
+        }
         return 'videotestsrc pattern=ball ! video/x-raw,width=$w,height=$h,framerate=$fps/1 ! $sink';
     }
   }
@@ -216,12 +249,21 @@ class StreamPageState extends State<StreamPage> {
           (missingElement || e.code == 'command_failed');
 
       if (shouldRetryAndroid) {
+        // Print native-side diagnostics once per failure to avoid guesswork.
+        // This does not change UX, it only improves logs.
+        final String? diag = await channel
+            .invokeMethod<String>('diagnose')
+            .catchError((_) => null);
+        if (diag != null && diag.isNotEmpty) {
+          debugPrint('GStreamer diagnose:\n$diag');
+        }
+
         final String? nextSource = _nextAndroidSource(source);
         if (nextSource != null) {
-          _androidSourceIndex = _androidSourceCandidates.indexOf(nextSource);
-          _currentPipeline = nextSource;
           debugPrint(
-            'Android pipeline "$source" missing; trying "$nextSource"',
+            missingElement
+                ? 'Android pipeline "$source" missing; trying "$nextSource"'
+                : 'Android pipeline "$source" failed; trying "$nextSource"',
           );
           await _setPipeline(
             _buildPipelineString(nextSource),
@@ -234,7 +276,7 @@ class StreamPageState extends State<StreamPage> {
       if (!mounted) return;
       setState(() {
         _errorMessage = _isAndroid && shouldRetryAndroid
-            ? 'GStreamer on Android is missing required elements (tried: ${_androidSourceCandidates.join(', ')}). Update your GStreamer build to include camera/test sources.'
+            ? 'GStreamer pipeline failed on Android (tried: ${_androidSourceCandidates.join(', ')}). See logs for diagnose output.'
             : 'Pipeline error: ${e.message}';
         _isPlaying = false;
       });
@@ -374,7 +416,7 @@ class StreamPageState extends State<StreamPage> {
               if (_errorMessage != null)
                 Container(
                   padding: const EdgeInsets.all(8),
-                  color: Colors.red.withOpacity(0.1),
+                  color: Colors.red.withValues(alpha: 0.1),
                   child: Text(
                     _errorMessage!,
                     style: const TextStyle(color: Colors.red),
@@ -479,8 +521,6 @@ class StreamPageState extends State<StreamPage> {
                       icon: const Icon(Icons.sports_soccer),
                       label: const Text('Test Pattern'),
                       onPressed: () {
-                        _currentPipeline = 'videotestsrc';
-                        _androidSourceIndex = 0;
                         _setPipeline(
                           _buildPipelineString('videotestsrc'),
                           source: 'videotestsrc',
@@ -492,8 +532,6 @@ class StreamPageState extends State<StreamPage> {
                       icon: const Icon(Icons.videocam),
                       label: const Text('Camera (ahc2src)'),
                       onPressed: () {
-                        _currentPipeline = 'ahc2src';
-                        _androidSourceIndex = 0;
                         _setPipeline(
                           _buildPipelineString('ahc2src'),
                           source: 'ahc2src',
@@ -505,8 +543,6 @@ class StreamPageState extends State<StreamPage> {
                       icon: const Icon(Icons.auto_awesome),
                       label: const Text('Auto Camera'),
                       onPressed: () {
-                        _currentPipeline = 'autovideosrc';
-                        _androidSourceIndex = 2;
                         _setPipeline(
                           _buildPipelineString('autovideosrc'),
                           source: 'autovideosrc',
@@ -519,7 +555,6 @@ class StreamPageState extends State<StreamPage> {
                       icon: const Icon(Icons.sports_soccer),
                       label: const Text('Test Pattern (Ball)'),
                       onPressed: () {
-                        _currentPipeline = 'videotestsrc';
                         _setPipeline(_buildPipelineString('videotestsrc'));
                       },
                     ),
@@ -528,7 +563,6 @@ class StreamPageState extends State<StreamPage> {
                       icon: const Icon(Icons.grid_on),
                       label: const Text('SMPTE Pattern'),
                       onPressed: () {
-                        _currentPipeline = 'pattern-smpte';
                         _setPipeline(_buildPipelineString('pattern-smpte'));
                       },
                     ),
@@ -537,7 +571,6 @@ class StreamPageState extends State<StreamPage> {
                       icon: const Icon(Icons.grain),
                       label: const Text('Snow Pattern'),
                       onPressed: () {
-                        _currentPipeline = 'pattern-snow';
                         _setPipeline(_buildPipelineString('pattern-snow'));
                       },
                     ),
@@ -546,7 +579,6 @@ class StreamPageState extends State<StreamPage> {
                       icon: const Icon(Icons.videocam),
                       label: const Text('Windows Camera (ksvideosrc)'),
                       onPressed: () {
-                        _currentPipeline = 'ksvideosrc';
                         _setPipeline(_buildPipelineString('ksvideosrc'));
                       },
                     ),
@@ -555,7 +587,6 @@ class StreamPageState extends State<StreamPage> {
                       icon: const Icon(Icons.videocam),
                       label: const Text('Webcam (/dev/video0)'),
                       onPressed: () {
-                        _currentPipeline = 'v4l2src';
                         _setPipeline(_buildPipelineString('v4l2src'));
                       },
                     ),
@@ -564,7 +595,6 @@ class StreamPageState extends State<StreamPage> {
                       icon: const Icon(Icons.videocam),
                       label: const Text('Mac Camera (avfvideosrc)'),
                       onPressed: () {
-                        _currentPipeline = 'avfvideosrc';
                         _setPipeline(_buildPipelineString('avfvideosrc'));
                       },
                     ),
@@ -630,7 +660,7 @@ class StreamPageState extends State<StreamPage> {
       children: [
         Container(
           padding: const EdgeInsets.all(8),
-          color: Colors.orange.withOpacity(0.1),
+          color: Colors.orange.withValues(alpha: 0.1),
           child: Text(
             'Falling back to WebRTC preview on Android. Reason: $message',
             style: const TextStyle(color: Colors.orange),
