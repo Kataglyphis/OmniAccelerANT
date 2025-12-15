@@ -42,9 +42,9 @@ class StreamPageState extends State<StreamPage> {
   static const int _androidWidth = 320;
   static const int _androidHeight = 240;
   static const int _androidFps = 15;
+  // Order: try modern Camera2 NDK (ahcsrc), then generic autodetect, then test pattern
+  // ahc2src and androidvideosource are not available in current GStreamer builds
   final List<String> _androidSourceCandidates = <String>[
-    'androidvideosource',
-    'ahc2src',
     'ahcsrc',
     'autovideosrc',
     'videotestsrc',
@@ -72,8 +72,8 @@ class StreamPageState extends State<StreamPage> {
     if (_isWindows) return 'ksvideosrc';
     if (_isLinux) return 'v4l2src';
     if (_isMacOS) return 'avfvideosrc';
-    // On Android, prefer the real camera first (fallback will try others).
-    if (_isAndroid) return 'androidvideosource';
+    // On Android, prefer ahcsrc (Camera2 NDK) which is more stable than older Camera1 API
+    if (_isAndroid) return 'ahcsrc';
     return 'videotestsrc';
   }
 
@@ -149,12 +149,13 @@ class StreamPageState extends State<StreamPage> {
     // Android conversion chain for camera-like sources.
     // Do NOT force AHardwareBuffer/NV12 here: different sources/devices negotiate different
     // memory types and formats. We keep caps to size/fps and convert to RGBA for the sink.
+    // NOTE: DO NOT add caps constraints after glcolorconvert - let it auto-negotiate
     final String androidGlConvertCamera =
         'video/x-raw,width=$w,height=$h,framerate=$fps/1 '
         // Some Android camera sources output formats (e.g. NV21) that glupload can't always
         // negotiate directly; videoconvert makes the pipeline far more robust.
         '! videoconvert ! video/x-raw,format=RGBA,width=$w,height=$h '
-        '! glupload ! glcolorconvert ! video/x-raw,format=RGBA,width=$w,height=$h';
+        '! glupload ! glcolorconvert';
 
     // Android conversion chain for videotestsrc.
     // videotestsrc produces system-memory frames; forcing AHardwareBuffer caps breaks preroll.
@@ -169,31 +170,18 @@ class StreamPageState extends State<StreamPage> {
           return 'videotestsrc pattern=ball ! $androidGlConvertTest ! $sink';
         }
         return 'videotestsrc pattern=ball ! video/x-raw,width=$w,height=$h,framerate=$fps/1 ! $sink';
-      case 'ahc2src':
-        // Modern Android Camera2 NDK-based source (preferred for Pixel 4)
-        if (_isAndroid) {
-          return 'ahc2src ! $androidGlConvertCamera ! $sink';
-        }
-        return 'ahc2src ! $sink';
       case 'ahcsrc':
-        // Legacy Android Camera NDK source (older GStreamer builds)
+        // Android Camera2 NDK-based source - most stable camera source
         if (_isAndroid) {
           return 'ahcsrc ! $androidGlConvertCamera ! $sink';
         }
         return 'ahcsrc ! $sink';
       case 'autovideosrc':
         // Generic autodetect: lets GStreamer pick the best available platform source
-        // Ultra-minimal pipeline - no format constraints
         if (_isAndroid) {
           return 'autovideosrc ! $androidGlConvertCamera ! $sink';
         }
         return 'autovideosrc ! $sink';
-      case 'androidvideosource':
-        // Legacy Android camera source
-        if (_isAndroid) {
-          return 'androidvideosource camera-index=0 ! $androidGlConvertCamera ! $sink';
-        }
-        return 'androidvideosource camera-index=0 ! $sink';
       case 'v4l2src':
         return 'v4l2src device=/dev/video0 ! image/jpeg,width=$w,height=$h,framerate=$fps/1 ! jpegdec ! videoconvert ! video/x-raw,format=$pixelFormat,width=$w,height=$h ! $sink';
       case 'ksvideosrc':
