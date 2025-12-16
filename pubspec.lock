@@ -378,6 +378,13 @@ packages:
       relative: true
     source: path
     version: "0.0.1"
+  kataglyphis_rustprojecttemplate:
+    dependency: "direct main"
+    description:
+      path: rust_builder
+      relative: true
+    source: path
+    version: "0.0.1"
   leak_tracker:
     dependency: transitive
     description:
@@ -602,13 +609,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.2.0"
-  rust_lib_kataglyphis_inference_engine:
-    dependency: "direct main"
-    description:
-      path: rust_builder
-      relative: true
-    source: path
-    version: "0.0.1"
   scroll_to_index:
     dependency: transitive
     description:

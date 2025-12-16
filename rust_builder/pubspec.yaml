@@ -1,4 +1,4 @@
-name: rust_lib_kataglyphis_inference_engine
+name: kataglyphis_rustprojecttemplate
 description: "Utility to build Rust code"
 version: 0.0.1
 publish_to: none

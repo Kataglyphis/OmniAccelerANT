@@ -9,7 +9,7 @@ set(PROJECT_NAME "rust_lib_kataglyphis_inference_engine")
 project(${PROJECT_NAME} LANGUAGES CXX)
 
 include("../cargokit/cmake/cargokit.cmake")
-apply_cargokit(${PROJECT_NAME} ../../../../../../rust rust_lib_kataglyphis_inference_engine "")
+apply_cargokit(${PROJECT_NAME} ../../../../../../ExternalLib/Kataglyphis-RustProjectTemplate rust_lib_kataglyphis_inference_engine "")
 
 # List of absolute paths to libraries that should be bundled with the plugin.
 # This list could contain prebuilt libraries, or libraries created by an

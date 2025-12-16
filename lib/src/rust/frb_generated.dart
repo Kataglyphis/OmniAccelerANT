@@ -70,8 +70,9 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
 
   static const kDefaultExternalLibraryLoaderConfig =
       ExternalLibraryLoaderConfig(
-        stem: 'rust_lib_kataglyphis_inference_engine',
-        ioDirectory: 'rust/target/release/',
+        stem: 'kataglyphis_rustprojecttemplate',
+        ioDirectory:
+            'ExternalLib/Kataglyphis-RustProjectTemplate/target/debug/',
         webPrefix: 'pkg/',
       );
 }

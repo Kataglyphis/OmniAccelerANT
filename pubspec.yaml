@@ -32,7 +32,7 @@ dependencies:
   flutter_localizations:
     sdk: flutter
   intl: ^0.20.2
-  rust_lib_kataglyphis_inference_engine:
+  kataglyphis_rustprojecttemplate:
     path: rust_builder
   permission_handler: ^12.0.1
 
