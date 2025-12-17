@@ -15,8 +15,8 @@ param(
     [string] $ClangVersion = "21.1.6",
     [string] $GStreamerVersion = "1.26.6",
     [string] $LLVMBin = 'C:\Program Files\LLVM\bin',
-    [string] $RustCrateDir = "rust",
-    [string] $RustDllName = "rust_lib_kataglyphis_inference_engine.dll",
+    [string] $RustCrateDir = "ExternalLib\Kataglyphis-RustProjectTemplate",
+    [string] $RustDllName = "kataglyphis_rustprojecttemplate.dll",
     [string] $CMakeGenerator = "Ninja",
     [string] $CMakeBuildType = "Debug", #"Release",
     [switch] $SkipTests,           # skip dart/flutter tests & analyze
