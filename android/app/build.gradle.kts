@@ -7,8 +7,11 @@ plugins {
 
 android {
     namespace = "com.example.kataglyphis_inference_engine"
-    compileSdk = flutter.compileSdkVersion
-    ndkVersion = flutter.ndkVersion
+    // compileSdk = flutter.compileSdkVersion
+    // ndkVersion = flutter.ndkVersion
+    compileSdk = 36
+    buildToolsVersion = "35.0.0"
+    ndkVersion = "29.0.14206865"
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_21
