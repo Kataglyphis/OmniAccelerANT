@@ -150,7 +150,7 @@ jobs:
             rm -rf build/linux/$MATRIX_ARCH/release/obj || true
             rm -rf ~/.pub-cache/hosted || true
             mkdir -p out
-            cp -r build/linux/$MATRIX_ARCH/release/bundle out/${APP_NAME}-bundle
+            cp -r build/app/outputs/flutter-apk out/${APP_NAME}-bundle
             tar -C out -czf ${APP_NAME}-linux-$MATRIX_ARCH.tar.gz ${APP_NAME}-bundle
             '
             
