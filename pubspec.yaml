@@ -127,3 +127,16 @@ fonts:
       - asset: Roboto-ThinItalic.ttf
         weight: 200
         style: italic
+
+flutter_launcher_icons:
+  android: true
+  image_path: assets/icons/kataglyphis_app_icon.png
+  web:
+    generate: true
+    image_path: assets/icons/kataglyphis_app_icon.png
+    background_color: "#0B1220"
+    theme_color: "#0B1220"
+  windows:
+    generate: true
+    image_path: assets/icons/kataglyphis_app_icon.png
+    icon_size: 256
