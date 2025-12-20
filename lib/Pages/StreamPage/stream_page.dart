@@ -415,10 +415,22 @@ class StreamPageState extends State<StreamPage> {
               FutureBuilder<int?>(
                 future: textureId,
                 builder: (BuildContext context, AsyncSnapshot<int?> snapshot) {
+                  final bool rotateAndroidRight = _isAndroid;
+                  final double displayWidth =
+                      (rotateAndroidRight
+                              ? _targetTextureHeight
+                              : _targetTextureWidth)
+                          .toDouble();
+                  final double displayHeight =
+                      (rotateAndroidRight
+                              ? _targetTextureWidth
+                              : _targetTextureHeight)
+                          .toDouble();
+
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return SizedBox(
-                      width: _targetTextureWidth.toDouble(),
-                      height: _targetTextureHeight.toDouble(),
+                      width: displayWidth,
+                      height: displayHeight,
                       child: const Center(child: CircularProgressIndicator()),
                     );
                   }
@@ -450,9 +462,14 @@ class StreamPageState extends State<StreamPage> {
                       border: Border.all(color: Colors.grey, width: 2),
                     ),
                     child: SizedBox(
-                      width: _targetTextureWidth.toDouble(),
-                      height: _targetTextureHeight.toDouble(),
-                      child: Texture(textureId: snapshot.data!),
+                      width: displayWidth,
+                      height: displayHeight,
+                      child: rotateAndroidRight
+                          ? RotatedBox(
+                              quarterTurns: 1,
+                              child: Texture(textureId: snapshot.data!),
+                            )
+                          : Texture(textureId: snapshot.data!),
                     ),
                   );
                 },
