@@ -70,63 +70,74 @@ flutter:
     - assets/data/
     - assets/settings/
     - assets/settings/user_settings/
+    - assets/fonts/
 
 fonts:
   - family: Montserrat
     fonts:
-      - asset: static/Montserrat-Thin.ttf
-      - asset: static/Montserrat-ExtraLight.ttf
-      - asset: static/Montserrat-Light.ttf
-      - asset: static/Montserrat-Regular.ttf
-      - asset: static/Montserrat-Medium.ttf
-      - asset: static/Montserrat-SemiBold.ttf
-      - asset: static/Montserrat-Bold.ttf
-      - asset: static/Montserrat-ExtraBold.ttf
-      - asset: static/Montserrat-Black.ttf
-      - asset: static/Montserrat-ThinItalic.ttf
+      - asset: assets/fonts/Montserrat/Montserrat-Thin.ttf
+      - asset: assets/fonts/Montserrat/Montserrat-ExtraLight.ttf
+      - asset: assets/fonts/Montserrat/Montserrat-Light.ttf
+      - asset: assets/fonts/Montserrat/Montserrat-Regular.ttf
+      - asset: assets/fonts/Montserrat/Montserrat-Medium.ttf
+      - asset: assets/fonts/Montserrat/Montserrat-SemiBold.ttf
+      - asset: assets/fonts/Montserrat/Montserrat-Bold.ttf
+      - asset: assets/fonts/Montserrat/Montserrat-ExtraBold.ttf
+      - asset: assets/fonts/Montserrat/Montserrat-Black.ttf
+      - asset: assets/fonts/Montserrat/Montserrat-ThinItalic.ttf
         style: italic
-      - asset: static/Montserrat-ExtraLightItalic.ttf
+      - asset: assets/fonts/Montserrat/Montserrat-ExtraLightItalic.ttf
         style: italic
-      - asset: static/Montserrat-LightItalic.ttf
+      - asset: assets/fonts/Montserrat/Montserrat-LightItalic.ttf
         style: italic
-      - asset: static/Montserrat-Italic.ttf
+      - asset: assets/fonts/Montserrat/Montserrat-Italic.ttf
         style: italic
-      - asset: static/Montserrat-MediumItalic.ttf
+      - asset: assets/fonts/Montserrat/Montserrat-MediumItalic.ttf
         style: italic
-      - asset: static/Montserrat-SemiBoldItalic.ttf
+      - asset: assets/fonts/Montserrat/Montserrat-SemiBoldItalic.ttf
         style: italic
-      - asset: static/Montserrat-BoldItalic.ttf
+      - asset: assets/fonts/Montserrat/Montserrat-BoldItalic.ttf
         style: italic
-      - asset: static/Montserrat-ExtraBoldItalic.ttf
+      - asset: assets/fonts/Montserrat/Montserrat-ExtraBoldItalic.ttf
         style: italic
-      - asset: static/Montserrat-BlackItalic.ttf
+      - asset: assets/fonts/Montserrat/Montserrat-BlackItalic.ttf
         style: italic
   - family: Roboto
     fonts:
-      - asset: Roboto-Black.ttf
-      - asset: Roboto-BlackItalic.ttf
+      - asset: assets/fonts/Roboto/Roboto-Black.ttf
+      - asset: assets/fonts/Roboto/Roboto-BlackItalic.ttf
         style: italic
-      - asset: Roboto-Bold.ttf
+      - asset: assets/fonts/Roboto/Roboto-Bold.ttf
         weight: 700
-      - asset: Roboto-BoldItalic.ttf
+      - asset: assets/fonts/Roboto/Roboto-BoldItalic.ttf
         style: italic
         weight: 700
-      - asset: Roboto-Italic.ttf
+      - asset: assets/fonts/Roboto/Roboto-Italic.ttf
         style: italic
-      - asset: Roboto-Light.ttf
-      - asset: Roboto-LightItalic.ttf
+      - asset: assets/fonts/Roboto/Roboto-Light.ttf
+      - asset: assets/fonts/Roboto/Roboto-LightItalic.ttf
         style: italic
-      - asset: Roboto-Medium.ttf
+      - asset: assets/fonts/Roboto/Roboto-Medium.ttf
         weight: 400
-      - asset: Roboto-MediumItalic.ttf
+      - asset: assets/fonts/Roboto/Roboto-MediumItalic.ttf
         weight: 400
         style: italic
-      - asset: Roboto-Regular.ttf
-      - asset: Roboto-Thin.ttf
+      - asset: assets/fonts/Roboto/Roboto-Regular.ttf
+      - asset: assets/fonts/Roboto/Roboto-Thin.ttf
         weight: 200
-      - asset: Roboto-ThinItalic.ttf
+      - asset: assets/fonts/Roboto/Roboto-ThinItalic.ttf
         weight: 200
         style: italic
+  - family: Noto Sans
+    fonts:
+      - asset: assets/fonts/Noto_Sans/static/NotoSans-Regular.ttf
+      - asset: assets/fonts/Noto_Sans/static/NotoSans-Bold.ttf
+        weight: 700
+      - asset: assets/fonts/Noto_Sans/static/NotoSans-Italic.ttf
+        style: italic
+      - asset: assets/fonts/Noto_Sans/static/NotoSans-BoldItalic.ttf
+        style: italic
+        weight: 700
 
 flutter_launcher_icons:
   android: true

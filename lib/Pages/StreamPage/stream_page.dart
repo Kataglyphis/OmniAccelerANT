@@ -9,7 +9,7 @@ import 'package:permission_handler/permission_handler.dart';
 // Web imports (only loaded on web)
 // conditional import: stub for non-web, web impl for web
 import 'package:kataglyphis_inference_engine/Pages/StreamPage/webrtc_view_stub.dart'
-    if (dart.library.html) 'package:kataglyphis_inference_engine/Pages/StreamPage/webrtc_view.dart'
+    if (dart.library.js_interop) 'package:kataglyphis_inference_engine/Pages/StreamPage/webrtc_view.dart'
     as webrtc_import;
 
 class StreamPage extends StatefulWidget {

@@ -52,7 +52,7 @@ jobs:
 
       # see also the install commands in the bottom of the CMakeLists.txt
       - name: Upload files & Zip
-        uses: actions/upload-artifact@v5.0.0
+        uses: actions/upload-artifact@v6.0.0
         with:
           name: windows-files
           path: |

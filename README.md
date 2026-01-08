@@ -177,6 +177,7 @@ Helpful tutorials, documentation, and resources:
 ### Flutter/Dart
 - [Linux Native Textures](https://github.com/flutter/flutter/blob/master/examples/texture/lib/main.dart)
 - [flutter_rust_bridge](https://cjycode.com/flutter_rust_bridge/)
+- [Flutter on RISCV](https://github.com/ardera/flutter-ci/)
 
 ### Protocols
 - [WebRTC](https://webrtc.org/?hl=de)
@@ -184,6 +185,7 @@ Helpful tutorials, documentation, and resources:
 ### Tooling
 - [tmux](https://github.com/tmux/tmux/wiki)
 - [zellij](https://zellij.dev/)
+- [psmux](https://github.com/marlocarlo/psmux)
 
 ### Android
 - [Gstreamer+flutter+android](https://github.com/hpdragon1618/flutter_gstreamer_player)

@@ -20,7 +20,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: 🚚 Get latest code
-        uses: actions/checkout@v6.0.0
+        uses: actions/checkout@v6.0.1
         with:
           fetch-depth: 0
           submodules: recursive
@@ -72,7 +72,7 @@ jobs:
           flutter build web --release --wasm
 
       - name: Upload Web App Files for Deployment
-        uses: actions/upload-artifact@v5.0.0
+        uses: actions/upload-artifact@v6.0.0
         with:
           name: gstreamer-ai-web-frontend
           path: ${{ env.BUILD_DIR_RELEASE }}/**
