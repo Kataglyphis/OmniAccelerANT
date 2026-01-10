@@ -28,7 +28,8 @@ android {
         applicationId = "com.example.kataglyphis_inference_engine"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = flutter.minSdkVersion
+        // my native_code_plugin requires minSdkVersion 26.
+        minSdk = 26
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
