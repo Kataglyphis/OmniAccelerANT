@@ -3,7 +3,7 @@
 Python script to run a GStreamer pipeline equivalent to:
 
     gst-launch-1.0 -e \
-      webrtcsink name=ws meta="meta,name=ipa364webfrontend-webfrontend-stream" \
+      webrtcsink name=ws meta="meta,name=kataglyphiswebfrontend-webfrontend-stream" \
       pylonsrc ! videoconvert ! ws. \
       audiotestsrc ! ws.
 
@@ -13,8 +13,8 @@ This script initializes GStreamer, sets up the pipeline, and manages the GLib Ma
 import sys
 import gi
 
-gi.require_version('Gst', '1.0')
-gi.require_version('GstWebRTC', '1.0')
+gi.require_version("Gst", "1.0")
+gi.require_version("GstWebRTC", "1.0")
 from gi.repository import GObject, Gst
 
 
@@ -37,10 +37,10 @@ def main():
 
     # Define the pipeline using gst-launch syntax
     launch_description = (
-        'webrtcsink name=ws '
-        'meta="meta,name=ipa364webfrontend-webfrontend-stream" '
-        'pylonsrc ! videoconvert ! ws. '
-        'audiotestsrc ! ws.'
+        "webrtcsink name=ws "
+        'meta="meta,name=kataglyphiswebfrontend-webfrontend-stream" '
+        "pylonsrc ! videoconvert ! ws. "
+        "audiotestsrc ! ws."
     )
 
     # Parse the launch description into a Gst.Pipeline
@@ -75,5 +75,5 @@ def main():
         pipeline.set_state(Gst.State.NULL)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

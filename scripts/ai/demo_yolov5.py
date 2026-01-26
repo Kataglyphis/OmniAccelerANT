@@ -5,15 +5,17 @@ import sys
 import torch
 import numpy as np
 import cv2
-gi.require_version('Gst', '1.0')
-gi.require_version('GstWebRTC', '1.0')
+
+gi.require_version("Gst", "1.0")
+gi.require_version("GstWebRTC", "1.0")
 from gi.repository import Gst, GObject, GLib
 
 # Load the YOLOv5 model once, ideally before you start the pipeline:
 # (you can choose 'yolov5s', 'yolov5m', etc. depending on your needs)
-model = torch.hub.load('ultralytics/yolov5', 'yolov5s', pretrained=True)
+model = torch.hub.load("ultralytics/yolov5", "yolov5s", pretrained=True)
 model.conf = 0.25  # confidence threshold (optional)
-model.iou  = 0.45  # NMS IoU threshold (optional)
+model.iou = 0.45  # NMS IoU threshold (optional)
+
 
 def on_new_sample(sink, appsrc):
     sample = sink.emit("pull-sample")
@@ -21,10 +23,10 @@ def on_new_sample(sink, appsrc):
         return Gst.FlowReturn.ERROR
 
     buffer = sample.get_buffer()
-    caps    = sample.get_caps()
-    struct  = caps.get_structure(0)
-    width   = struct.get_value('width')
-    height  = struct.get_value('height')
+    caps = sample.get_caps()
+    struct = caps.get_structure(0)
+    width = struct.get_value("width")
+    height = struct.get_value("height")
 
     success, map_info = buffer.map(Gst.MapFlags.READ)
     if not success:
@@ -33,9 +35,7 @@ def on_new_sample(sink, appsrc):
     try:
         # build a HxWx3 uint8 numpy frame (BGR)
         frame = np.ndarray(
-            (height, width, 3),
-            buffer=map_info.data,
-            dtype=np.uint8
+            (height, width, 3), buffer=map_info.data, dtype=np.uint8
         ).copy()
 
         # ---- YOLOv5 Inference ----
@@ -57,8 +57,9 @@ def on_new_sample(sink, appsrc):
             # background
             cv2.rectangle(frame, (x1, y1 - h - 4), (x1 + w, y1), (0, 255, 0), -1)
             # text
-            cv2.putText(frame, text, (x1, y1 - 2),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1)
+            cv2.putText(
+                frame, text, (x1, y1 - 2), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1
+            )
         # ---------------------------
 
         # (Optional) also draw your red circle
@@ -68,8 +69,8 @@ def on_new_sample(sink, appsrc):
         # pack back into a Gst.Buffer
         out_buffer = Gst.Buffer.new_allocate(None, frame.nbytes, None)
         out_buffer.fill(0, frame.tobytes())
-        out_buffer.pts      = buffer.pts
-        out_buffer.dts      = buffer.dts
+        out_buffer.pts = buffer.pts
+        out_buffer.dts = buffer.dts
         out_buffer.duration = buffer.duration
 
     finally:
@@ -77,7 +78,8 @@ def on_new_sample(sink, appsrc):
 
     appsrc.emit("push-buffer", out_buffer)
     return Gst.FlowReturn.OK
-    
+
+
 def on_message(bus, message, loop):
     msg_type = message.type
 
@@ -90,24 +92,25 @@ def on_message(bus, message, loop):
         print(f"Error: {err}, {debug}")
         loop.quit()
 
+
 def main():
     Gst.init(None)
 
     # Pipeline 1: Kamera -> JPEG -> RGB -> appsink
     pipeline1_str = (
-        'v4l2src device=/dev/video0 ! '
-        'image/jpeg,width=640,height=360,framerate=30/1 ! '
-        'jpegdec ! '
-        'videoconvert ! '
-        'video/x-raw,format=RGB,width=640,height=360,framerate=30/1 ! '
-        'appsink name=ai_sink emit-signals=true max-buffers=1 drop=true'
+        "v4l2src device=/dev/video0 ! "
+        "image/jpeg,width=640,height=360,framerate=30/1 ! "
+        "jpegdec ! "
+        "videoconvert ! "
+        "video/x-raw,format=RGB,width=640,height=360,framerate=30/1 ! "
+        "appsink name=ai_sink emit-signals=true max-buffers=1 drop=true"
     )
 
     # Pipeline 2: appsrc -> webrtcsink
     pipeline2_str = (
-        'appsrc name=ai_src is-live=true block=true format=time caps=video/x-raw,format=RGB,width=640,height=360,framerate=30/1 ! '
-        'videoconvert ! '
-        'webrtcsink name=ws meta="meta,name=ipa364webfrontend-webfrontend-stream"'
+        "appsrc name=ai_src is-live=true block=true format=time caps=video/x-raw,format=RGB,width=640,height=360,framerate=30/1 ! "
+        "videoconvert ! "
+        'webrtcsink name=ws meta="meta,name=kataglyphiswebfrontend-webfrontend-stream"'
     )
 
     pipeline1 = Gst.parse_launch(pipeline1_str)
@@ -144,6 +147,7 @@ def main():
     finally:
         pipeline1.set_state(Gst.State.NULL)
         pipeline2.set_state(Gst.State.NULL)
+
 
 if __name__ == "__main__":
     main()

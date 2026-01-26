@@ -7,8 +7,8 @@ Ensures the video feed retains color and adds a simple overlay.
 import sys
 import gi
 
-gi.require_version('Gst', '1.0')
-gi.require_version('GstWebRTC', '1.0')
+gi.require_version("Gst", "1.0")
+gi.require_version("GstWebRTC", "1.0")
 from gi.repository import GObject, Gst
 
 
@@ -47,10 +47,10 @@ def main():
 
     # Define the pipeline using gst-launch syntax
     launch_description = (
-        'webrtcsink name=ws meta="meta,name=ipa364webfrontend-webfrontend-stream" '
-        'pylonsrc ! video/x-raw,format=RGB  ! videoconvert ! video/x-raw,format=BGRA ! ' 
-        'cairooverlay name=overlay ! videoconvert ! video/x-raw,format=I420 ! ws. '
-        'audiotestsrc ! ws.'
+        'webrtcsink name=ws meta="meta,name=kataglyphiswebfrontend-webfrontend-stream" '
+        "pylonsrc ! video/x-raw,format=RGB  ! videoconvert ! video/x-raw,format=BGRA ! "
+        "cairooverlay name=overlay ! videoconvert ! video/x-raw,format=I420 ! ws. "
+        "audiotestsrc ! ws."
     )
 
     # Parse the launch description into a Gst.Pipeline
@@ -92,5 +92,5 @@ def main():
         pipeline.set_state(Gst.State.NULL)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

@@ -4,9 +4,11 @@ import sys
 
 import numpy as np
 import cv2
-gi.require_version('Gst', '1.0')
-gi.require_version('GstWebRTC', '1.0')
+
+gi.require_version("Gst", "1.0")
+gi.require_version("GstWebRTC", "1.0")
 from gi.repository import Gst, GObject, GLib
+
 
 def on_new_sample(sink, appsrc):
     sample = sink.emit("pull-sample")
@@ -16,8 +18,8 @@ def on_new_sample(sink, appsrc):
     buffer = sample.get_buffer()
     caps = sample.get_caps()
     structure = caps.get_structure(0)
-    width = structure.get_value('width')
-    height = structure.get_value('height')
+    width = structure.get_value("width")
+    height = structure.get_value("height")
 
     # Buffer in numpy-Array umwandeln
     success, map_info = buffer.map(Gst.MapFlags.READ)
@@ -27,9 +29,7 @@ def on_new_sample(sink, appsrc):
     try:
         # Annahme: RGB, 3 Kanäle
         frame = np.ndarray(
-            (height, width, 3),
-            buffer=map_info.data,
-            dtype=np.uint8
+            (height, width, 3), buffer=map_info.data, dtype=np.uint8
         ).copy()  # copy, da map_info.data readonly ist
 
         # Einfachen roten Kreis in die Mitte zeichnen
@@ -50,6 +50,7 @@ def on_new_sample(sink, appsrc):
     appsrc.emit("push-buffer", out_buffer)
     return Gst.FlowReturn.OK
 
+
 def on_message(bus, message, loop):
     msg_type = message.type
 
@@ -62,24 +63,25 @@ def on_message(bus, message, loop):
         print(f"Error: {err}, {debug}")
         loop.quit()
 
+
 def main():
     Gst.init(None)
 
     # Pipeline 1: Kamera -> JPEG -> RGB -> appsink
     pipeline1_str = (
-        'v4l2src device=/dev/video0 ! '
-        'image/jpeg,width=640,height=360,framerate=30/1 ! '
-        'jpegdec ! '
-        'videoconvert ! '
-        'video/x-raw,format=RGB,width=640,height=360,framerate=30/1 ! '
-        'appsink name=ai_sink emit-signals=true max-buffers=1 drop=true'
+        "v4l2src device=/dev/video0 ! "
+        "image/jpeg,width=640,height=360,framerate=30/1 ! "
+        "jpegdec ! "
+        "videoconvert ! "
+        "video/x-raw,format=RGB,width=640,height=360,framerate=30/1 ! "
+        "appsink name=ai_sink emit-signals=true max-buffers=1 drop=true"
     )
 
     # Pipeline 2: appsrc -> webrtcsink
     pipeline2_str = (
-        'appsrc name=ai_src is-live=true block=true format=time caps=video/x-raw,format=RGB,width=640,height=360,framerate=30/1 ! '
-        'videoconvert ! '
-        'webrtcsink name=ws meta="meta,name=ipa364webfrontend-webfrontend-stream"'
+        "appsrc name=ai_src is-live=true block=true format=time caps=video/x-raw,format=RGB,width=640,height=360,framerate=30/1 ! "
+        "videoconvert ! "
+        'webrtcsink name=ws meta="meta,name=kataglyphiswebfrontend-webfrontend-stream"'
     )
 
     pipeline1 = Gst.parse_launch(pipeline1_str)
@@ -116,6 +118,7 @@ def main():
     finally:
         pipeline1.set_state(Gst.State.NULL)
         pipeline2.set_state(Gst.State.NULL)
+
 
 if __name__ == "__main__":
     main()
