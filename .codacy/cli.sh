@@ -59,6 +59,20 @@ get_latest_version() {
     echo "$version"
 }
 
+get_latest_cached_version() {
+    if [ -d "$CODACY_CLI_V2_TMP_FOLDER" ]; then
+        # Pick the highest version folder already present on disk.
+        # This is used as a fallback when the GitHub API is unavailable and the cache is populated.
+        local cached
+        cached=$(ls -1 "$CODACY_CLI_V2_TMP_FOLDER" 2>/dev/null | grep -v '^version\.yaml$' | sort -V | tail -n 1)
+        if [ -n "$cached" ]; then
+            echo "$cached"
+            return 0
+        fi
+    fi
+    return 1
+}
+
 handle_rate_limit() {
     local response="$1"
     if echo "$response" | grep -q "API rate limit exceeded"; then
@@ -123,7 +137,18 @@ fi
 if [ -n "$CODACY_CLI_V2_VERSION" ]; then
     version="$CODACY_CLI_V2_VERSION"
 else
-    version=$(get_version_from_yaml)
+    version=$(get_version_from_yaml || true)
+    if [ -z "$version" ]; then
+        # version.yaml can be left with an empty version when the GitHub API call fails.
+        # Fall back to any already cached version first; if none exists, fetch latest.
+        version=$(get_latest_cached_version || true)
+        if [ -z "$version" ]; then
+            echo "ℹ️  Fetching latest version..."
+            version=$(get_latest_version)
+        fi
+        mkdir -p "$CODACY_CLI_V2_TMP_FOLDER"
+        echo "version: \"$version\"" > "$version_file"
+    fi
 fi
 
 
