@@ -151,10 +151,11 @@ jobs:
               fi
             fi
 
-            cat > /tmp/_check_type_traits.cpp <<\'EOF\'
-            #include <type_traits>
-            int main() { return std::is_integral_v<int> ? 0 : 1; }
-            EOF
+            # Avoid heredocs here because this script runs inside a single-quoted bash string in YAML.
+            printf '%s\n' \
+              '#include <type_traits>' \
+              'int main() { return std::is_integral_v<int> ? 0 : 1; }' \
+              > /tmp/_check_type_traits.cpp
 
             if ! ${CXX:-c++} -std=c++17 /tmp/_check_type_traits.cpp -c -o /tmp/_check_type_traits.o >/dev/null 2>&1; then
               echo "C++ stdlib headers missing; installing build essentials in container..."
