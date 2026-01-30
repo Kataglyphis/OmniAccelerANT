@@ -92,6 +92,8 @@ jobs:
               chmod +x scripts/linux/setup-flutter-arm64.sh
               ./scripts/linux/setup-flutter-arm64.sh $FLUTTER_VERSION
             fi
+            chmod -R u+rwX flutter/bin/cache 2>/dev/null || true
+            chmod -R u+rwX flutter 2>/dev/null || true 
             '
 
       - name: Run Flutter checks and tests
