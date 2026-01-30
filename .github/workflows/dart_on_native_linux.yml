@@ -83,7 +83,7 @@ jobs:
             bash -lc '
             set -e
             git config --global --add safe.directory /workspace || true
-            git config --global --add safe.directory /workspace/flutter || true
+            git config --global --add safe.directory /opt/flutter || true
 
             if [ "$MATRIX_ARCH" = "x64" ]; then
               chmod +x scripts/linux/setup-flutter-x86-64.sh
@@ -105,9 +105,12 @@ jobs:
             ghcr.io/kataglyphis/kataglyphis_beschleuniger:latest \
             bash -lc '
             set -e
-            export PATH="$PWD/flutter/bin:$PATH"
+            
             git config --global --add safe.directory /workspace || true
-            git config --global --add safe.directory /workspace/flutter || true
+            git config --global --add safe.directory /opt/flutter || true
+
+            source ~/.bashrc
+
             flutter pub get
             dart format --output=none --set-exit-if-changed . || true
             dart analyze || true
@@ -126,7 +129,7 @@ jobs:
             ghcr.io/kataglyphis/kataglyphis_beschleuniger:latest \
             bash -lc '
             set -e
-            export PATH="$PWD/flutter/bin:$PATH"
+
             git config --global --add safe.directory /workspace || true
             git config --global --add safe.directory /opt/flutter || true
 
@@ -165,9 +168,12 @@ jobs:
             ghcr.io/kataglyphis/kataglyphis_beschleuniger:latest \
             bash -lc '
             set -e
-            export PATH="$PWD/flutter/bin:$PATH"
+           
             git config --global --add safe.directory /workspace || true
-            git config --global --add safe.directory /workspace/flutter || true
+            git config --global --add safe.directory /opt/flutter || true
+
+            source ~/.bashrc
+
             flutter clean
             dart doc
 
