@@ -116,6 +116,7 @@ jobs:
             git config --global --add safe.directory ${FLUTTER_DIR} || true
 
             source ~/.bashrc
+            export PATH="${FLUTTER_DIR}/bin:$PATH"
 
             flutter pub get
             dart format --output=none --set-exit-if-changed . || true
@@ -140,6 +141,7 @@ jobs:
             git config --global --add safe.directory /workspace || true
             git config --global --add safe.directory ${FLUTTER_DIR} || true
 
+            export PATH="${FLUTTER_DIR}/bin:$PATH"
             source ~/.bashrc
 
             # run the build (use the absolute path to be robust)
@@ -181,7 +183,8 @@ jobs:
             git config --global --add safe.directory ${FLUTTER_DIR} || true
 
             source ~/.bashrc
-
+            export PATH="${FLUTTER_DIR}/bin:$PATH"
+            
             flutter clean
             dart doc
 
