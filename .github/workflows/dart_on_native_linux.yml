@@ -179,13 +179,36 @@ jobs:
             echo "Looking for flutter at: $PWD/flutter/bin/flutter"
             ls -la "$PWD/flutter/bin" || echo "Flutter bin directory not found!"
 
+            # Ensure the flutter wrapper is executable and the cache is writable.
+            # Common failure: mounted flutter/ files are owned by another UID and the wrapper tries to update engine.stamp.
+            chmod +x "$PWD/flutter/bin/flutter" || true
+            mkdir -p "$PWD/flutter/bin/cache" || true
+            # make cache writable so Flutter can update engine.stamp; be permissive but safe for CI.
+            chmod -R a+rwX "$PWD/flutter/bin/cache" || true
+
+            # Try to fix ownership if possible (no-op if not allowed).
+            CURRENT_UID=$(id -u || echo 0)
+            CURRENT_GID=$(id -g || echo 0)
+            chown -R "$CURRENT_UID:$CURRENT_GID" "$PWD/flutter" 2>/dev/null || true
+
+            # refresh shell command cache
+            hash -r || true
+
             # Verify flutter is callable
             echo "PATH=$PATH"
             command -v flutter || echo "flutter not found via PATH; will call directly via absolute path"
-            "$PWD/flutter/bin/flutter" --version
+            # First run: show version (this will also populate cache if writable)
+            if ! "$PWD/flutter/bin/flutter" --version; then
+              echo "Initial flutter run failed — trying again after relaxing permissions and invoking via bash"
+              chmod -R a+rwX "$PWD/flutter" || true
+              chown -R "$CURRENT_UID:$CURRENT_GID" "$PWD/flutter" 2>/dev/null || true
+              # invoke via bash in case the filesystem forbids direct exec of the wrapper script
+              bash "$PWD/flutter/bin/flutter" --version || true
+            fi
 
             # run the build (use the absolute path to be robust)
-            "$PWD/flutter/bin/flutter" build linux --release        
+            "$PWD/flutter/bin/flutter" build linux --release
+           
             '
 
       - name: Package build artifacts
