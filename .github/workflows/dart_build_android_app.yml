@@ -14,6 +14,7 @@ on:
 env:
   APP_NAME: kataglyphis-inference-engine-apk
   FLUTTER_VERSION: 3.38.9   # change here to update version for the whole workflow
+  FLUTTER_DIR: /workspace/flutter  # Flutter SDK installation directory
 
 jobs:
   build:
@@ -88,15 +89,16 @@ jobs:
             -v ${{ github.workspace }}:/workspace \
             -w /workspace \
             -e FLUTTER_VERSION=${{ env.FLUTTER_VERSION }} \
+            -e FLUTTER_DIR=${{ env.FLUTTER_DIR }} \
             -e MATRIX_ARCH=${{ matrix.arch }} \
             ghcr.io/kataglyphis/kataglyphis_beschleuniger:latest \
             bash -lc '
             set -e
             git config --global --add safe.directory /workspace || true
-            git config --global --add safe.directory /workspace/flutter || true
+            git config --global --add safe.directory ${FLUTTER_DIR} || true
 
             chmod +x scripts/linux/setup-flutter-x86-64.sh
-            ./scripts/linux/setup-flutter-x86-64.sh $FLUTTER_VERSION
+            ./scripts/linux/setup-flutter-x86-64.sh $FLUTTER_VERSION $(dirname ${FLUTTER_DIR})
             '
 
       - name: Run Flutter checks and tests
@@ -110,7 +112,11 @@ jobs:
             set -e
             export PATH="$PWD/flutter/bin:$PATH"
             git config --global --add safe.directory /workspace || true
-            git config --global --add safe.directory /workspace/flutter || true
+            git config --global --add safe.directory ${FLUTTER_DIR} || true
+            
+            source ~/.bashrc
+            export PATH="${FLUTTER_DIR}/bin:$PATH"
+
             flutter pub get
             dart format --output=none --set-exit-if-changed . || true
             dart analyze || true
@@ -131,8 +137,11 @@ jobs:
             set -e
             export PATH="$PWD/flutter/bin:$PATH"
             git config --global --add safe.directory /workspace || true
-            git config --global --add safe.directory /workspace/flutter || true
+            git config --global --add safe.directory ${FLUTTER_DIR} || true
             
+            source ~/.bashrc
+            export PATH="${FLUTTER_DIR}/bin:$PATH"
+
             flutter build apk --release
             '
 
