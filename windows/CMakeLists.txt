@@ -49,6 +49,16 @@ endfunction()
 set(FLUTTER_MANAGED_DIR "${CMAKE_CURRENT_SOURCE_DIR}/flutter")
 add_subdirectory(${FLUTTER_MANAGED_DIR})
 
+# Clang-CL compatibility: Ignore unused MSVC-specific flags like /await
+if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+  add_compile_options(-Wno-unused-command-line-argument)
+  add_compile_options(-Wno-unused-lambda-capture)
+  add_compile_options(-Wno-error=unused-lambda-capture)
+  # Disable treat-warnings-as-errors globally to work around plugin bugs
+  # This overrides the /WX flag set by APPLY_STANDARD_SETTINGS
+  add_compile_options(-Wno-error)
+endif()
+
 # Application build; see runner/CMakeLists.txt.
 add_subdirectory("runner")
 

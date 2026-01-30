@@ -13,7 +13,7 @@ on:
 
 env:
   APP_NAME: kataglyphis-inference-engine
-  FLUTTER_VERSION: 3.38.8   # change here to update version for the whole workflow
+  FLUTTER_VERSION: 3.38.9   # change here to update version for the whole workflow
 
 jobs:
   build:
@@ -48,7 +48,7 @@ jobs:
           docker system df || true
           df -h
 
-      - uses: actions/checkout@v6.0.0
+      - uses: actions/checkout@v6.0.2
         with:
           fetch-depth: 1
           submodules: recursive
@@ -128,88 +128,12 @@ jobs:
             set -e
             export PATH="$PWD/flutter/bin:$PATH"
             git config --global --add safe.directory /workspace || true
-            git config --global --add safe.directory /workspace/flutter || true
+            git config --global --add safe.directory /opt/flutter || true
 
-            # Ensure a working C/C++ toolchain for Flutter desktop builds.
-            # The ARM64 Linux build can fail with:
-            #   /usr/include/glib-2.0/glib/glib-typeof.h: fatal error: \'type_traits\' file not found
-            # which indicates missing C++ standard library headers.
-            #
-            # We want to continue building with Clang, but allow a custom GCC
-            # toolchain (e.g. mounted at /opt/gcc-15.2.0) to be discoverable.
-            GCC_TOOLCHAIN=""
-            if [ -x /opt/gcc-15.2.0/bin/gcc ] && [ -x /opt/gcc-15.2.0/bin/g++ ]; then
-              echo "Found custom GCC toolchain at /opt/gcc-15.2.0 (keeping Clang as compiler)"
-              export PATH="/opt/gcc-15.2.0/bin:$PATH"
-              GCC_TOOLCHAIN="/opt/gcc-15.2.0"
-            fi
-
-            if command -v clang >/dev/null 2>&1 && command -v clang++ >/dev/null 2>&1; then
-              export CC=clang
-              export CXX=clang++
-              if [ -n "$GCC_TOOLCHAIN" ]; then
-                export CFLAGS="${CFLAGS:-} --gcc-toolchain=$GCC_TOOLCHAIN"
-                export CXXFLAGS="${CXXFLAGS:-} --gcc-toolchain=$GCC_TOOLCHAIN"
-              fi
-            fi
-
-            # Avoid heredocs here because this script runs inside a single-quoted bash string in YAML.
-            printf '%s\n' \
-              '#include <type_traits>' \
-              'int main() { return std::is_integral_v<int> ? 0 : 1; }' \
-              > /tmp/_check_type_traits.cpp
-
-            if ! ${CXX:-c++} -std=c++17 /tmp/_check_type_traits.cpp -c -o /tmp/_check_type_traits.o >/dev/null 2>&1; then
-              echo "C++ stdlib headers missing; installing build essentials in container..."
-              if command -v apt-get >/dev/null 2>&1; then
-                apt-get update
-                DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-                  build-essential \
-                  g++ \
-                  clang \
-                  libc++-dev \
-                  libc++abi-dev
-              elif command -v apk >/dev/null 2>&1; then
-                apk add --no-cache build-base clang libc++ libc++-dev
-              else
-                echo "No supported package manager found to install C++ headers." >&2
-                exit 1
-              fi
-            fi
-
-            echo "PWD is: $PWD"
-            echo "Looking for flutter at: $PWD/flutter/bin/flutter"
-            ls -la "$PWD/flutter/bin" || echo "Flutter bin directory not found!"
-
-            # Ensure the flutter wrapper is executable and the cache is writable.
-            # Common failure: mounted flutter/ files are owned by another UID and the wrapper tries to update engine.stamp.
-            chmod +x "$PWD/flutter/bin/flutter" || true
-            mkdir -p "$PWD/flutter/bin/cache" || true
-            # make cache writable so Flutter can update engine.stamp; be permissive but safe for CI.
-            chmod -R a+rwX "$PWD/flutter/bin/cache" || true
-
-            # Try to fix ownership if possible (no-op if not allowed).
-            CURRENT_UID=$(id -u || echo 0)
-            CURRENT_GID=$(id -g || echo 0)
-            chown -R "$CURRENT_UID:$CURRENT_GID" "$PWD/flutter" 2>/dev/null || true
-
-            # refresh shell command cache
-            hash -r || true
-
-            # Verify flutter is callable
-            echo "PATH=$PATH"
-            command -v flutter || echo "flutter not found via PATH; will call directly via absolute path"
-            # First run: show version (this will also populate cache if writable)
-            if ! "$PWD/flutter/bin/flutter" --version; then
-              echo "Initial flutter run failed — trying again after relaxing permissions and invoking via bash"
-              chmod -R a+rwX "$PWD/flutter" || true
-              chown -R "$CURRENT_UID:$CURRENT_GID" "$PWD/flutter" 2>/dev/null || true
-              # invoke via bash in case the filesystem forbids direct exec of the wrapper script
-              bash "$PWD/flutter/bin/flutter" --version || true
-            fi
+            source ~/.bashrc
 
             # run the build (use the absolute path to be robust)
-            "$PWD/flutter/bin/flutter" build linux --release
+            flutter build linux --release
            
             '
 
