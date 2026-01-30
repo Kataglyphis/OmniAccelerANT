@@ -175,13 +175,17 @@ jobs:
               fi
             fi
 
-            # Force CMake to re-configure with the selected toolchain.
-            rm -rf build/linux || true
             echo "PWD is: $PWD"
             echo "Looking for flutter at: $PWD/flutter/bin/flutter"
-            ls -la $PWD/flutter/bin/ || echo "Flutter bin directory not found!"
-            which flutter || echo "Flutter not in PATH"
-            flutter build linux --release
+            ls -la "$PWD/flutter/bin" || echo "Flutter bin directory not found!"
+
+            # Verify flutter is callable
+            echo "PATH=$PATH"
+            command -v flutter || echo "flutter not found via PATH; will call directly via absolute path"
+            "$PWD/flutter/bin/flutter" --version
+
+            # run the build (use the absolute path to be robust)
+            "$PWD/flutter/bin/flutter" build linux --release        
             '
 
       - name: Package build artifacts
