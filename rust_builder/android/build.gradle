@@ -11,7 +11,8 @@ buildscript {
 
     dependencies {
         // The Android Gradle Plugin knows how to build native code with the NDK.
-        classpath 'com.android.tools.build:gradle:7.3.0'
+        // Keep this aligned with the root Android project to avoid Gradle/AGP/JDK mismatches.
+        classpath 'com.android.tools.build:gradle:8.11.1'
     }
 }
 
@@ -31,7 +32,7 @@ android {
 
     // Bumping the plugin compileSdkVersion requires all clients of this plugin
     // to bump the version in their app.
-    compileSdkVersion 33
+    compileSdkVersion 36
 
     // Use the NDK version
     // declared in /android/app/build.gradle file of the Flutter project.
@@ -40,17 +41,19 @@ android {
     ndkVersion android.ndkVersion
 
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
+        // Flutter's Android toolchain and most plugins target Java 17.
+        // Using Java 21 here can trigger Gradle toolchain resolution issues depending on the installed JDK.
+        sourceCompatibility JavaVersion.VERSION_21
+        targetCompatibility JavaVersion.VERSION_21
     }
 
     defaultConfig {
-        minSdkVersion 19
+        minSdkVersion 21
     }
 }
 
 apply from: "../cargokit/gradle/plugin.gradle"
 cargokit {
-    manifestDir = "../../rust"
-    libname = "rust_lib_kataglyphis_inference_engine"
+    manifestDir = "../../ExternalLib/Kataglyphis-RustProjectTemplate"
+    libname = "kataglyphis_rustprojecttemplate"
 }

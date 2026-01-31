@@ -1,0 +1,90 @@
+#cookie-notice {
+	background-color: #fff;
+	bottom: 0;
+	box-shadow: 0px 8px 24px rgba(0, 0, 0, .25);
+	-webkit-box-direction: normal;
+	-webkit-font-smoothing: antialiased;
+	display: none;
+	left: 0;
+	opacity: 0;
+	padding: 60px 0; /*40px*/
+	position: fixed;
+	width: 100%;
+	z-index: 11;
+}
+
+.cookie-consent {
+	align-items: right;
+	display: flex;
+	justify-content: right;
+	align-items: center;
+	position: relative;
+	white-space: pre-line;
+}
+
+#cookie-notice.show {
+	animation-delay: .2s;
+	animation-duration: .5s;
+	animation-fill-mode: forwards;
+	animation-iteration-count: 1;
+	animation-name: fadein;
+	animation-timing-function: cubic-bezier(.27, .89, .39, .95);
+	display: block;
+}
+
+@keyframes fadein {
+	0% {
+		opacity: 0
+	}
+
+	to {
+		opacity: 1
+	}
+}
+
+.container {
+	align-items: center;
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	position: relative;
+	top: 1px;
+	margin: 0 auto;
+	max-width: calc(1280px - 100px);
+	width: calc(100% - 24px*2);
+	white-space: pre-line;
+}
+
+.container p {
+	max-width: 1200px;
+	margin: 0;
+	margin-right: 50px;
+	color: #4a4a4a;
+	font-size: 16px;
+	font-family: "Roboto", sans-serif;
+	line-height: 1.5; /*  */
+
+}
+
+p a {
+	color: #0468d7;
+	text-decoration: none;
+}
+
+button {
+	background-color: var(--kPrimaryColor);
+	color: #fff;
+	align-items: center;
+	justify-content: center;
+	border: 0 solid;
+	border-radius: 24px;
+	cursor: pointer;
+	display: inline-flex;
+	font-family: "Google Sans", sans-serif;
+	font-size: 14px;
+	font-weight: 700;
+	height: 40px;
+	padding: 0 32px;
+	text-align: center;
+	line-height: 1.15;
+}

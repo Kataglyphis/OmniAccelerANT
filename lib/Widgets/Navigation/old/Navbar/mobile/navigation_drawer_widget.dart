@@ -66,7 +66,7 @@ class _NavigationDrawerWidgetState extends State<NavigationDrawerWidget> {
     }
   }
 
-  buildMenuItem({
+  Material buildMenuItem({
     required bool isCollapsed,
     required String text,
     required IconData icon,
@@ -90,7 +90,10 @@ class _NavigationDrawerWidgetState extends State<NavigationDrawerWidget> {
     );
   }
 
-  buildList({required BuildContext context, required bool isCollapsed}) {
+  ListView buildList({
+    required BuildContext context,
+    required bool isCollapsed,
+  }) {
     List<DrawerItem> items = [
       DrawerItem(
         title: AppLocalizations.of(context)!.homepage,

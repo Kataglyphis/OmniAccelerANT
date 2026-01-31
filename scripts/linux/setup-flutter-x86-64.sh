@@ -1,26 +1,21 @@
 #!/usr/bin/env bash
 set -e  # exit on any error
 
+# NOTE: Keep LF line endings for Linux shells.
+
 # ------------------------------------------
-# Setup Flutter SDK on ARM64 (Linux)
+# Setup Flutter SDK on AMDx86 (Linux)
 # ------------------------------------------
 
-# Allow passing version as an argument
-FLUTTER_VERSION="${1:-3.35.6}"  # default if not provided
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-echo "📦 Setting up Flutter $FLUTTER_VERSION for x86-64..."
+# shellcheck source=./setup-flutter-common.sh
 
-# Download Flutter SDK
-wget -q "https://storage.googleapis.com/flutter_infra_release/releases/stable/linux/flutter_linux_${FLUTTER_VERSION}-stable.tar.xz"
+source "${SCRIPT_DIR}/setup-flutter-common.sh"
 
-# Extract
-tar xf "flutter_linux_${FLUTTER_VERSION}-stable.tar.xz"
+# Allow passing version and install directory as arguments
 
-# Add Flutter to PATH for subsequent GitHub Action steps
-# echo "$PWD/flutter/bin" >> "$GITHUB_PATH"
+FLUTTER_VERSION="${1:-3.38.9}"  # default if not provided
+FLUTTER_DIR="${2:-/opt}"        # default if not provided
 
-# Add Flutter to PATH for current shell session
-export PATH="$PWD/flutter/bin:$PATH"
-
-# Verify installation
-flutter --version
+setup_flutter "x86-64" "${FLUTTER_VERSION}" "${FLUTTER_DIR}"

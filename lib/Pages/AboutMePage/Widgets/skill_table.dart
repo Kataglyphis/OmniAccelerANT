@@ -8,8 +8,11 @@ import 'package:jotrockenmitlockenrepo/user_settings.dart';
 import 'package:jotrockenmitlockenrepo/Decoration/row_divider.dart';
 
 class SkillTable extends StatefulWidget {
-  const SkillTable(
-      {super.key, required this.userSettings, required this.aboutMeFile});
+  const SkillTable({
+    super.key,
+    required this.userSettings,
+    required this.aboutMeFile,
+  });
 
   final UserSettings userSettings;
   final String aboutMeFile; //= widget.userSettings.aboutMeFileEn!;
@@ -59,82 +62,88 @@ class _SkillTableState extends State<SkillTable> {
         Text(
           key.substring(key.toString().indexOf("(")).trim(),
           style: Theme.of(context).textTheme.titleMedium,
-        )
-      ];
-    } else {
-      return [
-        Text(
-          key,
-          style: Theme.of(context).textTheme.titleLarge,
         ),
       ];
+    } else {
+      return [Text(key, style: Theme.of(context).textTheme.titleLarge)];
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final double currentWith = MediaQuery.of(context).size.width;
-    double betweenColumnPadding =
-        (currentWith <= narrowScreenWidthThreshold) ? 40.0 : 80.0;
+    double betweenColumnPadding = (currentWith <= narrowScreenWidthThreshold)
+        ? 40.0
+        : 80.0;
 
     return FutureBuilder(
-        future: _skillTableJson,
-        builder: (context, data) {
-          if (data.hasData) {
-            List<String> keys = data.requireData.$1;
-            List<List<dynamic>> values = data.requireData.$2;
-            List<TableRow> skills = [];
-            for (int i = 0; i < keys.length; i++) {
-              String entryVal = "";
-              var entryList = values[i];
-              for (int j = 0; j < entryList.length; j++) {
-                entryVal += "• ${entryList[j]}${"\n"}";
-              }
-              skills.add(TableRow(children: [
-                TableCell(
+      future: _skillTableJson,
+      builder: (context, data) {
+        if (data.hasData) {
+          List<String> keys = data.requireData.$1;
+          List<List<dynamic>> values = data.requireData.$2;
+          List<TableRow> skills = [];
+          for (int i = 0; i < keys.length; i++) {
+            String entryVal = "";
+            var entryList = values[i];
+            for (int j = 0; j < entryList.length; j++) {
+              entryVal += "• ${entryList[j]}${"\n"}";
+            }
+            skills.add(
+              TableRow(
+                children: [
+                  TableCell(
                     child: Padding(
-                  padding: const EdgeInsets.fromLTRB(8, 8, 0, 0),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.start,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: getSkillTableKeys(keys[i]),
+                      padding: const EdgeInsets.fromLTRB(8, 8, 0, 0),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: getSkillTableKeys(keys[i]),
+                      ),
+                    ),
                   ),
-                )),
-                TableCell(
+                  TableCell(
                     child: Padding(
-                  padding: EdgeInsets.fromLTRB(betweenColumnPadding, 8, 0, 0),
-                  child: Text(entryVal,
-                      style: Theme.of(context).textTheme.titleMedium),
-                ))
-              ]));
-              skills.add(TableRow(children: [
-                rowDivider,
-                rowDivider,
-              ]));
-            }
-            final double currentWidth = MediaQuery.of(context).size.width;
-            double skillTableWidth = currentWidth;
-            if (currentWidth >= mediumWidthBreakpoint) {
-              skillTableWidth = skillTableWidth * 0.4;
-            } else {
-              skillTableWidth = skillTableWidth * 0.9;
-            }
-            return CenteredBoxDecoration(
-              color: Theme.of(context).colorScheme.primary,
-              child: SizedBox(
-                width: skillTableWidth,
-                child: Table(
-                    defaultVerticalAlignment: TableCellVerticalAlignment.top,
-                    children: skills),
+                      padding: EdgeInsets.fromLTRB(
+                        betweenColumnPadding,
+                        8,
+                        0,
+                        0,
+                      ),
+                      child: Text(
+                        entryVal,
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             );
-          } else if (data.hasError) {
-            return Center(child: Text("${data.error}"));
-          } else {
-            return const Center(
-              child: CircularProgressIndicator(),
-            );
+            skills.add(TableRow(children: [rowDivider, rowDivider]));
           }
-        });
+          final double currentWidth = MediaQuery.of(context).size.width;
+          double skillTableWidth = currentWidth;
+          if (currentWidth >= mediumWidthBreakpoint) {
+            skillTableWidth = skillTableWidth * 0.4;
+          } else {
+            skillTableWidth = skillTableWidth * 0.9;
+          }
+          return CenteredBoxDecoration(
+            color: Theme.of(context).colorScheme.primary,
+            child: SizedBox(
+              width: skillTableWidth,
+              child: Table(
+                defaultVerticalAlignment: TableCellVerticalAlignment.top,
+                children: skills,
+              ),
+            ),
+          );
+        } else if (data.hasError) {
+          return Center(child: Text("${data.error}"));
+        } else {
+          return const Center(child: CircularProgressIndicator());
+        }
+      },
+    );
   }
 }

@@ -8,8 +8,9 @@ class BlogDependentAppAttributes {
 
   BlogDependentScreenConfigurations blogDependentScreenConfigurations;
 
-  BlogDependentAppAttributes(
-      {required this.blogDependentScreenConfigurations,
-      required this.twoCentsConfigs,
-      required this.blockSettings});
+  BlogDependentAppAttributes({
+    required this.blogDependentScreenConfigurations,
+    required this.twoCentsConfigs,
+    required this.blockSettings,
+  });
 }

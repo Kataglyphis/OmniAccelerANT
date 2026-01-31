@@ -4,11 +4,12 @@
 
 list(APPEND FLUTTER_PLUGIN_LIST
   kataglyphis_native_inference
+  permission_handler_windows
   url_launcher_windows
 )
 
 list(APPEND FLUTTER_FFI_PLUGIN_LIST
-  rust_lib_kataglyphis_inference_engine
+  kataglyphis_rustprojecttemplate
 )
 
 set(PLUGIN_BUNDLED_LIBRARIES)

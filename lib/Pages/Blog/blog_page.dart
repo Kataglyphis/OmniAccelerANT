@@ -11,11 +11,12 @@ class BlogPage extends StatefulWidget {
   final AppAttributes appAttributes;
   final Footer footer;
   final BlogPageConfig blogPageConfig;
-  const BlogPage(
-      {super.key,
-      required this.appAttributes,
-      required this.footer,
-      required this.blogPageConfig});
+  const BlogPage({
+    super.key,
+    required this.appAttributes,
+    required this.footer,
+    required this.blogPageConfig,
+  });
 
   @override
   State<StatefulWidget> createState() => BlogPageState();
@@ -46,10 +47,7 @@ class BlogPageState extends State<BlogPage> {
           imageDirectory: widget.blogPageConfig.imageDir,
           useLightMode: widget.appAttributes.useLightMode,
         ),
-        FileTable(
-          title: 'Appendix',
-          docs: docs,
-        )
+        FileTable(title: 'Appendix', docs: docs),
       ],
     );
   }

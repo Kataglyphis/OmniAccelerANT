@@ -11,11 +11,12 @@ class MediaCriticsPage extends StatefulWidget {
   final AppAttributes appAttributes;
   final Footer footer;
   final MyTwoCentsConfig mediaCriticsPageConfig;
-  const MediaCriticsPage(
-      {super.key,
-      required this.appAttributes,
-      required this.footer,
-      required this.mediaCriticsPageConfig});
+  const MediaCriticsPage({
+    super.key,
+    required this.appAttributes,
+    required this.footer,
+    required this.mediaCriticsPageConfig,
+  });
 
   @override
   State<StatefulWidget> createState() => MediaCriticsPageState();
@@ -46,10 +47,7 @@ class MediaCriticsPageState extends State<MediaCriticsPage> {
           imageDirectory: widget.mediaCriticsPageConfig.imageDir,
           useLightMode: widget.appAttributes.useLightMode,
         ),
-        FileTable(
-          title: 'Appendix',
-          docs: docs,
-        )
+        FileTable(title: 'Appendix', docs: docs),
       ],
     );
   }

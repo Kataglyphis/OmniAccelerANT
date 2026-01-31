@@ -5,11 +5,7 @@ class BlockEntry extends TableData {
   String date = "placeholder";
   String comment = "placeholder";
 
-  BlockEntry({
-    required this.title,
-    required this.date,
-    required this.comment,
-  });
+  BlockEntry({required this.title, required this.date, required this.comment});
 
   @override
   List<String> getCells() {

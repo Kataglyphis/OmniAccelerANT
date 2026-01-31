@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="160" y1="140" x2="900" y2="940" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#0B1220"/>
+      <stop offset="0.55" stop-color="#1B2A4A"/>
+      <stop offset="1" stop-color="#D49A3A"/>
+    </linearGradient>
+
+    <linearGradient id="rim" x1="180" y1="180" x2="860" y2="860" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.18"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
+
+    <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%" color-interpolation-filters="sRGB">
+      <feOffset dx="0" dy="18"/>
+      <feGaussianBlur stdDeviation="18"/>
+      <feColorMatrix type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.35 0"/>
+      <feBlend mode="normal" in2="SourceGraphic"/>
+    </filter>
+  </defs>
+
+  <!-- Rounded square background -->
+  <rect x="64" y="64" width="896" height="896" rx="220" fill="url(#bg)"/>
+  <rect x="92" y="92" width="840" height="840" rx="200" stroke="url(#rim)" stroke-width="20"/>
+
+  <!-- Ant mark (Cataglyphis-inspired) -->
+  <g filter="url(#softShadow)" stroke="#FFFFFF" stroke-width="46" stroke-linecap="round" stroke-linejoin="round" opacity="0.98">
+    <!-- Body axis -->
+    <path d="M512 292 C512 352 512 392 512 452"/>
+    <path d="M512 452 C512 512 512 556 512 608"/>
+
+    <!-- Head / thorax / abdomen outlines -->
+    <ellipse cx="512" cy="270" rx="90" ry="78"/>
+    <ellipse cx="512" cy="470" rx="98" ry="86"/>
+    <ellipse cx="512" cy="700" rx="140" ry="120"/>
+
+    <!-- Antennae -->
+    <path d="M470 214 C430 182 380 174 338 192"/>
+    <path d="M554 214 C594 182 644 174 686 192"/>
+
+    <!-- Legs (3 per side) -->
+    <path d="M432 454 C356 436 292 396 244 344"/>
+    <path d="M592 454 C668 436 732 396 780 344"/>
+
+    <path d="M424 520 C346 528 282 564 236 620"/>
+    <path d="M600 520 C678 528 742 564 788 620"/>
+
+    <path d="M444 618 C374 654 322 706 292 768"/>
+    <path d="M580 618 C650 654 702 706 732 768"/>
+
+    <!-- Subtle inner highlight line on abdomen -->
+    <path d="M512 632 C448 642 406 682 396 724" stroke-opacity="0.45"/>
+  </g>
+</svg>
