@@ -157,6 +157,9 @@ jobs:
             # We add rpath so the binary finds these libs at runtime/test time locally
             export LDFLAGS="-L/opt/gcc-15.2.0/lib64 -Wl,-rpath,/opt/gcc-15.2.0/lib64 --gcc-toolchain=/opt/gcc-15.2.0 $LDFLAGS"
             # --- END FIX ---
+            
+            flutter clean 
+            flutter pub get
 
             # run the build (use the absolute path to be robust)
             flutter build linux --release
