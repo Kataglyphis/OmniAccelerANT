@@ -15,7 +15,7 @@ source "${SCRIPT_DIR}/setup-flutter-common.sh"
 
 # Allow passing version and install directory as arguments
 
-FLUTTER_VERSION="${1:-3.38.9}"  # default if not provided
+FLUTTER_VERSION="${1:-3.41.0}"  # default if not provided
 FLUTTER_DIR="${2:-/opt}"        # default if not provided
 
 setup_flutter "x86-64" "${FLUTTER_VERSION}" "${FLUTTER_DIR}"

@@ -13,7 +13,7 @@ on:
 
 env:
   APP_NAME: kataglyphis-inference-engine-apk
-  FLUTTER_VERSION: 3.38.9   # change here to update version for the whole workflow
+  FLUTTER_VERSION: 3.41.0   # change here to update version for the whole workflow
   FLUTTER_DIR: /workspace/flutter  # Flutter SDK installation directory
 
 jobs:
