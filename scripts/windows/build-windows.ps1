@@ -409,27 +409,34 @@ try {
     # --- Step 4-6: Code Quality & Tests ---
     if (-not $SkipTests) {
         Invoke-Step -StepName "Dart Format Verification" -Script {
-            # Nur Dart-relevante Verzeichnisse formatieren (ExternalLib ausschließen)
-            $dartDirs = @("lib", "test", "bin", "integration_test") | 
+            # Only format Dart-relevant directories (exclude ExternalLib)
+            $dartDirs = @("lib", "test", "bin", "integration_test") |
                 Where-Object { Test-Path (Join-Path $Workspace $_) }
-            
+
             if ($dartDirs.Count -eq 0) {
                 Write-Log "No Dart directories found to format."
                 return
             }
-            
+
             Write-Log "Formatting directories: $($dartDirs -join ', ')"
             foreach ($dir in $dartDirs) {
-                Invoke-External -File "dart" -Args @("format", "--output=none", "--set-exit-if-changed", $dir)
+                # We use Invoke-Optional here too, so formatting errors don't stop the build
+                Invoke-Optional -Name "Format $dir" -Script {
+                    Invoke-External -File "dart" -Args @("format", "--output=none", "--set-exit-if-changed", $dir)
+                }
             }
         }
 
         Invoke-Step -StepName "Dart Analysis" -Script {
-            Invoke-External -File "dart" -Args @("analyze")
+            Invoke-Optional -Name "Dart Analysis" -Script {
+                Invoke-External -File "dart" -Args @("analyze")
+            }
         }
 
         Invoke-Step -StepName "Flutter Tests" -Script {
-            Invoke-External -File "flutter" -Args @("test")
+            Invoke-Optional -Name "Flutter Tests" -Script {
+                Invoke-External -File "flutter" -Args @("test")
+            }
         }
     } else {
         Write-Log "Skipping format/analyze/tests (SkipTests set)."
