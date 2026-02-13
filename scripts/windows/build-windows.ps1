@@ -450,6 +450,13 @@ try {
         }
     }
 
+    # Patch permission_handler_windows for clang-cl compatibility
+    $pluginFile = "windows\flutter\ephemeral\.plugin_symlinks\permission_handler_windows\windows\permission_handler_windows_plugin.cpp"
+    if (Test-Path $pluginFile) {
+        Write-Host "Patching permission_handler_windows..."
+        (Get-Content $pluginFile) -replace 'result->Success\(requestResults\);', 'result->Success(flutter::EncodableValue(requestResults));' | Set-Content $pluginFile
+    }
+
     # --- Step 9: CMake Configure ---
     Invoke-Step -StepName "CMake Configure" -Critical -Script {
         $cmakeArgs = @(
