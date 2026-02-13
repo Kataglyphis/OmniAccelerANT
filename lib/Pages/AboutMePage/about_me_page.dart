@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:kataglyphis_inference_engine/Pages/AboutMePage/Widgets/about_me_table.dart';
 import 'package:kataglyphis_inference_engine/Pages/AboutMePage/Widgets/skill_table.dart';
+import 'package:kataglyphis_inference_engine/Pages/AboutMePage/Widgets/sqlite3_healthcheck_widget.dart';
 import 'package:jotrockenmitlockenrepo/Layout/ResponsiveDesign/one_two_transition_widget.dart';
 import 'package:jotrockenmitlockenrepo/Pages/Footer/footer.dart';
 import 'package:jotrockenmitlockenrepo/app_attributes.dart';
@@ -44,6 +45,7 @@ class AboutMePageState extends State<AboutMePage> {
           'Action: Call Rust `greet("Tom")`\nResult: `${greet(name: "Tom")}`',
         ),
       ),
+      const Center(child: Sqlite3HealthcheckWidget()),
       if (!kIsWeb)
         Center(
           child: FutureBuilder<int>(

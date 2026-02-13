@@ -13,7 +13,7 @@ on:
 
 env:
   APP_NAME: kataglyphis-inference-engine-apk
-  FLUTTER_VERSION: 3.38.9   # change here to update version for the whole workflow
+  FLUTTER_VERSION: 3.41.0   # change here to update version for the whole workflow
   FLUTTER_DIR: /workspace/flutter  # Flutter SDK installation directory
 
 jobs:
@@ -39,7 +39,7 @@ jobs:
           docker-images: false
           swap-storage: true
 
-      - uses: actions/checkout@v6.0.0
+      - uses: actions/checkout@v6.0.2
         with:
           fetch-depth: 0
           submodules: recursive
@@ -51,7 +51,7 @@ jobs:
           if sudo test -f /swapfile; then
             echo "/swapfile already exists"
           else
-            if sudo fallocate -l 6G /swapfile; then
+            if sudo fallocate -l 3G /swapfile; then
               echo "fallocate succeeded"
             else
               echo "fallocate failed, using dd"
@@ -107,6 +107,8 @@ jobs:
             --platform ${{ matrix.platform }} \
             -v ${{ github.workspace }}:/workspace \
             -w /workspace \
+            -e FLUTTER_VERSION=${{ env.FLUTTER_VERSION }} \
+            -e FLUTTER_DIR=${{ env.FLUTTER_DIR }} \
             ghcr.io/kataglyphis/kataglyphis_beschleuniger:latest \
             bash -lc '
             set -e
@@ -130,6 +132,8 @@ jobs:
             --platform ${{ matrix.platform }} \
             -v ${{ github.workspace }}:/workspace \
             -w /workspace \
+            -e FLUTTER_VERSION=${{ env.FLUTTER_VERSION }} \
+            -e FLUTTER_DIR=${{ env.FLUTTER_DIR }} \
             -e APP_NAME=${{ env.APP_NAME }} \
             -e MATRIX_ARCH=${{ matrix.arch }} \
             ghcr.io/kataglyphis/kataglyphis_beschleuniger:latest \
@@ -141,6 +145,23 @@ jobs:
             
             source ~/.bashrc
             export PATH="${FLUTTER_DIR}/bin:$PATH"
+            
+            # --- START FIX ---
+            # 1. Force use of Clang/Clang++
+            export CC=clang
+            export CXX=clang++
+
+            # 2. Point Clang to the custom GCC headers and library
+            # This fixes the "type_traits not found" error
+            export CXXFLAGS="--gcc-toolchain=/opt/gcc-15.2.0 $CXXFLAGS"
+
+            # 3. Ensure the linker finds the newer libstdc++
+            # We add rpath so the binary finds these libs at runtime/test time locally
+            export LDFLAGS="-L/opt/gcc-15.2.0/lib64 -Wl,-rpath,/opt/gcc-15.2.0/lib64 --gcc-toolchain=/opt/gcc-15.2.0 $LDFLAGS"
+            # --- END FIX ---
+
+            flutter clean
+            flutter pub get
 
             flutter build apk --release
             '
