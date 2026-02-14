@@ -27,7 +27,7 @@ jobs:
     #   - https://gh.io/supported-runners-and-hardware-resources
     #   - https://gh.io/using-larger-runners (GitHub.com only)
     # Consider using larger runners or machines with greater resources for possible analysis time improvements.
-    runs-on: ${{ (matrix.language == 'swift' && 'macos-latest') || 'ubuntu-latest' }}
+    runs-on: ${{ matrix.os || (matrix.language == 'swift' && 'macos-latest') || 'ubuntu-latest' }}
     permissions:
       # required for all workflows
       security-events: write
@@ -46,7 +46,13 @@ jobs:
         - language: actions
           build-mode: none
         - language: c-cpp
-          build-mode: autobuild
+          build-mode: manual
+          os: ubuntu-latest
+          cmake_dir: linux
+        - language: c-cpp
+          build-mode: manual
+          os: windows-latest
+          cmake_dir: windows
         - language: java-kotlin
           build-mode: autobuild
         - language: javascript-typescript
@@ -90,16 +96,19 @@ jobs:
     # to build your code.
     # ℹ️ Command-line programs to run using the OS shell.
     # 📚 See https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#jobsjob_idstepsrun
-    - name: Run manual build steps
-      if: matrix.build-mode == 'manual'
+    - name: Build C++ (Linux)
+      if: matrix.language == 'c-cpp' && matrix.build-mode == 'manual' && matrix.os == 'ubuntu-latest'
       shell: bash
       run: |
-        echo 'If you are using a "manual" build mode for one or more of the' \
-          'languages you are analyzing, replace this with the commands to build' \
-          'your code, for example:'
-        echo '  make bootstrap'
-        echo '  make release'
-        exit 1
+        cmake -S "${{ matrix.cmake_dir }}" -B "${{ matrix.cmake_dir }}/build"
+        cmake --build "${{ matrix.cmake_dir }}/build"
+
+    - name: Build C++ (Windows)
+      if: matrix.language == 'c-cpp' && matrix.build-mode == 'manual' && matrix.os == 'windows-latest'
+      shell: pwsh
+      run: |
+        cmake -S "${{ matrix.cmake_dir }}" -B "${{ matrix.cmake_dir }}/build"
+        cmake --build "${{ matrix.cmake_dir }}/build" --config Release
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v4
