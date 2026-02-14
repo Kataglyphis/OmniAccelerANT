@@ -19,6 +19,13 @@ jobs:
     #runs-on: windows-latest
     runs-on: ubuntu-24.04
     steps:
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v4
+        with:
+          languages: javascript-typescript
+          queries: security-extended
+
       - name: 🚚 Get latest code
         uses: actions/checkout@v6.0.2
         with:
@@ -77,3 +84,6 @@ jobs:
           name: gstreamer-ai-web-frontend
           path: ${{ env.BUILD_DIR_RELEASE }}/**
           if-no-files-found: error
+
+      - name: Run CodeQL analysis
+        uses: github/codeql-action/analyze@v4

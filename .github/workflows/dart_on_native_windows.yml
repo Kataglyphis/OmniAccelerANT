@@ -20,6 +20,12 @@ jobs:
         run: git config --global core.longpaths true
         shell: pwsh
 
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v4
+        with:
+          languages: c-cpp,actions
+          queries: security-extended
+
       - name: Checkout
         uses: actions/checkout@v6.0.2
         with:
@@ -59,3 +65,6 @@ jobs:
             ${{ env.BUILD_DIR_RELEASE }}/**/*.exe
             ${{ env.BUILD_DIR_RELEASE }}/**/*.dll
             ${{ env.BUILD_DIR_RELEASE }}/data/**/*
+
+      - name: Run CodeQL analysis
+        uses: github/codeql-action/analyze@v4

@@ -35,7 +35,7 @@ jobs:
     permissions:
       contents: read
       security-events: write
-      
+
     steps:
       - name: Free Disk Space on Host
         uses: jlumbroso/free-disk-space@main
@@ -52,7 +52,7 @@ jobs:
         if: ${{ matrix.arch == 'x64' }}
         uses: github/codeql-action/init@v4
         with:
-          languages: cpp,rust,c
+          languages: c-cpp,rust,actions
           queries: security-extended
 
       - uses: actions/checkout@v6.0.2
@@ -114,7 +114,7 @@ jobs:
             ghcr.io/kataglyphis/kataglyphis_beschleuniger:latest \
             bash -lc '
             set -e
-            
+
             git config --global --add safe.directory /workspace || true
             git config --global --add safe.directory ${FLUTTER_DIR} || true
 

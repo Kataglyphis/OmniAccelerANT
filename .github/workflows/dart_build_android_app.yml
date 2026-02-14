@@ -39,6 +39,12 @@ jobs:
           docker-images: false
           swap-storage: true
 
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v4
+        with:
+          languages: java-kotlin,c-cpp
+          queries: security-extended
+
       - uses: actions/checkout@v6.0.2
         with:
           fetch-depth: 0
@@ -51,7 +57,7 @@ jobs:
           if sudo test -f /swapfile; then
             echo "/swapfile already exists"
           else
-            if sudo fallocate -l 3G /swapfile; then
+            if sudo fallocate -l 1G /swapfile; then
               echo "fallocate succeeded"
             else
               echo "fallocate failed, using dd"
@@ -115,7 +121,7 @@ jobs:
             export PATH="$PWD/flutter/bin:$PATH"
             git config --global --add safe.directory /workspace || true
             git config --global --add safe.directory ${FLUTTER_DIR} || true
-            
+
             source ~/.bashrc
             export PATH="${FLUTTER_DIR}/bin:$PATH"
 
@@ -123,7 +129,7 @@ jobs:
             dart format --output=none --set-exit-if-changed . || true
             dart analyze || true
             flutter test || true
-            flutter config --enable-android 
+            flutter config --enable-android
             '
 
       - name: Build Flutter Android app
@@ -142,10 +148,10 @@ jobs:
             export PATH="$PWD/flutter/bin:$PATH"
             git config --global --add safe.directory /workspace || true
             git config --global --add safe.directory ${FLUTTER_DIR} || true
-            
+
             source ~/.bashrc
             export PATH="${FLUTTER_DIR}/bin:$PATH"
-            
+
             # --- START FIX ---
             # 1. Force use of Clang/Clang++
             export CC=clang
@@ -183,10 +189,12 @@ jobs:
             cp -r build/app/outputs/flutter-apk out/${APP_NAME}-bundle
             tar -C out -czf ${APP_NAME}-linux-$MATRIX_ARCH.tar.gz ${APP_NAME}-bundle
             '
-            
+
       - name: Upload artifact
         uses: actions/upload-artifact@v6.0.0
         with:
           name: ${{ env.APP_NAME }}-linux-${{ matrix.arch }}-tar
           path: ${{ env.APP_NAME }}-linux-${{ matrix.arch }}.tar.gz
-    
+
+      - name: Run CodeQL analysis
+        uses: github/codeql-action/analyze@v4
