@@ -161,6 +161,9 @@ jobs:
 
               /opt/codeql/codeql resolve languages
 
+              cd /workspace
+              /opt/codeql/codeql pack download codeql/cpp-queries
+
               # Create build script using printf to avoid heredoc indentation issues
               printf "%s\n" \
                 "#!/bin/bash -l" \
@@ -188,8 +191,8 @@ jobs:
               /opt/codeql/codeql database analyze /tmp/codeql-db \
                 --format=sarif-latest \
                 --output=/workspace/codeql-results.sarif \
-                -- \
-                cpp-security-and-quality || true
+                codeql/cpp-queries:codeql-suites/cpp-security-and-quality.qls || true
+
 
             else
               # ARM64 build - no CodeQL
