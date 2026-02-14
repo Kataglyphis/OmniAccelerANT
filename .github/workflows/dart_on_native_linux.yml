@@ -163,18 +163,18 @@ jobs:
 
               # Create build script to avoid quoting hell
               cat > /tmp/codeql-build.sh << "EOFSCRIPT"
-#!/bin/bash -l
-set -e
-export CC=clang
-export CXX=clang++
-export CXXFLAGS="--gcc-toolchain=/opt/gcc-15.2.0 $CXXFLAGS"
-export LDFLAGS="-L/opt/gcc-15.2.0/lib64 -Wl,-rpath,/opt/gcc-15.2.0/lib64 --gcc-toolchain=/opt/gcc-15.2.0 $LDFLAGS"
-export PATH="${FLUTTER_DIR}/bin:$PATH"
-source ~/.bashrc 2>/dev/null || true
-flutter clean
-flutter pub get
-flutter build linux --release
-EOFSCRIPT
+              #!/bin/bash -l
+              set -e
+              export CC=clang
+              export CXX=clang++
+              export CXXFLAGS="--gcc-toolchain=/opt/gcc-15.2.0 $CXXFLAGS"
+              export LDFLAGS="-L/opt/gcc-15.2.0/lib64 -Wl,-rpath,/opt/gcc-15.2.0/lib64 --gcc-toolchain=/opt/gcc-15.2.0 $LDFLAGS"
+              export PATH="${FLUTTER_DIR}/bin:$PATH"
+              source ~/.bashrc 2>/dev/null || true
+              flutter clean
+              flutter pub get
+              flutter build linux --release
+              EOFSCRIPT
 
               chmod +x /tmp/codeql-build.sh
 
