@@ -1,9 +1,6 @@
 # This workflow uses actions that are not certified by GitHub.
-
 # They are provided by a third-party and are governed by
-
 # separate terms of service, privacy policy, and support
-
 # documentation.
 
 name: Build + test + run on Linux natively - x86-64/arm64
@@ -153,7 +150,7 @@ jobs:
             # We add rpath so the binary finds these libs at runtime/test time locally
             export LDFLAGS="-L/opt/gcc-15.2.0/lib64 -Wl,-rpath,/opt/gcc-15.2.0/lib64 --gcc-toolchain=/opt/gcc-15.2.0 $LDFLAGS"
             # --- END FIX ---
-            
+
             if [ "$MATRIX_ARCH" = "x64" ]; then
               TMPDIR=/tmp/codeql
               mkdir -p $TMPDIR
@@ -181,7 +178,7 @@ jobs:
                 flutter clean
                 flutter pub get
 
-                # run the build (use the absolute path t>
+                # run the build 
                 flutter build linux --release
               fi
 
