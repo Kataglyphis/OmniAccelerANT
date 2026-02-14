@@ -143,16 +143,15 @@ jobs:
             export CXX=clang++
 
             # 2. Point Clang to the custom GCC headers and library
-            # This fixes the "type_traits not found" error
             export CXXFLAGS="--gcc-toolchain=/opt/gcc-15.2.0 $CXXFLAGS"
 
             # 3. Ensure the linker finds the newer libstdc++
-            # We add rpath so the binary finds these libs at runtime/test time locally
             export LDFLAGS="-L/opt/gcc-15.2.0/lib64 -Wl,-rpath,/opt/gcc-15.2.0/lib64 --gcc-toolchain=/opt/gcc-15.2.0 $LDFLAGS"
             # --- END FIX ---
 
             if [ "$MATRIX_ARCH" = "x64" ]; then
 
+              # Setup CodeQL
               TMPDIR=/tmp/codeql
               mkdir -p $TMPDIR
               cd $TMPDIR
@@ -162,21 +161,42 @@ jobs:
 
               /opt/codeql/codeql resolve languages
 
-              # FIXED QUOTING BELOW:
-              # We replaced the internal single quotes ' with '\''
+              # Create build script to avoid quoting hell
+              cat > /tmp/codeql-build.sh << "EOFSCRIPT"
+#!/bin/bash -l
+set -e
+export CC=clang
+export CXX=clang++
+export CXXFLAGS="--gcc-toolchain=/opt/gcc-15.2.0 $CXXFLAGS"
+export LDFLAGS="-L/opt/gcc-15.2.0/lib64 -Wl,-rpath,/opt/gcc-15.2.0/lib64 --gcc-toolchain=/opt/gcc-15.2.0 $LDFLAGS"
+export PATH="${FLUTTER_DIR}/bin:$PATH"
+source ~/.bashrc 2>/dev/null || true
+flutter clean
+flutter pub get
+flutter build linux --release
+EOFSCRIPT
+
+              chmod +x /tmp/codeql-build.sh
+
+              # Create CodeQL database
               /opt/codeql/codeql database create /tmp/codeql-db \
                 --language=cpp \
                 --source-root=/workspace \
-                --command="bash -lc '\''export CC=clang; export CXX=clang++; export CXXFLAGS=\"--gcc-toolchain=/opt/gcc-15.2.0 \$CXXFLAGS\"; export LDFLAGS=\"-L/opt/gcc-15.2.0/lib64 -Wl,-rpath,/opt/gcc-15.2.0/lib64 --gcc-toolchain=/opt/gcc-15.2.0 \$LDFLAGS\"; export PATH=\"${FLUTTER_DIR}/bin:\$PATH\"; flutter clean; flutter pub get; flutter build linux --release'\''"
+                --command=/tmp/codeql-build.sh
 
-              else
+              # Analyze the database
+              /opt/codeql/codeql database analyze /tmp/codeql-db \
+                --format=sarif-latest \
+                --output=/workspace/codeql-results.sarif \
+                -- \
+                cpp-security-and-quality || true
 
-                flutter clean
-                flutter pub get
-                # run the build 
-                flutter build linux --release
-              fi
-
+            else
+              # ARM64 build - no CodeQL
+              flutter clean
+              flutter pub get
+              flutter build linux --release
+            fi
             '
 
       - name: Package build artifacts
