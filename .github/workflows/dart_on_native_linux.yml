@@ -52,7 +52,7 @@ jobs:
         if: ${{ matrix.arch == 'x64' }}
         uses: github/codeql-action/init@v4
         with:
-          languages: cpp,github-actions,rust,c
+          languages: cpp,rust,c
           queries: security-extended
 
       - uses: actions/checkout@v6.0.2
