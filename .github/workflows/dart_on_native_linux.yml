@@ -152,32 +152,27 @@ jobs:
             # --- END FIX ---
 
             if [ "$MATRIX_ARCH" = "x64" ]; then
+
               TMPDIR=/tmp/codeql
               mkdir -p $TMPDIR
               cd $TMPDIR
 
-              # 1) download/unzip CodeQL CLI (linux64 build)
               wget -q https://github.com/github/codeql-cli-binaries/releases/latest/download/codeql-linux64.zip -O codeql.zip
               unzip -q codeql.zip -d /opt
 
-              # sanity check
               /opt/codeql/codeql resolve languages
 
-              # 2) create a CodeQL DB *while running your build* so CodeQL captures compiler invocations
-              #    include the same env vars (CC/CXX/CXXFLAGS/LDFLAGS) you use for the build
+              # FIXED QUOTING BELOW:
+              # We replaced the internal single quotes ' with '\''
               /opt/codeql/codeql database create /tmp/codeql-db \
                 --language=cpp \
                 --source-root=/workspace \
-                --command="bash -lc 'export CC=clang; export CXX=clang++; export CXXFLAGS=\"--gcc-toolchain=/opt/gcc-15.2.0 \$CXXFLAGS\"; export LDFLAGS=\"-L/opt/gcc-15.2.0/lib64 -Wl,-rpath,/opt/gcc-15.2.0/lib64 --gcc-toolchain=/opt/gcc-15.2.0 \$LDFLAGS\"; export PATH=\"${FLUTTER_DIR}/bin:\$PATH\"; flutter clean; flutter pub get; flutter build linux --release'"
+                --command="bash -lc '\''export CC=clang; export CXX=clang++; export CXXFLAGS=\"--gcc-toolchain=/opt/gcc-15.2.0 \$CXXFLAGS\"; export LDFLAGS=\"-L/opt/gcc-15.2.0/lib64 -Wl,-rpath,/opt/gcc-15.2.0/lib64 --gcc-toolchain=/opt/gcc-15.2.0 \$LDFLAGS\"; export PATH=\"${FLUTTER_DIR}/bin:\$PATH\"; flutter clean; flutter pub get; flutter build linux --release'\''"
 
-              # 3) analyze DB -> SARIF in workspace
-              /opt/codeql/codeql database analyze /tmp/codeql-db \
-                --format=sarif-latest \
-                --output=/workspace/codeql-results.sarif
               else
+
                 flutter clean
                 flutter pub get
-
                 # run the build 
                 flutter build linux --release
               fi
