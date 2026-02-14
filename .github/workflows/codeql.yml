@@ -91,6 +91,8 @@ jobs:
       shell: bash
       run: |
         set -euo pipefail
+        # 1. Remove the runner's default CMake (High Priority)
+        sudo rm -f /usr/local/bin/cmake /usr/local/bin/ctest /usr/local/bin/cpack
         # remove package and purge config files
         sudo apt-get remove --purge -y cmake cmake-data
 
