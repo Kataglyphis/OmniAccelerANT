@@ -49,6 +49,7 @@ jobs:
           swap-storage: true
 
       - name: Initialize CodeQL
+        if: ${{ matrix.arch == 'x64' }}
         uses: github/codeql-action/init@v4
         with:
           languages: cpp,github-actions,rust,c
@@ -214,6 +215,7 @@ jobs:
             '
    
       - name: Run CodeQL analysis
+        if: ${{ matrix.arch == 'x64' }}
         uses: github/codeql-action/analyze@v4
       
       - name: Upload artifact
