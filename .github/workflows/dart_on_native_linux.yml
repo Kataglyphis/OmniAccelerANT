@@ -32,7 +32,10 @@ jobs:
             platform: linux/arm64
 
     runs-on: ${{ matrix.runs_on }}
-
+    permissions:
+      contents: read
+      security-events: write
+      
     steps:
       - name: Free Disk Space on Host
         uses: jlumbroso/free-disk-space@main
