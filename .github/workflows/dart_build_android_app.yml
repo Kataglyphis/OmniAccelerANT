@@ -50,30 +50,30 @@ jobs:
 
       - uses: actions/checkout@v6.0.2
         with:
-          fetch-depth: 0
+          fetch-depth: 1
           submodules: recursive
 
-      - name: Create swapfile on runner (helps avoid OOM during linking)
-        run: |
+      #- name: Create swapfile on runner (helps avoid OOM during linking)
+        #run: |
           # create 6 GiB swapfile (falls back to dd if fallocate fails)
-          sudo swapoff -a || true
-          if sudo test -f /swapfile; then
-            echo "/swapfile already exists"
-          else
-            if sudo fallocate -l 1G /swapfile; then
-              echo "fallocate succeeded"
-            else
-              echo "fallocate failed, using dd"
-              sudo dd if=/dev/zero of=/swapfile bs=1M count=6144
-            fi
-            sudo chmod 600 /swapfile
-            sudo mkswap /swapfile
-            sudo swapon /swapfile
-            echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
-          fi
-          swapon --show || true
-          free -h || true
-      
+          #sudo swapoff -a || true
+          #if sudo test -f /swapfile; then
+           # echo "/swapfile already exists"
+          #else
+            #if sudo fallocate -l 1G /swapfile; then
+            #  echo "fallocate succeeded"
+            #else
+            #  echo "fallocate failed, using dd"
+            #  sudo dd if=/dev/zero of=/swapfile bs=1M count=6144
+            #fi
+            #sudo chmod 600 /swapfile
+            #sudo mkswap /swapfile
+            #sudo swapon /swapfile
+            #echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+          #fi
+          #swapon --show || true
+          #free -h || true
+
       - name: Login to GitHub Container Registry
         run: echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
