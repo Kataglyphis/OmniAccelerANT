@@ -69,7 +69,7 @@ jobs:
         # your codebase is analyzed, see https://docs.github.com/en/code-security/code-scanning/creating-an-advanced-setup-for-code-scanning/codeql-code-scanning-for-compiled-languages
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6.0.2
 
     - name: Install Linux build deps
       if: matrix.language == 'c-cpp' && matrix.os == 'ubuntu-latest'
@@ -79,15 +79,34 @@ jobs:
         sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev
 
     - name: Setup Flutter
-      if: matrix.language == 'c-cpp'
-      uses: subosito/flutter-action@v2
+      if: matrix.language == 'c-cpp' || matrix.language == 'java-kotlin'
+      uses: flutter-actions/setup-flutter@v4.1
       with:
         channel: stable
+        version: 3.41.0
 
     - name: Flutter pub get
-      if: matrix.language == 'c-cpp'
+      if: matrix.language == 'c-cpp' || matrix.language == 'java-kotlin'
       shell: bash
       run: flutter pub get
+
+    - name: Prepare Android local.properties
+      if: matrix.language == 'java-kotlin'
+      shell: bash
+      run: |
+        flutter_sdk_path="${FLUTTER_ROOT:-${FLUTTER_HOME:-}}"
+        if [[ -z "$flutter_sdk_path" ]]; then
+          echo "Flutter SDK path not found in FLUTTER_ROOT or FLUTTER_HOME."
+          exit 1
+        fi
+        if [[ -z "${ANDROID_SDK_ROOT:-}" ]]; then
+          echo "ANDROID_SDK_ROOT not set."
+          exit 1
+        fi
+        cat > android/local.properties <<EOF
+        flutter.sdk=$flutter_sdk_path
+        sdk.dir=$ANDROID_SDK_ROOT
+        EOF
 
     # Add any setup steps before running the `github/codeql-action/init` action.
     # This includes steps like installing compilers or runtimes (`actions/setup-node`
