@@ -91,6 +91,12 @@ jobs:
       shell: bash
       run: |
         set -euo pipefail
+        # remove package and purge config files
+        sudo apt-get remove --purge -y cmake cmake-data
+
+        # remove unused dependencies and clean cache
+        sudo apt-get autoremove --purge -y
+        sudo apt-get autoclean
 
         # install prerequisites
         sudo apt-get update
