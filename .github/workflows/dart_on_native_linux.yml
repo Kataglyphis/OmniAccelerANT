@@ -45,12 +45,11 @@ jobs:
           docker-images: true
           swap-storage: true
 
-      - name: Prune Docker + show disk usage
-        run: |
-          set -eux
-          docker system prune -af --volumes || true
-          docker system df || true
-          df -h
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v4
+        with:
+          languages: cpp,github-actions,rust,c
+          queries: security-extended
 
       - uses: actions/checkout@v6.0.2
         with:
@@ -210,7 +209,10 @@ jobs:
             echo "Fixing ownership of doc/api to ${OWNER_UID}:${OWNER_GID}"
             chown -R ${OWNER_UID}:${OWNER_GID} /workspace/doc || true
             '
-
+   
+      - name: Run CodeQL analysis
+        uses: github/codeql-action/analyze@v4
+      
       - name: Upload artifact
         uses: actions/upload-artifact@v6.0.0
         with:
