@@ -130,22 +130,17 @@ jobs:
             ghcr.io/kataglyphis/kataglyphis_beschleuniger:latest \
             bash -lc '
             set -e
-
+            
             git config --global --add safe.directory /workspace || true
             git config --global --add safe.directory ${FLUTTER_DIR} || true
-
+            
             export PATH="${FLUTTER_DIR}/bin:$PATH"
             source ~/.bashrc
-
+            
             # --- START FIX ---
-            # 1. Force use of Clang/Clang++
             export CC=clang
             export CXX=clang++
-
-            # 2. Point Clang to the custom GCC headers and library
             export CXXFLAGS="--gcc-toolchain=/opt/gcc-15.2.0 $CXXFLAGS"
-
-            # 3. Ensure the linker finds the newer libstdc++
             export LDFLAGS="-L/opt/gcc-15.2.0/lib64 -Wl,-rpath,/opt/gcc-15.2.0/lib64 --gcc-toolchain=/opt/gcc-15.2.0 $LDFLAGS"
             # --- END FIX ---
 
@@ -162,9 +157,12 @@ jobs:
               /opt/codeql/codeql resolve languages
 
               cd /workspace
+              
+              # 1. DOWNLOAD PACKS FOR ALL LANGUAGES
               /opt/codeql/codeql pack download codeql/cpp-queries
+              /opt/codeql/codeql pack download codeql/python-queries 
 
-              # Create build script using printf to avoid heredoc indentation issues
+              # Create build script
               printf "%s\n" \
                 "#!/bin/bash -l" \
                 "set -e" \
@@ -181,18 +179,30 @@ jobs:
 
               chmod +x /tmp/codeql-build.sh
 
-              # Create CodeQL database
-              /opt/codeql/codeql database create /tmp/codeql-db \
+              # 2. CREATE DATABASE CLUSTER (Note --db-cluster and multiple --language flags)
+              /opt/codeql/codeql database create /tmp/codeql-db-cluster \
+                --db-cluster \
                 --language=cpp \
+                --language=python \
                 --source-root=/workspace \
                 --command=/tmp/codeql-build.sh
 
-              # Analyze the database
-              /opt/codeql/codeql database analyze /tmp/codeql-db \
+              # Create a directory to hold all SARIF results
+              mkdir -p /workspace/codeql-results
+
+              # 3. ANALYZE EACH LANGUAGE SEPARATELY
+              
+              # Analyze C++ (Path is /tmp/codeql-db-cluster/cpp)
+              /opt/codeql/codeql database analyze /tmp/codeql-db-cluster/cpp \
                 --format=sarif-latest \
-                --output=/workspace/codeql-results.sarif \
+                --output=/workspace/codeql-results/cpp.sarif \
                 codeql/cpp-queries:codeql-suites/cpp-security-and-quality.qls || true
 
+              # Analyze Python (Path is /tmp/codeql-db-cluster/python)
+              /opt/codeql/codeql database analyze /tmp/codeql-db-cluster/python \
+                --format=sarif-latest \
+                --output=/workspace/codeql-results/python.sarif \
+                codeql/python-queries:codeql-suites/python-security-and-quality.qls || true
 
             else
               # ARM64 build - no CodeQL
@@ -201,7 +211,6 @@ jobs:
               flutter build linux --release
             fi
             '
-
 
       - name: Package build artifacts
         run: |
@@ -253,7 +262,7 @@ jobs:
         if: ${{ matrix.arch == 'x64' }}
         uses: github/codeql-action/upload-sarif@v4
         with:
-          sarif_file: codeql-results.sarif
+          sarif_file: codeql-results
       
       - name: Upload artifact
         uses: actions/upload-artifact@v6.0.0
