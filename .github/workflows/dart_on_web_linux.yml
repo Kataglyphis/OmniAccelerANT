@@ -18,12 +18,15 @@ jobs:
     name: 🚀 Deploy website on push
     #runs-on: windows-latest
     runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      security-events: write
     steps:
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v4
         with:
-          languages: javascript-typescript
+          languages: javascript-typescript,actions,rust
           queries: security-extended
 
       - name: 🚚 Get latest code

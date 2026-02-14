@@ -12,6 +12,9 @@ defaults:
 jobs:
   build-clang:
     runs-on: windows-2025
+    permissions:
+      contents: read
+      security-events: write
 
     steps:
 
@@ -23,7 +26,7 @@ jobs:
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v4
         with:
-          languages: c-cpp,actions
+          languages: c-cpp,actions,rust
           queries: security-extended
 
       - name: Checkout

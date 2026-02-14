@@ -26,6 +26,9 @@ jobs:
             platform: linux/amd64
 
     runs-on: ${{ matrix.runs_on }}
+    permissions:
+      contents: read
+      security-events: write
 
     steps:
       - name: Free Disk Space on Host
@@ -42,7 +45,7 @@ jobs:
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v4
         with:
-          languages: java-kotlin,c-cpp
+          languages: java-kotlin,c-cpp,rust
           queries: security-extended
 
       - uses: actions/checkout@v6.0.2
