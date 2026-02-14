@@ -90,24 +90,28 @@ jobs:
       if: matrix.os == 'ubuntu-latest'
       shell: bash
       run: |
-       # install prerequisites
-       sudo apt-get update
-       sudo apt-get install -y --no-install-recommends ca-certificates apt-transport-https gnupg wget lsb-release
+        set -euo pipefail
 
-       # download and install Kitware apt key as a keyring (bash command instead of Invoke-WebRequest)
-       bash -c "wget -qO - https://apt.kitware.com/keys/kitware-archive-latest.asc \
-        | sudo gpg --dearmor -o /usr/share/keyrings/kitware-archive-keyring.gpg"
-       # add Kitware apt repository for the current Ubuntu codename
-       $codename = (lsb_release -sc).Trim()
-       $repoLine = "deb [signed-by=/usr/share/keyrings/kitware-archive-keyring.gpg] https://apt.kitware.com/ubuntu/ $codename main"
-       $repoLine | sudo tee /etc/apt/sources.list.d/kitware.list > $null
+        # install prerequisites
+        sudo apt-get update
+        sudo apt-get install -y --no-install-recommends ca-certificates apt-transport-https gnupg wget lsb-release
 
-       # install latest cmake from Kitware
-       sudo apt-get update
-       sudo apt-get install -y --no-install-recommends cmake
-       # verify
-       cmake --version   
-    
+        # download and install Kitware apt key as a keyring
+        wget -qO - https://apt.kitware.com/keys/kitware-archive-latest.asc \
+          | sudo gpg --dearmor -o /usr/share/keyrings/kitware-archive-keyring.gpg
+
+        # add Kitware apt repository for the current Ubuntu codename
+        codename="$(lsb_release -sc)"
+        echo "deb [signed-by=/usr/share/keyrings/kitware-archive-keyring.gpg] https://apt.kitware.com/ubuntu/ ${codename} main" \
+          | sudo tee /etc/apt/sources.list.d/kitware.list > /dev/null
+
+        # install latest cmake from Kitware
+        sudo apt-get update
+        sudo apt-get install -y --no-install-recommends cmake
+
+        # verify
+        cmake --version
+ 
     - name: Install Linux build deps
       if: matrix.language == 'c-cpp' && matrix.os == 'ubuntu-latest'
       shell: bash
