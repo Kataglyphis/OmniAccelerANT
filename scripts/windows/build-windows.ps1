@@ -317,7 +317,6 @@ if ($CodeQL) {
     $InnerCommand = "cmd /c powershell -NoProfile -ExecutionPolicy Bypass -File `"$($MyInvocation.MyCommand.Path)`" $CurrentArgs"
 
     # 3. Sequential Analysis Loop
-    # We run separately for C++ and Rust to avoid autobuilder conflicts and cluster errors.
     $Languages = @("cpp", "rust")
 
     foreach ($Lang in $Languages) {
@@ -328,10 +327,11 @@ if ($CodeQL) {
 
         $DbDir = Join-Path $Workspace "codeql_db_$Lang"
         $SarifOutput = Join-Path $Workspace "codeql-results-$Lang.sarif"
+        
+        # Define the standard query pack for the language
+        $QueryPack = "codeql/$Lang-queries"
 
-        # A. Create Database (Runs the build)
-        # We use --no-run-unnecessary-builds to stop CodeQL from triggering extra "autobuilds"
-        # that might conflict with our explicit script.
+        # A. Create Database
         Write-Log "Creating Database for $Lang..."
         if (Test-Path $DbDir) { Remove-Item -Recurse -Force $DbDir }
 
@@ -346,11 +346,21 @@ if ($CodeQL) {
             throw "CodeQL Database Create failed for $Lang" 
         }
 
-        # B. Analyze Database
+        # B. Download Queries
+        # The CLI zip doesn't come with queries, so we fetch the standard pack.
+        Write-Log "Downloading Query Pack: $QueryPack..."
+        & $CodeQLExe pack download $QueryPack
+        
+        # Note: If 'pack download' fails, you may need to use 'codeql-bundle-win64.tar.gz' 
+        # instead of 'codeql-win64.zip' in Step 1, but let's try downloading first.
+
+        # C. Analyze Database
+        # FIX: We pass $QueryPack as the second argument, NOT $SarifOutput
         Write-Log "Analyzing $Lang..."
-        & $CodeQLExe database analyze $DbDir $SarifOutput `
+        & $CodeQLExe database analyze $DbDir $QueryPack `
             --format=sarif-latest `
-            --output=$SarifOutput
+            --output=$SarifOutput `
+            --download # Auto-download dependencies if needed
 
         if ($LASTEXITCODE -ne 0) { 
             throw "CodeQL Analysis failed for $Lang" 
@@ -358,8 +368,6 @@ if ($CodeQL) {
 
         Write-LogSuccess "Saved results to: $SarifOutput"
     }
-
-    Write-LogSuccess "=== All CodeQL Passes Complete ==="
     exit 0 # Exit the outer "wrapper" script here
 }
 
