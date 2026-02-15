@@ -149,10 +149,8 @@ jobs:
 
             # 1. DOWNLOAD PACKS FOR ALL LANGUAGES
             /opt/codeql/codeql pack download codeql/cpp-queries
-            /opt/codeql/codeql pack download codeql/c-queries
             /opt/codeql/codeql pack download codeql/rust-queries
-            /opt/codeql/codeql pack download codeql/java-queries 
-            /opt/codeql/codeql pack download codeql/kotlin-queries
+            /opt/codeql/codeql pack download codeql/java-queries
 
             # Create build script
             printf "%s\n" \
