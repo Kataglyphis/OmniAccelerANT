@@ -307,71 +307,128 @@ if ($CodeQL) {
         Expand-Archive -Path $ZipPath -DestinationPath $CodeQLDir -Force
     }
 
-    # 2. Construct the "Inner" Build Command
-    # We recall this same script, but REMOVE the -CodeQL switch to avoid infinite loops
+    # 2. Download ALL query packs upfront
+    Write-Log "Downloading query packs for all languages..."
+    $Languages = @("cpp", "rust")
+    
+    foreach ($Lang in $Languages) {
+        $QueryPack = "codeql/$Lang-queries"
+        Write-Log "Downloading Query Pack: $QueryPack..."
+        & $CodeQLExe pack download $QueryPack
+        
+        if ($LASTEXITCODE -ne 0) {
+            Write-LogWarning "Failed to download $QueryPack, continuing..."
+        }
+    }
+
+    # 3. Construct the "Inner" Build Command
     $CurrentArgs = $MyInvocation.BoundParameters.GetEnumerator() |
                    Where-Object { $_.Key -ne "CodeQL" } |
                    ForEach-Object { "-$($_.Key) `"$($_.Value)`"" }
 
-    # Use cmd /c to ensure the complex command string is parsed correctly by CodeQL
     $InnerCommand = "cmd /c powershell -NoProfile -ExecutionPolicy Bypass -File `"$($MyInvocation.MyCommand.Path)`" $CurrentArgs"
 
-    # 3. Sequential Analysis Loop
-    $Languages = @("cpp", "rust")
+    # 4. Create Database CLUSTER (all languages at once)
+    Write-Log ""
+    Write-Log "================================================"
+    Write-Log ">>> Creating CodeQL Database Cluster"
+    Write-Log "================================================"
+
+    $DbClusterDir = Join-Path $Workspace "codeql-db-cluster"
+    
+    if (Test-Path $DbClusterDir) { 
+        Remove-Item -Recurse -Force $DbClusterDir 
+    }
+
+    # Build the language arguments dynamically
+    $languageArgs = @()
+    foreach ($Lang in $Languages) {
+        $languageArgs += "--language=$Lang"
+    }
+
+    # Create the cluster with multiple --language flags
+    $createArgs = @(
+        "database", "create", $DbClusterDir,
+        "--db-cluster"
+    ) + $languageArgs + @(
+        "--command=$InnerCommand",
+        "--no-run-unnecessary-builds",
+        "--source-root=$Workspace",
+        "--overwrite"
+    )
+
+    Write-Log "Creating database cluster with languages: $($Languages -join ', ')"
+    & $CodeQLExe @createArgs
+
+    if ($LASTEXITCODE -ne 0) {
+        throw "CodeQL Database Cluster creation failed"
+    }
+
+    Write-LogSuccess "Database cluster created successfully"
+
+    # 5. Analyze each language separately
+    $ResultsDir = Join-Path $Workspace "codeql-results"
+    New-Item -ItemType Directory -Force -Path $ResultsDir | Out-Null
 
     foreach ($Lang in $Languages) {
         Write-Log ""
         Write-Log "------------------------------------------------"
-        Write-Log ">>> Starting CodeQL Pass for Language: $Lang"
+        Write-Log ">>> Analyzing Language: $Lang"
         Write-Log "------------------------------------------------"
 
-        $DbDir = Join-Path $Workspace "codeql_db_$Lang"
-        $SarifOutput = Join-Path $Workspace "codeql-results-$Lang.sarif"
+        # Path to the language-specific subdatabase
+        $LangDbDir = Join-Path $DbClusterDir $Lang
+        $SarifOutput = Join-Path $ResultsDir "$Lang.sarif"
         
-        # Define the standard query pack for the language
-        $QueryPack = "codeql/$Lang-queries"
+        # Use query suite for more targeted analysis (optional)
+        $QuerySuite = "codeql/$Lang-queries:codeql-suites/$Lang-security-and-quality.qls"
+        
+        Write-Log "Analyzing database at: $LangDbDir"
+        
+        # Try with query suite first, fall back to query pack if it fails
+        $analyzeArgs = @(
+            "database", "analyze", $LangDbDir,
+            $QuerySuite,
+            "--format=sarif-latest",
+            "--output=$SarifOutput",
+            "--download"
+        )
 
-        # A. Create Database
-        Write-Log "Creating Database for $Lang..."
-        if (Test-Path $DbDir) { Remove-Item -Recurse -Force $DbDir }
+        & $CodeQLExe @analyzeArgs
 
-        & $CodeQLExe database create $DbDir `
-            --language=$Lang `
-            --command=$InnerCommand `
-            --no-run-unnecessary-builds `
-            --source-root=$Workspace `
-            --overwrite
-
-        if ($LASTEXITCODE -ne 0) { 
-            throw "CodeQL Database Create failed for $Lang" 
+        if ($LASTEXITCODE -ne 0) {
+            Write-LogWarning "Analysis with query suite failed for $Lang, trying with query pack..."
+            
+            # Fallback to basic query pack
+            $QueryPack = "codeql/$Lang-queries"
+            $analyzeArgs = @(
+                "database", "analyze", $LangDbDir,
+                $QueryPack,
+                "--format=sarif-latest",
+                "--output=$SarifOutput",
+                "--download"
+            )
+            
+            & $CodeQLExe @analyzeArgs
+            
+            if ($LASTEXITCODE -ne 0) {
+                Write-LogError "Analysis failed for $Lang even with basic query pack"
+                continue
+            }
         }
 
-        # B. Download Queries
-        # The CLI zip doesn't come with queries, so we fetch the standard pack.
-        Write-Log "Downloading Query Pack: $QueryPack..."
-        & $CodeQLExe pack download $QueryPack
-        
-        # Note: If 'pack download' fails, you may need to use 'codeql-bundle-win64.tar.gz' 
-        # instead of 'codeql-win64.zip' in Step 1, but let's try downloading first.
-
-        # C. Analyze Database
-        # FIX: We pass $QueryPack as the second argument, NOT $SarifOutput
-        Write-Log "Analyzing $Lang..."
-        & $CodeQLExe database analyze $DbDir $QueryPack `
-            --format=sarif-latest `
-            --output=$SarifOutput `
-            --download # Auto-download dependencies if needed
-
-        if ($LASTEXITCODE -ne 0) { 
-            throw "CodeQL Analysis failed for $Lang" 
-        }
-
-        Write-LogSuccess "Saved results to: $SarifOutput"
+        Write-LogSuccess "Analysis completed for $Lang. Results saved to: $SarifOutput"
     }
-    exit 0 # Exit the outer "wrapper" script here
+
+    Write-Log ""
+    Write-LogSuccess "=== CodeQL Analysis Complete ==="
+    Write-Log "All results available in: $ResultsDir"
+    
+    exit 0
 }
 
 #endregion
+    
 
 #region ==================== HELPER FUNCTIONS ====================
 
