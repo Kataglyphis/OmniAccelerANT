@@ -325,6 +325,7 @@ if ($CodeQL) {
     
     & $CodeQLExe database create $CodeQLDb `
         --language="cpp,rust" `
+        --db-cluster `
         --source-root=$Workspace `
         --command=$InnerCommand `
         --overwrite
