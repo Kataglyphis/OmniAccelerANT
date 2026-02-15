@@ -335,10 +335,12 @@ if ($CodeQL) {
     if ($LASTEXITCODE -ne 0) { throw "CodeQL Init failed" }
 
     # Step B: Trace (Run your script once; CodeQL captures clang-cl and rustc calls)
+    # FIX: trace-command expects the command as positional args after '--', not via a flag.
     Write-Log "Tracing Build..."
     & $CodeQLExe database trace-command $CodeQLDb `
-        --command=$InnerCommand `
-        --working-dir=$Workspace
+        --working-dir=$Workspace `
+        -- `
+        cmd /c $InnerCommand
 
     if ($LASTEXITCODE -ne 0) { throw "CodeQL Trace failed" }
 
