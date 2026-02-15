@@ -25,6 +25,17 @@ param(
     [switch] $CodeQL
 )
 
+# ==================== FIX: RESOLVE WORKSPACE FIRST ====================
+# Move this block from "Main Script" to here (top of execution)
+try {
+    $Workspace = (Resolve-Path -Path $WorkspaceDir -ErrorAction Stop).Path
+} catch {
+    Write-Host "Workspace path doesn't exist, creating: $WorkspaceDir"
+    New-Item -ItemType Directory -Force -Path $WorkspaceDir | Out-Null
+    $Workspace = (Resolve-Path -Path $WorkspaceDir).Path
+}
+# ======================================================================
+
 #region ==================== LOGGING INFRASTRUCTURE ====================
 
 $script:LogWriter = $null
@@ -374,16 +385,6 @@ if ($ContinueOnError) {
     $ErrorActionPreference = "Continue"
 } else {
     $ErrorActionPreference = "Stop"
-}
-
-# Resolve workspace
-
-try {
-    $Workspace = (Resolve-Path -Path $WorkspaceDir -ErrorAction Stop).Path
-} catch {
-    Write-Host "Workspace path doesn't exist, creating: $WorkspaceDir"
-    New-Item -ItemType Directory -Force -Path $WorkspaceDir | Out-Null
-    $Workspace = (Resolve-Path -Path $WorkspaceDir).Path
 }
 
 # Initialize logging
