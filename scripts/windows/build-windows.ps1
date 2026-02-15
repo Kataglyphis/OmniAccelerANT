@@ -293,12 +293,12 @@ function Write-Summary {
 
 if ($CodeQL) {
     Write-Log "=== CodeQL Mode Active ==="
-    
+
     # 1. Setup CodeQL CLI
     $CodeQLUrl = "https://github.com/github/codeql-cli-binaries/releases/latest/download/codeql-win64.zip"
     $CodeQLDir = Join-Path $Workspace "codeql-cli"
     $CodeQLExe = Join-Path $CodeQLDir "codeql\codeql.exe"
-    
+
     if (-not (Test-Path $CodeQLExe)) {
         Write-Log "Downloading CodeQL CLI..."
         New-Item -ItemType Directory -Force -Path $CodeQLDir | Out-Null
@@ -306,60 +306,60 @@ if ($CodeQL) {
         Invoke-WebRequest -Uri $CodeQLUrl -OutFile $ZipPath
         Expand-Archive -Path $ZipPath -DestinationPath $CodeQLDir -Force
     }
-    
-    # 2. Define Paths
-    $CodeQLDb = Join-Path $Workspace "codeql_db"
-    $SarifOutput = Join-Path $Workspace "codeql-results.sarif"
-    
-    # 3. Construct the "Inner" Build Command
+
+    # 2. Construct the "Inner" Build Command
     # We recall this same script, but REMOVE the -CodeQL switch to avoid infinite loops
-    $CurrentArgs = $MyInvocation.BoundParameters.GetEnumerator() | 
-                   Where-Object { $_.Key -ne "CodeQL" } | 
+    $CurrentArgs = $MyInvocation.BoundParameters.GetEnumerator() |
+                   Where-Object { $_.Key -ne "CodeQL" } |
                    ForEach-Object { "-$($_.Key) `"$($_.Value)`"" }
-    
-    $InnerCommand = "powershell -NoProfile -ExecutionPolicy Bypass -File `"$($MyInvocation.MyCommand.Path)`" $CurrentArgs"
-    
-    # 4. Create Database (Manual Mode for Multi-Language)
-    Write-Log "Initializing CodeQL Database Cluster..."
-    
-    # Clean up any old DB
-    if (Test-Path $CodeQLDb) { Remove-Item -Recurse -Force $CodeQLDb }
 
-    # Step A: Initialize (Define the languages)
-    & $CodeQLExe database init $CodeQLDb `
-        --language="cpp,rust" `
-        --source-root=$Workspace `
-        --db-cluster `
-        --overwrite
+    # Use cmd /c to ensure the complex command string is parsed correctly by CodeQL
+    $InnerCommand = "cmd /c powershell -NoProfile -ExecutionPolicy Bypass -File `"$($MyInvocation.MyCommand.Path)`" $CurrentArgs"
 
-    if ($LASTEXITCODE -ne 0) { throw "CodeQL Init failed" }
+    # 3. Sequential Analysis Loop
+    # We run separately for C++ and Rust to avoid autobuilder conflicts and cluster errors.
+    $Languages = @("cpp", "rust")
 
-    # Step B: Trace (Run your script once; CodeQL captures clang-cl and rustc calls)
-    # FIX: trace-command expects the command as positional args after '--', not via a flag.
-    Write-Log "Tracing Build..."
-    & $CodeQLExe database trace-command $CodeQLDb `
-        --working-dir=$Workspace `
-        -- `
-        cmd /c $InnerCommand
+    foreach ($Lang in $Languages) {
+        Write-Log ""
+        Write-Log "------------------------------------------------"
+        Write-Log ">>> Starting CodeQL Pass for Language: $Lang"
+        Write-Log "------------------------------------------------"
 
-    if ($LASTEXITCODE -ne 0) { throw "CodeQL Trace failed" }
+        $DbDir = Join-Path $Workspace "codeql_db_$Lang"
+        $SarifOutput = Join-Path $Workspace "codeql-results-$Lang.sarif"
 
-    # Step C: Finalize (Process the captured data)
-    Write-Log "Finalizing Database..."
-    & $CodeQLExe database finalize $CodeQLDb
+        # A. Create Database (Runs the build)
+        # We use --no-run-unnecessary-builds to stop CodeQL from triggering extra "autobuilds"
+        # that might conflict with our explicit script.
+        Write-Log "Creating Database for $Lang..."
+        if (Test-Path $DbDir) { Remove-Item -Recurse -Force $DbDir }
 
-    if ($LASTEXITCODE -ne 0) { throw "CodeQL Finalize failed" }
+        & $CodeQLExe database create $DbDir `
+            --language=$Lang `
+            --command=$InnerCommand `
+            --no-run-unnecessary-builds `
+            --source-root=$Workspace `
+            --overwrite
 
+        if ($LASTEXITCODE -ne 0) { 
+            throw "CodeQL Database Create failed for $Lang" 
+        }
 
-    # 5. Analyze Database
-    Write-Log "Analyzing Database..."
-    & $CodeQLExe database analyze $CodeQLDb $SarifOutput `
-        --format=sarif-latest `
-        --output=$SarifOutput
-        
-    if ($LASTEXITCODE -ne 0) { throw "CodeQL Analysis failed" }
-    
-    Write-LogSuccess "CodeQL Analysis Complete. Results at: $SarifOutput"
+        # B. Analyze Database
+        Write-Log "Analyzing $Lang..."
+        & $CodeQLExe database analyze $DbDir $SarifOutput `
+            --format=sarif-latest `
+            --output=$SarifOutput
+
+        if ($LASTEXITCODE -ne 0) { 
+            throw "CodeQL Analysis failed for $Lang" 
+        }
+
+        Write-LogSuccess "Saved results to: $SarifOutput"
+    }
+
+    Write-LogSuccess "=== All CodeQL Passes Complete ==="
     exit 0 # Exit the outer "wrapper" script here
 }
 
