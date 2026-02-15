@@ -21,7 +21,8 @@ param(
     [switch] $SkipTests,
     [switch] $SkipFlutterBuild,
     [switch] $ContinueOnError,
-    [switch] $StopOnError
+    [switch] $StopOnError,
+    [switch] $CodeQL
 )
 
 #region ==================== LOGGING INFRASTRUCTURE ====================
@@ -273,6 +274,62 @@ function Write-Summary {
     } else {
         Write-LogSuccess "Pipeline completed successfully!"
     }
+}
+
+#endregion
+
+#region ==================== CODEQL ORCHESTRATION ====================
+
+if ($CodeQL) {
+    Write-Log "=== CodeQL Mode Active ==="
+    
+    # 1. Setup CodeQL CLI
+    $CodeQLUrl = "https://github.com/github/codeql-cli-binaries/releases/latest/download/codeql-win64.zip"
+    $CodeQLDir = Join-Path $Workspace "codeql-cli"
+    $CodeQLExe = Join-Path $CodeQLDir "codeql\codeql.exe"
+    
+    if (-not (Test-Path $CodeQLExe)) {
+        Write-Log "Downloading CodeQL CLI..."
+        New-Item -ItemType Directory -Force -Path $CodeQLDir | Out-Null
+        $ZipPath = Join-Path $CodeQLDir "codeql.zip"
+        Invoke-WebRequest -Uri $CodeQLUrl -OutFile $ZipPath
+        Expand-Archive -Path $ZipPath -DestinationPath $CodeQLDir -Force
+    }
+    
+    # 2. Define Paths
+    $CodeQLDb = Join-Path $Workspace "codeql_db"
+    $SarifOutput = Join-Path $Workspace "codeql-results.sarif"
+    
+    # 3. Construct the "Inner" Build Command
+    # We recall this same script, but REMOVE the -CodeQL switch to avoid infinite loops
+    $CurrentArgs = $MyInvocation.BoundParameters.GetEnumerator() | 
+                   Where-Object { $_.Key -ne "CodeQL" } | 
+                   ForEach-Object { "-$($_.Key) `"$($_.Value)`"" }
+    
+    $InnerCommand = "powershell -NoProfile -ExecutionPolicy Bypass -File `"$($MyInvocation.MyCommand.Path)`" $CurrentArgs"
+    
+    # 4. Create Database (The "Trace")
+    Write-Log "Initializing CodeQL Database and Tracing Build..."
+    if (Test-Path $CodeQLDb) { Remove-Item -Recurse -Force $CodeQLDb }
+    
+    & $CodeQLExe database create $CodeQLDb `
+        --language="cpp,rust" `
+        --source-root=$Workspace `
+        --command=$InnerCommand `
+        --overwrite
+        
+    if ($LASTEXITCODE -ne 0) { throw "CodeQL Database creation failed" }
+
+    # 5. Analyze Database
+    Write-Log "Analyzing Database..."
+    & $CodeQLExe database analyze $CodeQLDb $SarifOutput `
+        --format=sarif-latest `
+        --output=$SarifOutput
+        
+    if ($LASTEXITCODE -ne 0) { throw "CodeQL Analysis failed" }
+    
+    Write-LogSuccess "CodeQL Analysis Complete. Results at: $SarifOutput"
+    exit 0 # Exit the outer "wrapper" script here
 }
 
 #endregion

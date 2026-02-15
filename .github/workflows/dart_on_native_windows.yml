@@ -23,12 +23,6 @@ jobs:
         run: git config --global core.longpaths true
         shell: pwsh
 
-      - name: Initialize CodeQL
-        uses: github/codeql-action/init@v4
-        with:
-          languages: c-cpp,actions,rust
-          queries: security-extended
-
       - name: Checkout
         uses: actions/checkout@v6.0.2
         with:
@@ -57,7 +51,7 @@ jobs:
             --mount "type=bind,source=${{ github.workspace }},target=C:\workspace" `
             -w "C:\workspace" `
             ghcr.io/kataglyphis/kataglyphis_beschleuniger:winamd64 `
-            powershell -NoProfile -ExecutionPolicy Bypass -File "C:\workspace\scripts\windows\build-windows.ps1"
+            powershell -NoProfile -ExecutionPolicy Bypass -File "C:\workspace\scripts\windows\build-windows.ps1" -CodeQL
 
       # see also the install commands in the bottom of the CMakeLists.txt
       - name: Upload files & Zip
@@ -69,5 +63,9 @@ jobs:
             ${{ env.BUILD_DIR_RELEASE }}/**/*.dll
             ${{ env.BUILD_DIR_RELEASE }}/data/**/*
 
-      - name: Run CodeQL analysis
-        uses: github/codeql-action/analyze@v4
+      # NEW: Upload CodeQL Results
+      - name: Upload CodeQL Results
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: codeql-results.sarif
+          category: windows-clang-rust
