@@ -319,18 +319,35 @@ if ($CodeQL) {
     
     $InnerCommand = "powershell -NoProfile -ExecutionPolicy Bypass -File `"$($MyInvocation.MyCommand.Path)`" $CurrentArgs"
     
-    # 4. Create Database (The "Trace")
-    Write-Log "Initializing CodeQL Database and Tracing Build..."
-    if (Test-Path $CodeQLDb) { Remove-Item -Recurse -Force $CodeQLDb }
+    # 4. Create Database (Manual Mode for Multi-Language)
+    Write-Log "Initializing CodeQL Database Cluster..."
     
-    & $CodeQLExe database create $CodeQLDb `
+    # Clean up any old DB
+    if (Test-Path $CodeQLDb) { Remove-Item -Recurse -Force $CodeQLDb }
+
+    # Step A: Initialize (Define the languages)
+    & $CodeQLExe database init $CodeQLDb `
         --language="cpp,rust" `
-        --db-cluster `
         --source-root=$Workspace `
-        --command=$InnerCommand `
+        --db-cluster `
         --overwrite
-        
-    if ($LASTEXITCODE -ne 0) { throw "CodeQL Database creation failed" }
+
+    if ($LASTEXITCODE -ne 0) { throw "CodeQL Init failed" }
+
+    # Step B: Trace (Run your script once; CodeQL captures clang-cl and rustc calls)
+    Write-Log "Tracing Build..."
+    & $CodeQLExe database trace-command $CodeQLDb `
+        --command=$InnerCommand `
+        --working-dir=$Workspace
+
+    if ($LASTEXITCODE -ne 0) { throw "CodeQL Trace failed" }
+
+    # Step C: Finalize (Process the captured data)
+    Write-Log "Finalizing Database..."
+    & $CodeQLExe database finalize $CodeQLDb
+
+    if ($LASTEXITCODE -ne 0) { throw "CodeQL Finalize failed" }
+
 
     # 5. Analyze Database
     Write-Log "Analyzing Database..."
