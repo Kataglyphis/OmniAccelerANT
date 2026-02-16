@@ -53,7 +53,7 @@ jobs:
             --mount "type=bind,source=${{ github.workspace }},target=C:\workspace" `
             -w "C:\workspace" `
             ghcr.io/kataglyphis/kataglyphis_beschleuniger:winamd64 `
-            powershell -NoProfile -ExecutionPolicy Bypass -File "C:\workspace\scripts\windows\build-windows.ps1" 
+            powershell -NoProfile -ExecutionPolicy Bypass -File "C:\workspace\scripts\windows\Build-Windows.ps1" 
 
       # see also the install commands in the bottom of the CMakeLists.txt
       - name: Upload files & Zip

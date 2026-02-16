@@ -8,10 +8,12 @@ param(
     [string] $CMakeBuildType = "Release",
     [string] $LogDir = "logs",
     [switch] $SkipTests,
-    [switch] $SkipFlutterBuild,
+    [switch] $SkipBootstrapFlutterBuild,
     [switch] $ContinueOnError,
     [switch] $StopOnError,
     [switch] $CodeQL,
+    [switch] $CleanCodeQLDb,
+    [switch] $CodeQLDownload,
     [string[]] $RequiredTools = @('cmake', 'clang-cl', 'flutter', 'cargo', 'ninja'),
     [switch] $FailOnMissingRequiredTools
 )
@@ -26,13 +28,15 @@ if (-not (Test-Path $sharedModulePath)) {
 
 Import-Module $sharedModulePath -Force
 
-$codeQLModulePath = Join-Path $PSScriptRoot "..\..\ExternalLib\Kataglyphis-ContainerHub\windows\scripts\modules\WindowsCodeQL.Common.psm1"
-$codeQLModulePath = [System.IO.Path]::GetFullPath($codeQLModulePath)
-if (-not (Test-Path $codeQLModulePath)) {
-    throw "Required CodeQL module not found: $codeQLModulePath"
-}
+if ($CodeQL) {
+    $codeQLModulePath = Join-Path $PSScriptRoot "..\..\ExternalLib\Kataglyphis-ContainerHub\windows\scripts\modules\WindowsCodeQL.Common.psm1"
+    $codeQLModulePath = [System.IO.Path]::GetFullPath($codeQLModulePath)
+    if (-not (Test-Path $codeQLModulePath)) {
+        throw "Required CodeQL module not found: $codeQLModulePath"
+    }
 
-Import-Module $codeQLModulePath -Force
+    Import-Module $codeQLModulePath -Force
+}
 
 $toolchainModulePath = Join-Path $PSScriptRoot "..\..\ExternalLib\Kataglyphis-ContainerHub\windows\scripts\modules\WindowsToolchain.Common.psm1"
 $toolchainModulePath = [System.IO.Path]::GetFullPath($toolchainModulePath)
@@ -50,19 +54,11 @@ if (-not (Test-Path $sharedUtilitiesModulePath)) {
 
 Import-Module $sharedUtilitiesModulePath -Force
 
-function Resolve-WorkspacePath {
-    param([string]$Path)
-
-    try {
-        return (Resolve-Path -Path $Path -ErrorAction Stop).Path
-    } catch {
-        Write-Host "Workspace path doesn't exist, creating: $Path"
-        New-Item -ItemType Directory -Force -Path $Path | Out-Null
-        return (Resolve-Path -Path $Path -ErrorAction Stop).Path
-    }
-}
-
 $workspace = Resolve-WorkspacePath -Path $WorkspaceDir
+
+if ($ContinueOnError -and $StopOnError) {
+    throw "-ContinueOnError and -StopOnError cannot be used together."
+}
 
 if ($ContinueOnError) {
     $ErrorActionPreference = "Continue"
@@ -84,6 +80,8 @@ $nativeAssetsDir = Resolve-NormalizedPath -BasePath $workspace -RelativePath "bu
 
 $env:BUILD_DIR_RELEASE = $BuildDirRelease
 
+$hadUnhandledError = $false
+
 try {
     Write-BuildLog -Context $context -Message "=== Kataglyphis Windows Build Script ==="
     Write-BuildLog -Context $context -Message "Started at: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')"
@@ -100,15 +98,24 @@ try {
     Write-BuildLog -Context $context -Message "Rust DLL source:  $dllSource"
     Write-BuildLog -Context $context -Message "Rust DLL dest:    $dllDestDir"
     Write-BuildLog -Context $context -Message "SkipTests:        $SkipTests"
-    Write-BuildLog -Context $context -Message "SkipFlutterBuild: $SkipFlutterBuild"
+    Write-BuildLog -Context $context -Message "SkipFlutterBuild: $SkipBootstrapFlutterBuild"
     Write-BuildLog -Context $context -Message "ContinueOnError:  $ContinueOnError"
     Write-BuildLog -Context $context -Message "StopOnError:      $StopOnError"
+    Write-BuildLog -Context $context -Message "CleanCodeQLDb:    $CleanCodeQLDb"
+    Write-BuildLog -Context $context -Message "CodeQLDownload:   $CodeQLDownload"
     Write-BuildLog -Context $context -Message "RequiredTools:    $($RequiredTools -join ', ')"
     Write-BuildLog -Context $context -Message "FailOnMissingRequiredTools: $FailOnMissingRequiredTools"
     Write-BuildLog -Context $context -Message ("=" * 60)
 
     if ($CodeQL) {
-        Invoke-BuildCodeQL -Context $context -Workspace $workspace -ForwardParameters $PSBoundParameters -BuildScriptPath $MyInvocation.MyCommand.Path
+        $codeQLForwardParameters = @{}
+        foreach ($pair in $PSBoundParameters.GetEnumerator()) {
+            $codeQLForwardParameters[$pair.Key] = $pair.Value
+        }
+        $codeQLForwardParameters['SkipBootstrapFlutterBuild'] = $true
+
+        Write-BuildLog -Context $context -Message "CodeQL mode: forcing SkipBootstrapFlutterBuild to analyze only non-bootstrap steps."
+        Invoke-BuildCodeQL -Context $context -Workspace $workspace -ForwardParameters $codeQLForwardParameters -BuildScriptPath $MyInvocation.MyCommand.Path
         exit 0
     }
 
@@ -120,7 +127,7 @@ try {
         Invoke-BuildExternal -Context $context -File "git" -Parameters @("config", "--global", "core.longpaths", "true") -IgnoreExitCode
     }
 
-    if (-not $SkipFlutterBuild) {
+    if (-not $SkipBootstrapFlutterBuild) {
         Invoke-BuildStep -Context $context -StepName "Flutter Dependencies" -Critical -Script {
             Invoke-BuildExternal -Context $context -File "flutter" -Parameters @("pub", "get")
             Invoke-BuildExternal -Context $context -File "flutter" -Parameters @("config", "--enable-windows-desktop")
@@ -160,14 +167,16 @@ try {
         Write-BuildLog -Context $context -Message "Skipping format/analyze/tests (SkipTests set)."
     }
 
-    Invoke-BuildStep -Context $context -StepName "Clean Build Directory" -Script {
-        $removed = Remove-BuildRoot -Context $context -Path $buildRoot
-        if (-not $removed -and -not $ContinueOnError) {
-            throw "Failed to remove build root: $buildRoot"
-        }
-    }
+    
+    if (-not $SkipBootstrapFlutterBuild) {
 
-    if (-not $SkipFlutterBuild) {
+        Invoke-BuildStep -Context $context -StepName "Clean Build Directory" -Script {
+            $removed = Remove-BuildRoot -Context $context -Path $buildRoot
+            if (-not $removed -and -not $ContinueOnError) {
+                throw "Failed to remove build root: $buildRoot"
+            }
+        }
+        
         Invoke-BuildStep -Context $context -StepName "Flutter Ephemeral Build (C++ Headers)" -Script {
             Invoke-BuildExternal -Context $context -File "flutter" -Parameters @("build", "windows", "--release") -IgnoreExitCode
         }
@@ -191,7 +200,8 @@ try {
         } elseif ($pluginContent -match [regex]::Escape($targetLine)) {
             Write-BuildLog -Context $context -Message "Patching permission_handler_windows..."
             $updatedPluginContent = $pluginContent -replace [regex]::Escape($targetLine), $patchedLine
-            Set-Content -LiteralPath $pluginFile -Value $updatedPluginContent
+            $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+            [System.IO.File]::WriteAllText($pluginFile, $updatedPluginContent, $utf8NoBom)
         } else {
             Write-BuildLogWarning -Context $context -Message "Patch target line not found in permission_handler_windows plugin file."
         }
@@ -267,15 +277,42 @@ try {
     Write-BuildLogSuccess -Context $context -Message "=== Build Complete ==="
     Write-BuildLog -Context $context -Message "Build artifacts located at: $(Join-Path $workspace $env:BUILD_DIR_RELEASE)"
 } catch {
+    $hadUnhandledError = $true
     Write-BuildLogError -Context $context -Message "Unhandled critical error: $($_.Exception.Message)"
     if ($_.ScriptStackTrace) {
         Write-BuildLogError -Context $context -Message "Stack trace: $($_.ScriptStackTrace)"
     }
 } finally {
     Write-BuildSummary -Context $context
+
+    try {
+        $logDirPath = if ([System.IO.Path]::IsPathRooted($LogDir)) {
+            $LogDir
+        } else {
+            Join-Path $workspace $LogDir
+        }
+
+        New-Item -ItemType Directory -Force -Path $logDirPath | Out-Null
+
+        $summaryFileName = [System.IO.Path]::GetFileName($context.SummaryPath)
+        $summaryPathInLogDir = Join-Path $logDirPath $summaryFileName
+
+        $sourceSummaryPath = [System.IO.Path]::GetFullPath($context.SummaryPath)
+        $targetSummaryPath = [System.IO.Path]::GetFullPath($summaryPathInLogDir)
+
+        if ($sourceSummaryPath -ne $targetSummaryPath) {
+            Copy-Item -Path $sourceSummaryPath -Destination $targetSummaryPath -Force
+            Write-BuildLog -Context $context -Message "Additional JSON summary copy available at: $targetSummaryPath"
+        } else {
+            Write-BuildLog -Context $context -Message "JSON summary already saved under LogDir: $targetSummaryPath"
+        }
+    } catch {
+        Write-BuildLogWarning -Context $context -Message "Failed to copy JSON summary to LogDir: $($_.Exception.Message)"
+    }
+
     Close-BuildLog -Context $context
 
-    if ($context.Results.Failed.Count -gt 0) {
+    if ($hadUnhandledError -or $context.Results.Failed.Count -gt 0) {
         exit 1
     }
 }

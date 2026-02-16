@@ -51,176 +51,54 @@ jobs:
         run: echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
       - name: Pull container image
-        run: |
-          for i in 1 2 3; do
-            echo "Attempt $i to pull container..."
-            if timeout 900 docker pull ghcr.io/kataglyphis/kataglyphis_beschleuniger:latest; then
-              echo "Successfully pulled container"
-              exit 0
-            fi
-            echo "Pull failed, waiting before retry..."
-            sleep 30
-          done
-          echo "Failed to pull container after 3 attempts"
-          exit 1
+        run: bash scripts/linux/ci-dart-build-android-app.sh pull_container
+        env:
+          CONTAINER_IMAGE: ghcr.io/kataglyphis/kataglyphis_beschleuniger:latest
+          MATRIX_PLATFORM: ${{ matrix.platform }}
+          MATRIX_ARCH: ${{ matrix.arch }}
+          FLUTTER_VERSION: ${{ env.FLUTTER_VERSION }}
+          FLUTTER_DIR: ${{ env.FLUTTER_DIR }}
+          APP_NAME: ${{ env.APP_NAME }}
 
       - name: Setup Flutter in container
-        run: |
-          docker run --rm \
-            --platform ${{ matrix.platform }} \
-            -v ${{ github.workspace }}:/workspace \
-            -w /workspace \
-            -e FLUTTER_VERSION=${{ env.FLUTTER_VERSION }} \
-            -e FLUTTER_DIR=${{ env.FLUTTER_DIR }} \
-            -e MATRIX_ARCH=${{ matrix.arch }} \
-            ghcr.io/kataglyphis/kataglyphis_beschleuniger:latest \
-            bash -lc '
-            set -e
-            git config --global --add safe.directory /workspace || true
-            git config --global --add safe.directory ${FLUTTER_DIR} || true
-
-            chmod +x scripts/linux/setup-flutter-x86-64.sh
-            ./scripts/linux/setup-flutter-x86-64.sh $FLUTTER_VERSION $(dirname ${FLUTTER_DIR})
-            '
+        run: bash scripts/linux/ci-dart-build-android-app.sh setup_flutter
+        env:
+          CONTAINER_IMAGE: ghcr.io/kataglyphis/kataglyphis_beschleuniger:latest
+          MATRIX_PLATFORM: ${{ matrix.platform }}
+          MATRIX_ARCH: ${{ matrix.arch }}
+          FLUTTER_VERSION: ${{ env.FLUTTER_VERSION }}
+          FLUTTER_DIR: ${{ env.FLUTTER_DIR }}
+          APP_NAME: ${{ env.APP_NAME }}
 
       - name: Run Flutter checks and tests
-        run: |
-          docker run --rm \
-            --platform ${{ matrix.platform }} \
-            -v ${{ github.workspace }}:/workspace \
-            -w /workspace \
-            -e FLUTTER_VERSION=${{ env.FLUTTER_VERSION }} \
-            -e FLUTTER_DIR=${{ env.FLUTTER_DIR }} \
-            ghcr.io/kataglyphis/kataglyphis_beschleuniger:latest \
-            bash -lc '
-            set -e
-            export PATH="$PWD/flutter/bin:$PATH"
-            git config --global --add safe.directory /workspace || true
-            git config --global --add safe.directory ${FLUTTER_DIR} || true
-
-            source ~/.bashrc
-            export PATH="${FLUTTER_DIR}/bin:$PATH"
-
-            flutter pub get
-            dart format --output=none --set-exit-if-changed . || true
-            dart analyze || true
-            flutter test || true
-            flutter config --enable-android
-            '
+        run: bash scripts/linux/ci-dart-build-android-app.sh checks
+        env:
+          CONTAINER_IMAGE: ghcr.io/kataglyphis/kataglyphis_beschleuniger:latest
+          MATRIX_PLATFORM: ${{ matrix.platform }}
+          MATRIX_ARCH: ${{ matrix.arch }}
+          FLUTTER_VERSION: ${{ env.FLUTTER_VERSION }}
+          FLUTTER_DIR: ${{ env.FLUTTER_DIR }}
+          APP_NAME: ${{ env.APP_NAME }}
 
       - name: Build Flutter Android app
-        run: |
-          docker run --rm \
-            --platform ${{ matrix.platform }} \
-            -v ${{ github.workspace }}:/workspace \
-            -w /workspace \
-            -e FLUTTER_VERSION=${{ env.FLUTTER_VERSION }} \
-            -e FLUTTER_DIR=${{ env.FLUTTER_DIR }} \
-            -e APP_NAME=${{ env.APP_NAME }} \
-            -e MATRIX_ARCH=${{ matrix.arch }} \
-            ghcr.io/kataglyphis/kataglyphis_beschleuniger:latest \
-            bash -lc '
-            set -e
-
-            git config --global --add safe.directory /workspace || true
-            git config --global --add safe.directory ${FLUTTER_DIR} || true
-
-            export PATH="${FLUTTER_DIR}/bin:$PATH"
-            source ~/.bashrc
-
-            # --- START FIX ---
-            export CC=clang
-            export CXX=clang++
-            export CXXFLAGS="--gcc-toolchain=/opt/gcc-15.2.0 $CXXFLAGS"
-            export LDFLAGS="-L/opt/gcc-15.2.0/lib64 -Wl,-rpath,/opt/gcc-15.2.0/lib64 --gcc-toolchain=/opt/gcc-15.2.0 $LDFLAGS"
-            # --- END FIX ---
-
-            # Setup CodeQL
-            TMPDIR=/tmp/codeql
-            mkdir -p $TMPDIR
-            cd $TMPDIR
-
-            wget -q https://github.com/github/codeql-cli-binaries/releases/latest/download/codeql-linux64.zip -O codeql.zip
-            unzip -q codeql.zip -d /opt
-
-            /opt/codeql/codeql resolve languages
-
-            cd /workspace
-
-            # 1. DOWNLOAD PACKS FOR ALL LANGUAGES
-            /opt/codeql/codeql pack download codeql/cpp-queries
-            /opt/codeql/codeql pack download codeql/rust-queries
-            /opt/codeql/codeql pack download codeql/java-queries
-
-            # Create build script
-            printf "%s\n" \
-              "#!/bin/bash -l" \
-              "set -e" \
-              "export CC=clang" \
-              "export CXX=clang++" \
-              "export CXXFLAGS=\"--gcc-toolchain=/opt/gcc-15.2.0 \$CXXFLAGS\"" \
-              "export LDFLAGS=\"-L/opt/gcc-15.2.0/lib64 -Wl,-rpath,/opt/gcc-15.2.0/lib64 --gcc-toolchain=/opt/gcc-15.2.0 \$LDFLAGS\"" \
-              "export PATH=\"\${FLUTTER_DIR}/bin:\$PATH\"" \
-              "source ~/.bashrc 2>/dev/null || true" \
-              "flutter clean" \
-              "flutter pub get" \
-              "flutter build apk --release" \
-              > /tmp/codeql-build.sh
-
-            chmod +x /tmp/codeql-build.sh
-
-            # 2. CREATE DATABASE CLUSTER (Note --db-cluster and multiple --language flags)
-            /opt/codeql/codeql database create /tmp/codeql-db-cluster \
-              --db-cluster \
-              --language=cpp \
-              --language=c \
-              --language=rust \
-              --language=java \
-              --language=kotlin \
-              --source-root=/workspace \
-              --command=/tmp/codeql-build.sh
-
-            # Create a directory to hold all SARIF results
-            mkdir -p /workspace/codeql-results
-
-            # 3. ANALYZE EACH LANGUAGE SEPARATELY
-            # Analyze C++ (Path is /tmp/codeql-db-cluster/cpp)
-            /opt/codeql/codeql database analyze /tmp/codeql-db-cluster/cpp \
-              --format=sarif-latest \
-              --output=/workspace/codeql-results/cpp.sarif \
-              codeql/cpp-queries:codeql-suites/cpp-security-and-quality.qls || true
-
-            # Analyze Kotlin (Path is /tmp/codeql-db-cluster/kotlin
-            /opt/codeql/codeql database analyze /tmp/codeql-db-cluster/kotlin \
-              --format=sarif-latest \
-              --output=/workspace/codeql-results/kotlin.sarif \
-              codeql/kotlin-queries:codeql-suites/kotlin-security-and-quality.qls || true
-
-            # Analyze Rust (Path is /tmp/codeql-db-cluster/rust)
-            /opt/codeql/codeql database analyze /tmp/codeql-db-cluster/rust \
-                --format=sarif-latest \
-                --output=/workspace/codeql-results/rust.sarif \
-                codeql/rust-queries:codeql-suites/rust-security-and-quality.qls || true
-
-            '
+        run: bash scripts/linux/ci-dart-build-android-app.sh build_android
+        env:
+          CONTAINER_IMAGE: ghcr.io/kataglyphis/kataglyphis_beschleuniger:latest
+          MATRIX_PLATFORM: ${{ matrix.platform }}
+          MATRIX_ARCH: ${{ matrix.arch }}
+          FLUTTER_VERSION: ${{ env.FLUTTER_VERSION }}
+          FLUTTER_DIR: ${{ env.FLUTTER_DIR }}
+          APP_NAME: ${{ env.APP_NAME }}
 
       - name: Package build artifacts
-        run: |
-          docker run --rm \
-            --platform ${{ matrix.platform }} \
-            -v ${{ github.workspace }}:/workspace \
-            -w /workspace \
-            -e APP_NAME=${{ env.APP_NAME }} \
-            -e MATRIX_ARCH=${{ matrix.arch }} \
-            ghcr.io/kataglyphis/kataglyphis_beschleuniger:latest \
-            bash -lc '
-            set -e
-            rm -rf build/linux/$MATRIX_ARCH/release/obj || true
-            rm -rf ~/.pub-cache/hosted || true
-            mkdir -p out
-            cp -r build/app/outputs/flutter-apk out/${APP_NAME}-bundle
-            tar -C out -czf ${APP_NAME}-linux-$MATRIX_ARCH.tar.gz ${APP_NAME}-bundle
-            '
+        run: bash scripts/linux/ci-dart-build-android-app.sh package
+        env:
+          CONTAINER_IMAGE: ghcr.io/kataglyphis/kataglyphis_beschleuniger:latest
+          MATRIX_PLATFORM: ${{ matrix.platform }}
+          MATRIX_ARCH: ${{ matrix.arch }}
+          FLUTTER_VERSION: ${{ env.FLUTTER_VERSION }}
+          FLUTTER_DIR: ${{ env.FLUTTER_DIR }}
+          APP_NAME: ${{ env.APP_NAME }}
 
       - name: Upload artifact
         uses: actions/upload-artifact@v6.0.0
