@@ -26,7 +26,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6.0.2
         with:
-            fetch-depth: 0
+            fetch-depth: 1
             submodules: recursive
 
       # my windows container is quite big ... so remove runner packages for enough
@@ -44,14 +44,16 @@ jobs:
       - name: Pull image
         run: |
           docker pull ghcr.io/kataglyphis/kataglyphis_beschleuniger:winamd64 
-
+      
+      # -CodeQL turns on analysis
+      # for now disabled due to long runtimes
       - name: Run container
         run: |
           docker run --rm `
             --mount "type=bind,source=${{ github.workspace }},target=C:\workspace" `
             -w "C:\workspace" `
             ghcr.io/kataglyphis/kataglyphis_beschleuniger:winamd64 `
-            powershell -NoProfile -ExecutionPolicy Bypass -File "C:\workspace\scripts\windows\build-windows.ps1" -CodeQL
+            powershell -NoProfile -ExecutionPolicy Bypass -File "C:\workspace\scripts\windows\build-windows.ps1" 
 
       # see also the install commands in the bottom of the CMakeLists.txt
       - name: Upload files & Zip
@@ -63,9 +65,9 @@ jobs:
             ${{ env.BUILD_DIR_RELEASE }}/**/*.dll
             ${{ env.BUILD_DIR_RELEASE }}/data/**/*
 
-      # NEW: Upload CodeQL Results
-      - name: Upload CodeQL Results
-        uses: github/codeql-action/upload-sarif@v3
+      - uses: github/codeql-action/upload-sarif@v4 # Recommended upgrade
         with:
-          sarif_file: codeql-results.sarif
+        if: hashFiles('codeql-results/*.sarif') != ''
+        sarif_file: codeql-results # Points to the folder containing cpp.sarif and rust.sarif
           category: windows-clang-rust
+
