@@ -1,14 +1,3 @@
-<#
-.SYNOPSIS
-  Configurable Windows build script for the Kataglyphis project with logging.
-
-.DESCRIPTION
-  Run with defaults or pass parameters to override workspace path and other options.
-  Example:
-    .\build-windows.ps1 -WorkspaceDir "D:\dev\kataglyphis" -SkipFlutterBuild
-    .\build-windows.ps1 -LogDir "build_logs" -StopOnError
-#>
-
 [CmdletBinding()]
 param(
     [string] $WorkspaceDir = $PWD.Path,
@@ -19,299 +8,57 @@ param(
     [string] $CMakeBuildType = "Release",
     [string] $LogDir = "logs",
     [switch] $SkipTests,
-    [switch] $SkipFlutterBuild,
+    [switch] $SkipBootstrapFlutterBuild,
     [switch] $ContinueOnError,
-    [switch] $StopOnError
+    [switch] $StopOnError,
+    [switch] $CodeQL,
+    [switch] $CleanCodeQLDb,
+    [switch] $CodeQLDownload,
+    [string[]] $RequiredTools = @('cmake', 'clang-cl', 'flutter', 'cargo', 'ninja'),
+    [switch] $FailOnMissingRequiredTools
 )
 
-#region ==================== LOGGING INFRASTRUCTURE ====================
+Set-StrictMode -Version Latest
 
-$script:LogWriter = $null
-$script:LogPath = $null
-
-# Results tracking
-
-$script:Results = @{
-    Succeeded = New-Object System.Collections.Generic.List[string]
-    Failed    = New-Object System.Collections.Generic.List[string]
-    Errors    = @{}
+$sharedModulePath = Join-Path $PSScriptRoot "..\..\ExternalLib\Kataglyphis-ContainerHub\windows\scripts\modules\WindowsBuild.Common.psm1"
+$sharedModulePath = [System.IO.Path]::GetFullPath($sharedModulePath)
+if (-not (Test-Path $sharedModulePath)) {
+    throw "Required build module not found: $sharedModulePath"
 }
 
-function Open-Log {
-    param(
-        [Parameter(Mandatory)]
-        [string]$Path
-    )
+Import-Module $sharedModulePath -Force
 
-    $parentDir = Split-Path -Parent $Path
-    if ($parentDir -and -not (Test-Path $parentDir)) {
-        New-Item -ItemType Directory -Force -Path $parentDir | Out-Null
+if ($CodeQL) {
+    $codeQLModulePath = Join-Path $PSScriptRoot "..\..\ExternalLib\Kataglyphis-ContainerHub\windows\scripts\modules\WindowsCodeQL.Common.psm1"
+    $codeQLModulePath = [System.IO.Path]::GetFullPath($codeQLModulePath)
+    if (-not (Test-Path $codeQLModulePath)) {
+        throw "Required CodeQL module not found: $codeQLModulePath"
     }
 
-    $fileStream = New-Object System.IO.FileStream(
-        $Path,
-        [System.IO.FileMode]::Append,
-        [System.IO.FileAccess]::Write,
-        [System.IO.FileShare]::ReadWrite
-    )
-    $script:LogWriter = New-Object System.IO.StreamWriter($fileStream, [System.Text.Encoding]::UTF8)
-    $script:LogWriter.AutoFlush = $true
-    $script:LogPath = $Path
+    Import-Module $codeQLModulePath -Force
 }
 
-function Close-Log {
-    if ($script:LogWriter) {
-        try {
-            $script:LogWriter.Flush()
-            $script:LogWriter.Dispose()
-        } catch {
-            # ignore
-        } finally {
-            $script:LogWriter = $null
-        }
-    }
+$toolchainModulePath = Join-Path $PSScriptRoot "..\..\ExternalLib\Kataglyphis-ContainerHub\windows\scripts\modules\WindowsToolchain.Common.psm1"
+$toolchainModulePath = [System.IO.Path]::GetFullPath($toolchainModulePath)
+if (-not (Test-Path $toolchainModulePath)) {
+    throw "Required toolchain module not found: $toolchainModulePath"
 }
 
-function Write-Log {
-    param(
-        [Parameter(Mandatory)]
-        [AllowEmptyString()]
-        [string]$Message
-    )
+Import-Module $toolchainModulePath -Force
 
-    Write-Host $Message
-    if ($script:LogWriter) {
-        $timestamp = Get-Date -Format "HH:mm:ss"
-        $script:LogWriter.WriteLine("[$timestamp] $Message")
-    }
+$sharedUtilitiesModulePath = Join-Path $PSScriptRoot "..\..\ExternalLib\Kataglyphis-ContainerHub\windows\scripts\modules\WindowsScripts.Shared.psm1"
+$sharedUtilitiesModulePath = [System.IO.Path]::GetFullPath($sharedUtilitiesModulePath)
+if (-not (Test-Path $sharedUtilitiesModulePath)) {
+    throw "Required shared utilities module not found: $sharedUtilitiesModulePath"
 }
 
-function Write-LogWarning {
-    param(
-        [Parameter(Mandatory)]
-        [AllowEmptyString()]
-        [string]$Message
-    )
+Import-Module $sharedUtilitiesModulePath -Force
 
-    if ($Message) {
-        Write-Warning $Message
-        if ($script:LogWriter) {
-            $timestamp = Get-Date -Format "HH:mm:ss"
-            $script:LogWriter.WriteLine("[$timestamp] WARNING: $Message")
-        }
-    } else {
-        Write-Host ""
-        if ($script:LogWriter) {
-            $script:LogWriter.WriteLine("")
-        }
-    }
+$workspace = Resolve-WorkspacePath -Path $WorkspaceDir
+
+if ($ContinueOnError -and $StopOnError) {
+    throw "-ContinueOnError and -StopOnError cannot be used together."
 }
-
-function Write-LogError {
-    param(
-        [Parameter(Mandatory)]
-        [AllowEmptyString()]
-        [string]$Message
-    )
-
-    if ($Message) {
-        Write-Host $Message -ForegroundColor Red
-        if ($script:LogWriter) {
-            $timestamp = Get-Date -Format "HH:mm:ss"
-            $script:LogWriter.WriteLine("[$timestamp] ERROR: $Message")
-        }
-    } else {
-        Write-Host ""
-        if ($script:LogWriter) {
-            $script:LogWriter.WriteLine("")
-        }
-    }
-}
-
-function Write-LogSuccess {
-    param(
-        [Parameter(Mandatory)]
-        [AllowEmptyString()]
-        [string]$Message
-    )
-
-    if ($Message) {
-        Write-Host $Message -ForegroundColor Green
-        if ($script:LogWriter) {
-            $timestamp = Get-Date -Format "HH:mm:ss"
-            $script:LogWriter.WriteLine("[$timestamp] SUCCESS: $Message")
-        }
-    } else {
-        Write-Host ""
-        if ($script:LogWriter) {
-            $script:LogWriter.WriteLine("")
-        }
-    }
-}
-
-function Invoke-External {
-    param(
-        [Parameter(Mandatory)]
-        [string]$File,
-        [string[]]$Args = @(),
-        [switch]$IgnoreExitCode
-    )
-
-    $cmdLine = if ($Args -and $Args.Count) { "$File $($Args -join ' ')" } else { $File }
-    Write-Log "CMD: $cmdLine"
-
-    $previousErrorActionPreference = $ErrorActionPreference
-    $ErrorActionPreference = "Continue"
-    $global:LASTEXITCODE = 0
-    
-    try {
-        & $File @Args 2>&1 | ForEach-Object {
-            $line = $_
-            if ($null -eq $line) { return }
-            Write-Log ([string]$line)
-        }
-        $exitCode = $LASTEXITCODE
-        if ($exitCode -ne 0 -and -not $IgnoreExitCode) {
-            throw "Command failed with exit code ${exitCode}: $cmdLine"
-        }
-        return $exitCode
-    } finally {
-        $ErrorActionPreference = $previousErrorActionPreference
-    }
-}
-
-function Invoke-Step {
-    param(
-        [Parameter(Mandatory)]
-        [string]$StepName,
-        [Parameter(Mandatory)]
-        [scriptblock]$Script,
-        [switch]$Critical
-    )
-
-    Write-Log ""
-    Write-Log ">>> Starting: $StepName"
-    Write-Log ("=" * 60)
-
-    $stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
-    
-    try {
-        & $Script
-        $stopwatch.Stop()
-        $script:Results.Succeeded.Add($StepName) | Out-Null
-        Write-LogSuccess "<<< Completed: $StepName (Duration: $($stopwatch.Elapsed.ToString('mm\:ss\.fff')))"
-        return $true
-    } catch {
-        $stopwatch.Stop()
-        $errorMessage = $_.Exception.Message
-        $script:Results.Failed.Add($StepName) | Out-Null
-        $script:Results.Errors[$StepName] = $errorMessage
-        Write-LogError "<<< FAILED: $StepName (Duration: $($stopwatch.Elapsed.ToString('mm\:ss\.fff')))"
-        Write-LogError "    Error: $errorMessage"
-
-        if ($_.ScriptStackTrace) {
-            Write-Log "    Stack: $($_.ScriptStackTrace)"
-        }
-
-        if ($StopOnError -and $Critical) {
-            throw "Critical step '$StepName' failed: $errorMessage"
-        }
-
-        return $false
-    }
-}
-
-function Invoke-Optional {
-    param(
-        [scriptblock]$Script,
-        [string]$Name
-    )
-
-    try {
-        & $Script
-    } catch {
-        Write-LogWarning "$Name failed, continuing. Details: $($_.Exception.Message)"
-    }
-}
-
-function Write-Summary {
-    Write-Log ""
-    Write-Log ("=" * 60)
-    Write-Log "=== BUILD PIPELINE SUMMARY ==="
-    Write-Log ("=" * 60)
-    Write-Log ""
-
-    if ($script:Results.Succeeded.Count -gt 0) {
-        Write-LogSuccess "SUCCEEDED ($($script:Results.Succeeded.Count)):"
-        foreach ($step in $script:Results.Succeeded) {
-            Write-LogSuccess "  [OK] $step"
-        }
-    }
-
-    Write-Log ""
-
-    if ($script:Results.Failed.Count -gt 0) {
-        Write-LogError "FAILED ($($script:Results.Failed.Count)):"
-        foreach ($step in $script:Results.Failed) {
-            Write-LogError "  [X] $step"
-            Write-LogError "      Error: $($script:Results.Errors[$step])"
-        }
-    }
-
-    Write-Log ""
-    $total = $script:Results.Succeeded.Count + $script:Results.Failed.Count
-    $successRate = if ($total -gt 0) { [math]::Round(($script:Results.Succeeded.Count / $total) * 100, 1) } else { 0 }
-    Write-Log "Total: $total steps, $($script:Results.Succeeded.Count) succeeded, $($script:Results.Failed.Count) failed ($($successRate)% success rate)"
-    Write-Log ""
-
-    if ($script:LogPath) {
-        Write-Log "Full log available at: $script:LogPath"
-    }
-
-    if ($script:Results.Failed.Count -gt 0) {
-        Write-LogWarning "Pipeline completed with errors!"
-    } else {
-        Write-LogSuccess "Pipeline completed successfully!"
-    }
-}
-
-#endregion
-
-#region ==================== HELPER FUNCTIONS ====================
-
-function Remove-BuildRoot {
-    param([Parameter(Mandatory=$true)][string]$Path)
-
-    if (-not (Test-Path $Path)) {
-        Write-Log "Build root does not exist: $Path"
-        return $true
-    }
-
-    Write-Log "Terminating potentially locking processes..."
-    @("flutter", "dart", "msbuild", "devenv", "ninja", "cmake") | ForEach-Object {
-        Get-Process $_ -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
-    }
-
-    Start-Sleep -Seconds 3
-
-    for ($i = 1; $i -le 3; $i++) {
-        try {
-            Remove-Item -LiteralPath $Path -Recurse -Force -ErrorAction Stop
-            Write-Log "Build directory removed: $Path"
-            return $true
-        } catch {
-            Write-LogWarning "Attempt $i/3 failed: $($_.Exception.Message)"
-            if ($i -lt 3) { Start-Sleep -Seconds 2 }
-        }
-    }
-    return $false
-}
-
-#endregion
-
-#region ==================== MAIN SCRIPT ====================
-
-# Error handling preference
 
 if ($ContinueOnError) {
     $ErrorActionPreference = "Continue"
@@ -319,237 +66,253 @@ if ($ContinueOnError) {
     $ErrorActionPreference = "Stop"
 }
 
-# Resolve workspace
+$context = New-BuildContext -Workspace $workspace -LogDir $LogDir -StopOnError:$StopOnError
+Open-BuildLog -Context $context
 
-try {
-    $Workspace = (Resolve-Path -Path $WorkspaceDir -ErrorAction Stop).Path
-} catch {
-    Write-Host "Workspace path doesn't exist, creating: $WorkspaceDir"
-    New-Item -ItemType Directory -Force -Path $WorkspaceDir | Out-Null
-    $Workspace = (Resolve-Path -Path $WorkspaceDir).Path
-}
-
-# Initialize logging
-
-$timestamp = Get-Date -Format "yyyyMMdd-HHmmss"
-$logDirPath = Join-Path $Workspace $LogDir
-New-Item -ItemType Directory -Force $logDirPath | Out-Null
-$logPath = Join-Path $logDirPath "build-windows-$timestamp.log"
-
-Open-Log -Path $logPath
-
-# Derived paths
-
-$BuildRoot = Join-Path $Workspace "build"
-$BuildDirFull = Join-Path $Workspace ($BuildDirRelease -replace '/','\')
-$WindowsSrc = Join-Path $Workspace "windows"
-$CMakeBuildDir = Join-Path $Workspace "build\windows\x64"
-$RustDir = Join-Path $Workspace $RustCrateDir
-$DllSource = Join-Path $RustDir "target\release\$RustDllName"
-$DllDestDir = Join-Path $Workspace "build\windows\x64\plugins\$($RustDllName -replace '\.dll$','')"
-$NativeAssetsDir = Join-Path $Workspace "build\native_assets\windows"
+$buildRoot = Resolve-NormalizedPath -BasePath $workspace -RelativePath "build"
+$buildDirFull = Resolve-NormalizedPath -BasePath $workspace -RelativePath $BuildDirRelease
+$windowsSrc = Resolve-NormalizedPath -BasePath $workspace -RelativePath "windows"
+$cmakeBuildDir = Resolve-NormalizedPath -BasePath $workspace -RelativePath "build/windows/x64"
+$rustDir = Resolve-NormalizedPath -BasePath $workspace -RelativePath $RustCrateDir
+$dllSource = Resolve-NormalizedPath -BasePath $rustDir -RelativePath "target/release/$RustDllName"
+$dllDestDir = Resolve-NormalizedPath -BasePath $workspace -RelativePath "build/windows/x64/plugins/$($RustDllName -replace '\\.dll$','')"
+$nativeAssetsDir = Resolve-NormalizedPath -BasePath $workspace -RelativePath "build/native_assets/windows"
 
 $env:BUILD_DIR_RELEASE = $BuildDirRelease
 
+$hadUnhandledError = $false
+
 try {
-    Write-Log "=== Kataglyphis Windows Build Script ==="
-    Write-Log "Started at: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')"
-    Write-Log "Logging to: $logPath"
-    Write-Log ""
-    Write-Log "=== Configuration ==="
-    Write-Log "Workspace:        $Workspace"
-    Write-Log "BuildDirRelease:  $BuildDirRelease"
-    Write-Log "BuildDirFull:     $BuildDirFull"
-    Write-Log "CMakeBuildDir:    $CMakeBuildDir"
-    Write-Log "CMakeGenerator:   $CMakeGenerator"
-    Write-Log "CMakeBuildType:   $CMakeBuildType"
-    Write-Log "RustDir:          $RustDir"
-    Write-Log "Rust DLL source:  $DllSource"
-    Write-Log "Rust DLL dest:    $DllDestDir"
-    Write-Log "SkipTests:        $SkipTests"
-    Write-Log "SkipFlutterBuild: $SkipFlutterBuild"
-    Write-Log "ContinueOnError:  $ContinueOnError"
-    Write-Log "StopOnError:      $StopOnError"
-    Write-Log ("=" * 60)
+    Write-BuildLog -Context $context -Message "=== Kataglyphis Windows Build Script ==="
+    Write-BuildLog -Context $context -Message "Started at: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')"
+    Write-BuildLog -Context $context -Message "Logging to: $($context.LogPath)"
+    Write-BuildLog -Context $context -Message ""
+    Write-BuildLog -Context $context -Message "=== Configuration ==="
+    Write-BuildLog -Context $context -Message "Workspace:        $workspace"
+    Write-BuildLog -Context $context -Message "BuildDirRelease:  $BuildDirRelease"
+    Write-BuildLog -Context $context -Message "BuildDirFull:     $buildDirFull"
+    Write-BuildLog -Context $context -Message "CMakeBuildDir:    $cmakeBuildDir"
+    Write-BuildLog -Context $context -Message "CMakeGenerator:   $CMakeGenerator"
+    Write-BuildLog -Context $context -Message "CMakeBuildType:   $CMakeBuildType"
+    Write-BuildLog -Context $context -Message "RustDir:          $rustDir"
+    Write-BuildLog -Context $context -Message "Rust DLL source:  $dllSource"
+    Write-BuildLog -Context $context -Message "Rust DLL dest:    $dllDestDir"
+    Write-BuildLog -Context $context -Message "SkipTests:        $SkipTests"
+    Write-BuildLog -Context $context -Message "SkipFlutterBuild: $SkipBootstrapFlutterBuild"
+    Write-BuildLog -Context $context -Message "ContinueOnError:  $ContinueOnError"
+    Write-BuildLog -Context $context -Message "StopOnError:      $StopOnError"
+    Write-BuildLog -Context $context -Message "CleanCodeQLDb:    $CleanCodeQLDb"
+    Write-BuildLog -Context $context -Message "CodeQLDownload:   $CodeQLDownload"
+    Write-BuildLog -Context $context -Message "RequiredTools:    $($RequiredTools -join ', ')"
+    Write-BuildLog -Context $context -Message "FailOnMissingRequiredTools: $FailOnMissingRequiredTools"
+    Write-BuildLog -Context $context -Message ("=" * 60)
 
-    # --- Step 1: Environment Check ---
-    Invoke-Step -StepName "Environment Check" -Script {
-        Invoke-Optional -Name "cmake" -Script { 
-            Invoke-External -File "cmake" -Args @("--version") 
+    if ($CodeQL) {
+        $codeQLForwardParameters = @{}
+        foreach ($pair in $PSBoundParameters.GetEnumerator()) {
+            $codeQLForwardParameters[$pair.Key] = $pair.Value
         }
-        Invoke-Optional -Name "clang-cl" -Script { 
-            Invoke-External -File "clang-cl" -Args @("--version") 
-        }
-        Invoke-Optional -Name "flutter" -Script { 
-            Invoke-External -File "flutter" -Args @("--version") 
-        }
-        Invoke-Optional -Name "cargo" -Script { 
-            Invoke-External -File "cargo" -Args @("--version") 
-        }
-        Invoke-Optional -Name "ninja" -Script { 
-            Invoke-External -File "ninja" -Args @("--version") 
-        }
+        $codeQLForwardParameters['SkipBootstrapFlutterBuild'] = $true
+
+        Write-BuildLog -Context $context -Message "CodeQL mode: forcing SkipBootstrapFlutterBuild to analyze only non-bootstrap steps."
+        Invoke-BuildCodeQL -Context $context -Workspace $workspace -ForwardParameters $codeQLForwardParameters -BuildScriptPath $MyInvocation.MyCommand.Path
+        exit 0
     }
 
-    # --- Step 2: Git Configuration ---
-    Invoke-Step -StepName "Git Configuration" -Script {
-        Invoke-External -File "git" -Args @("config", "--global", "core.longpaths", "true") -IgnoreExitCode
+    Invoke-BuildStep -Context $context -StepName "Environment Check" -Script {
+        Invoke-ToolchainChecks -Context $context -RequiredTools $RequiredTools -FailOnMissingRequiredTools:$FailOnMissingRequiredTools
     }
 
-    # --- Step 3: Flutter Setup ---
-    if (-not $SkipFlutterBuild) {
-        Invoke-Step -StepName "Flutter Dependencies" -Critical -Script {
-            Invoke-External -File "flutter" -Args @("pub", "get")
-            Invoke-External -File "flutter" -Args @("config", "--enable-windows-desktop")
+    Invoke-BuildStep -Context $context -StepName "Git Configuration" -Script {
+        Invoke-BuildExternal -Context $context -File "git" -Parameters @("config", "--global", "core.longpaths", "true") -IgnoreExitCode
+    }
+
+    if (-not $SkipBootstrapFlutterBuild) {
+        Invoke-BuildStep -Context $context -StepName "Flutter Dependencies" -Critical -Script {
+            Invoke-BuildExternal -Context $context -File "flutter" -Parameters @("pub", "get")
+            Invoke-BuildExternal -Context $context -File "flutter" -Parameters @("config", "--enable-windows-desktop")
         }
     } else {
-        Write-Log "Skipping Flutter dependency steps (SkipFlutterBuild set)."
+        Write-BuildLog -Context $context -Message "Skipping Flutter dependency steps (SkipFlutterBuild set)."
     }
 
-    # --- Step 4-6: Code Quality & Tests ---
     if (-not $SkipTests) {
-        Invoke-Step -StepName "Dart Format Verification" -Script {
-            # Only format Dart-relevant directories (exclude ExternalLib)
-            $dartDirs = @("lib", "test", "bin", "integration_test") |
-                Where-Object { Test-Path (Join-Path $Workspace $_) }
-
+        Invoke-BuildStep -Context $context -StepName "Dart Format Verification" -Script {
+            $dartDirs = @("lib", "test", "bin", "integration_test") | Where-Object { Test-Path (Join-Path $workspace $_) }
             if ($dartDirs.Count -eq 0) {
-                Write-Log "No Dart directories found to format."
+                Write-BuildLog -Context $context -Message "No Dart directories found to format."
                 return
             }
 
-            Write-Log "Formatting directories: $($dartDirs -join ', ')"
+            Write-BuildLog -Context $context -Message "Formatting directories: $($dartDirs -join ', ')"
             foreach ($dir in $dartDirs) {
-                # We use Invoke-Optional here too, so formatting errors don't stop the build
-                Invoke-Optional -Name "Format $dir" -Script {
-                    Invoke-External -File "dart" -Args @("format", "--output=none", "--set-exit-if-changed", $dir)
+                Invoke-BuildOptional -Context $context -Name "Format $dir" -Script {
+                    Invoke-BuildExternal -Context $context -File "dart" -Parameters @("format", "--output=none", "--set-exit-if-changed", $dir)
                 }
             }
         }
 
-        Invoke-Step -StepName "Dart Analysis" -Script {
-            Invoke-Optional -Name "Dart Analysis" -Script {
-                Invoke-External -File "dart" -Args @("analyze")
+        Invoke-BuildStep -Context $context -StepName "Dart Analysis" -Script {
+            Invoke-BuildOptional -Context $context -Name "Dart Analysis" -Script {
+                Invoke-BuildExternal -Context $context -File "dart" -Parameters @("analyze")
             }
         }
 
-        Invoke-Step -StepName "Flutter Tests" -Script {
-            Invoke-Optional -Name "Flutter Tests" -Script {
-                Invoke-External -File "flutter" -Args @("test")
+        Invoke-BuildStep -Context $context -StepName "Flutter Tests" -Script {
+            Invoke-BuildOptional -Context $context -Name "Flutter Tests" -Script {
+                Invoke-BuildExternal -Context $context -File "flutter" -Parameters @("test")
             }
         }
     } else {
-        Write-Log "Skipping format/analyze/tests (SkipTests set)."
+        Write-BuildLog -Context $context -Message "Skipping format/analyze/tests (SkipTests set)."
     }
 
-    # --- Step 7: Flutter Ephemeral Build ---
-    if (-not $SkipFlutterBuild) {
-        Invoke-Step -StepName "Flutter Ephemeral Build (C++ Headers)" -Script {
-            Invoke-External -File "flutter" -Args @("build", "windows", "--release") -IgnoreExitCode
+    
+    if (-not $SkipBootstrapFlutterBuild) {
+
+        Invoke-BuildStep -Context $context -StepName "Clean Build Directory" -Script {
+            $removed = Remove-BuildRoot -Context $context -Path $buildRoot
+            if (-not $removed -and -not $ContinueOnError) {
+                throw "Failed to remove build root: $buildRoot"
+            }
+        }
+        
+        Invoke-BuildStep -Context $context -StepName "Flutter Ephemeral Build (C++ Headers)" -Script {
+            Invoke-BuildExternal -Context $context -File "flutter" -Parameters @("build", "windows", "--release") -IgnoreExitCode
+        }
+
+        Invoke-BuildStep -Context $context -StepName "Reset CMake Build Directory" -Script {
+            if (Test-Path $cmakeBuildDir) {
+                Remove-Item -LiteralPath $cmakeBuildDir -Recurse -Force -ErrorAction Stop
+            }
+            New-Item -ItemType Directory -Force -Path $cmakeBuildDir | Out-Null
         }
     }
 
-    # --- Step 8: Clean Build Directory ---
-    Invoke-Step -StepName "Clean Build Directory" -Script {
-        $removed = Remove-BuildRoot -Path $BuildRoot
-        if (-not $removed -and -not $ContinueOnError) {
-            throw "Failed to remove build root: $BuildRoot"
-        }
-    }
-
-    # Patch permission_handler_windows for clang-cl compatibility
-    $pluginFile = "windows\flutter\ephemeral\.plugin_symlinks\permission_handler_windows\windows\permission_handler_windows_plugin.cpp"
+    $pluginFile = Resolve-NormalizedPath -BasePath $workspace -RelativePath "windows/flutter/ephemeral/.plugin_symlinks/permission_handler_windows/windows/permission_handler_windows_plugin.cpp"
     if (Test-Path $pluginFile) {
-        Write-Host "Patching permission_handler_windows..."
-        (Get-Content $pluginFile) -replace 'result->Success\(requestResults\);', 'result->Success(flutter::EncodableValue(requestResults));' | Set-Content $pluginFile
+        $pluginContent = Get-Content -LiteralPath $pluginFile -Raw
+        $targetLine = 'result->Success(requestResults);'
+        $patchedLine = 'result->Success(flutter::EncodableValue(requestResults));'
+
+        if ($pluginContent -match [regex]::Escape($patchedLine)) {
+            Write-BuildLog -Context $context -Message "permission_handler_windows already patched."
+        } elseif ($pluginContent -match [regex]::Escape($targetLine)) {
+            Write-BuildLog -Context $context -Message "Patching permission_handler_windows..."
+            $updatedPluginContent = $pluginContent -replace [regex]::Escape($targetLine), $patchedLine
+            $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+            [System.IO.File]::WriteAllText($pluginFile, $updatedPluginContent, $utf8NoBom)
+        } else {
+            Write-BuildLogWarning -Context $context -Message "Patch target line not found in permission_handler_windows plugin file."
+        }
     }
 
-    # --- Step 9: CMake Configure ---
-    Invoke-Step -StepName "CMake Configure" -Critical -Script {
+    Invoke-BuildStep -Context $context -StepName "CMake Configure" -Critical -Script {
         $cmakeArgs = @(
-            $WindowsSrc
-            "-B", $CMakeBuildDir
+            $windowsSrc
+            "-B", $cmakeBuildDir
             "-G", $CMakeGenerator
             "-DCMAKE_BUILD_TYPE=$CMakeBuildType"
-            "-DCMAKE_INSTALL_PREFIX=$BuildDirFull"
+            "-DCMAKE_INSTALL_PREFIX=$buildDirFull"
             "-DFLUTTER_TARGET_PLATFORM=windows-x64"
             "-DCMAKE_CXX_COMPILER=clang-cl"
             "-DCMAKE_C_COMPILER=clang-cl"
             "-DCMAKE_CXX_COMPILER_TARGET=x86_64-pc-windows-msvc"
         )
-        Invoke-External -File "cmake" -Args $cmakeArgs
+        Invoke-BuildExternal -Context $context -File "cmake" -Parameters $cmakeArgs
     }
 
-    # --- Step 10: Rust Build ---
-    Invoke-Step -StepName "Rust Crate Build" -Script {
-        if (-not (Test-Path $RustDir)) {
-            throw "Rust crate directory not found: $RustDir"
+    Invoke-BuildStep -Context $context -StepName "Rust Crate Build" -Script {
+        if (-not (Test-Path $rustDir)) {
+            throw "Rust crate directory not found: $rustDir"
         }
-        
-        Push-Location $RustDir
+
+        Push-Location $rustDir
         try {
-            Invoke-Optional -Name "flutter_rust_bridge_codegen install" -Script {
-                Invoke-External -File "cargo" -Args @("install", "flutter_rust_bridge_codegen")
+            Invoke-BuildOptional -Context $context -Name "flutter_rust_bridge_codegen install" -Script {
+                Invoke-BuildExternal -Context $context -File "cargo" -Parameters @("install", "flutter_rust_bridge_codegen")
             }
-            Invoke-External -File "cargo" -Args @("build", "--release")
+            Invoke-BuildExternal -Context $context -File "cargo" -Parameters @("build", "--release")
         } finally {
             Pop-Location
         }
     }
 
-    # --- Step 11: Copy Rust DLL ---
-    Invoke-Step -StepName "Copy Rust DLL" -Script {
-        if (-not (Test-Path $DllSource)) {
-            throw "Rust DLL not found at $DllSource"
+    Invoke-BuildStep -Context $context -StepName "Copy Rust DLL" -Script {
+        if (-not (Test-Path $dllSource)) {
+            throw "Rust DLL not found at $dllSource"
         }
-        New-Item -ItemType Directory -Force -Path $DllDestDir | Out-Null
-        Copy-Item -Path $DllSource -Destination $DllDestDir -Force
-        Write-Log "Rust DLL copied to $DllDestDir"
+
+        New-Item -ItemType Directory -Force -Path $dllDestDir | Out-Null
+        Copy-Item -Path $dllSource -Destination $dllDestDir -Force
+        Write-BuildLog -Context $context -Message "Rust DLL copied to $dllDestDir"
     }
 
-    # --- Step 12: Native Assets Fix ---
-    Invoke-Step -StepName "Native Assets Directory Fix" -Script {
-        if (Test-Path $NativeAssetsDir) {
-            $item = Get-Item -LiteralPath $NativeAssetsDir -Force
+    Invoke-BuildStep -Context $context -StepName "Native Assets Directory Fix" -Script {
+        if (Test-Path $nativeAssetsDir) {
+            $item = Get-Item -LiteralPath $nativeAssetsDir -Force
             if (-not $item.PSIsContainer) {
-                Write-Log "Path exists but is NOT a directory. Replacing: $NativeAssetsDir"
-                Remove-Item -LiteralPath $NativeAssetsDir -Force
-                New-Item -ItemType Directory -Path $NativeAssetsDir | Out-Null
+                Write-BuildLog -Context $context -Message "Path exists but is NOT a directory. Replacing: $nativeAssetsDir"
+                Remove-Item -LiteralPath $nativeAssetsDir -Force
+                New-Item -ItemType Directory -Path $nativeAssetsDir | Out-Null
             } else {
-                Write-Log "Path is already a directory: $NativeAssetsDir"
+                Write-BuildLog -Context $context -Message "Path is already a directory: $nativeAssetsDir"
             }
         } else {
-            Write-Log "Creating directory: $NativeAssetsDir"
-            New-Item -ItemType Directory -Path $NativeAssetsDir | Out-Null
+            Write-BuildLog -Context $context -Message "Creating directory: $nativeAssetsDir"
+            New-Item -ItemType Directory -Path $nativeAssetsDir | Out-Null
         }
     }
 
-    # --- Step 13: CMake Build & Install ---
-    Invoke-Step -StepName "CMake Build & Install" -Critical -Script {
-        Invoke-External -File "cmake" -Args @(
-            "--build", $CMakeBuildDir,
+    Invoke-BuildStep -Context $context -StepName "CMake Build & Install" -Critical -Script {
+        Invoke-BuildExternal -Context $context -File "cmake" -Parameters @(
+            "--build", $cmakeBuildDir,
             "--config", $CMakeBuildType,
             "--target", "install",
             "--verbose"
         )
     }
 
-    Write-Log ""
-    Write-LogSuccess "=== Build Complete ==="
-    Write-Log "Build artifacts located at: $(Join-Path $Workspace $env:BUILD_DIR_RELEASE)"
-
+    Write-BuildLog -Context $context -Message ""
+    Write-BuildLogSuccess -Context $context -Message "=== Build Complete ==="
+    Write-BuildLog -Context $context -Message "Build artifacts located at: $(Join-Path $workspace $env:BUILD_DIR_RELEASE)"
 } catch {
-    Write-LogError "Unhandled critical error: $($_.Exception.Message)"
+    $hadUnhandledError = $true
+    Write-BuildLogError -Context $context -Message "Unhandled critical error: $($_.Exception.Message)"
     if ($_.ScriptStackTrace) {
-        Write-LogError "Stack trace: $($_.ScriptStackTrace)"
+        Write-BuildLogError -Context $context -Message "Stack trace: $($_.ScriptStackTrace)"
     }
 } finally {
-    Write-Summary
-    Close-Log
-    
-    if ($script:Results.Failed.Count -gt 0) {
+    Write-BuildSummary -Context $context
+
+    try {
+        $logDirPath = if ([System.IO.Path]::IsPathRooted($LogDir)) {
+            $LogDir
+        } else {
+            Join-Path $workspace $LogDir
+        }
+
+        New-Item -ItemType Directory -Force -Path $logDirPath | Out-Null
+
+        $summaryFileName = [System.IO.Path]::GetFileName($context.SummaryPath)
+        $summaryPathInLogDir = Join-Path $logDirPath $summaryFileName
+
+        $sourceSummaryPath = [System.IO.Path]::GetFullPath($context.SummaryPath)
+        $targetSummaryPath = [System.IO.Path]::GetFullPath($summaryPathInLogDir)
+
+        if ($sourceSummaryPath -ne $targetSummaryPath) {
+            Copy-Item -Path $sourceSummaryPath -Destination $targetSummaryPath -Force
+            Write-BuildLog -Context $context -Message "Additional JSON summary copy available at: $targetSummaryPath"
+        } else {
+            Write-BuildLog -Context $context -Message "JSON summary already saved under LogDir: $targetSummaryPath"
+        }
+    } catch {
+        Write-BuildLogWarning -Context $context -Message "Failed to copy JSON summary to LogDir: $($_.Exception.Message)"
+    }
+
+    Close-BuildLog -Context $context
+
+    if ($hadUnhandledError -or $context.Results.Failed.Count -gt 0) {
         exit 1
     }
 }
-
-#endregion
