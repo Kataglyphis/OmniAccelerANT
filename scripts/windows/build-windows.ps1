@@ -24,6 +24,22 @@ if (-not (Test-Path $sharedModulePath)) {
 
 Import-Module $sharedModulePath -Force
 
+$codeQLModulePath = Join-Path $PSScriptRoot "..\..\ExternalLib\Kataglyphis-ContainerHub\windows\scripts\modules\WindowsCodeQL.Common.psm1"
+$codeQLModulePath = [System.IO.Path]::GetFullPath($codeQLModulePath)
+if (-not (Test-Path $codeQLModulePath)) {
+    throw "Required CodeQL module not found: $codeQLModulePath"
+}
+
+Import-Module $codeQLModulePath -Force
+
+$toolchainModulePath = Join-Path $PSScriptRoot "..\..\ExternalLib\Kataglyphis-ContainerHub\windows\scripts\modules\WindowsToolchain.Common.psm1"
+$toolchainModulePath = [System.IO.Path]::GetFullPath($toolchainModulePath)
+if (-not (Test-Path $toolchainModulePath)) {
+    throw "Required toolchain module not found: $toolchainModulePath"
+}
+
+Import-Module $toolchainModulePath -Force
+
 function Resolve-WorkspacePath {
     param([string]$Path)
 
@@ -34,136 +50,6 @@ function Resolve-WorkspacePath {
         New-Item -ItemType Directory -Force -Path $Path | Out-Null
         return (Resolve-Path -Path $Path -ErrorAction Stop).Path
     }
-}
-
-function Invoke-CodeQLBuild {
-    param(
-        [Parameter(Mandatory)]
-        [pscustomobject]$Context,
-        [Parameter(Mandatory)]
-        [string]$Workspace,
-        [Parameter(Mandatory)]
-        [hashtable]$ForwardParameters
-    )
-
-    Write-BuildLog -Context $Context -Message "=== CodeQL Mode Active ==="
-
-    $codeQLUrl = "https://github.com/github/codeql-cli-binaries/releases/latest/download/codeql-win64.zip"
-    $codeQLDir = Join-Path $Workspace "codeql-cli"
-    $codeQLExe = Join-Path $codeQLDir "codeql\codeql.exe"
-
-    if (-not (Test-Path $codeQLExe)) {
-        Write-BuildLog -Context $Context -Message "Downloading CodeQL CLI..."
-        New-Item -ItemType Directory -Force -Path $codeQLDir | Out-Null
-        $zipPath = Join-Path $codeQLDir "codeql.zip"
-        Invoke-WebRequest -Uri $codeQLUrl -OutFile $zipPath
-        Expand-Archive -Path $zipPath -DestinationPath $codeQLDir -Force
-    }
-
-    $languages = @("cpp", "rust")
-    Write-BuildLog -Context $Context -Message "Downloading query packs for all languages..."
-    foreach ($lang in $languages) {
-        $queryPack = "codeql/$lang-queries"
-        Write-BuildLog -Context $Context -Message "Downloading Query Pack: $queryPack..."
-        & $codeQLExe pack download $queryPack
-        if ($LASTEXITCODE -ne 0) {
-            Write-BuildLogWarning -Context $Context -Message "Failed to download $queryPack, continuing..."
-        }
-    }
-
-    $innerArgs = @{}
-    foreach ($pair in $ForwardParameters.GetEnumerator()) {
-        if ($pair.Key -eq 'CodeQL') {
-            continue
-        }
-        $innerArgs[$pair.Key] = $pair.Value
-    }
-
-    $innerParameterString = ($innerArgs.GetEnumerator() | ForEach-Object {
-            if ($_.Value -is [switch]) {
-                if ($_.Value.IsPresent) { "-$($_.Key)" }
-            } elseif ($_.Value -is [bool]) {
-                if ($_.Value) { "-$($_.Key)" }
-            } else {
-                "-$($_.Key) `"$($_.Value)`""
-            }
-        }) -join ' '
-
-    $selfScript = $MyInvocation.MyCommand.Path
-    $innerCommand = "cmd /c powershell -NoProfile -ExecutionPolicy Bypass -File `"$selfScript`" $innerParameterString"
-
-    $dbClusterDir = Join-Path $Workspace "codeql-db-cluster"
-    if (Test-Path $dbClusterDir) {
-        Remove-Item -Recurse -Force $dbClusterDir
-    }
-
-    $languageArgs = @()
-    foreach ($lang in $languages) {
-        $languageArgs += "--language=$lang"
-    }
-
-    $createArgs = @(
-        "database", "create", $dbClusterDir,
-        "--db-cluster"
-    ) + $languageArgs + @(
-        "--command=$innerCommand",
-        "--no-run-unnecessary-builds",
-        "--source-root=$Workspace",
-        "--overwrite"
-    )
-
-    Write-BuildLog -Context $Context -Message "Creating database cluster with languages: $($languages -join ', ')"
-    & $codeQLExe @createArgs
-    if ($LASTEXITCODE -ne 0) {
-        throw "CodeQL Database Cluster creation failed"
-    }
-
-    $resultsDir = Join-Path $Workspace "codeql-results"
-    New-Item -ItemType Directory -Force -Path $resultsDir | Out-Null
-
-    foreach ($lang in $languages) {
-        Write-BuildLog -Context $Context -Message ""
-        Write-BuildLog -Context $Context -Message "------------------------------------------------"
-        Write-BuildLog -Context $Context -Message ">>> Analyzing Language: $lang"
-        Write-BuildLog -Context $Context -Message "------------------------------------------------"
-
-        $langDbDir = Join-Path $dbClusterDir $lang
-        $sarifOutput = Join-Path $resultsDir "$lang.sarif"
-        $querySuite = "codeql/$lang-queries:codeql-suites/$lang-security-and-quality.qls"
-
-        $analyzeArgs = @(
-            "database", "analyze", $langDbDir,
-            $querySuite,
-            "--format=sarif-latest",
-            "--output=$sarifOutput",
-            "--download"
-        )
-
-        & $codeQLExe @analyzeArgs
-        if ($LASTEXITCODE -ne 0) {
-            Write-BuildLogWarning -Context $Context -Message "Analysis with query suite failed for $lang, trying with query pack..."
-            $fallbackQueryPack = "codeql/$lang-queries"
-            $fallbackArgs = @(
-                "database", "analyze", $langDbDir,
-                $fallbackQueryPack,
-                "--format=sarif-latest",
-                "--output=$sarifOutput",
-                "--download"
-            )
-
-            & $codeQLExe @fallbackArgs
-            if ($LASTEXITCODE -ne 0) {
-                Write-BuildLogError -Context $Context -Message "Analysis failed for $lang even with basic query pack"
-                continue
-            }
-        }
-
-        Write-BuildLogSuccess -Context $Context -Message "Analysis completed for $lang. Results saved to: $sarifOutput"
-    }
-
-    Write-BuildLog -Context $Context -Message ""
-    Write-BuildLogSuccess -Context $Context -Message "=== CodeQL Analysis Complete ==="
-    Write-BuildLog -Context $Context -Message "All results available in: $resultsDir"
 }
 
 $workspace = Resolve-WorkspacePath -Path $WorkspaceDir
@@ -210,16 +96,12 @@ try {
     Write-BuildLog -Context $context -Message ("=" * 60)
 
     if ($CodeQL) {
-        Invoke-CodeQLBuild -Context $context -Workspace $workspace -ForwardParameters $PSBoundParameters
+        Invoke-BuildCodeQL -Context $context -Workspace $workspace -ForwardParameters $PSBoundParameters -BuildScriptPath $MyInvocation.MyCommand.Path
         exit 0
     }
 
     Invoke-BuildStep -Context $context -StepName "Environment Check" -Script {
-        Invoke-BuildOptional -Context $context -Name "cmake" -Script { Invoke-BuildExternal -Context $context -File "cmake" -Parameters @("--version") }
-        Invoke-BuildOptional -Context $context -Name "clang-cl" -Script { Invoke-BuildExternal -Context $context -File "clang-cl" -Parameters @("--version") }
-        Invoke-BuildOptional -Context $context -Name "flutter" -Script { Invoke-BuildExternal -Context $context -File "flutter" -Parameters @("--version") }
-        Invoke-BuildOptional -Context $context -Name "cargo" -Script { Invoke-BuildExternal -Context $context -File "cargo" -Parameters @("--version") }
-        Invoke-BuildOptional -Context $context -Name "ninja" -Script { Invoke-BuildExternal -Context $context -File "ninja" -Parameters @("--version") }
+        Invoke-ToolchainChecks -Context $context
     }
 
     Invoke-BuildStep -Context $context -StepName "Git Configuration" -Script {
@@ -276,6 +158,13 @@ try {
     if (-not $SkipFlutterBuild) {
         Invoke-BuildStep -Context $context -StepName "Flutter Ephemeral Build (C++ Headers)" -Script {
             Invoke-BuildExternal -Context $context -File "flutter" -Parameters @("build", "windows", "--release") -IgnoreExitCode
+        }
+
+        Invoke-BuildStep -Context $context -StepName "Reset CMake Build Directory" -Script {
+            if (Test-Path $cmakeBuildDir) {
+                Remove-Item -LiteralPath $cmakeBuildDir -Recurse -Force -ErrorAction Stop
+            }
+            New-Item -ItemType Directory -Force -Path $cmakeBuildDir | Out-Null
         }
     }
 
