@@ -11,7 +11,9 @@ param(
     [switch] $SkipFlutterBuild,
     [switch] $ContinueOnError,
     [switch] $StopOnError,
-    [switch] $CodeQL
+    [switch] $CodeQL,
+    [string[]] $RequiredTools = @('cmake', 'clang-cl', 'flutter', 'cargo', 'ninja'),
+    [switch] $FailOnMissingRequiredTools
 )
 
 Set-StrictMode -Version Latest
@@ -40,6 +42,14 @@ if (-not (Test-Path $toolchainModulePath)) {
 
 Import-Module $toolchainModulePath -Force
 
+$sharedUtilitiesModulePath = Join-Path $PSScriptRoot "..\..\ExternalLib\Kataglyphis-ContainerHub\windows\scripts\modules\WindowsScripts.Shared.psm1"
+$sharedUtilitiesModulePath = [System.IO.Path]::GetFullPath($sharedUtilitiesModulePath)
+if (-not (Test-Path $sharedUtilitiesModulePath)) {
+    throw "Required shared utilities module not found: $sharedUtilitiesModulePath"
+}
+
+Import-Module $sharedUtilitiesModulePath -Force
+
 function Resolve-WorkspacePath {
     param([string]$Path)
 
@@ -63,14 +73,14 @@ if ($ContinueOnError) {
 $context = New-BuildContext -Workspace $workspace -LogDir $LogDir -StopOnError:$StopOnError
 Open-BuildLog -Context $context
 
-$buildRoot = Join-Path $workspace "build"
-$buildDirFull = Join-Path $workspace ($BuildDirRelease -replace '/', '\\')
-$windowsSrc = Join-Path $workspace "windows"
-$cmakeBuildDir = Join-Path $workspace "build\windows\x64"
-$rustDir = Join-Path $workspace $RustCrateDir
-$dllSource = Join-Path $rustDir "target\release\$RustDllName"
-$dllDestDir = Join-Path $workspace "build\windows\x64\plugins\$($RustDllName -replace '\\.dll$','')"
-$nativeAssetsDir = Join-Path $workspace "build\native_assets\windows"
+$buildRoot = Resolve-NormalizedPath -BasePath $workspace -RelativePath "build"
+$buildDirFull = Resolve-NormalizedPath -BasePath $workspace -RelativePath $BuildDirRelease
+$windowsSrc = Resolve-NormalizedPath -BasePath $workspace -RelativePath "windows"
+$cmakeBuildDir = Resolve-NormalizedPath -BasePath $workspace -RelativePath "build/windows/x64"
+$rustDir = Resolve-NormalizedPath -BasePath $workspace -RelativePath $RustCrateDir
+$dllSource = Resolve-NormalizedPath -BasePath $rustDir -RelativePath "target/release/$RustDllName"
+$dllDestDir = Resolve-NormalizedPath -BasePath $workspace -RelativePath "build/windows/x64/plugins/$($RustDllName -replace '\\.dll$','')"
+$nativeAssetsDir = Resolve-NormalizedPath -BasePath $workspace -RelativePath "build/native_assets/windows"
 
 $env:BUILD_DIR_RELEASE = $BuildDirRelease
 
@@ -93,6 +103,8 @@ try {
     Write-BuildLog -Context $context -Message "SkipFlutterBuild: $SkipFlutterBuild"
     Write-BuildLog -Context $context -Message "ContinueOnError:  $ContinueOnError"
     Write-BuildLog -Context $context -Message "StopOnError:      $StopOnError"
+    Write-BuildLog -Context $context -Message "RequiredTools:    $($RequiredTools -join ', ')"
+    Write-BuildLog -Context $context -Message "FailOnMissingRequiredTools: $FailOnMissingRequiredTools"
     Write-BuildLog -Context $context -Message ("=" * 60)
 
     if ($CodeQL) {
@@ -101,7 +113,7 @@ try {
     }
 
     Invoke-BuildStep -Context $context -StepName "Environment Check" -Script {
-        Invoke-ToolchainChecks -Context $context
+        Invoke-ToolchainChecks -Context $context -RequiredTools $RequiredTools -FailOnMissingRequiredTools:$FailOnMissingRequiredTools
     }
 
     Invoke-BuildStep -Context $context -StepName "Git Configuration" -Script {
@@ -168,10 +180,21 @@ try {
         }
     }
 
-    $pluginFile = "windows\flutter\ephemeral\.plugin_symlinks\permission_handler_windows\windows\permission_handler_windows_plugin.cpp"
+    $pluginFile = Resolve-NormalizedPath -BasePath $workspace -RelativePath "windows/flutter/ephemeral/.plugin_symlinks/permission_handler_windows/windows/permission_handler_windows_plugin.cpp"
     if (Test-Path $pluginFile) {
-        Write-BuildLog -Context $context -Message "Patching permission_handler_windows..."
-        (Get-Content $pluginFile) -replace 'result->Success\(requestResults\);', 'result->Success(flutter::EncodableValue(requestResults));' | Set-Content $pluginFile
+        $pluginContent = Get-Content -LiteralPath $pluginFile -Raw
+        $targetLine = 'result->Success(requestResults);'
+        $patchedLine = 'result->Success(flutter::EncodableValue(requestResults));'
+
+        if ($pluginContent -match [regex]::Escape($patchedLine)) {
+            Write-BuildLog -Context $context -Message "permission_handler_windows already patched."
+        } elseif ($pluginContent -match [regex]::Escape($targetLine)) {
+            Write-BuildLog -Context $context -Message "Patching permission_handler_windows..."
+            $updatedPluginContent = $pluginContent -replace [regex]::Escape($targetLine), $patchedLine
+            Set-Content -LiteralPath $pluginFile -Value $updatedPluginContent
+        } else {
+            Write-BuildLogWarning -Context $context -Message "Patch target line not found in permission_handler_windows plugin file."
+        }
     }
 
     Invoke-BuildStep -Context $context -StepName "CMake Configure" -Critical -Script {
