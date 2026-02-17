@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
     [string] $WorkspaceDir = $PWD.Path,
-    [string] $BuildDirRelease = "build/windows/x64/runner",
+    [string] $BuildRootDir = "",
     [string] $RustCrateDir = "ExternalLib\Kataglyphis-RustProjectTemplate",
     [string] $RustDllName = "kataglyphis_rustprojecttemplate.dll",
     [string] $CMakeGenerator = "Ninja",
@@ -19,6 +19,33 @@ param(
 )
 
 Set-StrictMode -Version Latest
+
+$buildConfigPath = Join-Path $PSScriptRoot "Windows.BuildConfig.ps1"
+if (-not (Test-Path -LiteralPath $buildConfigPath -PathType Leaf)) {
+    throw "Required Windows build config not found: $buildConfigPath"
+}
+
+. $buildConfigPath
+$windowsBuildConfig = Get-KataglyphisWindowsBuildConfig
+
+$pathsModulePath = Join-Path $PSScriptRoot "Windows.Paths.psm1"
+if (-not (Test-Path -LiteralPath $pathsModulePath -PathType Leaf)) {
+    throw "Required Windows paths module not found: $pathsModulePath"
+}
+
+Import-Module $pathsModulePath -Force
+
+if (-not $PSBoundParameters.ContainsKey('RustDllName')) {
+    $RustDllName = $windowsBuildConfig.RustDllName
+}
+
+if ([string]::IsNullOrWhiteSpace($BuildRootDir)) {
+    if ($windowsBuildConfig.ContainsKey('BuildRootDir') -and -not [string]::IsNullOrWhiteSpace($windowsBuildConfig.BuildRootDir)) {
+        $BuildRootDir = $windowsBuildConfig.BuildRootDir
+    } else {
+        throw "Build root directory is not configured. Set BuildRootDir in Windows.BuildConfig.ps1 or pass -BuildRootDir."
+    }
+}
 
 $sharedModulePath = Join-Path $PSScriptRoot "..\..\ExternalLib\Kataglyphis-ContainerHub\windows\scripts\modules\WindowsBuild.Common.psm1"
 $sharedModulePath = [System.IO.Path]::GetFullPath($sharedModulePath)
@@ -56,6 +83,17 @@ Import-Module $sharedUtilitiesModulePath -Force
 
 $workspace = Resolve-WorkspacePath -Path $WorkspaceDir
 
+$buildRootCandidates = Resolve-KataglyphisWindowsBuildRootCandidates `
+    -RepoRoot $workspace `
+    -BuildRootDir $BuildRootDir `
+    -WindowsBuildConfig $windowsBuildConfig
+
+if ($buildRootCandidates.Count -eq 0) {
+    throw "Build root directory is not configured. Set BuildRootDir in Windows.BuildConfig.ps1 or pass -BuildRootDir."
+}
+
+$buildRoot = $buildRootCandidates[0]
+
 if ($ContinueOnError -and $StopOnError) {
     throw "-ContinueOnError and -StopOnError cannot be used together."
 }
@@ -69,16 +107,21 @@ if ($ContinueOnError) {
 $context = New-BuildContext -Workspace $workspace -LogDir $LogDir -StopOnError:$StopOnError
 Open-BuildLog -Context $context
 
-$buildRoot = Resolve-NormalizedPath -BasePath $workspace -RelativePath "build"
-$buildDirFull = Resolve-NormalizedPath -BasePath $workspace -RelativePath $BuildDirRelease
+$layout = Resolve-KataglyphisWindowsLayout -BuildRootFull $buildRoot -WindowsBuildConfig $windowsBuildConfig
+$cmakeBuildDir = $layout.CMakeBuildDir
+$buildDirFull = $layout.RunnerDir
 $windowsSrc = Resolve-NormalizedPath -BasePath $workspace -RelativePath "windows"
-$cmakeBuildDir = Resolve-NormalizedPath -BasePath $workspace -RelativePath "build/windows/x64"
 $rustDir = Resolve-NormalizedPath -BasePath $workspace -RelativePath $RustCrateDir
 $dllSource = Resolve-NormalizedPath -BasePath $rustDir -RelativePath "target/release/$RustDllName"
-$dllDestDir = Resolve-NormalizedPath -BasePath $workspace -RelativePath "build/windows/x64/plugins/$($RustDllName -replace '\\.dll$','')"
-$nativeAssetsDir = Resolve-NormalizedPath -BasePath $workspace -RelativePath "build/native_assets/windows"
+$dllDestDir = $layout.PluginDir
+$dllDestPath = $layout.RustPluginDllPath
+$installedPluginsDir = Resolve-NormalizedPath -BasePath $buildDirFull -RelativePath "plugins"
+$nativeAssetsDir = Resolve-NormalizedPath -BasePath $buildRoot -RelativePath "native_assets/windows"
+$generatedPluginsCMake = Resolve-NormalizedPath -BasePath $workspace -RelativePath "windows/flutter/generated_plugins.cmake"
 
-$env:BUILD_DIR_RELEASE = $BuildDirRelease
+$buildDirRelease = Join-Path (Join-Path (Join-Path $BuildRootDir "windows") "x64") "runner"
+
+$env:BUILD_DIR_RELEASE = $buildDirRelease
 
 $hadUnhandledError = $false
 
@@ -89,8 +132,12 @@ try {
     Write-BuildLog -Context $context -Message ""
     Write-BuildLog -Context $context -Message "=== Configuration ==="
     Write-BuildLog -Context $context -Message "Workspace:        $workspace"
-    Write-BuildLog -Context $context -Message "BuildDirRelease:  $BuildDirRelease"
+    Write-BuildLog -Context $context -Message "BuildRootDir:     $BuildRootDir"
+    Write-BuildLog -Context $context -Message "BuildDirRelease:  $buildDirRelease"
+    Write-BuildLog -Context $context -Message "BuildRoot:        $buildRoot"
     Write-BuildLog -Context $context -Message "BuildDirFull:     $buildDirFull"
+    Write-BuildLog -Context $context -Message "InstalledPlugins: $installedPluginsDir"
+    Write-BuildLog -Context $context -Message "BuildPluginsDir:  $dllDestDir"
     Write-BuildLog -Context $context -Message "CMakeBuildDir:    $cmakeBuildDir"
     Write-BuildLog -Context $context -Message "CMakeGenerator:   $CMakeGenerator"
     Write-BuildLog -Context $context -Message "CMakeBuildType:   $CMakeBuildType"
@@ -178,7 +225,7 @@ try {
         }
         
         Invoke-BuildStep -Context $context -StepName "Flutter Ephemeral Build (C++ Headers)" -Script {
-            Invoke-BuildExternal -Context $context -File "flutter" -Parameters @("build", "windows", "--release") -IgnoreExitCode
+            Invoke-BuildExternal -Context $context -File "flutter" -Parameters @("build", "windows", "--release", "--build-dir", $BuildRootDir) -IgnoreExitCode
         }
 
         Invoke-BuildStep -Context $context -StepName "Reset CMake Build Directory" -Script {
@@ -244,8 +291,8 @@ try {
         }
 
         New-Item -ItemType Directory -Force -Path $dllDestDir | Out-Null
-        Copy-Item -Path $dllSource -Destination $dllDestDir -Force
-        Write-BuildLog -Context $context -Message "Rust DLL copied to $dllDestDir"
+        Copy-Item -Path $dllSource -Destination $dllDestPath -Force
+        Write-BuildLog -Context $context -Message "Rust DLL copied to $dllDestPath"
     }
 
     Invoke-BuildStep -Context $context -StepName "Native Assets Directory Fix" -Script {
@@ -271,6 +318,63 @@ try {
             "--target", "install",
             "--verbose"
         )
+    }
+
+    Invoke-BuildStep -Context $context -StepName "Plugin Build Summary" -Script {
+        $expectedPlugins = @()
+        if (Test-Path -LiteralPath $generatedPluginsCMake -PathType Leaf) {
+            $generatedContent = Get-Content -LiteralPath $generatedPluginsCMake -Raw
+            $pluginListMatches = [regex]::Matches($generatedContent, 'set\((FLUTTER_PLUGIN_LIST|FLUTTER_FFI_PLUGIN_LIST)\s+([^\)]*?)\)', [System.Text.RegularExpressions.RegexOptions]::Singleline)
+
+            foreach ($match in $pluginListMatches) {
+                $pluginChunk = $match.Groups[2].Value
+                $pluginNames = $pluginChunk -split "`r?`n" |
+                    ForEach-Object { $_.Trim() } |
+                    Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
+                $expectedPlugins += $pluginNames
+            }
+
+            $expectedPlugins = @($expectedPlugins | Sort-Object -Unique)
+
+            Write-BuildLog -Context $context -Message "Expected Flutter plugins from generated CMake: $($expectedPlugins.Count)"
+            foreach ($plugin in $expectedPlugins) {
+                Write-BuildLog -Context $context -Message "  - $plugin"
+            }
+        } else {
+            Write-BuildLogWarning -Context $context -Message "generated_plugins.cmake not found. Skipping expected plugin list."
+        }
+
+        $pluginArtifacts = @()
+        foreach ($dir in @($installedPluginsDir, $dllDestDir)) {
+            if (Test-Path -LiteralPath $dir -PathType Container) {
+                $pluginArtifacts += Get-ChildItem -LiteralPath $dir -Recurse -File -Filter "*.dll"
+            }
+        }
+
+        $pluginArtifacts = @($pluginArtifacts | Sort-Object -Property FullName -Unique)
+
+        if ($pluginArtifacts.Count -eq 0) {
+            Write-BuildLogWarning -Context $context -Message "No plugin DLL artifacts found in: $installedPluginsDir or $dllDestDir"
+        } else {
+            Write-BuildLog -Context $context -Message "Built plugin DLL artifacts: $($pluginArtifacts.Count)"
+            foreach ($artifact in $pluginArtifacts) {
+                Write-BuildLog -Context $context -Message "  - $($artifact.FullName)"
+            }
+        }
+
+        if ($expectedPlugins.Count -gt 0 -and $pluginArtifacts.Count -gt 0) {
+            foreach ($plugin in $expectedPlugins) {
+                $matchedArtifact = $pluginArtifacts | Where-Object {
+                    $_.Name -like "$plugin*.dll" -or $_.FullName -like "*$plugin*"
+                } | Select-Object -First 1
+
+                if ($null -eq $matchedArtifact) {
+                    Write-BuildLogWarning -Context $context -Message "Expected plugin '$plugin' has no matching DLL artifact name."
+                } else {
+                    Write-BuildLog -Context $context -Message "Plugin '$plugin' mapped to artifact: $($matchedArtifact.Name)"
+                }
+            }
+        }
     }
 
     Write-BuildLog -Context $context -Message ""

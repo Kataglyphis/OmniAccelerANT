@@ -16,6 +16,7 @@ migrate_working_dir/
 *.iws
 .idea/
 
+out*/**/*
 logs
 codeql-cli
 codeql-results/**/*

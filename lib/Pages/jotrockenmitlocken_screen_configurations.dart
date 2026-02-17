@@ -7,6 +7,7 @@ import 'package:kataglyphis_inference_engine/Pages/Footer/Pages/configs/cookie_d
 import 'package:kataglyphis_inference_engine/Pages/Footer/Pages/configs/copyright_footer_config.dart';
 import 'package:kataglyphis_inference_engine/Pages/Footer/Pages/configs/declaration_on_accessibility_footer_config.dart';
 import 'package:kataglyphis_inference_engine/Pages/Footer/Pages/configs/imprint_footer_config.dart';
+import 'package:kataglyphis_inference_engine/Pages/Footer/Pages/configs/open_source_licenses_footer_config.dart';
 import 'package:kataglyphis_inference_engine/Pages/Footer/Pages/configs/privacy_policy_config.dart';
 import 'package:kataglyphis_inference_engine/Pages/LandingPage/landing_page_navbar_page_config.dart';
 import 'package:kataglyphis_inference_engine/Pages/blog_dependent_screen_configurations.dart';
@@ -76,6 +77,7 @@ class JotrockenmitLockenScreenConfigurations extends ScreenConfigurations
       CookieDeclarationFooterConfig(),
       DeclarationOnAccessibilityFooterConfig(),
       CopyRightFooterConfig(),
+      OpenSourceLicensesFooterConfig(),
     ];
   }
 
