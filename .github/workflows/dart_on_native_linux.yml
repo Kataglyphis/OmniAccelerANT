@@ -15,6 +15,7 @@ env:
   APP_NAME: kataglyphis-inference-engine
   FLUTTER_VERSION: 3.41.0   # change here to update version for the whole workflow
   FLUTTER_DIR: /workspace/flutter  # Flutter SDK installation directory
+  CONTAINER_IMAGE: ghcr.io/kataglyphis/kataglyphis_beschleuniger:latest
 
 jobs:
   build:
@@ -53,66 +54,24 @@ jobs:
       - name: Login to GitHub Container Registry
         run: echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
-      - name: Pull container image
-        run: bash scripts/linux/ci-dart-on-native-linux.sh pull_container
-        env:
-          CONTAINER_IMAGE: ghcr.io/kataglyphis/kataglyphis_beschleuniger:latest
-          MATRIX_PLATFORM: ${{ matrix.platform }}
-          MATRIX_ARCH: ${{ matrix.arch }}
-          FLUTTER_VERSION: ${{ env.FLUTTER_VERSION }}
-          FLUTTER_DIR: ${{ env.FLUTTER_DIR }}
-          APP_NAME: ${{ env.APP_NAME }}
+      - name: Pull image
+        run: |
+          docker pull --platform "${{ matrix.platform }}" "${{ env.CONTAINER_IMAGE }}"
 
-      - name: Setup Flutter in container
-        run: bash scripts/linux/ci-dart-on-native-linux.sh setup_flutter
-        env:
-          CONTAINER_IMAGE: ghcr.io/kataglyphis/kataglyphis_beschleuniger:latest
-          MATRIX_PLATFORM: ${{ matrix.platform }}
-          MATRIX_ARCH: ${{ matrix.arch }}
-          FLUTTER_VERSION: ${{ env.FLUTTER_VERSION }}
-          FLUTTER_DIR: ${{ env.FLUTTER_DIR }}
-          APP_NAME: ${{ env.APP_NAME }}
-
-      - name: Run Flutter checks and tests
-        run: bash scripts/linux/ci-dart-on-native-linux.sh checks
-        env:
-          CONTAINER_IMAGE: ghcr.io/kataglyphis/kataglyphis_beschleuniger:latest
-          MATRIX_PLATFORM: ${{ matrix.platform }}
-          MATRIX_ARCH: ${{ matrix.arch }}
-          FLUTTER_VERSION: ${{ env.FLUTTER_VERSION }}
-          FLUTTER_DIR: ${{ env.FLUTTER_DIR }}
-          APP_NAME: ${{ env.APP_NAME }}
-
-      - name: Build Flutter Linux app
-        run: bash scripts/linux/ci-dart-on-native-linux.sh build_linux
-        env:
-          CONTAINER_IMAGE: ghcr.io/kataglyphis/kataglyphis_beschleuniger:latest
-          MATRIX_PLATFORM: ${{ matrix.platform }}
-          MATRIX_ARCH: ${{ matrix.arch }}
-          FLUTTER_VERSION: ${{ env.FLUTTER_VERSION }}
-          FLUTTER_DIR: ${{ env.FLUTTER_DIR }}
-          APP_NAME: ${{ env.APP_NAME }}
-
-      - name: Package build artifacts
-        run: bash scripts/linux/ci-dart-on-native-linux.sh package
-        env:
-          CONTAINER_IMAGE: ghcr.io/kataglyphis/kataglyphis_beschleuniger:latest
-          MATRIX_PLATFORM: ${{ matrix.platform }}
-          MATRIX_ARCH: ${{ matrix.arch }}
-          FLUTTER_VERSION: ${{ env.FLUTTER_VERSION }}
-          FLUTTER_DIR: ${{ env.FLUTTER_DIR }}
-          APP_NAME: ${{ env.APP_NAME }}
-
-      - name: Generate documentation
-        if: ${{ matrix.arch == 'x64' }}
-        run: bash scripts/linux/ci-dart-on-native-linux.sh generate_docs
-        env:
-          CONTAINER_IMAGE: ghcr.io/kataglyphis/kataglyphis_beschleuniger:latest
-          MATRIX_PLATFORM: ${{ matrix.platform }}
-          MATRIX_ARCH: ${{ matrix.arch }}
-          FLUTTER_VERSION: ${{ env.FLUTTER_VERSION }}
-          FLUTTER_DIR: ${{ env.FLUTTER_DIR }}
-          APP_NAME: ${{ env.APP_NAME }}
+      - name: Run container
+        run: |
+          docker run --rm \
+            --platform "${{ matrix.platform }}" \
+            --mount "type=bind,source=${{ github.workspace }},target=/workspace" \
+            -w "/workspace" \
+            "${{ env.CONTAINER_IMAGE }}" \
+            bash -lc "bash /workspace/scripts/linux/container-run-native-linux.sh \
+              --arch '${{ matrix.arch }}' \
+              --flutter-version '${{ env.FLUTTER_VERSION }}' \
+              --flutter-dir '${{ env.FLUTTER_DIR }}' \
+              --app-name '${{ env.APP_NAME }}' \
+              --run-codeql '${{ matrix.arch == 'x64' }}' \
+              --run-docs '${{ matrix.arch == 'x64' }}'"
    
       # Upload SARIF to GitHub Code Scanning
       - name: Upload CodeQL results SARIF
