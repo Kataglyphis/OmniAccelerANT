@@ -73,14 +73,21 @@ function Resolve-KataglyphisWindowsLayout {
     $cmakeBuildDir = [System.IO.Path]::GetFullPath((Join-Path $buildRootNormalized 'windows/x64'))
     $runnerDir = [System.IO.Path]::GetFullPath((Join-Path $cmakeBuildDir 'runner'))
     $pluginDir = [System.IO.Path]::GetFullPath((Join-Path $cmakeBuildDir 'plugins'))
+    $rustPluginSubDir = if ($WindowsBuildConfig.ContainsKey('RustPluginSubDir') -and -not [string]::IsNullOrWhiteSpace($WindowsBuildConfig.RustPluginSubDir)) {
+        $WindowsBuildConfig.RustPluginSubDir
+    } else {
+        [System.IO.Path]::GetFileNameWithoutExtension($WindowsBuildConfig.RustDllName)
+    }
+    $rustPluginDir = [System.IO.Path]::GetFullPath((Join-Path $pluginDir $rustPluginSubDir))
     $runnerExePath = [System.IO.Path]::GetFullPath((Join-Path $runnerDir $WindowsBuildConfig.RunnerExeName))
-    $rustPluginDllPath = [System.IO.Path]::GetFullPath((Join-Path $pluginDir $WindowsBuildConfig.RustDllName))
+    $rustPluginDllPath = [System.IO.Path]::GetFullPath((Join-Path $rustPluginDir $WindowsBuildConfig.RustDllName))
 
     return [pscustomobject]@{
         BuildRoot         = $buildRootNormalized
         CMakeBuildDir     = $cmakeBuildDir
         RunnerDir         = $runnerDir
         PluginDir         = $pluginDir
+        RustPluginDir     = $rustPluginDir
         RunnerExePath     = $runnerExePath
         RustPluginDllPath = $rustPluginDllPath
     }

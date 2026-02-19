@@ -9,6 +9,7 @@ param(
     [string] $LogDir = "logs",
     [switch] $SkipTests,
     [switch] $SkipBootstrapFlutterBuild,
+    [switch] $SkipMsixPackaging,
     [switch] $ContinueOnError,
     [switch] $StopOnError,
     [switch] $CodeQL,
@@ -83,10 +84,10 @@ Import-Module $sharedUtilitiesModulePath -Force
 
 $workspace = Resolve-WorkspacePath -Path $WorkspaceDir
 
-$buildRootCandidates = Resolve-KataglyphisWindowsBuildRootCandidates `
+$buildRootCandidates = @(Resolve-KataglyphisWindowsBuildRootCandidates `
     -RepoRoot $workspace `
     -BuildRootDir $BuildRootDir `
-    -WindowsBuildConfig $windowsBuildConfig
+    -WindowsBuildConfig $windowsBuildConfig)
 
 if ($buildRootCandidates.Count -eq 0) {
     throw "Build root directory is not configured. Set BuildRootDir in Windows.BuildConfig.ps1 or pass -BuildRootDir."
@@ -113,8 +114,8 @@ $buildDirFull = $layout.RunnerDir
 $windowsSrc = Resolve-NormalizedPath -BasePath $workspace -RelativePath "windows"
 $rustDir = Resolve-NormalizedPath -BasePath $workspace -RelativePath $RustCrateDir
 $dllSource = Resolve-NormalizedPath -BasePath $rustDir -RelativePath "target/release/$RustDllName"
-$dllDestDir = $layout.PluginDir
 $dllDestPath = $layout.RustPluginDllPath
+$dllDestDir = [System.IO.Path]::GetDirectoryName($dllDestPath)
 $installedPluginsDir = Resolve-NormalizedPath -BasePath $buildDirFull -RelativePath "plugins"
 $nativeAssetsDir = Resolve-NormalizedPath -BasePath $buildRoot -RelativePath "native_assets/windows"
 $generatedPluginsCMake = Resolve-NormalizedPath -BasePath $workspace -RelativePath "windows/flutter/generated_plugins.cmake"
@@ -146,6 +147,7 @@ try {
     Write-BuildLog -Context $context -Message "Rust DLL dest:    $dllDestDir"
     Write-BuildLog -Context $context -Message "SkipTests:        $SkipTests"
     Write-BuildLog -Context $context -Message "SkipFlutterBuild: $SkipBootstrapFlutterBuild"
+    Write-BuildLog -Context $context -Message "SkipMsixPackaging: $SkipMsixPackaging"
     Write-BuildLog -Context $context -Message "ContinueOnError:  $ContinueOnError"
     Write-BuildLog -Context $context -Message "StopOnError:      $StopOnError"
     Write-BuildLog -Context $context -Message "CleanCodeQLDb:    $CleanCodeQLDb"
@@ -320,6 +322,24 @@ try {
         )
     }
 
+    Invoke-BuildStep -Context $context -StepName "MSIX Compatibility Layout" -Script {
+        $msixReleaseDir = Resolve-NormalizedPath -BasePath $buildDirFull -RelativePath "Release"
+
+        if (Test-Path -LiteralPath $msixReleaseDir -PathType Container) {
+            Remove-Item -LiteralPath $msixReleaseDir -Recurse -Force -ErrorAction Stop
+        }
+
+        New-Item -ItemType Directory -Force -Path $msixReleaseDir | Out-Null
+
+        Get-ChildItem -LiteralPath $buildDirFull -Force |
+            Where-Object { $_.Name -ne "Release" } |
+            ForEach-Object {
+                Copy-Item -Path $_.FullName -Destination $msixReleaseDir -Recurse -Force
+            }
+
+        Write-BuildLog -Context $context -Message "MSIX compatibility folder prepared: $msixReleaseDir"
+    }
+
     Invoke-BuildStep -Context $context -StepName "Plugin Build Summary" -Script {
         $expectedPlugins = @()
         if (Test-Path -LiteralPath $generatedPluginsCMake -PathType Leaf) {
@@ -375,6 +395,19 @@ try {
                 }
             }
         }
+    }
+
+    if (-not $SkipMsixPackaging) {
+        Invoke-BuildStep -Context $context -StepName "MSIX Packaging" -Script {
+            Push-Location $workspace
+            try {
+                Invoke-BuildExternal -Context $context -File "dart" -Parameters @("run", "msix:create", "--install-certificate", "false")
+            } finally {
+                Pop-Location
+            }
+        }
+    } else {
+        Write-BuildLog -Context $context -Message "Skipping MSIX packaging (SkipMsixPackaging set)."
     }
 
     Write-BuildLog -Context $context -Message ""

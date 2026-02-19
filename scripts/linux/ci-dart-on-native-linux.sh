@@ -4,13 +4,95 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/ci-common.sh"
 
+use_docker() {
+  case "${USE_DOCKER:-1}" in
+    0|false|False|FALSE|no|No|NO)
+      return 1
+      ;;
+    *)
+      return 0
+      ;;
+  esac
+}
+
+apply_dartdoc_theme_overrides() {
+  local css_file="$1"
+  local override_css_file="$2"
+
+  if [[ ! -f "$override_css_file" || ! -f "$css_file" ]]; then
+    return 0
+  fi
+
+  echo "Applying Sphinx-like theme overrides to dartdoc output"
+
+  if grep -q "Sphinx press theme overrides for Dartdoc START" "$css_file"; then
+    awk '/\/\* Sphinx press theme overrides for Dartdoc START \*\//{exit} {print}' "$css_file" > "${css_file}.tmp"
+    mv "${css_file}.tmp" "$css_file"
+  fi
+
+  cat "$override_css_file" >> "$css_file"
+}
+
+set_dark_theme_as_default() {
+  local docs_api_dir="$1"
+
+  if [[ ! -d "$docs_api_dir" ]]; then
+    return 0
+  fi
+
+  echo "Setting dark theme as default in generated HTML"
+  find "$docs_api_dir" -type f -name "*.html" -print0 | while IFS= read -r -d '' html_file; do
+    sed -i 's/class="light-theme"/class="dark-theme"/g' "$html_file"
+  done
+}
+
+fix_doc_ownership_if_possible() {
+  local workspace_dir="$1"
+  local docs_dir="$2"
+
+  if ! command -v stat >/dev/null 2>&1 || ! command -v chown >/dev/null 2>&1; then
+    return 0
+  fi
+
+  if [[ ! -d "$workspace_dir" || ! -d "$docs_dir" ]]; then
+    return 0
+  fi
+
+  local owner_uid
+  local owner_gid
+  owner_uid=$(stat -c "%u" "$workspace_dir")
+  owner_gid=$(stat -c "%g" "$workspace_dir")
+  echo "Fixing ownership of ${docs_dir} to ${owner_uid}:${owner_gid}"
+  chown -R "${owner_uid}:${owner_gid}" "$docs_dir" || true
+}
+
+sync_doc_website_assets() {
+  local docs_api_dir="$1"
+  local project_images_dir="$2"
+
+  if [[ ! -d "$docs_api_dir" ]]; then
+    return 0
+  fi
+
+  if [[ -d "$project_images_dir" ]]; then
+    echo "Copying website assets from ${project_images_dir} to ${docs_api_dir}/images"
+    mkdir -p "${docs_api_dir}/images"
+    cp -a "${project_images_dir}/." "${docs_api_dir}/images/"
+  fi
+}
+
 STAGE="${1:-}"
 if [[ -z "$STAGE" ]]; then
   echo "Usage: $0 <pull_container|setup_flutter|checks|build_linux|package|generate_docs>"
   exit 2
 fi
 
-require_ci_env
+if use_docker; then
+  require_ci_env
+elif [[ "$STAGE" != "generate_docs" ]]; then
+  echo "Non-docker mode is only supported for generate_docs. Use USE_DOCKER=1 for stage: $STAGE"
+  exit 2
+fi
 
 case "$STAGE" in
   pull_container)
@@ -139,22 +221,74 @@ case "$STAGE" in
     ;;
 
   generate_docs)
-    run_container '
-      set -e
-      git config --global --add safe.directory /workspace || true
-      git config --global --add safe.directory ${FLUTTER_DIR} || true
+    if use_docker; then
+      run_container '
+        set -e
+        git config --global --add safe.directory /workspace || true
+        git config --global --add safe.directory ${FLUTTER_DIR} || true
 
-      source ~/.bashrc
-      export PATH="${FLUTTER_DIR}/bin:$PATH"
+        source ~/.bashrc
+        export PATH="${FLUTTER_DIR}/bin:$PATH"
+
+        flutter clean
+        dart doc
+
+        DOC_API_DIR="/workspace/doc/api"
+        DOC_CSS_FILE="${DOC_API_DIR}/static-assets/styles.css"
+        OVERRIDE_CSS_FILE="/workspace/docs/source/_static/css/dartdoc-theme-overrides.css"
+        PROJECT_IMAGES_DIR="/workspace/images"
+
+        if [ -f "${OVERRIDE_CSS_FILE}" ] && [ -f "${DOC_CSS_FILE}" ]; then
+          echo "Applying Sphinx-like theme overrides to dartdoc output"
+
+          if grep -q "Sphinx press theme overrides for Dartdoc START" "${DOC_CSS_FILE}"; then
+            awk '/\/\* Sphinx press theme overrides for Dartdoc START \*\//{exit} {print}' "${DOC_CSS_FILE}" > "${DOC_CSS_FILE}.tmp"
+            mv "${DOC_CSS_FILE}.tmp" "${DOC_CSS_FILE}"
+          fi
+
+          cat "${OVERRIDE_CSS_FILE}" >> "${DOC_CSS_FILE}"
+
+          echo "Setting dark theme as default in generated HTML"
+          find "${DOC_API_DIR}" -type f -name "*.html" -print0 | while IFS= read -r -d "" html_file; do
+            sed -i 's/class="light-theme"/class="dark-theme"/g' "$html_file"
+          done
+        fi
+
+        if [ -d "${PROJECT_IMAGES_DIR}" ]; then
+          echo "Copying website assets from ${PROJECT_IMAGES_DIR} to ${DOC_API_DIR}/images"
+          mkdir -p "${DOC_API_DIR}/images"
+          cp -a "${PROJECT_IMAGES_DIR}/." "${DOC_API_DIR}/images/"
+        fi
+
+        OWNER_UID=$(stat -c "%u" /workspace)
+        OWNER_GID=$(stat -c "%g" /workspace)
+        echo "Fixing ownership of doc/api to ${OWNER_UID}:${OWNER_GID}"
+        chown -R ${OWNER_UID}:${OWNER_GID} /workspace/doc || true
+      '
+    else
+      set -e
+
+      if [[ -f "$HOME/.bashrc" ]]; then
+        source "$HOME/.bashrc"
+      fi
+
+      if [[ -n "${FLUTTER_DIR:-}" && -d "${FLUTTER_DIR}/bin" ]]; then
+        export PATH="${FLUTTER_DIR}/bin:$PATH"
+      fi
 
       flutter clean
       dart doc
 
-      OWNER_UID=$(stat -c "%u" /workspace)
-      OWNER_GID=$(stat -c "%g" /workspace)
-      echo "Fixing ownership of doc/api to ${OWNER_UID}:${OWNER_GID}"
-      chown -R ${OWNER_UID}:${OWNER_GID} /workspace/doc || true
-    '
+      DOC_API_DIR="doc/api"
+      DOC_CSS_FILE="${DOC_API_DIR}/static-assets/styles.css"
+      OVERRIDE_CSS_FILE="docs/source/_static/css/dartdoc-theme-overrides.css"
+      PROJECT_IMAGES_DIR="images"
+
+      apply_dartdoc_theme_overrides "$DOC_CSS_FILE" "$OVERRIDE_CSS_FILE"
+      set_dark_theme_as_default "$DOC_API_DIR"
+      sync_doc_website_assets "$DOC_API_DIR" "$PROJECT_IMAGES_DIR"
+      fix_doc_ownership_if_possible "." "doc"
+    fi
     ;;
 
   *)

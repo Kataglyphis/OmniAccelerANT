@@ -1,0 +1,123 @@
+/* Sphinx press theme overrides for Dartdoc START */
+
+/* Sphinx press light palette adapted for Dartdoc */
+.light-theme {
+  --main-bg-color: #ffffff;
+  --main-header-color: #ffffff;
+  --main-sidebar-color: #666666;
+  --main-text-color: #2c3e50;
+  --main-search-bar: #ffffff;
+  --main-footer-background: #ffffff;
+  --main-hyperlinks-color: #3eaf7c;
+  --main-inset-bgColor: #ecf4fa;
+  --main-inset-borderColor: #eaecef;
+  --main-code-bg: #ecf4fa;
+  --main-keyword-color: #333333;
+  --main-tag-color: #2f9c0a;
+  --main-section-color: #476582;
+  --main-comment-color: #708090;
+  --main-var-color: #a67f59;
+  --main-string-color: #2f9c0a;
+  --main-icon-color: #2c3e50;
+}
+
+/* Sphinx press dark palette adapted for Dartdoc */
+.dark-theme {
+  --main-bg-color: #1e1e1e;
+  --main-header-color: #1e1e1e;
+  --main-sidebar-color: #9e9e9e;
+  --main-text-color: #9e9e9e;
+  --main-search-bar: #2a2a2a;
+  --main-footer-background: #1e1e1e;
+  --main-hyperlinks-color: #3eaf7c;
+  --main-inset-bgColor: #282c34;
+  --main-inset-borderColor: #302d28;
+  --main-code-bg: #282c34;
+  --main-keyword-color: #cccccc;
+  --main-tag-color: #7ec699;
+  --main-section-color: #46bd87;
+  --main-comment-color: #909090;
+  --main-var-color: #67cdcc;
+  --main-string-color: #7ec699;
+  --main-icon-color: #c5c5c5;
+}
+
+.light-theme a,
+.light-theme .breadcrumbs li a,
+.light-theme .signature a,
+.light-theme .feature,
+.dark-theme a,
+.dark-theme .breadcrumbs li a,
+.dark-theme .signature a,
+.dark-theme .feature {
+  color: #3eaf7c;
+}
+
+.light-theme a:hover,
+.light-theme .feature:hover,
+.light-theme #theme-button:hover,
+.light-theme #sidenav-left-toggle:hover,
+.dark-theme a:hover,
+.dark-theme .feature:hover,
+.dark-theme #theme-button:hover,
+.dark-theme #sidenav-left-toggle:hover {
+  color: #46bd87;
+}
+
+.light-theme header {
+  border-bottom: 1px solid #eaecef;
+}
+
+.dark-theme header {
+  border-bottom: 1px solid #302d28;
+}
+
+.light-theme .sidebar-offcanvas-left {
+  border-right: 1px solid #eaecef;
+}
+
+.dark-theme .sidebar-offcanvas-left {
+  border-right: 1px solid #302d28;
+}
+
+.light-theme pre,
+.light-theme .hljs {
+  border-color: #eaecef;
+}
+
+.dark-theme pre,
+.dark-theme .hljs {
+  border-color: #302d28;
+}
+
+.light-theme .tt-wrapper .typeahead {
+  border: 1px solid #eaecef;
+  background-color: #ffffff;
+}
+
+.dark-theme .tt-wrapper .typeahead {
+  border: 1px solid #302d28;
+  background-color: #1e1e1e;
+}
+
+.light-theme table,
+.light-theme th,
+.light-theme td {
+  border-color: #eaecef;
+}
+
+.dark-theme table,
+.dark-theme th,
+.dark-theme td {
+  border-color: #302d28;
+}
+
+.light-theme tr:nth-child(2n) {
+  background-color: #f6f8fa;
+}
+
+.dark-theme tr:nth-child(2n) {
+  background-color: #252322;
+}
+
+/* Sphinx press theme overrides for Dartdoc END */

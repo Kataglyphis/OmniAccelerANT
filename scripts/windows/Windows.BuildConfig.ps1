@@ -3,6 +3,7 @@ Set-StrictMode -Version Latest
 $script:KataglyphisWindowsBuildConfig = @{
     BuildRootDir          = "build"
     RustDllName           = "kataglyphis_rustprojecttemplate.dll"
+    RustPluginSubDir      = "kataglyphis_rustprojecttemplate"
     PluginRelativeDir     = "build/windows/x64/plugins"
     RunnerExeName         = "kataglyphis_inference_engine.exe"
     RunnerExeRelativePath = "build/windows/x64/runner/kataglyphis_inference_engine.exe"

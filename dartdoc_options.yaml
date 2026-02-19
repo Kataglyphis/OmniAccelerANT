@@ -8,13 +8,20 @@ dartdoc:
   autoIncludeDependencies: false
   linkToRemote: false
   categories:
-    awesome:
+    overview:
       markdown: docs/INTRODUCTION.md
-      displayName: Awesome
-    great:
-      markdown: docs/INTRODUCTION.md
-      displayName: Great
-  categoryOrder: [awesome, great]
+      displayName: Overview
+    guides:
+      markdown: docs/source/getting-started.md
+      displayName: Guides
+  categoryOrder: [overview, guides]
   showUndocumentedCategories: true
   additional-docs:
     - docs/INTRODUCTION.md
+    - docs/source/README.md
+    - docs/source/getting-started.md
+    - docs/source/platforms.md
+    - docs/source/camera-streaming.md
+    - docs/source/project-operations.md
+    - docs/source/roadmap.md
+    - docs/source/upgrade-guide.md
