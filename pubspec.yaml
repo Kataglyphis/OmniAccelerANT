@@ -46,6 +46,7 @@ dev_dependencies:
     sdk: flutter
   flutter_launcher_icons: ^0.14.4
   flutter_lints: ^6.0.0
+  msix: ^3.16.13
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -152,3 +153,11 @@ flutter_launcher_icons:
     generate: true
     image_path: assets/icons/kataglyphis_app_icon.png
     icon_size: 256
+
+msix_config:
+  build_windows: false
+  display_name: Kataglyphis Inference Engine
+  publisher_display_name: Kataglyphis
+  identity_name: Kataglyphis.KataglyphisInferenceEngine
+  msix_version: 1.0.0.0
+  logo_path: assets/icons/kataglyphis_app_icon.png

@@ -114,6 +114,13 @@ Kataglyphis-Inference-Engine bundles a Flutter/Dart frontend, a Rust/C++ inferen
 
 Refer to the detailed docs below for platform-specific requirements, camera streaming pipelines, and deployment workflows.
 
+```powershell
+Im Projektroot ausführen: dart doc
+Danach Static-Server installieren: dart pub global activate dhttpd
+Falls dhttpd nicht gefunden wird, einmal PATH ergänzen: $env:Path += ";$env:USERPROFILE\AppData\Local\Pub\Cache\bin"
+Server starten: dhttpd --path doc/api --host 127.0.0.1 --port 8080
+Im Browser öffnen: http://127.0.0.1:8080
+```
 
 ## Documentation
 
@@ -124,7 +131,7 @@ Refer to the detailed docs below for platform-specific requirements, camera stre
 | Camera Streaming | [docs/source/camera-streaming.md](docs/source/camera-streaming.md) | GStreamer WebRTC pipelines and Python inference demos. |
 | Upgrade guide | [docs/source/upgrade-guide.md](docs/source/upgrade-guide.md) | How to keep things up-to-date. |
 
-Build the full Sphinx documentation from the `docs/` directory when you need a browsable site.
+Build the full documentation website with `dart doc`. The generated site in `doc/api` now includes the guides from `docs/source`.
 
 ## Tests
 

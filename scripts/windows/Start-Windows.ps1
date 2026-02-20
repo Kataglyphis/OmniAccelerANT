@@ -101,6 +101,8 @@ $logDirPath = Join-Path $repoRoot "logs"
 $logPath = Join-Path $logDirPath $logFileName
 
 $originalPath = $env:PATH
+$psNativePreferenceAvailable = $null -ne (Get-Variable -Name PSNativeCommandUseErrorActionPreference -Scope Global -ErrorAction SilentlyContinue)
+$originalPsNativePreference = $null
 try {
 	$pluginPathEntries = @($pluginDir)
 	if (Test-Path -LiteralPath $pluginDir -PathType Container) {
@@ -118,10 +120,26 @@ try {
 	New-Item -ItemType Directory -Force -Path $logDirPath | Out-Null
 
 	$env:PATH = (($pluginPathEntries -join ";") + ";" + $env:PATH)
-	& $exePath 2>&1 | Tee-Object -FilePath $logPath
+	if ($psNativePreferenceAvailable) {
+		$originalPsNativePreference = $global:PSNativeCommandUseErrorActionPreference
+		$global:PSNativeCommandUseErrorActionPreference = $false
+	}
+	$originalErrorActionPreference = $ErrorActionPreference
+	$processExitCode = 1
+	try {
+		$ErrorActionPreference = "Continue"
+		& $exePath 2>&1 | Tee-Object -FilePath $logPath
+		$processExitCode = $LASTEXITCODE
+	}
+	finally {
+		$ErrorActionPreference = $originalErrorActionPreference
+	}
 
-	exit $LASTEXITCODE
+	exit $processExitCode
 }
 finally {
+	if ($psNativePreferenceAvailable) {
+		$global:PSNativeCommandUseErrorActionPreference = $originalPsNativePreference
+	}
 	$env:PATH = $originalPath
 }
