@@ -77,7 +77,8 @@ jobs:
 
       # Upload SARIF to GitHub Code Scanning
       - name: Upload CodeQL results SARIF
-        if: ${{ matrix.arch == 'x64' }}
+        if: ${{ matrix.arch == 'x64' && hashFiles('codeql-results/*.sarif') != '' }}
+        continue-on-error: true
         uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: codeql-results

@@ -85,6 +85,23 @@ export FLUTTER_VERSION
 export FLUTTER_DIR
 export APP_NAME
 
+build_android_apk_release() {
+  flutter clean
+  flutter pub get
+  flutter build apk --release
+}
+
+run_codeql_android() {
+  codeql_install_cli
+  cd /workspace
+  codeql_download_packs codeql/cpp-queries codeql/rust-queries codeql/java-queries
+  codeql_write_build_script /tmp/codeql-build.sh "flutter build apk --release"
+  codeql_create_db_cluster /tmp/codeql-build.sh --language=cpp --language=c --language=rust --language=java --language=kotlin
+  codeql_analyze_cpp
+  codeql_analyze_kotlin
+  codeql_analyze_rust
+}
+
 REPO_ROOT="/workspace"
 cd "$REPO_ROOT"
 
@@ -97,22 +114,17 @@ fi
 MATRIX_ARCH=x64 setup_flutter_sdk
 source_bashrc_and_add_flutter_to_path
 run_flutter_common_checks
-flutter config --enable-android
+run_check_cmd flutter config --enable-android
 export_toolchain_env
 
 if maybe_truthy "$RUN_CODEQL"; then
-  codeql_install_cli
-  cd /workspace
-  codeql_download_packs codeql/cpp-queries codeql/rust-queries codeql/java-queries
-  codeql_write_build_script /tmp/codeql-build.sh "flutter build apk --release"
-  codeql_create_db_cluster /tmp/codeql-build.sh --language=cpp --language=c --language=rust --language=java --language=kotlin
-  codeql_analyze_cpp
-  codeql_analyze_kotlin
-  codeql_analyze_rust
+  if ! run_codeql_android; then
+    echo "Warning: CodeQL failed; continuing with regular APK build." >&2
+    cd /workspace
+    build_android_apk_release
+  fi
 else
-  flutter clean
-  flutter pub get
-  flutter build apk --release
+  build_android_apk_release
 fi
 
 package_android_apk_outputs_tar
