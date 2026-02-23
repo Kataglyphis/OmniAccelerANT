@@ -62,18 +62,18 @@ jobs:
         run: |
           docker run --rm \
             --platform "${{ matrix.platform }}" \
-            --mount "type=bind,source=${{ github.workspace }},target=/workspace" \
-            -w "/workspace" \
+            --volume "${GITHUB_WORKSPACE}:/workspace" \
+            --workdir /workspace \
             -e INSTALL_PACKAGING_DEPS=true \
             "${{ env.CONTAINER_IMAGE }}" \
-            bash -lc "bash /workspace/scripts/linux/container-run-native-linux.sh \
-              --arch '${{ matrix.arch }}' \
-              --flutter-version '${{ env.FLUTTER_VERSION }}' \
-              --flutter-dir '${{ env.FLUTTER_DIR }}' \
-              --app-name '${{ env.APP_NAME }}' \
-              --package-formats 'tar,deb,flatpak,appimage' \
-              --run-codeql '${{ matrix.arch == 'x64' }}' \
-              --run-docs '${{ matrix.arch == 'x64' }}'"
+            bash /workspace/scripts/linux/container-run-native-linux.sh \
+              --arch "${{ matrix.arch }}" \
+              --flutter-version "${{ env.FLUTTER_VERSION }}" \
+              --flutter-dir "${{ env.FLUTTER_DIR }}" \
+              --app-name "${{ env.APP_NAME }}" \
+              --package-formats "tar,deb,flatpak,appimage" \
+              --run-codeql "${{ matrix.arch == 'x64' }}" \
+              --run-docs "${{ matrix.arch == 'x64' }}"
    
       # Upload SARIF to GitHub Code Scanning
       - name: Upload CodeQL results SARIF

@@ -59,15 +59,15 @@ jobs:
         run: |
           docker run --rm \
             --platform "${{ matrix.platform }}" \
-            --mount "type=bind,source=${{ github.workspace }},target=/workspace" \
-            -w "/workspace" \
+            --volume "${GITHUB_WORKSPACE}:/workspace" \
+            --workdir /workspace \
             "${{ env.CONTAINER_IMAGE }}" \
-            bash -lc "bash /workspace/scripts/linux/container-run-android.sh \
-              --arch '${{ matrix.arch }}' \
-              --flutter-version '${{ env.FLUTTER_VERSION }}' \
-              --flutter-dir '${{ env.FLUTTER_DIR }}' \
-              --app-name '${{ env.APP_NAME }}' \
-              --run-codeql '${{ matrix.arch == 'x64' }}'"
+            bash /workspace/scripts/linux/container-run-android.sh \
+              --arch "${{ matrix.arch }}" \
+              --flutter-version "${{ env.FLUTTER_VERSION }}" \
+              --flutter-dir "${{ env.FLUTTER_DIR }}" \
+              --app-name "${{ env.APP_NAME }}" \
+              --run-codeql "${{ matrix.arch == 'x64' }}"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v6.0.0
