@@ -1,3 +1,4 @@
+kataglyphis-inference-engine-linux-x64.tar.gz
 # Miscellaneous
 *.class
 *.log
@@ -59,3 +60,4 @@ app.*.map.json
 ExternalLib/Kataglyphis_NativeInferencePlugin/.dart_tool/*
 
 ExternalLib/jotrockenmitlockenrepo/.dart_tool/*
+kataglyphis-inference-engine-linux-x64.tar.gz

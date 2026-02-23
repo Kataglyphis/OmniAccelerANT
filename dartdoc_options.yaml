@@ -10,18 +10,30 @@ dartdoc:
   categories:
     overview:
       markdown: docs/INTRODUCTION.md
-      displayName: Overview
+      displayName: Start Here
     guides:
-      markdown: docs/source/getting-started.md
-      displayName: Guides
-  categoryOrder: [overview, guides]
+      markdown: docs/source/overview.md
+      displayName: Core Guides
+    readmes:
+      markdown: docs/source/readmes.md
+      displayName: Readmes
+    operations:
+      markdown: docs/source/project-operations.md
+      displayName: Operations
+  categoryOrder: [overview, guides, readmes, operations]
   showUndocumentedCategories: true
   additional-docs:
+    - README.md
     - docs/INTRODUCTION.md
     - docs/source/README.md
+    - docs/source/overview.md
     - docs/source/getting-started.md
     - docs/source/platforms.md
     - docs/source/camera-streaming.md
+    - docs/source/readmes.md
     - docs/source/project-operations.md
     - docs/source/roadmap.md
     - docs/source/upgrade-guide.md
+    - rust_builder/README.md
+    - scripts/ai/README.md
+    - assets/documents/README.md

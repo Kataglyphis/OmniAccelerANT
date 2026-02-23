@@ -1,12 +1,39 @@
 # Getting Started
 
-Follow these steps to set up the Kataglyphis Inference Engine locally.
+This guide takes you from clone to a working local setup.
 
-## Prerequisites
+## 1) Prerequisites
 
-### GStreamer
+- Flutter SDK and Dart in `PATH`
+- Rust toolchain (`rustup`, `cargo`)
+- Docker (optional but recommended for reproducible setup)
+- GStreamer runtime and tools (`gst-launch-1.0`)
 
-Find all available video devices on Linux:
+### Verify your tooling
+
+```bash
+flutter --version
+dart --version
+cargo --version
+gst-launch-1.0 --version
+```
+
+## 2) Clone the repository
+
+```bash
+git clone --recurse-submodules --branch develop git@github.com:Kataglyphis/Kataglyphis-Inference-Engine.git
+cd Kataglyphis-Inference-Engine
+```
+
+If you cloned without submodules:
+
+```bash
+git submodule update --init --recursive
+```
+
+## 3) Optional: camera checks on Linux
+
+List available camera devices:
 
 ```bash
 for dev in /dev/video*; do
@@ -15,52 +42,45 @@ for dev in /dev/video*; do
 done
 ```
 
-Check available resolutions and framerates:
+Inspect resolutions/framerates:
 
 ```bash
-apt update
-apt install v4l-utils
+sudo apt update
+sudo apt install -y v4l-utils
 v4l2-ctl --device=/dev/video0 --list-formats-ext
 ```
 
-### WSL2 USB Passthrough
-
-If running Docker on WSL2, share USB devices before use:
-
-```bash
-# List USB devices
-usbipd list
-# Attach device to WSL
-usbipd attach --wsl --busid 1-1.2
-# Verify in WSL
-lsusb
-# Example output for Basler USB camera: /dev/bus/usb/002/002
-```
-
-## Installation
-
-3. Install the GStreamer WebRTC JavaScript libraries. The `public/lib` folder contains two JavaScript libraries generated from [gstwebrtc-api](https://github.com/GStreamer/gst-plugins-rs/tree/main/net/webrtc/gstwebrtc-api).
-
-> **NOTE:** If publishing to the internet, replace `127.0.0.1` with your domain:
->
-> ```bash
-> sed -i 's@ws://127.0.0.1:8443@ws://customdomain:8443@g' ./public/lib/gstwebrtc-api-1.0.1.min.js
-> ```
->
-> To find all IP addresses and ports:
->
-> ```bash
-> grep -Eo '\b([0-9]{1,3}\.){3}[0-9]{1,3}:[0-9]{1,5}\b' yourfile.txt
-> ```
-
-## Running the Application
-
-### Development Mode
+## 4) Run the app (web profile)
 
 ```bash
 flutter run -d web-server --profile --web-port 8080 --web-hostname 0.0.0.0
 ```
 
-### Production Build
+Open `http://127.0.0.1:8080` in your browser.
 
-Production build automation is under construction. Use your preferred CI/CD setup or follow the platform-specific guides to create release artifacts.
+## 5) Build API docs
+
+```bash
+bash scripts/linux/generate-docs.sh
+```
+
+Serve generated docs locally:
+
+```bash
+dart pub global activate dhttpd
+export PATH="$PATH:$HOME/.pub-cache/bin"
+dhttpd --path doc/api --host 127.0.0.1 --port 8080
+```
+
+## 6) WSL2 USB passthrough (if needed)
+
+```bash
+usbipd list
+usbipd attach --wsl --busid 1-1.2
+lsusb
+```
+
+## Next Steps
+
+- Continue with [Platforms](platforms.md) for target-specific builds.
+- Continue with [Camera Streaming](camera-streaming.md) for WebRTC pipelines.

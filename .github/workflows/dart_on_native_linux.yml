@@ -13,7 +13,7 @@ on:
 
 env:
   APP_NAME: kataglyphis-inference-engine
-  FLUTTER_VERSION: 3.41.0   # change here to update version for the whole workflow
+  FLUTTER_VERSION: 3.41.1   # change here to update version for the whole workflow
   FLUTTER_DIR: /workspace/flutter  # Flutter SDK installation directory
   CONTAINER_IMAGE: ghcr.io/kataglyphis/kataglyphis_beschleuniger:latest
 
@@ -64,18 +64,20 @@ jobs:
             --platform "${{ matrix.platform }}" \
             --mount "type=bind,source=${{ github.workspace }},target=/workspace" \
             -w "/workspace" \
+            -e INSTALL_PACKAGING_DEPS=true \
             "${{ env.CONTAINER_IMAGE }}" \
             bash -lc "bash /workspace/scripts/linux/container-run-native-linux.sh \
               --arch '${{ matrix.arch }}' \
               --flutter-version '${{ env.FLUTTER_VERSION }}' \
               --flutter-dir '${{ env.FLUTTER_DIR }}' \
               --app-name '${{ env.APP_NAME }}' \
+              --package-formats 'tar,deb,flatpak,appimage' \
               --run-codeql '${{ matrix.arch == 'x64' }}' \
               --run-docs '${{ matrix.arch == 'x64' }}'"
    
       # Upload SARIF to GitHub Code Scanning
       - name: Upload CodeQL results SARIF
-        if: ${{ matrix.arch == 'x64' }}
+        if: ${{ matrix.arch == 'x64' && hashFiles('codeql-results/*.sarif') != '' }}
         uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: codeql-results
@@ -85,6 +87,15 @@ jobs:
         with:
           name: ${{ env.APP_NAME }}-linux-${{ matrix.arch }}-tar
           path: ${{ env.APP_NAME }}-linux-${{ matrix.arch }}.tar.gz
+
+      - name: Upload Linux packages
+        uses: actions/upload-artifact@v6.0.0
+        with:
+          name: ${{ env.APP_NAME }}-linux-${{ matrix.arch }}-packages
+          path: |
+            out/*.deb
+            out/*.AppImage
+            out/*.flatpak
 
       - name: Fix permissions for doc directory
         if: ${{ matrix.arch == 'x64' }}

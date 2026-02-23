@@ -117,6 +117,7 @@ Refer to the detailed docs below for platform-specific requirements, camera stre
 ```powershell
 Im Projektroot ausführen: dart doc
 Danach Static-Server installieren: dart pub global activate dhttpd
+export PATH="$PATH":"$HOME/.pub-cache/bin"
 Falls dhttpd nicht gefunden wird, einmal PATH ergänzen: $env:Path += ";$env:USERPROFILE\AppData\Local\Pub\Cache\bin"
 Server starten: dhttpd --path doc/api --host 127.0.0.1 --port 8080
 Im Browser öffnen: http://127.0.0.1:8080
