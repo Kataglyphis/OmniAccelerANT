@@ -11,6 +11,7 @@ kataglyphis-inference-engine-linux-x64.tar.gz
 .svn/
 migrate_working_dir/
 
+*.tar.gz
 .tools/
 .flatpak-builder/
 
