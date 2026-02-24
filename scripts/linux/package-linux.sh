@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -euo pipefail
+# set -euo pipefail
 
 # Packt das gebaute Linux-Bundle in verschiedene Formate.
 # Benötigte Umgebungsvariablen: MATRIX_ARCH, APP_NAME

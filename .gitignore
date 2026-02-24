@@ -11,6 +11,9 @@ kataglyphis-inference-engine-linux-x64.tar.gz
 .svn/
 migrate_working_dir/
 
+.tools/
+.flatpak-builder/
+
 # IntelliJ related
 *.iml
 *.ipr
