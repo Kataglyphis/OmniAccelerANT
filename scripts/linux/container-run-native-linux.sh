@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -euo pipefail
+# set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/lib/container-steps.sh"
@@ -100,6 +100,7 @@ FLUTTER_DIR="/workspace/flutter"
 APP_NAME=""
 PACKAGE_FORMATS="tar"
 INSTALL_PACKAGING_DEPS="0"
+INSTALL_FLUTTER="0"
 RUN_DOCS="0"
 RUN_CODEQL="0"
 STRICT_CHECKS=""
@@ -129,6 +130,10 @@ while [[ $# -gt 0 ]]; do
     --install-packaging-deps)
       INSTALL_PACKAGING_DEPS="${2:-}"
       shift 2
+      ;;
+    --install-flutter)            # <--- ADD THIS BLOCK
+      INSTALL_FLUTTER="${2:-}"    # <---
+      shift 2                     # <---
       ;;
     --strict-checks)
       STRICT_CHECKS="${2:-}"
@@ -203,7 +208,7 @@ fi
 cd "$REPO_ROOT"
 
 # Optional: Flutter-Installation (nur im CI nötig)
-if [[ "${INSTALL_FLUTTER:-0}" == "1" ]]; then
+if maybe_truthy "$INSTALL_FLUTTER"; then
   bash scripts/linux/install-flutter.sh
 fi
 

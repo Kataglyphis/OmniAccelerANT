@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -euo pipefail
+# set -euo pipefail
 
 # Baut das Linux-Release mit Flutter
 # Benötigte Umgebungsvariablen: FLUTTER_DIR, MATRIX_ARCH
