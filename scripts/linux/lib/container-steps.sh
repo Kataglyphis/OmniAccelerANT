@@ -378,7 +378,7 @@ EOF
     cp "$icon_file" "$appdir/${icon_name}.png"
   fi
 
-  appimagetool "$appdir" "out/${output_name}"
+  NO_APPSTREAM=1 appimagetool "$appdir" "out/${output_name}"
   echo "Created: out/${output_name}"
 }
 
@@ -429,7 +429,7 @@ package_linux_bundle_flatpak() {
   cat > "$manifest_file" <<EOF
 app-id: ${app_id}
 runtime: org.freedesktop.Platform
-runtime-version: '23.08'
+runtime-version: '24.08'
 sdk: org.freedesktop.Sdk
 command: ${package_name}
 finish-args:

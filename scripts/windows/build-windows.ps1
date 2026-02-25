@@ -227,7 +227,7 @@ try {
         }
         
         Invoke-BuildStep -Context $context -StepName "Flutter Ephemeral Build (C++ Headers)" -Script {
-            Invoke-BuildExternal -Context $context -File "flutter" -Parameters @("build", "windows", "--release", "--build-dir", $BuildRootDir) -IgnoreExitCode
+            Invoke-BuildExternal -Context $context -File "flutter" -Parameters @("build", "windows", "--release")
         }
 
         Invoke-BuildStep -Context $context -StepName "Reset CMake Build Directory" -Script {
