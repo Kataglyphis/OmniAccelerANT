@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:kataglyphis_inference_engine/src/rust/api/simple.dart';
 import 'package:kataglyphis_inference_engine/src/rust/frb_generated.dart';
 
 // Use of this source code is governed by a BSD-style license that can be

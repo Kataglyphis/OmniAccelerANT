@@ -1,16 +1,21 @@
 #!/usr/bin/env bash
-# set -euo pipefail
+set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "$SCRIPT_DIR/lib/container-steps.sh"
+source "$SCRIPT_DIR/../lib/container-steps.sh"
+source "$SCRIPT_DIR/../lib/cli-common.sh"
+source "$SCRIPT_DIR/../lib/packaging-common.sh"
+source "$SCRIPT_DIR/../codeql/codeql-common.sh"
+source "$SCRIPT_DIR/../codeql/codeql-android.sh"
 
 usage() {
   cat <<'EOF'
 Usage:
-  bash scripts/linux/container-run-android.sh [options]
+  bash scripts/linux/ci/ci-container-run-android.sh [options]
 
 Options:
   -a, --arch <x64|arm64>        Target architecture label (required)
+  --build-mode <debug|profile|release> Build mode for flutter build apk (default: release)
       --flutter-version <ver>   Flutter version (required)
       --flutter-dir <path>      Flutter SDK installation directory (default: /workspace/flutter)
   -n, --app-name <name>         Artifact base name (required)
@@ -20,15 +25,21 @@ EOF
 }
 
 MATRIX_ARCH=""
+BUILD_MODE="release"
 FLUTTER_VERSION=""
 FLUTTER_DIR="/workspace/flutter"
 APP_NAME=""
 RUN_CODEQL="1"
+STRICT_CHECKS=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     -a|--arch)
       MATRIX_ARCH="${2:-}"
+      shift 2
+      ;;
+    --build-mode)
+      BUILD_MODE="${2:-}"
       shift 2
       ;;
     --flutter-version)
@@ -59,72 +70,66 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-case "$MATRIX_ARCH" in
-  x64|arm64) ;;
+if ! validate_arch "$MATRIX_ARCH"; then
+  usage >&2
+  exit 2
+fi
+
+case "$BUILD_MODE" in
+  debug|profile|release) ;;
   *)
-    echo "Error: --arch must be x64 or arm64" >&2
+    echo "Error: --build-mode must be one of: debug, profile, release (got: ${BUILD_MODE:-<empty>})" >&2
     usage >&2
     exit 2
     ;;
 esac
 
-if [[ -z "$FLUTTER_VERSION" ]]; then
-  echo "Error: --flutter-version is required" >&2
+if ! validate_non_empty "--flutter-version" "$FLUTTER_VERSION"; then
   usage >&2
   exit 2
 fi
 
-if [[ -z "$APP_NAME" ]]; then
-  echo "Error: --app-name is required" >&2
+if ! validate_non_empty "--app-name" "$APP_NAME"; then
   usage >&2
   exit 2
 fi
 
-export MATRIX_ARCH
-export FLUTTER_VERSION
-export FLUTTER_DIR
-export APP_NAME
+STRICT_CHECKS="$(resolve_strict_checks "$STRICT_CHECKS")"
 
 build_android_apk_release() {
+  local build_mode="${1:-release}"
   flutter clean
   flutter pub get
-  flutter build apk --release
+  flutter build apk --"$build_mode"
 }
 
-run_codeql_android() {
-  codeql_install_cli
-  cd /workspace
-  codeql_download_packs codeql/cpp-queries codeql/rust-queries codeql/java-queries
-  codeql_write_build_script /tmp/codeql-build.sh "flutter build apk --release"
-  codeql_create_db_cluster /tmp/codeql-build.sh --language=cpp --language=c --language=rust --language=java --language=kotlin
-  codeql_analyze_cpp
-  codeql_analyze_kotlin
-  codeql_analyze_rust
-}
-
-REPO_ROOT="/workspace"
+REPO_ROOT="$(resolve_repo_root /workspace)"
 cd "$REPO_ROOT"
 
-git_safe_dirs
+git_safe_dirs "$FLUTTER_DIR"
 
 if [[ "${MATRIX_ARCH}" == "arm64" ]]; then
   echo "Warning: Android build flow currently uses x86-64 Flutter bootstrap script; MATRIX_ARCH=${MATRIX_ARCH}" >&2
 fi
 
-MATRIX_ARCH=x64 setup_flutter_sdk
-source_bashrc_and_add_flutter_to_path
-run_flutter_common_checks
-run_check_cmd flutter config --enable-android
+setup_flutter_sdk "$FLUTTER_VERSION" "$FLUTTER_DIR" "x64"
+source_bashrc_and_add_flutter_to_path "$FLUTTER_DIR"
+run_flutter_common_checks "$STRICT_CHECKS"
+run_check_cmd "$STRICT_CHECKS" flutter config --enable-android
 export_toolchain_env
 
 if maybe_truthy "$RUN_CODEQL"; then
-  if ! run_codeql_android; then
+  if ! run_codeql_android "$FLUTTER_DIR" "$BUILD_MODE"; then
     echo "Warning: CodeQL failed; continuing with regular APK build." >&2
     cd /workspace
-    build_android_apk_release
+    build_android_apk_release "$BUILD_MODE"
   fi
 else
-  build_android_apk_release
+  build_android_apk_release "$BUILD_MODE"
 fi
 
-package_android_apk_outputs_tar
+if [[ "$BUILD_MODE" == "release" ]]; then
+  package_android_apk_outputs_tar "$MATRIX_ARCH" "$APP_NAME"
+else
+  echo "Info: packaging skipped because --build-mode is '$BUILD_MODE' (packaging is release-only)."
+fi

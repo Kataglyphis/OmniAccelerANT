@@ -2,10 +2,9 @@
 set -euo pipefail
 
 # Generiert die Dart-Dokumentation und setzt die Besitzrechte
-# Benötigte Umgebungsvariablen: FLUTTER_DIR
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "$SCRIPT_DIR/lib/container-steps.sh"
+source "$SCRIPT_DIR/container-steps.sh"
 
 source_bashrc_and_add_flutter_to_path
 

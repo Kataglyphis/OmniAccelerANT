@@ -11,12 +11,6 @@ on:
   pull_request:
     branches: ["main", "develop"]
 
-env:
-  APP_NAME: kataglyphis-inference-engine-apk
-  FLUTTER_VERSION: 3.41.1   # change here to update version for the whole workflow
-  FLUTTER_DIR: /workspace/flutter  # Flutter SDK installation directory
-  CONTAINER_IMAGE: ghcr.io/kataglyphis/kataglyphis_beschleuniger:latest
-
 jobs:
   build:
     strategy:
@@ -24,7 +18,12 @@ jobs:
         include:
           - runs_on: ubuntu-24.04
             arch: x64
+            build_mode: release
             platform: linux/amd64
+            app_name: kataglyphis-inference-engine-apk
+            flutter_version: 3.41.1
+            flutter_dir: /workspace/flutter
+            container_image: ghcr.io/kataglyphis/kataglyphis_beschleuniger:latest
 
     runs-on: ${{ matrix.runs_on }}
     permissions:
@@ -53,7 +52,7 @@ jobs:
 
       - name: Pull image
         run: |
-          docker pull --platform "${{ matrix.platform }}" "${{ env.CONTAINER_IMAGE }}"
+          docker pull --platform "${{ matrix.platform }}" "${{ matrix.container_image }}"
 
       - name: Run container
         run: |
@@ -61,19 +60,20 @@ jobs:
             --platform "${{ matrix.platform }}" \
             --volume "${GITHUB_WORKSPACE}:/workspace" \
             --workdir /workspace \
-            "${{ env.CONTAINER_IMAGE }}" \
-            bash /workspace/scripts/linux/container-run-android.sh \
+            "${{ matrix.container_image }}" \
+            bash /workspace/scripts/linux/ci/ci-container-run-android.sh \
               --arch "${{ matrix.arch }}" \
-              --flutter-version "${{ env.FLUTTER_VERSION }}" \
-              --flutter-dir "${{ env.FLUTTER_DIR }}" \
-              --app-name "${{ env.APP_NAME }}" \
+              --build-mode "${{ matrix.build_mode }}" \
+              --flutter-version "${{ matrix.flutter_version }}" \
+              --flutter-dir "${{ matrix.flutter_dir }}" \
+              --app-name "${{ matrix.app_name }}" \
               --run-codeql "${{ matrix.arch == 'x64' }}"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v6.0.0
         with:
-          name: ${{ env.APP_NAME }}-linux-${{ matrix.arch }}-tar
-          path: ${{ env.APP_NAME }}-linux-${{ matrix.arch }}.tar.gz
+          name: ${{ matrix.app_name }}-linux-${{ matrix.arch }}-tar
+          path: out/${{ matrix.app_name }}-linux-${{ matrix.arch }}.tar.gz
 
       # Upload SARIF to GitHub Code Scanning
       - name: Upload CodeQL results SARIF
