@@ -227,6 +227,8 @@ try {
         }
         
         Invoke-BuildStep -Context $context -StepName "Flutter Ephemeral Build (C++ Headers)" -Script {
+            $env:CC = "clang-cl"
+            $env:CXX = "clang-cl"
             Invoke-BuildExternal -Context $context -File "flutter" -Parameters @("build", "windows", "--release")
         }
 

@@ -134,6 +134,9 @@ if maybe_truthy "$INSTALL_PACKAGING_DEPS"; then
   setup_packaging_dependencies_for_container "$MATRIX_ARCH"
 fi
 
+# Ensure clang has a usable C++ runtime/toolchain setup in container builds.
+export_toolchain_env
+
 # Check + Build + Packaging (delegiert an run-native-linux.sh)
 run_command_with_packaging_runtime "$PACKAGE_FORMATS" \
   bash scripts/linux/run-native-linux.sh \
