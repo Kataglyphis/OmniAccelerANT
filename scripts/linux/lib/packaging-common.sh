@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+FLATPAK_RUNTIME_VERSION="24.08"
+
 packaging_run_privileged_cmd() {
   if [[ "$(id -u)" -eq 0 ]]; then
     "$@"
@@ -53,7 +55,9 @@ setup_packaging_dependencies_for_container() {
   chmod 700 "$XDG_RUNTIME_DIR"
 
   dbus-run-session -- flatpak --user remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
-  dbus-run-session -- flatpak --user install -y flathub org.freedesktop.Platform//23.08 org.freedesktop.Sdk//23.08
+  dbus-run-session -- flatpak --user install -y flathub \
+    "org.freedesktop.Platform//${FLATPAK_RUNTIME_VERSION}" \
+    "org.freedesktop.Sdk//${FLATPAK_RUNTIME_VERSION}"
 }
 
 formats_include_flatpak() {
@@ -444,7 +448,7 @@ package_linux_bundle_flatpak() {
   cat > "$manifest_file" <<EOF
 app-id: ${app_id}
 runtime: org.freedesktop.Platform
-runtime-version: '24.08'
+runtime-version: '${FLATPAK_RUNTIME_VERSION}'
 sdk: org.freedesktop.Sdk
 command: ${package_name}
 finish-args:
