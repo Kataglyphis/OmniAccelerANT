@@ -27,7 +27,10 @@ git_safe_dirs() {
 
 source_bashrc_and_add_flutter_to_path() {
   local flutter_dir="${1:-}"
+  local original_flags="$-"
+  set +u
   source ~/.bashrc 2>/dev/null || true
+  if [[ "$original_flags" =~ u ]]; then set -u; fi
   if [[ -n "$flutter_dir" ]]; then
     export PATH="${flutter_dir}/bin:$PATH"
   fi
