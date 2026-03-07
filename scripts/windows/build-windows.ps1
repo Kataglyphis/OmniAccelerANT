@@ -229,7 +229,7 @@ try {
         Invoke-BuildStep -Context $context -StepName "Flutter Ephemeral Build (C++ Headers)" -Script {
             $env:CC = "clang-cl"
             $env:CXX = "clang-cl"
-            Invoke-BuildExternal -Context $context -File "flutter" -Parameters @("build", "windows", "--release")
+            try { Invoke-BuildExternal -Context $context -File "flutter" -Parameters @("build", "windows", "--release") } catch { Write-BuildLog -Context $context -Message "Flutter ephemeral build failed as expected, continuing to patch..." }
         }
 
         Invoke-BuildStep -Context $context -StepName "Reset CMake Build Directory" -Script {
