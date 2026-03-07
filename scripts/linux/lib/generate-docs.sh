@@ -82,6 +82,18 @@ fi
 # 4. Footer mit Projekt-Navigation und README-Links ergänzen
 if [[ -d "$DOC_API_DIR" ]]; then
 	echo "[Info] Ergänze Custom Footer und Sidebar-MD-Navigation in der Doku."
+	
+	if ! command -v uv >/dev/null 2>&1; then
+		echo "[Info] Installiere Astral uv..."
+		curl -LsSf https://astral.sh/uv/install.sh | sh
+		export PATH="$HOME/.local/bin:$HOME/.cargo/bin:$PATH"
+	fi
+
+	echo "[Info] Erstelle venv mit uv und installiere Abhängigkeiten..."
+	uv venv "$DOC_ROOT/.venv"
+	source "$DOC_ROOT/.venv/bin/activate"
+	uv pip install markdown-it-py
+
 	python3 - "$DOC_API_DIR" <<'PY'
 import os
 import pathlib
