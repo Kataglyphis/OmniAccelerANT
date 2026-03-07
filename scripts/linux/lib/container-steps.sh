@@ -75,7 +75,11 @@ export_toolchain_env() {
       gcc_toolchain_lib="$gcc_toolchain_root/lib"
     fi
 
+    export CFLAGS_x86_64_unknown_linux_gnu="--gcc-toolchain=${gcc_toolchain_root} ${CFLAGS:-}"
+    export CFLAGS_aarch64_unknown_linux_gnu="--gcc-toolchain=${gcc_toolchain_root} ${CFLAGS:-}"
     export CFLAGS="--gcc-toolchain=${gcc_toolchain_root} ${CFLAGS:-}"
+    export CXXFLAGS_x86_64_unknown_linux_gnu="--gcc-toolchain=${gcc_toolchain_root} ${CXXFLAGS:-}"
+    export CXXFLAGS_aarch64_unknown_linux_gnu="--gcc-toolchain=${gcc_toolchain_root} ${CXXFLAGS:-}"
     export CXXFLAGS="--gcc-toolchain=${gcc_toolchain_root} ${CXXFLAGS:-}"
 
     if [[ -n "$gcc_toolchain_lib" ]]; then
