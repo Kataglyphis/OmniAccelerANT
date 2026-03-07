@@ -2,7 +2,6 @@
 import 'dart:js_interop';
 import 'dart:ui_web' as ui_web;
 import 'package:web/web.dart' as web;
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import 'package:kataglyphis_inference_engine/js/gstwebrtc_api_interop.dart';

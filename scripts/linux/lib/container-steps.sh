@@ -64,6 +64,24 @@ run_flutter_common_checks() {
 export_toolchain_env() {
   export CC=clang
   export CXX=clang++
-  export CXXFLAGS="--gcc-toolchain=/opt/gcc-15.2.0 ${CXXFLAGS:-}"
-  export LDFLAGS="-L/opt/gcc-15.2.0/lib64 -Wl,-rpath,/opt/gcc-15.2.0/lib64 --gcc-toolchain=/opt/gcc-15.2.0 ${LDFLAGS:-}"
+
+  local gcc_toolchain_root="${MYPROJECT_GCC_TOOLCHAIN_PATH:-/opt/gcc-15.2.0}"
+  local gcc_toolchain_lib=""
+
+  if [[ -d "$gcc_toolchain_root" ]]; then
+    if [[ -d "$gcc_toolchain_root/lib64" ]]; then
+      gcc_toolchain_lib="$gcc_toolchain_root/lib64"
+    elif [[ -d "$gcc_toolchain_root/lib" ]]; then
+      gcc_toolchain_lib="$gcc_toolchain_root/lib"
+    fi
+
+    export CFLAGS="--gcc-toolchain=${gcc_toolchain_root} ${CFLAGS:-}"
+    export CXXFLAGS="--gcc-toolchain=${gcc_toolchain_root} ${CXXFLAGS:-}"
+
+    if [[ -n "$gcc_toolchain_lib" ]]; then
+      export LDFLAGS="-L${gcc_toolchain_lib} -Wl,-rpath,${gcc_toolchain_lib} --gcc-toolchain=${gcc_toolchain_root} ${LDFLAGS:-}"
+    else
+      export LDFLAGS="--gcc-toolchain=${gcc_toolchain_root} ${LDFLAGS:-}"
+    fi
+  fi
 }
