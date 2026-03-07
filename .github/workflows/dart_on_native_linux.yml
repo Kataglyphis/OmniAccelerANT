@@ -112,7 +112,8 @@ jobs:
       - name: Fix permissions for doc directory
         if: ${{ matrix.arch == 'x64' }}
         run: |
-          chmod -R 755 ./doc/api/
+          sudo chown -R $USER:$USER ./doc/api/
+          sudo chmod -R 755 ./doc/api/
           ls -la ./doc/api/
 
       - name: 📂 Sync files to domain
