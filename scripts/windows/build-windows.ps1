@@ -229,7 +229,7 @@ try {
         Invoke-BuildStep -Context $context -StepName "Flutter Ephemeral Build (C++ Headers)" -Script {
             $env:CC = "clang-cl"
             $env:CXX = "clang-cl"
-            try { Invoke-BuildExternal -Context $context -File "flutter" -Parameters @("build", "windows", "--release") } catch { Write-BuildLog -Context $context -Message "Flutter ephemeral build failed as expected, continuing to patch..." }
+            try { Invoke-BuildExternal -Context $context -File "flutter" -Parameters @("build", "windows", "--release") -IgnoreExitCode } catch { Write-BuildLog -Context $context -Message "Flutter ephemeral build failed as expected, continuing to patch..." }
         }
 
         Invoke-BuildStep -Context $context -StepName "Reset CMake Build Directory" -Script {
@@ -243,18 +243,36 @@ try {
     $pluginFile = Resolve-NormalizedPath -BasePath $workspace -RelativePath "windows/flutter/ephemeral/.plugin_symlinks/permission_handler_windows/windows/permission_handler_windows_plugin.cpp"
     if (Test-Path $pluginFile) {
         $pluginContent = Get-Content -LiteralPath $pluginFile -Raw
-        $targetLine = 'result->Success(requestResults);'
+        
+        $changed = $false
+
+        $targetLine = 'result->Success\(requestResults\);'
         $patchedLine = 'result->Success(flutter::EncodableValue(requestResults));'
 
-        if ($pluginContent -match [regex]::Escape($patchedLine)) {
-            Write-BuildLog -Context $context -Message "permission_handler_windows already patched."
-        } elseif ($pluginContent -match [regex]::Escape($targetLine)) {
-            Write-BuildLog -Context $context -Message "Patching permission_handler_windows..."
-            $updatedPluginContent = $pluginContent -replace [regex]::Escape($targetLine), $patchedLine
-            $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
-            [System.IO.File]::WriteAllText($pluginFile, $updatedPluginContent, $utf8NoBom)
+        if ($pluginContent -match 'result->Success\(flutter::EncodableValue\(requestResults\)\);') {
+            Write-BuildLog -Context $context -Message "permission_handler_windows Success already patched."
+        } elseif ($pluginContent -match $targetLine) {
+            Write-BuildLog -Context $context -Message "Patching permission_handler_windows Success..."
+            $pluginContent = $pluginContent -replace $targetLine, $patchedLine
+            $changed = $true
         } else {
             Write-BuildLogWarning -Context $context -Message "Patch target line not found in permission_handler_windows plugin file."
+        }
+
+        $targetLineFor = 'for\s*\(\s*int\s+i\s*=\s*0\s*;\s*i\s*<\s*permissions\.size\(\)\s*;\s*i\+\+\s*\)'
+        $patchedLineFor = 'for (size_t i=0;i<permissions.size();i++)'
+
+        if ($pluginContent -match 'for\s*\(\s*size_t\s+i') {
+            Write-BuildLog -Context $context -Message "permission_handler_windows loop already patched."
+        } elseif ($pluginContent -match $targetLineFor) {
+            Write-BuildLog -Context $context -Message "Patching permission_handler_windows loop..."
+            $pluginContent = $pluginContent -replace $targetLineFor, $patchedLineFor
+            $changed = $true
+        }
+
+        if ($changed) {
+            $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+            [System.IO.File]::WriteAllText($pluginFile, $pluginContent, $utf8NoBom)
         }
     }
 
