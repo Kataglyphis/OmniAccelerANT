@@ -4,7 +4,7 @@ homepage: https://jonasheinle.de
 
 publish_to: "none" # Remove this line if you wish to publish to pub.dev
 
-version: 1.0.0+1
+version: 1.1.0+1
 
 environment:
   sdk: ">=3.11.0 <4.0.0"
@@ -159,5 +159,5 @@ msix_config:
   display_name: Kataglyphis Inference Engine
   publisher_display_name: Kataglyphis
   identity_name: Kataglyphis.KataglyphisInferenceEngine
-  msix_version: 1.0.0.0
+      msix_version: 1.1.0.0
   logo_path: assets/icons/kataglyphis_app_icon.png
