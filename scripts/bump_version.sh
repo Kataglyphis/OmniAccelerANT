@@ -21,7 +21,7 @@ if [ -f "pubspec.yaml" ]; then
   # Update the main version
   sed -i -E "s/^version: .*/version: $NEW_VERSION+$BUILD_NUMBER/" pubspec.yaml
   # Update the msix_version (Windows requirement: must be X.Y.Z.0)
-  sed -i -E "s/msix_version: .*/  msix_version: $NEW_VERSION.0/" pubspec.yaml
+  sed -i -E "s/^[[:space:]]*msix_version:.*/  msix_version: $NEW_VERSION.0/" pubspec.yaml
 fi
 
 # 2. Update Debian control file (Optional, only if running as root or permissions allow)
