@@ -1,4 +1,5 @@
 {
     "idf.pythonInstallPath": "/usr/bin/python3",
-    "java.configuration.updateBuildConfiguration": "interactive"
+    "java.configuration.updateBuildConfiguration": "interactive",
+    "cmake.sourceDirectory": "/home/jones/GitHub/Kataglyphis-Inference-Engine/linux"
 }

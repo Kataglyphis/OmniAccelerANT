@@ -11,11 +11,6 @@ on:
   pull_request:
     branches: ["main", "develop"]
 
-env:
-  APP_NAME: kataglyphis-inference-engine
-  FLUTTER_VERSION: 3.41.0   # change here to update version for the whole workflow
-  FLUTTER_DIR: /workspace/flutter  # Flutter SDK installation directory
-
 jobs:
   build:
     strategy:
@@ -23,10 +18,24 @@ jobs:
         include:
           - runs_on: ubuntu-24.04
             arch: x64
+            build_mode: release
             platform: linux/amd64
+            app_name: kataglyphis-inference-engine
+            flutter_version: 3.41.4
+            flutter_dir: /workspace/flutter
+            container_image: ghcr.io/kataglyphis/kataglyphis_beschleuniger:latest
+            package_formats: tar,deb,flatpak,appimage
+            install_packaging_deps: true
           - runs_on: ubuntu-24.04-arm
             arch: arm64
+            build_mode: release
             platform: linux/arm64
+            app_name: kataglyphis-inference-engine
+            flutter_version: 3.41.4
+            flutter_dir: /workspace/flutter
+            container_image: ghcr.io/kataglyphis/kataglyphis_beschleuniger:latest
+            package_formats: tar,deb,flatpak,appimage
+            install_packaging_deps: false
 
     runs-on: ${{ matrix.runs_on }}
     permissions:
@@ -53,70 +62,34 @@ jobs:
       - name: Login to GitHub Container Registry
         run: echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
-      - name: Pull container image
-        run: bash scripts/linux/ci-dart-on-native-linux.sh pull_container
-        env:
-          CONTAINER_IMAGE: ghcr.io/kataglyphis/kataglyphis_beschleuniger:latest
-          MATRIX_PLATFORM: ${{ matrix.platform }}
-          MATRIX_ARCH: ${{ matrix.arch }}
-          FLUTTER_VERSION: ${{ env.FLUTTER_VERSION }}
-          FLUTTER_DIR: ${{ env.FLUTTER_DIR }}
-          APP_NAME: ${{ env.APP_NAME }}
+      - name: Pull image
+        run: |
+          docker pull --platform "${{ matrix.platform }}" "${{ matrix.container_image }}"
 
-      - name: Setup Flutter in container
-        run: bash scripts/linux/ci-dart-on-native-linux.sh setup_flutter
-        env:
-          CONTAINER_IMAGE: ghcr.io/kataglyphis/kataglyphis_beschleuniger:latest
-          MATRIX_PLATFORM: ${{ matrix.platform }}
-          MATRIX_ARCH: ${{ matrix.arch }}
-          FLUTTER_VERSION: ${{ env.FLUTTER_VERSION }}
-          FLUTTER_DIR: ${{ env.FLUTTER_DIR }}
-          APP_NAME: ${{ env.APP_NAME }}
-
-      - name: Run Flutter checks and tests
-        run: bash scripts/linux/ci-dart-on-native-linux.sh checks
-        env:
-          CONTAINER_IMAGE: ghcr.io/kataglyphis/kataglyphis_beschleuniger:latest
-          MATRIX_PLATFORM: ${{ matrix.platform }}
-          MATRIX_ARCH: ${{ matrix.arch }}
-          FLUTTER_VERSION: ${{ env.FLUTTER_VERSION }}
-          FLUTTER_DIR: ${{ env.FLUTTER_DIR }}
-          APP_NAME: ${{ env.APP_NAME }}
-
-      - name: Build Flutter Linux app
-        run: bash scripts/linux/ci-dart-on-native-linux.sh build_linux
-        env:
-          CONTAINER_IMAGE: ghcr.io/kataglyphis/kataglyphis_beschleuniger:latest
-          MATRIX_PLATFORM: ${{ matrix.platform }}
-          MATRIX_ARCH: ${{ matrix.arch }}
-          FLUTTER_VERSION: ${{ env.FLUTTER_VERSION }}
-          FLUTTER_DIR: ${{ env.FLUTTER_DIR }}
-          APP_NAME: ${{ env.APP_NAME }}
-
-      - name: Package build artifacts
-        run: bash scripts/linux/ci-dart-on-native-linux.sh package
-        env:
-          CONTAINER_IMAGE: ghcr.io/kataglyphis/kataglyphis_beschleuniger:latest
-          MATRIX_PLATFORM: ${{ matrix.platform }}
-          MATRIX_ARCH: ${{ matrix.arch }}
-          FLUTTER_VERSION: ${{ env.FLUTTER_VERSION }}
-          FLUTTER_DIR: ${{ env.FLUTTER_DIR }}
-          APP_NAME: ${{ env.APP_NAME }}
-
-      - name: Generate documentation
-        if: ${{ matrix.arch == 'x64' }}
-        run: bash scripts/linux/ci-dart-on-native-linux.sh generate_docs
-        env:
-          CONTAINER_IMAGE: ghcr.io/kataglyphis/kataglyphis_beschleuniger:latest
-          MATRIX_PLATFORM: ${{ matrix.platform }}
-          MATRIX_ARCH: ${{ matrix.arch }}
-          FLUTTER_VERSION: ${{ env.FLUTTER_VERSION }}
-          FLUTTER_DIR: ${{ env.FLUTTER_DIR }}
-          APP_NAME: ${{ env.APP_NAME }}
+      - name: Run container
+        run: |
+          docker run --rm --privileged \
+            --platform "${{ matrix.platform }}" \
+            --volume "${GITHUB_WORKSPACE}:/workspace" \
+            --workdir /workspace \
+            "${{ matrix.container_image }}" \
+            bash /workspace/scripts/linux/ci/ci-container-run-native-linux.sh \
+              --arch "${{ matrix.arch }}" \
+              --build-mode "${{ matrix.build_mode }}" \
+              --flutter-version "${{ matrix.flutter_version }}" \
+              --flutter-dir "${{ matrix.flutter_dir }}" \
+              --app-name "${{ matrix.app_name }}" \
+              --package-formats "${{ matrix.package_formats }}" \
+              --install-packaging-deps "${{ matrix.install_packaging_deps }}" \
+              --install-flutter true \
+              --strict-checks false \
+              --run-codeql "${{ matrix.arch == 'x64' }}" \
+              --run-docs "${{ matrix.arch == 'x64' }}"
    
       # Upload SARIF to GitHub Code Scanning
       - name: Upload CodeQL results SARIF
-        if: ${{ matrix.arch == 'x64' }}
+        if: ${{ matrix.arch == 'x64' && hashFiles('codeql-results/*.sarif') != '' }}
+        continue-on-error: true
         uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: codeql-results
@@ -124,13 +97,23 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v6.0.0
         with:
-          name: ${{ env.APP_NAME }}-linux-${{ matrix.arch }}-tar
-          path: ${{ env.APP_NAME }}-linux-${{ matrix.arch }}.tar.gz
+          name: ${{ matrix.app_name }}-linux-${{ matrix.arch }}-tar
+          path: out/${{ matrix.app_name }}-linux-${{ matrix.arch }}.tar.gz
+
+      - name: Upload Linux packages
+        uses: actions/upload-artifact@v6.0.0
+        with:
+          name: ${{ matrix.app_name }}-linux-${{ matrix.arch }}-packages
+          path: |
+            out/*.deb
+            out/*.AppImage
+            out/*.flatpak
 
       - name: Fix permissions for doc directory
         if: ${{ matrix.arch == 'x64' }}
         run: |
-          chmod -R 755 ./doc/api/
+          sudo chown -R $USER:$USER ./doc/api/
+          sudo chmod -R 755 ./doc/api/
           ls -la ./doc/api/
 
       - name: 📂 Sync files to domain

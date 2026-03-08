@@ -1,85 +1,72 @@
 # Camera Streaming
 
-Guides for configuring WebRTC streaming pipelines and inference demos.
+Practical WebRTC streaming and inference pipelines for Kataglyphis.
 
-## GStreamer WebRTC Setup
-
-Follow the official [GStreamer WebRTC tutorial](https://gstreamer.freedesktop.org/documentation/rswebrtc/index.html?gi-language=c) for deeper background.
-
-### 1. Start the Signalling Server
+## 1) Start the signalling server
 
 ```bash
 cd /opt/gst-plugins-rs/net/webrtc/signalling
 WEBRTCSINK_SIGNALLING_SERVER_LOG=debug cargo run --bin gst-webrtc-signalling-server -- --port 8444 --host 127.0.0.1
 ```
 
-### 2. Stream From a Webcam
-
-Set the plugin path before launching pipelines:
+## 2) Export plugin path (if required)
 
 ```bash
 export GST_PLUGIN_PATH=/home/user/gst-plugins-rs/target/release:$GST_PLUGIN_PATH
 ```
 
-**USB webcam (inside Docker):**
+## 3) Start a stream source
+
+### USB webcam
 
 ```bash
-gst-launch-1.0 -e webrtcsink signaller::uri="ws://ubuntu:8444" name=ws \
+gst-launch-1.0 -e webrtcsink signaller::uri="ws://127.0.0.1:8444" name=ws \
   meta="meta,name=kataglyphis-webfrontend-stream" \
   v4l2src device=/dev/video0 ! image/jpeg,width=640,height=360,framerate=30/1 ! \
   jpegdec ! videoconvert ! ws.
 ```
 
-**Pylon camera:**
+### Pylon camera
 
 ```bash
-gst-launch-1.0 -e webrtcsink signaller::uri="ws://ubuntu:8444" name=ws \
+gst-launch-1.0 -e webrtcsink signaller::uri="ws://127.0.0.1:8444" name=ws \
   meta="meta,name=kataglyphis-webfrontend-stream" \
-  pylonsrc ! videoconvert ! ws. audiotestsrc ! ws.
+  pylonsrc ! videoconvert ! ws.
 ```
 
-**Orange Pi RV2 RISC-V board:**
+### Raspberry Pi / Orange Pi (example)
 
 ```bash
-GST_DEBUG=4 gst-launch-1.0 -v -e v4l2src device=/dev/video20 ! \
-  video/x-raw,format=YUY2,width=1280,height=720,framerate=5/1 ! \
-  videoconvert ! video/x-raw,format=I420 ! kyh264enc ! h264parse config-interval=1 ! \
-  capsfilter caps="video/x-h264,stream-format=(string)byte-stream,alignment=(string)au,profile=(string)main,level=(string)3.1,coded-picture-structure=(string)frame,chroma-format=(string)4:2:0,bit-depth-luma=(uint)8,bit-depth-chroma=(uint)8,parsed=(boolean)true" ! \
-  queue ! webrtcsink congestion-control=disabled signaller::uri="ws://0.0.0.0:8443" name=ws \
-  meta="meta,name=kataglyphis-webfrontend-stream"
+GST_DEBUG=3 gst-launch-1.0 \
+  libcamerasrc ! video/x-raw,format=RGB,width=640,height=360,framerate=30/1 ! \
+  videoconvert ! video/x-raw,format=I420 ! queue ! \
+  vp8enc deadline=1 threads=2 ! queue ! \
+  webrtcsink signaller::uri="ws://0.0.0.0:8443" name=ws meta="meta,name=gst-stream"
 ```
 
-**Rotating camera stream:**
+## 4) Run the web frontend
 
 ```bash
-gst-launch-1.0 ... \
-  video/x-raw,width=1280,height=720,format=NV12,interlace-mode=progressive ! \
-  videoflip method=rotate-180 ! \
-  x264enc speed-preset=1 threads=1 byte-stream=true ! \
-  ...
+flutter run -d web-server --profile --web-port 8080 --web-hostname 0.0.0.0
 ```
 
-### 3. Launch the Web App
+## 5) Python inference demos
 
-Once the stream is live, run the Flutter web frontend as described in the [web build guide](platforms.md#web-build).
-
-## Python Inference Pipelines
-
-Install system dependencies first:
+Install dependencies:
 
 ```bash
-sudo apt install libgirepository1.0-dev gir1.2-glib-2.0 \
+sudo apt install -y libgirepository1.0-dev gir1.2-glib-2.0 \
   build-essential pkg-config python3-dev libgirepository-2.0-dev \
   gobject-introspection libcairo2-dev python3-gi python3-gi-cairo gir1.2-gtk-4.0
 ```
 
-> **NOTE for Raspberry Pi:** Share system packages into your virtual environment:
->
-> ```bash
-> python3 -m venv --system-site-packages .venv
-> ```
+Optional virtual environment with system packages:
 
-### demo_ai.py
+```bash
+python3 -m venv --system-site-packages .venv
+```
+
+Run `demo_ai.py`:
 
 ```bash
 uv venv
@@ -87,7 +74,7 @@ uv pip install loguru pygobject numpy opencv-python
 GST_DEBUG=3 python3 demo_ai.py
 ```
 
-### demo_yolov5.py
+Run `demo_yolov5.py`:
 
 ```bash
 uv venv
@@ -97,13 +84,8 @@ uv pip install seaborn ultralytics
 GST_DEBUG=3 python3 demo_yolov5.py
 ```
 
-### Example Pipeline
+## Troubleshooting
 
-```bash
-gst-launch-1.0 -e webrtcsink signaller::uri="ws://ubuntu:8443" name=ws \
-  meta="meta,name=kataglyphis-webfrontend-stream" \
-  v4l2src device=/dev/video0 ! video/x-raw,width=320,height=240,framerate=10/1 ! \
-  videoconvert ! ws.
-```
-
-Increase verbosity with `GST_DEBUG=2` to see FPS data in the logs.
+- Use `GST_DEBUG=2` or `GST_DEBUG=3` to inspect pipeline performance and caps negotiation.
+- Validate camera device permissions (`/dev/video*`) when streams fail to start.
+- Ensure host/port pairs in `signaller::uri` match your signalling server.

@@ -6,10 +6,8 @@
   <h1>Kataglyphis-Inference-Engine</h1>
 
   <h4>An inference engine with Flutter/Dart frontend and Rust/C++ backend, showcasing Gstreamer capabilities enhanced with AI. Read further if you are interested in cross platform AI inference. </h4>
-</div>
-
-
-
+u</div>
+  
 [![Build + run + test on Linux natively](https://github.com/Kataglyphis/Kataglyphis-Inference-Engine/actions/workflows/dart_on_native_linux.yml/badge.svg)](https://github.com/Kataglyphis/Kataglyphis-Inference-Engine/actions/workflows/dart_on_native_linux.yml) [![Windows CMake (clang-cl) natively](https://github.com/Kataglyphis/Kataglyphis-Inference-Engine/actions/workflows/dart_on_native_windows.yml/badge.svg)](https://github.com/Kataglyphis/Kataglyphis-Inference-Engine/actions/workflows/dart_on_native_windows.yml) [![Build + test + run for web](https://github.com/Kataglyphis/Kataglyphis-Inference-Engine/actions/workflows/dart_on_web_linux.yml/badge.svg)](https://github.com/Kataglyphis/Kataglyphis-Inference-Engine/actions/workflows/dart_on_web_linux.yml)  
  [![Build + test + run android app](https://github.com/Kataglyphis/Kataglyphis-Inference-Engine/actions/workflows/dart_build_android_app.yml/badge.svg)](https://github.com/Kataglyphis/Kataglyphis-Inference-Engine/actions/workflows/dart_build_android_app.yml)[![Automatic Dependency Submission](https://github.com/Kataglyphis/Kataglyphis-Inference-Engine/actions/workflows/dependency-graph/auto-submission/badge.svg)](https://github.com/Kataglyphis/Kataglyphis-Inference-Engine/actions/workflows/dependency-graph/auto-submission)
 [![Dependabot Updates](https://github.com/Kataglyphis/Kataglyphis-Inference-Engine/actions/workflows/dependabot/dependabot-updates/badge.svg)](https://github.com/Kataglyphis/Kataglyphis-Inference-Engine/actions/workflows/dependabot/dependabot-updates)
@@ -114,6 +112,14 @@ Kataglyphis-Inference-Engine bundles a Flutter/Dart frontend, a Rust/C++ inferen
 
 Refer to the detailed docs below for platform-specific requirements, camera streaming pipelines, and deployment workflows.
 
+```powershell
+Im Projektroot ausführen: dart doc
+Danach Static-Server installieren: dart pub global activate dhttpd
+export PATH="$PATH":"$HOME/.pub-cache/bin"
+Falls dhttpd nicht gefunden wird, einmal PATH ergänzen: $env:Path += ";$env:USERPROFILE\AppData\Local\Pub\Cache\bin"
+Server starten: dhttpd --path doc/api --host 127.0.0.1 --port 8080
+Im Browser öffnen: http://127.0.0.1:8080
+```
 
 ## Documentation
 
@@ -124,7 +130,7 @@ Refer to the detailed docs below for platform-specific requirements, camera stre
 | Camera Streaming | [docs/source/camera-streaming.md](docs/source/camera-streaming.md) | GStreamer WebRTC pipelines and Python inference demos. |
 | Upgrade guide | [docs/source/upgrade-guide.md](docs/source/upgrade-guide.md) | How to keep things up-to-date. |
 
-Build the full Sphinx documentation from the `docs/` directory when you need a browsable site.
+Build the full documentation website with `dart doc`. The generated site in `doc/api` now includes the guides from `docs/source`.
 
 ## Tests
 

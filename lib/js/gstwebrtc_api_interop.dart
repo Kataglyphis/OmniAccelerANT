@@ -1,6 +1,6 @@
 // lib/js/gstwebrtc_api_interop.dart
 @JS()
-library gstwebrtc_api_interop;
+library;
 
 import 'dart:js_interop';
 

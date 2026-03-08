@@ -3,7 +3,7 @@ name: Build + test + run on Windows with (clang-cl)
 on: [ push, pull_request ]
 
 env:
-  BUILD_DIR_RELEASE: build/windows/x64/runner
+  BUILD_DIR_RELEASE: build/windows/x64/runner/Release
 
 defaults:
   run:
@@ -56,14 +56,13 @@ jobs:
             powershell -NoProfile -ExecutionPolicy Bypass -File "C:\workspace\scripts\windows\Build-Windows.ps1" 
 
       # see also the install commands in the bottom of the CMakeLists.txt
-      - name: Upload files & Zip
+      - name: Upload release artifacts
         uses: actions/upload-artifact@v6.0.0
         with:
-          name: windows-files
+          name: windows-release-files
+          if-no-files-found: error
           path: |
-            ${{ env.BUILD_DIR_RELEASE }}/**/*.exe
-            ${{ env.BUILD_DIR_RELEASE }}/**/*.dll
-            ${{ env.BUILD_DIR_RELEASE }}/data/**/*
+            ${{ env.BUILD_DIR_RELEASE }}/**/*
 
       - uses: github/codeql-action/upload-sarif@v4 # Recommended upgrade
         if: hashFiles('codeql-results/*.sarif') != ''
