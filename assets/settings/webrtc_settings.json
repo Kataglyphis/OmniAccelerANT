@@ -1,0 +1,21 @@
+{
+	"signalingServerUrl": "ws://127.0.0.1:8443",
+	"reconnectionTimeoutMs": 5000,
+	"stunServers": ["stun:stun.l.google.com:19302"],
+	"turnServers": [],
+	"video": {
+		"defaultWidth": 1280,
+		"defaultHeight": 720,
+		"defaultFramerate": 30,
+		"defaultBitrateKbps": 2000
+	},
+	"texture": {
+		"width": 640,
+		"height": 480
+	},
+	"android": {
+		"width": 320,
+		"height": 240,
+		"fps": 15
+	}
+}

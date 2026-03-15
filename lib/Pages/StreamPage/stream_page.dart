@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:jotrockenmitlockenrepo/Pages/Footer/footer.dart';
 import 'package:jotrockenmitlockenrepo/Layout/ResponsiveDesign/single_page.dart';
 import 'package:jotrockenmitlockenrepo/app_attributes.dart';
+import 'package:kataglyphis_inference_engine/settings/webrtc_settings.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 // Web imports (only loaded on web)
@@ -15,11 +16,13 @@ import 'package:kataglyphis_inference_engine/Pages/StreamPage/webrtc_view_stub.d
 class StreamPage extends StatefulWidget {
   final AppAttributes appAttributes;
   final Footer footer;
+  final WebRTCSettings webrtcSettings;
 
   const StreamPage({
     super.key,
     required this.appAttributes,
     required this.footer,
+    required this.webrtcSettings,
   });
 
   @override
@@ -32,16 +35,20 @@ class StreamPageState extends State<StreamPage> {
     'kataglyphis_native_inference',
   );
   late final Future<int?> textureId;
-  static const int textureWidth = 640;
-  static const int textureHeight = 480;
+
+  // These are now loaded from webrtcSettings
+  int get textureWidth => widget.webrtcSettings.texture.width;
+  int get textureHeight => widget.webrtcSettings.texture.height;
 
   bool _isPlaying = false;
   String? _errorMessage;
   bool _nativeInitFailed = false;
   late final String _defaultNativeSource;
-  static const int _androidWidth = 320;
-  static const int _androidHeight = 240;
-  static const int _androidFps = 15;
+
+  // Android settings loaded from webrtcSettings
+  int get _androidWidth => widget.webrtcSettings.android.width;
+  int get _androidHeight => widget.webrtcSettings.android.height;
+  int get _androidFps => widget.webrtcSettings.android.fps;
   // Order: try modern Camera2 NDK (ahcsrc), then generic autodetect, then test pattern
   // ahc2src and androidvideosource are not available in current GStreamer builds
   final List<String> _androidSourceCandidates = <String>[
@@ -372,7 +379,7 @@ class StreamPageState extends State<StreamPage> {
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: webrtc_import.WebRTCView(
-                  signalingUrl: 'ws://127.0.0.1:8443',
+                  signalingUrl: widget.webrtcSettings.signalingServerUrl,
                   producerIdToConsume: null,
                 ),
               ),
@@ -680,7 +687,7 @@ class StreamPageState extends State<StreamPage> {
             borderRadius: BorderRadius.circular(8),
           ),
           child: webrtc_import.WebRTCView(
-            signalingUrl: 'ws://127.0.0.1:8443',
+            signalingUrl: widget.webrtcSettings.signalingServerUrl,
             producerIdToConsume: null,
           ),
         ),

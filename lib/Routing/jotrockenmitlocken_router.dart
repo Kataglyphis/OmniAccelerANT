@@ -84,6 +84,7 @@ class JotrockenMitLockenRoutes extends RoutesCreator {
       StreamPage(
         footer: getFooter(appAttributes),
         appAttributes: appAttributes,
+        webrtcSettings: blogDependentAppAttributes.webrtcSettings,
       ),
       LandingPage(
         footer: getFooter(appAttributes),

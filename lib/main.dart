@@ -18,6 +18,7 @@ import 'package:kataglyphis_inference_engine/Pages/jotrockenmitlocken_screen_con
 import 'package:kataglyphis_inference_engine/blog_dependent_app_attributes.dart';
 import 'package:kataglyphis_inference_engine/blog_page_config.dart';
 import 'package:kataglyphis_inference_engine/my_two_cents_config.dart';
+import 'package:kataglyphis_inference_engine/settings/webrtc_settings.dart';
 import 'package:jotrockenmitlockenrepo/app_attributes.dart';
 import 'package:jotrockenmitlockenrepo/app_settings.dart';
 import 'package:jotrockenmitlockenrepo/constants.dart';
@@ -57,7 +58,7 @@ class _AppState extends State<App> with SingleTickerProviderStateMixin {
   late final AnimationController controller;
   late final CurvedAnimation railAnimation;
   late Future<
-    (AppSettings, UserSettings, List<BlogPageConfig>, List<MyTwoCentsConfig>)
+    (AppSettings, UserSettings, List<BlogPageConfig>, List<MyTwoCentsConfig>, WebRTCSettings)
   >
   _settings;
   final String userSettingsFilePath =
@@ -66,6 +67,7 @@ class _AppState extends State<App> with SingleTickerProviderStateMixin {
   final String blogSettingsFilePath = "assets/settings/blog_settings.json";
   final String twoCentsSettingsFilePath =
       "assets/settings/my_two_cents_settings.json";
+  final String webrtcSettingsFilePath = "assets/settings/webrtc_settings.json";
   bool controllerInitialized = false;
   bool showMediumSizeLayout = false;
   bool showLargeSizeLayout = false;
@@ -124,7 +126,7 @@ class _AppState extends State<App> with SingleTickerProviderStateMixin {
   }
 
   Future<
-    (AppSettings, UserSettings, List<BlogPageConfig>, List<MyTwoCentsConfig>)
+    (AppSettings, UserSettings, List<BlogPageConfig>, List<MyTwoCentsConfig>, WebRTCSettings)
   >
   _loadAppSettings() async {
     final userSettingsJsonString = await rootBundle.loadString(
@@ -164,7 +166,18 @@ class _AppState extends State<App> with SingleTickerProviderStateMixin {
         MyTwoCentsConfig.fromJsonFile(e as Map<String, dynamic>),
       );
     }
-    return (appSettings, userSettings, blogConfigs, twoCentsConfigs);
+
+    final webrtcSettingsJsonString = await rootBundle.loadString(
+      webrtcSettingsFilePath,
+    );
+    final Map<String, dynamic> webrtcSettingsJson = json.decode(
+      webrtcSettingsJsonString,
+    );
+    WebRTCSettings webrtcSettings = WebRTCSettings.fromJsonFile(
+      webrtcSettingsJson,
+    );
+
+    return (appSettings, userSettings, blogConfigs, twoCentsConfigs, webrtcSettings);
   }
 
   void handleBrightnessChange(bool useLightMode) {
@@ -223,6 +236,7 @@ class _AppState extends State<App> with SingleTickerProviderStateMixin {
                 blogDependentScreenConfigurations: screenConfigurations,
                 twoCentsConfigs: data.requireData.$4,
                 blockSettings: data.requireData.$3,
+                webrtcSettings: data.requireData.$5,
               );
           AppAttributes appAttributes = AppAttributes(
             footerConfig: JoTrockenMitLockenFooterConfig(),
