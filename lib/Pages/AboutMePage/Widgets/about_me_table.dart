@@ -18,8 +18,6 @@ class AboutMeTable extends StatefulWidget {
 }
 
 class AboutMeTableState extends State<AboutMeTable> {
-  AboutMeTableState({Key? key});
-
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -70,10 +68,10 @@ class AboutMeTableState extends State<AboutMeTable> {
           textAlign: TextAlign.center,
           style: Theme.of(context).textTheme.titleMedium,
         ),
-        IconButton(
+        const IconButton(
           iconSize: 40,
-          icon: const FaIcon(FontAwesomeIcons.dumbbell),
-          onPressed: () {},
+          icon: FaIcon(FontAwesomeIcons.dumbbell),
+          onPressed: null, // Decorative icon, no action
         ),
         colDivider,
       ],

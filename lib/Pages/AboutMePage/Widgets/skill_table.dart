@@ -71,10 +71,9 @@ class _SkillTableState extends State<SkillTable> {
 
   @override
   Widget build(BuildContext context) {
-    final double currentWith = MediaQuery.of(context).size.width;
-    double betweenColumnPadding = (currentWith <= narrowScreenWidthThreshold)
-        ? 40.0
-        : 80.0;
+    final double screenWidth = MediaQuery.of(context).size.width;
+    final double betweenColumnPadding =
+        (screenWidth <= narrowScreenWidthThreshold) ? 40.0 : 80.0;
 
     return FutureBuilder(
       future: _skillTableJson,
@@ -121,13 +120,9 @@ class _SkillTableState extends State<SkillTable> {
             );
             skills.add(TableRow(children: [rowDivider, rowDivider]));
           }
-          final double currentWidth = MediaQuery.of(context).size.width;
-          double skillTableWidth = currentWidth;
-          if (currentWidth >= mediumWidthBreakpoint) {
-            skillTableWidth = skillTableWidth * 0.4;
-          } else {
-            skillTableWidth = skillTableWidth * 0.9;
-          }
+          final skillTableWidth = screenWidth >= mediumWidthBreakpoint
+              ? screenWidth * 0.4
+              : screenWidth * 0.9;
           return CenteredBoxDecoration(
             color: Theme.of(context).colorScheme.primary,
             child: SizedBox(

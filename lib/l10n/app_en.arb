@@ -46,5 +46,8 @@
   "externalLinks": "External links",
   "lastModified": "Last modified",
   "follow": "Visit page",
-  "entryRedirectText": "Read more"
+  "entryRedirectText": "Read more",
+  "rerunSqliteHealthcheck": "Re-run SQLite Healthcheck",
+  "sqliteError": "SQLite Error",
+  "sqliteWebHint": "Note: For web, sqlite3.wasm must be located at /web/sqlite3.wasm."
 }

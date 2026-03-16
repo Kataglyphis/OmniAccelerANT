@@ -6,7 +6,6 @@ import 'package:kataglyphis_inference_engine/Pages/DataPage/media_critics_page.d
 import 'package:kataglyphis_inference_engine/Pages/StreamPage/stream_page.dart';
 import 'package:kataglyphis_inference_engine/Pages/ErrorPage/error_page.dart';
 import 'package:kataglyphis_inference_engine/blog_dependent_app_attributes.dart';
-
 import 'package:jotrockenmitlockenrepo/Pages/Footer/footer_page.dart';
 import 'package:kataglyphis_inference_engine/Pages/LandingPage/landing_page.dart';
 import 'package:jotrockenmitlockenrepo/Pages/Footer/footer.dart';
@@ -14,10 +13,30 @@ import 'package:jotrockenmitlockenrepo/Pages/Footer/footer_page_config.dart';
 import 'package:kataglyphis_inference_engine/blog_page_config.dart';
 import 'package:kataglyphis_inference_engine/my_two_cents_config.dart';
 import 'package:jotrockenmitlockenrepo/Routing/router_creater.dart';
-
 import 'package:jotrockenmitlockenrepo/app_attributes.dart';
 import 'package:jotrockenmitlockenrepo/Pages/stateful_branch_info_provider.dart';
 
+/// Routes configuration for the Kataglyphis Inference Engine application.
+///
+/// This class extends [RoutesCreator] to provide all application routes,
+/// organized into logical groups:
+///
+/// - **Navigation Bar Pages**: Stream, Landing, About Me
+/// - **Footer Pages**: Imprint, Contact, Privacy, etc.
+/// - **Blog Pages**: Dynamically loaded from blog configuration
+/// - **Data Pages**: Block overview and media critics
+/// - **Error Pages**: 404 and other error states
+///
+/// Each route is paired with a [StatefulBranchInfoProvider] that supplies
+/// routing metadata like the URL path segment.
+///
+/// Example usage:
+/// ```dart
+/// final routesCreator = JotrockenMitLockenRoutes(
+///   blogDependentAppAttributes: blogAttributes,
+/// );
+/// final router = routesCreator.getRouterConfig(appAttributes, ...);
+/// ```
 class JotrockenMitLockenRoutes extends RoutesCreator {
   BlogDependentAppAttributes blogDependentAppAttributes;
 

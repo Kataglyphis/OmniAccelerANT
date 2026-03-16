@@ -1,4 +1,11 @@
 #!/bin/bash
+set -euo pipefail
+
+# WebRTC development environment setup script for Raspberry Pi.
+# Creates a tmux session with three panes:
+# 1. GStreamer WebRTC signalling server
+# 2. GStreamer pipeline with libcamera source
+# 3. Static file server for the web client
 
 # Create a new tmux session called 'webrtc-setup'
 tmux new-session -d -s webrtc-setup

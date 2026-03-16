@@ -1,23 +1,32 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:kataglyphis_inference_engine/Pages/AboutMePage/Widgets/about_me_table.dart';
 import 'package:kataglyphis_inference_engine/Pages/AboutMePage/Widgets/skill_table.dart';
 import 'package:kataglyphis_inference_engine/Pages/AboutMePage/Widgets/sqlite3_healthcheck_widget.dart';
+import 'package:kataglyphis_inference_engine/src/rust/api/simple.dart';
+import 'package:kataglyphis_inference_engine/utils/locale_utils.dart';
+import 'package:kataglyphis_native_inference/kataglyphis_native_inference.dart';
 import 'package:jotrockenmitlockenrepo/Layout/ResponsiveDesign/one_two_transition_widget.dart';
 import 'package:jotrockenmitlockenrepo/Pages/Footer/footer.dart';
 import 'package:jotrockenmitlockenrepo/app_attributes.dart';
 import 'package:jotrockenmitlockenrepo/constants.dart';
 import 'package:jotrockenmitlockenrepo/user_settings.dart';
 
-import 'package:flutter/foundation.dart';
-
-import 'package:kataglyphis_inference_engine/src/rust/api/simple.dart';
-
-import 'package:kataglyphis_native_inference/kataglyphis_native_inference.dart';
-
-/// {@category awesome}
+/// About Me page displaying personal information, skills, and technical demos.
+///
+/// This page showcases:
+/// - Personal information and social media links
+/// - Skills table loaded from localized JSON
+/// - Rust FFI integration demo
+/// - SQLite health check widget
+/// - Native plugin integration (non-web platforms only)
 class AboutMePage extends StatefulWidget {
+  /// The application-wide attributes for theming and layout.
   final AppAttributes appAttributes;
+
+  /// The footer widget to display at the bottom of the page.
   final Footer footer;
+
   const AboutMePage({
     super.key,
     required this.appAttributes,
@@ -34,11 +43,11 @@ class AboutMePageState extends State<AboutMePage> {
     ColorSeed colorSelected,
     BuildContext context,
   ) {
-    String aboutMeFile = userSettings.aboutMeFileEn!;
-    if (Localizations.localeOf(context) == const Locale('de')) {
-      aboutMeFile = userSettings.aboutMeFileDe!;
-    }
-    List<Widget> childWidgetsLeftPage = [
+    final aboutMeFile = isGermanLocale(context)
+        ? userSettings.aboutMeFileDe!
+        : userSettings.aboutMeFileEn!;
+
+    final childWidgetsLeftPage = <Widget>[
       AboutMeTable(userSettings: userSettings),
       Center(
         child: Text(
@@ -46,34 +55,32 @@ class AboutMePageState extends State<AboutMePage> {
         ),
       ),
       const Center(child: Sqlite3HealthcheckWidget()),
-      if (!kIsWeb)
-        Center(
-          child: FutureBuilder<int>(
-            future: KataglyphisNativeInference.add(3, 4),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const CircularProgressIndicator();
-              }
-              if (snapshot.hasError) {
-                return Text('Error: ${snapshot.error}');
-              }
-              final value = snapshot.data ?? 0;
-              return Text('Native result: $value');
-            },
-          ),
-        ),
+      if (!kIsWeb) _buildNativePluginDemo(),
     ];
-    List<Widget> childWidgetsRightPage = [
-      // const PerfectDay(),
-      // const SizedBox(
-      //   height: 40,
-      // ),
-      SkillTable(aboutMeFile: aboutMeFile, userSettings: userSettings),
 
-      //widget.footer
+    final childWidgetsRightPage = <Widget>[
+      SkillTable(aboutMeFile: aboutMeFile, userSettings: userSettings),
     ];
 
     return [childWidgetsLeftPage, childWidgetsRightPage];
+  }
+
+  Widget _buildNativePluginDemo() {
+    return Center(
+      child: FutureBuilder<int>(
+        future: KataglyphisNativeInference.add(3, 4),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const CircularProgressIndicator();
+          }
+          if (snapshot.hasError) {
+            return Text('Error: ${snapshot.error}');
+          }
+          final value = snapshot.data ?? 0;
+          return Text('Native result: $value');
+        },
+      ),
+    );
   }
 
   @override

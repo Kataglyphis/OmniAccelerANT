@@ -12,20 +12,25 @@ class PerfectDay extends StatefulWidget {
 }
 
 class PerfectDayState extends State<PerfectDay> {
-  static double getDayHourPercantage(double houresPerDay) {
-    double n = (houresPerDay / 24) * 100;
-    return double.parse(n.toStringAsFixed(2));
+  /// Calculates the percentage of a day that the given hours represent.
+  ///
+  /// Returns a value rounded to 2 decimal places.
+  /// Example: 8 hours = 33.33% of a day.
+  static double getDayHourPercentage(double hoursPerDay) {
+    final percentage = (hoursPerDay / 24) * 100;
+    return double.parse(percentage.toStringAsFixed(2));
   }
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
     final Map<String, double> chartConfig = {
-      AppLocalizations.of(context)!.sleep: getDayHourPercantage(8),
-      AppLocalizations.of(context)!.studying: getDayHourPercantage(8),
-      AppLocalizations.of(context)!.sports: getDayHourPercantage(2),
-      AppLocalizations.of(context)!.meditation: getDayHourPercantage(1),
-      AppLocalizations.of(context)!.guitar: getDayHourPercantage(1),
-      AppLocalizations.of(context)!.familyFriends: getDayHourPercantage(4),
+      localizations.sleep: getDayHourPercentage(8),
+      localizations.studying: getDayHourPercentage(8),
+      localizations.sports: getDayHourPercentage(2),
+      localizations.meditation: getDayHourPercentage(1),
+      localizations.guitar: getDayHourPercentage(1),
+      localizations.familyFriends: getDayHourPercentage(4),
     };
 
     final List<PieChartDataEntry> chartData = [];

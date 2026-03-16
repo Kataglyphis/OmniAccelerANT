@@ -1,15 +1,13 @@
+import 'package:flutter/material.dart';
 import 'package:jotrockenmitlockenrepo/Decoration/centered_box_decoration.dart';
 import 'package:jotrockenmitlockenrepo/Decoration/component_group_decoration.dart';
-import 'package:flutter/material.dart';
 
-class ErrorPageWidget extends StatefulWidget {
+/// Widget displaying a 404 error page with an animated GIF.
+///
+/// This is a stateless widget since it has no mutable state.
+class ErrorPageWidget extends StatelessWidget {
   const ErrorPageWidget({super.key});
 
-  @override
-  State<ErrorPageWidget> createState() => _ErrorPageWidget();
-}
-
-class _ErrorPageWidget extends State<ErrorPageWidget> {
   @override
   Widget build(BuildContext context) {
     const colDivider = SizedBox(height: 10);
@@ -23,7 +21,7 @@ class _ErrorPageWidget extends State<ErrorPageWidget> {
           color: Theme.of(context).colorScheme.primary,
           child: ClipRRect(
             borderRadius: BorderRadius.circular(0),
-            child: Image.asset("assets/images/Pages/Error/error404.gif"),
+            child: Image.asset('assets/images/Pages/Error/error404.gif'),
           ),
         ),
         colDivider,

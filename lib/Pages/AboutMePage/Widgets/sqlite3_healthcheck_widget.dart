@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
-
+import 'package:kataglyphis_inference_engine/l10n/app_localizations.dart';
 import 'package:kataglyphis_inference_engine/src/db/sqlite3_healthcheck.dart';
 
+/// Widget that displays SQLite3 database health status.
+///
+/// Performs a health check on app initialization and provides
+/// a button to manually re-run the check.
 class Sqlite3HealthcheckWidget extends StatefulWidget {
   const Sqlite3HealthcheckWidget({super.key});
 
@@ -27,11 +31,13 @@ class _Sqlite3HealthcheckWidgetState extends State<Sqlite3HealthcheckWidget> {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
+
     return Column(
       children: [
         TextButton(
           onPressed: _rerun,
-          child: const Text('SQLite Healthcheck erneut ausführen'),
+          child: Text(localizations.rerunSqliteHealthcheck),
         ),
         FutureBuilder<String>(
           future: _result,
@@ -41,7 +47,8 @@ class _Sqlite3HealthcheckWidgetState extends State<Sqlite3HealthcheckWidget> {
             }
             if (snapshot.hasError) {
               return Text(
-                'SQLite Error: ${snapshot.error}\n\nHinweis: Für Web muss eine sqlite3.wasm unter /web/sqlite3.wasm liegen.',
+                '${localizations.sqliteError}: ${snapshot.error}\n\n'
+                '${localizations.sqliteWebHint}',
                 textAlign: TextAlign.center,
               );
             }
