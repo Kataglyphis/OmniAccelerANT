@@ -58,7 +58,13 @@ class _AppState extends State<App> with SingleTickerProviderStateMixin {
   late final AnimationController controller;
   late final CurvedAnimation railAnimation;
   late Future<
-    (AppSettings, UserSettings, List<BlogPageConfig>, List<MyTwoCentsConfig>, WebRTCSettings)
+    (
+      AppSettings,
+      UserSettings,
+      List<BlogPageConfig>,
+      List<MyTwoCentsConfig>,
+      WebRTCSettings,
+    )
   >
   _settings;
   final String userSettingsFilePath =
@@ -125,59 +131,55 @@ class _AppState extends State<App> with SingleTickerProviderStateMixin {
     }
   }
 
+  /// Loads all application settings in parallel for improved startup performance.
+  ///
+  /// Returns a tuple of (AppSettings, UserSettings, BlogConfigs, TwoCentsConfigs, WebRTCSettings).
+  /// Throws [FormatException] if any JSON file is malformed.
   Future<
-    (AppSettings, UserSettings, List<BlogPageConfig>, List<MyTwoCentsConfig>, WebRTCSettings)
+    (
+      AppSettings,
+      UserSettings,
+      List<BlogPageConfig>,
+      List<MyTwoCentsConfig>,
+      WebRTCSettings,
+    )
   >
   _loadAppSettings() async {
-    final userSettingsJsonString = await rootBundle.loadString(
-      userSettingsFilePath,
-    );
-    final Map<String, dynamic> userSettingsJson = json.decode(
-      userSettingsJsonString,
-    );
-    UserSettings userSettings = UserSettings.fromJsonFile(userSettingsJson);
+    // Load all JSON files in parallel for better performance
+    final results = await Future.wait([
+      rootBundle.loadString(userSettingsFilePath),
+      rootBundle.loadString(appSettingsFilePath),
+      rootBundle.loadString(blogSettingsFilePath),
+      rootBundle.loadString(twoCentsSettingsFilePath),
+      rootBundle.loadString(webrtcSettingsFilePath),
+    ]);
 
-    final appSettingsJsonString = await rootBundle.loadString(
-      appSettingsFilePath,
-    );
-    final Map<String, dynamic> appSettingsJson = json.decode(
-      appSettingsJsonString,
-    );
-    AppSettings appSettings = AppSettings.fromJsonFile(appSettingsJson);
+    final userSettingsJson = json.decode(results[0]) as Map<String, dynamic>;
+    final appSettingsJson = json.decode(results[1]) as Map<String, dynamic>;
+    final blogSettingsJson = json.decode(results[2]) as List<dynamic>;
+    final twoCentsSettingsJson = json.decode(results[3]) as List<dynamic>;
+    final webrtcSettingsJson = json.decode(results[4]) as Map<String, dynamic>;
 
-    final blogSettingsJsonString = await rootBundle.loadString(
-      blogSettingsFilePath,
-    );
-    final List<dynamic> blogSettingsJson = json.decode(blogSettingsJsonString);
-    List<BlogPageConfig> blogConfigs = [];
-    for (var e in blogSettingsJson) {
-      blogConfigs.add(BlogPageConfig.fromJsonFile(e as Map<String, dynamic>));
-    }
+    final userSettings = UserSettings.fromJsonFile(userSettingsJson);
+    final appSettings = AppSettings.fromJsonFile(appSettingsJson);
 
-    final twoCentsSettingsJsonString = await rootBundle.loadString(
-      twoCentsSettingsFilePath,
-    );
-    final List<dynamic> twoCentsSettingsJson = json.decode(
-      twoCentsSettingsJsonString,
-    );
-    List<MyTwoCentsConfig> twoCentsConfigs = [];
-    for (var e in twoCentsSettingsJson) {
-      twoCentsConfigs.add(
-        MyTwoCentsConfig.fromJsonFile(e as Map<String, dynamic>),
-      );
-    }
+    final blogConfigs = blogSettingsJson
+        .map((e) => BlogPageConfig.fromJsonFile(e as Map<String, dynamic>))
+        .toList();
 
-    final webrtcSettingsJsonString = await rootBundle.loadString(
-      webrtcSettingsFilePath,
-    );
-    final Map<String, dynamic> webrtcSettingsJson = json.decode(
-      webrtcSettingsJsonString,
-    );
-    WebRTCSettings webrtcSettings = WebRTCSettings.fromJsonFile(
-      webrtcSettingsJson,
-    );
+    final twoCentsConfigs = twoCentsSettingsJson
+        .map((e) => MyTwoCentsConfig.fromJsonFile(e as Map<String, dynamic>))
+        .toList();
 
-    return (appSettings, userSettings, blogConfigs, twoCentsConfigs, webrtcSettings);
+    final webrtcSettings = WebRTCSettings.fromJsonFile(webrtcSettingsJson);
+
+    return (
+      appSettings,
+      userSettings,
+      blogConfigs,
+      twoCentsConfigs,
+      webrtcSettings,
+    );
   }
 
   void handleBrightnessChange(bool useLightMode) {
@@ -283,7 +285,40 @@ class _AppState extends State<App> with SingleTickerProviderStateMixin {
             routerConfig: routerConfig,
           );
         } else if (data.hasError) {
-          return Text("${data.error}");
+          // Display user-friendly error with details for debugging
+          return MaterialApp(
+            home: Scaffold(
+              body: Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(24.0),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.error_outline,
+                        size: 64,
+                        color: Colors.red[400],
+                      ),
+                      const SizedBox(height: 16),
+                      const Text(
+                        'Failed to load application settings',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        '${data.error}',
+                        style: TextStyle(color: Colors.grey[600]),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          );
         } else {
           return Center(
             child: CircularProgressIndicator(color: ColorSeed.baseColor.color),

@@ -1,5 +1,5 @@
 {
-	"signalingServerUrl": "ws://himbeere2:8443",
+	"signalingServerUrl": "wss://himbeere2:8443",
 	"reconnectionTimeoutMs": 5000,
 	"stunServers": ["stun:stun.l.google.com:19302"],
 	"turnServers": [],

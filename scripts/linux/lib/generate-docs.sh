@@ -1,14 +1,20 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Generiert die Dart-Dokumentation und setzt die Besitzrechte
+# Generates Dart documentation and sets ownership permissions.
+# This script:
+# 1. Generates API docs using dart doc
+# 2. Applies custom CSS theming
+# 3. Sets dark mode as default
+# 4. Copies project images into docs
+# 5. Builds Markdown guide pages with navigation
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/container-steps.sh"
 
 source_bashrc_and_add_flutter_to_path
 
-# Zielverzeichnis für Doku und Besitzrechte bestimmen
+# Determine documentation root directory and ownership
 if [[ -d "/workspace" ]]; then
 	DOC_ROOT="/workspace/doc"
 else
@@ -19,16 +25,16 @@ fi
 flutter clean
 dart doc
 
-# --- Styling und Struktur verbessern ---
+# --- Styling and Structure Improvements ---
 DOC_API_DIR="$DOC_ROOT/api"
 DOC_CSS_FILE="$DOC_API_DIR/static-assets/styles.css"
 OVERRIDE_CSS_FILE="docs/source/_static/css/dartdoc-theme-overrides.css"
 PROJECT_IMAGES_DIR="images"
 
-# 1. Eigenes CSS-Theme einbinden (falls vorhanden)
+# 1. Apply custom CSS theme overrides (if available)
 if [[ -f "$OVERRIDE_CSS_FILE" && -f "$DOC_CSS_FILE" ]]; then
-	echo "[Info] Wende Theme-Overrides auf die Doku an."
-	# Vorherige Overrides entfernen
+	echo "[Info] Applying theme overrides to documentation."
+	# Remove previous overrides
 	if grep -q "Sphinx press theme overrides for Dartdoc START" "$DOC_CSS_FILE"; then
 		awk '/\/\* Sphinx press theme overrides for Dartdoc START \*\//{exit} {print}' "$DOC_CSS_FILE" > "${DOC_CSS_FILE}.tmp"
 		mv "${DOC_CSS_FILE}.tmp" "$DOC_CSS_FILE"
@@ -36,24 +42,24 @@ if [[ -f "$OVERRIDE_CSS_FILE" && -f "$DOC_CSS_FILE" ]]; then
 	cat "$OVERRIDE_CSS_FILE" >> "$DOC_CSS_FILE"
 fi
 
-# 2. Dark Mode als Standard setzen
+# 2. Set dark mode as default
 if [[ -d "$DOC_API_DIR" ]]; then
-	echo "[Info] Setze Dark Mode als Standard in der Doku."
+	echo "[Info] Setting dark mode as default in documentation."
 	find "$DOC_API_DIR" -type f -name "*.html" -print0 | while IFS= read -r -d '' html_file; do
 		sed -i 's/class="light-theme"/class="dark-theme"/g' "$html_file"
 	done
 fi
 
-# 3. Alle Bilder rekursiv in die Doku kopieren (inkl. Unterordner)
+# 3. Copy all images recursively into documentation (including subdirectories)
 if [[ -d "$PROJECT_IMAGES_DIR" && -d "$DOC_API_DIR" ]]; then
-	echo "[Info] Kopiere alle Bilder rekursiv in die Doku."
+	echo "[Info] Copying all images recursively into documentation."
 	mkdir -p "$DOC_API_DIR/images"
 	cp -a "$PROJECT_IMAGES_DIR"/. "$DOC_API_DIR/images/"
 fi
 
-# 3b. Eigene Markdown-Guides für Sidebar-Navigation veröffentlichen
+# 3b. Publish custom Markdown guides for sidebar navigation
 if [[ -d "$DOC_API_DIR" ]]; then
-	echo "[Info] Veröffentliche eigene Markdown-Guides unter doc/api/md."
+	echo "[Info] Publishing custom Markdown guides under doc/api/md."
 	mkdir -p "$DOC_API_DIR/md"
 	rm -f "$DOC_API_DIR"/guide-*.html
 
@@ -79,17 +85,17 @@ if [[ -d "$DOC_API_DIR" ]]; then
 	done
 fi
 
-# 4. Footer mit Projekt-Navigation und README-Links ergänzen
+# 4. Add footer with project navigation and README links
 if [[ -d "$DOC_API_DIR" ]]; then
-	echo "[Info] Ergänze Custom Footer und Sidebar-MD-Navigation in der Doku."
+	echo "[Info] Adding custom footer and sidebar MD navigation to documentation."
 	
 	if ! command -v uv >/dev/null 2>&1; then
-		echo "[Info] Installiere Astral uv..."
+		echo "[Info] Installing Astral uv..."
 		curl -LsSf https://astral.sh/uv/install.sh | sh
 		export PATH="$HOME/.local/bin:$HOME/.cargo/bin:$PATH"
 	fi
 
-	echo "[Info] Erstelle venv mit uv und installiere Abhängigkeiten..."
+	echo "[Info] Creating venv with uv and installing dependencies..."
 	uv venv "$DOC_ROOT/.venv"
 	source "$DOC_ROOT/.venv/bin/activate"
 	uv pip install markdown-it-py
@@ -273,7 +279,7 @@ for html_file in root.rglob("*.html"):
 PY
 fi
 
-# Besitzrechte nur im CI setzen
+# Set ownership only in CI environment
 if [[ "${CI:-}" == "true" ]]; then
 	if command -v stat >/dev/null 2>&1 && command -v chown >/dev/null 2>&1 && [[ -d "$DOC_ROOT" ]]; then
 		owner_uid=$(stat -c "%u" "$(pwd)")
@@ -282,5 +288,5 @@ if [[ "${CI:-}" == "true" ]]; then
 		chown -R "${owner_uid}:${owner_gid}" "$DOC_ROOT" || true
 	fi
 else
-	echo "[Info] Überspringe chown/stat (kein CI-Workflow)."
+	echo "[Info] Skipping chown/stat (not in CI workflow)."
 fi

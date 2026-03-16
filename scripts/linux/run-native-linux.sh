@@ -109,6 +109,7 @@ cd "$REPO_ROOT"
 require_cmd flutter
 require_cmd dart
 
+# Run code quality checks
 flutter pub get
 run_check_cmd "$STRICT_CHECKS" dart format --output=none --set-exit-if-changed .
 run_check_cmd "$STRICT_CHECKS" dart analyze
@@ -116,8 +117,8 @@ run_check_cmd "$STRICT_CHECKS" flutter test
 
 flutter config --enable-linux-desktop
 
+# Clean and build (pub get already done above, skip duplicate call)
 flutter clean
-flutter pub get
 flutter build linux --"$BUILD_MODE"
 
 if [[ "$RUN_PACKAGING" -eq 1 && "$BUILD_MODE" == "release" ]]; then

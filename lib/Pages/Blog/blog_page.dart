@@ -1,16 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:jotrockenmitlockenrepo/Pages/Footer/footer.dart';
-import 'package:jotrockenmitlockenrepo/Layout/ResponsiveDesign/single_page.dart';
-import 'package:jotrockenmitlockenrepo/Media/Files/file.dart';
-import 'package:jotrockenmitlockenrepo/Media/Files/file_table.dart';
-import 'package:jotrockenmitlockenrepo/Media/Markdown/markdown_page.dart';
-import 'package:kataglyphis_inference_engine/blog_page_config.dart';
 import 'package:jotrockenmitlockenrepo/app_attributes.dart';
+import 'package:kataglyphis_inference_engine/Pages/shared/markdown_content_page.dart';
+import 'package:kataglyphis_inference_engine/blog_page_config.dart';
 
-class BlogPage extends StatefulWidget {
+/// A page that displays blog content with markdown rendering and appendix files.
+///
+/// This widget uses [MarkdownContentPage] to render the blog post markdown
+/// and display associated appendix documents in a file table.
+class BlogPage extends StatelessWidget {
+  /// The application-wide attributes for theming and layout.
   final AppAttributes appAttributes;
+
+  /// The footer widget to display at the bottom of the page.
   final Footer footer;
+
+  /// The configuration for this blog page, including file paths and metadata.
   final BlogPageConfig blogPageConfig;
+
   const BlogPage({
     super.key,
     required this.appAttributes,
@@ -19,36 +26,12 @@ class BlogPage extends StatefulWidget {
   });
 
   @override
-  State<StatefulWidget> createState() => BlogPageState();
-}
-
-class BlogPageState extends State<BlogPage> {
-  @override
   Widget build(BuildContext context) {
-    List<File> docs = widget.blogPageConfig.docsDesc
-        .map(
-          (fileConfig) => File(
-            baseDir: fileConfig['baseDir']!,
-            title: fileConfig['title']!,
-            additionalInfo: fileConfig['additionalInfo']!,
-          ),
-        )
-        .toList();
-    return SinglePage(
-      footer: widget.footer,
-      appAttributes: widget.appAttributes,
-      showMediumSizeLayout: widget.appAttributes.showMediumSizeLayout,
-      showLargeSizeLayout: widget.appAttributes.showLargeSizeLayout,
-      children: [
-        MarkdownFilePage(
-          currentLocale: Localizations.localeOf(context),
-          filePathDe: '',
-          filePathEn: widget.blogPageConfig.filePath,
-          imageDirectory: widget.blogPageConfig.imageDir,
-          useLightMode: widget.appAttributes.useLightMode,
-        ),
-        FileTable(title: 'Appendix', docs: docs),
-      ],
+    return MarkdownContentPage(
+      appAttributes: appAttributes,
+      footer: footer,
+      config: blogPageConfig,
+      appendixTitle: 'Appendix',
     );
   }
 }
