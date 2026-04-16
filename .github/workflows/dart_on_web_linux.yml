@@ -16,18 +16,27 @@ on:
 jobs:
   build:
     name: 🚀 Deploy website on push
-    #runs-on: windows-latest
     runs-on: ubuntu-24.04
     permissions:
       contents: read
       security-events: write
-    steps:
 
-      - name: Initialize CodeQL
-        uses: github/codeql-action/init@v4
+    env:
+      CONTAINER_IMAGE: ghcr.io/kataglyphis/kataglyphis_beschleuniger:latest
+      FLUTTER_VERSION: 3.41.6
+      FLUTTER_DIR: /workspace/flutter
+
+    steps:
+      - name: Free Disk Space on Host
+        uses: jlumbroso/free-disk-space@main
         with:
-          languages: javascript-typescript,actions,rust
-          queries: security-extended
+          tool-cache: true
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: true
+          docker-images: true
+          swap-storage: true
 
       - name: 🚚 Get latest code
         uses: actions/checkout@v6.0.2
@@ -35,50 +44,27 @@ jobs:
           fetch-depth: 0
           submodules: recursive
 
-      - name: Setup Flutter SDK
-        uses: flutter-actions/setup-flutter@v4.1
-        with:
-          channel: stable
-          version: 3.41.6
+      - name: Login to GitHub Container Registry
+        run: echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
-      # git submodule update --init --recursive
-      - name: Install dependencies
+      - name: Pull image
         run: |
-          flutter pub get
-          cd ExternalLib/jotrockenmitlockenrepo
-          flutter pub get
+          docker pull --platform "linux/amd64" "${{ env.CONTAINER_IMAGE }}"
 
-      # Uncomment this step to verify the use of 'dart format' on each commit.
-      - name: Verify formatting
-        continue-on-error: true
-        run: dart format --output=none --set-exit-if-changed .
-
-      # Consider passing '--fatal-infos' for slightly stricter analysis.
-      - name: Analyze project source
-        continue-on-error: true
-        run: dart analyze
-
-      # Your project will need to have tests in test/ and a dependency on
-      # package:test for this step to succeed. Note that Flutter projects will
-      # want to change this to 'flutter test'.
-      - name: Run tests
-        continue-on-error: true
+      - name: Run container
         run: |
-          flutter test
-
-      - name: Enable flutter web
-        run: |
-          #rustup component add rust-src --toolchain nightly-x86_64-unknown-linux-gnu
-          #rustup target add wasm32-unknown-unknown --toolchain nightly
-          cargo install flutter_rust_bridge_codegen
-          flutter config --enable-web
-
-      - name: "Build Web App"
-        run: |
-          flutter_rust_bridge_codegen build-web \
-            --release \
-            --rust-root ExternalLib/Kataglyphis-RustProjectTemplate
-          flutter build web --release --wasm
+          docker run --rm --privileged \
+            --platform "linux/amd64" \
+            --volume "${GITHUB_WORKSPACE}:/workspace" \
+            --workdir /workspace \
+            "${{ env.CONTAINER_IMAGE }}" \
+            bash /workspace/scripts/linux/ci/ci-container-run-web-linux.sh \
+              --arch "x64" \
+              --flutter-version "${{ env.FLUTTER_VERSION }}" \
+              --flutter-dir "${{ env.FLUTTER_DIR }}" \
+              --install-flutter true \
+              --strict-checks false \
+              --run-codeql false
 
       - name: Upload Web App Files for Deployment
         uses: actions/upload-artifact@v6.0.0
@@ -86,6 +72,3 @@ jobs:
           name: gstreamer-ai-web-frontend
           path: ${{ env.BUILD_DIR_RELEASE }}/**
           if-no-files-found: error
-
-      - name: Run CodeQL analysis
-        uses: github/codeql-action/analyze@v4

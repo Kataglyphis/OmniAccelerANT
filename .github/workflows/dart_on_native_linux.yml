@@ -35,7 +35,7 @@ jobs:
             flutter_dir: /workspace/flutter
             container_image: ghcr.io/kataglyphis/kataglyphis_beschleuniger:latest
             package_formats: tar,deb,flatpak,appimage
-            install_packaging_deps: false
+            install_packaging_deps: true
 
     runs-on: ${{ matrix.runs_on }}
     permissions:
