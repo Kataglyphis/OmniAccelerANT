@@ -54,8 +54,19 @@ setup_packaging_dependencies_for_container() {
   mkdir -p "$XDG_RUNTIME_DIR"
   chmod 700 "$XDG_RUNTIME_DIR"
 
+  # Map matrix_arch to Flatpak architecture format
+  local flatpak_arch
+  case "$matrix_arch" in
+    x64|amd64|x86_64) flatpak_arch="x86_64" ;;
+    arm64|aarch64) flatpak_arch="aarch64" ;;
+    *)
+      echo "Error: unsupported architecture for Flatpak runtime: $matrix_arch" >&2
+      return 1
+      ;;
+  esac
+
   dbus-run-session -- flatpak --user remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
-  dbus-run-session -- flatpak --user install -y flathub \
+  dbus-run-session -- flatpak --user install -y --arch="$flatpak_arch" flathub \
     "org.freedesktop.Platform//${FLATPAK_RUNTIME_VERSION}" \
     "org.freedesktop.Sdk//${FLATPAK_RUNTIME_VERSION}"
 }
