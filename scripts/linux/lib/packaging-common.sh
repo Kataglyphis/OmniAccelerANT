@@ -46,7 +46,7 @@ setup_packaging_dependencies_for_container() {
   local matrix_arch="${1:?matrix_arch required}"
 
   packaging_run_privileged_cmd apt-get update
-  packaging_run_privileged_cmd apt-get install -y dpkg flatpak flatpak-builder libfuse2 dbus-user-session wget
+  packaging_run_privileged_cmd apt-get install -y dpkg flatpak flatpak-builder elfutils libfuse2 dbus-user-session wget
 
   setup_local_appimagetool_for_container "$matrix_arch"
 
