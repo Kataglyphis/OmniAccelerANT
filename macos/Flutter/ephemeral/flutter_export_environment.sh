@@ -1,7 +1,7 @@
 #!/bin/sh
 # This is a generated file; do not edit or check into version control.
-export "FLUTTER_ROOT=/home/bigjuicyjones/develop/flutter"
-export "FLUTTER_APPLICATION_PATH=/home/bigjuicyjones/Kataglyphis-Inference-Engine"
+export "FLUTTER_ROOT=/workspace/flutter"
+export "FLUTTER_APPLICATION_PATH=/workspace"
 export "COCOAPODS_PARALLEL_CODE_SIGN=true"
 export "FLUTTER_BUILD_DIR=build"
 export "FLUTTER_BUILD_NAME=1.1.0"

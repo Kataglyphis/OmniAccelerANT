@@ -147,4 +147,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get entryRedirectText => 'Read more';
+
+  @override
+  String get rerunSqliteHealthcheck => 'Re-run SQLite Healthcheck';
+
+  @override
+  String get sqliteError => 'SQLite Error';
+
+  @override
+  String get sqliteWebHint =>
+      'Note: For web, sqlite3.wasm must be located at /web/sqlite3.wasm.';
 }

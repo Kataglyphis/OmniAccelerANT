@@ -367,6 +367,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Read more'**
   String get entryRedirectText;
+
+  /// No description provided for @rerunSqliteHealthcheck.
+  ///
+  /// In en, this message translates to:
+  /// **'Re-run SQLite Healthcheck'**
+  String get rerunSqliteHealthcheck;
+
+  /// No description provided for @sqliteError.
+  ///
+  /// In en, this message translates to:
+  /// **'SQLite Error'**
+  String get sqliteError;
+
+  /// No description provided for @sqliteWebHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Note: For web, sqlite3.wasm must be located at /web/sqlite3.wasm.'**
+  String get sqliteWebHint;
 }
 
 class _AppLocalizationsDelegate

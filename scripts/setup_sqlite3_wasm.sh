@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-VERSION="3.1.5"
+VERSION="3.3.1"
 OUT_DIR="web"
 OUT_FILE="${OUT_DIR}/sqlite3.wasm"
 

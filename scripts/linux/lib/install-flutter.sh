@@ -52,4 +52,7 @@ if ! validate_arch "$MATRIX_ARCH"; then
 	exit 2
 fi
 
+# Configure Git safe directories to avoid "dubious ownership" errors in containers
+git_safe_dirs "$FLUTTER_DIR"
+
 setup_flutter_sdk "$FLUTTER_VERSION" "$FLUTTER_DIR" "$MATRIX_ARCH"
