@@ -44,7 +44,7 @@ jobs:
       - name: Pull image
         run: |
           docker pull ghcr.io/kataglyphis/kataglyphis_beschleuniger:winamd64 
-      
+
       # -CodeQL turns on analysis
       # for now disabled due to long runtimes
       - name: Run container

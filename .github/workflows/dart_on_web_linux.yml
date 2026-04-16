@@ -39,7 +39,7 @@ jobs:
         uses: flutter-actions/setup-flutter@v4.1
         with:
           channel: stable
-          version: 3.41.4
+          version: 3.41.6
 
       # git submodule update --init --recursive
       - name: Install dependencies
@@ -68,8 +68,8 @@ jobs:
 
       - name: Enable flutter web
         run: |
-          rustup component add rust-src --toolchain nightly-x86_64-unknown-linux-gnu
-          rustup target add wasm32-unknown-unknown --toolchain nightly
+          #rustup component add rust-src --toolchain nightly-x86_64-unknown-linux-gnu
+          #rustup target add wasm32-unknown-unknown --toolchain nightly
           cargo install flutter_rust_bridge_codegen
           flutter config --enable-web
 

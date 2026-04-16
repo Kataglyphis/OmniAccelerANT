@@ -21,7 +21,7 @@ jobs:
             build_mode: release
             platform: linux/amd64
             app_name: kataglyphis-inference-engine
-            flutter_version: 3.41.4
+            flutter_version: 3.41.6
             flutter_dir: /workspace/flutter
             container_image: ghcr.io/kataglyphis/kataglyphis_beschleuniger:latest
             package_formats: tar,deb,flatpak,appimage
@@ -31,7 +31,7 @@ jobs:
             build_mode: release
             platform: linux/arm64
             app_name: kataglyphis-inference-engine
-            flutter_version: 3.41.4
+            flutter_version: 3.41.6
             flutter_dir: /workspace/flutter
             container_image: ghcr.io/kataglyphis/kataglyphis_beschleuniger:latest
             package_formats: tar,deb,flatpak,appimage
