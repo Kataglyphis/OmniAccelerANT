@@ -111,14 +111,14 @@ Open-BuildLog -Context $context
 $layout = Resolve-KataglyphisWindowsLayout -BuildRootFull $buildRoot -WindowsBuildConfig $windowsBuildConfig
 $cmakeBuildDir = $layout.CMakeBuildDir
 $buildDirFull = $layout.RunnerDir
-$windowsSrc = Resolve-NormalizedPath -BasePath $workspace -RelativePath "windows"
-$rustDir = Resolve-NormalizedPath -BasePath $workspace -RelativePath $RustCrateDir
-$dllSource = Resolve-NormalizedPath -BasePath $rustDir -RelativePath "target/release/$RustDllName"
+$windowsSrc = Resolve-NormalizedPath -Path (Join-Path $workspace "windows")
+$rustDir = Resolve-NormalizedPath -Path (Join-Path $workspace $RustCrateDir)
+$dllSource = Resolve-NormalizedPath -Path (Join-Path $rustDir "target/release/$RustDllName")
 $dllDestPath = $layout.RustPluginDllPath
 $dllDestDir = [System.IO.Path]::GetDirectoryName($dllDestPath)
-$installedPluginsDir = Resolve-NormalizedPath -BasePath $buildDirFull -RelativePath "plugins"
-$nativeAssetsDir = Resolve-NormalizedPath -BasePath $buildRoot -RelativePath "native_assets/windows"
-$generatedPluginsCMake = Resolve-NormalizedPath -BasePath $workspace -RelativePath "windows/flutter/generated_plugins.cmake"
+$installedPluginsDir = Resolve-NormalizedPath -Path (Join-Path $buildDirFull "plugins")
+$nativeAssetsDir = Resolve-NormalizedPath -Path (Join-Path $buildRoot "native_assets/windows")
+$generatedPluginsCMake = Resolve-NormalizedPath -Path (Join-Path $workspace "windows/flutter/generated_plugins.cmake")
 
 $buildDirRelease = Join-Path (Join-Path (Join-Path $BuildRootDir "windows") "x64") "runner"
 
@@ -240,7 +240,7 @@ try {
         }
     }
 
-    $pluginFile = Resolve-NormalizedPath -BasePath $workspace -RelativePath "windows/flutter/ephemeral/.plugin_symlinks/permission_handler_windows/windows/permission_handler_windows_plugin.cpp"
+    $pluginFile = Resolve-NormalizedPath -Path (Join-Path $workspace "windows/flutter/ephemeral/.plugin_symlinks/permission_handler_windows/windows/permission_handler_windows_plugin.cpp")
     if (Test-Path $pluginFile) {
         $pluginContent = Get-Content -LiteralPath $pluginFile -Raw
         
@@ -343,7 +343,7 @@ try {
     }
 
     Invoke-BuildStep -Context $context -StepName "MSIX Compatibility Layout" -Script {
-        $msixReleaseDir = Resolve-NormalizedPath -BasePath $buildDirFull -RelativePath "Release"
+        $msixReleaseDir = Resolve-NormalizedPath -Path (Join-Path $buildDirFull "Release")
 
         if (Test-Path -LiteralPath $msixReleaseDir -PathType Container) {
             Remove-Item -LiteralPath $msixReleaseDir -Recurse -Force -ErrorAction Stop
