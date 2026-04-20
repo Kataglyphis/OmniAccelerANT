@@ -9,6 +9,7 @@ kataglyphis-inference-engine-linux-x64.tar.gz
 .buildlog/
 .history
 .svn/
+.cache/
 migrate_working_dir/
 
 flutter/*

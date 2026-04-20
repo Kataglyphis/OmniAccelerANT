@@ -1,0 +1,644 @@
+{
+  "version": 10,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 31,
+    "patch": 6
+  },
+  "configurePresets": [
+    {
+      "name": "linux-debug-clang",
+      "displayName": "Linux Debug Clang",
+      "description": "Go with Linux",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/",
+      "installDir": "${sourceDir}/build/",
+      "cacheVariables": {
+        "CMAKE_VERBOSE_MAKEFILE": "ON",
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_C_COMPILER": "clang",
+        "CMAKE_CXX_COMPILER": "clang++",
+        "RUST_FEATURES": "ON",
+        "COMPILER_CACHE": "",
+        "BUILD_TESTING": "TRUE"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Linux"
+      }
+    },
+    {
+      "name": "linux-debug-clang-tsan",
+      "displayName": "Linux Debug Clang TSan",
+      "description": "Linux Debug with Thread Sanitizer",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build_tsan/",
+      "installDir": "${sourceDir}/build_tsan/",
+      "cacheVariables": {
+        "CMAKE_VERBOSE_MAKEFILE": "ON",
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_C_COMPILER": "clang",
+        "CMAKE_CXX_COMPILER": "clang++",
+        "RUST_FEATURES": "ON",
+        "COMPILER_CACHE": "",
+        "BUILD_TESTING": "TRUE",
+        "myproject_ENABLE_SANITIZER_THREAD": "ON",
+        "myproject_ENABLE_SANITIZER_ADDRESS": "OFF",
+        "myproject_ENABLE_SANITIZER_UNDEFINED": "OFF"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Linux"
+      }
+    },
+    {
+      "name": "linux-profile-clang",
+      "displayName": "Linux Profile Clang",
+      "description": "Go with Linux",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/",
+      "installDir": "${sourceDir}/build/",
+      "cacheVariables": {
+        "CMAKE_VERBOSE_MAKEFILE": "ON",
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+        "CMAKE_C_COMPILER": "clang",
+        "CMAKE_CXX_COMPILER": "clang++",
+        "RUST_FEATURES": "ON",
+        "COMPILER_CACHE": "",
+        "BUILD_TESTING": "TRUE"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Linux"
+      }
+    },
+    {
+      "name": "linux-RelWithDebInfo-clang",
+      "displayName": "Linux RelWithDebInfo Clang",
+      "description": "Go with Linux",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/",
+      "installDir": "${sourceDir}/build/",
+      "cacheVariables": {
+        "CMAKE_VERBOSE_MAKEFILE": "ON",
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+        "CMAKE_C_COMPILER": "clang",
+        "CMAKE_CXX_COMPILER": "clang++",
+        "RUST_FEATURES": "ON",
+        "COMPILER_CACHE": "",
+        "BUILD_TESTING": "FALSE"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Linux"
+      }
+    },
+    {
+      "name": "linux-release-clang",
+      "displayName": "Linux Release Clang",
+      "description": "Go with Linux",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build-release/",
+      "installDir": "${sourceDir}/build-release/",
+      "cacheVariables": {
+        "CMAKE_VERBOSE_MAKEFILE": "ON",
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_C_COMPILER": "clang",
+        "CMAKE_CXX_COMPILER": "clang++",
+        "RUST_FEATURES": "ON",
+        "COMPILER_CACHE": "",
+        "BUILD_TESTING": "FALSE"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Linux"
+      }
+    },
+    {
+      "name": "linux-debug-GNU",
+      "displayName": "Linux Debug GNU",
+      "description": "Go with Linux",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/",
+      "installDir": "${sourceDir}/build/",
+      "cacheVariables": {
+        "CMAKE_VERBOSE_MAKEFILE": "ON",
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_C_COMPILER": "gcc",
+        "CMAKE_CXX_COMPILER": "g++",
+        "RUST_FEATURES": "ON",
+        "COMPILER_CACHE": "ccache",
+        "BUILD_TESTING": "TRUE"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Linux"
+      }
+    },
+    {
+      "name": "linux-profile-GNU",
+      "displayName": "Linux Profile GNU",
+      "description": "Go with Linux",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/",
+      "installDir": "${sourceDir}/build/",
+      "cacheVariables": {
+        "CMAKE_VERBOSE_MAKEFILE": "ON",
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+        "CMAKE_C_COMPILER": "gcc",
+        "CMAKE_CXX_COMPILER": "g++",
+        "RUST_FEATURES": "ON",
+        "COMPILER_CACHE": "ccache",
+        "BUILD_TESTING": "TRUE"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Linux"
+      }
+    },
+    {
+      "name": "linux-RelWithDebInfo-GNU",
+      "displayName": "Linux RelWithDebInfo GNU",
+      "description": "Go with Linux",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/",
+      "installDir": "${sourceDir}/build/",
+      "cacheVariables": {
+        "CMAKE_VERBOSE_MAKEFILE": "ON",
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+        "RUST_FEATURES": "ON",
+        "CMAKE_C_COMPILER": "gcc",
+        "CMAKE_CXX_COMPILER": "g++",
+        "COMPILER_CACHE": "ccache",
+        "BUILD_TESTING": "FALSE"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Linux"
+      }
+    },
+    {
+      "name": "linux-release-GNU",
+      "displayName": "Linux Release GNU",
+      "description": "Go with Linux",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/",
+      "installDir": "${sourceDir}/build/",
+      "cacheVariables": {
+        "CMAKE_VERBOSE_MAKEFILE": "ON",
+        "RUST_FEATURES": "ON",
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_C_COMPILER": "gcc",
+        "CMAKE_CXX_COMPILER": "g++",
+        "COMPILER_CACHE": "ccache",
+        "BUILD_TESTING": "FALSE"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Linux"
+      }
+    },
+    {
+      "name": "x64-MSVC-Windows-Debug",
+      "description": "Windows and standard MSVC - Debug",
+      "generator": "Visual Studio 18 2026",
+      "binaryDir": "${sourceDir}/build-msvc-debug/",
+      "installDir": "${sourceDir}/build-msvc-debug/",
+      "cacheVariables": {
+        "CMAKE_VERBOSE_MAKEFILE": "ON",
+        "CMAKE_C_COMPILER": "cl",
+        "CMAKE_CXX_COMPILER": "cl",
+        "CMAKE_BUILD_TYPE": "Debug",
+        "RUST_FEATURES": "ON",
+        "COMPILER_CACHE": "sccache",
+        "BUILD_TESTING": "TRUE"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Windows"
+      },
+      "architecture": {
+        "value": "x64",
+        "strategy": "set"
+      }
+    },
+    {
+      "name": "x64-MSVC-Windows-Release",
+      "description": "Windows and standard MSVC - Release",
+      "generator": "Visual Studio 18 2026",
+      "binaryDir": "${sourceDir}/build-msvc-release/",
+      "installDir": "${sourceDir}/build-msvc-release/",
+      "cacheVariables": {
+        "CMAKE_VERBOSE_MAKEFILE": "ON",
+        "CMAKE_C_COMPILER": "cl",
+        "CMAKE_CXX_COMPILER": "cl",
+        "RUST_FEATURES": "ON",
+        "CMAKE_BUILD_TYPE": "Release",
+        "COMPILER_CACHE": "sccache",
+        "BUILD_TESTING": "FALSE"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Windows"
+      },
+      "architecture": {
+        "value": "x64",
+        "strategy": "set"
+      }
+    },
+    {
+      "name": "x64-ClangCL-Windows-RelWithDebInfo",
+      "description": "Windows and Clang",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build-clangcl-relwithdebinfo/",
+      "installDir": "${sourceDir}/build-clangcl-relwithdebinfo/",
+      "cacheVariables": {
+        "CMAKE_VERBOSE_MAKEFILE": "ON",
+        "CMAKE_C_COMPILER": "clang-cl",
+        "CMAKE_CXX_COMPILER": "clang-cl",
+        "RUST_FEATURES": "ON",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+        "COMPILER_CACHE": "sccache",
+        "BUILD_TESTING": "FALSE"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Windows"
+      }
+    },
+    {
+      "name": "x64-ClangCL-Windows-Profile",
+      "description": "Windows and Clang",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build-clangcl-profile/",
+      "installDir": "${sourceDir}/build-clangcl-profile/",
+      "cacheVariables": {
+        "CMAKE_VERBOSE_MAKEFILE": "ON",
+        "CMAKE_C_COMPILER": "clang-cl",
+        "CMAKE_CXX_COMPILER": "clang-cl",
+        "RUST_FEATURES": "ON",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+        "CMAKE_BUILD_TYPE": "Profile",
+        "COMPILER_CACHE": "sccache",
+        "BUILD_TESTING": "TRUE"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Windows"
+      }
+    },
+    {
+      "name": "x64-ClangCL-Windows-Debug",
+      "description": "Windows and Clang",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build-clangcl-debug/",
+      "installDir": "${sourceDir}/build-clangcl-debug/",
+      "cacheVariables": {
+        "CMAKE_VERBOSE_MAKEFILE": "ON",
+        "CMAKE_C_COMPILER": "clang-cl",
+        "CMAKE_CXX_COMPILER": "clang-cl",
+        "RUST_FEATURES": "ON",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+        "CMAKE_BUILD_TYPE": "Debug",
+        "COMPILER_CACHE": "sccache",
+        "BUILD_TESTING": "TRUE"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Windows"
+      }
+    },
+    {
+      "name": "x64-ClangCL-Windows-Release",
+      "description": "Windows and Clang",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build-clangcl-release/",
+      "installDir": "${sourceDir}/build-clangcl-release/",
+      "cacheVariables": {
+        "CMAKE_VERBOSE_MAKEFILE": "ON",
+        "CMAKE_C_COMPILER": "clang-cl",
+        "CMAKE_CXX_COMPILER": "clang-cl",
+        "RUST_FEATURES": "ON",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+        "CMAKE_BUILD_TYPE": "Release",
+        "COMPILER_CACHE": "sccache",
+        "BUILD_TESTING": "FALSE"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Windows"
+      }
+    },
+    {
+      "name": "x64-Clang-Windows-RelWithDebInfo",
+      "description": "Windows and Clang",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/",
+      "installDir": "${sourceDir}/build/",
+      "cacheVariables": {
+        "CMAKE_VERBOSE_MAKEFILE": "ON",
+        "CMAKE_C_COMPILER": "C:/Program Files/LLVM/bin/clang.exe",
+        "CMAKE_CXX_COMPILER": "C:/Program Files/LLVM/bin/clang++.exe",
+        "RUST_FEATURES": "OFF",
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+        "COMPILER_CACHE": "",
+        "BUILD_TESTING": "FALSE"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Windows"
+      }
+    },
+    {
+      "name": "x64-Clang-Windows-Debug",
+      "description": "Windows and Clang",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/",
+      "installDir": "${sourceDir}/build/",
+      "cacheVariables": {
+        "CMAKE_VERBOSE_MAKEFILE": "ON",
+        "CMAKE_C_COMPILER": "C:/Program Files/LLVM/bin/clang.exe",
+        "CMAKE_CXX_COMPILER": "C:/Program Files/LLVM/bin/clang++.exe",
+        "RUST_FEATURES": "OFF",
+        "CMAKE_BUILD_TYPE": "Debug",
+        "COMPILER_CACHE": "",
+        "BUILD_TESTING": "TRUE"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Windows"
+      }
+    },
+    {
+      "name": "x64-Clang-Windows-Release",
+      "description": "Windows and Clang",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build-release/",
+      "installDir": "${sourceDir}/build-release/",
+      "cacheVariables": {
+        "CMAKE_VERBOSE_MAKEFILE": "ON",
+        "CMAKE_C_COMPILER": "C:/Program Files/LLVM/bin/clang.exe",
+        "CMAKE_CXX_COMPILER": "C:/Program Files/LLVM/bin/clang++.exe",
+        "RUST_FEATURES": "OFF",
+        "CMAKE_BUILD_TYPE": "Release",
+        "COMPILER_CACHE": "",
+        "BUILD_TESTING": "FALSE"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Windows"
+      }
+    },
+    {
+      "name": "x64-Clang-Windows-Profile",
+      "description": "Windows and Clang",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/",
+      "installDir": "${sourceDir}/build/",
+      "cacheVariables": {
+        "CMAKE_VERBOSE_MAKEFILE": "ON",
+        "CMAKE_C_COMPILER": "C:/Program Files/LLVM/bin/clang.exe",
+        "CMAKE_CXX_COMPILER": "C:/Program Files/LLVM/bin/clang++.exe",
+        "RUST_FEATURES": "OFF",
+        "CMAKE_BUILD_TYPE": "Profile",
+        "COMPILER_CACHE": "",
+        "BUILD_TESTING": "TRUE"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Windows"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "default",
+      "jobs": 0,
+      "configurePreset": "linux-debug-clang",
+      "configuration": "Debug"
+    },
+    {
+      "name": "linux-debug-clang",
+      "jobs": 0,
+      "configurePreset": "linux-debug-clang",
+      "configuration": "Debug"
+    },
+    {
+      "name": "linux-debug-clang-tsan",
+      "jobs": 0,
+      "configurePreset": "linux-debug-clang-tsan",
+      "configuration": "Debug"
+    },
+    {
+      "name": "linux-debug-GNU",
+      "jobs": 0,
+      "configurePreset": "linux-debug-GNU",
+      "configuration": "Debug"
+    },
+    {
+      "name": "linux-profile-GNU",
+      "jobs": 0,
+      "configurePreset": "linux-profile-GNU",
+      "configuration": "RelWithDebInfo"
+    },
+    {
+      "name": "linux-profile-clang",
+      "jobs": 0,
+      "configurePreset": "linux-profile-clang",
+      "configuration": "RelWithDebInfo"
+    },
+    {
+      "name": "linux-release-clang",
+      "jobs": 0,
+      "configurePreset": "linux-release-clang",
+      "configuration": "Release"
+    },
+    {
+      "name": "x64-MSVC-Windows-Debug",
+      "jobs": 0,
+      "configurePreset": "x64-MSVC-Windows-Debug",
+      "configuration": "Debug"
+    },
+    {
+      "name": "x64-MSVC-Windows-Release",
+      "jobs": 0,
+      "configurePreset": "x64-MSVC-Windows-Release",
+      "configuration": "Release"
+    },
+    {
+      "name": "x64-Clang-Windows-Debug",
+      "jobs": 0,
+      "configurePreset": "x64-Clang-Windows-Debug",
+      "configuration": "Debug"
+    },
+    {
+      "name": "x64-Clang-Windows-Release",
+      "jobs": 0,
+      "configurePreset": "x64-Clang-Windows-Release",
+      "configuration": "Release"
+    },
+    {
+      "name": "x64-ClangCL-Windows-Profile",
+      "jobs": 0,
+      "configurePreset": "x64-ClangCL-Windows-Profile",
+      "configuration": "RelWithDebInfo"
+    },
+    {
+      "name": "x64-ClangCL-Windows-RelWithDebInfo",
+      "jobs": 0,
+      "configurePreset": "x64-ClangCL-Windows-RelWithDebInfo",
+      "configuration": "RelWithDebInfo"
+    },
+    {
+      "name": "x64-ClangCL-Windows-Debug",
+      "jobs": 0,
+      "configurePreset": "x64-ClangCL-Windows-Debug",
+      "configuration": "Debug"
+    },
+    {
+      "name": "x64-ClangCL-Windows-Release",
+      "jobs": 0,
+      "configurePreset": "x64-ClangCL-Windows-Release",
+      "configuration": "Release"
+    }
+  ],
+  "testPresets": [
+    {
+      "name": "default",
+      "configurePreset": "linux-debug-clang",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "noTestsAction": "error",
+        "stopOnFailure": true
+      }
+    },
+    {
+      "name": "linux-debug-clang-tsan",
+      "configurePreset": "linux-debug-clang-tsan",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "noTestsAction": "error",
+        "stopOnFailure": true
+      }
+    }
+  ],
+  "packagePresets": [
+    {
+      "name": "default",
+      "configurePreset": "linux-debug-clang",
+      "generators": [
+        "TGZ"
+      ]
+    },
+    {
+      "name": "linux-debug-clang-tsan",
+      "configurePreset": "linux-debug-clang-tsan",
+      "generators": [
+        "TGZ"
+      ]
+    },
+    {
+      "name": "linux-release-deb",
+      "displayName": "Linux Release TGZ+DEB",
+      "description": "Erzeugt TGZ und DEB Package für Release",
+      "configurePreset": "linux-release-clang",
+      "generators": [
+        "TGZ",
+        "DEB"
+      ],
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Linux"
+      }
+    },
+    {
+      "name": "windows-clang-release-wix",
+      "displayName": "Windows Release Clang NSIS+WIX",
+      "description": "Erzeugt NSIS (.exe) und WIX (.msi) Installer via CPack",
+      "configurePreset": "x64-Clang-Windows-Release",
+      "generators": [
+        "NSIS",
+        "WIX",
+        "ZIP"
+      ],
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Windows"
+      }
+    }
+  ],
+  "workflowPresets": [
+    {
+      "name": "linux-debug-clang-workflow",
+      "displayName": "Linux Debug Clang Workflow",
+      "description": "Workflow preset for linux-debug-clang",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "linux-debug-clang"
+        },
+        {
+          "type": "build",
+          "name": "default"
+        },
+        {
+          "type": "test",
+          "name": "default"
+        },
+        {
+          "type": "package",
+          "name": "default"
+        }
+      ]
+    },
+    {
+      "name": "linux-debug-clang-tsan-workflow",
+      "displayName": "Linux Debug Clang TSan Workflow",
+      "description": "Workflow preset for linux-debug-clang-tsan",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "linux-debug-clang-tsan"
+        },
+        {
+          "type": "build",
+          "name": "linux-debug-clang-tsan"
+        },
+        {
+          "type": "test",
+          "name": "linux-debug-clang-tsan"
+        },
+        {
+          "type": "package",
+          "name": "linux-debug-clang-tsan"
+        }
+      ]
+    }
+  ]
+}

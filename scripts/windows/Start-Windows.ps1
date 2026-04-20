@@ -1,6 +1,7 @@
 param(
 	[string] $WorkspaceDir = (Join-Path $PSScriptRoot "..\.."),
-	[string] $BuildRootDir = ""
+	[string] $BuildRootDir = "",
+	[string] $Configuration = "Release"
 )
 
 Set-StrictMode -Version Latest
@@ -48,7 +49,7 @@ $exePath = $null
 $searchResults = [System.Collections.Generic.List[string]]::new()
 
 foreach ($candidateRoot in $resolvedBuildRoots) {
-	$candidateLayout = Resolve-KataglyphisWindowsLayout -BuildRootFull $candidateRoot -WindowsBuildConfig $windowsBuildConfig
+	$candidateLayout = Resolve-KataglyphisWindowsLayout -BuildRootFull $candidateRoot -WindowsBuildConfig $windowsBuildConfig -Configuration $Configuration
 	$candidateCmakeBuildDir = $candidateLayout.CMakeBuildDir
 	$candidateBuildDirRelease = $candidateLayout.RunnerDir
 	$candidatePluginDir = $candidateLayout.PluginDir
@@ -104,7 +105,20 @@ $originalPath = $env:PATH
 $psNativePreferenceAvailable = $null -ne (Get-Variable -Name PSNativeCommandUseErrorActionPreference -Scope Global -ErrorAction SilentlyContinue)
 $originalPsNativePreference = $null
 try {
-	$pluginPathEntries = @($pluginDir)
+	$pluginPathEntries = @($pluginDir, (Split-Path $pluginDll -Parent), (Join-Path $buildDirReleaseFull "bin"))
+	
+	# Add GStreamer bin path if it exists to fix missing DLLs at runtime
+	$gstreamerBin = "C:\Program Files\gstreamer\1.0\msvc_x86_64\bin"
+	if (Test-Path -LiteralPath $gstreamerBin -PathType Container) {
+		$pluginPathEntries += $gstreamerBin
+	}
+
+	# Add ONNX Runtime bin/lib paths if they exist
+	$onnxBin = "C:\onnxruntime\lib"
+	if (Test-Path -LiteralPath $onnxBin -PathType Container) {
+		$pluginPathEntries += $onnxBin
+	}
+
 	if (Test-Path -LiteralPath $pluginDir -PathType Container) {
 		$pluginSubDirs = Get-ChildItem -LiteralPath $pluginDir -Directory -Recurse -ErrorAction SilentlyContinue |
 			ForEach-Object { $_.FullName }
@@ -128,8 +142,14 @@ try {
 	$processExitCode = 1
 	try {
 		$ErrorActionPreference = "Continue"
-		& $exePath 2>&1 | Tee-Object -FilePath $logPath
-		$processExitCode = $LASTEXITCODE
+		$originalLoc = Get-Location
+		Set-Location -LiteralPath (Split-Path $exePath -Parent)
+		try {
+			& $exePath 2>&1 | Tee-Object -FilePath $logPath
+			$processExitCode = $LASTEXITCODE
+		} finally {
+			Set-Location -LiteralPath $originalLoc.Path
+		}
 	}
 	finally {
 		$ErrorActionPreference = $originalErrorActionPreference

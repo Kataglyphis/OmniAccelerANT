@@ -58,7 +58,10 @@ function Resolve-KataglyphisWindowsLayout {
         [string] $BuildRootFull,
 
         [Parameter(Mandatory = $true)]
-        [hashtable] $WindowsBuildConfig
+        [hashtable] $WindowsBuildConfig,
+
+        [Parameter()]
+        [string] $Configuration = ""
     )
 
     if (-not $WindowsBuildConfig.ContainsKey('RunnerExeName') -or [string]::IsNullOrWhiteSpace($WindowsBuildConfig.RunnerExeName)) {
@@ -71,15 +74,48 @@ function Resolve-KataglyphisWindowsLayout {
 
     $buildRootNormalized = [System.IO.Path]::GetFullPath($BuildRootFull)
     $cmakeBuildDir = [System.IO.Path]::GetFullPath((Join-Path $buildRootNormalized 'windows/x64'))
-    $runnerDir = [System.IO.Path]::GetFullPath((Join-Path $cmakeBuildDir 'runner'))
-    $pluginDir = [System.IO.Path]::GetFullPath((Join-Path $cmakeBuildDir 'plugins'))
+    
+    $runnerDirBase = [System.IO.Path]::GetFullPath((Join-Path $cmakeBuildDir 'runner'))
+    $runnerDir = if ([string]::IsNullOrWhiteSpace($Configuration)) {
+        $runnerDirBase
+    } else {
+        [System.IO.Path]::GetFullPath((Join-Path $runnerDirBase $Configuration))
+    }
+
+    $pluginDirBase = [System.IO.Path]::GetFullPath((Join-Path $cmakeBuildDir 'plugins'))
+    $pluginDir = if ([string]::IsNullOrWhiteSpace($Configuration)) {
+        $pluginDirBase
+    } else {
+        [System.IO.Path]::GetFullPath((Join-Path $pluginDirBase $Configuration))
+    }
+
     $rustPluginSubDir = if ($WindowsBuildConfig.ContainsKey('RustPluginSubDir') -and -not [string]::IsNullOrWhiteSpace($WindowsBuildConfig.RustPluginSubDir)) {
         $WindowsBuildConfig.RustPluginSubDir
     } else {
         [System.IO.Path]::GetFileNameWithoutExtension($WindowsBuildConfig.RustDllName)
     }
+    
     $rustPluginDir = [System.IO.Path]::GetFullPath((Join-Path $pluginDir $rustPluginSubDir))
+    
+    # Fallback to base plugin dir if configuration-specific one doesn't exist
+    if (-not (Test-Path -LiteralPath $rustPluginDir -PathType Container)) {
+        $rustPluginDirBase = [System.IO.Path]::GetFullPath((Join-Path $pluginDirBase $rustPluginSubDir))
+        if (Test-Path -LiteralPath $rustPluginDirBase -PathType Container) {
+            $rustPluginDir = $rustPluginDirBase
+        }
+    }
+
     $runnerExePath = [System.IO.Path]::GetFullPath((Join-Path $runnerDir $WindowsBuildConfig.RunnerExeName))
+    
+    # If the exe is not in the configuration dir, fallback to base
+    if (-not (Test-Path -LiteralPath $runnerExePath -PathType Leaf)) {
+        $runnerExePathBase = [System.IO.Path]::GetFullPath((Join-Path $runnerDirBase $WindowsBuildConfig.RunnerExeName))
+        if (Test-Path -LiteralPath $runnerExePathBase -PathType Leaf) {
+            $runnerExePath = $runnerExePathBase
+            $runnerDir = $runnerDirBase
+        }
+    }
+
     $rustPluginDllPath = [System.IO.Path]::GetFullPath((Join-Path $rustPluginDir $WindowsBuildConfig.RustDllName))
 
     return [pscustomobject]@{

@@ -10,6 +10,11 @@ set(BINARY_NAME "kataglyphis_inference_engine")
 # versions of CMake.
 cmake_policy(VERSION 3.14...3.25)
 
+# Force the use of Release CRT (/MD) instead of Debug CRT (/MDd)
+# This is required because AddressSanitizer (ASAN) does not support /MDd on Windows with clang-cl.
+set(CMAKE_POLICY_DEFAULT_CMP0091 NEW)
+set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreadedDLL")
+
 # Define build configuration option.
 get_property(IS_MULTICONFIG GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
 if(IS_MULTICONFIG)

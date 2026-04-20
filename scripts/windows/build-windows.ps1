@@ -4,9 +4,11 @@ param(
     [string] $BuildRootDir = "",
     [string] $RustCrateDir = "ExternalLib\Kataglyphis-RustProjectTemplate",
     [string] $RustDllName = "kataglyphis_rustprojecttemplate.dll",
+    [string] $CMakePresets = "",
     [string] $CMakeGenerator = "Ninja",
     [string] $CMakeBuildType = "Release",
     [string] $LogDir = "logs",
+    [switch] $CleanBuild,
     [switch] $SkipTests,
     [switch] $SkipBootstrapFlutterBuild,
     [switch] $SkipMsixPackaging,
@@ -82,18 +84,15 @@ if (-not (Test-Path $sharedUtilitiesModulePath)) {
 
 Import-Module $sharedUtilitiesModulePath -Force
 
-$workspace = Resolve-WorkspacePath -Path $WorkspaceDir
-
-$buildRootCandidates = @(Resolve-KataglyphisWindowsBuildRootCandidates `
-    -RepoRoot $workspace `
-    -BuildRootDir $BuildRootDir `
-    -WindowsBuildConfig $windowsBuildConfig)
-
-if ($buildRootCandidates.Count -eq 0) {
-    throw "Build root directory is not configured. Set BuildRootDir in Windows.BuildConfig.ps1 or pass -BuildRootDir."
+$flutterSharedModulePath = Join-Path $PSScriptRoot "..\..\ExternalLib\Kataglyphis-ContainerHub\windows\scripts\modules\WindowsFlutter.Common.psm1"
+$flutterSharedModulePath = [System.IO.Path]::GetFullPath($flutterSharedModulePath)
+if (-not (Test-Path $flutterSharedModulePath)) {
+    throw "Required flutter shared module not found: $flutterSharedModulePath"
 }
 
-$buildRoot = $buildRootCandidates[0]
+Import-Module $flutterSharedModulePath -Force
+
+$workspace = Resolve-WorkspacePath -Path $WorkspaceDir
 
 if ($ContinueOnError -and $StopOnError) {
     throw "-ContinueOnError and -StopOnError cannot be used together."
@@ -108,12 +107,32 @@ if ($ContinueOnError) {
 $context = New-BuildContext -Workspace $workspace -LogDir $LogDir -StopOnError:$StopOnError
 Open-BuildLog -Context $context
 
+$buildRootCandidates = @(Resolve-KataglyphisWindowsBuildRootCandidates `
+    -RepoRoot $workspace `
+    -BuildRootDir $BuildRootDir `
+    -WindowsBuildConfig $windowsBuildConfig)
+
+if ($buildRootCandidates.Count -eq 0) {
+    throw "Build root directory is not configured. Set BuildRootDir in Windows.BuildConfig.ps1 or pass -BuildRootDir."
+}
+
+# Persistent caching configurations for Docker volume mount
+# To avoid massive I/O penalties and SQLite locking issues in Docker bind mounts,
+# we place all cache directories in the container's fast local storage.
+$fastLocalCache = Initialize-BuildCacheEnvironment -Context $context
+
+$originalBuildRoot = $buildRootCandidates[0]
+$buildRoot = Join-Path $fastLocalCache "build"
+$env:CARGO_TARGET_DIR = Join-Path $fastLocalCache "rust_target"
+$env:FLUTTER_BUILD_DIR = $buildRoot
+
 $layout = Resolve-KataglyphisWindowsLayout -BuildRootFull $buildRoot -WindowsBuildConfig $windowsBuildConfig
 $cmakeBuildDir = $layout.CMakeBuildDir
 $buildDirFull = $layout.RunnerDir
 $windowsSrc = Resolve-NormalizedPath -Path (Join-Path $workspace "windows")
 $rustDir = Resolve-NormalizedPath -Path (Join-Path $workspace $RustCrateDir)
-$dllSource = Resolve-NormalizedPath -Path (Join-Path $rustDir "target/release/$RustDllName")
+$cargoTargetBase = if ($env:CARGO_TARGET_DIR) { $env:CARGO_TARGET_DIR } else { Join-Path $rustDir "target" }
+$dllSource = Resolve-NormalizedPath -Path (Join-Path $cargoTargetBase "release/$RustDllName")
 $dllDestPath = $layout.RustPluginDllPath
 $dllDestDir = [System.IO.Path]::GetDirectoryName($dllDestPath)
 $installedPluginsDir = Resolve-NormalizedPath -Path (Join-Path $buildDirFull "plugins")
@@ -123,6 +142,30 @@ $generatedPluginsCMake = Resolve-NormalizedPath -Path (Join-Path $workspace "win
 $buildDirRelease = Join-Path (Join-Path (Join-Path $BuildRootDir "windows") "x64") "runner"
 
 $env:BUILD_DIR_RELEASE = $buildDirRelease
+
+$rawPresets = if (-not [string]::IsNullOrEmpty($CMakePresets)) { $CMakePresets -split ',' | ForEach-Object { $_.Trim() } } else { @("") }
+
+$presetMapping = @{
+    "clangcl-debug" = "x64-ClangCL-Windows-Debug"
+    "clangcl-profile" = "x64-ClangCL-Windows-Profile"
+    "clangcl-release" = "x64-ClangCL-Windows-Release"
+    "msvc-debug" = "x64-MSVC-Windows-Debug"
+    "msvc-release" = "x64-MSVC-Windows-Release"
+    "clang-debug" = "x64-Clang-Windows-Debug"
+    "clang-profile" = "x64-Clang-Windows-Profile"
+    "clang-release" = "x64-Clang-Windows-Release"
+}
+
+$presetsToRun = @()
+foreach ($p in $rawPresets) {
+    if ($presetMapping.ContainsKey($p)) {
+        $presetsToRun += $presetMapping[$p]
+    } elseif ([string]::IsNullOrEmpty($p)) {
+        $presetsToRun += ""
+    } else {
+        $presetsToRun += $p
+    }
+}
 
 $hadUnhandledError = $false
 
@@ -140,6 +183,9 @@ try {
     Write-BuildLog -Context $context -Message "InstalledPlugins: $installedPluginsDir"
     Write-BuildLog -Context $context -Message "BuildPluginsDir:  $dllDestDir"
     Write-BuildLog -Context $context -Message "CMakeBuildDir:    $cmakeBuildDir"
+    if (-not [string]::IsNullOrEmpty($CMakePresets)) {
+        Write-BuildLog -Context $context -Message "CMakePresets:     $rawPresets (mapped to: $($presetsToRun -join ', '))"
+    }
     Write-BuildLog -Context $context -Message "CMakeGenerator:   $CMakeGenerator"
     Write-BuildLog -Context $context -Message "CMakeBuildType:   $CMakeBuildType"
     Write-BuildLog -Context $context -Message "RustDir:          $rustDir"
@@ -178,8 +224,8 @@ try {
 
     if (-not $SkipBootstrapFlutterBuild) {
         Invoke-BuildStep -Context $context -StepName "Flutter Dependencies" -Critical -Script {
-            Invoke-BuildExternal -Context $context -File "flutter" -Parameters @("pub", "get")
-            Invoke-BuildExternal -Context $context -File "flutter" -Parameters @("config", "--enable-windows-desktop")
+            Invoke-BuildExternal -Context $context -File "flutter" -Parameters @("pub", "get") -IgnoreExitCode
+            Invoke-BuildExternal -Context $context -File "flutter" -Parameters @("config", "--enable-windows-desktop") -IgnoreExitCode
         }
     } else {
         Write-BuildLog -Context $context -Message "Skipping Flutter dependency steps (SkipFlutterBuild set)."
@@ -219,17 +265,32 @@ try {
     
     if (-not $SkipBootstrapFlutterBuild) {
 
-        Invoke-BuildStep -Context $context -StepName "Clean Build Directory" -Script {
-            $removed = Remove-BuildRoot -Context $context -Path $buildRoot
-            if (-not $removed -and -not $ContinueOnError) {
-                throw "Failed to remove build root: $buildRoot"
+        if ($CleanBuild) {
+            Invoke-BuildStep -Context $context -StepName "Clean Build Directory" -Script {
+                $removed = Remove-BuildRoot -Context $context -Path $buildRoot
+                $removedOriginal = Remove-BuildRoot -Context $context -Path $originalBuildRoot
+                if (-not $removed -and -not $ContinueOnError) {
+                    throw "Failed to remove build root: $buildRoot"
+                }
             }
+        } else {
+            Write-BuildLog -Context $context -Message "Skipping Clean Build Directory (CleanBuild not set)."
         }
-        
+
+        Clean-FlutterPluginSymlinks -Context $context -WorkspaceDir $workspace
+
+        Invoke-BuildStep -Context $context -StepName "Flutter Pub Get" -Script {
+            Invoke-BuildExternal -Context $context -File "flutter" -Parameters @("pub", "get") -IgnoreExitCode
+        }
+
         Invoke-BuildStep -Context $context -StepName "Flutter Ephemeral Build (C++ Headers)" -Script {
             $env:CC = "clang-cl"
             $env:CXX = "clang-cl"
-            try { Invoke-BuildExternal -Context $context -File "flutter" -Parameters @("build", "windows", "--release") -IgnoreExitCode } catch { Write-BuildLog -Context $context -Message "Flutter ephemeral build failed as expected, continuing to patch..." }
+            try { Invoke-BuildExternal -Context $context -File "flutter" -Parameters @("build", "windows", "--config-only") -IgnoreExitCode } catch { Write-BuildLog -Context $context -Message "Flutter config failed as expected, continuing to patch..." }
+        }
+
+        Invoke-BuildStep -Context $context -StepName "Fix Plugin Symlinks (Junctions)" -Script {
+            Fix-FlutterPluginSymlinks -Context $context -WorkspaceDir $workspace
         }
 
         Invoke-BuildStep -Context $context -StepName "Reset CMake Build Directory" -Script {
@@ -240,106 +301,160 @@ try {
         }
     }
 
-    $pluginFile = Resolve-NormalizedPath -Path (Join-Path $workspace "windows/flutter/ephemeral/.plugin_symlinks/permission_handler_windows/windows/permission_handler_windows_plugin.cpp")
-    if (Test-Path $pluginFile) {
-        $pluginContent = Get-Content -LiteralPath $pluginFile -Raw
-        
-        $changed = $false
+    Patch-PermissionHandlerWindows -Context $context -WorkspaceDir $workspace
 
-        $targetLine = 'result->Success\(requestResults\);'
-        $patchedLine = 'result->Success(flutter::EncodableValue(requestResults));'
-
-        if ($pluginContent -match 'result->Success\(flutter::EncodableValue\(requestResults\)\);') {
-            Write-BuildLog -Context $context -Message "permission_handler_windows Success already patched."
-        } elseif ($pluginContent -match $targetLine) {
-            Write-BuildLog -Context $context -Message "Patching permission_handler_windows Success..."
-            $pluginContent = $pluginContent -replace $targetLine, $patchedLine
-            $changed = $true
-        } else {
-            Write-BuildLogWarning -Context $context -Message "Patch target line not found in permission_handler_windows plugin file."
-        }
-
-        $targetLineFor = 'for\s*\(\s*int\s+i\s*=\s*0\s*;\s*i\s*<\s*permissions\.size\(\)\s*;\s*i\+\+\s*\)'
-        $patchedLineFor = 'for (size_t i=0;i<permissions.size();i++)'
-
-        if ($pluginContent -match 'for\s*\(\s*size_t\s+i') {
-            Write-BuildLog -Context $context -Message "permission_handler_windows loop already patched."
-        } elseif ($pluginContent -match $targetLineFor) {
-            Write-BuildLog -Context $context -Message "Patching permission_handler_windows loop..."
-            $pluginContent = $pluginContent -replace $targetLineFor, $patchedLineFor
-            $changed = $true
-        }
-
-        if ($changed) {
-            $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
-            [System.IO.File]::WriteAllText($pluginFile, $pluginContent, $utf8NoBom)
-        }
+    if (Get-Command "sccache" -ErrorAction SilentlyContinue) {
+        Write-BuildLog -Context $context -Message "sccache found. Enabling for Rust."
+        $env:RUSTC_WRAPPER = "sccache"
     }
 
-    Invoke-BuildStep -Context $context -StepName "CMake Configure" -Critical -Script {
-        $cmakeArgs = @(
-            $windowsSrc
-            "-B", $cmakeBuildDir
-            "-G", $CMakeGenerator
-            "-DCMAKE_BUILD_TYPE=$CMakeBuildType"
-            "-DCMAKE_INSTALL_PREFIX=$buildDirFull"
-            "-DFLUTTER_TARGET_PLATFORM=windows-x64"
-            "-DCMAKE_CXX_COMPILER=clang-cl"
-            "-DCMAKE_C_COMPILER=clang-cl"
-            "-DCMAKE_CXX_COMPILER_TARGET=x86_64-pc-windows-msvc"
-        )
-        Invoke-BuildExternal -Context $context -File "cmake" -Parameters $cmakeArgs
-    }
+    foreach ($currentPreset in $presetsToRun) {
+        $stepSuffix = if ($currentPreset) { " ($currentPreset)" } else { "" }
+        $currentCMakeBuildDir = if ($currentPreset) { "${cmakeBuildDir}_${currentPreset}" } else { $cmakeBuildDir }
 
-    Invoke-BuildStep -Context $context -StepName "Rust Crate Build" -Script {
-        if (-not (Test-Path $rustDir)) {
-            throw "Rust crate directory not found: $rustDir"
-        }
-
-        Push-Location $rustDir
-        try {
-            Invoke-BuildOptional -Context $context -Name "flutter_rust_bridge_codegen install" -Script {
-                Invoke-BuildExternal -Context $context -File "cargo" -Parameters @("install", "flutter_rust_bridge_codegen")
+        $isReleasePreset = $true
+        if ($currentPreset) {
+            if ($currentPreset -match "Debug") {
+                $isReleasePreset = $false
             }
-            Invoke-BuildExternal -Context $context -File "cargo" -Parameters @("build", "--release")
-        } finally {
-            Pop-Location
-        }
-    }
-
-    Invoke-BuildStep -Context $context -StepName "Copy Rust DLL" -Script {
-        if (-not (Test-Path $dllSource)) {
-            throw "Rust DLL not found at $dllSource"
+        } elseif ($CMakeBuildType -match "Debug") {
+            $isReleasePreset = $false
         }
 
-        New-Item -ItemType Directory -Force -Path $dllDestDir | Out-Null
-        Copy-Item -Path $dllSource -Destination $dllDestPath -Force
-        Write-BuildLog -Context $context -Message "Rust DLL copied to $dllDestPath"
-    }
+        $cargoProfilePath = if ($isReleasePreset) { "release" } else { "debug" }
+        $cargoTargetRoot = if ($env:CARGO_TARGET_DIR) { $env:CARGO_TARGET_DIR } else { Join-Path $rustDir "target" }
+        $currentDllSource = Resolve-NormalizedPath -Path (Join-Path $cargoTargetRoot "$cargoProfilePath/$RustDllName")
 
-    Invoke-BuildStep -Context $context -StepName "Native Assets Directory Fix" -Script {
-        if (Test-Path $nativeAssetsDir) {
-            $item = Get-Item -LiteralPath $nativeAssetsDir -Force
-            if (-not $item.PSIsContainer) {
-                Write-BuildLog -Context $context -Message "Path exists but is NOT a directory. Replacing: $nativeAssetsDir"
-                Remove-Item -LiteralPath $nativeAssetsDir -Force
-                New-Item -ItemType Directory -Path $nativeAssetsDir | Out-Null
+        Invoke-BuildStep -Context $context -StepName "CMake Configure$stepSuffix" -Critical -Script {
+            if (-not (Test-Path $currentCMakeBuildDir)) {
+                New-Item -ItemType Directory -Force -Path $currentCMakeBuildDir | Out-Null
+            }
+
+            if ($currentPreset) {
+                $sourcePreset = Join-Path $workspace "ExternalLib\Kataglyphis_NativeInferencePlugin\native\KataglyphisCppInference\CMakePresets.json"
+                $destPreset = Join-Path $windowsSrc "CMakePresets.json"
+                if ((Test-Path $sourcePreset) -and -not (Test-Path $destPreset)) {
+                    Write-BuildLog -Context $context -Message "Copying CMakePresets.json to windows directory..."
+                    Copy-Item -Path $sourcePreset -Destination $destPreset -Force
+                }
+
+                $cmakeArgs = @(
+                    "-S", $windowsSrc,
+                    "--preset", $currentPreset,
+                    "-B", $currentCMakeBuildDir,
+                    "-DCMAKE_INSTALL_PREFIX=$buildDirFull",
+                    "-DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreadedDLL"
+                )
             } else {
-                Write-BuildLog -Context $context -Message "Path is already a directory: $nativeAssetsDir"
+                $cmakeArgs = @(
+                    $windowsSrc,
+                    "-B", $currentCMakeBuildDir,
+                    "-G", $CMakeGenerator,
+                    "-DCMAKE_BUILD_TYPE=$CMakeBuildType",
+                    "-DCMAKE_INSTALL_PREFIX=$buildDirFull",
+                    "-DFLUTTER_TARGET_PLATFORM=windows-x64",
+                    "-DCMAKE_CXX_COMPILER=clang-cl",
+                    "-DCMAKE_C_COMPILER=clang-cl",
+                    "-DCMAKE_CXX_COMPILER_TARGET=x86_64-pc-windows-msvc",
+                    "-DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreadedDLL"
+                )
             }
-        } else {
-            Write-BuildLog -Context $context -Message "Creating directory: $nativeAssetsDir"
-            New-Item -ItemType Directory -Path $nativeAssetsDir | Out-Null
-        }
-    }
+            if (Get-Command "sccache" -ErrorAction SilentlyContinue) {
+                $cmakeArgs += "-DCMAKE_C_COMPILER_LAUNCHER=sccache"
+                $cmakeArgs += "-DCMAKE_CXX_COMPILER_LAUNCHER=sccache"
+            }
 
-    Invoke-BuildStep -Context $context -StepName "CMake Build & Install" -Critical -Script {
-        Invoke-BuildExternal -Context $context -File "cmake" -Parameters @(
-            "--build", $cmakeBuildDir,
-            "--config", $CMakeBuildType,
-            "--target", "install",
-            "--verbose"
-        )
+            if (-not $isReleasePreset) {
+                # Fix CRT Linker Errors (_CrtDbgReport missing) when building Flutter plugins in Debug with clang-cl
+                # Flutter requires MultiThreadedDLL (/MD) but clang-cl + STL + _DEBUG expects Debug CRT (/MDd).
+                $cmakeArgs += "-DCMAKE_CXX_FLAGS_DEBUG=/MD /Zi /Ob0 /Od /RTC1 /U_DEBUG /DNDEBUG /D_ITERATOR_DEBUG_LEVEL=0"
+                $cmakeArgs += "-DCMAKE_C_FLAGS_DEBUG=/MD /Zi /Ob0 /Od /RTC1 /U_DEBUG /DNDEBUG /D_ITERATOR_DEBUG_LEVEL=0"
+            }
+
+            # --- ADDED CMAKE PROFILING LOGGING ---
+            Write-BuildLog -Context $context -Message "Enabling CMake Configuration Profiling and Clang -ftime-trace..."
+            $cmakeArgs += "--profiling-output=$currentCMakeBuildDir\cmake_configure_profile.json"
+            $cmakeArgs += "--profiling-format=google-trace"
+            $cmakeArgs += "-DKATAGLYPHIS_ENABLE_TIME_TRACE=ON"
+            # -------------------------------------
+
+            Invoke-BuildExternal -Context $context -File "cmake" -Parameters $cmakeArgs
+        }
+
+        Invoke-BuildStep -Context $context -StepName "Rust Crate Build$stepSuffix" -Script {
+            if (-not (Test-Path $rustDir)) {
+                throw "Rust crate directory not found: $rustDir"
+            }
+
+            Push-Location $rustDir
+            try {
+                $processorCount = [Environment]::ProcessorCount
+                Invoke-BuildOptional -Context $context -Name "flutter_rust_bridge_codegen install" -Script {
+                    $cargoBin = Join-Path $env:CARGO_HOME "bin"
+                    if (-not (Test-Path (Join-Path $cargoBin "flutter_rust_bridge_codegen.exe"))) {
+                        Write-BuildLog -Context $context -Message "Installing flutter_rust_bridge_codegen to $env:CARGO_HOME..."
+                        Invoke-BuildExternal -Context $context -File "cargo" -Parameters @("install", "flutter_rust_bridge_codegen")
+                    } else {
+                        Write-BuildLog -Context $context -Message "flutter_rust_bridge_codegen is already installed at $cargoBin."
+                    }
+                }
+                $cargoArgs = @("build", "--timings", "-j", $processorCount.ToString())
+                if ($isReleasePreset) {
+                    $cargoArgs += "--release"
+                }
+                Invoke-BuildExternal -Context $context -File "cargo" -Parameters $cargoArgs
+            } finally {
+                Pop-Location
+            }
+        }
+
+        Invoke-BuildStep -Context $context -StepName "Copy Rust DLL$stepSuffix" -Script {
+            if (-not (Test-Path $currentDllSource)) {
+                throw "Rust DLL not found at $currentDllSource"
+            }
+
+            New-Item -ItemType Directory -Force -Path $dllDestDir | Out-Null
+            Copy-Item -Path $currentDllSource -Destination $dllDestPath -Force
+            Write-BuildLog -Context $context -Message "Rust DLL copied to $dllDestPath"
+        }
+
+        Invoke-BuildStep -Context $context -StepName "Native Assets Directory Fix$stepSuffix" -Script {
+            if (Test-Path $nativeAssetsDir) {
+                $item = Get-Item -LiteralPath $nativeAssetsDir -Force
+                if (-not $item.PSIsContainer) {
+                    Write-BuildLog -Context $context -Message "Path exists but is NOT a directory. Replacing: $nativeAssetsDir"
+                    Remove-Item -LiteralPath $nativeAssetsDir -Force
+                    New-Item -ItemType Directory -Path $nativeAssetsDir | Out-Null
+                } else {
+                    Write-BuildLog -Context $context -Message "Path is already a directory: $nativeAssetsDir"
+                }
+            } else {
+                Write-BuildLog -Context $context -Message "Creating directory: $nativeAssetsDir"
+                New-Item -ItemType Directory -Path $nativeAssetsDir | Out-Null
+            }
+        }
+
+        Invoke-BuildStep -Context $context -StepName "CMake Build & Install$stepSuffix" -Critical -Script {
+            $processorCount = [Environment]::ProcessorCount
+            
+            $cmakeBuildArgs = @(
+                "--build", $currentCMakeBuildDir,
+                "--target", "install",
+                "--parallel", $processorCount.ToString(),
+                "--verbose"
+            )
+            
+            # --- ADDED NINJA BUILD LOGGING ---
+            # Append Ninja debug flags to track down overhead and why targets are rebuilding
+            $cmakeBuildArgs += "--"
+            $cmakeBuildArgs += "-d"
+            $cmakeBuildArgs += "explain"
+            $cmakeBuildArgs += "-d"
+            $cmakeBuildArgs += "stats"
+            # ---------------------------------
+            
+            Invoke-BuildExternal -Context $context -File "cmake" -Parameters $cmakeBuildArgs
+        }
     }
 
     Invoke-BuildStep -Context $context -StepName "MSIX Compatibility Layout" -Script {
@@ -361,60 +476,14 @@ try {
     }
 
     Invoke-BuildStep -Context $context -StepName "Plugin Build Summary" -Script {
-        $expectedPlugins = @()
-        if (Test-Path -LiteralPath $generatedPluginsCMake -PathType Leaf) {
-            $generatedContent = Get-Content -LiteralPath $generatedPluginsCMake -Raw
-            $pluginListMatches = [regex]::Matches($generatedContent, 'set\((FLUTTER_PLUGIN_LIST|FLUTTER_FFI_PLUGIN_LIST)\s+([^\)]*?)\)', [System.Text.RegularExpressions.RegexOptions]::Singleline)
+        Assert-FlutterPluginsBuilt -Context $context -CMakeFile $generatedPluginsCMake -SearchDirectories @($installedPluginsDir, $dllDestDir)
+    }
 
-            foreach ($match in $pluginListMatches) {
-                $pluginChunk = $match.Groups[2].Value
-                $pluginNames = $pluginChunk -split "`r?`n" |
-                    ForEach-Object { $_.Trim() } |
-                    Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
-                $expectedPlugins += $pluginNames
-            }
+    Show-SccacheStats -Context $context
 
-            $expectedPlugins = @($expectedPlugins | Sort-Object -Unique)
-
-            Write-BuildLog -Context $context -Message "Expected Flutter plugins from generated CMake: $($expectedPlugins.Count)"
-            foreach ($plugin in $expectedPlugins) {
-                Write-BuildLog -Context $context -Message "  - $plugin"
-            }
-        } else {
-            Write-BuildLogWarning -Context $context -Message "generated_plugins.cmake not found. Skipping expected plugin list."
-        }
-
-        $pluginArtifacts = @()
-        foreach ($dir in @($installedPluginsDir, $dllDestDir)) {
-            if (Test-Path -LiteralPath $dir -PathType Container) {
-                $pluginArtifacts += Get-ChildItem -LiteralPath $dir -Recurse -File -Filter "*.dll"
-            }
-        }
-
-        $pluginArtifacts = @($pluginArtifacts | Sort-Object -Property FullName -Unique)
-
-        if ($pluginArtifacts.Count -eq 0) {
-            Write-BuildLogWarning -Context $context -Message "No plugin DLL artifacts found in: $installedPluginsDir or $dllDestDir"
-        } else {
-            Write-BuildLog -Context $context -Message "Built plugin DLL artifacts: $($pluginArtifacts.Count)"
-            foreach ($artifact in $pluginArtifacts) {
-                Write-BuildLog -Context $context -Message "  - $($artifact.FullName)"
-            }
-        }
-
-        if ($expectedPlugins.Count -gt 0 -and $pluginArtifacts.Count -gt 0) {
-            foreach ($plugin in $expectedPlugins) {
-                $matchedArtifact = $pluginArtifacts | Where-Object {
-                    $_.Name -like "$plugin*.dll" -or $_.FullName -like "*$plugin*"
-                } | Select-Object -First 1
-
-                if ($null -eq $matchedArtifact) {
-                    Write-BuildLogWarning -Context $context -Message "Expected plugin '$plugin' has no matching DLL artifact name."
-                } else {
-                    Write-BuildLog -Context $context -Message "Plugin '$plugin' mapped to artifact: $($matchedArtifact.Name)"
-                }
-            }
-        }
+    Invoke-BuildStep -Context $context -StepName "Sync Artifacts to Host Workspace" -Script {
+        $hostRustTarget = Join-Path $rustDir "target"
+        Sync-FastLocalArtifactsToHost -Context $context -BuildRoot $buildRoot -OriginalBuildRoot $originalBuildRoot -CargoTargetDir $env:CARGO_TARGET_DIR -HostRustTargetDir $hostRustTarget
     }
 
     if (-not $SkipMsixPackaging) {
@@ -462,6 +531,12 @@ try {
             Write-BuildLog -Context $context -Message "Additional JSON summary copy available at: $targetSummaryPath"
         } else {
             Write-BuildLog -Context $context -Message "JSON summary already saved under LogDir: $targetSummaryPath"
+        }
+        
+        $flutterLogs = Get-ChildItem -LiteralPath $workspace -Filter "flutter_*.log" -ErrorAction SilentlyContinue
+        if ($flutterLogs) {
+            Write-BuildLog -Context $context -Message "Moving flutter crash logs to $logDirPath"
+            $flutterLogs | Move-Item -Destination $logDirPath -Force
         }
     } catch {
         Write-BuildLogWarning -Context $context -Message "Failed to copy JSON summary to LogDir: $($_.Exception.Message)"
