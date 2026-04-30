@@ -5,16 +5,23 @@
 cmake_minimum_required(VERSION 3.14)
 
 # Project-level configuration.
-set(PROJECT_NAME "rust_lib_kataglyphis_inference_engine")
+set(PROJECT_NAME "kataglyphis_rustprojecttemplate")
 project(${PROJECT_NAME} LANGUAGES CXX)
 
+# Resolve Rust manifest relative to CMAKE_CURRENT_SOURCE_DIR so the path works
+# regardless of whether this CMakeLists.txt is processed from its original
+# location (rust_builder/windows/) or from a Flutter ephemeral symlink copy
+# (flutter/ephemeral/.plugin_symlinks/kataglyphis_rustprojecttemplate/windows/).
+get_filename_component(MANIFEST_ABS "${CMAKE_SOURCE_DIR}/../ExternalLib/Kataglyphis-RustProjectTemplate" ABSOLUTE)
+file(RELATIVE_PATH MANIFEST_REL "${CMAKE_CURRENT_SOURCE_DIR}" "${MANIFEST_ABS}")
+
 include("../cargokit/cmake/cargokit.cmake")
-apply_cargokit(${PROJECT_NAME} ../../../../../../ExternalLib/Kataglyphis-RustProjectTemplate rust_lib_kataglyphis_inference_engine "")
+apply_cargokit(${PROJECT_NAME} "${MANIFEST_REL}" kataglyphis_rustprojecttemplate "")
 
 # List of absolute paths to libraries that should be bundled with the plugin.
 # This list could contain prebuilt libraries, or libraries created by an
 # external build triggered from this build file.
-set(rust_lib_kataglyphis_inference_engine_bundled_libraries
+set(kataglyphis_rustprojecttemplate_bundled_libraries
   "${${PROJECT_NAME}_cargokit_lib}"
   PARENT_SCOPE
 )

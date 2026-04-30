@@ -3,7 +3,7 @@ name: Build + test + run on Windows with (clang-cl)
 on: [ push, pull_request ]
 
 env:
-  BUILD_DIR_RELEASE: build/windows/x64/runner/Release
+  BUILD_DIR_RELEASE: build/windows/x64/runner/x64-ClangCL-Windows-Release
 
 defaults:
   run:
@@ -19,9 +19,9 @@ jobs:
     steps:
 
       # windows is so funny ... NOT
-      - name: Enable Git long paths
-        run: git config --global core.longpaths true
-        shell: pwsh
+      #- name: Enable Git long paths
+      #  run: git config --global core.longpaths true
+      #  shell: pwsh
 
       - name: Checkout
         uses: actions/checkout@v6.0.2
@@ -49,20 +49,27 @@ jobs:
       # for now disabled due to long runtimes
       - name: Run container
         run: |
-          docker run --rm `
+          docker run --rm --cpus 4`
             --mount "type=bind,source=${{ github.workspace }},target=C:\workspace" `
             -w "C:\workspace" `
             ghcr.io/kataglyphis/kataglyphis_beschleuniger:winamd64 `
-            powershell -NoProfile -ExecutionPolicy Bypass -File "C:\workspace\scripts\windows\Build-Windows.ps1" 
+            powershell -NoProfile -ExecutionPolicy Bypass -File "C:\workspace\scripts\windows\Build-Windows.ps1" -SkipMsixPackaging 2>&1 | Tee-Object -FilePath build.log 
 
       # see also the install commands in the bottom of the CMakeLists.txt
       - name: Upload release artifacts
-        uses: actions/upload-artifact@v6.0.0
+        uses: actions/upload-artifact@v7.0.1
         with:
           name: windows-release-files
           if-no-files-found: error
           path: |
             ${{ env.BUILD_DIR_RELEASE }}/**/*
+
+      - name: Upload build log
+        if: always()
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: build-log
+          path: build.log
 
       - uses: github/codeql-action/upload-sarif@v4 # Recommended upgrade
         if: hashFiles('codeql-results/*.sarif') != ''

@@ -1,5 +1,5 @@
 {
     "idf.pythonInstallPath": "/usr/bin/python3",
     "java.configuration.updateBuildConfiguration": "interactive",
-    "cmake.sourceDirectory": "/home/jones/GitHub/Kataglyphis-Inference-Engine/linux"
+    "cmake.sourceDirectory": "D:/GitHub/Kataglyphis-Inference-Engine/ExternalLib/Kataglyphis_NativeInferencePlugin/native/KataglyphisCppInference/ExternalLib/NLOHMANN_JSON"
 }

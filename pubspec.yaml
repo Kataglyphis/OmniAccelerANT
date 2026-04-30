@@ -155,7 +155,7 @@ flutter_launcher_icons:
     icon_size: 256
 
 msix_config:
-  build_windows: false
+  build_windows: true
   display_name: Kataglyphis Inference Engine
   publisher_display_name: Kataglyphis
   identity_name: Kataglyphis.KataglyphisInferenceEngine

@@ -4,12 +4,13 @@ param(
     [string] $BuildRootDir = "",
     [string] $RustCrateDir = "ExternalLib\Kataglyphis-RustProjectTemplate",
     [string] $RustDllName = "kataglyphis_rustprojecttemplate.dll",
-    [string] $CMakePresets = "",
+    [string] $Configurations = "",
     [string] $CMakeGenerator = "Ninja",
     [string] $CMakeBuildType = "Release",
     [string] $LogDir = "logs",
     [switch] $CleanBuild,
     [switch] $SkipTests,
+    [switch] $SkipFormat,
     [switch] $SkipBootstrapFlutterBuild,
     [switch] $SkipMsixPackaging,
     [switch] $ContinueOnError,
@@ -143,7 +144,7 @@ $buildDirRelease = Join-Path (Join-Path (Join-Path $BuildRootDir "windows") "x64
 
 $env:BUILD_DIR_RELEASE = $buildDirRelease
 
-$rawPresets = if (-not [string]::IsNullOrEmpty($CMakePresets)) { $CMakePresets -split ',' | ForEach-Object { $_.Trim() } } else { @("") }
+$rawPresets = if (-not [string]::IsNullOrEmpty($Configurations)) { $Configurations -split ',' | ForEach-Object { $_.Trim() } } else { @("") }
 
 $presetMapping = @{
     "clangcl-debug" = "x64-ClangCL-Windows-Debug"
@@ -183,7 +184,7 @@ try {
     Write-BuildLog -Context $context -Message "InstalledPlugins: $installedPluginsDir"
     Write-BuildLog -Context $context -Message "BuildPluginsDir:  $dllDestDir"
     Write-BuildLog -Context $context -Message "CMakeBuildDir:    $cmakeBuildDir"
-    if (-not [string]::IsNullOrEmpty($CMakePresets)) {
+    if (-not [string]::IsNullOrEmpty($Configurations)) {
         Write-BuildLog -Context $context -Message "CMakePresets:     $rawPresets (mapped to: $($presetsToRun -join ', '))"
     }
     Write-BuildLog -Context $context -Message "CMakeGenerator:   $CMakeGenerator"
@@ -231,35 +232,24 @@ try {
         Write-BuildLog -Context $context -Message "Skipping Flutter dependency steps (SkipFlutterBuild set)."
     }
 
-    if (-not $SkipTests) {
+    if (-not $SkipFormat) {
         Invoke-BuildStep -Context $context -StepName "Dart Format Verification" -Script {
-            $dartDirs = @("lib", "test", "bin", "integration_test") | Where-Object { Test-Path (Join-Path $workspace $_) }
-            if ($dartDirs.Count -eq 0) {
-                Write-BuildLog -Context $context -Message "No Dart directories found to format."
-                return
-            }
-
-            Write-BuildLog -Context $context -Message "Formatting directories: $($dartDirs -join ', ')"
-            foreach ($dir in $dartDirs) {
-                Invoke-BuildOptional -Context $context -Name "Format $dir" -Script {
-                    Invoke-BuildExternal -Context $context -File "dart" -Parameters @("format", "--output=none", "--set-exit-if-changed", $dir)
-                }
-            }
+            Invoke-DartFormatVerification -Context $context -WorkspaceDir $workspace
         }
+    } else {
+        Write-BuildLog -Context $context -Message "Skipping Dart format verification (SkipFormat set)."
+    }
 
+    if (-not $SkipTests) {
         Invoke-BuildStep -Context $context -StepName "Dart Analysis" -Script {
-            Invoke-BuildOptional -Context $context -Name "Dart Analysis" -Script {
-                Invoke-BuildExternal -Context $context -File "dart" -Parameters @("analyze")
-            }
+            Invoke-DartAnalysis -Context $context
         }
 
         Invoke-BuildStep -Context $context -StepName "Flutter Tests" -Script {
-            Invoke-BuildOptional -Context $context -Name "Flutter Tests" -Script {
-                Invoke-BuildExternal -Context $context -File "flutter" -Parameters @("test")
-            }
+            Invoke-FlutterTests -Context $context
         }
     } else {
-        Write-BuildLog -Context $context -Message "Skipping format/analyze/tests (SkipTests set)."
+        Write-BuildLog -Context $context -Message "Skipping Dart analysis/tests (SkipTests set)."
     }
 
     
@@ -312,6 +302,12 @@ try {
         $stepSuffix = if ($currentPreset) { " ($currentPreset)" } else { "" }
         $currentCMakeBuildDir = if ($currentPreset) { "${cmakeBuildDir}_${currentPreset}" } else { $cmakeBuildDir }
 
+        $layout = Resolve-KataglyphisWindowsLayout -BuildRootFull $buildRoot -WindowsBuildConfig $windowsBuildConfig -Configuration $currentPreset
+        $currentBuildDirFull = $layout.RunnerDir
+        $currentDllDestPath = $layout.RustPluginDllPath
+        $currentInstalledPluginsDir = Resolve-NormalizedPath -Path (Join-Path $currentBuildDirFull "plugins")
+        $currentNativeAssetsDir = Resolve-NormalizedPath -Path (Join-Path $buildRoot "native_assets/windows")
+
         $isReleasePreset = $true
         if ($currentPreset) {
             if ($currentPreset -match "Debug") {
@@ -342,7 +338,7 @@ try {
                     "-S", $windowsSrc,
                     "--preset", $currentPreset,
                     "-B", $currentCMakeBuildDir,
-                    "-DCMAKE_INSTALL_PREFIX=$buildDirFull",
+                    "-DCMAKE_INSTALL_PREFIX=$currentBuildDirFull",
                     "-DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreadedDLL"
                 )
             } else {
@@ -351,7 +347,7 @@ try {
                     "-B", $currentCMakeBuildDir,
                     "-G", $CMakeGenerator,
                     "-DCMAKE_BUILD_TYPE=$CMakeBuildType",
-                    "-DCMAKE_INSTALL_PREFIX=$buildDirFull",
+                    "-DCMAKE_INSTALL_PREFIX=$currentBuildDirFull",
                     "-DFLUTTER_TARGET_PLATFORM=windows-x64",
                     "-DCMAKE_CXX_COMPILER=clang-cl",
                     "-DCMAKE_C_COMPILER=clang-cl",
@@ -413,24 +409,25 @@ try {
                 throw "Rust DLL not found at $currentDllSource"
             }
 
-            New-Item -ItemType Directory -Force -Path $dllDestDir | Out-Null
-            Copy-Item -Path $currentDllSource -Destination $dllDestPath -Force
-            Write-BuildLog -Context $context -Message "Rust DLL copied to $dllDestPath"
+            $currentDllDestDir = [System.IO.Path]::GetDirectoryName($currentDllDestPath)
+            New-Item -ItemType Directory -Force -Path $currentDllDestDir | Out-Null
+            Copy-Item -Path $currentDllSource -Destination $currentDllDestPath -Force
+            Write-BuildLog -Context $context -Message "Rust DLL copied to $currentDllDestPath"
         }
 
         Invoke-BuildStep -Context $context -StepName "Native Assets Directory Fix$stepSuffix" -Script {
-            if (Test-Path $nativeAssetsDir) {
-                $item = Get-Item -LiteralPath $nativeAssetsDir -Force
+            if (Test-Path $currentNativeAssetsDir) {
+                $item = Get-Item -LiteralPath $currentNativeAssetsDir -Force
                 if (-not $item.PSIsContainer) {
-                    Write-BuildLog -Context $context -Message "Path exists but is NOT a directory. Replacing: $nativeAssetsDir"
-                    Remove-Item -LiteralPath $nativeAssetsDir -Force
-                    New-Item -ItemType Directory -Path $nativeAssetsDir | Out-Null
+                    Write-BuildLog -Context $context -Message "Path exists but is NOT a directory. Replacing: $currentNativeAssetsDir"
+                    Remove-Item -LiteralPath $currentNativeAssetsDir -Force
+                    New-Item -ItemType Directory -Path $currentNativeAssetsDir | Out-Null
                 } else {
-                    Write-BuildLog -Context $context -Message "Path is already a directory: $nativeAssetsDir"
+                    Write-BuildLog -Context $context -Message "Path is already a directory: $currentNativeAssetsDir"
                 }
             } else {
-                Write-BuildLog -Context $context -Message "Creating directory: $nativeAssetsDir"
-                New-Item -ItemType Directory -Path $nativeAssetsDir | Out-Null
+                Write-BuildLog -Context $context -Message "Creating directory: $currentNativeAssetsDir"
+                New-Item -ItemType Directory -Path $currentNativeAssetsDir | Out-Null
             }
         }
 
@@ -458,25 +455,38 @@ try {
     }
 
     Invoke-BuildStep -Context $context -StepName "MSIX Compatibility Layout" -Script {
-        $msixReleaseDir = Resolve-NormalizedPath -Path (Join-Path $buildDirFull "Release")
+        foreach ($currentPreset in $presetsToRun) {
+            if ([string]::IsNullOrEmpty($currentPreset)) { continue }
 
-        if (Test-Path -LiteralPath $msixReleaseDir -PathType Container) {
-            Remove-Item -LiteralPath $msixReleaseDir -Recurse -Force -ErrorAction Stop
-        }
+            $msixSourceDir = Resolve-NormalizedPath -Path (Join-Path $buildRoot "windows/x64/runner/$currentPreset")
+            $msixReleaseDir = Resolve-NormalizedPath -Path (Join-Path $msixSourceDir "Release")
 
-        New-Item -ItemType Directory -Force -Path $msixReleaseDir | Out-Null
+            if (Test-Path -LiteralPath $msixReleaseDir -PathType Container) {
+                Write-BuildLog -Context $context -Message "MSIX compatibility for $currentPreset already at: $msixReleaseDir"
+            } elseif (Test-Path -LiteralPath $msixSourceDir -PathType Container) {
+                Write-BuildLog -Context $context -Message "Preparing MSIX compatibility for $currentPreset..."
+                New-Item -ItemType Directory -Force -Path $msixReleaseDir | Out-Null
 
-        Get-ChildItem -LiteralPath $buildDirFull -Force |
-            Where-Object { $_.Name -ne "Release" } |
-            ForEach-Object {
-                Copy-Item -Path $_.FullName -Destination $msixReleaseDir -Recurse -Force
+                Get-ChildItem -LiteralPath $msixSourceDir -Force |
+                    Where-Object { $_.Name -ne "Release" } |
+                    ForEach-Object {
+                        Copy-Item -Path $_.FullName -Destination $msixReleaseDir -Recurse -Force
+                    }
+
+                Write-BuildLog -Context $context -Message "MSIX compatibility folder prepared: $msixReleaseDir"
             }
-
-        Write-BuildLog -Context $context -Message "MSIX compatibility folder prepared: $msixReleaseDir"
+        }
     }
 
     Invoke-BuildStep -Context $context -StepName "Plugin Build Summary" -Script {
-        Assert-FlutterPluginsBuilt -Context $context -CMakeFile $generatedPluginsCMake -SearchDirectories @($installedPluginsDir, $dllDestDir)
+        $allPluginDirs = @($installedPluginsDir)
+        foreach ($currentPreset in $presetsToRun) {
+            if (-not [string]::IsNullOrEmpty($currentPreset)) {
+                $presetLayout = Resolve-KataglyphisWindowsLayout -BuildRootFull $buildRoot -WindowsBuildConfig $windowsBuildConfig -Configuration $currentPreset
+                $allPluginDirs += Resolve-NormalizedPath -Path (Join-Path $presetLayout.RunnerDir "plugins")
+            }
+        }
+        Assert-FlutterPluginsBuilt -Context $context -CMakeFile $generatedPluginsCMake -SearchDirectories $allPluginDirs
     }
 
     Show-SccacheStats -Context $context
@@ -488,6 +498,11 @@ try {
 
     if (-not $SkipMsixPackaging) {
         Invoke-BuildStep -Context $context -StepName "MSIX Packaging" -Script {
+            $pluginSymlinksDir = Join-Path $workspace "windows\flutter\ephemeral\.plugin_symlinks"
+            if (Test-Path $pluginSymlinksDir) {
+                Remove-Item -LiteralPath $pluginSymlinksDir -Force -Recurse -ErrorAction SilentlyContinue
+                & cmd.exe /c "rmdir /q /s `"$pluginSymlinksDir`" 2>nul"
+            }
             Push-Location $workspace
             try {
                 Invoke-BuildExternal -Context $context -File "dart" -Parameters @("run", "msix:create", "--install-certificate", "false")

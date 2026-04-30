@@ -72,21 +72,27 @@ function Resolve-KataglyphisWindowsLayout {
         throw "RustDllName is missing in Windows build config."
     }
 
+    $cmakeConfig = if ($WindowsBuildConfig.ContainsKey('CMakeConfiguration') -and -not [string]::IsNullOrWhiteSpace($WindowsBuildConfig.CMakeConfiguration)) {
+        $WindowsBuildConfig.CMakeConfiguration
+    } else {
+        $Configuration
+    }
+
     $buildRootNormalized = [System.IO.Path]::GetFullPath($BuildRootFull)
     $cmakeBuildDir = [System.IO.Path]::GetFullPath((Join-Path $buildRootNormalized 'windows/x64'))
     
     $runnerDirBase = [System.IO.Path]::GetFullPath((Join-Path $cmakeBuildDir 'runner'))
-    $runnerDir = if ([string]::IsNullOrWhiteSpace($Configuration)) {
+    $runnerDir = if ([string]::IsNullOrWhiteSpace($cmakeConfig)) {
         $runnerDirBase
     } else {
-        [System.IO.Path]::GetFullPath((Join-Path $runnerDirBase $Configuration))
+        [System.IO.Path]::GetFullPath((Join-Path $runnerDirBase $cmakeConfig))
     }
 
     $pluginDirBase = [System.IO.Path]::GetFullPath((Join-Path $cmakeBuildDir 'plugins'))
-    $pluginDir = if ([string]::IsNullOrWhiteSpace($Configuration)) {
+    $pluginDir = if ([string]::IsNullOrWhiteSpace($cmakeConfig)) {
         $pluginDirBase
     } else {
-        [System.IO.Path]::GetFullPath((Join-Path $pluginDirBase $Configuration))
+        [System.IO.Path]::GetFullPath((Join-Path $pluginDirBase $cmakeConfig))
     }
 
     $rustPluginSubDir = if ($WindowsBuildConfig.ContainsKey('RustPluginSubDir') -and -not [string]::IsNullOrWhiteSpace($WindowsBuildConfig.RustPluginSubDir)) {

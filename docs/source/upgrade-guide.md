@@ -19,6 +19,12 @@ Recommended order:
 2. Run static checks and tests after each upgrade step.
 3. Regenerate docs and verify no broken links/pages.
 
+When upgrading `flutter_rust_bridge` on the Flutter side, also run this in the Rust project:
+
+```bash
+cargo upgrade --pinned --package flutter_rust_bridge
+```
+
 ## Validation Checklist
 
 - [ ] `flutter analyze` passes

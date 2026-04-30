@@ -321,7 +321,13 @@ class StreamPageState extends State<StreamPage> {
         await channel.invokeMethod('stop');
       }
 
-      await channel.invokeMethod('setPipeline', pipelineString);
+      if (_isWindows) {
+        await channel.invokeMethod('setPipeline', <String, String>{
+          'pipeline': pipelineString,
+        });
+      } else {
+        await channel.invokeMethod('setPipeline', pipelineString);
+      }
       await channel.invokeMethod('play');
 
       if (!mounted) return;
