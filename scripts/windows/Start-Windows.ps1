@@ -131,6 +131,33 @@ try {
 			Sort-Object -Unique
 	)
 
+	# AddressSanitizer (clang-cl Debug preset): the instrumented plugin imports
+	# clang_rt.asan_dynamic-x86_64.dll. It MUST be Microsoft's runtime (shipped
+	# with VS BuildTools), not LLVM's -- LLVM's aborts the full Flutter app with
+	# an unsuppressible bad-free on allocations that COM/the CRT make before the
+	# ASan runtime is initialized. Stage Microsoft's DLL next to the exe (and in
+	# bin\) and relax the two mixed-instrumentation interceptor checks.
+	$asanDllName = "clang_rt.asan_dynamic-x86_64.dll"
+	$needsAsan = ($Configuration -match "Debug") -or `
+		(Test-Path -LiteralPath (Join-Path $buildDirReleaseFull $asanDllName) -PathType Leaf)
+	if ($needsAsan) {
+		$msAsan = Get-ChildItem "C:\Program Files*\Microsoft Visual Studio\*\BuildTools\VC\Tools\MSVC\*\bin\Hostx64\x64\$asanDllName" -ErrorAction SilentlyContinue |
+			Sort-Object FullName -Descending | Select-Object -First 1
+		if ($null -ne $msAsan) {
+			foreach ($dest in @($buildDirReleaseFull, (Join-Path $buildDirReleaseFull "bin"))) {
+				if (Test-Path -LiteralPath $dest -PathType Container) {
+					Copy-Item -LiteralPath $msAsan.FullName -Destination (Join-Path $dest $asanDllName) -Force
+				}
+			}
+			Write-Host "[Start-Windows] Staged Microsoft ASan runtime: $($msAsan.FullName)"
+			if ([string]::IsNullOrWhiteSpace($env:ASAN_OPTIONS)) {
+				$env:ASAN_OPTIONS = "alloc_dealloc_mismatch=0:check_malloc_usable_size=0"
+			}
+		} else {
+			Write-Warning "[Start-Windows] Microsoft ASan runtime not found under VS BuildTools; an ASan-instrumented app may abort on startup."
+		}
+	}
+
 	New-Item -ItemType Directory -Force -Path $logDirPath | Out-Null
 
 	$env:PATH = (($pluginPathEntries -join ";") + ";" + $env:PATH)

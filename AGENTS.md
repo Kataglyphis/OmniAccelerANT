@@ -86,11 +86,12 @@ Run the app on the host after artifacts are back:
   Rust). Install rustup **with a default toolchain** in the container
   (`C:\rustup-init.exe -y --default-toolchain stable --profile minimal`); only toolchain-less
   rustup shims are harmful.
-- **clangcl-Debug preset is broken upstream** (CI only builds the default Release path):
-  ASAN defaults ON for clang-cl Debug (`ProjectOptions.cmake`) and drags `/MT` into Flutter's
-  `/MD` objects → `lld-link` RuntimeLibrary mismatch; with ASAN off, `kataglyphis_libfuzzer.exe`
-  hits an `annotate_string` mismatch vs `clang_rt.fuzzer`. Workaround: Debug preset with
-  sanitizers OFF + `BUILD_TESTING: FALSE`.
+- **clangcl-Debug preset ships with ASAN ON** and builds + runs green (see the ASAN bullet
+  below for how — Microsoft's runtime, no `/MT` overrides, `-shared-libsan`). Historic
+  gotchas now fixed: naive ASAN dragged `/MT` into Flutter's `/MD` objects (`lld-link`
+  RuntimeLibrary mismatch), and `kataglyphis_libfuzzer.exe` hit an `annotate_string` mismatch
+  vs `clang_rt.fuzzer`. All resolved in the plugin's `cmake/Sanitizers.cmake` +
+  `ExternalLib/CMakeLists.txt`.
 - **Shared install dir:** all presets install into
   `build\windows\x64\runner\x64-ClangCL-Windows-Release\` — the folder holds whichever preset
   built last; copy artifacts away between preset runs.
@@ -102,13 +103,19 @@ Run the app on the host after artifacts are back:
   changing flags on a module target (`nlohmann_json_modules`, `tomlplusplus_modules`, `.ixx`
   targets), importers get stale cached objects with the old BMI's linker directives. After any
   module-flag change: clean the build dir AND build once with `SCCACHE_RECACHE=1`.
-- **ASAN under clang-cl + Flutter works at build time** (dynamic CRT throughout:
-  `-shared-libsan`, no `/MT` overrides anywhere — module BMIs re-emit `detect_mismatch`
-  directives into importers, so one `/MT` BMI poisons everything). **Running the full Flutter
-  app under ASAN aborts** on mixed-instrumentation false positives (`bad-malloc_usable_size`,
-  then `bad-free`) because the uninstrumented engine DLLs share the hot-patched CRT heap — a
-  documented Windows ASAN limitation, not an app bug. Use ASAN via the plugin's own
-  test/fuzz executables; run the app itself without the ASAN runtime loaded.
+- **ASAN under clang-cl + Flutter runs the full app** — but only against **Microsoft's** ASan
+  runtime, not LLVM's. Build-time needs a dynamic CRT throughout (`-shared-libsan`, no `/MT`
+  overrides anywhere — module BMIs re-emit `detect_mismatch` directives into importers, so one
+  `/MT` BMI poisons everything). At run time, LLVM's `clang_rt.asan_dynamic` loads *after*
+  ucrtbase, so allocations made during CRT/COM startup are unhooked and LLVM's runtime aborts
+  with an unsuppressible `bad-free` when combase/ole32 later free them. Microsoft's ASan runtime
+  (shipped with VS BuildTools, `VC\Tools\MSVC\<ver>\bin\Hostx64\x64\clang_rt.asan_dynamic-x86_64.dll`)
+  tracks Windows heap ownership correctly and passes those foreign frees through. The plugin's
+  `cmake/Sanitizers.cmake` links Microsoft's thunk + import lib (same filenames as LLVM's — it
+  just points the link-search at MSVC's `lib\x64`) while keeping clang's own instrumentation;
+  `Start-Windows.ps1` stages Microsoft's DLL next to the exe and sets
+  `ASAN_OPTIONS=alloc_dealloc_mismatch=0:check_malloc_usable_size=0`. Net: the clang-cl Debug
+  preset ships with ASAN **ON** and the full app runs clean under it (Dart VM up, camera live).
 - **Vendored ANTLR (dragged in unconditionally by newer FUZZTEST):** needs `WITH_STATIC_CRT
   OFF`, `ANTLR_BUILD_CPP_TESTS OFF`, `ANTLR_BUILD_SHARED OFF`, `/FIchrono`, and `LICENSE.txt`
   staged at the build root (its install rule assumes a monorepo layout). All wired up in the

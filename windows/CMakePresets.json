@@ -316,7 +316,7 @@
         "CMAKE_BUILD_TYPE": "Debug",
         "COMPILER_CACHE": "sccache",
         "BUILD_TESTING": "TRUE",
-        "myproject_ENABLE_SANITIZER_ADDRESS": "OFF"
+        "myproject_ENABLE_SANITIZER_ADDRESS": "ON"
       },
       "condition": {
         "type": "equals",
