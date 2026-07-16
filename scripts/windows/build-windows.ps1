@@ -317,10 +317,6 @@ try {
             $isReleasePreset = $false
         }
 
-        $cargoProfilePath = if ($isReleasePreset) { "release" } else { "debug" }
-        $cargoTargetRoot = if ($env:CARGO_TARGET_DIR) { $env:CARGO_TARGET_DIR } else { Join-Path $rustDir "target" }
-        $currentDllSource = Resolve-NormalizedPath -Path (Join-Path $cargoTargetRoot "$cargoProfilePath/$RustDllName")
-
         Invoke-BuildStep -Context $context -StepName "CMake Configure$stepSuffix" -Critical -Script {
             if (-not (Test-Path $currentCMakeBuildDir)) {
                 New-Item -ItemType Directory -Force -Path $currentCMakeBuildDir | Out-Null
@@ -377,43 +373,10 @@ try {
             Invoke-BuildExternal -Context $context -File "cmake" -Parameters $cmakeArgs
         }
 
-        Invoke-BuildStep -Context $context -StepName "Rust Crate Build$stepSuffix" -Script {
-            if (-not (Test-Path $rustDir)) {
-                throw "Rust crate directory not found: $rustDir"
-            }
-
-            Push-Location $rustDir
-            try {
-                $processorCount = [Environment]::ProcessorCount
-                Invoke-BuildOptional -Context $context -Name "flutter_rust_bridge_codegen install" -Script {
-                    $cargoBin = Join-Path $env:CARGO_HOME "bin"
-                    if (-not (Test-Path (Join-Path $cargoBin "flutter_rust_bridge_codegen.exe"))) {
-                        Write-BuildLog -Context $context -Message "Installing flutter_rust_bridge_codegen to $env:CARGO_HOME..."
-                        Invoke-BuildExternal -Context $context -File "cargo" -Parameters @("install", "flutter_rust_bridge_codegen")
-                    } else {
-                        Write-BuildLog -Context $context -Message "flutter_rust_bridge_codegen is already installed at $cargoBin."
-                    }
-                }
-                $cargoArgs = @("build", "--timings", "-j", $processorCount.ToString())
-                if ($isReleasePreset) {
-                    $cargoArgs += "--release"
-                }
-                Invoke-BuildExternal -Context $context -File "cargo" -Parameters $cargoArgs
-            } finally {
-                Pop-Location
-            }
-        }
-
-        Invoke-BuildStep -Context $context -StepName "Copy Rust DLL$stepSuffix" -Script {
-            if (-not (Test-Path $currentDllSource)) {
-                throw "Rust DLL not found at $currentDllSource"
-            }
-
-            $currentDllDestDir = [System.IO.Path]::GetDirectoryName($currentDllDestPath)
-            New-Item -ItemType Directory -Force -Path $currentDllDestDir | Out-Null
-            Copy-Item -Path $currentDllSource -Destination $currentDllDestPath -Force
-            Write-BuildLog -Context $context -Message "Rust DLL copied to $currentDllDestPath"
-        }
+        # NOTE: the Rust crate is built exactly once — by Cargokit inside the
+        # CMake build below (rust_builder plugin). The former standalone
+        # "Rust Crate Build" cargo step duplicated that work; the DLL is now
+        # harvested from the installed runner bundle after the CMake step.
 
         Invoke-BuildStep -Context $context -StepName "Native Assets Directory Fix$stepSuffix" -Script {
             if (Test-Path $currentNativeAssetsDir) {
@@ -451,6 +414,20 @@ try {
             # ---------------------------------
             
             Invoke-BuildExternal -Context $context -File "cmake" -Parameters $cmakeBuildArgs
+        }
+
+        Invoke-BuildStep -Context $context -StepName "Copy Rust DLL$stepSuffix" -Script {
+            # Cargokit installed the crate's DLL into the runner bundle; mirror it
+            # into the plugins layout that Start-Windows.ps1 expects.
+            $bundleDll = Join-Path $currentBuildDirFull $RustDllName
+            if (-not (Test-Path $bundleDll)) {
+                throw "Rust DLL not found in installed bundle: $bundleDll"
+            }
+
+            $currentDllDestDir = [System.IO.Path]::GetDirectoryName($currentDllDestPath)
+            New-Item -ItemType Directory -Force -Path $currentDllDestDir | Out-Null
+            Copy-Item -Path $bundleDll -Destination $currentDllDestPath -Force
+            Write-BuildLog -Context $context -Message "Rust DLL copied from bundle to $currentDllDestPath"
         }
     }
 

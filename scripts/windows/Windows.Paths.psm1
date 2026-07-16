@@ -72,10 +72,14 @@ function Resolve-KataglyphisWindowsLayout {
         throw "RustDllName is missing in Windows build config."
     }
 
-    $cmakeConfig = if ($WindowsBuildConfig.ContainsKey('CMakeConfiguration') -and -not [string]::IsNullOrWhiteSpace($WindowsBuildConfig.CMakeConfiguration)) {
+    # An explicitly passed -Configuration wins (per-preset install layout);
+    # the config file's CMakeConfiguration is only the fallback default.
+    $cmakeConfig = if (-not [string]::IsNullOrWhiteSpace($Configuration)) {
+        $Configuration
+    } elseif ($WindowsBuildConfig.ContainsKey('CMakeConfiguration') -and -not [string]::IsNullOrWhiteSpace($WindowsBuildConfig.CMakeConfiguration)) {
         $WindowsBuildConfig.CMakeConfiguration
     } else {
-        $Configuration
+        ""
     }
 
     $buildRootNormalized = [System.IO.Path]::GetFullPath($BuildRootFull)

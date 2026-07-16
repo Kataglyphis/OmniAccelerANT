@@ -39,6 +39,22 @@ Preview docs:
 dhttpd --path doc/api --host 127.0.0.1 --port 8080
 ```
 
+### Sphinx theme (moved to Kataglyphis-DocumANTation)
+
+The shared Sphinx theme/template that used to live in Kataglyphis-ContainerHub
+(`sphinx-kataglyphis-theme/` + `docs/source_templates/`) was moved into the
+[Kataglyphis-DocumANTation](https://github.com/Kataglyphis/Kataglyphis-DocumANTation) repository.
+Consumers vendor it as a submodule (`external/Kataglyphis-DocumANTation`) and install it via
+`requirements.txt`:
+
+```text
+-e ./external/Kataglyphis-DocumANTation/sphinx-kataglyphis-theme
+```
+
+`conf.py` then reduces to `from sphinx_kataglyphis import setup_theme; setup_theme(globals(), ...)`.
+This repo's `docs/source/conf.py` still uses the standalone `press` theme; follow the pattern
+above (see ContainerHub's `docs/conf.py`) when migrating.
+
 ## CI/CD Notes
 
 - Linux native, Windows native, Web, and Android pipelines are available via GitHub Actions.

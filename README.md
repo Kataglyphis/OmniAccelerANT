@@ -30,7 +30,7 @@ Kataglyphis-Inference-Engine bundles a Flutter/Dart frontend, a Rust/C++ inferen
 - 🎨 **GStreamer native GTK integration** – Leveraging users to write beautiful Linux AI inference apps.
 - 📹 **GStreamer WebRTC livestreaming** with ready-to-use pipelines for USB, Raspberry Pi, and Orange Pi cameras.
 - 🌉 **flutter_rust_bridge integration** – Ensures a seamless API boundary between Dart UI and Rust logic.
-- 🐳 **Containerized development flow** plus native instructions for Windows, Linux, web. For details in my build environment look into [Kataglyphis-ContainerHub](https://github.com/Kataglyphis/Kataglyphis-ContainerHub)
+- 🐳 **Containerized development flow** plus native instructions for Windows, Linux, web. For details in my build environment look into [Kataglyphis-ContainerHub](https://github.com/Kataglyphis/Kataglyphis-ContainerHub). On Windows the container engine is [Stevedore](https://github.com/slonopotamus/stevedore) and build containers run with `--isolation process` (full host CPU count) — see [docs/source/platforms.md](docs/source/platforms.md).
 - 🐍 **Python inference demos** for rapid experimentation alongside the Rust core.
 
 ### 📊 Feature Status Matrix
@@ -127,7 +127,8 @@ Im Browser öffnen: http://127.0.0.1:8080
 | Topic | Location | Description |
 |-------|----------|-------------|
 | Getting Started | [docs/source/getting-started.md](docs/source/getting-started.md) | Environment prerequisites, installation, and run commands. |
-| Platform Guides | [docs/source/platforms.md](docs/source/platforms.md) | Container, Windows, Raspberry Pi, and web build instructions. |
+| Platform Guides | [docs/source/platforms.md](docs/source/platforms.md) | Container, Windows, Raspberry Pi, and web build instructions — incl. the Windows container troubleshooting table (Dev Drive, pkg-config, rustup/Cargokit, Debug-preset pitfalls). |
+| Agent / contributor guide | [AGENTS.md](AGENTS.md) | Build workflow, container pitfalls, and quality gates for coding agents and new contributors. |
 | Camera Streaming | [docs/source/camera-streaming.md](docs/source/camera-streaming.md) | GStreamer WebRTC pipelines and Python inference demos. |
 | Upgrade guide | [docs/source/upgrade-guide.md](docs/source/upgrade-guide.md) | How to keep things up-to-date. |
 
