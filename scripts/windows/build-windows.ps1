@@ -219,6 +219,27 @@ try {
         Invoke-ToolchainChecks -Context $context -RequiredTools $RequiredTools -FailOnMissingRequiredTools:$FailOnMissingRequiredTools
     }
 
+    Invoke-BuildStep -Context $context -StepName "Media Runtime Preflight" -Script {
+        # Windows-only Rust features (webcam capture via GStreamer + runtime-
+        # loaded ONNX Runtime). rust_builder/windows/CMakeLists.txt reads this
+        # at configure time and forwards it to cargo via Cargokit. Set the env
+        # var to "" explicitly to build feature-less.
+        if ($null -eq (Get-Item -Path "Env:KATAGLYPHIS_RUST_FEATURES" -ErrorAction SilentlyContinue)) {
+            $env:KATAGLYPHIS_RUST_FEATURES = "gstreamer,onnxruntime_dynamic,onnxruntime_directml"
+        }
+        Write-BuildLog -Context $context -Message "Rust features: '$($env:KATAGLYPHIS_RUST_FEATURES)'"
+
+        if ($env:KATAGLYPHIS_RUST_FEATURES -match "gstreamer") {
+            # gstreamer-sys resolves the GStreamer dev files through pkg-config
+            # at cargo build time — fail fast here instead of deep inside Ninja.
+            $gstVersion = & pkg-config --modversion gstreamer-1.0 2>&1
+            if ($LASTEXITCODE -ne 0) {
+                throw "pkg-config cannot resolve gstreamer-1.0 (needed by Rust feature 'gstreamer'): $gstVersion. Set KATAGLYPHIS_RUST_FEATURES='' to build without it."
+            }
+            Write-BuildLog -Context $context -Message "GStreamer dev files found: $gstVersion"
+        }
+    }
+
     Invoke-BuildStep -Context $context -StepName "Git Configuration" -Script {
         Invoke-BuildExternal -Context $context -File "git" -Parameters @("config", "--global", "core.longpaths", "true") -IgnoreExitCode
     }
@@ -428,6 +449,62 @@ try {
             New-Item -ItemType Directory -Force -Path $currentDllDestDir | Out-Null
             Copy-Item -Path $bundleDll -Destination $currentDllDestPath -Force
             Write-BuildLog -Context $context -Message "Rust DLL copied from bundle to $currentDllDestPath"
+        }
+
+        Invoke-BuildStep -Context $context -StepName "Bundle Media Runtime DLLs$stepSuffix" -Script {
+            # Stage the runtime DLL closure for the Rust webcam/inference path
+            # next to the runner exe so the packaged app runs outside the
+            # container: ONNX Runtime (+DirectML) and GStreamer core DLLs into
+            # the bundle root, GStreamer plugins into exe-relative
+            # gstreamer-1.0\ (the Rust side sets GST_PLUGIN_PATH to that dir).
+            if ($env:KATAGLYPHIS_RUST_FEATURES -notmatch "gstreamer") {
+                Write-BuildLog -Context $context -Message "Rust media features disabled; skipping DLL bundling."
+                return
+            }
+
+            $ortBin = if ($env:ONNX_ROOT) { Join-Path $env:ONNX_ROOT "bin" } else { "C:\runtime\lib\onnxruntime-source\bin" }
+            if (Test-Path $ortBin) {
+                foreach ($dll in @("onnxruntime.dll", "DirectML.dll", "onnxruntime_providers_shared.dll")) {
+                    $src = Join-Path $ortBin $dll
+                    if (Test-Path $src) {
+                        Copy-Item -Path $src -Destination $currentBuildDirFull -Force
+                    }
+                }
+                Write-BuildLog -Context $context -Message "ONNX Runtime DLLs bundled from $ortBin"
+            } else {
+                Write-BuildLog -Context $context -Message "WARNING: ONNX Runtime bin not found ($ortBin); app will rely on ORT_DYLIB_PATH at runtime."
+            }
+
+            $gstBin = if ($env:GSTREAMER_BIN) { $env:GSTREAMER_BIN } else { "C:\runtime\bin" }
+            $gstPlugins = Join-Path (Split-Path $gstBin -Parent) "lib\gstreamer-1.0"
+            if (Test-Path $gstBin) {
+                # Core + dependency DLLs (glib, gobject, gstreamer-1.0, ...).
+                Copy-Item -Path (Join-Path $gstBin "*.dll") -Destination $currentBuildDirFull -Force
+                Write-BuildLog -Context $context -Message "GStreamer core DLLs bundled from $gstBin"
+            } else {
+                Write-BuildLog -Context $context -Message "WARNING: GStreamer bin not found ($gstBin); skipping core DLL bundling."
+            }
+            if (Test-Path $gstPlugins) {
+                $pluginDest = Join-Path $currentBuildDirFull "gstreamer-1.0"
+                New-Item -ItemType Directory -Force -Path $pluginDest | Out-Null
+                # Subset needed by the capture pipeline (webcam/test source,
+                # convert/scale, appsink) plus device providers for enumeration.
+                $wanted = @(
+                    "gstcoreelements.dll", "gstapp.dll", "gsttypefindfunctions.dll",
+                    "gstvideoconvertscale.dll", "gstvideofilter.dll", "gstvideorate.dll",
+                    "gstvideotestsrc.dll", "gstautodetect.dll", "gstwinks.dll",
+                    "gstmediafoundation.dll"
+                )
+                foreach ($dll in $wanted) {
+                    $src = Join-Path $gstPlugins $dll
+                    if (Test-Path $src) {
+                        Copy-Item -Path $src -Destination $pluginDest -Force
+                    }
+                }
+                Write-BuildLog -Context $context -Message "GStreamer plugins bundled to $pluginDest"
+            } else {
+                Write-BuildLog -Context $context -Message "WARNING: GStreamer plugin dir not found ($gstPlugins)."
+            }
         }
     }
 

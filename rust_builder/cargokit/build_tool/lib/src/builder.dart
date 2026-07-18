@@ -1,6 +1,8 @@
 /// This is copied from Cargokit (which is the official way to use it currently)
 /// Details: https://fzyzcjy.github.io/flutter_rust_bridge/manual/integrate/builtin
 
+import 'dart:io';
+
 import 'package:collection/collection.dart';
 import 'package:logging/logging.dart';
 import 'package:path/path.dart' as path;
@@ -124,9 +126,24 @@ class RustBuilder {
 
   String get _toolchain => _buildOptions?.toolchain.name ?? 'stable'; //
 
+  /// Extra cargo flags injected per-platform (e.g. the Windows feature set)
+  /// via CARGOKIT_EXTRA_CARGO_FLAGS, forwarded by cargokit.cmake. Space
+  /// separated; unset/empty means no extra flags. (Local patch on top of
+  /// upstream cargokit — cargokit.yaml can't scope options per platform.)
+  List<String> get _extraFlagsFromEnvironment {
+    final flags = Platform.environment['CARGOKIT_EXTRA_CARGO_FLAGS'];
+    if (flags == null || flags.trim().isEmpty) {
+      return const [];
+    }
+    return flags.trim().split(RegExp(r'\s+'));
+  }
+
   /// Returns the path of directory containing build artifacts.
   Future<String> build() async {
-    final extraArgs = _buildOptions?.flags ?? [];
+    final extraArgs = [
+      ...?_buildOptions?.flags,
+      ..._extraFlagsFromEnvironment,
+    ];
     final manifestPath = path.join(environment.manifestDir, 'Cargo.toml');
     runCommand('rustup', [
       'run',

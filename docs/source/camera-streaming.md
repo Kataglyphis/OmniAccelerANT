@@ -2,6 +2,50 @@
 
 Practical WebRTC streaming and inference pipelines for Kataglyphis.
 
+## Windows: Rust-owned webcam inference (local, no WebRTC)
+
+On Windows the **Stream** page runs a fully local webcam → ONNX → texture pipeline
+owned end-to-end by Rust — no signalling server, no browser. Video frames never
+cross the Dart bridge; only detection metadata does.
+
+**Data flow:**
+
+```
+crates/media (gstreamer-rs)     src/webcam_engine.rs            src/api/webcam.rs (frb)
+  mfvideosrc → ksvideosrc     ┌ pushes RGBA into the Flutter   ┌ list_cameras()
+  → videoconvert → videoscale │ texture via the native plugin's│ start_webcam_inference()
+  → RGBA appsink  ───────────►│ knt_push_frame C ABI           │   → Stream<DetectionEvent>
+  (latest-frame slot)         └ runs PersonDetector (ONNX/ort) ─┘ stop_webcam_inference()
+```
+
+- **Rust source selection:** `mfvideosrc` (Media Foundation) is preferred, then
+  `ksvideosrc`, then `autovideosrc`; `videotestsrc` is used for containers/CI (no
+  camera). `mfvideosrc` requires the `mediafoundation` GStreamer plugin **and** a
+  Windows *client* host (Server Core has no Media Foundation platform — see
+  `platforms.md`). Without it the pipeline falls back to `ksvideosrc`.
+- **Inference:** `ort` (ONNX Runtime) is loaded via `load-dynamic`
+  (`ORT_DYLIB_PATH` → next-to-exe → `C:\runtime\lib\onnxruntime-source\bin`),
+  DirectML execution provider with CPU fallback. Enabled by the crate features
+  `gstreamer,onnxruntime_dynamic,onnxruntime_directml` (set for Windows via the
+  `KATAGLYPHIS_RUST_FEATURES` env var, forwarded to cargo by the `rust_builder`
+  CMake → Cargokit).
+- **Display:** the native plugin (`Kataglyphis_NativeInferencePlugin`) exports a
+  C ABI (`knt_create_texture` implied via the `create` method, `knt_push_frame`,
+  `knt_api_version`) that Rust resolves with `libloading`. The Flutter UI is a
+  `Texture(textureId)` with a `CustomPaint` box overlay fed by the
+  `DetectionEvent` stream (`lib/Pages/StreamPage/rust_webcam_view.dart`).
+
+**Run it:** launch the app (`Start-Windows.ps1`), open the **Stream** tab, pick a
+camera (or *Test pattern*), optionally set a model path + score threshold, and
+press **Start**. Bundled GStreamer plugins must include the capture source; the
+build's DLL-bundling step stages `gstmediafoundation.dll`/`gstwinks.dll` +
+GStreamer core DLLs into the runner. To get `mfvideosrc`, build against a
+`windows-media` image whose GStreamer was compiled with
+`-Dgst-plugins-bad:mediafoundation=enabled` (ContainerHub
+`windows/scripts/build-gstreamer-from-source.ps1`).
+
+## WebRTC pipelines (Linux / web)
+
 ## 1) Start the signalling server
 
 ```bash

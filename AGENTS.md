@@ -12,6 +12,14 @@ Guidance for coding agents (and new contributors) working in Kataglyphis-Inferen
   (`native/KataglyphisCppInference`), links GStreamer + ONNX Runtime via CMake/pkg-config.
 - **Build environment:** `ExternalLib/Kataglyphis-ContainerHub` submodule provides the container
   images and the shared PowerShell build modules imported by `scripts/windows/Build-Windows.ps1`.
+- **Windows webcam inference:** the Stream page runs a Rust-owned webcam → ONNX → Flutter-texture
+  pipeline (`crates/media` GStreamer capture → `src/webcam_engine.rs` → frb `src/api/webcam.rs`
+  stream; frames reach the texture via the native plugin's `knt_push_frame` C ABI, only detection
+  metadata crosses the bridge). Gated by Rust features `gstreamer,onnxruntime_dynamic,onnxruntime_directml`,
+  enabled on Windows through the `KATAGLYPHIS_RUST_FEATURES` env var (forwarded to cargo by
+  `rust_builder`'s CMake → Cargokit). `mfvideosrc` (Media Foundation) needs the `mediafoundation`
+  GStreamer plugin **and** a Windows client host; it falls back to `ksvideosrc`. See
+  `docs/source/camera-streaming.md` § *Windows: Rust-owned webcam inference*.
 
 ## Windows Builds (containerized, matches CI)
 
@@ -97,7 +105,16 @@ Run the app on the host after artifacts are back:
   built last; copy artifacts away between preset runs.
 - **Running on an unprovisioned host** (`STATUS_DLL_NOT_FOUND`): stage the image's runtime DLLs
   into the runner (`C:\runtime\bin` + onnxruntime/DirectML → `runner\bin\`;
-  `C:\runtime\lib\gstreamer-1.0` → `runner\lib\gstreamer-1.0\`).
+  `C:\runtime\lib\gstreamer-1.0` → `runner\lib\gstreamer-1.0\`). Two extra gotchas when copying
+  the runner out to a plain host: `KataglyphisCppInference.dll` is built into a `bin\` **subdir**
+  of the runner (the native plugin needs it **next to the exe** — copy it up), and the VC++
+  runtime (`msvcp140.dll`, `vcruntime140*.dll`) isn't bundled (stage the VC redist CRT DLLs).
+  A healthy launch is ~130 MB with a real window; a ~6 MB process that exits means a missing
+  dependency DLL. Full symptom table in `docs/source/platforms.md`.
+- **`docker commit` needs hyperv isolation.** Containers created with `--isolation process`
+  can't be committed on the skewed host (`ActivateLayer 0x20`), and Windows containers can't be
+  `docker export`ed. Create anything you intend to commit (e.g. a rebuilt `windows-media`) with
+  `--isolation hyperv`.
 
 - **sccache is C++20-module-blind.** Its cache key ignores imported BMI *content*, so after
   changing flags on a module target (`nlohmann_json_modules`, `tomlplusplus_modules`, `.ixx`

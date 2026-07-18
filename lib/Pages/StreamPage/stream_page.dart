@@ -12,6 +12,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:kataglyphis_inference_engine/Pages/StreamPage/webrtc_view_stub.dart'
     if (dart.library.js_interop) 'package:kataglyphis_inference_engine/Pages/StreamPage/webrtc_view.dart'
     as webrtc_import;
+import 'package:kataglyphis_inference_engine/Pages/StreamPage/rust_webcam_view.dart';
 
 // ============================================================================
 // Constants
@@ -255,7 +256,9 @@ class StreamPageState extends State<StreamPage> {
   }
 
   Future<int?> _initNativeIfNeeded() async {
-    if (kIsWeb || !(_isWindows || _isLinux || _isMacOS || _isAndroid)) {
+    // Windows uses the Rust-driven webcam view, which creates the plugin's
+    // (single) texture itself — creating it here too would race it.
+    if (kIsWeb || _isWindows || !(_isLinux || _isMacOS || _isAndroid)) {
       return null;
     }
 
@@ -444,13 +447,39 @@ class StreamPageState extends State<StreamPage> {
       return _buildWebView();
     }
 
-    // Desktop + Android: Native GStreamer/Texture view
-    if (_isWindows || _isLinux || _isMacOS || _isAndroid) {
+    // Windows: Rust-owned webcam capture + ONNX inference
+    if (_isWindows) {
+      return _buildRustWebcamPage();
+    }
+
+    // Other desktop + Android: Native GStreamer/Texture view
+    if (_isLinux || _isMacOS || _isAndroid) {
       return _buildNativeView();
     }
 
     // Fallback for other platforms: WebRTC stub view
     return _buildWebView();
+  }
+
+  Widget _buildRustWebcamPage() {
+    return SinglePage(
+      footer: widget.footer,
+      appAttributes: widget.appAttributes,
+      showMediumSizeLayout: widget.appAttributes.showMediumSizeLayout,
+      showLargeSizeLayout: widget.appAttributes.showLargeSizeLayout,
+      children: [
+        Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            spacing: 10,
+            children: [
+              _buildSectionTitle('Webcam Live Inference (Rust)'),
+              RustWebcamView(width: textureWidth, height: textureHeight),
+            ],
+          ),
+        ),
+      ],
+    );
   }
 
   Widget _buildWebView() {

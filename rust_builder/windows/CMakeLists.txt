@@ -16,6 +16,16 @@ get_filename_component(MANIFEST_ABS "${CMAKE_SOURCE_DIR}/../ExternalLib/Kataglyp
 file(RELATIVE_PATH MANIFEST_REL "${CMAKE_CURRENT_SOURCE_DIR}" "${MANIFEST_ABS}")
 
 include("../cargokit/cmake/cargokit.cmake")
+
+# Windows-only cargo feature set (webcam capture + runtime-loaded ONNX). Read
+# from the environment at configure time so the container build script controls
+# it; unset (e.g. plain `flutter run` on a host without GStreamer dev files)
+# builds the crate feature-less and the webcam API reports itself disabled.
+if(DEFINED ENV{KATAGLYPHIS_RUST_FEATURES} AND NOT "$ENV{KATAGLYPHIS_RUST_FEATURES}" STREQUAL "")
+  set(CARGOKIT_EXTRA_CARGO_FLAGS "--features $ENV{KATAGLYPHIS_RUST_FEATURES}")
+  message(STATUS "Rust crate features: $ENV{KATAGLYPHIS_RUST_FEATURES}")
+endif()
+
 apply_cargokit(${PROJECT_NAME} "${MANIFEST_REL}" kataglyphis_rustprojecttemplate "")
 
 # List of absolute paths to libraries that should be bundled with the plugin.

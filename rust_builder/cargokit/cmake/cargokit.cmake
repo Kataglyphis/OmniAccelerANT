@@ -44,6 +44,13 @@ function(apply_cargokit target manifest_dir lib_name any_symbol_name)
         "CARGOKIT_ROOT_PROJECT_DIR=${CMAKE_SOURCE_DIR}"
     )
 
+    # Local patch: platform CMakeLists may set CARGOKIT_EXTRA_CARGO_FLAGS
+    # (space-separated cargo args, e.g. "--features foo,bar") before calling
+    # apply_cargokit; the build tool appends them to the cargo build command.
+    if (CARGOKIT_EXTRA_CARGO_FLAGS)
+        list(APPEND CARGOKIT_ENV "CARGOKIT_EXTRA_CARGO_FLAGS=${CARGOKIT_EXTRA_CARGO_FLAGS}")
+    endif()
+
     if (WIN32)
         set(SCRIPT_EXTENSION ".cmd")
         set(IMPORT_LIB_EXTENSION ".lib")
