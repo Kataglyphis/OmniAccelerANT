@@ -14,7 +14,7 @@ docker run -it --rm \
   -p 8444:8444 \
   -p 5173:5173 \
   --device=/dev/video0 \
-  ghcr.io/kataglyphis/kataglyphis_beschleuniger:latest
+  ghcr.io/kataglyphis/kataglyphis_beschleuniger:latest-cross
 ```
 
 For WSL2 camera passthrough, ensure the USB device is attached before running the container.

@@ -9,7 +9,7 @@ source "${_ci_common_dir}/lib/containerhub.sh"
 containerhub_source linux/scripts/01-core/logging.sh
 
 require_ci_env() {
-  : "${CONTAINER_IMAGE:=ghcr.io/kataglyphis/kataglyphis_beschleuniger:latest}"
+  : "${CONTAINER_IMAGE:=ghcr.io/kataglyphis/kataglyphis_beschleuniger:latest-cross}"
   : "${WORKSPACE_DIR:=/workspace}"
   : "${MATRIX_PLATFORM:?MATRIX_PLATFORM is required}"
   : "${MATRIX_ARCH:?MATRIX_ARCH is required}"

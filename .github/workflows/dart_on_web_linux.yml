@@ -22,7 +22,7 @@ jobs:
       security-events: write
 
     env:
-      CONTAINER_IMAGE: ghcr.io/kataglyphis/kataglyphis_beschleuniger:latest
+      CONTAINER_IMAGE: ghcr.io/kataglyphis/kataglyphis_beschleuniger:latest-cross
       FLUTTER_VERSION: 3.41.6
       FLUTTER_DIR: /workspace/flutter
 
