@@ -1,1 +1,0 @@
-../ExternalLib/Kataglyphis-ContainerHub/.codacy/cli.sh

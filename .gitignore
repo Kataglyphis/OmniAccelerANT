@@ -57,12 +57,8 @@ app.*.map.json
 /android/app/release
 
 
-#Ignore vscode AI rules
-.github/instructions/codacy.instructions.md
 
 
-#Ignore vscode AI rules
-.github\instructions\codacy.instructions.md
 
 ExternalLib/Kataglyphis_NativeInferencePlugin/.dart_tool/*
 
