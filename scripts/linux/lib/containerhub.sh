@@ -1,43 +1,76 @@
 #!/usr/bin/env bash
-# Bash twin of scripts/windows/Resolve-BuildModule.ps1: the one file that finds
-# the Kataglyphis-ContainerHub submodule, so every other script can source
-# upstream libraries by name instead of re-implementing them.
+# Copied verbatim from Kataglyphis-ContainerHub
+# `shared/linux/templates/containerhub.sh` — do not hand-edit; sync from
+# upstream instead. This is the one build-tooling file that cannot be sourced
+# out of the submodule, because it is what *finds* the submodule.
 #
-# Bash consumers have no bootstrap problem the way PowerShell does — they source
-# by relative path — but they DO have a working-directory problem: the relative
-# paths used before only resolved when the caller happened to be in the repo
-# root. This resolves from ${BASH_SOURCE[0]}, so it works from anywhere, and
-# fails loudly with the `git submodule update` hint when the submodule is not
-# checked out.
-
+# Entry points: containerhub_path / containerhub_source / containerhub_exec.
+# See ContainerHub shared/linux/templates/README.md.
+# Load guard: sourcing twice is free and common (a driver and its wrapper both
+# want the helpers).
 [ -n "${_KATAGLYPHIS_CONTAINERHUB_SH_LOADED:-}" ] && return 0
 _KATAGLYPHIS_CONTAINERHUB_SH_LOADED=1
 
+# ADJUST this if the file moves. scripts/linux/lib -> repo root is three levels.
+: "${KATAGLYPHIS_REPO_ROOT_RELATIVE:=../../..}"
+
 _containerhub_lib_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# scripts/linux/lib -> repo root
-KATAGLYPHIS_REPO_ROOT="${KATAGLYPHIS_REPO_ROOT:-$(cd "${_containerhub_lib_dir}/../../.." && pwd)}"
+
+# Both are overridable from the environment. That matters in the container,
+# where the workspace is bind-mounted at a different path than on the host.
+KATAGLYPHIS_REPO_ROOT="${KATAGLYPHIS_REPO_ROOT:-$(cd "${_containerhub_lib_dir}/${KATAGLYPHIS_REPO_ROOT_RELATIVE}" && pwd)}"
 CONTAINERHUB_DIR="${CONTAINERHUB_DIR:-${KATAGLYPHIS_REPO_ROOT}/ExternalLib/Kataglyphis-ContainerHub}"
 export KATAGLYPHIS_REPO_ROOT CONTAINERHUB_DIR
 
 # Absolute path of a file inside the submodule, or a hard failure naming it.
+#
+# The error text names the probed path AND the fix on purpose: the failure is
+# almost always "submodule not checked out" or "the file moved upstream", and
+# both are invisible from bash's own message.
 containerhub_path() {
-  local relative_path="${1:?relative path required}"
-  local resolved="${CONTAINERHUB_DIR}/${relative_path}"
-  if [[ ! -e "$resolved" ]]; then
-    echo "Error: ContainerHub file not found: ${resolved}" >&2
-    echo "       The submodule is probably not checked out:" >&2
-    echo "       git submodule update --init --recursive ExternalLib/Kataglyphis-ContainerHub" >&2
-    return 1
-  fi
-  printf '%s' "$resolved"
+    local relative_path="${1:?relative path required}"
+    local resolved="${CONTAINERHUB_DIR}/${relative_path}"
+    if [ ! -e "$resolved" ]; then
+        echo "Error: ContainerHub file not found: ${resolved}" >&2
+        echo "       If the whole directory is missing, the submodule is not checked out:" >&2
+        echo "       git submodule update --init --recursive ExternalLib/Kataglyphis-ContainerHub" >&2
+        echo "       If only this file is missing, it moved upstream — check ${CONTAINERHUB_DIR}/docs/INDEX.md" >&2
+        return 1
+    fi
+    printf '%s' "$resolved"
 }
 
 # Source a ContainerHub shell library, e.g.
 #   containerhub_source linux/scripts/01-core/logging.sh
 # Upstream libraries are load-guarded, so sourcing one twice is free.
 containerhub_source() {
-  local resolved
-  resolved="$(containerhub_path "${1:?relative path required}")" || return 1
-  # shellcheck disable=SC1090
-  source "$resolved"
+    local resolved
+    resolved="$(containerhub_path "${1:?relative path required}")" || return 1
+    # shellcheck disable=SC1090
+    source "$resolved"
+}
+
+# Replace this process with a ContainerHub driver, forwarding the caller's
+# arguments, e.g.
+#   containerhub_exec linux/scripts/02-toolchain/python/ci_tests.sh "$@"
+#
+# This is the wrapper pattern. Every consumer that delegates to an upstream
+# driver had hand-rolled the same guard-then-exec block; getting it wrong is
+# silent, because `exec` on a missing file under `set -e` reports only bash's
+# own error.
+#
+# WORKSPACE_ROOT is pinned here because upstream's detect_workspace derives it
+# from the *sourcing script's* location — which, for a delegated driver, resolves
+# inside ExternalLib/Kataglyphis-ContainerHub instead of the consuming repo, so
+# every tool would run against the submodule tree. detect_workspace honours a
+# pre-set value and still overrides to /workspace in the container, so CI is
+# unaffected. This is the single most common thing to break when a wrapper is
+# "simplified".
+containerhub_exec() {
+    local relative_path="${1:?relative path required}"
+    shift
+    local resolved
+    resolved="$(containerhub_path "$relative_path")" || exit 1
+    export WORKSPACE_ROOT="${WORKSPACE_ROOT:-$KATAGLYPHIS_REPO_ROOT}"
+    exec bash "$resolved" "$@"
 }
