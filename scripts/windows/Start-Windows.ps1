@@ -1,3 +1,5 @@
+#requires -Version 7.0
+
 param(
 	[string] $WorkspaceDir = (Join-Path $PSScriptRoot "..\.."),
 	[string] $BuildRootDir = "",
@@ -15,12 +17,14 @@ if (-not (Test-Path -LiteralPath $buildConfigPath -PathType Leaf)) {
 . $buildConfigPath
 $windowsBuildConfig = Get-KataglyphisWindowsBuildConfig
 
-$pathsModulePath = Join-Path $PSScriptRoot "Windows.Paths.psm1"
-if (-not (Test-Path -LiteralPath $pathsModulePath -PathType Leaf)) {
-	throw "Required Windows paths module not found: $pathsModulePath"
-}
+# Same ContainerHub-first bootstrap the build script uses.
+. (Join-Path $PSScriptRoot 'Resolve-BuildModule.ps1')
 
-Import-Module $pathsModulePath -Force
+Import-BuildModule @(
+	'WindowsScripts.Shared'  # Add-DirectoriesToPath, Limit-DiagnosticLogs
+	'WindowsTesting.Common'  # Get-AsanRuntimeDll
+	'Windows.Paths'          # project-local: this repo's Flutter windows/x64 layout
+)
 
 $repoRoot = (Resolve-Path $WorkspaceDir).Path
 
@@ -41,7 +45,6 @@ if ($resolvedBuildRoots.Count -eq 0) {
 }
 
 $selectedBuildRoot = $null
-$cmakeBuildDir = $null
 $buildDirReleaseFull = $null
 $pluginDir = $null
 $pluginDll = $null
@@ -50,7 +53,6 @@ $searchResults = [System.Collections.Generic.List[string]]::new()
 
 foreach ($candidateRoot in $resolvedBuildRoots) {
 	$candidateLayout = Resolve-KataglyphisWindowsLayout -BuildRootFull $candidateRoot -WindowsBuildConfig $windowsBuildConfig -Configuration $Configuration
-	$candidateCmakeBuildDir = $candidateLayout.CMakeBuildDir
 	$candidateBuildDirRelease = $candidateLayout.RunnerDir
 	$candidatePluginDir = $candidateLayout.PluginDir
 	$candidatePluginDll = $candidateLayout.RustPluginDllPath
@@ -63,7 +65,6 @@ foreach ($candidateRoot in $resolvedBuildRoots) {
 
 	if ($hasPlugin -and $hasExe) {
 		$selectedBuildRoot = $candidateRoot
-		$cmakeBuildDir = $candidateCmakeBuildDir
 		$buildDirReleaseFull = $candidateBuildDirRelease
 		$pluginDir = $candidatePluginDir
 		$pluginDll = $candidatePluginDll
@@ -74,7 +75,7 @@ foreach ($candidateRoot in $resolvedBuildRoots) {
 
 if ($null -eq $selectedBuildRoot) {
 	$diagnostics = $searchResults -join "; "
-	throw "Kein lauffähiger Build gefunden. Geprüfte BuildRoots: $diagnostics. Starte zuerst scripts/windows/Build-Windows.ps1 mit passendem -BuildRootDir (z. B. out)."
+	throw "Kein lauffähiger Build gefunden. Geprüfte BuildRoots: $diagnostics. Starte zuerst scripts/windows/build-windows.ps1 mit passendem -BuildRootDir (z. B. out)."
 }
 
 $runnerDataDir = Join-Path $buildDirReleaseFull "data"
@@ -105,35 +106,29 @@ $originalPath = $env:PATH
 $psNativePreferenceAvailable = $null -ne (Get-Variable -Name PSNativeCommandUseErrorActionPreference -Scope Global -ErrorAction SilentlyContinue)
 $originalPsNativePreference = $null
 try {
-	$pluginPathEntries = @($pluginDir, (Split-Path $pluginDll -Parent), (Join-Path $buildDirReleaseFull "bin"))
-	
-	# Add GStreamer bin path if it exists to fix missing DLLs at runtime
-	$gstreamerBin = "C:\Program Files\gstreamer\1.0\msvc_x86_64\bin"
-	if (Test-Path -LiteralPath $gstreamerBin -PathType Container) {
-		$pluginPathEntries += $gstreamerBin
-	}
+	# Lowest search priority first: Add-DirectoriesToPath prepends one entry at a
+	# time, so the LAST directory handed to it ends up first on PATH. It also
+	# skips non-existent directories and de-duplicates, which the manual
+	# join-and-prepend did not.
+	$pluginPathEntries = [System.Collections.Generic.List[string]]::new()
 
-	# Add ONNX Runtime bin/lib paths if they exist
-	$onnxBin = "C:\onnxruntime\lib"
-	if (Test-Path -LiteralPath $onnxBin -PathType Container) {
-		$pluginPathEntries += $onnxBin
-	}
+	# Host-wide runtimes, only relevant on an unprovisioned dev box.
+	$pluginPathEntries.Add("C:\Program Files\gstreamer\1.0\msvc_x86_64\bin")
+	$pluginPathEntries.Add("C:\onnxruntime\lib")
 
 	if (Test-Path -LiteralPath $pluginDir -PathType Container) {
-		$pluginSubDirs = Get-ChildItem -LiteralPath $pluginDir -Directory -Recurse -ErrorAction SilentlyContinue |
-			ForEach-Object { $_.FullName }
-		$pluginPathEntries += $pluginSubDirs
+		Get-ChildItem -LiteralPath $pluginDir -Directory -Recurse -ErrorAction SilentlyContinue |
+			ForEach-Object { $pluginPathEntries.Add($_.FullName) }
 	}
 
-	$pluginPathEntries = @(
-		$pluginPathEntries |
-			Where-Object { -not [string]::IsNullOrWhiteSpace($_) } |
-			Sort-Object -Unique
-	)
+	# The bundle's own directories win over anything installed on the host.
+	$pluginPathEntries.Add($pluginDir)
+	$pluginPathEntries.Add((Split-Path $pluginDll -Parent))
+	$pluginPathEntries.Add((Join-Path $buildDirReleaseFull "bin"))
 
 	# AddressSanitizer (clang-cl Debug preset): the instrumented plugin imports
 	# clang_rt.asan_dynamic-x86_64.dll. It MUST be Microsoft's runtime (shipped
-	# with VS BuildTools), not LLVM's -- LLVM's aborts the full Flutter app with
+	# with Visual Studio), not LLVM's -- LLVM's aborts the full Flutter app with
 	# an unsuppressible bad-free on allocations that COM/the CRT make before the
 	# ASan runtime is initialized. Stage Microsoft's DLL next to the exe (and in
 	# bin\) and relax the two mixed-instrumentation interceptor checks.
@@ -141,26 +136,36 @@ try {
 	$needsAsan = ($Configuration -match "Debug") -or `
 		(Test-Path -LiteralPath (Join-Path $buildDirReleaseFull $asanDllName) -PathType Leaf)
 	if ($needsAsan) {
-		$msAsan = Get-ChildItem "C:\Program Files*\Microsoft Visual Studio\*\BuildTools\VC\Tools\MSVC\*\bin\Hostx64\x64\$asanDllName" -ErrorAction SilentlyContinue |
-			Sort-Object FullName -Descending | Select-Object -First 1
+		# ContainerHub's Get-AsanRuntimeDll (WindowsTesting.Common) rather than a
+		# glob over "Program Files*\Microsoft Visual Studio\*\BuildTools\...":
+		# that glob only ever matched the BuildTools SKU, so a
+		# Community/Professional/Enterprise install silently found nothing. The
+		# shared helper resolves through vswhere (all SKUs), retries the
+		# cold-boot race, falls back to filesystem discovery, and returns the
+		# NEWEST toolset first. -RuntimeFlavor Msvc is load-bearing, not a
+		# default: LLVM's runtime aborts this app -- see the ASAN note in
+		# AGENTS.md.
+		$msAsan = Get-AsanRuntimeDll -RuntimeFlavor Msvc
 		if ($null -ne $msAsan) {
 			foreach ($dest in @($buildDirReleaseFull, (Join-Path $buildDirReleaseFull "bin"))) {
 				if (Test-Path -LiteralPath $dest -PathType Container) {
-					Copy-Item -LiteralPath $msAsan.FullName -Destination (Join-Path $dest $asanDllName) -Force
+					Copy-Item -LiteralPath $msAsan -Destination (Join-Path $dest $asanDllName) -Force
 				}
 			}
-			Write-Host "[Start-Windows] Staged Microsoft ASan runtime: $($msAsan.FullName)"
+			Write-Host "[Start-Windows] Staged Microsoft ASan runtime: $msAsan"
 			if ([string]::IsNullOrWhiteSpace($env:ASAN_OPTIONS)) {
 				$env:ASAN_OPTIONS = "alloc_dealloc_mismatch=0:check_malloc_usable_size=0"
 			}
 		} else {
-			Write-Warning "[Start-Windows] Microsoft ASan runtime not found under VS BuildTools; an ASan-instrumented app may abort on startup."
+			Write-Warning "[Start-Windows] Microsoft ASan runtime not found under any Visual Studio install; an ASan-instrumented app may abort on startup."
 		}
 	}
 
 	New-Item -ItemType Directory -Force -Path $logDirPath | Out-Null
+	# Bounded growth for logs/, same retention policy as the build script.
+	Limit-DiagnosticLogs -Directory $logDirPath -Keep 60
 
-	$env:PATH = (($pluginPathEntries -join ";") + ";" + $env:PATH)
+	Add-DirectoriesToPath -Directories @($pluginPathEntries)
 	if ($psNativePreferenceAvailable) {
 		$originalPsNativePreference = $global:PSNativeCommandUseErrorActionPreference
 		$global:PSNativeCommandUseErrorActionPreference = $false

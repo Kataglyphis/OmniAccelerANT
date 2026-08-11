@@ -1,3 +1,11 @@
+#requires -Version 7.0
+
+# PROJECT-SPECIFIC by design — one of the few modules that stays local instead
+# of moving into Kataglyphis-ContainerHub (see Resolve-BuildModule.ps1): it
+# encodes this repo's Flutter output layout, `build/windows/x64/{runner,plugins}`
+# with a per-preset subdirectory, which no other consumer shares. Anything here
+# that stops being Flutter-layout-specific belongs upstream instead.
+
 Set-StrictMode -Version Latest
 
 function Resolve-KataglyphisWindowsBuildRootCandidates {

@@ -1,3 +1,10 @@
+#requires -Version 7.0
+
+# Every ContainerHub build module declares `#requires -Version 7.0`, so this
+# script must be launched with `pwsh`, never Windows PowerShell 5.1's
+# `powershell` — otherwise the failure surfaces as an opaque Import-Module
+# error deep in the preamble instead of here.
+
 [CmdletBinding()]
 param(
     [string] $WorkspaceDir = $PWD.Path,
@@ -32,12 +39,27 @@ if (-not (Test-Path -LiteralPath $buildConfigPath -PathType Leaf)) {
 . $buildConfigPath
 $windowsBuildConfig = Get-KataglyphisWindowsBuildConfig
 
-$pathsModulePath = Join-Path $PSScriptRoot "Windows.Paths.psm1"
-if (-not (Test-Path -LiteralPath $pathsModulePath -PathType Leaf)) {
-    throw "Required Windows paths module not found: $pathsModulePath"
-}
+# One bootstrap, one import list. Resolve-BuildModule looks every name up in
+# ExternalLib/Kataglyphis-ContainerHub first and only then in
+# scripts/windows/modules/, so a module that moves upstream is picked up here
+# without touching this script.
+. (Join-Path $PSScriptRoot 'Resolve-BuildModule.ps1')
 
-Import-Module $pathsModulePath -Force
+# Dependency order matters (see Import-BuildModule): Shared, then Build, then
+# everything that builds on them.
+Import-BuildModule @(
+    'WindowsScripts.Shared'     # Resolve-WorkspacePath/-NormalizedPath, sccache + log-retention helpers
+    'WindowsBuild.Common'       # build context/log/step primitives, cache env, plugin assertions
+    'WindowsToolchain.Common'   # Invoke-ToolchainChecks
+    'WindowsFlutter.Common'     # plugin symlink + permission_handler patches, host artifact sync
+    'WindowsCMake.Common'       # Remove-BuildRootSafe
+    'WindowsGstPlugins.Common'  # Assert-PkgConfigModule
+    'Windows.Paths'             # project-local: this repo's Flutter windows/x64 layout
+)
+
+if ($CodeQL) {
+    Import-BuildModule 'WindowsCodeQL.Common'
+}
 
 if (-not $PSBoundParameters.ContainsKey('RustDllName')) {
     $RustDllName = $windowsBuildConfig.RustDllName
@@ -50,48 +72,6 @@ if ([string]::IsNullOrWhiteSpace($BuildRootDir)) {
         throw "Build root directory is not configured. Set BuildRootDir in Windows.BuildConfig.ps1 or pass -BuildRootDir."
     }
 }
-
-$sharedModulePath = Join-Path $PSScriptRoot "..\..\ExternalLib\Kataglyphis-ContainerHub\windows\scripts\modules\WindowsBuild.Common.psm1"
-$sharedModulePath = [System.IO.Path]::GetFullPath($sharedModulePath)
-if (-not (Test-Path $sharedModulePath)) {
-    throw "Required build module not found: $sharedModulePath"
-}
-
-Import-Module $sharedModulePath -Force
-
-if ($CodeQL) {
-    $codeQLModulePath = Join-Path $PSScriptRoot "..\..\ExternalLib\Kataglyphis-ContainerHub\windows\scripts\modules\WindowsCodeQL.Common.psm1"
-    $codeQLModulePath = [System.IO.Path]::GetFullPath($codeQLModulePath)
-    if (-not (Test-Path $codeQLModulePath)) {
-        throw "Required CodeQL module not found: $codeQLModulePath"
-    }
-
-    Import-Module $codeQLModulePath -Force
-}
-
-$toolchainModulePath = Join-Path $PSScriptRoot "..\..\ExternalLib\Kataglyphis-ContainerHub\windows\scripts\modules\WindowsToolchain.Common.psm1"
-$toolchainModulePath = [System.IO.Path]::GetFullPath($toolchainModulePath)
-if (-not (Test-Path $toolchainModulePath)) {
-    throw "Required toolchain module not found: $toolchainModulePath"
-}
-
-Import-Module $toolchainModulePath -Force
-
-$sharedUtilitiesModulePath = Join-Path $PSScriptRoot "..\..\ExternalLib\Kataglyphis-ContainerHub\windows\scripts\modules\WindowsScripts.Shared.psm1"
-$sharedUtilitiesModulePath = [System.IO.Path]::GetFullPath($sharedUtilitiesModulePath)
-if (-not (Test-Path $sharedUtilitiesModulePath)) {
-    throw "Required shared utilities module not found: $sharedUtilitiesModulePath"
-}
-
-Import-Module $sharedUtilitiesModulePath -Force
-
-$flutterSharedModulePath = Join-Path $PSScriptRoot "..\..\ExternalLib\Kataglyphis-ContainerHub\windows\scripts\modules\WindowsFlutter.Common.psm1"
-$flutterSharedModulePath = [System.IO.Path]::GetFullPath($flutterSharedModulePath)
-if (-not (Test-Path $flutterSharedModulePath)) {
-    throw "Required flutter shared module not found: $flutterSharedModulePath"
-}
-
-Import-Module $flutterSharedModulePath -Force
 
 $workspace = Resolve-WorkspacePath -Path $WorkspaceDir
 
@@ -230,13 +210,17 @@ try {
         Write-BuildLog -Context $context -Message "Rust features: '$($env:KATAGLYPHIS_RUST_FEATURES)'"
 
         if ($env:KATAGLYPHIS_RUST_FEATURES -match "gstreamer") {
-            # gstreamer-sys resolves the GStreamer dev files through pkg-config
-            # at cargo build time — fail fast here instead of deep inside Ninja.
-            $gstVersion = & pkg-config --modversion gstreamer-1.0 2>&1
-            if ($LASTEXITCODE -ne 0) {
-                throw "pkg-config cannot resolve gstreamer-1.0 (needed by Rust feature 'gstreamer'): $gstVersion. Set KATAGLYPHIS_RUST_FEATURES='' to build without it."
-            }
-            Write-BuildLog -Context $context -Message "GStreamer dev files found: $gstVersion"
+            # gstreamer-sys and friends resolve the GStreamer dev files through
+            # pkg-config at cargo build time — fail fast here instead of deep
+            # inside Ninja. ContainerHub's gate checks ALL THREE modules the
+            # crate binds (gstreamer / gstreamer-app / gstreamer-video, see
+            # crates/media/Cargo.toml), reports the resolved versions and prints
+            # PKG_CONFIG_PATH on failure; the old probe only tried
+            # gstreamer-1.0, so a missing gstreamer-app-1.0 .pc got through and
+            # surfaced minutes later as a cargo build error.
+            Assert-PkgConfigModule `
+                -Module @('gstreamer-1.0', 'gstreamer-app-1.0', 'gstreamer-video-1.0') `
+                -Context "the Rust 'gstreamer' feature (webcam capture). Set KATAGLYPHIS_RUST_FEATURES='' to build without it"
         }
     }
 
@@ -253,9 +237,24 @@ try {
         Write-BuildLog -Context $context -Message "Skipping Flutter dependency steps (SkipFlutterBuild set)."
     }
 
+    # The three quality gates AGENTS.md documents, driven straight through
+    # ContainerHub's Invoke-BuildExternal (which logs the command line and fails
+    # the step on a non-zero exit).
+    #
+    # These used to call Invoke-DartFormatVerification / Invoke-DartAnalysis /
+    # Invoke-FlutterTests, which exist in NO module on either side — every build
+    # since recorded all three steps as "The term ... is not recognized"
+    # (logs/build-summary-*.json), so format, analyze and test have not actually
+    # gated anything. They are Flutter-specific, so they belong here rather than
+    # upstream in ContainerHub.
     if (-not $SkipFormat) {
         Invoke-BuildStep -Context $context -StepName "Dart Format Verification" -Script {
-            Invoke-DartFormatVerification -Context $context -WorkspaceDir $workspace
+            Push-Location $workspace
+            try {
+                Invoke-BuildExternal -Context $context -File "dart" -Parameters @("format", "--output=none", "--set-exit-if-changed", ".")
+            } finally {
+                Pop-Location
+            }
         }
     } else {
         Write-BuildLog -Context $context -Message "Skipping Dart format verification (SkipFormat set)."
@@ -263,11 +262,21 @@ try {
 
     if (-not $SkipTests) {
         Invoke-BuildStep -Context $context -StepName "Dart Analysis" -Script {
-            Invoke-DartAnalysis -Context $context
+            Push-Location $workspace
+            try {
+                Invoke-BuildExternal -Context $context -File "flutter" -Parameters @("analyze")
+            } finally {
+                Pop-Location
+            }
         }
 
         Invoke-BuildStep -Context $context -StepName "Flutter Tests" -Script {
-            Invoke-FlutterTests -Context $context
+            Push-Location $workspace
+            try {
+                Invoke-BuildExternal -Context $context -File "flutter" -Parameters @("test")
+            } finally {
+                Pop-Location
+            }
         }
     } else {
         Write-BuildLog -Context $context -Message "Skipping Dart analysis/tests (SkipTests set)."
@@ -288,7 +297,7 @@ try {
             Write-BuildLog -Context $context -Message "Skipping Clean Build Directory (CleanBuild not set)."
         }
 
-        Clean-FlutterPluginSymlinks -Context $context -WorkspaceDir $workspace
+        Clear-FlutterPluginSymlink -Context $context -WorkspaceDir $workspace
 
         Invoke-BuildStep -Context $context -StepName "Flutter Pub Get" -Script {
             Invoke-BuildExternal -Context $context -File "flutter" -Parameters @("pub", "get") -IgnoreExitCode
@@ -301,18 +310,21 @@ try {
         }
 
         Invoke-BuildStep -Context $context -StepName "Fix Plugin Symlinks (Junctions)" -Script {
-            Fix-FlutterPluginSymlinks -Context $context -WorkspaceDir $workspace
+            Repair-FlutterPluginSymlink -Context $context -WorkspaceDir $workspace
         }
 
         Invoke-BuildStep -Context $context -StepName "Reset CMake Build Directory" -Script {
-            if (Test-Path $cmakeBuildDir) {
-                Remove-Item -LiteralPath $cmakeBuildDir -Recurse -Force -ErrorAction Stop
-            }
+            # Remove-BuildRootSafe (WindowsCMake.Common) instead of a bare
+            # Remove-Item: inside a Windows container the wcifs filter
+            # intermittently refuses a delete, and upstream's helper degrades to
+            # an in-place configure with a warning rather than aborting a build
+            # that would have succeeded.
+            Remove-BuildRootSafe -Context $context -Path $cmakeBuildDir -Label "CMake build directory"
             New-Item -ItemType Directory -Force -Path $cmakeBuildDir | Out-Null
         }
     }
 
-    Patch-PermissionHandlerWindows -Context $context -WorkspaceDir $workspace
+    Update-PermissionHandlerWindows -Context $context -WorkspaceDir $workspace
 
     if (Get-Command "sccache" -ErrorAction SilentlyContinue) {
         Write-BuildLog -Context $context -Message "sccache found. Enabling for Rust."
@@ -544,6 +556,10 @@ try {
     }
 
     Show-SccacheStats -Context $context
+    # Same numbers again on STDERR: BuildKit clips a step's stdout at 2 MiB, and
+    # this build produces far more than that, so the hit-rate would otherwise be
+    # gone from exactly the CI logs where caching needs to be measured.
+    Write-SccacheStatsToStderr
 
     Invoke-BuildStep -Context $context -StepName "Sync Artifacts to Host Workspace" -Script {
         $hostRustTarget = Join-Path $rustDir "target"
@@ -607,6 +623,11 @@ try {
             Write-BuildLog -Context $context -Message "Moving flutter crash logs to $logDirPath"
             $flutterLogs | Move-Item -Destination $logDirPath -Force
         }
+
+        # Bounded log growth, ContainerHub's retention policy: keep plenty (the
+        # incident is always in the newest ones) and only trim the tail. Runs
+        # last so this build's own log is among the newest kept.
+        Limit-DiagnosticLogs -Directory $logDirPath -Keep 60
     } catch {
         Write-BuildLogWarning -Context $context -Message "Failed to copy JSON summary to LogDir: $($_.Exception.Message)"
     }

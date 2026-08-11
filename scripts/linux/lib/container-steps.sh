@@ -1,10 +1,21 @@
 #!/usr/bin/env bash
 
+_container_steps_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=scripts/linux/lib/containerhub.sh
+source "${_container_steps_dir}/containerhub.sh"
+
+# Canonical boolean predicate (is_truthy) and info/warn/err logging come from
+# ContainerHub instead of being redefined here.
+containerhub_source linux/scripts/01-core/platform.sh
+containerhub_source linux/scripts/01-core/logging.sh
+
 maybe_truthy() {
-  case "${1,,}" in
-    1|true|yes|y|on) return 0 ;;
-    *) return 1 ;;
-  esac
+  # Thin alias over upstream's is_truthy(), the same delegation pattern
+  # ContainerHub's own _bool_truthy() uses. It keeps the two extra spellings
+  # this repo has always accepted and is_truthy does not — a bare "y", and
+  # mixed case such as "True" — so no call site changes meaning.
+  local value="${1:-}"
+  is_truthy "${value,,}" || [[ "${value,,}" == "y" ]]
 }
 
 run_check_cmd() {
@@ -41,13 +52,17 @@ setup_flutter_sdk() {
   local flutter_dir="${2:?flutter_dir is required}"
   local matrix_arch="${3:?matrix_arch is required (x64|arm64)}"
 
+  local setup_script
   if [[ "$matrix_arch" == "x64" ]]; then
-    chmod +x ExternalLib/Kataglyphis-ContainerHub/linux/scripts/setup-flutter-x86-64.sh
-    ./ExternalLib/Kataglyphis-ContainerHub/linux/scripts/setup-flutter-x86-64.sh "$flutter_version" "$(dirname "${flutter_dir}")"
+    setup_script="$(containerhub_path linux/scripts/setup-flutter-x86-64.sh)" || return 1
   else
-    chmod +x ExternalLib/Kataglyphis-ContainerHub/linux/scripts/setup-flutter-arm64.sh
-    ./ExternalLib/Kataglyphis-ContainerHub/linux/scripts/setup-flutter-arm64.sh "$flutter_version" "$(dirname "${flutter_dir}")"
+    setup_script="$(containerhub_path linux/scripts/setup-flutter-arm64.sh)" || return 1
   fi
+
+  # Resolved absolutely (containerhub_path), so this no longer silently depends
+  # on the caller's working directory being the repo root.
+  chmod +x "$setup_script"
+  "$setup_script" "$flutter_version" "$(dirname "${flutter_dir}")"
 
   chmod -R u+rwX "${flutter_dir}/bin/cache" 2>/dev/null || true
   chmod -R u+rwX "${flutter_dir}" 2>/dev/null || true

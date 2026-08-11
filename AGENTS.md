@@ -11,7 +11,23 @@ Guidance for coding agents (and new contributors) working in Kataglyphis-Inferen
 - **C++ inference plugin:** `ExternalLib/Kataglyphis_NativeInferencePlugin`
   (`native/KataglyphisCppInference`), links GStreamer + ONNX Runtime via CMake/pkg-config.
 - **Build environment:** `ExternalLib/Kataglyphis-ContainerHub` submodule provides the container
-  images and the shared PowerShell build modules imported by `scripts/windows/Build-Windows.ps1`.
+  images, the shared PowerShell build modules, the bash build libraries and the CI composite
+  actions. **Reuse before you write:** check ContainerHub for an existing helper first — its
+  [`docs/adopting-in-a-new-project.md`](ExternalLib/Kataglyphis-ContainerHub/docs/adopting-in-a-new-project.md)
+  is the map. This repo's glue is deliberately thin:
+  - `scripts/windows/Resolve-BuildModule.ps1` — the one file that cannot live upstream, because
+    it is what *finds* the submodule. `Import-BuildModule <Name>` resolves
+    `ExternalLib/Kataglyphis-ContainerHub/windows/scripts/modules/<Name>.psm1` **first**, then
+    `scripts/windows/modules/<Name>.psm1`. Put a module upstream and it wins automatically; the
+    local directory holds only genuinely project-specific ones (today: `Windows.Paths`, which
+    encodes this repo's Flutter `build/windows/x64/{runner,plugins}` layout).
+  - `scripts/linux/lib/containerhub.sh` — the bash twin: `containerhub_source <relative/path>`
+    and `containerhub_path <relative/path>`, resolved from `${BASH_SOURCE[0]}` so they work
+    from any working directory.
+  - Workflows call ContainerHub's composite actions (`prepare-linux-ci-host`,
+    `run-in-linux-container`, `run-in-windows-container`, `cleanup-disk-space`) at `@main`.
+    Because actions resolve at `@main`, a ContainerHub change a workflow depends on must be
+    pushed **before** the consumer change.
 - **Windows webcam inference:** the Stream page runs a Rust-owned webcam → ONNX → Flutter-texture
   pipeline (`crates/media` GStreamer capture → `src/webcam_engine.rs` → frb `src/api/webcam.rs`
   stream; frames reach the texture via the native plugin's `knt_push_frame` C ABI, only detection
@@ -36,7 +52,7 @@ Hyper-V isolation (the Windows default) caps containers at 2 logical CPUs:
 & "$env:ProgramFiles\Stevedore\bin\docker.exe" run --rm --isolation process `
   --mount "type=bind,source=$PWD,target=C:\workspace" -w C:\workspace `
   ghcr.io/kataglyphis/kataglyphis_beschleuniger:winamd64 `
-  powershell -NoProfile -ExecutionPolicy Bypass -File C:\workspace\scripts\windows\Build-Windows.ps1 `
+  pwsh -NoProfile -ExecutionPolicy Bypass -File C:\workspace\scripts\windows\build-windows.ps1 `
     -Configurations "clangcl-debug,clangcl-profile,clangcl-release" -SkipMsixPackaging
 ```
 
@@ -71,10 +87,10 @@ Run the app on the host after artifacts are back:
   tar-stream sources into a long-lived container over `docker exec -i` (`tar -cf - . | docker exec
   -i <name> tar -xf - -C C:\workspace`). `docker cp` into a running Windows container silently
   copies nothing.
-- **ContainerHub submodule pin.** `Build-Windows.ps1` imports `WindowsToolchain.Common.psm1`,
-  `WindowsFlutter.Common.psm1`, `WindowsCodeQL.Common.psm1` from the ContainerHub submodule.
-  ContainerHub's newer `main` deleted these; build against the commit recorded by this repo
-  (`git submodule update ExternalLib/Kataglyphis-ContainerHub`).
+- **PowerShell 7 is mandatory.** Every ContainerHub build module declares
+  `#requires -Version 7.0`, so `build-windows.ps1` and `Start-Windows.ps1` do too. Launch them
+  with `pwsh`, never Windows PowerShell 5.1's `powershell` — under 5.1 the failure surfaces as
+  an opaque `Import-Module` error in the preamble.
 - **Entrypoint vs `docker exec`.** The image's entrypoint (`C:\temp\scripts\entrypoint.cmd`)
   loads VsDevCmd; `docker exec` bypasses it. When exec-ing builds, wrap them:
   `docker exec <name> cmd /S /C "C:\temp\scripts\entrypoint.cmd powershell ..."`.
@@ -149,7 +165,7 @@ flutter analyze
 flutter test
 ```
 
-`Build-Windows.ps1` runs all three by default (skip with `-SkipFormat` / `-SkipTests`).
+`build-windows.ps1` runs all three by default (skip with `-SkipFormat` / `-SkipTests`).
 
 ## Documentation
 

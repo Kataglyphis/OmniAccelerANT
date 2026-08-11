@@ -45,7 +45,7 @@ never pass it to `docker build` (layer commits fail with `hcsshim::ActivateLayer
 & $docker run --rm --isolation process `
   --mount "type=bind,source=$PWD,target=C:\workspace" -w C:\workspace `
   ghcr.io/kataglyphis/kataglyphis_beschleuniger:winamd64 `
-  powershell -NoProfile -ExecutionPolicy Bypass -File C:\workspace\scripts\windows\Build-Windows.ps1 `
+  pwsh -NoProfile -ExecutionPolicy Bypass -File C:\workspace\scripts\windows\build-windows.ps1 `
     -Configurations "clangcl-debug,clangcl-profile,clangcl-release" -SkipMsixPackaging
 ```
 
@@ -77,7 +77,7 @@ never pass it to `docker build` (layer commits fail with `hcsshim::ActivateLayer
 > & $docker run --rm --isolation process `
 >   --mount "type=bind,source=C:\kata-ws,target=C:\ws-mnt" -w C:\ws-mnt `
 >   ghcr.io/kataglyphis/kataglyphis_beschleuniger:winamd64 `
->   powershell -NoProfile -ExecutionPolicy Bypass -File C:\ws-mnt\scripts\windows\Build-Windows.ps1 `
+>   pwsh -NoProfile -ExecutionPolicy Bypass -File C:\ws-mnt\scripts\windows\build-windows.ps1 `
 >     -Configurations "clangcl-debug,clangcl-profile,clangcl-release" -SkipMsixPackaging
 > ```
 >
@@ -90,11 +90,13 @@ never pass it to `docker build` (layer commits fail with `hcsshim::ActivateLayer
 > `docker exec -i` (`tar -cf - . | docker exec -i <name> tar -xf - -C C:\workspace`). Note that
 > `docker cp` into a running Windows container silently copies nothing — use the tar stream.
 
-> **ContainerHub submodule pin:** `scripts/windows/Build-Windows.ps1` imports PowerShell modules
-> (`WindowsToolchain.Common.psm1`, `WindowsFlutter.Common.psm1`, …) from the
-> `ExternalLib/Kataglyphis-ContainerHub` submodule. Newer ContainerHub `main` removed these
-> modules, so keep the submodule at the commit recorded by this repo
-> (`git submodule update ExternalLib/Kataglyphis-ContainerHub`) when building.
+> **ContainerHub submodule:** `scripts/windows/build-windows.ps1` resolves every PowerShell
+> module through `scripts/windows/Resolve-BuildModule.ps1`, which looks in
+> `ExternalLib/Kataglyphis-ContainerHub/windows/scripts/modules/` first and only then in
+> `scripts/windows/modules/`. Check the submodule out before building
+> (`git submodule update --init --recursive ExternalLib/Kataglyphis-ContainerHub`); a missing
+> one is reported by name with that exact command. All those modules declare
+> `#requires -Version 7.0`, hence `pwsh` rather than `powershell` in the commands above.
 
 Run the app on the host after a build:
 
@@ -126,13 +128,13 @@ Run the app on the host after a build:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\add-gstreamer-to-path.ps1
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows\build-windows.ps1
+pwsh -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows\build-windows.ps1
 ```
 
 ### Build with custom workspace
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows\build-windows.ps1 -WorkspaceDir "C:\GitHub\Kataglyphis-Inference-Engine"
+pwsh -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows\build-windows.ps1 -WorkspaceDir "C:\GitHub\Kataglyphis-Inference-Engine"
 ```
 
 ### Fully configured build

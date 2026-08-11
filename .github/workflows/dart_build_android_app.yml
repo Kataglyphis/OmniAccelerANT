@@ -31,43 +31,30 @@ jobs:
       security-events: write
 
     steps:
-      - name: Free Disk Space on Host
-        uses: jlumbroso/free-disk-space@main
+      # ContainerHub's shared prologue: reclaim disk, check out, log in to ghcr,
+      # pull with retries.
+      - name: Prepare CI host
+        uses: Kataglyphis/Kataglyphis-ContainerHub/.github/actions/prepare-linux-ci-host@main
         with:
-          tool-cache: true
-          android: true
-          dotnet: true
-          haskell: true
-          large-packages: true
-          docker-images: false
-          swap-storage: true
-
-      - uses: actions/checkout@v6.0.2
-        with:
-          fetch-depth: 1
+          image: ${{ matrix.container_image }}
+          registry-username: ${{ github.actor }}
+          registry-password: ${{ secrets.GHCR_PAT }}
+          fetch-depth: '1'
           submodules: recursive
 
-      - name: Login to GitHub Container Registry
-        run: echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-
-      - name: Pull image
-        run: |
-          docker pull --platform "${{ matrix.platform }}" "${{ matrix.container_image }}"
-
       - name: Run container
-        run: |
-          docker run --rm \
-            --platform "${{ matrix.platform }}" \
-            --volume "${GITHUB_WORKSPACE}:/workspace" \
-            --workdir /workspace \
-            "${{ matrix.container_image }}" \
-            bash /workspace/scripts/linux/ci/ci-container-run-android.sh \
-              --arch "${{ matrix.arch }}" \
-              --build-mode "${{ matrix.build_mode }}" \
-              --flutter-version "${{ matrix.flutter_version }}" \
-              --flutter-dir "${{ matrix.flutter_dir }}" \
-              --app-name "${{ matrix.app_name }}" \
-              --run-codeql "${{ matrix.arch == 'x64' }}"
+        uses: Kataglyphis/Kataglyphis-ContainerHub/.github/actions/run-in-linux-container@main
+        with:
+          image: ${{ matrix.container_image }}
+          extra-args: --platform "${{ matrix.platform }}"
+          script: >-
+            bash /workspace/scripts/linux/ci/ci-container-run-android.sh
+            --arch "${{ matrix.arch }}"
+            --build-mode "${{ matrix.build_mode }}"
+            --flutter-version "${{ matrix.flutter_version }}"
+            --flutter-dir "${{ matrix.flutter_dir }}"
+            --app-name "${{ matrix.app_name }}"
+            --run-codeql "${{ matrix.arch == 'x64' }}"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v6.0.0

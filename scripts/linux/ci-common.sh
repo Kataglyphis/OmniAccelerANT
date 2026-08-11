@@ -1,6 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+_ci_common_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=scripts/linux/lib/containerhub.sh
+source "${_ci_common_dir}/lib/containerhub.sh"
+
+# info/warn/err + retry() come from ContainerHub.
+containerhub_source linux/scripts/01-core/logging.sh
+
 require_ci_env() {
   : "${CONTAINER_IMAGE:=ghcr.io/kataglyphis/kataglyphis_beschleuniger:latest}"
   : "${WORKSPACE_DIR:=/workspace}"
@@ -29,16 +36,9 @@ run_container() {
 pull_container_with_retry() {
   local tries="${1:-3}"
 
-  for ((i=1; i<=tries; i++)); do
-    echo "Attempt $i to pull container..."
-    if timeout 900 docker pull "$CONTAINER_IMAGE"; then
-      echo "Successfully pulled container"
-      return 0
-    fi
-    echo "Pull failed, waiting before retry..."
-    sleep 30
-  done
-
-  echo "Failed to pull container after ${tries} attempts"
-  return 1
+  # ContainerHub's retry(): same cadence as the loop it replaces (N attempts,
+  # 30s apart, each pull bounded by `timeout` so a hung pull actually retries
+  # instead of stalling until the job limit).
+  retry "$tries" 30 "docker pull ${CONTAINER_IMAGE}" \
+    timeout 900 docker pull "$CONTAINER_IMAGE"
 }

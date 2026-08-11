@@ -30,9 +30,11 @@ jobs:
             submodules: recursive
 
       # my windows container is quite big ... so remove runner packages for enough
-      # dis space
+      # dis space. ContainerHub owns this action — its copy deletes with
+      # `rmdir /s /q` (minutes instead of tens of minutes on hostedtoolcache)
+      # and reports free space before and after.
       - name: Cleanup disk space
-        uses: ./.github/actions/cleanup-disk-space
+        uses: Kataglyphis/Kataglyphis-ContainerHub/.github/actions/cleanup-disk-space@main
 
       - name: Login to GitHub
         uses: docker/login-action@v3.7.0
@@ -43,17 +45,27 @@ jobs:
 
       - name: Pull image
         run: |
-          docker pull ghcr.io/kataglyphis/kataglyphis_beschleuniger:winamd64 
+          docker pull ghcr.io/kataglyphis/kataglyphis_beschleuniger:winamd64
 
       # -CodeQL turns on analysis
       # for now disabled due to long runtimes
+      #
+      # ContainerHub's action instead of a hand-rolled `docker run`: it gives
+      # the container every logical processor the runner has (the old `--cpus 4`
+      # throttled the build on bigger runners), delivers the payload through env
+      # vars so nothing is re-parsed by the host shell, and runs it under `pwsh`
+      # — which the build script now requires, since every ContainerHub module
+      # declares `#requires -Version 7.0` and Windows PowerShell 5.1 cannot load
+      # them.
       - name: Run container
-        run: |
-          docker run --rm --cpus 4`
-            --mount "type=bind,source=${{ github.workspace }},target=C:\workspace" `
-            -w "C:\workspace" `
-            ghcr.io/kataglyphis/kataglyphis_beschleuniger:winamd64 `
-            powershell -NoProfile -ExecutionPolicy Bypass -File "C:\workspace\scripts\windows\Build-Windows.ps1" -SkipMsixPackaging 2>&1 | Tee-Object -FilePath build.log 
+        uses: Kataglyphis/Kataglyphis-ContainerHub/.github/actions/run-in-windows-container@main
+        with:
+          image: ghcr.io/kataglyphis/kataglyphis_beschleuniger:winamd64
+          mount-source: ${{ github.workspace }}
+          mount-target: C:\workspace
+          file: C:\workspace\scripts\windows\build-windows.ps1
+          file-args: |
+            -SkipMsixPackaging
 
       # see also the install commands in the bottom of the CMakeLists.txt
       - name: Upload release artifacts
@@ -64,12 +76,17 @@ jobs:
           path: |
             ${{ env.BUILD_DIR_RELEASE }}/**/*
 
+      # The build script already tees its own transcript plus a machine-readable
+      # summary into logs/ inside the bind-mounted workspace, so there is no
+      # separate build.log to keep in sync.
       - name: Upload build log
         if: always()
         uses: actions/upload-artifact@v7.0.1
         with:
           name: build-log
-          path: build.log
+          path: |
+            logs/build-windows-*.log
+            logs/build-summary-*.json
 
       - uses: github/codeql-action/upload-sarif@v4 # Recommended upgrade
         if: hashFiles('codeql-results/*.sarif') != ''
