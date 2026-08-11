@@ -1,6 +1,7 @@
 [submodule "ExternalLib/jotrockenmitlockenrepo"]
 	path = ExternalLib/jotrockenmitlockenrepo
 	url = https://github.com/Kataglyphis/jotrockenmitlockenrepo.git
+	branch = main
 [submodule "ExternalLib/Kataglyphis_NativeInferencePlugin"]
 	path = ExternalLib/Kataglyphis_NativeInferencePlugin
 	url = git@github.com:Kataglyphis/Kataglyphis-NativeInferencePlugin.git
@@ -8,6 +9,8 @@
 [submodule "ExternalLib/Kataglyphis-ContainerHub"]
 	path = ExternalLib/Kataglyphis-ContainerHub
 	url = git@github.com:Kataglyphis/Kataglyphis-ContainerHub.git
+	branch = main
 [submodule "ExternalLib/Kataglyphis-RustProjectTemplate"]
 	path = ExternalLib/Kataglyphis-RustProjectTemplate
 	url = git@github.com:Kataglyphis/Kataglyphis-RustProjectTemplate.git
+	branch = develop
