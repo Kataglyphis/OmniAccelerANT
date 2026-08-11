@@ -63,7 +63,7 @@ jobs:
           image: ghcr.io/kataglyphis/kataglyphis_beschleuniger:winamd64
           mount-source: ${{ github.workspace }}
           mount-target: C:\workspace
-          file: C:\workspace\scripts\windows\build-windows.ps1
+          file: C:\workspace\scripts\windows\Build-Windows.ps1
           file-args: |
             -SkipMsixPackaging
 

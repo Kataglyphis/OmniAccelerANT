@@ -87,7 +87,7 @@ flutter pub run flutter_rust_bridge_codegen
 Then rebuild the project:
 ```bash
 # For Windows
-.\scripts\windows\build-windows.ps1 -BuildRootDir build
+.\scripts\windows\Build-Windows.ps1 -BuildRootDir build
 ```
 
 **Prevention:** Always regenerate bindings after updating `flutter_rust_bridge` version in `pubspec.yaml` or modifying Rust API signatures.

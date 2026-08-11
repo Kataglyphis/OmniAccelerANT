@@ -45,7 +45,7 @@ never pass it to `docker build` (layer commits fail with `hcsshim::ActivateLayer
 & $docker run --rm --isolation process `
   --mount "type=bind,source=$PWD,target=C:\workspace" -w C:\workspace `
   ghcr.io/kataglyphis/kataglyphis_beschleuniger:winamd64 `
-  pwsh -NoProfile -ExecutionPolicy Bypass -File C:\workspace\scripts\windows\build-windows.ps1 `
+  pwsh -NoProfile -ExecutionPolicy Bypass -File C:\workspace\scripts\windows\Build-Windows.ps1 `
     -Configurations "clangcl-debug,clangcl-profile,clangcl-release" -SkipMsixPackaging
 ```
 
@@ -77,7 +77,7 @@ never pass it to `docker build` (layer commits fail with `hcsshim::ActivateLayer
 > & $docker run --rm --isolation process `
 >   --mount "type=bind,source=C:\kata-ws,target=C:\ws-mnt" -w C:\ws-mnt `
 >   ghcr.io/kataglyphis/kataglyphis_beschleuniger:winamd64 `
->   pwsh -NoProfile -ExecutionPolicy Bypass -File C:\ws-mnt\scripts\windows\build-windows.ps1 `
+>   pwsh -NoProfile -ExecutionPolicy Bypass -File C:\ws-mnt\scripts\windows\Build-Windows.ps1 `
 >     -Configurations "clangcl-debug,clangcl-profile,clangcl-release" -SkipMsixPackaging
 > ```
 >
@@ -90,7 +90,7 @@ never pass it to `docker build` (layer commits fail with `hcsshim::ActivateLayer
 > `docker exec -i` (`tar -cf - . | docker exec -i <name> tar -xf - -C C:\workspace`). Note that
 > `docker cp` into a running Windows container silently copies nothing — use the tar stream.
 
-> **ContainerHub submodule:** `scripts/windows/build-windows.ps1` resolves every PowerShell
+> **ContainerHub submodule:** `scripts/windows/Build-Windows.ps1` resolves every PowerShell
 > module through `scripts/windows/Resolve-BuildModule.ps1`, which looks in
 > `ExternalLib/Kataglyphis-ContainerHub/windows/scripts/modules/` first and only then in
 > `scripts/windows/modules/`. Check the submodule out before building
@@ -128,13 +128,13 @@ Run the app on the host after a build:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\add-gstreamer-to-path.ps1
-pwsh -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows\build-windows.ps1
+pwsh -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows\Build-Windows.ps1
 ```
 
 ### Build with custom workspace
 
 ```powershell
-pwsh -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows\build-windows.ps1 -WorkspaceDir "C:\GitHub\Kataglyphis-Inference-Engine"
+pwsh -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows\Build-Windows.ps1 -WorkspaceDir "C:\GitHub\Kataglyphis-Inference-Engine"
 ```
 
 ### Fully configured build

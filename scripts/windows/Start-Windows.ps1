@@ -75,7 +75,7 @@ foreach ($candidateRoot in $resolvedBuildRoots) {
 
 if ($null -eq $selectedBuildRoot) {
 	$diagnostics = $searchResults -join "; "
-	throw "Kein lauffähiger Build gefunden. Geprüfte BuildRoots: $diagnostics. Starte zuerst scripts/windows/build-windows.ps1 mit passendem -BuildRootDir (z. B. out)."
+	throw "Kein lauffähiger Build gefunden. Geprüfte BuildRoots: $diagnostics. Starte zuerst scripts/windows/Build-Windows.ps1 mit passendem -BuildRootDir (z. B. out)."
 }
 
 $runnerDataDir = Join-Path $buildDirReleaseFull "data"

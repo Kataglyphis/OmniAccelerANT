@@ -52,7 +52,7 @@ Hyper-V isolation (the Windows default) caps containers at 2 logical CPUs:
 & "$env:ProgramFiles\Stevedore\bin\docker.exe" run --rm --isolation process `
   --mount "type=bind,source=$PWD,target=C:\workspace" -w C:\workspace `
   ghcr.io/kataglyphis/kataglyphis_beschleuniger:winamd64 `
-  pwsh -NoProfile -ExecutionPolicy Bypass -File C:\workspace\scripts\windows\build-windows.ps1 `
+  pwsh -NoProfile -ExecutionPolicy Bypass -File C:\workspace\scripts\windows\Build-Windows.ps1 `
     -Configurations "clangcl-debug,clangcl-profile,clangcl-release" -SkipMsixPackaging
 ```
 
@@ -88,7 +88,7 @@ Run the app on the host after artifacts are back:
   -i <name> tar -xf - -C C:\workspace`). `docker cp` into a running Windows container silently
   copies nothing.
 - **PowerShell 7 is mandatory.** Every ContainerHub build module declares
-  `#requires -Version 7.0`, so `build-windows.ps1` and `Start-Windows.ps1` do too. Launch them
+  `#requires -Version 7.0`, so `Build-Windows.ps1` and `Start-Windows.ps1` do too. Launch them
   with `pwsh`, never Windows PowerShell 5.1's `powershell` — under 5.1 the failure surfaces as
   an opaque `Import-Module` error in the preamble.
 - **Entrypoint vs `docker exec`.** The image's entrypoint (`C:\temp\scripts\entrypoint.cmd`)
@@ -165,7 +165,7 @@ flutter analyze
 flutter test
 ```
 
-`build-windows.ps1` runs all three by default (skip with `-SkipFormat` / `-SkipTests`).
+`Build-Windows.ps1` runs all three by default (skip with `-SkipFormat` / `-SkipTests`).
 
 ## Documentation
 
