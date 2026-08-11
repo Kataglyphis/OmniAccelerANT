@@ -76,7 +76,10 @@ Run the app on the host after artifacts are back:
 - **Dev Drive blocks bind mounts.** If the repo sits on a Dev Drive (ReFS dev volume), Windows
   containers cannot bind-mount it ("Dateisystem-Minifilter kann nicht an das Entwicklervolume
   angefügt werden"). One-time fix from an elevated shell, then remount/reboot:
-  `fsutil devdrv setfiltersallowed bindFlt, wcifs`. Non-admin fallback (preferred): mirror the
+  `fsutil devdrv setFiltersAllowed /volume D: "bindFlt,wcifs"` — the filter list must be ONE
+  quoted argument, and ContainerHub's
+  `docs/windows-container-build-performance.md` § *Transport B* owns the full procedure
+  (reboot requirement, "allowed vs attached", revert). Non-admin fallback (preferred): mirror the
   repo to a plain NTFS path (`robocopy D:\GitHub\... C:\kata-ws /E /MT:16 /XJ /XD .dart_tool build logs`)
   and bind-mount `C:\kata-ws`. Two caveats: **the mount target must not already exist in the
   image** (`target=C:\workspace` fails `CreateComputeSystem: Die Anforderung wird nicht

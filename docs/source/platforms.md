@@ -59,8 +59,14 @@ never pass it to `docker build` (layer commits fail with `hcsshim::ActivateLayer
 > **elevated** shell, then remount the volume (or reboot):
 >
 > ```powershell
-> fsutil devdrv setfiltersallowed bindFlt, wcifs
+> fsutil devdrv setFiltersAllowed /volume D: "bindFlt,wcifs"
 > ```
+>
+> The filter list must be **one quoted argument** — unquoted `bindFlt, wcifs` is parsed as two
+> and fails with a bare syntax dump. ContainerHub owns this procedure, including the reboot
+> requirement, the "allowed vs attached" distinction and how to revert it:
+> `ExternalLib/Kataglyphis-ContainerHub/docs/windows-container-build-performance.md`
+> § *Transport B*. Everything below this line is Flutter/Dart-specific and belongs here.
 >
 > Non-admin workaround (preferred): mirror the repo to a plain NTFS path on `C:` and bind-mount
 > that — bind mounts from non-Dev-Drive volumes work fine. Caveat: **Dart's `copySync`/
