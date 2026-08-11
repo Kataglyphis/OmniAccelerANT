@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Bump version across all project files.
-# Usage: ./scripts/bump_version.sh <new_version> [build_number]
+# Usage: ./scripts/bump-version.sh <new_version> [build_number]
 #
 # This script updates version numbers in:
 # - pubspec.yaml (Flutter version + MSIX version)
@@ -11,9 +11,9 @@
 set -e
 
 if [ -z "$1" ]; then
-  echo "Usage: ./scripts/bump_version.sh <new_version> [build_number]"
-  echo "Example: ./scripts/bump_version.sh 1.2.0"
-  echo "Example: ./scripts/bump_version.sh 1.2.0 2"
+  echo "Usage: ./scripts/bump-version.sh <new_version> [build_number]"
+  echo "Example: ./scripts/bump-version.sh 1.2.0"
+  echo "Example: ./scripts/bump-version.sh 1.2.0 2"
   exit 1
 fi
 
