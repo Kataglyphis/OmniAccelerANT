@@ -18,16 +18,36 @@ jobs:
 
     steps:
 
-      # windows is so funny ... NOT
-      #- name: Enable Git long paths
-      #  run: git config --global core.longpaths true
-      #  shell: pwsh
-
-      - name: Checkout
+      # The runner workspace is D:\a\<repo>\<repo> - the repository name twice,
+      # ~71 characters before any content. Add this repo's submodule chain
+      # (ContainerHub -> DocumANTation -> md2pdfLib -> latex/awesome-beamer) and
+      # the .git/modules/... paths pass 260 characters, so a recursive checkout
+      # dies before any build step runs:
+      #
+      #   cannot write keep file '...\latex\awesome-beamer\objects\pack\pack-*.keep':
+      #     Filename too long
+      #   clone of 'https://github.com/Kataglyphis/awesome-beamer' into submodule
+      #     path '...' failed
+      #
+      # core.longpaths does NOT reliably cover those child clones, which is why
+      # the line that used to sit here (commented out) was never the fix. Check
+      # out WITHOUT submodules, then clone the whole tree into a SHORT path where
+      # the same chain fits - the pattern Kataglyphis-BeschleunigerBallett and
+      # Kataglyphis-RustProjectTemplate already use.
+      - name: Checkout repository (no submodules; see the short-path clone below)
         uses: actions/checkout@v6.0.2
         with:
             fetch-depth: 1
-            submodules: recursive
+            submodules: false
+
+      # ContainerHub owns this, including the SSH -> token-HTTPS rewrite a hosted
+      # runner needs (.gitmodules pins git@github.com: and there is no SSH key).
+      # D:\ws is also what run-in-windows-container mounts by default.
+      - name: Clone full tree with submodules into a short path (D:\ws)
+        uses: Kataglyphis/Kataglyphis-ContainerHub/.github/actions/clone-into-short-path@main
+        with:
+          target: /d/ws
+          token: ${{ github.token }}
 
       # The winamd64 image is ~54 GB to import and Docker keeps its data-root on
       # the SYSTEM drive. Measured on a windows-2025 runner 2026-08-11:
@@ -66,16 +86,24 @@ jobs:
       # — which the build script now requires, since every ContainerHub module
       # declares `#requires -Version 7.0` and Windows PowerShell 5.1 cannot load
       # them.
+      #
+      # mount-source/mount-target are deliberately NOT set: the action already
+      # defaults to D:\ws -> C:\ws, which is where the short-path clone put the
+      # tree. Setting them back to github.workspace would mount the
+      # submodule-less checkout instead.
       - name: Run container
         uses: Kataglyphis/Kataglyphis-ContainerHub/.github/actions/run-in-windows-container@main
         with:
           image: ghcr.io/kataglyphis/kataglyphis_beschleuniger:winamd64
-          mount-source: ${{ github.workspace }}
-          mount-target: C:\workspace
-          file: C:\workspace\scripts\windows\Build-Windows.ps1
+          file: C:\ws\scripts\windows\Build-Windows.ps1
           file-args: |
             -SkipMsixPackaging
 
+      # Artifact paths are ABSOLUTE under D:\ws now, not relative to
+      # github.workspace: the build runs in the short-path clone, so that is
+      # where its output lands. A relative path here would silently match
+      # nothing in the submodule-less checkout - and `if-no-files-found: error`
+      # would report it as a missing build rather than a wrong path.
       # see also the install commands in the bottom of the CMakeLists.txt
       - name: Upload release artifacts
         uses: actions/upload-artifact@v7.0.1
@@ -83,22 +111,22 @@ jobs:
           name: windows-release-files
           if-no-files-found: error
           path: |
-            ${{ env.BUILD_DIR_RELEASE }}/**/*
+            D:/ws/${{ env.BUILD_DIR_RELEASE }}/**/*
 
       # The build script already tees its own transcript plus a machine-readable
-      # summary into logs/ inside the bind-mounted workspace, so there is no
-      # separate build.log to keep in sync.
+      # summary into logs/ inside the mounted workspace, so there is no separate
+      # build.log to keep in sync.
       - name: Upload build log
         if: always()
         uses: actions/upload-artifact@v7.0.1
         with:
           name: build-log
           path: |
-            logs/build-windows-*.log
-            logs/build-summary-*.json
+            D:/ws/logs/build-windows-*.log
+            D:/ws/logs/build-summary-*.json
 
       - uses: github/codeql-action/upload-sarif@v4 # Recommended upgrade
-        if: hashFiles('codeql-results/*.sarif') != ''
+        if: hashFiles('D:/ws/codeql-results/*.sarif') != ''
         with:
-          sarif_file: codeql-results # Points to the folder containing cpp.sarif and rust.sarif
+          sarif_file: D:/ws/codeql-results # Points to the folder containing cpp.sarif and rust.sarif
           category: windows-clang-rust
