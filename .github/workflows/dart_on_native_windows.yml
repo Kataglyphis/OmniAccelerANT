@@ -18,63 +18,19 @@ jobs:
 
     steps:
 
-      # The runner workspace is D:\a\<repo>\<repo> - the repository name twice,
-      # ~71 characters before any content. Add this repo's submodule chain
-      # (ContainerHub -> DocumANTation -> md2pdfLib -> latex/awesome-beamer) and
-      # the .git/modules/... paths pass 260 characters, so a recursive checkout
-      # dies before any build step runs:
-      #
-      #   cannot write keep file '...\latex\awesome-beamer\objects\pack\pack-*.keep':
-      #     Filename too long
-      #   clone of 'https://github.com/Kataglyphis/awesome-beamer' into submodule
-      #     path '...' failed
-      #
-      # core.longpaths does NOT reliably cover those child clones, which is why
-      # the line that used to sit here (commented out) was never the fix. Check
-      # out WITHOUT submodules, then clone the whole tree into a SHORT path where
-      # the same chain fits - the pattern Kataglyphis-BeschleunigerBallett and
-      # Kataglyphis-RustProjectTemplate already use.
-      - name: Checkout repository (no submodules; see the short-path clone below)
-        uses: actions/checkout@v6.0.2
+      # The whole prologue - long paths, submodule-less checkout, short-path
+      # clone, data-root move, disk cleanup, registry login, pull, disk report -
+      # is ContainerHub's. It was ~45 lines here and identical in three sibling
+      # repos, and each of its three traps had already cost a lane: MAX_PATH on
+      # the submodule chain, the image not fitting on C:, and a disk shortfall
+      # only surfacing 20 minutes into the pull.
+      - name: Prepare Windows container host
+        id: prep
+        uses: Kataglyphis/Kataglyphis-ContainerHub/.github/actions/prepare-windows-container-host@main
         with:
-            fetch-depth: 1
-            submodules: false
-
-      # ContainerHub owns this, including the SSH -> token-HTTPS rewrite a hosted
-      # runner needs (.gitmodules pins git@github.com: and there is no SSH key).
-      # D:\ws is also what run-in-windows-container mounts by default.
-      - name: Clone full tree with submodules into a short path (D:\ws)
-        uses: Kataglyphis/Kataglyphis-ContainerHub/.github/actions/clone-into-short-path@main
-        with:
-          target: /d/ws
-          token: ${{ github.token }}
-
-      # The winamd64 image is ~54 GB to import and Docker keeps its data-root on
-      # the SYSTEM drive. Measured on a windows-2025 runner 2026-08-11:
-      #   C: 29.9 GB free of 149.4 | D: 219.5 GB free of 220.0
-      # Pointing the data-root at D: puts the image where the space is, instead of
-      # deleting Visual Studio off C: to make room. MUST precede the pull.
-      - name: 'Put the Docker data-root on D:'
-        uses: Kataglyphis/Kataglyphis-ContainerHub/.github/actions/set-docker-data-root@main
-        with:
-          data-root: 'D:\docker'
-      # my windows container is quite big ... so remove runner packages for enough
-      # dis space. ContainerHub owns this action — its copy deletes with
-      # `rmdir /s /q` (minutes instead of tens of minutes on hostedtoolcache)
-      # and reports free space before and after.
-      - name: Cleanup disk space
-        uses: Kataglyphis/Kataglyphis-ContainerHub/.github/actions/cleanup-disk-space@main
-
-      - name: Login to GitHub
-        uses: docker/login-action@v3.7.0
-        with:
-          registry: ghcr.io
-          username: Kataglyphis
-          password: ${{ secrets.GHCR_PAT }}
-
-      - name: Pull image
-        run: |
-          docker pull ghcr.io/kataglyphis/kataglyphis_beschleuniger:winamd64
+          image: ghcr.io/kataglyphis/kataglyphis_beschleuniger:winamd64
+          registry-password: ${{ secrets.GHCR_PAT }}
+          short-path-target: /d/ws
 
       # -CodeQL turns on analysis
       # for now disabled due to long runtimes
@@ -111,7 +67,7 @@ jobs:
           name: windows-release-files
           if-no-files-found: error
           path: |
-            D:/ws/${{ env.BUILD_DIR_RELEASE }}/**/*
+            ${{ steps.prep.outputs.workspace }}/${{ env.BUILD_DIR_RELEASE }}/**/*
 
       # The build script already tees its own transcript plus a machine-readable
       # summary into logs/ inside the mounted workspace, so there is no separate
@@ -122,11 +78,24 @@ jobs:
         with:
           name: build-log
           path: |
-            D:/ws/logs/build-windows-*.log
-            D:/ws/logs/build-summary-*.json
+            ${{ steps.prep.outputs.workspace }}/logs/build-windows-*.log
+            ${{ steps.prep.outputs.workspace }}/logs/build-summary-*.json
+
+      # hashFiles() only sees inside GITHUB_WORKSPACE, and the build now runs in
+      # the short-path clone outside it - so the old
+      #   if: hashFiles('.../codeql-results/*.sarif') != ''
+      # could never be true again. Probe the real location instead.
+      - name: Look for SARIF output
+        id: sarif
+        if: always()
+        run: |
+          $dir = '${{ steps.prep.outputs.workspace }}\codeql-results'
+          $found = (Test-Path $dir) -and @(Get-ChildItem $dir -Filter *.sarif -ErrorAction SilentlyContinue).Count -gt 0
+          Write-Host "SARIF in ${dir}: $found"
+          "found=$($found.ToString().ToLower())" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
 
       - uses: github/codeql-action/upload-sarif@v4 # Recommended upgrade
-        if: hashFiles('D:/ws/codeql-results/*.sarif') != ''
+        if: steps.sarif.outputs.found == 'true'
         with:
-          sarif_file: D:/ws/codeql-results # Points to the folder containing cpp.sarif and rust.sarif
+          sarif_file: ${{ steps.prep.outputs.workspace }}\codeql-results # Points to the folder containing cpp.sarif and rust.sarif
           category: windows-clang-rust
