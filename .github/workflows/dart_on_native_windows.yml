@@ -31,6 +31,18 @@ jobs:
           image: ghcr.io/kataglyphis/kataglyphis_beschleuniger:winamd64
           registry-password: ${{ secrets.GHCR_PAT }}
           short-path-target: /d/ws
+          # The short clone root was not enough. This repo's chain is
+          #   Inference-Engine -> NativeInferencePlugin -> KataglyphisCppInference
+          #   -> ContainerHub -> DocumANTation -> md2pdfLib -> latex/{smile,awesome-beamer}
+          # and the recursive update died on the last hop with
+          #   fatal: '$GIT_DIR' too big
+          #   fatal: remote helper 'https' aborted session
+          # Every level adds another `.git/modules/<name>/` segment, so this is
+          # git's own limit, not MAX_PATH - no clone root is short enough.
+          # DocumANTation is ContainerHub's documentation/LaTeX tooling and the
+          # Windows build never reads it, so prune it and its whole subtree.
+          exclude-submodules: |
+            external/Kataglyphis-DocumANTation
 
       # -CodeQL turns on analysis
       # for now disabled due to long runtimes

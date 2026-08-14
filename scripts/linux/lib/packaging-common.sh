@@ -5,10 +5,19 @@ FLATPAK_RUNTIME_VERSION="24.08"
 packaging_run_privileged_cmd() {
   if [[ "$(id -u)" -eq 0 ]]; then
     "$@"
-  elif command -v sudo >/dev/null 2>&1; then
+  # `command -v sudo` alone is not enough: the CI container ships a REAL
+  # /usr/bin/sudo that is not setuid (the image runs as the unprivileged user
+  # `kataglyphis` on purpose), so the lookup succeeded and the call then died
+  # with the useless
+  #   sudo: /bin/sudo must be owned by uid 0 and have the setuid bit set
+  # `sudo -n true` proves sudo can actually elevate without prompting.
+  elif command -v sudo >/dev/null 2>&1 && sudo -n true >/dev/null 2>&1; then
     sudo "$@"
   else
     echo "Error: need root privileges for command: $*" >&2
+    echo "       Running as uid $(id -u) and sudo cannot elevate here." >&2
+    echo "       In the CI container this means a prerequisite is missing from" >&2
+    echo "       the image - it cannot be installed at run time." >&2
     return 1
   fi
 }
@@ -45,8 +54,30 @@ EOF
 setup_packaging_dependencies_for_container() {
   local matrix_arch="${1:?matrix_arch required}"
 
-  packaging_run_privileged_cmd apt-get update
-  packaging_run_privileged_cmd apt-get install -y dpkg flatpak flatpak-builder elfutils libfuse2 dbus-user-session wget
+  # The CI image already ships these: ContainerHub's Dockerfile.base runs
+  # linux/scripts/02-toolchain/packaging-deps.sh, whose
+  # packaging_prerequisite_packages list is exactly dpkg / flatpak /
+  # flatpak-builder / elfutils / libfuse2(t64) / dbus-user-session / wget.
+  # Installing them again was not merely wasteful, it was impossible: the image
+  # runs as the unprivileged `kataglyphis` and has no working sudo, so this
+  # apt-get took the whole native-linux lane down on both arches.
+  #
+  # Probe instead of assume — if a future image drops one of them, apt-get is
+  # still attempted and the failure names what is missing.
+  local -a required_cmds=(dpkg flatpak flatpak-builder dbus-run-session wget)
+  local -a missing_cmds=()
+  local _cmd
+  for _cmd in "${required_cmds[@]}"; do
+    command -v "$_cmd" >/dev/null 2>&1 || missing_cmds+=("$_cmd")
+  done
+
+  if [[ ${#missing_cmds[@]} -eq 0 ]]; then
+    echo "[Info] Packaging prerequisites already present in the image; skipping apt-get."
+  else
+    echo "[Info] Missing packaging prerequisites: ${missing_cmds[*]} — installing via apt-get."
+    packaging_run_privileged_cmd apt-get update
+    packaging_run_privileged_cmd apt-get install -y dpkg flatpak flatpak-builder elfutils libfuse2 dbus-user-session wget
+  fi
 
   setup_local_appimagetool_for_container "$matrix_arch"
 
