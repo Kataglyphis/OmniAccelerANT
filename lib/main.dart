@@ -40,7 +40,7 @@ class App extends StatefulWidget {
 class _AppState extends State<App> with SingleTickerProviderStateMixin {
   ThemeMode themeMode = ThemeMode.dark;
   ColorSeed colorSelected = ColorSeed.baseColor;
-  bool useOtherLanguageMode = false;
+  int currentLanguageIndex = 0;
   int currentPageIndex = 0;
 
   bool get useLightMode {
@@ -192,9 +192,9 @@ class _AppState extends State<App> with SingleTickerProviderStateMixin {
     currentPageIndex = pageIndex;
   }
 
-  void handleLanguageChange() {
+  void handleLanguageSelect(int index) {
     setState(() {
-      useOtherLanguageMode = useOtherLanguageMode ? false : true;
+      currentLanguageIndex = index;
     });
   }
 
@@ -249,11 +249,11 @@ class _AppState extends State<App> with SingleTickerProviderStateMixin {
             railAnimation: railAnimation,
             showMediumSizeLayout: showMediumSizeLayout,
             showLargeSizeLayout: showLargeSizeLayout,
-            useOtherLanguageMode: useOtherLanguageMode,
+            currentLanguageIndex: currentLanguageIndex,
             useLightMode: useLightMode,
             colorSelected: colorSelected,
             handleBrightnessChange: handleBrightnessChange,
-            handleLanguageChange: handleLanguageChange,
+            handleLanguageSelect: handleLanguageSelect,
             handleColorSelect: handleColorSelect,
           );
 
