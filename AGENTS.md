@@ -106,6 +106,11 @@ written out rather than linked.
   `code_quality_find_dart_files` on Linux, `Get-ProjectDartFiles` on Windows;
   they return the same 60 files. A local checkout hits this too — a full
   Flutter SDK at `<repo>/flutter` is gitignored but very much still on disk.
+  `dart analyze` is *not* affected and never was: it honours the
+  `analyzer.exclude` list in `analysis_options.yaml`, which already names
+  `flutter/**`, `ExternalLib/**` and `rust_builder/**`. `dart format` ignores
+  that file entirely — which is the whole reason the file list has to be built
+  outside it, and why the two helpers use exactly those three exclusions.
 
 - **ASAN works, but only against Microsoft's runtime.** LLVM's
   `clang_rt.asan_dynamic` loads *after* ucrtbase, so allocations made during
