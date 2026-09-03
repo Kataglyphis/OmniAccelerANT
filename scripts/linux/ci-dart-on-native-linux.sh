@@ -45,10 +45,8 @@ case "$STAGE" in
       source ~/.bashrc
       export PATH="${FLUTTER_DIR}/bin:$PATH"
 
-      flutter pub get
-      dart format --output=none --set-exit-if-changed . || true
-      dart analyze || true
-      flutter test || true
+      # ContainerHub gate: deps, format, analyze, test. Non-strict, as before.
+      bash /workspace/ExternalLib/Kataglyphis-ContainerHub/linux/scripts/05-frameworks/flutter/flutter_checks.sh --strict false
       flutter config --enable-linux-desktop
     '
     ;;

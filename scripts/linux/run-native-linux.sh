@@ -110,10 +110,7 @@ require_cmd flutter
 require_cmd dart
 
 # Run code quality checks
-flutter pub get
-run_check_cmd "$STRICT_CHECKS" dart format --output=none --set-exit-if-changed .
-run_check_cmd "$STRICT_CHECKS" dart analyze
-run_check_cmd "$STRICT_CHECKS" flutter test
+run_flutter_common_checks "$STRICT_CHECKS"
 
 flutter config --enable-linux-desktop
 

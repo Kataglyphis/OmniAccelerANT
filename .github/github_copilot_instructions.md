@@ -74,7 +74,7 @@ Dieses Repository enthält native Komponenten (C/C++), Rust‑Bibliotheken, und 
 - Tests: `cargo test` mit klaren Unit‑Tests.
 
 **Dart / Flutter**
-- Format: `dart format`. Null‑safety verpflichtend.
+- Format: `dart format` nur auf getrackten Dateien (siehe unten). Null‑safety verpflichtend.
 - Architektur: Trenne UI/Business/Platform (z. B. Provider/Bloc/riverpod‑Pattern) — Copilot soll keine monolithischen Widgets vorschlagen.
 - Type‑Safety:
   - `analysis_options.yaml` soll strikte Analyse aktivieren (z. B. `strict-casts`, `strict-inference`, `strict-raw-types`).
@@ -100,7 +100,7 @@ Copilot soll bei „How to validate“ bevorzugt konkrete, reproduzierbare Komma
 - clang-format: `clang-format -i` (nur auf geänderten Dateien) oder ein Check‑Target.
 - clang-tidy: nur wenn `compile_commands.json` vorhanden ist; keine massiven Auto‑Fixes ohne Review.
 - Rust: `cargo fmt --check`, `cargo clippy -- -D warnings`, `cargo test`.
-- Flutter: `dart format --output=none --set-exit-if-changed .`, `dart analyze`, `flutter test`.
+- Flutter: nicht direkt aufrufen, sondern `scripts/linux/run-native-linux.sh` (ruft ContainerHubs `flutter_checks.sh`) bzw. `scripts/windows/Build-Windows.ps1` (nutzt `Get-ProjectDartFiles`). Nie `dart format .`: die Lanes legen das Flutter‑SDK in den Workspace, ein rekursiver Lauf formatiert es mit.
 - Python (uv): `uv sync` (ggf. „frozen“/locked nach Projektpolicy), dann `uv run ruff check .` und `uv run ty` (bzw. `uv run ty check`, je nach Tool‑Konfiguration).
 
 **I/O / libuv‑basierte Bindings**

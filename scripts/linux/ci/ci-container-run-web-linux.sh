@@ -108,20 +108,8 @@ export_toolchain_env
 echo "=== Flutter doctor ==="
 flutter doctor -v
 
-echo "=== Install dependencies ==="
-flutter pub get
-cd ExternalLib/jotrockenmitlockenrepo
-flutter pub get
-cd "$REPO_ROOT"
-
-echo "=== Verify formatting ==="
-run_check_cmd "$STRICT_CHECKS" dart format --output=none --set-exit-if-changed .
-
-echo "=== Analyze project source ==="
-run_check_cmd "$STRICT_CHECKS" dart analyze
-
-echo "=== Run tests ==="
-run_check_cmd "$STRICT_CHECKS" flutter test
+echo "=== Dart checks: dependencies, format, analyze, test ==="
+run_flutter_common_checks "$STRICT_CHECKS" --extra-package ExternalLib/jotrockenmitlockenrepo
 
 echo "=== Enable flutter web + Rust WASM toolchain ==="
 #rustup component add rust-src --toolchain nightly-x86_64-unknown-linux-gnu || true

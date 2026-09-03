@@ -96,12 +96,13 @@ setup_flutter_sdk() {
   chmod -R u+rwX "${flutter_dir}" 2>/dev/null || true
 }
 
+# Delegates to ContainerHub; its format gate lists tracked files, so it does not
+# reformat the SDK that the lanes install at $PWD/flutter — AGENTS.md § 2.
 run_flutter_common_checks() {
-  local strict_mode="${1:-0}"
-  flutter pub get
-  run_check_cmd "$strict_mode" dart format --output=none --set-exit-if-changed .
-  run_check_cmd "$strict_mode" dart analyze
-  run_check_cmd "$strict_mode" flutter test
+  local strict_mode="${1:-0}" strict_flag
+  shift || true
+  if maybe_truthy "$strict_mode"; then strict_flag=true; else strict_flag=false; fi
+  bash "$(containerhub_path linux/scripts/05-frameworks/flutter/flutter_checks.sh)" --strict "$strict_flag" "$@"
 }
 
 export_toolchain_env() {

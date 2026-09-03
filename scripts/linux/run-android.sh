@@ -83,10 +83,9 @@ cd "$REPO_ROOT"
 require_cmd flutter
 require_cmd dart
 
-flutter pub get
-run_nonfatal dart format --output=none --set-exit-if-changed .
-run_nonfatal dart analyze
-run_nonfatal flutter test
+# ContainerHub's gate: pub get + format + analyze + test, non-strict. Its format
+# step lists tracked files instead of walking $PWD/flutter — AGENTS.md § 2.
+bash "$(containerhub_path linux/scripts/05-frameworks/flutter/flutter_checks.sh)" --strict false
 
 flutter config --enable-android
 

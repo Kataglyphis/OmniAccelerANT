@@ -52,6 +52,7 @@ reorganisation.
 | The five shell-safety bug classes | ContainerHub `AGENTS.md` § *Shell safety conventions* |
 | appimagetool provisioning — pinned version + SHA256, not the moving `continuous` tag | `linux/scripts/02-toolchain/packaging-deps.sh`, subcommand `appimagetool` |
 | Python venv + `uv` provisioning (installer downloaded to a file and SHA-checkable, never `curl \| sh`) | `linux/scripts/01-core/python_uv.sh` |
+| The Dart gate for Linux lanes — deps, format, analyze, test, `--strict`/`--extra-package` | `linux/scripts/05-frameworks/flutter/flutter_checks.sh` |
 
 Two upstream facts repeated here only because they bite before you reach a doc:
 
@@ -95,6 +96,16 @@ rejected; both would be regressions here, so do not "fix" their absence:
 
 Everything here is false or meaningless in another repo — that is why it is
 written out rather than linked.
+
+- **Never `dart format .` here.** The Linux lanes install the Flutter SDK
+  *inside* the mounted workspace (`flutter_dir: /workspace/flutter`), so the
+  recursive walk formats the SDK itself. Run 33810449411 (2026-09-03) reported
+  `Formatted 7404 files (627 changed)` with 604 of those under `flutter/` —
+  by itself enough to fail `--set-exit-if-changed`, and it rewrites the SDK on
+  disk on the way. Both lanes now list tracked files instead:
+  `code_quality_find_dart_files` on Linux, `Get-ProjectDartFiles` on Windows;
+  they return the same 60 files. A local checkout hits this too — a full
+  Flutter SDK at `<repo>/flutter` is gitignored but very much still on disk.
 
 - **ASAN works, but only against Microsoft's runtime.** LLVM's
   `clang_rt.asan_dynamic` loads *after* ucrtbase, so allocations made during
