@@ -48,6 +48,7 @@ reorganisation.
 | The image's pkg-config and rustup provisioning | `AGENTS.md` + `docs/windows-builds.md` |
 | Wiring this repo to ContainerHub — resolver, actions, libraries | `docs/adopting-in-a-new-project.md` |
 | Linux container builds | `docs/linux-build-basics.md` |
+| Running the Linux lane locally on Windows (Rancher Desktop/nerdctl), and **a bind mount that resolves but is empty** — containerd's mount namespace, Windows vs WSL path form | `docs/rancher-desktop-linux-containers.md` |
 | The five shell-safety bug classes | ContainerHub `AGENTS.md` § *Shell safety conventions* |
 
 Two upstream facts repeated here only because they bite before you reach a doc:
@@ -144,6 +145,57 @@ Run the app on the host once artifacts are back:
 .\scripts\windows\Start-Windows.ps1 -Configuration x64-ClangCL-Windows-Debug
 ```
 
+Linux builds run containerized too, driven by the same script CI calls —
+`scripts/linux/ci-dart-on-native-linux.sh <stage>`, one stage per invocation:
+
+```bash
+export MATRIX_ARCH=x64 MATRIX_PLATFORM=linux/amd64      # or: arm64 / linux/arm64
+export FLUTTER_VERSION=3.44.9 APP_NAME=kataglyphis-inference-engine
+scripts/linux/ci-dart-on-native-linux.sh pull_container
+scripts/linux/ci-dart-on-native-linux.sh setup_flutter
+scripts/linux/ci-dart-on-native-linux.sh build_linux
+```
+
+- Stages: `pull_container`, `setup_flutter`, `checks`, `build_linux`, `package`,
+  `generate_docs`.
+- `require_ci_env` hard-requires `MATRIX_PLATFORM`, `MATRIX_ARCH`,
+  `FLUTTER_VERSION` and `APP_NAME` — the script exits rather than guessing.
+  Defaulted: `CONTAINER_IMAGE` (`…:latest-cross`), `WORKSPACE_DIR`
+  (`/workspace`), `FLUTTER_DIR` (`/workspace/flutter`). The matrix values CI
+  uses are in [`dart_on_native_linux.yml`](.github/workflows/dart_on_native_linux.yml).
+
+**`build_linux` on `x64` is not just a build — it is a full CodeQL run.** That
+branch downloads the CodeQL CLI, builds a `--db-cluster` for c/cpp/rust and runs
+two `database analyze` suites; the actual `flutter build linux --release` only
+appears inside the generated `/tmp/codeql-build.sh` that CodeQL invokes. Budget
+hours, not minutes. The `arm64` branch is the plain
+`flutter clean && flutter pub get && flutter build linux --release`. To build the
+app on x64 without the scan, run those three commands through `run_container`
+directly instead of the stage.
+
+**`FLUTTER_DIR` defaults inside the workspace**, so the two architectures share
+one SDK directory. In CI that is harmless — each runner has its own checkout —
+but locally an x64 and an arm64 run in the same tree overwrite each other's SDK.
+Run them sequentially, re-running `setup_flutter` before each. (`flutter/*` is
+gitignored, so this does not dirty the tree.)
+
+**`run_container` invokes `docker` by name.** On a host whose Linux engine is
+containerd rather than dockerd — Rancher Desktop's default — put a `docker`
+shim that forwards to `nerdctl` ahead of it on `PATH`, or switch the engine to
+`dockerd (moby)`. Host-side setup for that lane (drive mounts, QEMU binfmt for
+foreign-arch runs) is ContainerHub's, see § 2.
+
+**`run_container` uses `${GITHUB_WORKSPACE:-$PWD}` as the bind source**, so on a
+Windows host set it to the **Windows** path form —
+`GITHUB_WORKSPACE='D:\GitHub\Kataglyphis-Inference-Engine'`. A WSL-style
+`/mnt/d/...` is accepted, mounts nothing, and reports no error; the build then
+fails somewhere far from the cause. From Git Bash also set `MSYS_NO_PATHCONV=1`
+so the container-side paths survive. Why this happens is ContainerHub's, § 2.
+
+`package` deletes `~/.pub-cache/hosted` and the build's `obj/` directory before
+taring the bundle — it is a CI packaging step, not something to run casually in
+a working tree.
+
 Quality gates — `Build-Windows.ps1` runs all three by default (skip with
 `-SkipFormat` / `-SkipTests`):
 
@@ -152,6 +204,11 @@ dart format --set-exit-if-changed .
 flutter analyze
 flutter test
 ```
+
+The Linux `checks` stage runs the same three (with `dart analyze` rather than
+`flutter analyze`) but suffixes each with `|| true`: it reports and moves on
+instead of failing the stage. Treat a green `checks` run as "was executed", not
+as "passed".
 
 ## 5. Docs owned by this repo
 

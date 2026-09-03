@@ -114,14 +114,42 @@ Kataglyphis-Inference-Engine bundles a Flutter/Dart frontend, a Rust/C++ inferen
 
 Refer to the detailed docs below for platform-specific requirements, camera streaming pipelines, and deployment workflows.
 
-```powershell
-Im Projektroot ausführen: dart doc
-Danach Static-Server installieren: dart pub global activate dhttpd
-export PATH="$PATH":"$HOME/.pub-cache/bin"
-Falls dhttpd nicht gefunden wird, einmal PATH ergänzen: $env:Path += ";$env:USERPROFILE\AppData\Local\Pub\Cache\bin"
-Server starten: dhttpd --path doc/api --host 127.0.0.1 --port 8080
-Im Browser öffnen: http://127.0.0.1:8080
+3. Build the app. Both lanes run containerized and match CI — the exact
+   commands, presets and switches are in [AGENTS.md § 4](AGENTS.md#4-build-run-test):
+
+   | Target | Runtime | Driver |
+   |---|---|---|
+   | Windows (amd64) | Stevedore `docker.exe`, Windows containers | `scripts/windows/Build-Windows.ps1` |
+   | Linux (amd64 / arm64) | any Linux engine; Rancher Desktop is the supported local one | `scripts/linux/ci-dart-on-native-linux.sh` |
+
+   Note that the Linux `build_linux` stage runs a full CodeQL analysis on `x64`,
+   not just a build — see AGENTS.md before starting one.
+
+   Building the Linux lane locally on a Windows host has host-side
+   prerequisites — Rancher Desktop's engine, the drive the repo lives on being
+   visible to containerd, and QEMU binfmt for the foreign-arch run. Those are
+   ContainerHub's, not this repo's: see
+   [`rancher-desktop-linux-containers.md`](ExternalLib/Kataglyphis-ContainerHub/docs/rancher-desktop-linux-containers.md).
+   Skipping them yields a bind mount that resolves and is silently empty.
+
+### Browse the API docs locally
+
+Generate the site into `doc/api`, then serve it:
+
+```bash
+dart doc
+dart pub global activate dhttpd
+export PATH="$PATH:$HOME/.pub-cache/bin"
+dhttpd --path doc/api --host 127.0.0.1 --port 8080
 ```
+
+On PowerShell the pub-cache `bin` goes on `PATH` differently:
+
+```powershell
+$env:Path += ";$env:USERPROFILE\AppData\Local\Pub\Cache\bin"
+```
+
+Then open <http://127.0.0.1:8080>.
 
 ## Documentation
 
