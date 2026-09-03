@@ -14,6 +14,10 @@ on:
 jobs:
   build:
     strategy:
+      # The arm64 row currently cannot pass (the image tag is amd64-only), and
+      # with the default fail-fast it cancels the x64 row before it finishes —
+      # hiding whether the healthy lane is green. See AGENTS.md § 3.
+      fail-fast: false
       matrix:
         include:
           - runs_on: ubuntu-24.04
@@ -43,8 +47,9 @@ jobs:
     steps:
       # Reclaim disk, check out, log in to ghcr and pull the image with retries
       # — ContainerHub's shared prologue, so the retry count and submodule flags
-      # cannot drift between this workflow and its siblings. The pull needs no
-      # --platform: each lane runs on a runner of its own architecture.
+      # cannot drift between this workflow and its siblings. The pull takes no
+      # --platform, which is only correct for a multi-arch tag — see the arm64
+      # note in AGENTS.md § 3.
       - name: Prepare CI host
         uses: Kataglyphis/Kataglyphis-ContainerHub/.github/actions/prepare-linux-ci-host@main
         with:

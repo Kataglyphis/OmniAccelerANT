@@ -114,7 +114,10 @@ run_flutter_common_checks "$STRICT_CHECKS" --extra-package ExternalLib/jotrocken
 echo "=== Enable flutter web + Rust WASM toolchain ==="
 #rustup component add rust-src --toolchain nightly-x86_64-unknown-linux-gnu || true
 #rustup target add wasm32-unknown-unknown --toolchain nightly || true
-cargo install flutter_rust_bridge_codegen || true
+# No `|| true`: the failure used to resurface as an opaque "command not found".
+# The lane overrides CARGO_HOME, so its bin dir is not the one on PATH.
+cargo install flutter_rust_bridge_codegen
+export PATH="${CARGO_HOME:-$HOME/.cargo}/bin:$PATH"
 flutter config --enable-web
 
 echo "=== Build Web App ==="

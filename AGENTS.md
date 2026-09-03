@@ -112,6 +112,18 @@ written out rather than linked.
   that file entirely — which is the whole reason the file list has to be built
   outside it, and why the two helpers use exactly those three exclusions.
 
+- **The Linux arm64 row cannot pass, and it is the image, not the code.**
+  `ghcr.io/kataglyphis/kataglyphis_beschleuniger:latest-cross` is a
+  **single-arch amd64 tag**, not a multi-arch manifest. Both matrix rows pull
+  the same digest; the arm64 row then runs it under `--platform linux/arm64`
+  on an `ubuntu-24.04-arm` runner, where the x86-64 binaries cannot exec:
+  `` /usr/local/cargo/bin/rustc: 1: ELF: not found `` and a corrosion
+  `FindRust.cmake` error. The pull itself succeeds — the `Failed to pull`
+  line in the log is GitHub echoing the retry script's source, not running it.
+  Fixing this means publishing an arm64 variant (or a multi-arch manifest);
+  nothing in this repo can work around it. `fail-fast: false` is set on that
+  matrix so the arm64 row no longer cancels x64 before it finishes.
+
 - **ASAN works, but only against Microsoft's runtime.** LLVM's
   `clang_rt.asan_dynamic` loads *after* ucrtbase, so allocations made during
   CRT/COM startup are unhooked and it aborts with an unsuppressible `bad-free`
