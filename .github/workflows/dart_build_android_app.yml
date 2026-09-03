@@ -21,7 +21,6 @@ jobs:
             build_mode: release
             platform: linux/amd64
             app_name: kataglyphis-inference-engine-apk
-            flutter_version: 3.47.1
             flutter_dir: /workspace/flutter
             container_image: ghcr.io/kataglyphis/kataglyphis_beschleuniger:latest-cross
 
@@ -56,7 +55,6 @@ jobs:
             bash /workspace/scripts/linux/ci/ci-container-run-android.sh
             --arch "${{ matrix.arch }}"
             --build-mode "${{ matrix.build_mode }}"
-            --flutter-version "${{ matrix.flutter_version }}"
             --flutter-dir "${{ matrix.flutter_dir }}"
             --app-name "${{ matrix.app_name }}"
             --run-codeql "${{ matrix.arch == 'x64' }}"

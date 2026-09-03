@@ -14,10 +14,13 @@ containerhub_source linux/scripts/01-core/common.sh     # run_priv (+ versions.e
 # unlikely case where the loader did not set it.
 : "${FLATPAK_RUNTIME_VERSION:=24.08}"
 
-# Elevate via ContainerHub's run_priv, but keep this repo's `sudo -n true` probe:
-# the CI image ships a non-setuid /usr/bin/sudo, so a bare `command -v sudo`
-# (what upstream require_sudo checks) succeeds yet cannot elevate. The probe
-# proves sudo actually works. (Worth contributing back to require_sudo upstream.)
+# Elevate via ContainerHub's run_priv, but keep this repo's `sudo -n true` probe.
+# The runtime image purges sudo entirely (ContainerHub Dockerfile.torch:134-135
+# deletes the binaries and clears residual setuid bits, then :139 runs as
+# `kataglyphis`), so in CI this falls to the error branch by design and a missing
+# prerequisite must be baked into the image. The probe still earns its place on
+# developer hosts and on images that do carry a sudo, where `command -v sudo`
+# alone would say yes to one that cannot elevate.
 packaging_run_privileged_cmd() {
   if [[ "$(id -u)" -eq 0 ]]; then
     run_priv "$@"

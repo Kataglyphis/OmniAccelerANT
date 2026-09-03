@@ -71,6 +71,14 @@ if ! validate_arch "$MATRIX_ARCH"; then
   exit 2
 fi
 
+# CI passes no --flutter-version: resolve it, and its matching sha256, from
+# ContainerHub's versions.env (resolve_flutter_pin, ../lib/container-steps.sh).
+# This lane does not source packaging-common.sh, so exporting the sha here is
+# what stops setup-flutter.sh falling back to the image's baked versions.env.
+if [[ -z "$FLUTTER_VERSION" ]]; then
+  resolve_flutter_pin || exit 2
+fi
+
 if ! validate_non_empty "--flutter-version" "$FLUTTER_VERSION"; then
   usage >&2
   exit 2

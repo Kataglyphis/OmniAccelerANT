@@ -181,13 +181,14 @@ CLI flags, not env vars
 
 ```bash
 bash /workspace/scripts/linux/ci/ci-container-run-native-linux.sh \
-  --flutter-version 3.44.9 --install-flutter true
+  --install-flutter true
 ```
 
 Two flags decide where the SDK comes from: `--install-flutter false` skips the
 download entirely and `--flutter-dir <path>` then points at an SDK the image
-already carries (`ci-container-run-native-linux.sh`:124 gates the install,
-:32 defaults the dir to `/workspace/flutter`). Prefer that over installing —
+already carries (`ci-container-run-native-linux.sh` gates the install on
+`--install-flutter`, and defaults the dir to `/workspace/flutter`). Prefer that
+over installing —
 see *Flutter version pinning* below.
 
 `scripts/linux/ci-dart-on-native-linux.sh <stage>` is the **legacy host-side
@@ -202,17 +203,28 @@ scripts/linux/ci-dart-on-native-linux.sh pull_container
 scripts/linux/ci-dart-on-native-linux.sh build_linux
 ```
 
-**Flutter version pinning — the repo and the image disagree, and the image
-wins.** ContainerHub's `linux/scripts/01-core/versions.env` pins
-`FLUTTER_VERSION` *together with* its tarball `FLUTTER_SDK_SHA256`; the two are
-one pin, so overriding only the version can never verify. The four places this
-repo names a version (`dart_on_native_linux.yml`:24,34,
-`dart_on_web_linux.yml`:26, `dart_build_android_app.yml`:24) drifted away from
-that pin and **all three Flutter CI lanes have been red since 2026-08-12** with
-`Checksum verification FAILED`. Passing `FLUTTER_SDK_SHA256` is not a fix from
-here: `ci-common.sh`'s `run_container` forwards only four `-e` variables and not
-that one. Either match the image's pin or stop pinning in this repo. Whether the
-SDK is baked into a given image tag is ContainerHub's business — § 2.
+**Flutter version pinning — ContainerHub owns it; this repo derives it and
+names it nowhere.** `linux/scripts/01-core/versions.env` pins `FLUTTER_VERSION`
+(:323) *together with* its tarball `FLUTTER_SDK_SHA256` (:700); the two are one
+pin, so overriding only the version can never verify. This repo used to name the
+version in four places, they drifted, and **all three Flutter lanes were red
+from 2026-08-12** with `Checksum verification FAILED`. They name it nowhere now:
+`resolve_flutter_pin` (`scripts/linux/lib/container-steps.sh`) reads BOTH keys
+out of that one file and exports the sha, and all three Linux lanes call it.
+**To bump Flutter, bump the ContainerHub submodule.**
+
+Exporting the sha is the load-bearing half. ContainerHub's
+`05-frameworks/flutter/setup-flutter.sh`:97 only falls back to the copy baked
+into the image (`/opt/scripts/core/versions.env`, `Dockerfile.sdk`:111) when
+`FLUTTER_SDK_SHA256` is unset — and that copy tracks the floating
+`:latest-cross` tag, not our submodule pointer. The native and android lanes
+already exported it via `packaging-common.sh` -> `common.sh`; the **web lane
+does not source those**, so it alone used to verify against the image. That
+asymmetry is why a version and a sha from different files could ever meet.
+`--flutter-version <ver>` still overrides for a deliberate one-off; the pinned
+sha is then deliberately not exported, so `setup-flutter.sh`:118-126 can name
+the mismatch instead of emitting a bare checksum error. Whether the SDK is baked
+into a given image tag is ContainerHub's business — § 2.
 
 - `require_ci_env` hard-requires `MATRIX_PLATFORM`, `MATRIX_ARCH`,
   `FLUTTER_VERSION` and `APP_NAME` — the script exits rather than guessing.

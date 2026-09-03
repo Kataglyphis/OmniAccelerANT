@@ -84,6 +84,12 @@ case "$BUILD_MODE" in
     ;;
 esac
 
+# CI passes no --flutter-version: resolve it, and its matching sha256, from
+# ContainerHub's versions.env (resolve_flutter_pin, ../lib/container-steps.sh).
+if [[ -z "$FLUTTER_VERSION" ]]; then
+  resolve_flutter_pin || exit 2
+fi
+
 if ! validate_non_empty "--flutter-version" "$FLUTTER_VERSION"; then
   usage >&2
   exit 2

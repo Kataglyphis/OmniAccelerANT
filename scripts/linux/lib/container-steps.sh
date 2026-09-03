@@ -47,6 +47,46 @@ source_bashrc_and_add_flutter_to_path() {
   fi
 }
 
+# ContainerHub's versions.env pins FLUTTER_VERSION (:323) and FLUTTER_SDK_SHA256
+# (:700) as ONE pin. Resolve BOTH from that one file so they cannot disagree,
+# and export the sha: ContainerHub's setup-flutter.sh only falls back to the
+# copy baked into the image (/opt/scripts/core/versions.env, Dockerfile.sdk:111)
+# when the sha is unset in the environment, and that copy tracks a floating
+# image tag rather than our submodule pointer. The native/android lanes already
+# export it via packaging-common.sh -> common.sh; the web lane does not, which
+# is why it alone used to read the image's copy.
+#
+# Single-key sed, not load_versions_env: that loader exports all ~174 keys, and
+# setup-flutter.sh reads these same two keys exactly this way.
+#
+# Sets FLUTTER_VERSION when it is empty. Call it as a plain command, never in
+# $(...) — a command-substitution subshell would discard the export.
+resolve_flutter_pin() {
+  local versions_env pinned_version pinned_sha
+  versions_env="$(containerhub_path linux/scripts/01-core/versions.env)" || return 1
+  pinned_version="$(sed -n 's/^FLUTTER_VERSION=//p' "$versions_env")"
+  pinned_sha="$(sed -n 's/^FLUTTER_SDK_SHA256=//p' "$versions_env")"
+
+  if [[ -z "$pinned_version" || -z "$pinned_sha" ]]; then
+    echo "Error: FLUTTER_VERSION/FLUTTER_SDK_SHA256 are not both pinned in" >&2
+    echo "       ${versions_env}. ContainerHub owns this pin; if a key was" >&2
+    echo "       renamed upstream, fix it here." >&2
+    return 1
+  fi
+
+  if [[ -n "${FLUTTER_VERSION:-}" ]]; then
+    # An explicit --flutter-version is a deliberate one-off. Do NOT export the
+    # pinned sha for it: it belongs to ${pinned_version}, and leaving it unset
+    # lets setup-flutter.sh report the mismatch by name instead of emitting a
+    # bare "Checksum verification FAILED".
+    return 0
+  fi
+
+  FLUTTER_VERSION="$pinned_version"
+  export FLUTTER_SDK_SHA256="$pinned_sha"
+  echo "[Info] Flutter ${FLUTTER_VERSION} (pinned in ${versions_env})." >&2
+}
+
 setup_flutter_sdk() {
   local flutter_version="${1:?flutter_version is required}"
   local flutter_dir="${2:?flutter_dir is required}"
