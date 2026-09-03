@@ -139,6 +139,10 @@ Generate the site into `doc/api`, then serve it. Use the pub-activated
 several Flutter SDKs, including the Windows build image) crashes on any Flutter
 app with a `_stripDocImports` RangeError; ≥ 9.0.9 fixes it.
 
+`scripts/windows/Build-Windows.ps1` already does this for you as its
+"Generate API Docs" step (skip it with `-SkipDocs`); the commands below are for
+generating and serving the site by hand.
+
 ```bash
 dart pub global activate dartdoc      # pulls >= 9.0.9
 dart pub global run dartdoc --output doc/api
@@ -159,6 +163,7 @@ Then open <http://127.0.0.1:8080>.
 
 | Topic | Location | Description |
 |-------|----------|-------------|
+| Overview & architecture | [docs/source/overview.md](docs/source/overview.md) | What the project is, the architecture at a glance, and what each top-level directory holds. |
 | Getting Started | [docs/source/getting-started.md](docs/source/getting-started.md) | Environment prerequisites, installation, and run commands. |
 | Platform Guides | [docs/source/platforms.md](docs/source/platforms.md) | Container, Windows, Raspberry Pi, and web build instructions — incl. the Windows container troubleshooting table (Dev Drive, pkg-config, rustup/Cargokit, Debug-preset pitfalls). |
 | Agent / contributor guide | [AGENTS.md](AGENTS.md) | Build workflow, container pitfalls, and quality gates for coding agents and new contributors. |

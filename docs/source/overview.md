@@ -17,7 +17,7 @@ Kataglyphis Inference Engine combines a Flutter frontend with native Rust/C++ in
 | `android/`, `ios/`, `linux/`, `windows/`, `macos/`, `web/` | Platform integration layers |
 | `scripts/` | Build, tooling, and documentation automation |
 | `docs/source/` | Human-authored guide pages included in generated docs |
-| `doc/api/` | Generated API and guide output from `dart doc` |
+| `doc/api/` | Generated API and guide output (pub-activated `dartdoc`, not the SDK-bundled `dart doc` — see the README) |
 | `ExternalLib/` | External and related repositories/submodules |
 
 ## Core Design Goals
