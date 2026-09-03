@@ -348,7 +348,10 @@ class DetectionOverlayPainter extends CustomPainter {
       )..layout();
       textPainter.paint(
         canvas,
-        Offset(rect.left, (rect.top - textPainter.height).clamp(0, size.height)),
+        Offset(
+          rect.left,
+          (rect.top - textPainter.height).clamp(0, size.height),
+        ),
       );
     }
   }

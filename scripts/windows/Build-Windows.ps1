@@ -18,6 +18,7 @@ param(
     [switch] $CleanBuild,
     [switch] $SkipTests,
     [switch] $SkipFormat,
+    [switch] $SkipDocs,
     [switch] $SkipBootstrapFlutterBuild,
     [switch] $SkipMsixPackaging,
     [switch] $ContinueOnError,
@@ -173,6 +174,7 @@ try {
     Write-BuildLog -Context $context -Message "Rust DLL source:  $dllSource"
     Write-BuildLog -Context $context -Message "Rust DLL dest:    $dllDestDir"
     Write-BuildLog -Context $context -Message "SkipTests:        $SkipTests"
+    Write-BuildLog -Context $context -Message "SkipDocs:         $SkipDocs"
     Write-BuildLog -Context $context -Message "SkipFlutterBuild: $SkipBootstrapFlutterBuild"
     Write-BuildLog -Context $context -Message "SkipMsixPackaging: $SkipMsixPackaging"
     Write-BuildLog -Context $context -Message "ContinueOnError:  $ContinueOnError"
@@ -251,7 +253,13 @@ try {
         Invoke-BuildStep -Context $context -StepName "Dart Format Verification" -Script {
             Push-Location $workspace
             try {
-                Invoke-BuildExternal -Context $context -File "dart" -Parameters @("format", "--output=none", "--set-exit-if-changed", ".")
+                # Scope to the Dart source roots, NOT ".". `dart format .` recurses into
+                # .git, and this repo's deeply nested vendored submodule gitdir
+                # (.git/modules/.../Kataglyphis-DocumANTation/.../awesome-beamer) exceeds
+                # Windows MAX_PATH, so the listing throws PathNotFoundException and the whole
+                # gate crashes before it formats anything. These four dirs hold every .dart
+                # the app owns (analysis_options excludes ExternalLib/flutter/rust_builder anyway).
+                Invoke-BuildExternal -Context $context -File "dart" -Parameters @("format", "--output=none", "--set-exit-if-changed", "lib", "test", "integration_test", "test_driver")
             } finally {
                 Pop-Location
             }
@@ -282,7 +290,28 @@ try {
         Write-BuildLog -Context $context -Message "Skipping Dart analysis/tests (SkipTests set)."
     }
 
-    
+    if (-not $SkipDocs) {
+        Invoke-BuildStep -Context $context -StepName "Generate API Docs" -Script {
+            Push-Location $workspace
+            try {
+                # NOT the SDK-bundled `dart doc`. The dartdoc 9.0.4 that ships
+                # with this image's Flutter SDK crashes on ANY Flutter app — a
+                # `_stripDocImports` RangeError while precaching the Flutter
+                # SDK's own `@docImport` comments (reproduced with a bare
+                # `flutter create` app, identical offsets). It is fixed in
+                # dartdoc >= 9.0.9, which `pub global activate` resolves, so we
+                # run that instead. Output lands in doc/api (git-ignored).
+                Invoke-BuildExternal -Context $context -File "dart" -Parameters @("pub", "global", "activate", "dartdoc")
+                Invoke-BuildExternal -Context $context -File "dart" -Parameters @("pub", "global", "run", "dartdoc", "--output", "doc/api")
+            } finally {
+                Pop-Location
+            }
+        }
+    } else {
+        Write-BuildLog -Context $context -Message "Skipping API docs generation (SkipDocs set)."
+    }
+
+
     if (-not $SkipBootstrapFlutterBuild) {
 
         if ($CleanBuild) {

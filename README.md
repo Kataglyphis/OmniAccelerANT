@@ -120,7 +120,7 @@ Refer to the detailed docs below for platform-specific requirements, camera stre
    | Target | Runtime | Driver |
    |---|---|---|
    | Windows (amd64) | Stevedore `docker.exe`, Windows containers | `scripts/windows/Build-Windows.ps1` |
-   | Linux (amd64 / arm64) | any Linux engine; Rancher Desktop is the supported local one | `scripts/linux/ci-dart-on-native-linux.sh` |
+   | Linux (amd64 / arm64) | any Linux engine; Rancher Desktop is the supported local one | CI: `scripts/linux/ci/ci-container-run-native-linux.sh` (via ContainerHub action); local: `scripts/linux/ci-dart-on-native-linux.sh` |
 
    Note that the Linux `build_linux` stage runs a full CodeQL analysis on `x64`,
    not just a build — see AGENTS.md before starting one.
@@ -134,10 +134,14 @@ Refer to the detailed docs below for platform-specific requirements, camera stre
 
 ### Browse the API docs locally
 
-Generate the site into `doc/api`, then serve it:
+Generate the site into `doc/api`, then serve it. Use the pub-activated
+`dartdoc`, **not** the SDK-bundled `dart doc`: dartdoc 9.0.4 (bundled with
+several Flutter SDKs, including the Windows build image) crashes on any Flutter
+app with a `_stripDocImports` RangeError; ≥ 9.0.9 fixes it.
 
 ```bash
-dart doc
+dart pub global activate dartdoc      # pulls >= 9.0.9
+dart pub global run dartdoc --output doc/api
 dart pub global activate dhttpd
 export PATH="$PATH:$HOME/.pub-cache/bin"
 dhttpd --path doc/api --host 127.0.0.1 --port 8080
@@ -161,7 +165,7 @@ Then open <http://127.0.0.1:8080>.
 | Camera Streaming | [docs/source/camera-streaming.md](docs/source/camera-streaming.md) | GStreamer WebRTC pipelines and Python inference demos. |
 | Upgrade guide | [docs/source/upgrade-guide.md](docs/source/upgrade-guide.md) | How to keep things up-to-date. |
 
-Build the full documentation website with `dart doc`. The generated site in `doc/api` now includes the guides from `docs/source`.
+Build the full documentation website with `dart pub global run dartdoc` (see the note above — not the SDK-bundled `dart doc`). The generated site in `doc/api` now includes the guides from `docs/source`.
 
 ## Tests
 

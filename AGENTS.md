@@ -123,20 +123,47 @@ written out rather than linked.
 
 ## 4. Build, run, test
 
-Windows builds run containerized, matching CI:
+Windows builds run containerized, and **CI runs the exact same script** — the
+workflow [`dart_on_native_windows.yml`](.github/workflows/dart_on_native_windows.yml)
+calls `Build-Windows.ps1` through ContainerHub's `run-in-windows-container`
+action, so "works locally" and "works in CI" are the same steps by construction.
+Locally:
 
 ```powershell
 & "$env:ProgramFiles\Stevedore\bin\docker.exe" run --rm --isolation process `
-  --mount "type=bind,source=$PWD,target=C:\workspace" -w C:\workspace `
+  --mount "type=bind,source=$PWD,target=C:\ws-mnt" -w C:\ws-mnt `
   ghcr.io/kataglyphis/kataglyphis_beschleuniger:winamd64 `
-  pwsh -NoProfile -ExecutionPolicy Bypass -File C:\workspace\scripts\windows\Build-Windows.ps1 `
-    -Configurations "clangcl-debug,clangcl-profile,clangcl-release" -SkipMsixPackaging
+  pwsh -NoProfile -ExecutionPolicy Bypass -File C:\ws-mnt\scripts\windows\Build-Windows.ps1 `
+    -Configurations "clangcl-release" -SkipMsixPackaging
 ```
+
+**The mount target must not already exist in the image.** `target=C:\workspace`
+fails at container creation with `hcs::CreateComputeSystem ... The request is not
+supported` on hosts whose Docker/hcsshim is version-skewed from the image —
+`C:\workspace` is a baked image dir. Use a fresh target (`C:\ws-mnt` above; CI
+mounts `D:\ws → C:\ws`). ContainerHub owns the why — see § 2.
+
+Three quality/output steps **always run before the native build**, each fatal,
+each skippable with the paired switch: **Dart format** (`-SkipFormat`), **Dart
+analyze + Flutter tests** (`-SkipTests`), **API docs generation** (`-SkipDocs`).
+Two Windows-specific traps these steps carry:
+
+- The format gate formats `lib test integration_test test_driver`, **not `.`**:
+  `dart format .` recurses into `.git`, and the deeply nested vendored submodule
+  gitdir exceeds Windows MAX_PATH, so the listing throws and the gate crashes
+  before formatting anything.
+- Docs generation does **not** use the SDK-bundled `dart doc`. The dartdoc 9.0.4
+  in the current image crashes on *any* Flutter app — a `_stripDocImports`
+  RangeError while precaching the Flutter SDK's own `@docImport` comments
+  (reproduced with a bare `flutter create`). The step `pub global activate
+  dartdoc` (≥ 9.0.9, which fixes it) and runs that. This is really an image bug;
+  ContainerHub should ship a newer dartdoc.
 
 - Preset aliases: `clangcl-{debug,profile,release}`, `msvc-{debug,release}`,
   `clang-{debug,profile,release}` → `x64-ClangCL-Windows-Debug` etc.
-- Switches: `-SkipTests`, `-SkipFormat`, `-CleanBuild`, `-SkipMsixPackaging`.
-- Logs land in `logs/` (`build-windows-*.log` + `build-summary-*.json`).
+- Switches: `-SkipTests`, `-SkipFormat`, `-SkipDocs`, `-CleanBuild`, `-SkipMsixPackaging`.
+- Logs land in `logs/` (`build-windows-*.log` + `build-summary-*.json`); API
+  docs in `doc/api` (git-ignored).
 
 Run the app on the host once artifacts are back:
 
@@ -145,19 +172,48 @@ Run the app on the host once artifacts are back:
 .\scripts\windows\Start-Windows.ps1 -Configuration x64-ClangCL-Windows-Debug
 ```
 
-Linux builds run containerized too, driven by the same script CI calls —
-`scripts/linux/ci-dart-on-native-linux.sh <stage>`, one stage per invocation:
+Linux builds run containerized. **CI does not use the stage script below.** Its
+path is the ContainerHub composite action
+`.github/actions/run-in-linux-container@main`, which runs
+`scripts/linux/ci/ci-container-run-native-linux.sh` *inside* the container with
+CLI flags, not env vars
+([`dart_on_native_linux.yml`](.github/workflows/dart_on_native_linux.yml):60,70-78):
+
+```bash
+bash /workspace/scripts/linux/ci/ci-container-run-native-linux.sh \
+  --flutter-version 3.44.9 --install-flutter true
+```
+
+Two flags decide where the SDK comes from: `--install-flutter false` skips the
+download entirely and `--flutter-dir <path>` then points at an SDK the image
+already carries (`ci-container-run-native-linux.sh`:124 gates the install,
+:32 defaults the dir to `/workspace/flutter`). Prefer that over installing —
+see *Flutter version pinning* below.
+
+`scripts/linux/ci-dart-on-native-linux.sh <stage>` is the **legacy host-side
+driver**, kept for local runs; no workflow references it. Its stages are
+`pull_container`, `setup_flutter`, `checks`, `build_linux`, `package`,
+`generate_docs`, and it takes its configuration from the environment:
 
 ```bash
 export MATRIX_ARCH=x64 MATRIX_PLATFORM=linux/amd64      # or: arm64 / linux/arm64
-export FLUTTER_VERSION=3.44.9 APP_NAME=kataglyphis-inference-engine
+export FLUTTER_VERSION=3.47.1 APP_NAME=kataglyphis-inference-engine
 scripts/linux/ci-dart-on-native-linux.sh pull_container
-scripts/linux/ci-dart-on-native-linux.sh setup_flutter
 scripts/linux/ci-dart-on-native-linux.sh build_linux
 ```
 
-- Stages: `pull_container`, `setup_flutter`, `checks`, `build_linux`, `package`,
-  `generate_docs`.
+**Flutter version pinning — the repo and the image disagree, and the image
+wins.** ContainerHub's `linux/scripts/01-core/versions.env` pins
+`FLUTTER_VERSION` *together with* its tarball `FLUTTER_SDK_SHA256`; the two are
+one pin, so overriding only the version can never verify. The four places this
+repo names a version (`dart_on_native_linux.yml`:24,34,
+`dart_on_web_linux.yml`:26, `dart_build_android_app.yml`:24) drifted away from
+that pin and **all three Flutter CI lanes have been red since 2026-08-12** with
+`Checksum verification FAILED`. Passing `FLUTTER_SDK_SHA256` is not a fix from
+here: `ci-common.sh`'s `run_container` forwards only four `-e` variables and not
+that one. Either match the image's pin or stop pinning in this repo. Whether the
+SDK is baked into a given image tag is ContainerHub's business — § 2.
+
 - `require_ci_env` hard-requires `MATRIX_PLATFORM`, `MATRIX_ARCH`,
   `FLUTTER_VERSION` and `APP_NAME` — the script exits rather than guessing.
   Defaulted: `CONTAINER_IMAGE` (`…:latest-cross`), `WORKSPACE_DIR`

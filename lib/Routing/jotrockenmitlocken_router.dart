@@ -58,7 +58,7 @@ class JotrockenMitLockenRoutes extends RoutesCreator {
   }
 
   List<(Widget, StatefulBranchInfoProvider)> _getErrorPagesAndConfigs(
-    appAttributes,
+    AppAttributes appAttributes,
   ) {
     List<StatefulBranchInfoProvider> errorPageConfigs = appAttributes
         .screenConfigurations
