@@ -618,15 +618,29 @@ try {
         # built preset was supposed to produce actually exists, so an empty or
         # silently-failed build cannot exit 0 (adopting-in-a-new-project.md § 2;
         # the RustProjectTemplate Build-Windows.ps1 keeps the same gate on its MSIX).
+        # Two things this has to get right, both found by audit after the first
+        # version shipped:
+        #  - CI passes no -Configurations, so $presetsToRun is @(""). Skipping the
+        #    empty entry made this gate assert NOTHING in the one lane it matters
+        #    most. Fall back to the configured default preset instead.
+        #  - $buildRoot is container-local scratch; the copy that has to reach the
+        #    host is under $originalBuildRoot, produced by the sync step above,
+        #    whose robocopy failure only warns. Assert both roots.
         $missingArtifacts = @()
         foreach ($currentPreset in $presetsToRun) {
-            if ([string]::IsNullOrEmpty($currentPreset)) { continue }
-            $presetLayout = Resolve-KataglyphisWindowsLayout -BuildRootFull $buildRoot -WindowsBuildConfig $windowsBuildConfig -Configuration $currentPreset
-            $exePath = Join-Path $presetLayout.RunnerDir $windowsBuildConfig.RunnerExeName
-            if (Test-Path -LiteralPath $exePath) {
-                Write-BuildLog -Context $context -Message "Delivered: $exePath"
+            $effectivePreset = if ([string]::IsNullOrEmpty($currentPreset)) {
+                $windowsBuildConfig.CMakeConfiguration
             } else {
-                $missingArtifacts += $exePath
+                $currentPreset
+            }
+            foreach ($deliveryRoot in @($buildRoot, $originalBuildRoot)) {
+                $presetLayout = Resolve-KataglyphisWindowsLayout -BuildRootFull $deliveryRoot -WindowsBuildConfig $windowsBuildConfig -Configuration $effectivePreset
+                $exePath = Join-Path $presetLayout.RunnerDir $windowsBuildConfig.RunnerExeName
+                if (Test-Path -LiteralPath $exePath) {
+                    Write-BuildLog -Context $context -Message "Delivered: $exePath"
+                } else {
+                    $missingArtifacts += $exePath
+                }
             }
         }
         if ($missingArtifacts.Count -gt 0) {
