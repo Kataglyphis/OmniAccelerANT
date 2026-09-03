@@ -25,33 +25,13 @@ packaging_run_privileged_cmd() {
   fi
 }
 
-setup_local_appimagetool_for_container() {
-  local matrix_arch="${1:?matrix_arch required}"
-  mkdir -p .tools/bin
-
-  local appimage_arch
-  case "$matrix_arch" in
-    x64) appimage_arch="x86_64" ;;
-    arm64) appimage_arch="aarch64" ;;
-    *)
-      echo "Error: unsupported architecture for appimagetool bootstrap: $matrix_arch" >&2
-      return 1
-      ;;
-  esac
-
-  wget -q "https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-${appimage_arch}.AppImage" -O .tools/appimagetool
-  chmod +x .tools/appimagetool
-  ./.tools/appimagetool --appimage-extract >/dev/null
-  rm -rf .tools/squashfs-root
-  mv squashfs-root .tools/
-
-  cat > .tools/bin/appimagetool <<'EOF'
-#!/usr/bin/env bash
-set -euo pipefail
-"$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/squashfs-root/AppRun" "$@"
-EOF
-  chmod +x .tools/bin/appimagetool
-  export PATH="$PWD/.tools/bin:$PATH"
+# appimagetool comes from ContainerHub (pinned version + SHA256) — AGENTS.md § 2.
+ensure_appimagetool_via_containerhub() {
+  if command -v appimagetool >/dev/null 2>&1; then return 0; fi
+  bash "$(containerhub_path linux/scripts/02-toolchain/packaging-deps.sh)" appimagetool || return 1
+  # The provisioner's own PATH export dies with the child process.
+  if ! command -v appimagetool >/dev/null 2>&1; then export PATH="${HOME:-}/.local/bin:$PATH"; fi
+  command -v appimagetool >/dev/null 2>&1
 }
 
 setup_packaging_dependencies_for_container() {
@@ -82,7 +62,7 @@ setup_packaging_dependencies_for_container() {
     packaging_run_privileged_cmd apt-get install -y dpkg flatpak flatpak-builder elfutils libfuse2 dbus-user-session wget
   fi
 
-  setup_local_appimagetool_for_container "$matrix_arch"
+  ensure_appimagetool_via_containerhub
 
   export XDG_RUNTIME_DIR="/tmp/runtime-$(id -u)"
   mkdir -p "$XDG_RUNTIME_DIR"
@@ -251,48 +231,10 @@ map_arch_to_flatpak() {
   esac
 }
 
+# Prints the command name; stdout stays clean because the provisioner logs to stderr.
 resolve_appimagetool() {
-  local arch="${1:?appimage arch required}"
-
-  if command -v appimagetool >/dev/null 2>&1; then
-    echo "appimagetool"
-    return 0
-  fi
-
-  local filename
-  case "$arch" in
-    x86_64)
-      filename="appimagetool-x86_64.AppImage"
-      ;;
-    aarch64)
-      filename="appimagetool-aarch64.AppImage"
-      ;;
-    *)
-      echo "Error: unsupported architecture for appimagetool bootstrap: $arch" >&2
-      return 1
-      ;;
-  esac
-
-  local tools_dir tool_path url
-  tools_dir="out/tools"
-  tool_path="${tools_dir}/${filename}"
-  url="https://github.com/AppImage/appimagetool/releases/download/continuous/${filename}"
-
-  mkdir -p "$tools_dir"
-
-  if [[ ! -x "$tool_path" ]]; then
-    if command -v curl >/dev/null 2>&1; then
-      curl -fsSL "$url" -o "$tool_path"
-    elif command -v wget >/dev/null 2>&1; then
-      wget -qO "$tool_path" "$url"
-    else
-      echo "Error: neither curl nor wget found. Install one of them to fetch appimagetool." >&2
-      return 1
-    fi
-    chmod +x "$tool_path"
-  fi
-
-  echo "$tool_path"
+  ensure_appimagetool_via_containerhub >&2 || return 1
+  echo "appimagetool"
 }
 
 detect_icon_file() {
@@ -414,7 +356,7 @@ package_linux_bundle_appimage() {
   appdir="out/${package_name}.AppDir"
   output_name="${package_name}-${version}-${arch}.AppImage"
 
-  if ! appimagetool_cmd="$(resolve_appimagetool "$arch")"; then
+  if ! appimagetool_cmd="$(resolve_appimagetool)"; then
     return 1
   fi
 

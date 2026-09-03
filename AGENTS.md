@@ -50,6 +50,8 @@ reorganisation.
 | Linux container builds | `docs/linux-build-basics.md` |
 | Running the Linux lane locally on Windows (Rancher Desktop/nerdctl), and **a bind mount that resolves but is empty** — containerd's mount namespace, Windows vs WSL path form | `docs/rancher-desktop-linux-containers.md` |
 | The five shell-safety bug classes | ContainerHub `AGENTS.md` § *Shell safety conventions* |
+| appimagetool provisioning — pinned version + SHA256, not the moving `continuous` tag | `linux/scripts/02-toolchain/packaging-deps.sh`, subcommand `appimagetool` |
+| Python venv + `uv` provisioning (installer downloaded to a file and SHA-checkable, never `curl \| sh`) | `linux/scripts/01-core/python_uv.sh` |
 
 Two upstream facts repeated here only because they bite before you reach a doc:
 
@@ -69,6 +71,25 @@ Two upstream facts repeated here only because they bite before you reach a doc:
 - `scripts/linux/lib/containerhub.sh` — the bash twin: `containerhub_source`
   and `containerhub_path`, resolved from `${BASH_SOURCE[0]}` so they work from
   any working directory.
+
+**Deliberately not reused.** Two upstream Windows pieces were evaluated and
+rejected; both would be regressions here, so do not "fix" their absence:
+
+- `WindowsAppRunner.Common` (`Invoke-AppRun` / `Resolve-AppExecutablePath`).
+  Its executable probe tries `<BuildRoot>\<exe>` first and ends in a recursive
+  first-match search. This tree holds **four** copies of the runner exe
+  (`runner\`, `runner\Release\` from the MSIX layout step, `runner\<preset>\`,
+  `runner\<preset>\Release\`), so it would launch the flat one and ignore
+  `-Configuration` entirely. `Start-Windows.ps1` instead resolves through
+  `Resolve-KataglyphisWindowsLayout`, which knows the preset layout and
+  validates the Rust plugin DLL alongside the exe. `Invoke-AppRun` also has no
+  log parameter, so adopting it would drop the `Tee-Object` run log.
+- `Invoke-CmakeConfigureAndBuild` (`WindowsCMake.Common`). It makes `-Preset`
+  mandatory (this repo also has a generator/`CMAKE_BUILD_TYPE` path), passes no
+  `-S` source directory (the CMake source here is `windows/`, not the repo
+  root), and offers no `--target` — but `--target install` is what produces the
+  runner bundle. It also fuses configure and build into one step, while the
+  `Native Assets Directory Fix` step must run between them.
 
 ## 3. Pitfalls specific to this project
 

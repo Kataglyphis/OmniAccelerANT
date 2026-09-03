@@ -11,6 +11,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/container-steps.sh"
+containerhub_source linux/scripts/01-core/python_uv.sh   # uv_ensure_installed, uv_venv_create
 
 source_bashrc_and_add_flutter_to_path
 
@@ -89,21 +90,18 @@ fi
 if [[ -d "$DOC_API_DIR" ]]; then
 	echo "[Info] Adding custom footer and sidebar MD navigation to documentation."
 	
-	if ! command -v uv >/dev/null 2>&1; then
-		echo "[Info] Installing Astral uv..."
-		curl -LsSf https://astral.sh/uv/install.sh | sh
-		export PATH="$HOME/.local/bin:$HOME/.cargo/bin:$PATH"
-	fi
+	uv_ensure_installed
 
 	echo "[Info] Creating venv with uv and installing dependencies..."
-	uv venv "$DOC_ROOT/.venv"
+	uv_venv_create "$DOC_ROOT/.venv" ""   # "" skips the --python pin, honouring UV_PYTHON
 	# Vendor activate scripts reference unset vars; suspend nounset across the
 	# source and restore it (ContainerHub AGENTS.md § Shell safety, bug class 4).
 	_gd_flags="$-"
 	set +u
 	source "$DOC_ROOT/.venv/bin/activate"
 	if [[ "$_gd_flags" =~ u ]]; then set -u; fi
-	uv pip install markdown-it-py
+	# --python is load-bearing: uv honours UV_PYTHON over the activated venv.
+	uv pip install --python "$DOC_ROOT/.venv/bin/python" markdown-it-py
 
 	python3 - "$DOC_API_DIR" <<'PY'
 import os
