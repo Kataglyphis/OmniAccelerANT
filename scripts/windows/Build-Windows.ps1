@@ -55,6 +55,7 @@ Import-BuildModule @(
     'WindowsFlutter.Common'     # plugin symlink + permission_handler patches, host artifact sync
     'WindowsCMake.Common'       # Remove-BuildRootSafe
     'WindowsGstPlugins.Common'  # Assert-PkgConfigModule
+    'WindowsFormatting.Common'  # Get-ProjectDartFiles
     'WindowsPaths.Common'       # project-local: this repo's Flutter windows/x64 layout
 )
 
@@ -253,8 +254,9 @@ try {
         Invoke-BuildStep -Context $context -StepName "Dart Format Verification" -Script {
             Push-Location $workspace
             try {
-                # Source roots, not "." — see AGENTS.md § 4.
-                Invoke-BuildExternal -Context $context -File "dart" -Parameters @("format", "--output=none", "--set-exit-if-changed", "lib", "test", "integration_test", "test_driver")
+                $dartFiles = @(Get-ProjectDartFiles -WorkspacePath $workspace)
+                if ($dartFiles.Count -eq 0) { throw "Get-ProjectDartFiles found no tracked .dart files." }
+                Invoke-BuildExternal -Context $context -File "dart" -Parameters (@("format", "--output=none", "--set-exit-if-changed") + $dartFiles)
             } finally {
                 Pop-Location
             }
@@ -287,14 +289,7 @@ try {
 
     if (-not $SkipDocs) {
         Invoke-BuildStep -Context $context -StepName "Generate API Docs" -Script {
-            Push-Location $workspace
-            try {
-                # Not the SDK dart doc — see AGENTS.md § 4.
-                Invoke-BuildExternal -Context $context -File "dart" -Parameters @("pub", "global", "activate", "dartdoc")
-                Invoke-BuildExternal -Context $context -File "dart" -Parameters @("pub", "global", "run", "dartdoc", "--output", "doc/api")
-            } finally {
-                Pop-Location
-            }
+            Invoke-FlutterApiDocs -WorkspacePath $workspace -OutputPath 'doc/api'
         }
     } else {
         Write-BuildLog -Context $context -Message "Skipping API docs generation (SkipDocs set)."

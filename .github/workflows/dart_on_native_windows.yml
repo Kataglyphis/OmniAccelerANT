@@ -18,12 +18,8 @@ jobs:
 
     steps:
 
-      # The whole prologue - long paths, submodule-less checkout, short-path
-      # clone, data-root move, disk cleanup, registry login, pull, disk report -
-      # is ContainerHub's. It was ~45 lines here and identical in three sibling
-      # repos, and each of its three traps had already cost a lane: MAX_PATH on
-      # the submodule chain, the image not fitting on C:, and a disk shortfall
-      # only surfacing 20 minutes into the pull.
+      # Why DocumANTation is pruned and why the mount inputs stay unset:
+      # AGENTS.md § 4, "The CI lane".
       - name: Prepare Windows container host
         id: prep
         uses: Kataglyphis/Kataglyphis-ContainerHub/.github/actions/prepare-windows-container-host@main
@@ -31,34 +27,9 @@ jobs:
           image: ghcr.io/kataglyphis/kataglyphis_beschleuniger:winamd64
           registry-password: ${{ secrets.GHCR_PAT }}
           short-path-target: /d/ws
-          # The short clone root was not enough. This repo's chain is
-          #   Inference-Engine -> NativeInferencePlugin -> KataglyphisCppInference
-          #   -> ContainerHub -> DocumANTation -> md2pdfLib -> latex/{smile,awesome-beamer}
-          # and the recursive update died on the last hop with
-          #   fatal: '$GIT_DIR' too big
-          #   fatal: remote helper 'https' aborted session
-          # Every level adds another `.git/modules/<name>/` segment, so this is
-          # git's own limit, not MAX_PATH - no clone root is short enough.
-          # DocumANTation is ContainerHub's documentation/LaTeX tooling and the
-          # Windows build never reads it, so prune it and its whole subtree.
           exclude-submodules: |
             external/Kataglyphis-DocumANTation
 
-      # -CodeQL turns on analysis
-      # for now disabled due to long runtimes
-      #
-      # ContainerHub's action instead of a hand-rolled `docker run`: it gives
-      # the container every logical processor the runner has (the old `--cpus 4`
-      # throttled the build on bigger runners), delivers the payload through env
-      # vars so nothing is re-parsed by the host shell, and runs it under `pwsh`
-      # — which the build script now requires, since every ContainerHub module
-      # declares `#requires -Version 7.0` and Windows PowerShell 5.1 cannot load
-      # them.
-      #
-      # mount-source/mount-target are deliberately NOT set: the action already
-      # defaults to D:\ws -> C:\ws, which is where the short-path clone put the
-      # tree. Setting them back to github.workspace would mount the
-      # submodule-less checkout instead.
       - name: Run container
         uses: Kataglyphis/Kataglyphis-ContainerHub/.github/actions/run-in-windows-container@main
         with:
@@ -67,12 +38,7 @@ jobs:
           file-args: |
             -SkipMsixPackaging
 
-      # Artifact paths are ABSOLUTE under D:\ws now, not relative to
-      # github.workspace: the build runs in the short-path clone, so that is
-      # where its output lands. A relative path here would silently match
-      # nothing in the submodule-less checkout - and `if-no-files-found: error`
-      # would report it as a missing build rather than a wrong path.
-      # see also the install commands in the bottom of the CMakeLists.txt
+      # Absolute under the short-path clone, never relative - AGENTS.md § 4.
       - name: Upload release artifacts
         uses: actions/upload-artifact@v7.0.1
         with:
@@ -81,9 +47,6 @@ jobs:
           path: |
             ${{ steps.prep.outputs.workspace }}/${{ env.BUILD_DIR_RELEASE }}/**/*
 
-      # The build script already tees its own transcript plus a machine-readable
-      # summary into logs/ inside the mounted workspace, so there is no separate
-      # build.log to keep in sync.
       - name: Upload build log
         if: always()
         uses: actions/upload-artifact@v7.0.1
@@ -93,21 +56,9 @@ jobs:
             ${{ steps.prep.outputs.workspace }}/logs/build-windows-*.log
             ${{ steps.prep.outputs.workspace }}/logs/build-summary-*.json
 
-      # hashFiles() only sees inside GITHUB_WORKSPACE, and the build now runs in
-      # the short-path clone outside it - so the old
-      #   if: hashFiles('.../codeql-results/*.sarif') != ''
-      # could never be true again. Probe the real location instead.
-      - name: Look for SARIF output
-        id: sarif
+      - name: Upload CodeQL SARIF
         if: always()
-        run: |
-          $dir = '${{ steps.prep.outputs.workspace }}\codeql-results'
-          $found = (Test-Path $dir) -and @(Get-ChildItem $dir -Filter *.sarif -ErrorAction SilentlyContinue).Count -gt 0
-          Write-Host "SARIF in ${dir}: $found"
-          "found=$($found.ToString().ToLower())" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
-
-      - uses: github/codeql-action/upload-sarif@v4 # Recommended upgrade
-        if: steps.sarif.outputs.found == 'true'
+        uses: Kataglyphis/Kataglyphis-ContainerHub/.github/actions/upload-codeql-sarif@main
         with:
-          sarif_file: ${{ steps.prep.outputs.workspace }}\codeql-results # Points to the folder containing cpp.sarif and rust.sarif
+          workspace: ${{ steps.prep.outputs.workspace }}
           category: windows-clang-rust

@@ -192,6 +192,31 @@ directory … where it was created"*, plus the wrong generator). The
 Both halves were broken until 2026-09-03 and nobody noticed, because CI passes
 `-SkipMsixPackaging` — packaging is only exercised locally.
 
+**The CI lane** ([`dart_on_native_windows.yml`](.github/workflows/dart_on_native_windows.yml))
+is four ContainerHub actions and nothing hand-rolled:
+`prepare-windows-container-host` (long paths, short-path clone, data-root move,
+disk check, GHCR login, pull), `run-in-windows-container`,
+`actions/upload-artifact` and `upload-codeql-sarif`. Three consequences:
+
+- It prunes `external/Kataglyphis-DocumANTation` from the recursive checkout.
+  This repo's chain is Inference-Engine → NativeInferencePlugin →
+  KataglyphisCppInference → ContainerHub → DocumANTation → md2pdfLib →
+  `latex/{smile,awesome-beamer}`, and every level adds another
+  `.git/modules/<name>/` segment until git aborts with `fatal: '$GIT_DIR' too
+  big` — that is git's own limit, not MAX_PATH, so no clone root is short
+  enough. DocumANTation is ContainerHub's LaTeX tooling and the Windows build
+  never reads it.
+- `mount-source`/`mount-target` stay unset: the action already defaults to
+  `D:\ws` → `C:\ws`, which is where the short-path clone put the tree. Setting
+  them to `github.workspace` would mount the submodule-less checkout instead.
+- Artifact paths are therefore **absolute under the short-path clone**
+  (`steps.prep.outputs.workspace`), never relative to `github.workspace`. A
+  relative path matches nothing there, and `if-no-files-found: error` would
+  report that as a missing build. `upload-codeql-sarif` exists for the same
+  reason: `hashFiles()` only sees inside `GITHUB_WORKSPACE`.
+
+CI passes `-SkipMsixPackaging`, and `-CodeQL` is off there because of runtimes.
+
 Run the app on the host once artifacts are back:
 
 ```powershell

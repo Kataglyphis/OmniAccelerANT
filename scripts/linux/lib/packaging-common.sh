@@ -218,16 +218,8 @@ get_pubspec_version() {
   echo "$version"
 }
 
-# Output delegated to platform.sh; only the `x64` token is normalized here.
-_packaging_normalize_arch_token() {
-  case "${1:?arch required}" in
-    x64) printf '%s' "x86_64" ;;
-    *)   printf '%s' "$1" ;;
-  esac
-}
-
 map_arch_to_deb() {
-  local a; a="$(_packaging_normalize_arch_token "${1:?arch required}")"
+  local a="${1:?arch required}"
   case "$(arch_normalize "$a")" in
     amd64|arm64) arch_normalize "$a" ;;
     *)
@@ -238,7 +230,7 @@ map_arch_to_deb() {
 }
 
 map_arch_to_appimage() {
-  local a; a="$(_packaging_normalize_arch_token "${1:?arch required}")"
+  local a="${1:?arch required}"
   case "$(arch_normalize "$a")" in
     amd64|arm64) arch_uname_name_for "$a" ;;
     *)
@@ -249,7 +241,7 @@ map_arch_to_appimage() {
 }
 
 map_arch_to_flatpak() {
-  local a; a="$(_packaging_normalize_arch_token "${1:?arch required}")"
+  local a="${1:?arch required}"
   case "$(arch_normalize "$a")" in
     amd64|arm64) arch_uname_name_for "$a" ;;
     *)

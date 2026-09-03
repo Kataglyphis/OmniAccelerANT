@@ -104,40 +104,9 @@ run_flutter_common_checks() {
   run_check_cmd "$strict_mode" flutter test
 }
 
-# GCC path comes from ContainerHub cross-gcc.sh — see AGENTS.md § 4.
 export_toolchain_env() {
   export CC=clang
   export CXX=clang++
-
   containerhub_source linux/scripts/01-core/cross-gcc.sh
-  local gcc_toolchain_root="${MYPROJECT_GCC_TOOLCHAIN_PATH:-$(gcc_toolchain_prefix)}"
-  local gcc_toolchain_lib=""
-
-  if [[ ! -d "$gcc_toolchain_root" ]]; then
-    echo "Warning: GCC toolchain not found at ${gcc_toolchain_root}; clang will" >&2
-    echo "         fall back to its own GCC discovery instead of the image's" >&2
-    echo "         source-built toolchain. Check GCC_VERSION in ContainerHub's" >&2
-    echo "         versions.env against the image." >&2
-  fi
-
-  if [[ -d "$gcc_toolchain_root" ]]; then
-    if [[ -d "$gcc_toolchain_root/lib64" ]]; then
-      gcc_toolchain_lib="$gcc_toolchain_root/lib64"
-    elif [[ -d "$gcc_toolchain_root/lib" ]]; then
-      gcc_toolchain_lib="$gcc_toolchain_root/lib"
-    fi
-
-    export CFLAGS_x86_64_unknown_linux_gnu="--gcc-toolchain=${gcc_toolchain_root} ${CFLAGS:-}"
-    export CFLAGS_aarch64_unknown_linux_gnu="--gcc-toolchain=${gcc_toolchain_root} ${CFLAGS:-}"
-    export CFLAGS="--gcc-toolchain=${gcc_toolchain_root} ${CFLAGS:-}"
-    export CXXFLAGS_x86_64_unknown_linux_gnu="--gcc-toolchain=${gcc_toolchain_root} ${CXXFLAGS:-}"
-    export CXXFLAGS_aarch64_unknown_linux_gnu="--gcc-toolchain=${gcc_toolchain_root} ${CXXFLAGS:-}"
-    export CXXFLAGS="--gcc-toolchain=${gcc_toolchain_root} ${CXXFLAGS:-}"
-
-    if [[ -n "$gcc_toolchain_lib" ]]; then
-      export LDFLAGS="-L${gcc_toolchain_lib} -Wl,-rpath,${gcc_toolchain_lib} --gcc-toolchain=${gcc_toolchain_root} ${LDFLAGS:-}"
-    else
-      export LDFLAGS="--gcc-toolchain=${gcc_toolchain_root} ${LDFLAGS:-}"
-    fi
-  fi
+  export_clang_gcc_toolchain_env
 }
