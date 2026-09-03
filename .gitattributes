@@ -1,2 +1,6 @@
 *.sh text eol=lf
 *.bash text eol=lf
+# Composite actions and workflows run under `shell: pwsh`; CRLF in a workflow
+# body breaks heredocs and multi-line run: blocks on the Linux runners.
+*.yml text eol=lf
+*.yaml text eol=lf

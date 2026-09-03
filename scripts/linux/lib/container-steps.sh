@@ -116,12 +116,26 @@ run_flutter_common_checks() {
   run_check_cmd "$strict_mode" flutter test
 }
 
+# ContainerHub owns the source-built GCC and its path: cross-gcc.sh's
+# gcc_toolchain_prefix() is /opt/gcc-$GCC_VERSION, and versions.env pins that
+# version. This used to hardcode /opt/gcc-15.2.0, which the image stopped
+# shipping when it moved to 16.2.0 — and because the whole flag block hangs off
+# an `if [[ -d ]]`, the wiring silently became a no-op that exported nothing but
+# CC/CXX. Derive the path, and say so out loud when it is missing.
 export_toolchain_env() {
   export CC=clang
   export CXX=clang++
 
-  local gcc_toolchain_root="${MYPROJECT_GCC_TOOLCHAIN_PATH:-/opt/gcc-15.2.0}"
+  containerhub_source linux/scripts/01-core/cross-gcc.sh
+  local gcc_toolchain_root="${MYPROJECT_GCC_TOOLCHAIN_PATH:-$(gcc_toolchain_prefix)}"
   local gcc_toolchain_lib=""
+
+  if [[ ! -d "$gcc_toolchain_root" ]]; then
+    echo "Warning: GCC toolchain not found at ${gcc_toolchain_root}; clang will" >&2
+    echo "         fall back to its own GCC discovery instead of the image's" >&2
+    echo "         source-built toolchain. Check GCC_VERSION in ContainerHub's" >&2
+    echo "         versions.env against the image." >&2
+  fi
 
   if [[ -d "$gcc_toolchain_root" ]]; then
     if [[ -d "$gcc_toolchain_root/lib64" ]]; then

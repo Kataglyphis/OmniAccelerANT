@@ -597,11 +597,11 @@ try {
 
     if (-not $SkipMsixPackaging) {
         Invoke-BuildStep -Context $context -StepName "MSIX Packaging" -Script {
-            $pluginSymlinksDir = Join-Path $workspace "windows\flutter\ephemeral\.plugin_symlinks"
-            if (Test-Path $pluginSymlinksDir) {
-                Remove-Item -LiteralPath $pluginSymlinksDir -Force -Recurse -ErrorAction SilentlyContinue
-                & cmd.exe /c "rmdir /q /s `"$pluginSymlinksDir`" 2>nul"
-            }
+            # Upstream owns the ephemeral .plugin_symlinks path and the scrub;
+            # this used to repeat both verbatim, so an upstream layout change
+            # would have fixed the call at :329 and left this copy quietly
+            # deleting a stale directory (every delete here is silenced).
+            Clear-FlutterPluginSymlink -Context $context -WorkspaceDir $workspace
             Push-Location $workspace
             try {
                 Invoke-BuildExternal -Context $context -File "dart" -Parameters @("run", "msix:create", "--install-certificate", "false")

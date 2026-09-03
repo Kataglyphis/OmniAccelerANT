@@ -56,8 +56,14 @@ case "$STAGE" in
 
       export CC=clang
       export CXX=clang++
-      export CXXFLAGS="--gcc-toolchain=/opt/gcc-15.2.0 $CXXFLAGS"
-      export LDFLAGS="-L/opt/gcc-15.2.0/lib64 -Wl,-rpath,/opt/gcc-15.2.0/lib64 --gcc-toolchain=/opt/gcc-15.2.0 $LDFLAGS"
+      # ContainerHub owns the source-built GCC path (cross-gcc.sh:
+      # /opt/gcc-$GCC_VERSION). Derive it — the hardcoded path this
+      # used to carry (/opt/gcc-15.2.0) stopped existing when the image moved to 16.2.0, and clang
+      # was silently handed a path that is not there.
+      source /workspace/ExternalLib/Kataglyphis-ContainerHub/linux/scripts/01-core/cross-gcc.sh
+      export GCC_ROOT="$(gcc_toolchain_prefix)"
+      export CXXFLAGS="--gcc-toolchain=${GCC_ROOT} $CXXFLAGS"
+      export LDFLAGS="-L${GCC_ROOT}/lib64 -Wl,-rpath,${GCC_ROOT}/lib64 --gcc-toolchain=${GCC_ROOT} $LDFLAGS"
 
       TMPDIR=/tmp/codeql
       mkdir -p $TMPDIR
@@ -79,8 +85,8 @@ case "$STAGE" in
         "set -e" \
         "export CC=clang" \
         "export CXX=clang++" \
-        "export CXXFLAGS=\"--gcc-toolchain=/opt/gcc-15.2.0 \$CXXFLAGS\"" \
-        "export LDFLAGS=\"-L/opt/gcc-15.2.0/lib64 -Wl,-rpath,/opt/gcc-15.2.0/lib64 --gcc-toolchain=/opt/gcc-15.2.0 \$LDFLAGS\"" \
+        "export CXXFLAGS=\"--gcc-toolchain=${GCC_ROOT} \$CXXFLAGS\"" \
+        "export LDFLAGS=\"-L${GCC_ROOT}/lib64 -Wl,-rpath,${GCC_ROOT}/lib64 --gcc-toolchain=${GCC_ROOT} \$LDFLAGS\"" \
         "export PATH=\"\${FLUTTER_DIR}/bin:\$PATH\"" \
         "source ~/.bashrc 2>/dev/null || true" \
         "flutter clean" \
@@ -107,10 +113,14 @@ case "$STAGE" in
         --output=/workspace/codeql-results/cpp.sarif \
         codeql/cpp-queries:codeql-suites/cpp-security-and-quality.qls || true
 
-      /opt/codeql/codeql database analyze /tmp/codeql-db-cluster/kotlin \
+      # Kotlin is analyzed by CodeQL Java extractor, so java-queries (which is
+      # what the pack download above actually fetches) is the right suite. The
+      # kotlin-queries pack was never downloaded, so this step always failed and
+      # the trailing || true swallowed it.
+      /opt/codeql/codeql database analyze /tmp/codeql-db-cluster/java \
         --format=sarif-latest \
-        --output=/workspace/codeql-results/kotlin.sarif \
-        codeql/kotlin-queries:codeql-suites/kotlin-security-and-quality.qls || true
+        --output=/workspace/codeql-results/java.sarif \
+        codeql/java-queries:codeql-suites/java-security-and-quality.qls || true
 
       /opt/codeql/codeql database analyze /tmp/codeql-db-cluster/rust \
         --format=sarif-latest \

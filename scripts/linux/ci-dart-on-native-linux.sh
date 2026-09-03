@@ -65,8 +65,14 @@ case "$STAGE" in
 
       export CC=clang
       export CXX=clang++
-      export CXXFLAGS="--gcc-toolchain=/opt/gcc-15.2.0 $CXXFLAGS"
-      export LDFLAGS="-L/opt/gcc-15.2.0/lib64 -Wl,-rpath,/opt/gcc-15.2.0/lib64 --gcc-toolchain=/opt/gcc-15.2.0 $LDFLAGS"
+      # ContainerHub owns the source-built GCC path (cross-gcc.sh:
+      # /opt/gcc-$GCC_VERSION). Derive it — the hardcoded path this
+      # used to carry (/opt/gcc-15.2.0) stopped existing when the image moved to 16.2.0, and clang
+      # was silently handed a path that is not there.
+      source /workspace/ExternalLib/Kataglyphis-ContainerHub/linux/scripts/01-core/cross-gcc.sh
+      export GCC_ROOT="$(gcc_toolchain_prefix)"
+      export CXXFLAGS="--gcc-toolchain=${GCC_ROOT} $CXXFLAGS"
+      export LDFLAGS="-L${GCC_ROOT}/lib64 -Wl,-rpath,${GCC_ROOT}/lib64 --gcc-toolchain=${GCC_ROOT} $LDFLAGS"
 
       if [ "$MATRIX_ARCH" = "x64" ]; then
         TMPDIR=/tmp/codeql
@@ -88,8 +94,8 @@ case "$STAGE" in
           "set -e" \
           "export CC=clang" \
           "export CXX=clang++" \
-          "export CXXFLAGS=\"--gcc-toolchain=/opt/gcc-15.2.0 \$CXXFLAGS\"" \
-          "export LDFLAGS=\"-L/opt/gcc-15.2.0/lib64 -Wl,-rpath,/opt/gcc-15.2.0/lib64 --gcc-toolchain=/opt/gcc-15.2.0 \$LDFLAGS\"" \
+          "export CXXFLAGS=\"--gcc-toolchain=${GCC_ROOT} \$CXXFLAGS\"" \
+          "export LDFLAGS=\"-L${GCC_ROOT}/lib64 -Wl,-rpath,${GCC_ROOT}/lib64 --gcc-toolchain=${GCC_ROOT} \$LDFLAGS\"" \
           "export PATH=\"\${FLUTTER_DIR}/bin:\$PATH\"" \
           "source ~/.bashrc 2>/dev/null || true" \
           "flutter clean" \
