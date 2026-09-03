@@ -1,18 +1,29 @@
 #!/usr/bin/env bash
 
+# /opt is not writable for the unprivileged container user. Installing there
+# left every codeql call as "No such file or directory" — and since
+# `database create` wraps the build, the app was never built either.
+: "${CODEQL_INSTALL_DIR:=/tmp/codeql-cli}"
+CODEQL="${CODEQL_INSTALL_DIR}/codeql/codeql"
+
 codeql_install_cli() {
   local tmpdir="${1:-/tmp/codeql}"
   mkdir -p "$tmpdir"
   pushd "$tmpdir" >/dev/null
   wget -q https://github.com/github/codeql-cli-binaries/releases/latest/download/codeql-linux64.zip -O codeql.zip
-  unzip -q codeql.zip -d /opt
-  /opt/codeql/codeql resolve languages
+  mkdir -p "$CODEQL_INSTALL_DIR"
+  unzip -q codeql.zip -d "$CODEQL_INSTALL_DIR"
+  if [ ! -x "$CODEQL" ]; then
+    echo "Error: codeql CLI not installed at $CODEQL (unzip target not writable?)" >&2
+    return 1
+  fi
+  "$CODEQL" resolve languages
   popd >/dev/null
 }
 
 codeql_download_packs() {
   for pack in "$@"; do
-    /opt/codeql/codeql pack download "$pack"
+    "$CODEQL" pack download "$pack"
   done
 }
 
@@ -47,7 +58,7 @@ codeql_create_db_cluster() {
   local build_script_path="$1"
   shift
 
-  /opt/codeql/codeql database create /tmp/codeql-db-cluster \
+  "$CODEQL" database create /tmp/codeql-db-cluster \
     --db-cluster \
     "$@" \
     --source-root=/workspace \
@@ -56,7 +67,7 @@ codeql_create_db_cluster() {
 
 codeql_analyze_cpp() {
   mkdir -p /workspace/codeql-results
-  /opt/codeql/codeql database analyze /tmp/codeql-db-cluster/cpp \
+  "$CODEQL" database analyze /tmp/codeql-db-cluster/cpp \
     --format=sarif-latest \
     --output=/workspace/codeql-results/cpp.sarif \
     codeql/cpp-queries:codeql-suites/cpp-security-and-quality.qls || true
@@ -64,7 +75,7 @@ codeql_analyze_cpp() {
 
 codeql_analyze_rust() {
   mkdir -p /workspace/codeql-results
-  /opt/codeql/codeql database analyze /tmp/codeql-db-cluster/rust \
+  "$CODEQL" database analyze /tmp/codeql-db-cluster/rust \
     --format=sarif-latest \
     --output=/workspace/codeql-results/rust.sarif \
     codeql/rust-queries:codeql-suites/rust-security-and-quality.qls || true
@@ -73,7 +84,7 @@ codeql_analyze_rust() {
 # Kotlin is covered by the Java extractor, hence java-queries.
 codeql_analyze_java() {
   mkdir -p /workspace/codeql-results
-  /opt/codeql/codeql database analyze /tmp/codeql-db-cluster/java \
+  "$CODEQL" database analyze /tmp/codeql-db-cluster/java \
     --format=sarif-latest \
     --output=/workspace/codeql-results/java.sarif \
     codeql/java-queries:codeql-suites/java-security-and-quality.qls || true
