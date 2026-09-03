@@ -16,7 +16,7 @@ Rust core and a C++ inference plugin underneath it.
 | Path | What lives there |
 | --- | --- |
 | `lib/` | The Flutter/Dart frontend |
-| `ExternalLib/Kataglyphis-RustProjectTemplate` | Rust core, bridged via `flutter_rust_bridge` — regenerate bindings after Rust API changes with `flutter pub run flutter_rust_bridge_codegen` |
+| `ExternalLib/Kataglyphis-RustProjectTemplate` | Rust core, bridged via `flutter_rust_bridge` — regenerate bindings with `flutter_rust_bridge_codegen generate` (a cargo binary baked into the build image, NOT a pub dependency; on a bare host `cargo install flutter_rust_bridge_codegen` first). `lib/src/rust/` is committed generated code — no build lane regenerates it |
 | `ExternalLib/Kataglyphis_NativeInferencePlugin` | C++ inference plugin (`native/KataglyphisCppInference`); links GStreamer + ONNX Runtime via CMake/pkg-config |
 | `scripts/windows/`, `scripts/linux/` | Thin wrappers over ContainerHub drivers + this repo's own glue |
 | `ExternalLib/Kataglyphis-ContainerHub` | The submodule owning every reusable script, module and doc |
@@ -92,9 +92,13 @@ written out rather than linked.
   into Flutter's `/MD` objects (`lld-link` RuntimeLibrary mismatch), and
   `kataglyphis_libfuzzer.exe` hit an `annotate_string` mismatch vs
   `clang_rt.fuzzer`.
-- **All presets install into the same directory** —
-  `build\windows\x64\runner\x64-ClangCL-Windows-Release\` holds whichever preset
-  built last. Copy artifacts away between preset runs.
+- **Each preset installs into its own directory** —
+  `build\windows\x64\runner\<preset>\` (and `plugins\<preset>\`), because
+  `Build-Windows.ps1`:367 resolves the layout per preset and :399/:408 pass that
+  as `-DCMAKE_INSTALL_PREFIX`. `x64-ClangCL-Windows-Release` is only the fallback
+  used when no preset is named (`WindowsBuildConfig.ps1`'s `CMakeConfiguration`).
+  Presets no longer clobber each other — but `Start-Windows.ps1` must then be
+  given the same preset name.
 - **Running on an unprovisioned host** (`STATUS_DLL_NOT_FOUND`): stage the
   image's runtime DLLs into the runner (`C:\runtime\bin` + onnxruntime/DirectML →
   `runner\bin\`; `C:\runtime\lib\gstreamer-1.0` → `runner\lib\gstreamer-1.0\`).
@@ -143,9 +147,19 @@ supported` on hosts whose Docker/hcsshim is version-skewed from the image —
 `C:\workspace` is a baked image dir. Use a fresh target (`C:\ws-mnt` above; CI
 mounts `D:\ws → C:\ws`). ContainerHub owns the why — see § 2.
 
-Three quality/output steps **always run before the native build**, each fatal,
-each skippable with the paired switch: **Dart format** (`-SkipFormat`), **Dart
-analyze + Flutter tests** (`-SkipTests`), **API docs generation** (`-SkipDocs`).
+Three quality/output steps run before the native build (`-CodeQL` short-circuits
+before them), each skippable with the paired switch: **Dart format**
+(`-SkipFormat`), **Dart analyze + Flutter tests** (`-SkipTests`), **API docs
+generation** (`-SkipDocs`).
+
+**A failed step does not abort the run.** None of them is declared `-Critical`,
+and `-StopOnError` is off by default, so the step is recorded and the build
+carries on — the log still ends with `=== Build Complete ===` even when
+something failed, and the script only exits 1 from its `finally` block. A real
+run shows both lines together (`FAILED: MSIX Packaging` … `=== Build Complete ===`).
+**Trust the process exit code and `failedSteps` in `logs/build-summary-*.json`,
+never the log tail.**
+
 Two Windows-specific traps these steps carry:
 
 - The format gate formats `lib test integration_test test_driver`, **not `.`**:
@@ -161,14 +175,17 @@ Two Windows-specific traps these steps carry:
 
 - Preset aliases: `clangcl-{debug,profile,release}`, `msvc-{debug,release}`,
   `clang-{debug,profile,release}` → `x64-ClangCL-Windows-Debug` etc.
-- Switches: `-SkipTests`, `-SkipFormat`, `-SkipDocs`, `-CleanBuild`, `-SkipMsixPackaging`.
+- Switches: `-SkipTests`, `-SkipFormat`, `-SkipDocs`, `-CleanBuild`, `-SkipMsixPackaging`,
+  `-SkipBootstrapFlutterBuild`, `-ContinueOnError`/`-StopOnError`, `-CodeQL`. The
+  closing **Delivery Check** cannot be skipped.
 - Logs land in `logs/` (`build-windows-*.log` + `build-summary-*.json`); API
   docs in `doc/api` (git-ignored).
 
 Run the app on the host once artifacts are back:
 
 ```powershell
-.\scripts\windows\Start-Windows.ps1                                        # release preset
+# -Configuration is required: it names the runner\<preset>\ directory to launch.
+.\scripts\windows\Start-Windows.ps1 -Configuration x64-ClangCL-Windows-Release
 .\scripts\windows\Start-Windows.ps1 -Configuration x64-ClangCL-Windows-Debug
 ```
 
@@ -198,7 +215,11 @@ driver**, kept for local runs; no workflow references it. Its stages are
 
 ```bash
 export MATRIX_ARCH=x64 MATRIX_PLATFORM=linux/amd64      # or: arm64 / linux/arm64
-export FLUTTER_VERSION=3.47.1 APP_NAME=kataglyphis-inference-engine
+# This legacy driver never calls resolve_flutter_pin, and ci-common.sh hard-requires
+# the variable — so hand it the same pin ContainerHub owns rather than typing one:
+export FLUTTER_VERSION=$(sed -n 's/^FLUTTER_VERSION=//p' \
+  ExternalLib/Kataglyphis-ContainerHub/linux/scripts/01-core/versions.env)
+export APP_NAME=kataglyphis-inference-engine
 scripts/linux/ci-dart-on-native-linux.sh pull_container
 scripts/linux/ci-dart-on-native-linux.sh build_linux
 ```
@@ -264,13 +285,15 @@ so the container-side paths survive. Why this happens is ContainerHub's, § 2.
 taring the bundle — it is a CI packaging step, not something to run casually in
 a working tree.
 
-Quality gates — `Build-Windows.ps1` runs all three by default (skip with
-`-SkipFormat` / `-SkipTests`):
+Quality gates — `Build-Windows.ps1` runs these by default (skip with
+`-SkipFormat` / `-SkipTests` / `-SkipDocs`). Note the format command is **not**
+`dart format .`: that is the form documented above as crashing on Windows.
 
 ```bash
-dart format --set-exit-if-changed .
+dart format --output=none --set-exit-if-changed lib test integration_test test_driver
 flutter analyze
 flutter test
+dart pub global run dartdoc --output doc/api
 ```
 
 The Linux `checks` stage runs the same three (with `dart analyze` rather than
