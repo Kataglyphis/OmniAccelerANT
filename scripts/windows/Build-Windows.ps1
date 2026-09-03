@@ -613,6 +613,27 @@ try {
         Write-BuildLog -Context $context -Message "Skipping MSIX packaging (SkipMsixPackaging set)."
     }
 
+    Invoke-BuildStep -Context $context -StepName "Delivery Check" -Script {
+        # A green build is not proof of delivery. Assert the runner exe that each
+        # built preset was supposed to produce actually exists, so an empty or
+        # silently-failed build cannot exit 0 (adopting-in-a-new-project.md § 2;
+        # the RustProjectTemplate Build-Windows.ps1 keeps the same gate on its MSIX).
+        $missingArtifacts = @()
+        foreach ($currentPreset in $presetsToRun) {
+            if ([string]::IsNullOrEmpty($currentPreset)) { continue }
+            $presetLayout = Resolve-KataglyphisWindowsLayout -BuildRootFull $buildRoot -WindowsBuildConfig $windowsBuildConfig -Configuration $currentPreset
+            $exePath = Join-Path $presetLayout.RunnerDir $windowsBuildConfig.RunnerExeName
+            if (Test-Path -LiteralPath $exePath) {
+                Write-BuildLog -Context $context -Message "Delivered: $exePath"
+            } else {
+                $missingArtifacts += $exePath
+            }
+        }
+        if ($missingArtifacts.Count -gt 0) {
+            throw "Build reported success but the runner exe is missing: $($missingArtifacts -join ', ')"
+        }
+    }
+
     Write-BuildLog -Context $context -Message ""
     Write-BuildLogSuccess -Context $context -Message "=== Build Complete ==="
     Write-BuildLog -Context $context -Message "Build artifacts located at: $(Join-Path $workspace $env:BUILD_DIR_RELEASE)"

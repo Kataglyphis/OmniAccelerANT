@@ -35,11 +35,11 @@ $docker = "$env:ProgramFiles\Stevedore\bin\docker.exe"
 & $docker pull ghcr.io/kataglyphis/kataglyphis_beschleuniger:winamd64
 ```
 
-Run the build container with **process isolation**, as described in Kataglyphis-ContainerHub:
-Hyper-V isolation (the Windows default) exposes only 2 logical CPUs, while `--isolation process`
-gives the container the host's full CPU count (allowed because the host build ≥ the
-`servercore:ltsc2025` base build). Per ContainerHub, process isolation is for `docker run` only —
-never pass it to `docker build` (layer commits fail with `hcsshim::ActivateLayer 0x20`).
+Run the build container with **process isolation** (`--isolation process`) — it
+gives the container the host's full CPU count instead of the Hyper-V default's 2,
+and must never be passed to `docker build`. The engine rationale, the CPU/base-build
+caps, and the `docker build` prohibition are ContainerHub's, not this project's — see
+[`windows-build-lanes.md`](../../ExternalLib/Kataglyphis-ContainerHub/docs/windows-build-lanes.md).
 
 ```powershell
 & $docker run --rm --isolation process `

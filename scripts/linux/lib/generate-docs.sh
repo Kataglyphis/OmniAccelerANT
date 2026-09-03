@@ -97,7 +97,12 @@ if [[ -d "$DOC_API_DIR" ]]; then
 
 	echo "[Info] Creating venv with uv and installing dependencies..."
 	uv venv "$DOC_ROOT/.venv"
+	# Vendor activate scripts reference unset vars; suspend nounset across the
+	# source and restore it (ContainerHub AGENTS.md § Shell safety, bug class 4).
+	_gd_flags="$-"
+	set +u
 	source "$DOC_ROOT/.venv/bin/activate"
+	if [[ "$_gd_flags" =~ u ]]; then set -u; fi
 	uv pip install markdown-it-py
 
 	python3 - "$DOC_API_DIR" <<'PY'

@@ -1,18 +1,28 @@
 #!/usr/bin/env bash
 
-FLATPAK_RUNTIME_VERSION="24.08"
+# ContainerHub owns the arch mappings, the privileged-command runner, and the
+# Flatpak runtime version — source them, do not re-derive
+# (adopting-in-a-new-project.md § "No consumer copy of anything that exists
+# upstream"). common.sh also loads versions.env, so FLATPAK_RUNTIME_VERSION
+# below comes from that single source of truth.
+_packaging_common_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${_packaging_common_dir}/containerhub.sh"
+containerhub_source linux/scripts/01-core/platform.sh   # arch_normalize, arch_uname_name_for
+containerhub_source linux/scripts/01-core/common.sh     # run_priv (+ versions.env via its loader)
 
+# From ContainerHub's versions.env (loaded above); the default only guards the
+# unlikely case where the loader did not set it.
+: "${FLATPAK_RUNTIME_VERSION:=24.08}"
+
+# Elevate via ContainerHub's run_priv, but keep this repo's `sudo -n true` probe:
+# the CI image ships a non-setuid /usr/bin/sudo, so a bare `command -v sudo`
+# (what upstream require_sudo checks) succeeds yet cannot elevate. The probe
+# proves sudo actually works. (Worth contributing back to require_sudo upstream.)
 packaging_run_privileged_cmd() {
   if [[ "$(id -u)" -eq 0 ]]; then
-    "$@"
-  # `command -v sudo` alone is not enough: the CI container ships a REAL
-  # /usr/bin/sudo that is not setuid (the image runs as the unprivileged user
-  # `kataglyphis` on purpose), so the lookup succeeded and the call then died
-  # with the useless
-  #   sudo: /bin/sudo must be owned by uid 0 and have the setuid bit set
-  # `sudo -n true` proves sudo can actually elevate without prompting.
+    run_priv "$@"
   elif command -v sudo >/dev/null 2>&1 && sudo -n true >/dev/null 2>&1; then
-    sudo "$@"
+    SUDO="sudo" run_priv "$@"
   else
     echo "Error: need root privileges for command: $*" >&2
     echo "       Running as uid $(id -u) and sudo cannot elevate here." >&2
@@ -215,10 +225,21 @@ get_pubspec_version() {
   echo "$version"
 }
 
-map_arch_to_deb() {
+# The three tables below delegate their output to ContainerHub's platform.sh
+# (arch_normalize / arch_uname_name_for) so the per-arch string literals live in
+# one place upstream. This repo's matrix token `x64` is the only input upstream
+# does not know, so it is normalized once here before delegating.
+_packaging_normalize_arch_token() {
   case "${1:?arch required}" in
-    x64|amd64|x86_64) echo "amd64" ;;
-    arm64|aarch64) echo "arm64" ;;
+    x64) printf '%s' "x86_64" ;;
+    *)   printf '%s' "$1" ;;
+  esac
+}
+
+map_arch_to_deb() {
+  local a; a="$(_packaging_normalize_arch_token "${1:?arch required}")"
+  case "$(arch_normalize "$a")" in
+    amd64|arm64) arch_normalize "$a" ;;
     *)
       echo "Error: unsupported architecture for .deb: $1" >&2
       return 1
@@ -227,9 +248,9 @@ map_arch_to_deb() {
 }
 
 map_arch_to_appimage() {
-  case "${1:?arch required}" in
-    x64|amd64|x86_64) echo "x86_64" ;;
-    arm64|aarch64) echo "aarch64" ;;
+  local a; a="$(_packaging_normalize_arch_token "${1:?arch required}")"
+  case "$(arch_normalize "$a")" in
+    amd64|arm64) arch_uname_name_for "$a" ;;
     *)
       echo "Error: unsupported architecture for AppImage: $1" >&2
       return 1
@@ -238,9 +259,9 @@ map_arch_to_appimage() {
 }
 
 map_arch_to_flatpak() {
-  case "${1:?arch required}" in
-    x64|amd64|x86_64) echo "x86_64" ;;
-    arm64|aarch64) echo "aarch64" ;;
+  local a; a="$(_packaging_normalize_arch_token "${1:?arch required}")"
+  case "$(arch_normalize "$a")" in
+    amd64|arm64) arch_uname_name_for "$a" ;;
     *)
       echo "Error: unsupported architecture for Flatpak: $1" >&2
       return 1
