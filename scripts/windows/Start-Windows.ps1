@@ -9,7 +9,7 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
-$buildConfigPath = Join-Path $PSScriptRoot "Windows.BuildConfig.ps1"
+$buildConfigPath = Join-Path $PSScriptRoot "WindowsBuildConfig.ps1"
 if (-not (Test-Path -LiteralPath $buildConfigPath -PathType Leaf)) {
 	throw "Required Windows build config not found: $buildConfigPath"
 }
@@ -23,7 +23,7 @@ $windowsBuildConfig = Get-KataglyphisWindowsBuildConfig
 Import-BuildModule @(
 	'WindowsScripts.Shared'  # Add-DirectoriesToPath, Limit-DiagnosticLogs
 	'WindowsTesting.Common'  # Get-AsanRuntimeDll
-	'Windows.Paths'          # project-local: this repo's Flutter windows/x64 layout
+	'WindowsPaths.Common'          # project-local: this repo's Flutter windows/x64 layout
 )
 
 $repoRoot = (Resolve-Path $WorkspaceDir).Path
@@ -41,7 +41,7 @@ $resolvedBuildRoots = Resolve-KataglyphisWindowsBuildRootCandidates `
 	-IncludeDefaultFallbacks
 
 if ($resolvedBuildRoots.Count -eq 0) {
-	throw "Build root directory could not be resolved. Set BuildRootDir in Windows.BuildConfig.ps1 or pass -BuildRootDir."
+	throw "Build root directory could not be resolved. Set BuildRootDir in WindowsBuildConfig.ps1 or pass -BuildRootDir."
 }
 
 $selectedBuildRoot = $null

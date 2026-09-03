@@ -64,7 +64,7 @@ Two upstream facts repeated here only because they bite before you reach a doc:
 - `scripts/windows/Resolve-BuildModule.ps1` — the one file that cannot live
   upstream, because it is what *finds* the submodule. `Import-BuildModule <Name>`
   checks ContainerHub first, then `scripts/windows/modules/`, which holds only
-  genuinely project-specific modules (today: `Windows.Paths`, encoding this
+  genuinely project-specific modules (today: `WindowsPaths.Common`, encoding this
   repo's Flutter `build/windows/x64/{runner,plugins}` layout).
 - `scripts/linux/lib/containerhub.sh` — the bash twin: `containerhub_source`
   and `containerhub_path`, resolved from `${BASH_SOURCE[0]}` so they work from
