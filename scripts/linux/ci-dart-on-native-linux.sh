@@ -65,10 +65,7 @@ case "$STAGE" in
 
       export CC=clang
       export CXX=clang++
-      # ContainerHub owns the source-built GCC path (cross-gcc.sh:
-      # /opt/gcc-$GCC_VERSION). Derive it — the hardcoded path this
-      # used to carry (/opt/gcc-15.2.0) stopped existing when the image moved to 16.2.0, and clang
-      # was silently handed a path that is not there.
+      # GCC path from ContainerHub cross-gcc.sh.
       source /workspace/ExternalLib/Kataglyphis-ContainerHub/linux/scripts/01-core/cross-gcc.sh
       export GCC_ROOT="$(gcc_toolchain_prefix)"
       export CXXFLAGS="--gcc-toolchain=${GCC_ROOT} $CXXFLAGS"

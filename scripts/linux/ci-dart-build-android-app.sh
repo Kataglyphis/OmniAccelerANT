@@ -56,10 +56,7 @@ case "$STAGE" in
 
       export CC=clang
       export CXX=clang++
-      # ContainerHub owns the source-built GCC path (cross-gcc.sh:
-      # /opt/gcc-$GCC_VERSION). Derive it — the hardcoded path this
-      # used to carry (/opt/gcc-15.2.0) stopped existing when the image moved to 16.2.0, and clang
-      # was silently handed a path that is not there.
+      # GCC path from ContainerHub cross-gcc.sh.
       source /workspace/ExternalLib/Kataglyphis-ContainerHub/linux/scripts/01-core/cross-gcc.sh
       export GCC_ROOT="$(gcc_toolchain_prefix)"
       export CXXFLAGS="--gcc-toolchain=${GCC_ROOT} $CXXFLAGS"
@@ -113,10 +110,7 @@ case "$STAGE" in
         --output=/workspace/codeql-results/cpp.sarif \
         codeql/cpp-queries:codeql-suites/cpp-security-and-quality.qls || true
 
-      # Kotlin is analyzed by CodeQL Java extractor, so java-queries (which is
-      # what the pack download above actually fetches) is the right suite. The
-      # kotlin-queries pack was never downloaded, so this step always failed and
-      # the trailing || true swallowed it.
+      # Kotlin is covered by the Java extractor, hence java-queries.
       /opt/codeql/codeql database analyze /tmp/codeql-db-cluster/java \
         --format=sarif-latest \
         --output=/workspace/codeql-results/java.sarif \

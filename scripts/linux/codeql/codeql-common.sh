@@ -21,9 +21,7 @@ codeql_write_build_script() {
   local flutter_build_cmd="$2"
   local flutter_dir="$3"
 
-  # ContainerHub owns the source-built GCC path (cross-gcc.sh: /opt/gcc-$GCC_VERSION).
-  # Resolved here at generation time — the heredoc below is unquoted — instead of
-  # the hardcoded /opt/gcc-15.2.0 the image stopped shipping at 16.2.0.
+  # GCC path from ContainerHub cross-gcc.sh; resolved here (heredoc is unquoted).
   local gcc_root
   containerhub_source linux/scripts/01-core/cross-gcc.sh
   gcc_root="${MYPROJECT_GCC_TOOLCHAIN_PATH:-$(gcc_toolchain_prefix)}"
@@ -72,10 +70,7 @@ codeql_analyze_rust() {
     codeql/rust-queries:codeql-suites/rust-security-and-quality.qls || true
 }
 
-# Kotlin is analyzed by CodeQL's Java extractor, so the queries live in
-# codeql/java-queries — which is what run_codeql_android actually downloads.
-# This used to analyze the kotlin database with a codeql/kotlin-queries pack
-# that is never downloaded here, so the step always failed and `|| true` hid it.
+# Kotlin is covered by the Java extractor, hence java-queries.
 codeql_analyze_java() {
   mkdir -p /workspace/codeql-results
   /opt/codeql/codeql database analyze /tmp/codeql-db-cluster/java \

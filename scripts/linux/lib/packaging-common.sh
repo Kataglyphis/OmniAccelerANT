@@ -1,10 +1,6 @@
 #!/usr/bin/env bash
 
-# ContainerHub owns the arch mappings, the privileged-command runner, and the
-# Flatpak runtime version — source them, do not re-derive
-# (adopting-in-a-new-project.md § "No consumer copy of anything that exists
-# upstream"). common.sh also loads versions.env, so FLATPAK_RUNTIME_VERSION
-# below comes from that single source of truth.
+# Arch maps, run_priv and FLATPAK_RUNTIME_VERSION come from ContainerHub.
 _packaging_common_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${_packaging_common_dir}/containerhub.sh"
 containerhub_source linux/scripts/01-core/platform.sh   # arch_normalize, arch_uname_name_for
@@ -14,13 +10,7 @@ containerhub_source linux/scripts/01-core/common.sh     # run_priv (+ versions.e
 # unlikely case where the loader did not set it.
 : "${FLATPAK_RUNTIME_VERSION:=24.08}"
 
-# Elevate via ContainerHub's run_priv, but keep this repo's `sudo -n true` probe.
-# The runtime image purges sudo entirely (ContainerHub Dockerfile.torch:134-135
-# deletes the binaries and clears residual setuid bits, then :139 runs as
-# `kataglyphis`), so in CI this falls to the error branch by design and a missing
-# prerequisite must be baked into the image. The probe still earns its place on
-# developer hosts and on images that do carry a sudo, where `command -v sudo`
-# alone would say yes to one that cannot elevate.
+# run_priv, plus a `sudo -n true` probe the runtime image needs.
 packaging_run_privileged_cmd() {
   if [[ "$(id -u)" -eq 0 ]]; then
     run_priv "$@"
@@ -228,10 +218,7 @@ get_pubspec_version() {
   echo "$version"
 }
 
-# The three tables below delegate their output to ContainerHub's platform.sh
-# (arch_normalize / arch_uname_name_for) so the per-arch string literals live in
-# one place upstream. This repo's matrix token `x64` is the only input upstream
-# does not know, so it is normalized once here before delegating.
+# Output delegated to platform.sh; only the `x64` token is normalized here.
 _packaging_normalize_arch_token() {
   case "${1:?arch required}" in
     x64) printf '%s' "x86_64" ;;

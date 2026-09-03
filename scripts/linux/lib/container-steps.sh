@@ -47,20 +47,8 @@ source_bashrc_and_add_flutter_to_path() {
   fi
 }
 
-# ContainerHub's versions.env pins FLUTTER_VERSION (:323) and FLUTTER_SDK_SHA256
-# (:700) as ONE pin. Resolve BOTH from that one file so they cannot disagree,
-# and export the sha: ContainerHub's setup-flutter.sh only falls back to the
-# copy baked into the image (/opt/scripts/core/versions.env, Dockerfile.sdk:111)
-# when the sha is unset in the environment, and that copy tracks a floating
-# image tag rather than our submodule pointer. The native/android lanes already
-# export it via packaging-common.sh -> common.sh; the web lane does not, which
-# is why it alone used to read the image's copy.
-#
-# Single-key sed, not load_versions_env: that loader exports all ~174 keys, and
-# setup-flutter.sh reads these same two keys exactly this way.
-#
-# Sets FLUTTER_VERSION when it is empty. Call it as a plain command, never in
-# $(...) — a command-substitution subshell would discard the export.
+# Resolves FLUTTER_VERSION + its sha256 from ContainerHub versions.env.
+# Call as a plain command, never in $(...) — see AGENTS.md § 4.
 resolve_flutter_pin() {
   local versions_env pinned_version pinned_sha
   versions_env="$(containerhub_path linux/scripts/01-core/versions.env)" || return 1
@@ -116,12 +104,7 @@ run_flutter_common_checks() {
   run_check_cmd "$strict_mode" flutter test
 }
 
-# ContainerHub owns the source-built GCC and its path: cross-gcc.sh's
-# gcc_toolchain_prefix() is /opt/gcc-$GCC_VERSION, and versions.env pins that
-# version. This used to hardcode /opt/gcc-15.2.0, which the image stopped
-# shipping when it moved to 16.2.0 — and because the whole flag block hangs off
-# an `if [[ -d ]]`, the wiring silently became a no-op that exported nothing but
-# CC/CXX. Derive the path, and say so out loud when it is missing.
+# GCC path comes from ContainerHub cross-gcc.sh — see AGENTS.md § 4.
 export_toolchain_env() {
   export CC=clang
   export CXX=clang++

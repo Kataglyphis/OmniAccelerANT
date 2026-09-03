@@ -156,7 +156,8 @@ flutter_launcher_icons:
     icon_size: 256
 
 msix_config:
-  build_windows: true
+  # Build-Windows.ps1 owns the build; msix only packages. See AGENTS.md § 4.
+  build_windows: false
   display_name: Kataglyphis Inference Engine
   publisher_display_name: Kataglyphis
   identity_name: Kataglyphis.KataglyphisInferenceEngine

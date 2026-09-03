@@ -253,12 +253,7 @@ try {
         Invoke-BuildStep -Context $context -StepName "Dart Format Verification" -Script {
             Push-Location $workspace
             try {
-                # Scope to the Dart source roots, NOT ".". `dart format .` recurses into
-                # .git, and this repo's deeply nested vendored submodule gitdir
-                # (.git/modules/.../Kataglyphis-DocumANTation/.../awesome-beamer) exceeds
-                # Windows MAX_PATH, so the listing throws PathNotFoundException and the whole
-                # gate crashes before it formats anything. These four dirs hold every .dart
-                # the app owns (analysis_options excludes ExternalLib/flutter/rust_builder anyway).
+                # Source roots, not "." — see AGENTS.md § 4.
                 Invoke-BuildExternal -Context $context -File "dart" -Parameters @("format", "--output=none", "--set-exit-if-changed", "lib", "test", "integration_test", "test_driver")
             } finally {
                 Pop-Location
@@ -294,13 +289,7 @@ try {
         Invoke-BuildStep -Context $context -StepName "Generate API Docs" -Script {
             Push-Location $workspace
             try {
-                # NOT the SDK-bundled `dart doc`. The dartdoc 9.0.4 that ships
-                # with this image's Flutter SDK crashes on ANY Flutter app — a
-                # `_stripDocImports` RangeError while precaching the Flutter
-                # SDK's own `@docImport` comments (reproduced with a bare
-                # `flutter create` app, identical offsets). It is fixed in
-                # dartdoc >= 9.0.9, which `pub global activate` resolves, so we
-                # run that instead. Output lands in doc/api (git-ignored).
+                # Not the SDK dart doc — see AGENTS.md § 4.
                 Invoke-BuildExternal -Context $context -File "dart" -Parameters @("pub", "global", "activate", "dartdoc")
                 Invoke-BuildExternal -Context $context -File "dart" -Parameters @("pub", "global", "run", "dartdoc", "--output", "doc/api")
             } finally {
@@ -551,10 +540,20 @@ try {
 
     Invoke-BuildStep -Context $context -StepName "MSIX Compatibility Layout" -Script {
         foreach ($currentPreset in $presetsToRun) {
-            if ([string]::IsNullOrEmpty($currentPreset)) { continue }
+            # CI names no preset; fall back to the default — see AGENTS.md § 4.
+            $currentPreset = if ([string]::IsNullOrEmpty($currentPreset)) {
+                $windowsBuildConfig.CMakeConfiguration
+            } else {
+                $currentPreset
+            }
 
             $msixSourceDir = Resolve-NormalizedPath -Path (Join-Path $buildRoot "windows/x64/runner/$currentPreset")
-            $msixReleaseDir = Resolve-NormalizedPath -Path (Join-Path $msixSourceDir "Release")
+            # msix looks for build\windows\x64\runner\Release — directly under
+            # runner\, not under runner\<preset>\. Nesting it inside the preset
+            # directory is why packaging reported "Build files not found at
+            # ...\runner\Release". With several presets the first one built wins
+            # here; msix packages a single configuration either way.
+            $msixReleaseDir = Resolve-NormalizedPath -Path (Join-Path $buildRoot "windows/x64/runner/Release")
 
             if (Test-Path -LiteralPath $msixReleaseDir -PathType Container) {
                 Write-BuildLog -Context $context -Message "MSIX compatibility for $currentPreset already at: $msixReleaseDir"
@@ -597,10 +596,6 @@ try {
 
     if (-not $SkipMsixPackaging) {
         Invoke-BuildStep -Context $context -StepName "MSIX Packaging" -Script {
-            # Upstream owns the ephemeral .plugin_symlinks path and the scrub;
-            # this used to repeat both verbatim, so an upstream layout change
-            # would have fixed the call at :329 and left this copy quietly
-            # deleting a stale directory (every delete here is silenced).
             Clear-FlutterPluginSymlink -Context $context -WorkspaceDir $workspace
             Push-Location $workspace
             try {
@@ -618,14 +613,7 @@ try {
         # built preset was supposed to produce actually exists, so an empty or
         # silently-failed build cannot exit 0 (adopting-in-a-new-project.md § 2;
         # the RustProjectTemplate Build-Windows.ps1 keeps the same gate on its MSIX).
-        # Two things this has to get right, both found by audit after the first
-        # version shipped:
-        #  - CI passes no -Configurations, so $presetsToRun is @(""). Skipping the
-        #    empty entry made this gate assert NOTHING in the one lane it matters
-        #    most. Fall back to the configured default preset instead.
-        #  - $buildRoot is container-local scratch; the copy that has to reach the
-        #    host is under $originalBuildRoot, produced by the sync step above,
-        #    whose robocopy failure only warns. Assert both roots.
+        # Asserts both the scratch and the host-synced tree — see AGENTS.md § 4.
         $missingArtifacts = @()
         foreach ($currentPreset in $presetsToRun) {
             $effectivePreset = if ([string]::IsNullOrEmpty($currentPreset)) {

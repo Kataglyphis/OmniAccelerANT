@@ -181,6 +181,17 @@ Two Windows-specific traps these steps carry:
 - Logs land in `logs/` (`build-windows-*.log` + `build-summary-*.json`); API
   docs in `doc/api` (git-ignored).
 
+**MSIX packaging.** `msix_config.build_windows` is `false` on purpose: this
+script owns the build, and letting msix run its own `flutter build windows`
+makes it trip over the `CMakeCache.txt` synced back from the container-local
+build root (*"the current CMakeCache.txt directory … is different than the
+directory … where it was created"*, plus the wrong generator). The
+**MSIX Compatibility Layout** step exists because msix looks for
+`build\windows\x64\runner\Release\`, while the build installs to
+`runner\<preset>\`; it copies the preset's output into that flat `Release\`.
+Both halves were broken until 2026-09-03 and nobody noticed, because CI passes
+`-SkipMsixPackaging` — packaging is only exercised locally.
+
 Run the app on the host once artifacts are back:
 
 ```powershell

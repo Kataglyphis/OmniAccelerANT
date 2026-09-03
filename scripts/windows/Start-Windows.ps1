@@ -153,8 +153,12 @@ try {
 				}
 			}
 			Write-Host "[Start-Windows] Staged Microsoft ASan runtime: $msAsan"
-			if ([string]::IsNullOrWhiteSpace($env:ASAN_OPTIONS)) {
-				$env:ASAN_OPTIONS = "alloc_dealloc_mismatch=0:check_malloc_usable_size=0"
+			# Prepend, never skip — see AGENTS.md § 3 (ASAN).
+			$repoAsanOptions = "alloc_dealloc_mismatch=0:check_malloc_usable_size=0"
+			$env:ASAN_OPTIONS = if ([string]::IsNullOrWhiteSpace($env:ASAN_OPTIONS)) {
+				$repoAsanOptions
+			} else {
+				"${repoAsanOptions}:$($env:ASAN_OPTIONS)"
 			}
 		} else {
 			Write-Warning "[Start-Windows] Microsoft ASan runtime not found under any Visual Studio install; an ASan-instrumented app may abort on startup."
