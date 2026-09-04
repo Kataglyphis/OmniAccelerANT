@@ -345,7 +345,7 @@ CI passes `-SkipMsixPackaging`, and `-CodeQL` is off there because of runtimes.
 
 ### The Linux lane, locally
 
-`scripts/linux/Run-LinuxLane.ps1` starts the same image and runs the same script
+`scripts/linux/Invoke-LinuxLane.ps1` starts the same image and runs the same script
 with the same arguments as that lane's workflow. `-Lane` selects which:
 
 | `-Lane` | script | workflow |
@@ -359,10 +359,10 @@ together. The argument sets are meant to match exactly — the android lane also
 matches in *not* passing `--privileged`.
 
 ```powershell
-.\scripts\linux\Run-LinuxLane.ps1 -SkipCodeQL -SkipDocs            # native, x64
-.\scripts\linux\Run-LinuxLane.ps1 -Lane android -SkipCodeQL
-.\scripts\linux\Run-LinuxLane.ps1 -Lane web
-.\scripts\linux\Run-LinuxLane.ps1 -Arch arm64                      # needs the multi-arch tag
+.\scripts\linux\Invoke-LinuxLane.ps1 -SkipCodeQL -SkipDocs            # native, x64
+.\scripts\linux\Invoke-LinuxLane.ps1 -Lane android -SkipCodeQL
+.\scripts\linux\Invoke-LinuxLane.ps1 -Lane web
+.\scripts\linux\Invoke-LinuxLane.ps1 -Arch arm64                      # needs the multi-arch tag
 ```
 
 It drives Rancher Desktop's `nerdctl` (found on `PATH`, else under
