@@ -417,21 +417,29 @@ those surfaces as a different, misleading error:
 | What | Where it lives now | Symptom when it did not |
 | --- | --- | --- |
 | CMake/ninja build tree | named volume on `/workspace/build` | — |
-| flatpak repo, build tree, builder state, manifest staging | `/tmp/flatpak-work` | `fchmod: Operation not permitted` while creating the OSTree repo |
+| flatpak repo, build tree, builder state, manifest staging **and the finished bundle** | `/tmp/flatpak-work` | `fchmod: Operation not permitted`, first from the OSTree repo, later from `build-bundle` |
 | ccache / sccache | `/var/cache/{ccache,sccache}` | `Can't initialize ccache use: Failed to set permissions` |
 
 Only the finished artifacts are written into `out/`. This is ContainerHub's
 documented rule for build directories and caches, applied to the packaging
 steps as well.
 
-**Flatpak is the one lane step still failing locally.** After the moves above it
-gets all the way through — both repo exports succeed, 67.8 MB written — and then
-dies in flatpak-builder's post-export `Pruning cache` with
-`error: fchmod: Operation not permitted`. Ruled out so far: `/tmp` itself
-(`ostree prune` there returns 0), `--state-dir` being ignored (the stale
-`.flatpak-builder/` in the repo is untouched by current runs), and the manifest
-staging. `tar`, `deb` and `appimage` are produced regardless. CI runs on ext4
-and has never reached this step, so whether it is affected at all is unknown.
+**`error: fchmod` after `Pruning cache` is not the prune.** That combination cost
+hours. `Pruning cache` is merely flatpak-builder's *last* output line; it exits
+0. The error underneath came from `flatpak build-bundle`, which chmods the file
+it writes — and that file was `out/…flatpak`, on the host mount. The bundle is
+now written under `/tmp/flatpak-work` and copied out afterwards. `set -x` around
+the function answered this in one run, after three rounds of eliminating
+plausible-looking causes had only moved the symptom.
+
+The step also does **not** gate on flatpak-builder's exit code any more. It asks
+`ostree --repo=<repo> refs` whether the app is committed, because the export can
+be complete while a later stage fails. The exit code is reported in the warning,
+never used as the verdict.
+
+`appimage` is the one format still failing locally, and the cause is the image:
+`/usr/local/bin/appimagetool` is mode 711, so it cannot read itself through
+`/proc/self/exe`. `tar`, `deb` and `flatpak` all build.
 
 It drives Rancher Desktop's `nerdctl` (found on `PATH`, else under
 `%ProgramFiles%`), because that is the local Linux engine on this box; CI uses

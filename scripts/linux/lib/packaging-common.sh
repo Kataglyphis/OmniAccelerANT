@@ -490,14 +490,36 @@ modules:
         path: files
 EOF
 
-  if ! flatpak-builder --force-clean --disable-rofiles-fuse --arch="$flatpak_arch" \
-      --state-dir="${flatpak_work}/state" "$build_dir" "$manifest_file" --repo="$repo_dir"; then
+  # KATAGLYPHIS_FLATPAK_VERBOSE=1 adds -v; the packaging failure on a Windows
+  # host is not yet understood and the default output does not name the path.
+  local -a fb_flags=()
+  [ -n "${KATAGLYPHIS_FLATPAK_VERBOSE:-}" ] && fb_flags+=(-v)
+  # The exit code is deliberately not the gate. flatpak-builder can export the
+  # app completely and still fail afterwards in `Pruning cache` with
+  # `fchmod: Operation not permitted` on a bind-mounted host drive. What decides
+  # is whether the app is committed — see AGENTS.md § 4.
+  local fb_rc=0
+  flatpak-builder "${fb_flags[@]}" --force-clean --disable-rofiles-fuse --arch="$flatpak_arch" \
+    --state-dir="${flatpak_work}/state" "$build_dir" "$manifest_file" --repo="$repo_dir" || fb_rc=$?
+
+  if ! ostree --repo="$repo_dir" refs 2>/dev/null | grep -q "^app/${app_id}/"; then
+    echo "Error: flatpak-builder exited ${fb_rc} and ${app_id} is not in ${repo_dir}" >&2
     return 1
+  fi
+  if [ "$fb_rc" -ne 0 ]; then
+    echo "[Warn] flatpak-builder exited ${fb_rc}, but ${app_id} is committed; continuing to build-bundle." >&2
   fi
 
-  if ! flatpak build-bundle "$repo_dir" "$output_name" "$app_id"; then
+  # build-bundle chmods the file it writes, which a bind-mounted host drive
+  # refuses — the failure reads as `error: fchmod: Operation not permitted` and
+  # looks like it came from the `Pruning cache` line above it. Write it
+  # container-native, then copy the finished bundle out.
+  local staged_bundle="${flatpak_work}/$(basename "$output_name")"
+  if ! flatpak build-bundle "$repo_dir" "$staged_bundle" "$app_id"; then
     return 1
   fi
+  mkdir -p "$(dirname "$output_name")"
+  cp -f "$staged_bundle" "$output_name"
 
   packaging_assert_artifact "${output_name}"
 }

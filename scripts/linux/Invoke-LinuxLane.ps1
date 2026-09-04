@@ -23,7 +23,10 @@ param(
 	[string] $ContainerName = "kataglyphis-linux-lane-$Lane-$Arch",
 	# Write-heavy trees that must not live on the bind-mounted host drive.
 	# See AGENTS.md § 4, "The Linux lane, locally".
-	[string[]] $ContainerNativePaths = @('/workspace/build')
+	[string[]] $ContainerNativePaths = @('/workspace/build'),
+	# Extra NAME=VALUE pairs for the container. CI has no equivalent, so use it
+	# only for debugging switches the scripts read, never to change the build.
+	[string[]] $Env = @()
 )
 
 Set-StrictMode -Version Latest
@@ -104,7 +107,8 @@ $engineArgs = @(
 	'run', '--name', $ContainerName
 ) + $privilegedArgs + @(
 	'--platform', $platform,
-	'-e', 'CARGO_HOME=/tmp/cargo-home',
+	'-e', 'CARGO_HOME=/tmp/cargo-home'
+) + @($Env | ForEach-Object { '-e'; $_ }) + @(
 	# The image's own flutter_tools/.dart_tool is root-owned in a read-only
 	# overlay layer, so `flutter pub get` cannot rewrite it — AGENTS.md § 3.
 	'--tmpfs', '/opt/flutter/packages/flutter_tools/.dart_tool:rw,mode=1777',
