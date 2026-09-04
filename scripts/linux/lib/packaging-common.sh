@@ -25,6 +25,18 @@ packaging_run_privileged_cmd() {
   fi
 }
 
+# "Created: …" used to be printed unconditionally, so a dpkg-deb or appimagetool
+# that had already failed still reported success and the lane looked green with
+# no artifact on disk. Every packaging function ends here now — AGENTS.md § 4.
+packaging_assert_artifact() {
+  local artifact="${1:?artifact path required}"
+  if [ ! -s "$artifact" ]; then
+    echo "Error: packaging reported success but ${artifact} is missing or empty" >&2
+    return 1
+  fi
+  echo "Created: ${artifact} ($(du -h "$artifact" 2>/dev/null | cut -f1))"
+}
+
 # appimagetool comes from ContainerHub (pinned version + SHA256) — AGENTS.md § 2.
 ensure_appimagetool_via_containerhub() {
   if command -v appimagetool >/dev/null 2>&1; then return 0; fi
@@ -132,7 +144,11 @@ package_bundle_outputs_tar() {
   rm -rf "out/${app_name}-bundle" || true
 
   cp -r "$bundle_source_dir" "out/${app_name}-bundle"
-  tar -C out -czf "out/${tar_name}" "${app_name}-bundle"
+  if ! tar -C out -czf "out/${tar_name}" "${app_name}-bundle"; then
+    echo "Error: tar failed for out/${tar_name}" >&2
+    return 1
+  fi
+  packaging_assert_artifact "out/${tar_name}"
   cp -f "out/${tar_name}" "${tar_name}"
 }
 
@@ -295,8 +311,10 @@ package_linux_bundle_deb() {
     return 1
   fi
 
-  rm -rf out/deb
-  deb_root="out/deb"
+  # Staged container-native: dpkg-deb refuses a DEBIAN dir it cannot chmod to
+  # 0755, and a bind-mounted host drive silently leaves it 777 — AGENTS.md § 4.
+  deb_root="${KATAGLYPHIS_PACKAGING_WORKDIR:-/tmp/packaging-work}/deb"
+  rm -rf "$deb_root"
   mkdir -p "$deb_root/DEBIAN"
   mkdir -p "$deb_root/opt/$package_name"
   mkdir -p "$deb_root/usr/bin"
@@ -336,8 +354,11 @@ Description: ${app_name}
 EOF
 
   chmod 0755 "$deb_root/DEBIAN"
-  dpkg-deb --build "$deb_root" "out/${output_name}"
-  echo "Created: out/${output_name}"
+  if ! dpkg-deb --build "$deb_root" "out/${output_name}"; then
+    echo "Error: dpkg-deb failed for out/${output_name}" >&2
+    return 1
+  fi
+  packaging_assert_artifact "out/${output_name}"
 }
 
 package_linux_bundle_appimage() {
@@ -353,7 +374,9 @@ package_linux_bundle_appimage() {
   app_id="org.kataglyphis.${package_name}"
   icon_file="$(detect_icon_file)"
   icon_name="$package_name"
-  appdir="out/${package_name}.AppDir"
+  # Container-native for the same reason as the deb root: appimagetool chmods
+  # its AppDir, which a bind-mounted host drive refuses — AGENTS.md § 4.
+  appdir="${KATAGLYPHIS_PACKAGING_WORKDIR:-/tmp/packaging-work}/${package_name}.AppDir"
   output_name="${package_name}-${version}-${arch}.AppImage"
 
   if ! appimagetool_cmd="$(resolve_appimagetool)"; then
@@ -384,8 +407,12 @@ EOF
     cp "$icon_file" "$appdir/${icon_name}.png"
   fi
 
-  APPIMAGE_EXTRACT_AND_RUN=1 NO_APPSTREAM=1 ARCH="$arch" "$appimagetool_cmd" "$appdir" "out/${output_name}"
-  echo "Created: out/${output_name}"
+  if ! APPIMAGE_EXTRACT_AND_RUN=1 NO_APPSTREAM=1 ARCH="$arch" \
+      "$appimagetool_cmd" "$appdir" "out/${output_name}"; then
+    echo "Error: appimagetool failed for out/${output_name}" >&2
+    return 1
+  fi
+  packaging_assert_artifact "out/${output_name}"
 }
 
 package_linux_bundle_flatpak() {
@@ -472,7 +499,7 @@ EOF
     return 1
   fi
 
-  echo "Created: ${output_name}"
+  packaging_assert_artifact "${output_name}"
 }
 
 package_android_apk_outputs_tar() {
