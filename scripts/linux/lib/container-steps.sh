@@ -105,6 +105,21 @@ run_flutter_common_checks() {
   bash "$(containerhub_path linux/scripts/05-frameworks/flutter/flutter_checks.sh)" --strict "$strict_flag" "$@"
 }
 
+# The image's RUSTUP_HOME is root-owned while the container runs as uid 1001,
+# so rustup cannot write its temp files — AGENTS.md § 3. Hardlinks, so this
+# costs nothing; a no-op once the image ships a writable rustup home.
+ensure_writable_rustup_home() {
+  local src="${RUSTUP_HOME:-/usr/local/rustup}"
+  [ -d "$src" ] || return 0
+  [ -w "$src/tmp" ] && return 0
+  local dst="${KATAGLYPHIS_RUSTUP_HOME:-/tmp/rustup-home}"
+  if [ ! -d "$dst" ]; then
+    cp -al "$src" "$dst" 2>/dev/null || cp -a "$src" "$dst" || return 1
+  fi
+  export RUSTUP_HOME="$dst"
+  echo "[Info] RUSTUP_HOME -> $dst (image copy is not writable for uid $(id -u))"
+}
+
 export_toolchain_env() {
   export CC=clang
   export CXX=clang++

@@ -141,6 +141,7 @@ if maybe_truthy "$INSTALL_PACKAGING_DEPS"; then
 fi
 
 # Ensure clang has a usable C++ runtime/toolchain setup in container builds.
+ensure_writable_rustup_home
 export_toolchain_env
 
 # Check + Build + Packaging (delegiert an run-native-linux.sh)

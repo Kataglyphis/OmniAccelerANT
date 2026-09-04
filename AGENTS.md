@@ -97,6 +97,21 @@ rejected; both would be regressions here, so do not "fix" their absence:
 Everything here is false or meaningless in another repo — that is why it is
 written out rather than linked.
 
+- **`RUSTUP_HOME` in the image is root-owned; the container is not root.** The
+  image sets `RUSTUP_HOME=/usr/local/rustup` (and `CARGO_HOME=/usr/local/cargo`)
+  as ENV, both `root:root drwxr-xr-x`, while the container runs as uid 1001 —
+  so rustup dies with `could not create temp file
+  /usr/local/rustup/tmp/…: Permission denied`. The workflows already redirect
+  `CARGO_HOME` for this reason; `RUSTUP_HOME` cannot simply follow, because it
+  holds the toolchains rather than a cache. `ensure_writable_rustup_home`
+  (`scripts/linux/lib/container-steps.sh`) hardlink-copies it to
+  `/tmp/rustup-home` and re-exports — near-free, since it is the same
+  filesystem, and the copied directories belong to the runtime uid. It returns
+  early when the source is already writable, so it becomes a no-op the moment
+  the image ships a writable rustup home, **which is the real fix.**
+  Reproduced and verified in the image: the write fails at uid 1001, the copy
+  is writable, and `rustc`/`cargo` 1.98.0 still resolve.
+
 - **The Rust manifest path must be counted from the *resolved* plugin dir.**
   Cargokit builds `CARGOKIT_MANIFEST_DIR` by string-joining
   `${CMAKE_CURRENT_SOURCE_DIR}/${manifest_dir}`, and for a Flutter plugin that

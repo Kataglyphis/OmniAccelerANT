@@ -124,6 +124,7 @@ setup_flutter_sdk "$FLUTTER_VERSION" "$FLUTTER_DIR" "x64"
 source_bashrc_and_add_flutter_to_path "$FLUTTER_DIR"
 run_flutter_common_checks "$STRICT_CHECKS"
 run_check_cmd "$STRICT_CHECKS" flutter config --enable-android
+ensure_writable_rustup_home
 export_toolchain_env
 
 if maybe_truthy "$RUN_CODEQL"; then
