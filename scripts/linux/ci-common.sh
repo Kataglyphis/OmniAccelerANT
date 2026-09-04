@@ -14,7 +14,7 @@ require_ci_env() {
   : "${MATRIX_PLATFORM:?MATRIX_PLATFORM is required}"
   : "${MATRIX_ARCH:?MATRIX_ARCH is required}"
   : "${FLUTTER_VERSION:?FLUTTER_VERSION is required}"
-  : "${FLUTTER_DIR:=/workspace/flutter}"
+  : "${FLUTTER_DIR:=/opt/flutter}"
   : "${APP_NAME:?APP_NAME is required}"
 }
 

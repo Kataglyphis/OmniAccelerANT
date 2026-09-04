@@ -15,7 +15,7 @@ EOF
 }
 
 FLUTTER_VERSION=""
-FLUTTER_DIR="/workspace/flutter"
+FLUTTER_DIR="/opt/flutter"
 MATRIX_ARCH=""
 
 while [[ $# -gt 0 ]]; do
@@ -54,5 +54,12 @@ fi
 
 # Configure Git safe directories to avoid "dubious ownership" errors in containers
 git_safe_dirs "$FLUTTER_DIR"
+
+# The image bakes Flutter in (ContainerHub Dockerfile.sdk). Re-downloading it
+# per run cost minutes and left a multi-GB SDK in the mounted tree.
+if [ -x "$FLUTTER_DIR/bin/flutter" ]; then
+	echo "[Info] Flutter already present at $FLUTTER_DIR; skipping install."
+	exit 0
+fi
 
 setup_flutter_sdk "$FLUTTER_VERSION" "$FLUTTER_DIR" "$MATRIX_ARCH"

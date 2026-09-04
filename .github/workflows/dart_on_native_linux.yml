@@ -25,7 +25,7 @@ jobs:
             build_mode: release
             platform: linux/amd64
             app_name: kataglyphis-inference-engine
-            flutter_dir: /workspace/flutter
+            flutter_dir: /opt/flutter
             container_image: ghcr.io/kataglyphis/kataglyphis_beschleuniger:latest-cross
             package_formats: tar,deb,flatpak,appimage
             install_packaging_deps: true
@@ -34,7 +34,7 @@ jobs:
             build_mode: release
             platform: linux/arm64
             app_name: kataglyphis-inference-engine
-            flutter_dir: /workspace/flutter
+            flutter_dir: /opt/flutter
             container_image: ghcr.io/kataglyphis/kataglyphis_beschleuniger:latest-cross
             package_formats: tar,deb,flatpak,appimage
             install_packaging_deps: true
@@ -68,7 +68,7 @@ jobs:
           # (registry index/cache, flutter_rust_bridge codegen) dies with
           #   error: failed to create directory `/usr/local/cargo/registry/cache/...`
           # Point it somewhere the uid owns, as the sibling Rust lanes already do.
-          extra-args: --privileged --platform "${{ matrix.platform }}" -e CARGO_HOME=/tmp/cargo-home
+          extra-args: --privileged --platform "${{ matrix.platform }}" -e CARGO_HOME=/tmp/cargo-home --tmpfs /opt/flutter/packages/flutter_tools/.dart_tool:rw,mode=1777
           script: >-
             bash /workspace/scripts/linux/ci/ci-container-run-native-linux.sh
             --arch "${{ matrix.arch }}"

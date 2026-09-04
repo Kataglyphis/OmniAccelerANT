@@ -113,6 +113,22 @@ written out rather than linked.
   script. Both defer to an existing `ANDROID_HOME`, so setting it in the image
   — **the real fix** — makes them no-ops.
 
+- **sccache, on both lanes, and never inside the source tree.** The image sets
+  `SCCACHE_DIR=/workspace/.sccache` and `CCACHE_DIR=/workspace/.ccache`, i.e.
+  into the mounted checkout: it pollutes the tree, can end up in uploaded
+  artifacts, and on a bind-mounted host drive it simply fails — flatpak-builder
+  stops with `Can't initialize ccache use: Failed to set permissions of
+  /workspace/.ccache/…`. `setup_compiler_cache`
+  (`scripts/linux/lib/container-steps.sh`) repoints both at
+  `/var/cache/{sccache,ccache}`, which the image already provisions writable for
+  uid 1001, then calls ContainerHub's `setup_sccache`. That sets `RUSTC_WRAPPER`
+  and both CMake compiler launchers to the **guarded** `sccache-launcher.sh`
+  rather than bare `sccache` — the wrapper survives sccache's own fatal errors
+  when a CMake `TryCompile` deletes the scratch directory under it. ccache stays
+  only as ContainerHub's documented fallback for invocations sccache refuses.
+  Verified in the image: sccache 0.17.0, server listening, all three variables
+  pointing at the launcher.
+
 - **`RUSTUP_HOME` in the image is root-owned; the container is not root.** The
   image sets `RUSTUP_HOME=/usr/local/rustup` (and `CARGO_HOME=/usr/local/cargo`)
   as ENV, both `root:root drwxr-xr-x`, while the container runs as uid 1001 —
@@ -120,13 +136,22 @@ written out rather than linked.
   /usr/local/rustup/tmp/…: Permission denied`. The workflows already redirect
   `CARGO_HOME` for this reason; `RUSTUP_HOME` cannot simply follow, because it
   holds the toolchains rather than a cache. `ensure_writable_rustup_home`
-  (`scripts/linux/lib/container-steps.sh`) hardlink-copies it to
-  `/tmp/rustup-home` and re-exports — near-free, since it is the same
-  filesystem, and the copied directories belong to the runtime uid. It returns
-  early when the source is already writable, so it becomes a no-op the moment
-  the image ships a writable rustup home, **which is the real fix.**
-  Reproduced and verified in the image: the write fails at uid 1001, the copy
-  is writable, and `rustc`/`cargo` 1.98.0 still resolve.
+  (`scripts/linux/lib/container-steps.sh`) builds a real `/tmp/rustup-home`
+  with `toolchains/`, `tmp/` and `downloads/` and **symlinks each existing
+  toolchain in**, then re-exports. Nothing is copied, and `toolchains/` is a
+  real directory, so rustup can still install one — which the web lane needs,
+  since flutter_rust_bridge asks for the `nightly` channel while the image only
+  carries a dated `nightly-2026-06-28`. It returns early when the source is
+  already writable, so it becomes a no-op the moment the image ships a writable
+  rustup home, **which is the real fix.**
+  Do **not** hardlink-copy instead: the files are root-owned, `cp -al` is
+  refused by `protected_hardlinks` for uid 1001, and a `cp -a` fallback onto
+  the half-created target nests the tree at `rustup-home/rustup/…`. Corrosion
+  then reads an empty `rustc --version`, discards every toolchain, and fails
+  with `invalid value '' for '--toolchain'` — a failure two steps removed from
+  its cause. Verified in the image: the direct
+  `toolchains/<name>/bin/rustc --version` Corrosion uses resolves, as does the
+  shim, and both `tmp/` and `toolchains/` are writable.
 
 - **The Rust manifest path must be counted from the *resolved* plugin dir.**
   Cargokit builds `CARGOKIT_MANIFEST_DIR` by string-joining

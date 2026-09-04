@@ -23,7 +23,7 @@ jobs:
 
     env:
       CONTAINER_IMAGE: ghcr.io/kataglyphis/kataglyphis_beschleuniger:latest-cross
-      FLUTTER_DIR: /workspace/flutter
+      FLUTTER_DIR: /opt/flutter
 
     steps:
       # ContainerHub's shared prologue: reclaim disk, check out, log in to ghcr,
@@ -47,7 +47,7 @@ jobs:
           # (registry index/cache, flutter_rust_bridge codegen) dies with
           #   error: failed to create directory `/usr/local/cargo/registry/cache/...`
           # Point it somewhere the uid owns, as the sibling Rust lanes already do.
-          extra-args: --privileged --platform "linux/amd64" -e CARGO_HOME=/tmp/cargo-home
+          extra-args: --privileged --platform "linux/amd64" -e CARGO_HOME=/tmp/cargo-home --tmpfs /opt/flutter/packages/flutter_tools/.dart_tool:rw,mode=1777
           script: >-
             bash /workspace/scripts/linux/ci/ci-container-run-web-linux.sh
             --arch "x64"

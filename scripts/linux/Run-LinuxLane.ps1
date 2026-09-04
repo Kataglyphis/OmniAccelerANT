@@ -18,7 +18,10 @@ param(
 	[switch] $SkipCodeQL,
 	[switch] $SkipDocs,
 	[switch] $KeepContainer,
-	[string] $ContainerName = "kataglyphis-linux-lane-$Arch"
+	[string] $ContainerName = "kataglyphis-linux-lane-$Arch",
+	# Write-heavy trees that must not live on the bind-mounted host drive.
+	# See AGENTS.md § 4, "The Linux lane, locally".
+	[string[]] $ContainerNativePaths = @('/workspace/build')
 )
 
 Set-StrictMode -Version Latest
@@ -41,18 +44,37 @@ $platform = if ($Arch -eq 'x64') { 'linux/amd64' } else { 'linux/arm64' }
 $runCodeQL = if ($SkipCodeQL) { 'false' } else { ($Arch -eq 'x64').ToString().ToLower() }
 $runDocs = if ($SkipDocs) { 'false' } else { ($Arch -eq 'x64').ToString().ToLower() }
 
+# A named volume over each write-heavy path. The bind mount is NTFS through
+# drvfs, which cannot do utime/chmod for the container uid — untarring the
+# Flutter SDK onto it fails on every entry. The volume keeps the lane's
+# arguments identical to CI's while the writes land on a Linux filesystem.
+$volumeArgs = @()
+foreach ($nativePath in $ContainerNativePaths) {
+	$volumeName = "kataglyphis-lane-$Arch" + ($nativePath -replace '[^A-Za-z0-9]+', '-')
+	& $engine 'volume' 'create' $volumeName 2>&1 | Out-Null
+	# Volumes start root-owned; the image runs as uid 1001.
+	& $engine 'run' '--rm' '--user' 'root' '-v' "${volumeName}:/vol" `
+		'--platform' $platform 'alpine' 'chown' '1001:1001' '/vol' 2>&1 | Out-Null
+	$volumeArgs += @('-v', "${volumeName}:${nativePath}")
+	Write-Host "volume : $volumeName -> $nativePath"
+}
+
 # Mirrors .github/workflows/dart_on_native_linux.yml. Change both together.
 $engineArgs = @(
 	'run', '--name', $ContainerName,
 	'--privileged', '--platform', $platform,
 	'-e', 'CARGO_HOME=/tmp/cargo-home',
-	'-v', "${repoRoot}:/workspace",
+	# The image's own flutter_tools/.dart_tool is root-owned in a read-only
+	# overlay layer, so `flutter pub get` cannot rewrite it — AGENTS.md § 3.
+	'--tmpfs', '/opt/flutter/packages/flutter_tools/.dart_tool:rw,mode=1777',
+	'-v', "${repoRoot}:/workspace"
+) + $volumeArgs + @(
 	'-w', '/workspace',
 	$Image,
 	'bash', '/workspace/scripts/linux/ci/ci-container-run-native-linux.sh',
 	'--arch', $Arch,
 	'--build-mode', $BuildMode,
-	'--flutter-dir', '/workspace/flutter',
+	'--flutter-dir', '/opt/flutter',
 	'--app-name', $AppName,
 	'--package-formats', $PackageFormats,
 	'--install-packaging-deps', $InstallPackagingDeps,

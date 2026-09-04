@@ -15,7 +15,7 @@ Options:
   -a, --arch <x64|arm64>        Target architecture (required)
   --build-mode <debug|profile|release> Build mode for flutter build linux (default: release)
       --flutter-version <ver>   Flutter version (required)
-      --flutter-dir <path>      Flutter SDK installation directory (default: /workspace/flutter)
+      --flutter-dir <path>      Flutter SDK directory (default: /opt/flutter, baked into the image)
   -n, --app-name <name>         Artifact base name (required)
       --package-formats <csv>   Packaging formats (default: tar)
       --install-packaging-deps <bool> Install deps for deb/flatpak/appimage (default: false)
@@ -29,7 +29,7 @@ EOF
 MATRIX_ARCH=""
 BUILD_MODE="release"
 FLUTTER_VERSION=""
-FLUTTER_DIR="/workspace/flutter"
+FLUTTER_DIR="/opt/flutter"
 APP_NAME=""
 PACKAGE_FORMATS="tar"
 INSTALL_PACKAGING_DEPS="0"
@@ -142,6 +142,8 @@ fi
 
 # Ensure clang has a usable C++ runtime/toolchain setup in container builds.
 ensure_writable_rustup_home
+setup_compiler_cache
+ensure_writable_flutter_sdk || true
 export_toolchain_env
 
 # Check + Build + Packaging (delegiert an run-native-linux.sh)

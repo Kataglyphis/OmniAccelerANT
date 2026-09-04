@@ -17,7 +17,7 @@ Options:
   -a, --arch <x64|arm64>        Target architecture label (required)
   --build-mode <debug|profile|release> Build mode for flutter build apk (default: release)
       --flutter-version <ver>   Flutter version (required)
-      --flutter-dir <path>      Flutter SDK installation directory (default: /workspace/flutter)
+      --flutter-dir <path>      Flutter SDK directory (default: /opt/flutter, baked into the image)
   -n, --app-name <name>         Artifact base name (required)
       --run-codeql <bool>       Run CodeQL scan (default: true)
   -h, --help                    Show this help
@@ -27,7 +27,7 @@ EOF
 MATRIX_ARCH=""
 BUILD_MODE="release"
 FLUTTER_VERSION=""
-FLUTTER_DIR="/workspace/flutter"
+FLUTTER_DIR="/opt/flutter"
 APP_NAME=""
 RUN_CODEQL="1"
 STRICT_CHECKS="0"
@@ -125,6 +125,8 @@ source_bashrc_and_add_flutter_to_path "$FLUTTER_DIR"
 run_flutter_common_checks "$STRICT_CHECKS"
 run_check_cmd "$STRICT_CHECKS" flutter config --enable-android
 ensure_writable_rustup_home
+setup_compiler_cache
+ensure_writable_flutter_sdk || true
 export_android_sdk_env
 export_toolchain_env
 

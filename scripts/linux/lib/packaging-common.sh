@@ -399,10 +399,15 @@ package_linux_bundle_flatpak() {
   app_id="org.kataglyphis.${package_name}"
   binary_name="$(detect_bundle_binary "$bundle_dir")"
   icon_file="$(detect_icon_file)"
-  manifest_dir="out/flatpak"
+  # Everything flatpak touches needs fchmod, which a bind-mounted host drive
+  # refuses — manifest and files/ are staging, the repo and build tree are
+  # intermediates. Only the finished bundle belongs in out/. See AGENTS.md § 4.
+  local flatpak_work="${KATAGLYPHIS_FLATPAK_WORKDIR:-/tmp/flatpak-work}"
+  manifest_dir="${flatpak_work}/manifest"
   manifest_file="${manifest_dir}/${app_id}.yml"
-  repo_dir="${manifest_dir}/repo"
-  build_dir="${manifest_dir}/build-dir"
+  repo_dir="${flatpak_work}/repo"
+  build_dir="${flatpak_work}/build-dir"
+  mkdir -p "$flatpak_work"
   output_name="out/${package_name}-${version}.flatpak"
   flatpak_arch="$(map_arch_to_flatpak "$matrix_arch")"
 
@@ -458,7 +463,8 @@ modules:
         path: files
 EOF
 
-  if ! flatpak-builder --force-clean --disable-rofiles-fuse --arch="$flatpak_arch" "$build_dir" "$manifest_file" --repo="$repo_dir"; then
+  if ! flatpak-builder --force-clean --disable-rofiles-fuse --arch="$flatpak_arch" \
+      --state-dir="${flatpak_work}/state" "$build_dir" "$manifest_file" --repo="$repo_dir"; then
     return 1
   fi
 

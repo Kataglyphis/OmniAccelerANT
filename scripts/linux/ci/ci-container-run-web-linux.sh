@@ -13,7 +13,7 @@ Usage:
 Options:
   -a, --arch <x64|arm64>        Target architecture (required)
       --flutter-version <ver>   Flutter version (required)
-      --flutter-dir <path>      Flutter SDK installation directory (default: /workspace/flutter)
+      --flutter-dir <path>      Flutter SDK directory (default: /opt/flutter, baked into the image)
       --install-flutter <bool>  Install Flutter SDK (default: false)
       --strict-checks <bool>    Fail on format/analyze/test errors (default: true in CI, false locally)
       --run-codeql <bool>       Run CodeQL scan (default: false)
@@ -23,7 +23,7 @@ EOF
 
 MATRIX_ARCH=""
 FLUTTER_VERSION=""
-FLUTTER_DIR="/workspace/flutter"
+FLUTTER_DIR="/opt/flutter"
 INSTALL_FLUTTER="0"
 STRICT_CHECKS=""
 RUN_CODEQL="0"
@@ -104,6 +104,8 @@ git_safe_dirs "$FLUTTER_DIR"
 
 # Ensure clang has a usable C++ runtime/toolchain setup in container builds.
 ensure_writable_rustup_home
+setup_compiler_cache
+ensure_writable_flutter_sdk || true
 export_toolchain_env
 
 echo "=== Flutter doctor ==="
