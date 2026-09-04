@@ -120,6 +120,29 @@ ensure_writable_rustup_home() {
   echo "[Info] RUSTUP_HOME -> $dst (image copy is not writable for uid $(id -u))"
 }
 
+# The image ships the SDK at /opt/android-sdk but exports no ANDROID_HOME, and
+# `flutter build apk` then reports "No Android SDK found" — AGENTS.md § 3.
+resolve_android_sdk_home() {
+  if [ -n "${ANDROID_HOME:-}" ] && [ -d "${ANDROID_HOME}" ]; then
+    printf '%s' "$ANDROID_HOME"; return 0
+  fi
+  local d
+  for d in "${ANDROID_SDK_ROOT:-}" /opt/android-sdk /usr/lib/android-sdk; do
+    [ -n "$d" ] && [ -d "$d/platform-tools" ] && { printf '%s' "$d"; return 0; }
+  done
+  return 1
+}
+
+export_android_sdk_env() {
+  local sdk
+  sdk="$(resolve_android_sdk_home)" || {
+    echo "[Warn] No Android SDK found; leaving ANDROID_HOME unset." >&2
+    return 0
+  }
+  export ANDROID_HOME="$sdk" ANDROID_SDK_ROOT="$sdk"
+  echo "[Info] ANDROID_HOME=$sdk"
+}
+
 export_toolchain_env() {
   export CC=clang
   export CXX=clang++

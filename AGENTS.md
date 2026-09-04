@@ -97,6 +97,22 @@ rejected; both would be regressions here, so do not "fix" their absence:
 Everything here is false or meaningless in another repo — that is why it is
 written out rather than linked.
 
+- **The image has the Android SDK but never says where.** `/opt/android-sdk`
+  is fully populated (`build-tools`, `cmdline-tools/latest`, `licenses`, `ndk`,
+  `platforms`, `platform-tools`), yet neither `ANDROID_HOME` nor
+  `ANDROID_SDK_ROOT` is in the image ENV, so `flutter build apk` stops with
+  `[!] No Android SDK found`. That killed the whole Android lane in a way that
+  only surfaced three steps later: CodeQL runs the build through
+  `database create --command=…`, so the build's exit 1 aborted the run before
+  any database was finalized, producing three `needs to be finalized` errors
+  and finally `bundle source directory not found: build/app/outputs/flutter-apk`.
+  The `source ~/.bashrc` in the generated build script cannot help — CodeQL
+  spawns it under `preload_tracer`, and bashrc returns early for a
+  non-interactive shell. `export_android_sdk_env` probes and exports it, and
+  `codeql_write_build_script` bakes the resolved path into the generated
+  script. Both defer to an existing `ANDROID_HOME`, so setting it in the image
+  — **the real fix** — makes them no-ops.
+
 - **`RUSTUP_HOME` in the image is root-owned; the container is not root.** The
   image sets `RUSTUP_HOME=/usr/local/rustup` (and `CARGO_HOME=/usr/local/cargo`)
   as ENV, both `root:root drwxr-xr-x`, while the container runs as uid 1001 —

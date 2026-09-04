@@ -37,6 +37,15 @@ codeql_write_build_script() {
   containerhub_source linux/scripts/01-core/cross-gcc.sh
   gcc_root="${MYPROJECT_GCC_TOOLCHAIN_PATH:-$(gcc_toolchain_prefix)}"
 
+  # Same for the SDK: CodeQL runs this script under preload_tracer, where the
+  # `source ~/.bashrc` below is a no-op because bashrc returns early for a
+  # non-interactive shell.
+  local android_home android_exports=""
+  if android_home="$(resolve_android_sdk_home)"; then
+    android_exports="export ANDROID_HOME=\"${android_home}\"
+export ANDROID_SDK_ROOT=\"${android_home}\""
+  fi
+
   cat > "$build_script_path" <<EOF
 #!/bin/bash -l
 set -e
@@ -45,6 +54,7 @@ export CXX=clang++
 export CXXFLAGS="--gcc-toolchain=${gcc_root} \$CXXFLAGS"
 export LDFLAGS="-L${gcc_root}/lib64 -Wl,-rpath,${gcc_root}/lib64 --gcc-toolchain=${gcc_root} \$LDFLAGS"
 export PATH="${flutter_dir}/bin:\$PATH"
+${android_exports}
 source ~/.bashrc 2>/dev/null || true
 flutter clean
 flutter pub get
