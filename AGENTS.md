@@ -418,21 +418,12 @@ already carries (`ci-container-run-native-linux.sh` gates the install on
 over installing —
 see *Flutter version pinning* below.
 
-`scripts/linux/ci-dart-on-native-linux.sh <stage>` is the **legacy host-side
-driver**, kept for local runs; no workflow references it. Its stages are
-`pull_container`, `setup_flutter`, `checks`, `build_linux`, `package`,
-`generate_docs`, and it takes its configuration from the environment:
-
-```bash
-export MATRIX_ARCH=x64 MATRIX_PLATFORM=linux/amd64      # or: arm64 / linux/arm64
-# This legacy driver never calls resolve_flutter_pin, and ci-common.sh hard-requires
-# the variable — so hand it the same pin ContainerHub owns rather than typing one:
-export FLUTTER_VERSION=$(sed -n 's/^FLUTTER_VERSION=//p' \
-  ExternalLib/Kataglyphis-ContainerHub/linux/scripts/01-core/versions.env)
-export APP_NAME=kataglyphis-inference-engine
-scripts/linux/ci-dart-on-native-linux.sh pull_container
-scripts/linux/ci-dart-on-native-linux.sh build_linux
-```
+There is no separate host-side driver any more. The legacy
+`ci-dart-on-native-linux.sh` / `ci-dart-build-android-app.sh` pair and their
+`ci-common.sh` were removed on 2026-09-04: no workflow ever referenced them,
+they carried a third copy of the CodeQL logic, and they re-implemented what CI
+actually runs instead of invoking it. Use `Invoke-LinuxLane.ps1` (§ 4), which
+runs the very script CI runs.
 
 **Flutter version pinning — ContainerHub owns it; this repo derives it and
 names it nowhere.** `linux/scripts/01-core/versions.env` pins `FLUTTER_VERSION`

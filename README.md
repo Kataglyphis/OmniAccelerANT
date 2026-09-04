@@ -120,7 +120,7 @@ Refer to the detailed docs below for platform-specific requirements, camera stre
    | Target | Runtime | Driver |
    |---|---|---|
    | Windows (amd64) | Stevedore `docker.exe`, Windows containers | `scripts/windows/Build-Windows.ps1` |
-   | Linux (amd64 / arm64) | any Linux engine; Rancher Desktop is the supported local one | CI: `scripts/linux/ci/ci-container-run-native-linux.sh` (via ContainerHub action); local: `scripts/linux/ci-dart-on-native-linux.sh` |
+   | Linux (amd64 / arm64) | any Linux engine; Rancher Desktop is the supported local one | CI: `scripts/linux/ci/ci-container-run-native-linux.sh` (via ContainerHub action); local: `scripts/linux/Invoke-LinuxLane.ps1` |
 
    Note that the Linux `build_linux` stage runs a full CodeQL analysis on `x64`,
    not just a build — see AGENTS.md before starting one.
