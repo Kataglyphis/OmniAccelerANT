@@ -225,6 +225,9 @@ written out rather than linked.
 
 ## 4. Build, run, test
 
+**Both lanes run the same thing locally and in CI. Reproduce locally first —
+CI is not a debugger.**
+
 Windows builds run containerized, and **CI runs the exact same script** — the
 workflow [`dart_on_native_windows.yml`](.github/workflows/dart_on_native_windows.yml)
 calls `Build-Windows.ps1` through ContainerHub's `run-in-windows-container`
@@ -314,6 +317,44 @@ disk check, GHCR login, pull), `run-in-windows-container`,
   reason: `hashFiles()` only sees inside `GITHUB_WORKSPACE`.
 
 CI passes `-SkipMsixPackaging`, and `-CodeQL` is off there because of runtimes.
+
+### The Linux lane, locally
+
+`scripts/linux/Run-LinuxLane.ps1` starts the same image and runs the same
+script with the same arguments as
+[`dart_on_native_linux.yml`](.github/workflows/dart_on_native_linux.yml) — it
+mirrors the workflow's `extra-args` and `script`, so change the two together.
+
+```powershell
+.\scripts\linux\Run-LinuxLane.ps1 -Arch x64 -SkipCodeQL -SkipDocs
+.\scripts\linux\Run-LinuxLane.ps1 -Arch arm64        # needs a multi-arch image tag
+```
+
+It drives Rancher Desktop's `nerdctl` (found on `PATH`, else under
+`%ProgramFiles%`), because that is the local Linux engine on this box; CI uses
+`docker` through ContainerHub's `run-in-linux-container`. Everything inside the
+container is identical.
+
+**Two traps, both of which produce a mount that resolves but is empty:**
+
+- `D:` must exist inside *containerd's own* mount namespace, which is not the
+  distro's. It is transient — gone after the VM restarts:
+
+  ```pwsh
+  wsl -d rancher-desktop -u root -e sh -c 'pid=$(ps -eo pid,comm | awk "\$2==\"containerd\" {print \$1; exit}"); nsenter -t "$pid" -m -- sh -c "mkdir -p /mnt/d && mount -t drvfs D: /mnt/d"'
+  ```
+
+  Without it the bind silently mounts an empty directory that containerd
+  helpfully *creates*, so the path then exists and stays empty.
+- Pass the **Windows** path (`D:\…`). nerdctl translates it itself; handing it
+  the already-translated `/mnt/d/…` bypasses that and binds nothing. ContainerHub
+  owns the full write-up — see § 2.
+
+`wsl: Failed to translate '<cwd>'` in the output is noise: `wsl.exe` cannot map
+the *current directory* when it is on `D:`. It does not affect the mount.
+
+The lane installs Flutter into `/workspace/flutter`, i.e. **into the repo** —
+that is where the multi-GB `flutter/` directory comes from. It is git-ignored.
 
 Run the app on the host once artifacts are back:
 
