@@ -114,23 +114,35 @@ Kataglyphis-Inference-Engine bundles a Flutter/Dart frontend, a Rust/C++ inferen
 
 Refer to the detailed docs below for platform-specific requirements, camera streaming pipelines, and deployment workflows.
 
-3. Build the app. Both lanes run containerized and match CI — the exact
-   commands, presets and switches are in [AGENTS.md § 4](AGENTS.md#4-build-run-test):
+3. Build the app. **Every lane runs containerized, and local runs invoke the
+   same script CI invokes** — the exact commands, presets and switches are in
+   [AGENTS.md § 4](AGENTS.md#4-build-run-test):
 
-   | Target | Runtime | Driver |
+   | Lane | What CI runs | Locally |
    |---|---|---|
-   | Windows (amd64) | Stevedore `docker.exe`, Windows containers | `scripts/windows/Build-Windows.ps1` |
-   | Linux (amd64 / arm64) | any Linux engine; Rancher Desktop is the supported local one | CI: `scripts/linux/ci/ci-container-run-native-linux.sh` (via ContainerHub action); local: `scripts/linux/Invoke-LinuxLane.ps1` |
+   | Windows (amd64) | `scripts/windows/Build-Windows.ps1` | the same script, in the same image |
+   | Linux native (amd64 / arm64) | `scripts/linux/ci/ci-container-run-native-linux.sh` | `Invoke-LinuxLane.ps1` |
+   | Android | `scripts/linux/ci/ci-container-run-android.sh` | `Invoke-LinuxLane.ps1 -Lane android` |
+   | Web | `scripts/linux/ci/ci-container-run-web-linux.sh` | `Invoke-LinuxLane.ps1 -Lane web` |
+
+   The Linux entries go through ContainerHub's `run-in-linux-container` action
+   in CI and Rancher Desktop's `nerdctl` locally; inside the container the two
+   are identical, down to the argument list. Reproduce a CI failure locally
+   before pushing — that is the whole point of the arrangement.
 
    Note that the Linux `build_linux` stage runs a full CodeQL analysis on `x64`,
    not just a build — see AGENTS.md before starting one.
 
    Building the Linux lane locally on a Windows host has host-side
    prerequisites — Rancher Desktop's engine, the drive the repo lives on being
-   visible to containerd, and QEMU binfmt for the foreign-arch run. Those are
-   ContainerHub's, not this repo's: see
+   visible to *containerd's own* mount namespace, and QEMU binfmt registered
+   for an arm64 run. The concrete commands are in
+   [AGENTS.md § 4](AGENTS.md#4-build-run-test), "The Linux lane, locally";
+   the reasoning behind them is ContainerHub's, in
    [`rancher-desktop-linux-containers.md`](ExternalLib/Kataglyphis-ContainerHub/docs/rancher-desktop-linux-containers.md).
-   Skipping them yields a bind mount that resolves and is silently empty.
+   Both prerequisites are lost on a VM restart, and skipping either is silent:
+   you get a bind mount that resolves and is empty, or an arm64 container
+   running x86-64 binaries.
 
 ### Browse the API docs locally
 

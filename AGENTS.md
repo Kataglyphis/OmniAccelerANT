@@ -171,32 +171,37 @@ written out rather than linked.
   `Fix Plugin Symlinks (Junctions)` build step. Do not "unify" the two without
   a full Windows container build to prove it.
 
-- **Never `dart format .` here.** The Linux lanes install the Flutter SDK
-  *inside* the mounted workspace (`flutter_dir: /workspace/flutter`), so the
-  recursive walk formats the SDK itself. Run 33810449411 (2026-09-03) reported
+- **Never `dart format .` here.** The lanes used to install the Flutter SDK
+  *inside* the mounted workspace, so the recursive walk formatted the SDK
+  itself. Run 33810449411 (2026-09-03) reported
   `Formatted 7404 files (627 changed)` with 604 of those under `flutter/` —
-  by itself enough to fail `--set-exit-if-changed`, and it rewrites the SDK on
-  disk on the way. Both lanes now list tracked files instead:
+  by itself enough to fail `--set-exit-if-changed`, and it rewrote the SDK on
+  disk on the way. Both lanes list tracked files instead:
   `code_quality_find_dart_files` on Linux, `Get-ProjectDartFiles` on Windows;
-  they return the same 60 files. A local checkout hits this too — a full
-  Flutter SDK at `<repo>/flutter` is gitignored but very much still on disk.
+  they return the same 60 files. The SDK now comes from `/opt/flutter` in the
+  image, so nothing lands in the tree any more — but keep the tracked-file
+  listing: a stray `flutter/` from an older run is git-ignored and still on
+  disk, and `ExternalLib/` and `build/` would be walked regardless.
   `dart analyze` is *not* affected and never was: it honours the
   `analyzer.exclude` list in `analysis_options.yaml`, which already names
   `flutter/**`, `ExternalLib/**` and `rust_builder/**`. `dart format` ignores
   that file entirely — which is the whole reason the file list has to be built
   outside it, and why the two helpers use exactly those three exclusions.
 
-- **The Linux arm64 row cannot pass, and it is the image, not the code.**
-  `ghcr.io/kataglyphis/kataglyphis_beschleuniger:latest-cross` is a
-  **single-arch amd64 tag**, not a multi-arch manifest. Both matrix rows pull
-  the same digest; the arm64 row then runs it under `--platform linux/arm64`
-  on an `ubuntu-24.04-arm` runner, where the x86-64 binaries cannot exec:
-  `` /usr/local/cargo/bin/rustc: 1: ELF: not found `` and a corrosion
-  `FindRust.cmake` error. The pull itself succeeds — the `Failed to pull`
-  line in the log is GitHub echoing the retry script's source, not running it.
-  Fixing this means publishing an arm64 variant (or a multi-arch manifest);
-  nothing in this repo can work around it. `fail-fast: false` is set on that
-  matrix so the arm64 row no longer cancels x64 before it finishes.
+- **A single-arch image tag looks exactly like broken code.** Until 2026-09-04
+  `ghcr.io/kataglyphis/kataglyphis_beschleuniger:latest-cross` was an amd64-only
+  tag, so both matrix rows pulled the same digest and the arm64 row ran x86-64
+  binaries on an `ubuntu-24.04-arm` runner:
+  `` /usr/local/cargo/bin/rustc: 1: ELF: not found `` plus a corrosion
+  `FindRust.cmake` error. Nothing in this repo could work around it. The tag is
+  now a proper OCI index (amd64, arm64, riscv64) and the symptom is gone —
+  verified by the pulled digest matching the registry's index digest, and by
+  both rows failing identically afterwards instead of differently.
+  Two things that survive from that hunt: `fail-fast: false` stays on the
+  matrix, because the failing arm64 row used to cancel x64 before it finished
+  and hid whether the healthy lane was green; and a `Failed to pull` line in a
+  log is usually GitHub **echoing the retry script's source**, not running it —
+  it cost hours of chasing a pull that had in fact succeeded.
 
 - **ASAN works, but only against Microsoft's runtime.** LLVM's
   `clang_rt.asan_dynamic` loads *after* ucrtbase, so allocations made during
@@ -362,8 +367,25 @@ matches in *not* passing `--privileged`.
 .\scripts\linux\Invoke-LinuxLane.ps1 -SkipCodeQL -SkipDocs            # native, x64
 .\scripts\linux\Invoke-LinuxLane.ps1 -Lane android -SkipCodeQL
 .\scripts\linux\Invoke-LinuxLane.ps1 -Lane web
-.\scripts\linux\Invoke-LinuxLane.ps1 -Arch arm64                      # needs the multi-arch tag
+.\scripts\linux\Invoke-LinuxLane.ps1 -Arch arm64                      # needs QEMU, see below
 ```
+
+**arm64 locally needs QEMU registered once per VM boot.** Rancher's VM starts
+with no emulators at all — `binfmt` reports `"emulators": null` and only
+`linux/amd64` variants under `supported`, so an arm64 container would run
+x86-64 binaries and die exactly as CI did before the image went multi-arch
+(`rustc: 1: ELF: not found`). Register it with:
+
+```powershell
+nerdctl run --rm --privileged tonistiigi/binfmt --install arm64
+nerdctl run --rm --privileged tonistiigi/binfmt          # verify: qemu-aarch64 listed
+nerdctl run --rm --platform linux/arm64 alpine uname -m  # verify: aarch64
+```
+
+Like the `D:` mount in containerd's namespace, this does not survive a VM
+restart. The arm64 image layer is a separate ~30 GB pull
+(`nerdctl pull --platform linux/arm64 …`), and every compile runs under
+emulation, so expect it to be far slower than the native x64 lane.
 
 It drives Rancher Desktop's `nerdctl` (found on `PATH`, else under
 `%ProgramFiles%`), because that is the local Linux engine on this box; CI uses
@@ -388,8 +410,10 @@ container is identical.
 `wsl: Failed to translate '<cwd>'` in the output is noise: `wsl.exe` cannot map
 the *current directory* when it is on `D:`. It does not affect the mount.
 
-The lane installs Flutter into `/workspace/flutter`, i.e. **into the repo** —
-that is where the multi-GB `flutter/` directory comes from. It is git-ignored.
+The lane no longer installs Flutter: the image carries it at `/opt/flutter`, and
+`install-flutter.sh` returns early when `$FLUTTER_DIR/bin/flutter` exists. A
+multi-GB `flutter/` in the repo is a leftover from before that — git-ignored,
+and safe to remove.
 
 Run the app on the host once artifacts are back:
 
@@ -414,7 +438,7 @@ bash /workspace/scripts/linux/ci/ci-container-run-native-linux.sh \
 Two flags decide where the SDK comes from: `--install-flutter false` skips the
 download entirely and `--flutter-dir <path>` then points at an SDK the image
 already carries (`ci-container-run-native-linux.sh` gates the install on
-`--install-flutter`, and defaults the dir to `/workspace/flutter`). Prefer that
+`--install-flutter`, and defaults the dir to `/opt/flutter`). Prefer that
 over installing —
 see *Flutter version pinning* below.
 
@@ -451,7 +475,7 @@ into a given image tag is ContainerHub's business — § 2.
 - `require_ci_env` hard-requires `MATRIX_PLATFORM`, `MATRIX_ARCH`,
   `FLUTTER_VERSION` and `APP_NAME` — the script exits rather than guessing.
   Defaulted: `CONTAINER_IMAGE` (`…:latest-cross`), `WORKSPACE_DIR`
-  (`/workspace`), `FLUTTER_DIR` (`/workspace/flutter`). The matrix values CI
+  (`/workspace`), `FLUTTER_DIR` (`/opt/flutter`). The matrix values CI
   uses are in [`dart_on_native_linux.yml`](.github/workflows/dart_on_native_linux.yml).
 
 **`build_linux` on `x64` is not just a build — it is a full CodeQL run.** That
