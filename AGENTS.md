@@ -345,14 +345,24 @@ CI passes `-SkipMsixPackaging`, and `-CodeQL` is off there because of runtimes.
 
 ### The Linux lane, locally
 
-`scripts/linux/Run-LinuxLane.ps1` starts the same image and runs the same
-script with the same arguments as
-[`dart_on_native_linux.yml`](.github/workflows/dart_on_native_linux.yml) — it
-mirrors the workflow's `extra-args` and `script`, so change the two together.
+`scripts/linux/Run-LinuxLane.ps1` starts the same image and runs the same script
+with the same arguments as that lane's workflow. `-Lane` selects which:
+
+| `-Lane` | script | workflow |
+| --- | --- | --- |
+| `native` (default) | `ci-container-run-native-linux.sh` | [`dart_on_native_linux.yml`](.github/workflows/dart_on_native_linux.yml) |
+| `android` | `ci-container-run-android.sh` | [`dart_build_android_app.yml`](.github/workflows/dart_build_android_app.yml) |
+| `web` | `ci-container-run-web-linux.sh` | [`dart_on_web_linux.yml`](.github/workflows/dart_on_web_linux.yml) |
+
+Each entry mirrors its workflow's `extra-args` and `script`, so change the pair
+together. The argument sets are meant to match exactly — the android lane also
+matches in *not* passing `--privileged`.
 
 ```powershell
-.\scripts\linux\Run-LinuxLane.ps1 -Arch x64 -SkipCodeQL -SkipDocs
-.\scripts\linux\Run-LinuxLane.ps1 -Arch arm64        # needs a multi-arch image tag
+.\scripts\linux\Run-LinuxLane.ps1 -SkipCodeQL -SkipDocs            # native, x64
+.\scripts\linux\Run-LinuxLane.ps1 -Lane android -SkipCodeQL
+.\scripts\linux\Run-LinuxLane.ps1 -Lane web
+.\scripts\linux\Run-LinuxLane.ps1 -Arch arm64                      # needs the multi-arch tag
 ```
 
 It drives Rancher Desktop's `nerdctl` (found on `PATH`, else under

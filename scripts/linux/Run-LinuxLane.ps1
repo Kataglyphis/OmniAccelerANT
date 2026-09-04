@@ -7,6 +7,8 @@ arguments the workflow uses. See AGENTS.md § 4.
 #>
 
 param(
+	[ValidateSet('native', 'android', 'web')]
+	[string] $Lane = 'native',
 	[ValidateSet('x64', 'arm64')]
 	[string] $Arch = 'x64',
 	[string] $Image = 'ghcr.io/kataglyphis/kataglyphis_beschleuniger:latest-cross',
@@ -18,7 +20,7 @@ param(
 	[switch] $SkipCodeQL,
 	[switch] $SkipDocs,
 	[switch] $KeepContainer,
-	[string] $ContainerName = "kataglyphis-linux-lane-$Arch",
+	[string] $ContainerName = "kataglyphis-linux-lane-$Lane-$Arch",
 	# Write-heavy trees that must not live on the bind-mounted host drive.
 	# See AGENTS.md § 4, "The Linux lane, locally".
 	[string[]] $ContainerNativePaths = @('/workspace/build')
@@ -50,7 +52,7 @@ $runDocs = if ($SkipDocs) { 'false' } else { ($Arch -eq 'x64').ToString().ToLowe
 # arguments identical to CI's while the writes land on a Linux filesystem.
 $volumeArgs = @()
 foreach ($nativePath in $ContainerNativePaths) {
-	$volumeName = "kataglyphis-lane-$Arch" + ($nativePath -replace '[^A-Za-z0-9]+', '-')
+	$volumeName = "kataglyphis-lane-$Lane-$Arch" + ($nativePath -replace '[^A-Za-z0-9]+', '-')
 	& $engine 'volume' 'create' $volumeName 2>&1 | Out-Null
 	# Volumes start root-owned; the image runs as uid 1001.
 	& $engine 'run' '--rm' '--user' 'root' '-v' "${volumeName}:/vol" `
@@ -59,10 +61,49 @@ foreach ($nativePath in $ContainerNativePaths) {
 	Write-Host "volume : $volumeName -> $nativePath"
 }
 
-# Mirrors .github/workflows/dart_on_native_linux.yml. Change both together.
+# One entry per lane, mirroring that lane's workflow. Change the pair together:
+#   native  -> .github/workflows/dart_on_native_linux.yml
+#   android -> .github/workflows/dart_build_android_app.yml
+#   web     -> .github/workflows/dart_on_web_linux.yml
+$laneArgs = switch ($Lane) {
+	'native' {
+		@('bash', '/workspace/scripts/linux/ci/ci-container-run-native-linux.sh',
+			'--arch', $Arch,
+			'--build-mode', $BuildMode,
+			'--flutter-dir', '/opt/flutter',
+			'--app-name', $AppName,
+			'--package-formats', $PackageFormats,
+			'--install-packaging-deps', $InstallPackagingDeps,
+			'--install-flutter', 'true',
+			'--strict-checks', $StrictChecks,
+			'--run-codeql', $runCodeQL,
+			'--run-docs', $runDocs)
+	}
+	'android' {
+		@('bash', '/workspace/scripts/linux/ci/ci-container-run-android.sh',
+			'--arch', $Arch,
+			'--build-mode', $BuildMode,
+			'--flutter-dir', '/opt/flutter',
+			'--app-name', $AppName,
+			'--run-codeql', $runCodeQL)
+	}
+	'web' {
+		@('bash', '/workspace/scripts/linux/ci/ci-container-run-web-linux.sh',
+			'--arch', 'x64',
+			'--flutter-dir', '/opt/flutter',
+			'--install-flutter', 'true',
+			'--strict-checks', $StrictChecks,
+			'--run-codeql', 'false')
+	}
+}
+
+# The android workflow does not pass --privileged; the other two do.
+$privilegedArgs = if ($Lane -eq 'android') { @() } else { @('--privileged') }
+
 $engineArgs = @(
-	'run', '--name', $ContainerName,
-	'--privileged', '--platform', $platform,
+	'run', '--name', $ContainerName
+) + $privilegedArgs + @(
+	'--platform', $platform,
 	'-e', 'CARGO_HOME=/tmp/cargo-home',
 	# The image's own flutter_tools/.dart_tool is root-owned in a read-only
 	# overlay layer, so `flutter pub get` cannot rewrite it — AGENTS.md § 3.
@@ -70,19 +111,8 @@ $engineArgs = @(
 	'-v', "${repoRoot}:/workspace"
 ) + $volumeArgs + @(
 	'-w', '/workspace',
-	$Image,
-	'bash', '/workspace/scripts/linux/ci/ci-container-run-native-linux.sh',
-	'--arch', $Arch,
-	'--build-mode', $BuildMode,
-	'--flutter-dir', '/opt/flutter',
-	'--app-name', $AppName,
-	'--package-formats', $PackageFormats,
-	'--install-packaging-deps', $InstallPackagingDeps,
-	'--install-flutter', 'true',
-	'--strict-checks', $StrictChecks,
-	'--run-codeql', $runCodeQL,
-	'--run-docs', $runDocs
-)
+	$Image
+) + $laneArgs
 
 Write-Host "engine : $engine"
 Write-Host "command: $($engineArgs -join ' ')"
