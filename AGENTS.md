@@ -97,6 +97,28 @@ rejected; both would be regressions here, so do not "fix" their absence:
 Everything here is false or meaningless in another repo — that is why it is
 written out rather than linked.
 
+- **The image's Flutter SDK is partly root-owned, and it cannot be repaired
+  from inside.** `/opt/flutter` itself belongs to the runtime user, but
+  `packages/flutter_tools/.dart_tool` is `root:root` — a later root-run flutter
+  step recreated it after the image's `chown`. `flutter pub get` then dies with
+  `Cannot open file … package_config.json (OS Error: Permission denied,
+  errno = 13)`, which stops every Flutter lane before it builds anything.
+  The directory sits in a **read-only overlay layer**, so a non-owner can
+  neither empty it (that needs write permission on the directory itself) nor
+  rename it (the rename forces a copy-up and fails on the same files). Both
+  were tried and refused. The only remedy is to mount over it, which all three
+  Linux workflows and `Invoke-LinuxLane.ps1` now do:
+
+  ```
+  --tmpfs /opt/flutter/packages/flutter_tools/.dart_tool:rw,mode=1777
+  ```
+
+  `mode=1777` is load-bearing — tmpfs otherwise mounts as `root:root 755` and
+  nothing changes. With it, `flutter pub get` returns 0 and the SDK regenerates
+  `package_config.json` under the runtime uid. `ensure_writable_flutter_sdk`
+  only detects the condition and names this mount; it deliberately no longer
+  pretends to fix it. Remove the mount once the image chowns the whole SDK.
+
 - **The image has the Android SDK but never says where.** `/opt/android-sdk`
   is fully populated (`build-tools`, `cmdline-tools/latest`, `licenses`, `ndk`,
   `platforms`, `platform-tools`), yet neither `ANDROID_HOME` nor
@@ -383,9 +405,33 @@ nerdctl run --rm --platform linux/arm64 alpine uname -m  # verify: aarch64
 ```
 
 Like the `D:` mount in containerd's namespace, this does not survive a VM
-restart. The arm64 image layer is a separate ~30 GB pull
-(`nerdctl pull --platform linux/arm64 …`), and every compile runs under
-emulation, so expect it to be far slower than the native x64 lane.
+restart. The arm64 layers are a separate pull — about 6 GB over the wire, 30 GB
+on disk next to the amd64 copy (`nerdctl pull --platform linux/arm64 …`) — and
+every compile then runs under emulation, so expect it to be far slower than the
+native x64 lane.
+
+**Everything write-heavy must stay off the host mount.** A bind-mounted Windows
+drive cannot do `utime`, `chmod` or `fchmod` for the container uid, and each of
+those surfaces as a different, misleading error:
+
+| What | Where it lives now | Symptom when it did not |
+| --- | --- | --- |
+| CMake/ninja build tree | named volume on `/workspace/build` | — |
+| flatpak repo, build tree, builder state, manifest staging | `/tmp/flatpak-work` | `fchmod: Operation not permitted` while creating the OSTree repo |
+| ccache / sccache | `/var/cache/{ccache,sccache}` | `Can't initialize ccache use: Failed to set permissions` |
+
+Only the finished artifacts are written into `out/`. This is ContainerHub's
+documented rule for build directories and caches, applied to the packaging
+steps as well.
+
+**Flatpak is the one lane step still failing locally.** After the moves above it
+gets all the way through — both repo exports succeed, 67.8 MB written — and then
+dies in flatpak-builder's post-export `Pruning cache` with
+`error: fchmod: Operation not permitted`. Ruled out so far: `/tmp` itself
+(`ostree prune` there returns 0), `--state-dir` being ignored (the stale
+`.flatpak-builder/` in the repo is untouched by current runs), and the manifest
+staging. `tar`, `deb` and `appimage` are produced regardless. CI runs on ext4
+and has never reached this step, so whether it is affected at all is unknown.
 
 It drives Rancher Desktop's `nerdctl` (found on `PATH`, else under
 `%ProgramFiles%`), because that is the local Linux engine on this box; CI uses
