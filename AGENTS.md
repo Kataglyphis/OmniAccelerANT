@@ -97,6 +97,24 @@ rejected; both would be regressions here, so do not "fix" their absence:
 Everything here is false or meaningless in another repo — that is why it is
 written out rather than linked.
 
+- **The Rust manifest path must be counted from the *resolved* plugin dir.**
+  Cargokit builds `CARGOKIT_MANIFEST_DIR` by string-joining
+  `${CMAKE_CURRENT_SOURCE_DIR}/${manifest_dir}`, and for a Flutter plugin that
+  directory is the ephemeral symlink
+  `linux/flutter/ephemeral/.plugin_symlinks/kataglyphis_rustprojecttemplate`
+  — six levels deep, pointing at `rust_builder/`, which is two. The kernel
+  resolves the symlink *before* applying the `..`, so a chain counted from the
+  symlink overshoots to `/` and Dart reports
+  `PathNotFoundException: … /ExternalLib/Kataglyphis-RustProjectTemplate/Cargo.toml`.
+  `rust_builder/linux/CMakeLists.txt` therefore takes `REALPATH` of
+  `CMAKE_CURRENT_SOURCE_DIR` first, which yields `../..` and survives the
+  resolution. Verified against a rebuilt directory tree: six `..` fails, two
+  succeed.
+  `rust_builder/windows/CMakeLists.txt` still has the original construct and is
+  deliberately left alone — that lane is green, and it has its own
+  `Fix Plugin Symlinks (Junctions)` build step. Do not "unify" the two without
+  a full Windows container build to prove it.
+
 - **Never `dart format .` here.** The Linux lanes install the Flutter SDK
   *inside* the mounted workspace (`flutter_dir: /workspace/flutter`), so the
   recursive walk formats the SDK itself. Run 33810449411 (2026-09-03) reported

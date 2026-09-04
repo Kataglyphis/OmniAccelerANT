@@ -7,11 +7,13 @@ cmake_minimum_required(VERSION 3.10)
 set(PROJECT_NAME "kataglyphis_rustprojecttemplate")
 project(${PROJECT_NAME} LANGUAGES CXX)
 
-# Resolve Rust manifest relative to CMAKE_CURRENT_SOURCE_DIR so the path works
-# regardless of whether this CMakeLists.txt is processed from its original
-# location (rust_builder/linux/) or from a Flutter ephemeral symlink copy.
+# REALPATH, not CMAKE_CURRENT_SOURCE_DIR: cargokit joins this as a plain string
+# onto the ephemeral symlink path, and the kernel resolves that symlink before
+# applying the "..", so a chain counted from the symlink overshoots. See
+# AGENTS.md § 3.
 get_filename_component(MANIFEST_ABS "${CMAKE_SOURCE_DIR}/../ExternalLib/Kataglyphis-RustProjectTemplate" ABSOLUTE)
-file(RELATIVE_PATH MANIFEST_REL "${CMAKE_CURRENT_SOURCE_DIR}" "${MANIFEST_ABS}")
+get_filename_component(PLUGIN_LINUX_REAL "${CMAKE_CURRENT_SOURCE_DIR}" REALPATH)
+file(RELATIVE_PATH MANIFEST_REL "${PLUGIN_LINUX_REAL}" "${MANIFEST_ABS}")
 
 include("../cargokit/cmake/cargokit.cmake")
 apply_cargokit(${PROJECT_NAME} "${MANIFEST_REL}" kataglyphis_rustprojecttemplate "")
