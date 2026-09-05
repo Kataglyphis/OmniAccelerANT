@@ -5,7 +5,7 @@ import 'package:flutter/services.dart';
 // PlatformInt64Util: i64 is `int` natively and `BigInt` on web — AGENTS.md § 3.
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-import 'package:kataglyphis_inference_engine/src/rust/api/webcam.dart';
+import 'package:omni_accelerant/src/rust/api/webcam.dart';
 
 /// Windows webcam live-inference view, fully driven by Rust.
 ///

@@ -1,5 +1,5 @@
 name: kataglyphis_native_inference
-description: "Native texture + camera plugin for the Kataglyphis Inference Engine (Windows/Linux)."
+description: "Native texture + camera plugin for the OmniAccelerANT (Windows/Linux)."
 version: 0.0.1
 homepage: "jonasheinle.de"
 

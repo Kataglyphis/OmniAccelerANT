@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:kataglyphis_inference_engine/Pages/DataPage/BlockOverviewPage/block_entry.dart';
+import 'package:omni_accelerant/Pages/DataPage/BlockOverviewPage/block_entry.dart';
 import 'package:anthology/Media/DataTable/data_list.dart';
 import 'package:anthology/Media/DataTable/datacell_content_strategies.dart';
 import 'package:anthology/app_attributes.dart';

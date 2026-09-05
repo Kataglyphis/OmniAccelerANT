@@ -6,7 +6,7 @@
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
-project = "Kataglyphis-Inference-Engine"
+project = "OmniAccelerANT"
 copyright = "2024, Jonas Heinle"
 author = "Jonas Heinle"
 release = "0.0.1"

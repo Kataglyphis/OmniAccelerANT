@@ -1,5 +1,5 @@
 <h1 align="center">
-  Kataglyphis-Inference-Engine Docs
+  OmniAccelerANT Docs
 </h1>
 
 <p align="center">

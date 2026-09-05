@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:kataglyphis_inference_engine/l10n/app_localizations.dart';
+import 'package:omni_accelerant/l10n/app_localizations.dart';
 import 'package:anthology/Pages/navbar_page_config.dart';
 
 class StreamPageNavBarConfig extends NavBarPageConfig {

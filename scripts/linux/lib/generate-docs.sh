@@ -239,9 +239,9 @@ for md_file, nav_title, guide_file in md_guides:
 footer_html = """
   <div class=\"kg-doc-footer-links\">
 	<strong>Kataglyphis Docs</strong>
-	<a href=\"https://github.com/Kataglyphis/Inference-Engine\">Repository</a>
-	<a href=\"https://github.com/Kataglyphis/Inference-Engine/blob/develop/README.md\">README</a>
-	<a href=\"https://github.com/Kataglyphis/Inference-Engine/tree/develop/docs/source\">Guides</a>
+	<a href=\"https://github.com/Kataglyphis/OmniAccelerANT\">Repository</a>
+	<a href=\"https://github.com/Kataglyphis/OmniAccelerANT/blob/develop/README.md\">README</a>
+	<a href=\"https://github.com/Kataglyphis/OmniAccelerANT/tree/develop/docs/source\">Guides</a>
   </div>
 """.strip("\n")
 

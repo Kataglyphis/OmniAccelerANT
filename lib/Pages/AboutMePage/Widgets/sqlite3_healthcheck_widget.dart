@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:kataglyphis_inference_engine/l10n/app_localizations.dart';
-import 'package:kataglyphis_inference_engine/src/db/sqlite3_healthcheck.dart';
+import 'package:omni_accelerant/l10n/app_localizations.dart';
+import 'package:omni_accelerant/src/db/sqlite3_healthcheck.dart';
 
 /// Widget that displays SQLite3 database health status.
 ///

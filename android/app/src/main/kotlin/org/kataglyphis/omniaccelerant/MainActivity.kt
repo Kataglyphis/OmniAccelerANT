@@ -1,4 +1,4 @@
-package com.example.kataglyphis_inference_engine
+package org.kataglyphis.omniaccelerant
 
 import io.flutter.embedding.android.FlutterActivity
 

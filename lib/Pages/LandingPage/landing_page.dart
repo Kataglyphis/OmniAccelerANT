@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:kataglyphis_inference_engine/l10n/app_localizations.dart';
-import 'package:kataglyphis_inference_engine/blog_dependent_app_attributes.dart';
+import 'package:omni_accelerant/l10n/app_localizations.dart';
+import 'package:omni_accelerant/blog_dependent_app_attributes.dart';
 
 import 'package:anthology/Pages/Footer/footer.dart';
 import 'package:anthology/Layout/ResponsiveDesign/one_two_transition_widget.dart';
 import 'package:anthology/Pages/LandingPage/landing_page_entry.dart';
 import 'package:anthology/Url/external_link_config.dart';
 import 'package:anthology/app_attributes.dart';
-import 'package:kataglyphis_inference_engine/blog_page_config.dart';
+import 'package:omni_accelerant/blog_page_config.dart';
 import 'package:go_router/go_router.dart';
 
 class LandingPage extends StatefulWidget {

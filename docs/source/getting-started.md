@@ -23,7 +23,7 @@ gst-launch-1.0 --version
 ## 2) Clone the repository
 
 ```bash
-git clone --recurse-submodules --branch develop git@github.com:Kataglyphis/Inference-Engine.git
+git clone --recurse-submodules --branch develop git@github.com:Kataglyphis/OmniAccelerANT.git
 cd Inference-Engine
 ```
 

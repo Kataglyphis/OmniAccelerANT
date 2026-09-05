@@ -13,7 +13,7 @@ param(
 	[string] $Arch = 'x64',
 	[string] $Image = 'ghcr.io/kataglyphis/kataglyphis_beschleuniger:latest-cross',
 	[string] $BuildMode = 'release',
-	[string] $AppName = 'kataglyphis-inference-engine',
+	[string] $AppName = 'omni-accelerant',
 	[string] $PackageFormats = 'tar,deb,flatpak,appimage',
 	[string] $InstallPackagingDeps = 'true',
 	[string] $StrictChecks = 'false',

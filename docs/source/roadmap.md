@@ -1,4 +1,4 @@
-# Roadmap – Kataglyphis-Inference-Engine
+# Roadmap – OmniAccelerANT
 
 Basierend auf dem Projekt und den dokumentierten Entwicklungsständen hier eine strukturierte Roadmap:
 

@@ -7,7 +7,7 @@
 
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:kataglyphis_inference_engine/main.dart';
+import 'package:omni_accelerant/main.dart';
 
 void main() {
   testWidgets('App bootstrap smoke test', (WidgetTester tester) async {

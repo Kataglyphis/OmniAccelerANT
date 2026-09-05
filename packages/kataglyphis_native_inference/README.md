@@ -78,7 +78,7 @@ This enumeration also includes submodules.
 ### Installation
 
 This package is not standalone. It lives inside
-[Inference-Engine](https://github.com/Kataglyphis/Inference-Engine) as a path
+[OmniAccelerANT](https://github.com/Kataglyphis/OmniAccelerANT) as a path
 dependency at `packages/kataglyphis_native_inference`, and is built by that repo's
 lanes — clone Inference-Engine with `--recurse-submodules` instead.
 

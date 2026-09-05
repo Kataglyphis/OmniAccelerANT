@@ -20,7 +20,7 @@ jobs:
             arch: x64
             build_mode: release
             platform: linux/amd64
-            app_name: kataglyphis-inference-engine-apk
+            app_name: omni-accelerant-apk
             flutter_dir: /opt/flutter
             container_image: ghcr.io/kataglyphis/kataglyphis_beschleuniger:latest-cross
 

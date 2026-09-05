@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:anthology/Pages/Footer/footer.dart';
 import 'package:anthology/app_attributes.dart';
-import 'package:kataglyphis_inference_engine/Pages/shared/markdown_content_page.dart';
-import 'package:kataglyphis_inference_engine/my_two_cents_config.dart';
+import 'package:omni_accelerant/Pages/shared/markdown_content_page.dart';
+import 'package:omni_accelerant/my_two_cents_config.dart';
 
 /// A page that displays media critique/review content with markdown rendering.
 ///

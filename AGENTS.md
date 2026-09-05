@@ -1,7 +1,7 @@
 # AGENTS.md
 
 Guidance for coding agents (and new contributors) working in
-Kataglyphis-Inference-Engine.
+OmniAccelerANT.
 
 Laid out per ContainerHub's
 [`shared/templates/AGENTS.md.template`](third_party/ContainerHub/shared/templates/README.md).
@@ -217,6 +217,17 @@ written out rather than linked.
   `scripts/windows/Get-WindowsBuildConfig.ps1` (`RustDllName`,
   `RustPluginSubDir`). Change all three together.
 
+- **`dbName` in `lib/src/db/sqlite3_loader_web.dart` is deliberately NOT the
+  package name.** It still reads `kataglyphis_inference_engine` after the
+  2026-09-05 rename to `omni_accelerant`, because it names the **IndexedDB
+  database in the visitor's browser**, which backs the sqlite3 VFS. Changing it
+  does not rename anything — it opens a *different, empty* database and orphans
+  whatever the visitor had, with no error and no migration path. A rename here
+  is a data migration, not a naming change, and it needs a copy step first. The
+  string is invisible to everyone except the browser, so leaving it costs
+  nothing. It also happens to be what keeps that call wrapped across three
+  lines; the shorter name fits on one and `dart format` then rewrites the file.
+
 - **The image's Android prebuilts are x86-64; the app builds arm64-v8a. This
   blocks the Android lane and nothing in this repo can move it.** GStreamer,
   ONNX Runtime and OpenCV under `/opt/android/` are all
@@ -315,7 +326,7 @@ written out rather than linked.
 - **Running on an unprovisioned host** (`STATUS_DLL_NOT_FOUND`): stage the
   image's runtime DLLs into the runner (`C:\runtime\bin` + onnxruntime/DirectML →
   `runner\bin\`; `C:\runtime\lib\gstreamer-1.0` → `runner\lib\gstreamer-1.0\`).
-  Two extra gotchas: `KataglyphisCppInference.dll` is built into a `bin\`
+  Two extra gotchas: `CppInference.dll` is built into a `bin\`
   **subdirectory** but the native plugin needs it **next to the exe**, and the
   VC++ redist CRT DLLs are not bundled. A healthy launch is ~130 MB with a real
   window; a ~6 MB process that exits means a missing dependency DLL. Full
@@ -371,8 +382,8 @@ Locally:
 
 `-SkipMsixPackaging` alone is exactly what the workflow passes; adding
 `-Configurations` is a deliberate deviation, not the parity run. Verified
-2026-09-05: 22/22 steps in 3:40, `kataglyphis_inference_engine.exe`,
-`oxidant.dll` and `KataglyphisCppInference.dll` all
+2026-09-05: 22/22 steps in 3:40, `omni_accelerant.exe`,
+`oxidant.dll` and `CppInference.dll` all
 rebuilt under `build\windows\x64\runner\x64-ClangCL-Windows-Release\`. The
 Windows engine is Stevedore's, **not** Rancher Desktop's — Rancher only serves
 Linux containers, and its `docker`/`nerdctl` shims are first on `PATH`, so the
@@ -637,7 +648,7 @@ CLI flags, not env vars
 ```bash
 bash /workspace/scripts/linux/ci/ci-container-run-native-linux.sh \
   --arch x64 --build-mode release --flutter-dir /opt/flutter \
-  --app-name kataglyphis-inference-engine \
+  --app-name omni-accelerant \
   --package-formats tar,deb,flatpak,appimage
 ```
 

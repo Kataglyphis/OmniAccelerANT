@@ -87,7 +87,7 @@ target_include_directories(${PLUGIN_NAME} PRIVATE
 
 target_link_libraries(${PLUGIN_NAME} PRIVATE flutter)
 target_link_libraries(${PLUGIN_NAME} PRIVATE PkgConfig::GTK)
-target_link_libraries(${PLUGIN_NAME} PRIVATE KataglyphisCppInference)
+target_link_libraries(${PLUGIN_NAME} PRIVATE CppInference)
 target_link_libraries(${PLUGIN_NAME} PRIVATE PkgConfig::GST
   PkgConfig::GST_APP
   PkgConfig::GST_VIDEO)
@@ -95,7 +95,7 @@ target_link_libraries(${PLUGIN_NAME} PRIVATE PkgConfig::GST
 # This list could contain prebuilt libraries, or libraries created by an
 # external build triggered from this build file.
 set(kataglyphis_native_inference_bundled_libraries
-  "$<TARGET_FILE:KataglyphisCppInference>"
+  "$<TARGET_FILE:CppInference>"
   PARENT_SCOPE
 )
 

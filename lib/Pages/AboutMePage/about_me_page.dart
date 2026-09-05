@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
-import 'package:kataglyphis_inference_engine/Pages/AboutMePage/Widgets/about_me_table.dart';
-import 'package:kataglyphis_inference_engine/Pages/AboutMePage/Widgets/skill_table.dart';
-import 'package:kataglyphis_inference_engine/Pages/AboutMePage/Widgets/sqlite3_healthcheck_widget.dart';
-import 'package:kataglyphis_inference_engine/src/rust/api/simple.dart';
-import 'package:kataglyphis_inference_engine/utils/locale_utils.dart';
+import 'package:omni_accelerant/Pages/AboutMePage/Widgets/about_me_table.dart';
+import 'package:omni_accelerant/Pages/AboutMePage/Widgets/skill_table.dart';
+import 'package:omni_accelerant/Pages/AboutMePage/Widgets/sqlite3_healthcheck_widget.dart';
+import 'package:omni_accelerant/src/rust/api/simple.dart';
+import 'package:omni_accelerant/utils/locale_utils.dart';
 import 'package:kataglyphis_native_inference/kataglyphis_native_inference.dart';
 import 'package:anthology/Layout/ResponsiveDesign/one_two_transition_widget.dart';
 import 'package:anthology/Pages/Footer/footer.dart';

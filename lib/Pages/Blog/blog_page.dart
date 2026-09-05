@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:anthology/Pages/Footer/footer.dart';
 import 'package:anthology/app_attributes.dart';
-import 'package:kataglyphis_inference_engine/Pages/shared/markdown_content_page.dart';
-import 'package:kataglyphis_inference_engine/blog_page_config.dart';
+import 'package:omni_accelerant/Pages/shared/markdown_content_page.dart';
+import 'package:omni_accelerant/blog_page_config.dart';
 
 /// A page that displays blog content with markdown rendering and appendix files.
 ///

@@ -2,7 +2,7 @@
   <br>
   <a href="https://jonasheinle.de"><img src="images/logo.png" alt="logo" width="200"></a>
   <br>
-  Kataglyphis-Inference-Engine
+  OmniAccelerANT
   <br>
 </h1>
 
@@ -106,7 +106,7 @@ This enumeration also includes submodules.
 
 1. Clone the repo
    ```sh
-   git clone --recurse-submodules git@github.com:Kataglyphis/Kataglyphis-Inference-Engine.git
+   git clone --recurse-submodules git@github.com:Kataglyphis/OmniAccelerANT.git
    ```
 
 ## Tests

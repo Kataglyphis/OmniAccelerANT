@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:kataglyphis_inference_engine/src/rust/frb_generated.dart';
+import 'package:omni_accelerant/src/rust/frb_generated.dart';
 
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
@@ -7,18 +7,18 @@ import 'package:kataglyphis_inference_engine/src/rust/frb_generated.dart';
 import 'dart:convert';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:kataglyphis_inference_engine/l10n/app_localizations.dart';
+import 'package:omni_accelerant/l10n/app_localizations.dart';
 
 import 'package:go_router/go_router.dart';
 
-import 'package:kataglyphis_inference_engine/Pages/Footer/jotrockenmitlocken_footer.dart';
-import 'package:kataglyphis_inference_engine/Routing/jotrockenmitlocken_router.dart';
-import 'package:kataglyphis_inference_engine/Pages/Home/home_config.dart';
-import 'package:kataglyphis_inference_engine/Pages/jotrockenmitlocken_screen_configurations.dart';
-import 'package:kataglyphis_inference_engine/blog_dependent_app_attributes.dart';
-import 'package:kataglyphis_inference_engine/blog_page_config.dart';
-import 'package:kataglyphis_inference_engine/my_two_cents_config.dart';
-import 'package:kataglyphis_inference_engine/settings/webrtc_settings.dart';
+import 'package:omni_accelerant/Pages/Footer/jotrockenmitlocken_footer.dart';
+import 'package:omni_accelerant/Routing/jotrockenmitlocken_router.dart';
+import 'package:omni_accelerant/Pages/Home/home_config.dart';
+import 'package:omni_accelerant/Pages/jotrockenmitlocken_screen_configurations.dart';
+import 'package:omni_accelerant/blog_dependent_app_attributes.dart';
+import 'package:omni_accelerant/blog_page_config.dart';
+import 'package:omni_accelerant/my_two_cents_config.dart';
+import 'package:omni_accelerant/settings/webrtc_settings.dart';
 import 'package:anthology/app_attributes.dart';
 import 'package:anthology/app_settings.dart';
 import 'package:anthology/constants.dart';

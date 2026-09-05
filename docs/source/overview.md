@@ -1,6 +1,6 @@
 # Overview
 
-Kataglyphis Inference Engine combines a Flutter frontend with native Rust/C++ inference and GStreamer-powered media pipelines.
+OmniAccelerANT combines a Flutter frontend with native Rust/C++ inference and GStreamer-powered media pipelines.
 
 ## Architecture at a Glance
 

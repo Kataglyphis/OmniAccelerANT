@@ -1,4 +1,4 @@
-name: kataglyphis_inference_engine
+name: omni_accelerant
 description: "Making an inference with Rust and display the results with Flutter/Dart."
 homepage: https://jonasheinle.de
 
@@ -158,8 +158,8 @@ flutter_launcher_icons:
 msix_config:
   # Build-Windows.ps1 owns the build; msix only packages. See AGENTS.md § 4.
   build_windows: false
-  display_name: Kataglyphis Inference Engine
+  display_name: OmniAccelerANT
   publisher_display_name: Kataglyphis
-  identity_name: Kataglyphis.KataglyphisInferenceEngine
+  identity_name: Kataglyphis.OmniAccelerANT
   msix_version: 1.1.0.0
   logo_path: assets/icons/kataglyphis_app_icon.png

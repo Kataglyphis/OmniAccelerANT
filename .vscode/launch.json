@@ -11,18 +11,18 @@
             "program": "lib/main.dart",
         },
         {
-            "name": "Kataglyphis-Inference-Engine",
+            "name": "OmniAccelerANT",
             "request": "launch",
             "type": "dart"
         },
         {
-            "name": "Kataglyphis-Inference-Engine (profile mode)",
+            "name": "OmniAccelerANT (profile mode)",
             "request": "launch",
             "type": "dart",
             "flutterMode": "profile",
         },
         {
-            "name": "Kataglyphis-Inference-Engine (release mode)",
+            "name": "OmniAccelerANT (release mode)",
             "request": "launch",
             "type": "dart",
             "flutterMode": "release"

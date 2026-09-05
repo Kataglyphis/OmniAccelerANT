@@ -63,7 +63,7 @@ target_include_directories(${PLUGIN_NAME} PRIVATE
   "${KCI_DIR}/Src"
 )
 target_link_libraries(${PLUGIN_NAME} PRIVATE flutter flutter_wrapper_plugin)
-target_link_libraries(${PLUGIN_NAME} PRIVATE KataglyphisCppInference)
+target_link_libraries(${PLUGIN_NAME} PRIVATE CppInference)
 # List of absolute paths to libraries that should be bundled with the plugin.
 # This list could contain prebuilt libraries, or libraries created by an
 # external build triggered from this build file.

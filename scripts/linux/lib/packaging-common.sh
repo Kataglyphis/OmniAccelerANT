@@ -5,7 +5,7 @@ _packaging_common_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${_packaging_common_dir}/containerhub.sh"
 
 export APP_PACKAGING_APP_ID_PREFIX="org.kataglyphis"
-export APP_PACKAGING_COMMENT="Kataglyphis Inference Engine"
+export APP_PACKAGING_COMMENT="OmniAccelerANT"
 export APP_PACKAGING_MAINTAINER="Kataglyphis <dev@kataglyphis.local>"
 export APP_PACKAGING_DESCRIPTION="Kataglyphis inference engine desktop app."
 APP_PACKAGING_ICON_FALLBACKS=("assets/icons/kataglyphis_app_icon.png")

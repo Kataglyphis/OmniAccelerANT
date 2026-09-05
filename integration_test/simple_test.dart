@@ -1,9 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
-import 'package:kataglyphis_inference_engine/main.dart';
-import 'package:kataglyphis_inference_engine/src/rust/frb_generated.dart';
+import 'package:omni_accelerant/main.dart';
+import 'package:omni_accelerant/src/rust/frb_generated.dart';
 
-/// Integration tests for the Kataglyphis Inference Engine application.
+/// Integration tests for the OmniAccelerANT application.
 ///
 /// These tests verify that the app can properly initialize and interact
 /// with native Rust code through Flutter Rust Bridge.

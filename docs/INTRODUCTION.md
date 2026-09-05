@@ -1,4 +1,4 @@
-# Kataglyphis Inference Engine — Documentation Hub
+# OmniAccelerANT — Documentation Hub
 
 This documentation covers the full Kataglyphis stack: Flutter/Dart frontend, Rust/C++ inference core, GStreamer/WebRTC streaming, and platform-specific build pipelines.
 

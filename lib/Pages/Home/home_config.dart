@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:anthology/Pages/Home/button_names.dart';
 import 'package:anthology/Pages/Home/home_config.dart';
-import 'package:kataglyphis_inference_engine/l10n/app_localizations.dart';
+import 'package:omni_accelerant/l10n/app_localizations.dart';
 import 'package:flutter/foundation.dart';
 
 class JotrockenMitLockenHomeConfig extends HomeConfig {

@@ -4,15 +4,15 @@ import 'package:flutter/services.dart';
 import 'package:anthology/Pages/Footer/footer.dart';
 import 'package:anthology/Layout/ResponsiveDesign/single_page.dart';
 import 'package:anthology/app_attributes.dart';
-import 'package:kataglyphis_inference_engine/settings/webrtc_settings.dart';
+import 'package:omni_accelerant/settings/webrtc_settings.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 // Web imports (only loaded on web)
 // conditional import: stub for non-web, web impl for web
-import 'package:kataglyphis_inference_engine/Pages/StreamPage/webrtc_view_stub.dart'
-    if (dart.library.js_interop) 'package:kataglyphis_inference_engine/Pages/StreamPage/webrtc_view.dart'
+import 'package:omni_accelerant/Pages/StreamPage/webrtc_view_stub.dart'
+    if (dart.library.js_interop) 'package:omni_accelerant/Pages/StreamPage/webrtc_view.dart'
     as webrtc_import;
-import 'package:kataglyphis_inference_engine/Pages/StreamPage/rust_webcam_view.dart';
+import 'package:omni_accelerant/Pages/StreamPage/rust_webcam_view.dart';
 
 // ============================================================================
 // Constants

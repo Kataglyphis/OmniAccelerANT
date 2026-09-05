@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:anthology/Decoration/row_divider.dart';
 import 'package:anthology/Media/Image/openable_image.dart';
 
-import 'package:kataglyphis_inference_engine/l10n/app_localizations.dart';
+import 'package:omni_accelerant/l10n/app_localizations.dart';
 
 class Donation extends StatefulWidget {
   const Donation({super.key});

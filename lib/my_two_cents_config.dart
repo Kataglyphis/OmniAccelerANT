@@ -1,5 +1,5 @@
 import 'package:anthology/Pages/stateful_branch_info_provider.dart';
-import 'package:kataglyphis_inference_engine/Pages/shared/markdown_content_page.dart';
+import 'package:omni_accelerant/Pages/shared/markdown_content_page.dart';
 
 /// Configuration for a "My Two Cents" / media critics page loaded from JSON.
 ///

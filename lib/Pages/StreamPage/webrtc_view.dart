@@ -4,7 +4,7 @@ import 'dart:ui_web' as ui_web;
 import 'package:web/web.dart' as web;
 import 'package:flutter/material.dart';
 
-import 'package:kataglyphis_inference_engine/js/gstwebrtc_api_interop.dart';
+import 'package:omni_accelerant/js/gstwebrtc_api_interop.dart';
 
 // Add this extension to access the JS property directly.
 extension HTMLVideoElementSrcObject on web.HTMLVideoElement {

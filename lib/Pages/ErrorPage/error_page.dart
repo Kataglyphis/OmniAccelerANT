@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:anthology/Pages/Footer/footer.dart';
 import 'package:anthology/Layout/ResponsiveDesign/single_page.dart';
-import 'package:kataglyphis_inference_engine/Pages/ErrorPage/error_page_widget.dart';
+import 'package:omni_accelerant/Pages/ErrorPage/error_page_widget.dart';
 import 'package:anthology/app_attributes.dart';
 
 class ErrorPage extends StatefulWidget {

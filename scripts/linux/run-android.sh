@@ -14,7 +14,7 @@ Usage:
 Options:
   -a, --arch <x64|arm64>        Host architecture label for artifact naming (default: auto-detect)
       --build-mode <debug|profile|release> Build mode for flutter build apk (default: release)
-  -n, --app-name <name>         Artifact base name (default: kataglyphis-inference-engine-apk)
+  -n, --app-name <name>         Artifact base name (default: omni-accelerant-apk)
       --flutter-dir <path>      Optional Flutter SDK directory (uses <path>/bin/flutter)
   -h, --help                    Show this help
 
@@ -24,7 +24,7 @@ Notes:
 EOF
 }
 
-APP_NAME="kataglyphis-inference-engine-apk"
+APP_NAME="omni-accelerant-apk"
 MATRIX_ARCH="$(detect_arch)"
 BUILD_MODE="release"
 FLUTTER_DIR=""

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:anthology/Decoration/Charts/pie_chart.dart';
 import 'package:anthology/Decoration/Charts/pie_chart_data_entry.dart';
-import 'package:kataglyphis_inference_engine/l10n/app_localizations.dart';
+import 'package:omni_accelerant/l10n/app_localizations.dart';
 import 'package:anthology/constants.dart';
 
 class PerfectDay extends StatefulWidget {

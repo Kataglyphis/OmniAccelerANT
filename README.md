@@ -3,16 +3,16 @@
     <img src="images/logo.png" alt="logo" width="200" />
   </a>
 
-  <h1>Kataglyphis-Inference-Engine</h1>
+  <h1>OmniAccelerANT</h1>
 
   <h4>An inference engine with Flutter/Dart frontend and Rust/C++ backend, showcasing Gstreamer capabilities enhanced with AI. Read further if you are interested in cross platform AI inference. </h4>
 
 </div>
 
-[![Build + run + test on Linux natively](https://github.com/Kataglyphis/Inference-Engine/actions/workflows/dart_on_native_linux.yml/badge.svg)](https://github.com/Kataglyphis/Inference-Engine/actions/workflows/dart_on_native_linux.yml) [![Windows CMake (clang-cl) natively](https://github.com/Kataglyphis/Inference-Engine/actions/workflows/dart_on_native_windows.yml/badge.svg)](https://github.com/Kataglyphis/Inference-Engine/actions/workflows/dart_on_native_windows.yml) [![Build + test + run for web](https://github.com/Kataglyphis/Inference-Engine/actions/workflows/dart_on_web_linux.yml/badge.svg)](https://github.com/Kataglyphis/Inference-Engine/actions/workflows/dart_on_web_linux.yml)  
- [![Build + test + run android app](https://github.com/Kataglyphis/Inference-Engine/actions/workflows/dart_build_android_app.yml/badge.svg)](https://github.com/Kataglyphis/Inference-Engine/actions/workflows/dart_build_android_app.yml)[![Automatic Dependency Submission](https://github.com/Kataglyphis/Inference-Engine/actions/workflows/dependency-graph/auto-submission/badge.svg)](https://github.com/Kataglyphis/Inference-Engine/actions/workflows/dependency-graph/auto-submission)
-[![Dependabot Updates](https://github.com/Kataglyphis/Inference-Engine/actions/workflows/dependabot/dependabot-updates/badge.svg)](https://github.com/Kataglyphis/Inference-Engine/actions/workflows/dependabot/dependabot-updates)
-[![TopLang](https://img.shields.io/github/languages/top/Kataglyphis/Inference-Engine)]()
+[![Build + run + test on Linux natively](https://github.com/Kataglyphis/OmniAccelerANT/actions/workflows/dart_on_native_linux.yml/badge.svg)](https://github.com/Kataglyphis/OmniAccelerANT/actions/workflows/dart_on_native_linux.yml) [![Windows CMake (clang-cl) natively](https://github.com/Kataglyphis/OmniAccelerANT/actions/workflows/dart_on_native_windows.yml/badge.svg)](https://github.com/Kataglyphis/OmniAccelerANT/actions/workflows/dart_on_native_windows.yml) [![Build + test + run for web](https://github.com/Kataglyphis/OmniAccelerANT/actions/workflows/dart_on_web_linux.yml/badge.svg)](https://github.com/Kataglyphis/OmniAccelerANT/actions/workflows/dart_on_web_linux.yml)  
+ [![Build + test + run android app](https://github.com/Kataglyphis/OmniAccelerANT/actions/workflows/dart_build_android_app.yml/badge.svg)](https://github.com/Kataglyphis/OmniAccelerANT/actions/workflows/dart_build_android_app.yml)[![Automatic Dependency Submission](https://github.com/Kataglyphis/OmniAccelerANT/actions/workflows/dependency-graph/auto-submission/badge.svg)](https://github.com/Kataglyphis/OmniAccelerANT/actions/workflows/dependency-graph/auto-submission)
+[![Dependabot Updates](https://github.com/Kataglyphis/OmniAccelerANT/actions/workflows/dependabot/dependabot-updates/badge.svg)](https://github.com/Kataglyphis/OmniAccelerANT/actions/workflows/dependabot/dependabot-updates)
+[![TopLang](https://img.shields.io/github/languages/top/Kataglyphis/OmniAccelerANT)]()
 [![Donate](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://www.paypal.com/donate/?hosted_button_id=BX9AVVES2P9LN)
 [![Twitter](https://img.shields.io/twitter/follow/Cataglyphis_?style=social)](https://twitter.com/Cataglyphis_)
 [![YouTube](https://img.shields.io/youtube/channel/subscribers/UC3LZiH4sZzzaVBCUV8knYeg?style=social)](https://www.youtube.com/channel/UC3LZiH4sZzzaVBCUV8knYeg)
@@ -21,9 +21,9 @@
 
 ## Overview
 
-Kataglyphis-Inference-Engine bundles a Flutter/Dart frontend, a Rust/C++ inference core, and a rich set of camera streaming pipelines powered by GStreamer. The repository acts as an end-to-end reference for building cross-platform inference products that target desktop, web, and embedded devices.
+OmniAccelerANT bundles a Flutter/Dart frontend, a Rust/C++ inference core, and a rich set of camera streaming pipelines powered by GStreamer. The repository acts as an end-to-end reference for building cross-platform inference products that target desktop, web, and embedded devices.
 
-## Highlights & Key Features – Kataglyphis-Inference-Engine
+## Highlights & Key Features – OmniAccelerANT
 
 ### 🌟 Highlights
 
@@ -102,7 +102,7 @@ Kataglyphis-Inference-Engine bundles a Flutter/Dart frontend, a Rust/C++ inferen
   > On Windows I use [Git Bash](https://git-scm.com/install/windows) instead of  
   > Powershell or cmd
    ```bash
-   git clone --recurse-submodules --branch develop git@github.com:Kataglyphis/Inference-Engine.git
+   git clone --recurse-submodules --branch develop git@github.com:Kataglyphis/OmniAccelerANT.git
    cd Inference-Engine
    ```
 2. Initialize submodules if needed.  
@@ -255,5 +255,5 @@ Twitter: [@Cataglyphis_](https://twitter.com/Cataglyphis_)
 Email: cataglyphis@jonasheinle.de
 
 **Project Links:**
-- GitHub: [Inference-Engine](https://github.com/Kataglyphis/Inference-Engine)
+- GitHub: [OmniAccelerANT](https://github.com/Kataglyphis/OmniAccelerANT)
 - Homepage: [Official Site](https://kataglyphisinferenceengine.jonasheinle.de)

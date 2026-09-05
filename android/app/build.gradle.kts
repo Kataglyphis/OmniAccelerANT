@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.kataglyphis_inference_engine"
+    namespace = "org.kataglyphis.omniaccelerant"
     // compileSdk = flutter.compileSdkVersion
     // ndkVersion = flutter.ndkVersion
     // These three must name components the CI image actually ships
@@ -30,7 +30,7 @@ android {
 
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.example.kataglyphis_inference_engine"
+        applicationId = "org.kataglyphis.omniaccelerant"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         // my native_code_plugin requires minSdkVersion 26.

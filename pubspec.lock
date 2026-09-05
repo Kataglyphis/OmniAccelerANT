@@ -17,6 +17,13 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "10.0.1"
+  anthology:
+    dependency: "direct main"
+    description:
+      path: "third_party/ANThology"
+      relative: true
+    source: path
+    version: "1.1.0"
   archive:
     dependency: transitive
     description:
@@ -388,13 +395,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.20.3"
-  anthology:
-    dependency: "direct main"
-    description:
-      path: "third_party/ANThology"
-      relative: true
-    source: path
-    version: "1.1.0"
   json_annotation:
     dependency: transitive
     description:
@@ -407,13 +407,6 @@ packages:
     dependency: "direct main"
     description:
       path: "packages/kataglyphis_native_inference"
-      relative: true
-    source: path
-    version: "0.0.1"
-  oxidant:
-    dependency: "direct main"
-    description:
-      path: rust_builder
       relative: true
     source: path
     version: "0.0.1"
@@ -537,6 +530,13 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.0.0"
+  oxidant:
+    dependency: "direct main"
+    description:
+      path: rust_builder
+      relative: true
+    source: path
+    version: "0.0.1"
   package_config:
     dependency: transitive
     description:
