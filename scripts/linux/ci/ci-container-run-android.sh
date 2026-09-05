@@ -105,7 +105,7 @@ run_flutter_common_checks "$STRICT_CHECKS"
 run_check_cmd "$STRICT_CHECKS" flutter config --enable-android
 setup_compiler_cache
 export_android_gstreamer_env
-export_toolchain_env
+export_toolchain_env "$MATRIX_ARCH"
 
 if maybe_truthy "$RUN_CODEQL"; then
   if ! run_codeql_android "$FLUTTER_DIR" "$BUILD_MODE"; then

@@ -118,7 +118,7 @@ fi
 
 # Ensure clang has a usable C++ runtime/toolchain setup in container builds.
 setup_compiler_cache
-export_toolchain_env
+export_toolchain_env "$MATRIX_ARCH"
 
 # Check + Build + Packaging (delegiert an run-native-linux.sh)
 run_command_with_packaging_runtime "$PACKAGE_FORMATS" \

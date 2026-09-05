@@ -13,6 +13,9 @@ analyzer:
   exclude:
     - "flutter/**"
     - "third_party/**"
+    # A plugin example is a standalone app with its own pubspec; resolving it
+    # from this workspace is a category error.
+    - "packages/*/example/**"
     - "rust_builder/**"
     - build/**
     - android/**

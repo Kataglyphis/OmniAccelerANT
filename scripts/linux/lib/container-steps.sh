@@ -87,9 +87,35 @@ export_android_gstreamer_env() {
   return 0
 }
 
+# Points clang at the image's source-built GCC. ContainerHub deleted the helper
+# that did this; the wrappers it named as the replacement are not in this image
+# — AGENTS.md § 3.
 export_toolchain_env() {
-  export CC=clang
-  export CXX=clang++
-  containerhub_source linux/scripts/01-core/cross-gcc.sh
-  export_clang_gcc_toolchain_env
+  local arch="${1:-${MATRIX_ARCH:-amd64}}"
+  case "$arch" in x64) arch=amd64 ;; esac
+
+  if [ -x "/usr/local/bin/clang-${arch}" ] && [ -x "/usr/local/bin/clang++-${arch}" ]; then
+    export CC="/usr/local/bin/clang-${arch}" CXX="/usr/local/bin/clang++-${arch}"
+    echo "[Info] CC=$CC (wrapper, --gcc-toolchain baked in)"
+    return 0
+  fi
+
+  export CC=clang CXX=clang++
+  containerhub_source linux/scripts/01-core/cross-gcc.sh || return 1
+  local root
+  root="$(gcc_toolchain_prefix)"
+  if [ ! -d "$root" ]; then
+    echo "[Warn] no GCC toolchain at ${root}; clang falls back to its own discovery." >&2
+    return 0
+  fi
+  export CFLAGS="--gcc-toolchain=${root} ${CFLAGS:-}"
+  export CXXFLAGS="--gcc-toolchain=${root} ${CXXFLAGS:-}"
+  local lib=""
+  [ -d "$root/lib64" ] && lib="$root/lib64" || { [ -d "$root/lib" ] && lib="$root/lib"; }
+  if [ -n "$lib" ]; then
+    export LDFLAGS="-L${lib} -Wl,-rpath,${lib} --gcc-toolchain=${root} ${LDFLAGS:-}"
+  else
+    export LDFLAGS="--gcc-toolchain=${root} ${LDFLAGS:-}"
+  fi
+  echo "[Info] CC=$CC --gcc-toolchain=${root}"
 }

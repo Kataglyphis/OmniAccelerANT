@@ -74,7 +74,7 @@ git_safe_dirs "$FLUTTER_DIR"
 
 # Ensure clang has a usable C++ runtime/toolchain setup in container builds.
 setup_compiler_cache
-export_toolchain_env
+export_toolchain_env "$MATRIX_ARCH"
 
 echo "=== Flutter doctor ==="
 flutter doctor -v
