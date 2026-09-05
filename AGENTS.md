@@ -450,6 +450,24 @@ on disk next to the amd64 copy (`nerdctl pull --platform linux/arm64 …`) — a
 every compile then runs under emulation, so expect it to be far slower than the
 native x64 lane.
 
+**Emulated arm64 produces tar and deb, never flatpak or AppImage.** Both fail
+inside `qemu-user`, for reasons that have nothing to do with this repo or the
+image, and both were verified 2026-09-05 after a full arm64 build that compiled
+Rust and C++ without a single error:
+
+- `bwrap: Creating new namespace failed, likely because the kernel does not
+  support user namespaces` — the kernel does support them
+  (`/proc/sys/user/max_user_namespaces` is 123100) and `--privileged` is passed;
+  qemu-user simply does not carry `unshare(CLONE_NEWUSER)` through, and
+  flatpak-builder sandboxes every module with bubblewrap.
+- `/usr/local/bin/appimagetool: cannot execute binary file: Exec format error` —
+  the binary is the correct architecture (`ELF aarch64, static-pie linked`);
+  qemu-user cannot load static-PIE executables.
+
+CI is unaffected: its arm64 row runs on a real `ubuntu-24.04-arm` runner, so
+neither restriction applies. Locally, treat a failing flatpak/AppImage step on
+arm64 as expected and check the two messages above before investigating.
+
 **Everything write-heavy must stay off the host mount.** A bind-mounted Windows
 drive cannot do `utime`, `chmod` or `fchmod` for the container uid, and each of
 those surfaces as a different, misleading error:

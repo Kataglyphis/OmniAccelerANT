@@ -14,7 +14,6 @@ Usage:
 Options:
   -a, --arch <x64|arm64>        Target architecture (required)
   --build-mode <debug|profile|release> Build mode for flutter build linux (default: release)
-      --flutter-version <ver>   Flutter version (required)
       --flutter-dir <path>      Flutter SDK directory (default: /opt/flutter, baked into the image)
   -n, --app-name <name>         Artifact base name (required)
       --package-formats <csv>   Packaging formats (default: tar)
@@ -28,12 +27,10 @@ EOF
 
 MATRIX_ARCH=""
 BUILD_MODE="release"
-FLUTTER_VERSION=""
 FLUTTER_DIR="/opt/flutter"
 APP_NAME=""
 PACKAGE_FORMATS="tar"
 INSTALL_PACKAGING_DEPS="0"
-INSTALL_FLUTTER="0"
 RUN_DOCS="1"
 RUN_CODEQL="0"
 STRICT_CHECKS=""
@@ -46,10 +43,6 @@ while [[ $# -gt 0 ]]; do
       ;;
     --build-mode)
       BUILD_MODE="${2:-}"
-      shift 2
-      ;;
-    --flutter-version)
-      FLUTTER_VERSION="${2:-}"
       shift 2
       ;;
     --flutter-dir)
@@ -66,10 +59,6 @@ while [[ $# -gt 0 ]]; do
       ;;
     --install-packaging-deps)
       INSTALL_PACKAGING_DEPS="${2:-}"
-      shift 2
-      ;;
-    --install-flutter)
-      INSTALL_FLUTTER="${2:-}"
       shift 2
       ;;
     --strict-checks)
@@ -101,17 +90,6 @@ if ! validate_arch "$MATRIX_ARCH"; then
   exit 2
 fi
 
-# CI passes no --flutter-version: resolve it, and its matching sha256, from
-# ContainerHub's versions.env (resolve_flutter_pin, ../lib/container-steps.sh).
-if [[ -z "$FLUTTER_VERSION" ]]; then
-  resolve_flutter_pin || exit 2
-fi
-
-if ! validate_non_empty "--flutter-version" "$FLUTTER_VERSION"; then
-  usage >&2
-  exit 2
-fi
-
 if ! validate_non_empty "--app-name" "$APP_NAME"; then
   usage >&2
   exit 2
@@ -126,10 +104,7 @@ if [[ "$REPO_ROOT" != "/workspace" ]]; then
 fi
 cd "$REPO_ROOT"
 
-# Optional: Flutter-Installation (nur im CI nötig)
-if maybe_truthy "$INSTALL_FLUTTER"; then
-  bash scripts/linux/lib/install-flutter.sh --flutter-version "$FLUTTER_VERSION" --flutter-dir "$FLUTTER_DIR" --arch "$MATRIX_ARCH"
-fi
+assert_flutter_available "$FLUTTER_DIR" || exit 2
 
 if [[ "$MATRIX_ARCH" == "x64" ]] && maybe_truthy "$RUN_CODEQL"; then
   echo "[Warn] --run-codeql ist aktuell ein no-op im native Linux Flow und wird ignoriert."

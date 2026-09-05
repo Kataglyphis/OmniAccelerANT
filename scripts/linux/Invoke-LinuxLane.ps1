@@ -74,7 +74,6 @@ $laneArgs = switch ($Lane) {
 			'--app-name', $AppName,
 			'--package-formats', $PackageFormats,
 			'--install-packaging-deps', $InstallPackagingDeps,
-			'--install-flutter', 'true',
 			'--strict-checks', $StrictChecks,
 			'--run-codeql', $runCodeQL,
 			'--run-docs', $runDocs)
@@ -91,7 +90,6 @@ $laneArgs = switch ($Lane) {
 		@('bash', '/workspace/scripts/linux/ci/ci-container-run-web-linux.sh',
 			'--arch', 'x64',
 			'--flutter-dir', '/opt/flutter',
-			'--install-flutter', 'true',
 			'--strict-checks', $StrictChecks,
 			'--run-codeql', 'false')
 	}

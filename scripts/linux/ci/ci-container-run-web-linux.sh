@@ -12,9 +12,7 @@ Usage:
 
 Options:
   -a, --arch <x64|arm64>        Target architecture (required)
-      --flutter-version <ver>   Flutter version (required)
       --flutter-dir <path>      Flutter SDK directory (default: /opt/flutter, baked into the image)
-      --install-flutter <bool>  Install Flutter SDK (default: false)
       --strict-checks <bool>    Fail on format/analyze/test errors (default: true in CI, false locally)
       --run-codeql <bool>       Run CodeQL scan (default: false)
   -h, --help                    Show this help
@@ -22,9 +20,7 @@ EOF
 }
 
 MATRIX_ARCH=""
-FLUTTER_VERSION=""
 FLUTTER_DIR="/opt/flutter"
-INSTALL_FLUTTER="0"
 STRICT_CHECKS=""
 RUN_CODEQL="0"
 
@@ -34,16 +30,8 @@ while [[ $# -gt 0 ]]; do
       MATRIX_ARCH="${2:-}"
       shift 2
       ;;
-    --flutter-version)
-      FLUTTER_VERSION="${2:-}"
-      shift 2
-      ;;
     --flutter-dir)
       FLUTTER_DIR="${2:-}"
-      shift 2
-      ;;
-    --install-flutter)
-      INSTALL_FLUTTER="${2:-}"
       shift 2
       ;;
     --strict-checks)
@@ -71,19 +59,6 @@ if ! validate_arch "$MATRIX_ARCH"; then
   exit 2
 fi
 
-# CI passes no --flutter-version: resolve it, and its matching sha256, from
-# ContainerHub's versions.env (resolve_flutter_pin, ../lib/container-steps.sh).
-# This lane does not source packaging-common.sh, so exporting the sha here is
-# what stops setup-flutter.sh falling back to the image's baked versions.env.
-if [[ -z "$FLUTTER_VERSION" ]]; then
-  resolve_flutter_pin || exit 2
-fi
-
-if ! validate_non_empty "--flutter-version" "$FLUTTER_VERSION"; then
-  usage >&2
-  exit 2
-fi
-
 STRICT_CHECKS="$(resolve_strict_checks "$STRICT_CHECKS")"
 
 # Dynamische Wahl des Arbeitsverzeichnisses: /workspace (CI) oder lokal
@@ -93,12 +68,7 @@ if [[ "$REPO_ROOT" != "/workspace" ]]; then
 fi
 cd "$REPO_ROOT"
 
-# Optional: Flutter-Installation (nur im CI nötig)
-if maybe_truthy "$INSTALL_FLUTTER"; then
-  bash scripts/linux/lib/install-flutter.sh --flutter-version "$FLUTTER_VERSION" --flutter-dir "$FLUTTER_DIR" --arch "$MATRIX_ARCH"
-fi
-
-# Add Flutter to PATH
+assert_flutter_available "$FLUTTER_DIR" || exit 2
 source_bashrc_and_add_flutter_to_path "$FLUTTER_DIR"
 git_safe_dirs "$FLUTTER_DIR"
 

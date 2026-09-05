@@ -16,7 +16,6 @@ Usage:
 Options:
   -a, --arch <x64|arm64>        Target architecture label (required)
   --build-mode <debug|profile|release> Build mode for flutter build apk (default: release)
-      --flutter-version <ver>   Flutter version (required)
       --flutter-dir <path>      Flutter SDK directory (default: /opt/flutter, baked into the image)
   -n, --app-name <name>         Artifact base name (required)
       --run-codeql <bool>       Run CodeQL scan (default: true)
@@ -26,7 +25,6 @@ EOF
 
 MATRIX_ARCH=""
 BUILD_MODE="release"
-FLUTTER_VERSION=""
 FLUTTER_DIR="/opt/flutter"
 APP_NAME=""
 RUN_CODEQL="1"
@@ -40,10 +38,6 @@ while [[ $# -gt 0 ]]; do
       ;;
     --build-mode)
       BUILD_MODE="${2:-}"
-      shift 2
-      ;;
-    --flutter-version)
-      FLUTTER_VERSION="${2:-}"
       shift 2
       ;;
     --flutter-dir)
@@ -84,15 +78,6 @@ case "$BUILD_MODE" in
     ;;
 esac
 
-# resolve_flutter_pin — AGENTS.md § 4.
-if [[ -z "$FLUTTER_VERSION" ]]; then
-  resolve_flutter_pin || exit 2
-fi
-
-if ! validate_non_empty "--flutter-version" "$FLUTTER_VERSION"; then
-  usage >&2
-  exit 2
-fi
 
 if ! validate_non_empty "--app-name" "$APP_NAME"; then
   usage >&2
@@ -114,11 +99,7 @@ cd "$REPO_ROOT"
 
 git_safe_dirs "$FLUTTER_DIR"
 
-if [[ "${MATRIX_ARCH}" == "arm64" ]]; then
-  echo "Warning: Android build flow currently uses x86-64 Flutter bootstrap script; MATRIX_ARCH=${MATRIX_ARCH}" >&2
-fi
-
-setup_flutter_sdk "$FLUTTER_VERSION" "$FLUTTER_DIR" "x64"
+assert_flutter_available "$FLUTTER_DIR" || exit 2
 source_bashrc_and_add_flutter_to_path "$FLUTTER_DIR"
 run_flutter_common_checks "$STRICT_CHECKS"
 run_check_cmd "$STRICT_CHECKS" flutter config --enable-android

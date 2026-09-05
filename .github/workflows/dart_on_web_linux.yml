@@ -47,7 +47,6 @@ jobs:
             bash /workspace/scripts/linux/ci/ci-container-run-web-linux.sh
             --arch "x64"
             --flutter-dir "${{ env.FLUTTER_DIR }}"
-            --install-flutter true
             --strict-checks false
             --run-codeql false
 

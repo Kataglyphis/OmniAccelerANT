@@ -83,6 +83,10 @@ here.
 - [ ] The `-CodeQL` path of `Build-Windows.ps1` has never been exercised.
 - [ ] Branch protection on `develop` may pin check names that no longer exist —
       the Linux matrix job names changed twice in one session.
+- [b] flatpak and AppImage on arm64 are only ever exercised in CI: locally
+      `qemu-user` cannot carry `unshare(CLONE_NEWUSER)` through for bubblewrap,
+      nor load the static-PIE `appimagetool` — AGENTS.md § 4. Blocked on a real
+      arm64 machine; nothing to change here.
 
 ## Not adopted yet
 

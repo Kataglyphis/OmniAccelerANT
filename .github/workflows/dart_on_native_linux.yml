@@ -72,7 +72,6 @@ jobs:
             --app-name "${{ matrix.app_name }}"
             --package-formats "${{ matrix.package_formats }}"
             --install-packaging-deps "${{ matrix.install_packaging_deps }}"
-            --install-flutter true
             --strict-checks false
             --run-codeql "${{ matrix.arch == 'x64' }}"
             --run-docs "${{ matrix.arch == 'x64' }}"
