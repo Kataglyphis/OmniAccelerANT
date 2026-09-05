@@ -104,6 +104,7 @@ if [[ "$REPO_ROOT" != "/workspace" ]]; then
 fi
 cd "$REPO_ROOT"
 
+git_safe_dirs "$FLUTTER_DIR"
 assert_flutter_available "$FLUTTER_DIR" || exit 2
 
 if [[ "$MATRIX_ARCH" == "x64" ]] && maybe_truthy "$RUN_CODEQL"; then
