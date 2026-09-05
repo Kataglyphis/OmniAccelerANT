@@ -369,7 +369,7 @@ try {
             }
 
             if ($currentPreset) {
-                $sourcePreset = Join-Path $workspace "third_party\Cpp-Inference\CMakePresets.json"
+                $sourcePreset = Join-Path $workspace "third_party\AccelerANTgine\CMakePresets.json"
                 $destPreset = Join-Path $windowsSrc "CMakePresets.json"
                 if ((Test-Path $sourcePreset) -and -not (Test-Path $destPreset)) {
                     Write-BuildLog -Context $context -Message "Copying CMakePresets.json to windows directory..."

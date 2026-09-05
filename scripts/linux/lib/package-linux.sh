@@ -15,7 +15,7 @@ Usage:
 
 Options:
 	-a, --arch <x64|arm64>   Zielarchitektur (default: auto-detect)
-	-n, --app-name <name>    Paket-/Anzeigename (default: omni-accelerant)
+	-n, --app-name <name>    Paket-/Anzeigename (default: pubspec name)
 			--formats <csv>   Zu erstellende Formate (default: tar,appimage,flatpak,deb)
 			--strict          Bei fehlenden Tools/Packaging-Fehlern mit Exit 1 abbrechen
 	-h, --help            Diese Hilfe anzeigen
@@ -24,7 +24,7 @@ EOF
 
 FORMATS="${PACKAGE_FORMATS:-tar,appimage,flatpak,deb}"
 STRICT_MODE=0
-APP_NAME="omni-accelerant"
+APP_NAME="$(resolve_app_name)"
 
 MATRIX_ARCH="$(detect_arch)"
 

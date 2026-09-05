@@ -1,5 +1,5 @@
 {
     "idf.pythonInstallPath": "/usr/bin/python3",
     "java.configuration.updateBuildConfiguration": "interactive",
-    "cmake.sourceDirectory": "${workspaceFolder}/third_party/Cpp-Inference"
+    "cmake.sourceDirectory": "${workspaceFolder}/third_party/AccelerANTgine"
 }

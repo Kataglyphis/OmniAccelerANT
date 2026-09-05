@@ -10,7 +10,7 @@
 	path = third_party/OxidANT
 	url = git@github.com:Kataglyphis/OxidANT.git
 	branch = develop
-[submodule "third_party/Cpp-Inference"]
-	path = third_party/Cpp-Inference
-	url = git@github.com:Kataglyphis/Cpp-Inference.git
+[submodule "third_party/AccelerANTgine"]
+	path = third_party/AccelerANTgine
+	url = git@github.com:Kataglyphis/AccelerANTgine.git
 	branch = main

@@ -13,7 +13,8 @@ param(
 	[string] $Arch = 'x64',
 	[string] $Image = 'ghcr.io/kataglyphis/kataglyphis_beschleuniger:latest-cross',
 	[string] $BuildMode = 'release',
-	[string] $AppName = 'omni-accelerant',
+	# Empty resolves from pubspec.yaml below — AGENTS.md § 4.
+	[string] $AppName = '',
 	[string] $PackageFormats = 'tar,deb,flatpak,appimage',
 	[string] $InstallPackagingDeps = 'true',
 	[string] $StrictChecks = 'false',
@@ -31,6 +32,13 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
+
+if (-not $AppName) {
+	$pubspec = Join-Path $repoRoot 'pubspec.yaml'
+	$nameLine = Select-String -LiteralPath $pubspec -Pattern '^name:\s*(\S+)' | Select-Object -First 1
+	if (-not $nameLine) { throw "No 'name:' entry in $pubspec" }
+	$AppName = $nameLine.Matches[0].Groups[1].Value -replace '_', '-'
+}
 
 $engine = (Get-Command 'nerdctl' -ErrorAction SilentlyContinue)?.Source
 if (-not $engine) {

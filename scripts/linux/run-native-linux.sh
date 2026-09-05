@@ -14,7 +14,7 @@ Usage:
 Options:
   -a, --arch <x64|arm64>        Target architecture (default: auto-detect)
   --build-mode <debug|profile|release> Build mode for flutter build linux (default: release)
-  -n, --app-name <name>         Artifact base name (default: omni-accelerant)
+  -n, --app-name <name>         Artifact base name (default: pubspec name)
       --package-formats <csv>   Packaging formats (default: tar,appimage,flatpak,deb)
       --no-package              Build only (skip packaging)
       --strict-checks <bool>    Fail on format/analyze/test errors (default: true in CI, false locally)
@@ -28,7 +28,7 @@ Notes:
 EOF
 }
 
-APP_NAME="omni-accelerant"
+APP_NAME="$(resolve_app_name)"
 MATRIX_ARCH="$(detect_arch)"
 BUILD_MODE="release"
 FLUTTER_DIR=""

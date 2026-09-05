@@ -18,7 +18,7 @@ Rust core and a C++ inference plugin underneath it.
 | `lib/` | The Flutter/Dart frontend |
 | `third_party/OxidANT` | Rust core, bridged via `flutter_rust_bridge` — regenerate bindings with `flutter_rust_bridge_codegen generate` (a cargo binary baked into the build image, NOT a pub dependency; on a bare host `cargo install flutter_rust_bridge_codegen` first). `lib/src/rust/` is committed generated code — no build lane regenerates it |
 | `packages/kataglyphis_native_inference` | C++ inference plugin — **plain files, not a submodule**; a `pubspec.yaml` path dependency. Links GStreamer + ONNX Runtime via CMake/pkg-config |
-| `third_party/Cpp-Inference` | The inference core the plugin builds. Its own submodule, sibling to the plugin rather than nested inside it |
+| `third_party/AccelerANTgine` | The inference core the plugin builds. Its own submodule, sibling to the plugin rather than nested inside it |
 | `scripts/windows/`, `scripts/linux/` | Thin wrappers over ContainerHub drivers + this repo's own glue |
 | `third_party/ContainerHub` | The submodule owning every reusable script, module and doc |
 
@@ -326,7 +326,7 @@ written out rather than linked.
 - **Running on an unprovisioned host** (`STATUS_DLL_NOT_FOUND`): stage the
   image's runtime DLLs into the runner (`C:\runtime\bin` + onnxruntime/DirectML →
   `runner\bin\`; `C:\runtime\lib\gstreamer-1.0` → `runner\lib\gstreamer-1.0\`).
-  Two extra gotchas: `CppInference.dll` is built into a `bin\`
+  Two extra gotchas: `AccelerANTgine.dll` is built into a `bin\`
   **subdirectory** but the native plugin needs it **next to the exe**, and the
   VC++ redist CRT DLLs are not bundled. A healthy launch is ~130 MB with a real
   window; a ~6 MB process that exits means a missing dependency DLL. Full
@@ -347,7 +347,7 @@ written out rather than linked.
   `WITH_STATIC_CRT OFF`, `ANTLR_BUILD_CPP_TESTS OFF`, `ANTLR_BUILD_SHARED OFF`,
   `/FIchrono`, and `LICENSE.txt` staged at the build root — its install rule
   assumes a monorepo layout. Wired up in
-  `third_party/Cpp-Inference/third_party/CMakeLists.txt` — the inference core's
+  `third_party/AccelerANTgine/third_party/CMakeLists.txt` — the inference core's
   own dependency list, not the plugin's.
 
 ## 4. Build, run, test
@@ -382,12 +382,20 @@ Locally:
 
 `-SkipMsixPackaging` alone is exactly what the workflow passes; adding
 `-Configurations` is a deliberate deviation, not the parity run. Verified
-2026-09-05: 22/22 steps in 3:40, `omni_accelerant.exe`,
-`oxidant.dll` and `CppInference.dll` all
-rebuilt under `build\windows\x64\runner\x64-ClangCL-Windows-Release\`. The
-Windows engine is Stevedore's, **not** Rancher Desktop's — Rancher only serves
-Linux containers, and its `docker`/`nerdctl` shims are first on `PATH`, so the
-full path above is load-bearing.
+2026-09-05 after the renames: 22/22 steps, `omni_accelerant.exe` and
+`oxidant.dll` under
+`build\windows\x64\runner\x64-ClangCL-Windows-Release\`, `AccelerANTgine.dll`
+under `build\windows\x64\bin\`. That directory is never cleaned, so the
+previous run's `kataglyphis_inference_engine.exe` and
+`KataglyphisAccelerANTgine.dll` still sit beside them — compare timestamps, not
+presence, when checking a rename.
+
+The Windows engine is Stevedore's, **not** Rancher Desktop's — Rancher only
+serves Linux containers, and its `docker`/`nerdctl` shims are first on `PATH`,
+so the full path above is load-bearing. **Run it in the container, not on the
+host.** The host's `cmake` is Strawberry Perl's 3.29.2 out of
+`C:\Strawberry\c\bin`, which shadows anything newer and fails
+`cmake_minimum_required(VERSION 3.31.6)` at configure; the image carries 4.4.0.
 
 **The mount target must not already exist in the image.** `target=C:\workspace`
 fails at container creation with `hcs::CreateComputeSystem ... The request is not
@@ -447,7 +455,7 @@ disk check, GHCR login, pull), `run-in-windows-container`,
 `actions/upload-artifact` and `upload-codeql-sarif`. Three consequences:
 
 - It prunes `third_party/DocumANTation` from the recursive checkout.
-  This repo's chains are Inference-Engine → Cpp-Inference → ContainerHub →
+  This repo's chains are Inference-Engine → AccelerANTgine → ContainerHub →
   DocumANTation → md2pdfLib → `third_party/{smile,awesome-beamer}` and the same
   tail via OxidANT, and every level adds another
   `.git/modules/<name>/` segment until git aborts with `fatal: '$GIT_DIR' too
@@ -459,7 +467,7 @@ disk check, GHCR login, pull), `run-in-windows-container`,
   | chain | before | after md2pdfLib | after ContainerHub |
   | --- | --- | --- | --- |
   | `ContainerHub` directly | 180 ok | 158 ok | 149 ok |
-  | via `Cpp-Inference` | 230 **fatal** | 208 ok | 199 ok |
+  | via `AccelerANTgine` | 230 **fatal** | 208 ok | 199 ok |
   | via `OxidANT` | 238 **fatal** | 216 **fatal** | 207 ok |
 
   Two directory renames did it, neither of them a repository rename:
@@ -686,6 +694,15 @@ required one rather than guessing — `--arch`, `--app-name` and (native only)
 `--package-formats`. `--flutter-dir` defaults to `/opt/flutter`. The matrix
 values CI passes are in
 [`dart_on_native_linux.yml`](.github/workflows/dart_on_native_linux.yml).
+
+**`--app-name` derives from `pubspec.yaml`; do not hard-code it again.**
+`resolve_app_name` in `scripts/linux/lib/cli-common.sh` reads the `name:` entry
+and swaps `_` for `-`, so `omni_accelerant` yields `omni-accelerant`.
+`run-native-linux.sh`, `run-android.sh` (which appends `-apk`),
+`package-linux.sh` and `Invoke-LinuxLane.ps1` all default through it. Before
+2026-09-05 the literal sat in all four plus the workflows, seven copies that a
+rename had to find. The workflows still pass the value explicitly, which is
+what keeps CI independent of a host's `pwd`.
 
 **`build_linux` on `x64` is not just a build — it is a full CodeQL run.** That
 branch downloads the CodeQL CLI, builds a `--db-cluster` for c/cpp/rust and runs

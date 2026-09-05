@@ -34,7 +34,7 @@ get_filename_component(_KCI_PLUGIN_PLATFORM_DIR "${CMAKE_CURRENT_SOURCE_DIR}" RE
 get_filename_component(_KCI_PLUGIN_ROOT "${_KCI_PLUGIN_PLATFORM_DIR}" DIRECTORY)
 get_filename_component(_KCI_PACKAGES "${_KCI_PLUGIN_ROOT}" DIRECTORY)
 get_filename_component(_KCI_REPO_ROOT "${_KCI_PACKAGES}" DIRECTORY)
-set(KCI_DIR "${_KCI_REPO_ROOT}/third_party/Cpp-Inference")
+set(KCI_DIR "${_KCI_REPO_ROOT}/third_party/AccelerANTgine")
 add_subdirectory(${KCI_DIR} ${CMAKE_CURRENT_BINARY_DIR}/native_build)
 
 # Define the plugin library target. Its name must not be changed (see comment
@@ -87,7 +87,7 @@ target_include_directories(${PLUGIN_NAME} PRIVATE
 
 target_link_libraries(${PLUGIN_NAME} PRIVATE flutter)
 target_link_libraries(${PLUGIN_NAME} PRIVATE PkgConfig::GTK)
-target_link_libraries(${PLUGIN_NAME} PRIVATE CppInference)
+target_link_libraries(${PLUGIN_NAME} PRIVATE AccelerANTgine)
 target_link_libraries(${PLUGIN_NAME} PRIVATE PkgConfig::GST
   PkgConfig::GST_APP
   PkgConfig::GST_VIDEO)
@@ -95,7 +95,7 @@ target_link_libraries(${PLUGIN_NAME} PRIVATE PkgConfig::GST
 # This list could contain prebuilt libraries, or libraries created by an
 # external build triggered from this build file.
 set(kataglyphis_native_inference_bundled_libraries
-  "$<TARGET_FILE:CppInference>"
+  "$<TARGET_FILE:AccelerANTgine>"
   PARENT_SCOPE
 )
 

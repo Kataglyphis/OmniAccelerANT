@@ -74,3 +74,18 @@ resolve_repo_root() {
     pwd
   fi
 }
+
+# pubspec.yaml's package name is the single source of truth — AGENTS.md § 4.
+resolve_app_name() {
+  local lib_dir pubspec name
+  lib_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  for pubspec in "$(resolve_repo_root "${1:-}")/pubspec.yaml" "${lib_dir}/../../../pubspec.yaml"; do
+    [[ -f "$pubspec" ]] || continue
+    name="$(awk -F':[[:space:]]*' '/^name:[[:space:]]/{print $2; exit}' "$pubspec")"
+    [[ -n "$name" ]] || continue
+    echo "${name//_/-}"
+    return 0
+  done
+  echo "[Error] could not read 'name:' from pubspec.yaml" >&2
+  return 1
+}
