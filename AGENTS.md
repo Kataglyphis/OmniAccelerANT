@@ -325,8 +325,9 @@ written out rather than linked.
 - **Vendored ANTLR** (pulled in unconditionally by newer FUZZTEST) needs
   `WITH_STATIC_CRT OFF`, `ANTLR_BUILD_CPP_TESTS OFF`, `ANTLR_BUILD_SHARED OFF`,
   `/FIchrono`, and `LICENSE.txt` staged at the build root — its install rule
-  assumes a monorepo layout. Wired up in the plugin's
-  `third_party/CMakeLists.txt`.
+  assumes a monorepo layout. Wired up in
+  `third_party/Cpp-Inference/third_party/CMakeLists.txt` — the inference core's
+  own dependency list, not the plugin's.
 
 ## 4. Build, run, test
 
@@ -588,10 +589,10 @@ correctly.
 `wsl: Failed to translate '<cwd>'` in the output is noise: `wsl.exe` cannot map
 the *current directory* when it is on `D:`. It does not affect the mount.
 
-The lane no longer installs Flutter: the image carries it at `/opt/flutter`, and
-`install-flutter.sh` returns early when `$FLUTTER_DIR/bin/flutter` exists. A
-multi-GB `flutter/` in the repo is a leftover from before that — git-ignored,
-and safe to remove.
+No lane installs Flutter. `assert_flutter_available` checks that one exists at
+`--flutter-dir` and reports the version it found; whatever the image carries is
+what gets used. A multi-GB `flutter/` in the repo is a leftover from before
+that — git-ignored, and safe to remove.
 
 Run the app on the host once artifacts are back:
 
@@ -610,15 +611,14 @@ CLI flags, not env vars
 
 ```bash
 bash /workspace/scripts/linux/ci/ci-container-run-native-linux.sh \
-  --install-flutter true
+  --arch x64 --build-mode release --flutter-dir /opt/flutter \
+  --app-name kataglyphis-inference-engine \
+  --package-formats tar,deb,flatpak,appimage
 ```
 
-Two flags decide where the SDK comes from: `--install-flutter false` skips the
-download entirely and `--flutter-dir <path>` then points at an SDK the image
-already carries (`ci-container-run-native-linux.sh` gates the install on
-`--install-flutter`, and defaults the dir to `/opt/flutter`). Prefer that
-over installing —
-see *Flutter version pinning* below.
+`--flutter-dir` only says *where* to look; it defaults to `/opt/flutter`. There
+is no `--install-flutter` and no `--flutter-version` — see *Flutter comes from
+the image* below.
 
 There is no separate host-side driver any more. The legacy
 `ci-dart-on-native-linux.sh` / `ci-dart-build-android-app.sh` pair and their
@@ -627,34 +627,29 @@ they carried a third copy of the CodeQL logic, and they re-implemented what CI
 actually runs instead of invoking it. Use `Invoke-LinuxLane.ps1` (§ 4), which
 runs the very script CI runs.
 
-**Flutter version pinning — ContainerHub owns it; this repo derives it and
-names it nowhere.** `linux/scripts/01-core/versions.env` pins `FLUTTER_VERSION`
-(:323) *together with* its tarball `FLUTTER_SDK_SHA256` (:700); the two are one
-pin, so overriding only the version can never verify. This repo used to name the
-version in four places, they drifted, and **all three Flutter lanes were red
-from 2026-08-12** with `Checksum verification FAILED`. They name it nowhere now:
-`resolve_flutter_pin` (`scripts/linux/lib/container-steps.sh`) reads BOTH keys
-out of that one file and exports the sha, and all three Linux lanes call it.
-**To bump Flutter, bump the ContainerHub submodule.**
+**Flutter comes from the image, and this repo does not have an opinion about
+which version.** It used to: three lanes resolved `FLUTTER_VERSION` and
+`FLUTTER_SDK_SHA256` out of ContainerHub's `versions.env`, exported the sha, and
+handed both to an installer. That machinery is gone — `resolve_flutter_pin`,
+`setup_flutter_sdk`, `install-flutter.sh` and the `--flutter-version` /
+`--install-flutter` flags with it. `assert_flutter_available` replaces all of
+it: it fails if `--flutter-dir` holds no `bin/flutter`, and otherwise reports
+the `frameworkVersion` it found and moves on.
 
-Exporting the sha is the load-bearing half. ContainerHub's
-`05-frameworks/flutter/setup-flutter.sh`:97 only falls back to the copy baked
-into the image (`/opt/scripts/core/versions.env`, `Dockerfile.sdk`:111) when
-`FLUTTER_SDK_SHA256` is unset — and that copy tracks the floating
-`:latest-cross` tag, not our submodule pointer. The native and android lanes
-already exported it via `packaging-common.sh` -> `common.sh`; the **web lane
-does not source those**, so it alone used to verify against the image. That
-asymmetry is why a version and a sha from different files could ever meet.
-`--flutter-version <ver>` still overrides for a deliberate one-off; the pinned
-sha is then deliberately not exported, so `setup-flutter.sh`:118-126 can name
-the mismatch instead of emitting a bare checksum error. Whether the SDK is baked
-into a given image tag is ContainerHub's business — § 2.
+Why it went: the lanes were re-running ContainerHub's `setup-flutter.sh` at
+*run* time. That script is a build-stage script — its last step strips
+`bin/cache` on purpose — so every Android run re-extracted Flutter over the
+image's copy and then re-downloaded the 227 MB Dart SDK it had just deleted.
+Upstream now returns early when the requested version is already bootstrapped,
+and this repo no longer calls it at all.
 
-- `require_ci_env` hard-requires `MATRIX_PLATFORM`, `MATRIX_ARCH`,
-  `FLUTTER_VERSION` and `APP_NAME` — the script exits rather than guessing.
-  Defaulted: `CONTAINER_IMAGE` (`…:latest-cross`), `WORKSPACE_DIR`
-  (`/workspace`), `FLUTTER_DIR` (`/opt/flutter`). The matrix values CI
-  uses are in [`dart_on_native_linux.yml`](.github/workflows/dart_on_native_linux.yml).
+To change the Flutter version, change the image.
+
+The lane scripts take their inputs as CLI flags and exit 2 on a missing
+required one rather than guessing — `--arch`, `--app-name` and (native only)
+`--package-formats`. `--flutter-dir` defaults to `/opt/flutter`. The matrix
+values CI passes are in
+[`dart_on_native_linux.yml`](.github/workflows/dart_on_native_linux.yml).
 
 **`build_linux` on `x64` is not just a build — it is a full CodeQL run.** That
 branch downloads the CodeQL CLI, builds a `--db-cluster` for c/cpp/rust and runs
