@@ -1,4 +1,4 @@
 rust_input: crate::api
-rust_root: ExternalLib/Kataglyphis-RustProjectTemplate
+rust_root: third_party/RustProjectTemplate
 # rust_root: rust/
 dart_output: lib/src/rust

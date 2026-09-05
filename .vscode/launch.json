@@ -49,20 +49,20 @@
         },
         {
             "name": "jotrockenmitlockenrepo",
-            "cwd": "ExternalLib/jotrockenmitlockenrepo",
+            "cwd": "third_party/jotrockenmitlockenrepo",
             "request": "launch",
             "type": "dart"
         },
         {
             "name": "jotrockenmitlockenrepo (profile mode)",
-            "cwd": "ExternalLib/jotrockenmitlockenrepo",
+            "cwd": "third_party/jotrockenmitlockenrepo",
             "request": "launch",
             "type": "dart",
             "flutterMode": "profile"
         },
         {
             "name": "jotrockenmitlockenrepo (release mode)",
-            "cwd": "ExternalLib/jotrockenmitlockenrepo",
+            "cwd": "third_party/jotrockenmitlockenrepo",
             "request": "launch",
             "type": "dart",
             "flutterMode": "release"

@@ -11,7 +11,7 @@ project(${PROJECT_NAME} LANGUAGES CXX)
 # onto the ephemeral symlink path, and the kernel resolves that symlink before
 # applying the "..", so a chain counted from the symlink overshoots. See
 # AGENTS.md § 3.
-get_filename_component(MANIFEST_ABS "${CMAKE_SOURCE_DIR}/../ExternalLib/Kataglyphis-RustProjectTemplate" ABSOLUTE)
+get_filename_component(MANIFEST_ABS "${CMAKE_SOURCE_DIR}/../third_party/RustProjectTemplate" ABSOLUTE)
 get_filename_component(PLUGIN_LINUX_REAL "${CMAKE_CURRENT_SOURCE_DIR}" REALPATH)
 file(RELATIVE_PATH MANIFEST_REL "${PLUGIN_LINUX_REAL}" "${MANIFEST_ABS}")
 

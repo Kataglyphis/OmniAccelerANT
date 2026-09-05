@@ -28,7 +28,7 @@ jobs:
           registry-password: ${{ secrets.GHCR_PAT }}
           short-path-target: /d/ws
           exclude-submodules: |
-            external/Kataglyphis-DocumANTation
+            third_party/DocumANTation
 
       - name: Run container
         uses: Kataglyphis/ContainerHub/.github/actions/run-in-windows-container@main

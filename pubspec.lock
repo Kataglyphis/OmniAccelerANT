@@ -391,7 +391,7 @@ packages:
   jotrockenmitlockenrepo:
     dependency: "direct main"
     description:
-      path: "ExternalLib/jotrockenmitlockenrepo"
+      path: "third_party/jotrockenmitlockenrepo"
       relative: true
     source: path
     version: "1.1.0"
@@ -406,7 +406,7 @@ packages:
   kataglyphis_native_inference:
     dependency: "direct main"
     description:
-      path: "ExternalLib/Kataglyphis_NativeInferencePlugin"
+      path: "packages/kataglyphis_native_inference"
       relative: true
     source: path
     version: "0.0.1"

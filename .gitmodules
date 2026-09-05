@@ -1,16 +1,16 @@
-[submodule "ExternalLib/jotrockenmitlockenrepo"]
-	path = ExternalLib/jotrockenmitlockenrepo
+[submodule "third_party/jotrockenmitlockenrepo"]
+	path = third_party/jotrockenmitlockenrepo
 	url = https://github.com/Kataglyphis/jotrockenmitlockenrepo.git
 	branch = main
-[submodule "ExternalLib/Kataglyphis-ContainerHub"]
-	path = ExternalLib/Kataglyphis-ContainerHub
+[submodule "third_party/ContainerHub"]
+	path = third_party/ContainerHub
 	url = git@github.com:Kataglyphis/ContainerHub.git
 	branch = main
-[submodule "ExternalLib/Kataglyphis-RustProjectTemplate"]
-	path = ExternalLib/Kataglyphis-RustProjectTemplate
+[submodule "third_party/RustProjectTemplate"]
+	path = third_party/RustProjectTemplate
 	url = git@github.com:Kataglyphis/RustProjectTemplate.git
 	branch = develop
-[submodule "ExternalLib/KataglyphisCppInference"]
-	path = ExternalLib/KataglyphisCppInference
+[submodule "third_party/Cpp-Inference"]
+	path = third_party/Cpp-Inference
 	url = git@github.com:Kataglyphis/Cpp-Inference.git
 	branch = main

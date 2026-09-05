@@ -12,7 +12,7 @@ include: package:flutter_lints/flutter.yaml
 analyzer:
   exclude:
     - "flutter/**"
-    - "ExternalLib/**"
+    - "third_party/**"
     - "rust_builder/**"
     - build/**
     - android/**

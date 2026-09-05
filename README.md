@@ -139,7 +139,7 @@ Refer to the detailed docs below for platform-specific requirements, camera stre
    for an arm64 run. The concrete commands are in
    [AGENTS.md § 4](AGENTS.md#4-build-run-test), "The Linux lane, locally";
    the reasoning behind them is ContainerHub's, in
-   [`rancher-desktop-linux-containers.md`](ExternalLib/Kataglyphis-ContainerHub/docs/rancher-desktop-linux-containers.md).
+   [`rancher-desktop-linux-containers.md`](third_party/ContainerHub/docs/rancher-desktop-linux-containers.md).
    Both prerequisites are lost on a VM restart, and skipping either is silent:
    you get a bind mount that resolves and is empty, or an arm64 container
    running x86-64 binaries.

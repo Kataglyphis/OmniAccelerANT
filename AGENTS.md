@@ -4,7 +4,7 @@ Guidance for coding agents (and new contributors) working in
 Kataglyphis-Inference-Engine.
 
 Laid out per ContainerHub's
-[`shared/templates/AGENTS.md.template`](ExternalLib/Kataglyphis-ContainerHub/shared/templates/README.md).
+[`shared/templates/AGENTS.md.template`](third_party/ContainerHub/shared/templates/README.md).
 The rule that shapes it: *would this still be true in a different project?* If
 yes, ContainerHub owns it and § 2 links to it. If no, it is written out in § 3.
 
@@ -16,11 +16,11 @@ Rust core and a C++ inference plugin underneath it.
 | Path | What lives there |
 | --- | --- |
 | `lib/` | The Flutter/Dart frontend |
-| `ExternalLib/Kataglyphis-RustProjectTemplate` | Rust core, bridged via `flutter_rust_bridge` — regenerate bindings with `flutter_rust_bridge_codegen generate` (a cargo binary baked into the build image, NOT a pub dependency; on a bare host `cargo install flutter_rust_bridge_codegen` first). `lib/src/rust/` is committed generated code — no build lane regenerates it |
-| `ExternalLib/Kataglyphis_NativeInferencePlugin` | C++ inference plugin — **plain files, not a submodule**; a `pubspec.yaml` path dependency. Links GStreamer + ONNX Runtime via CMake/pkg-config |
-| `ExternalLib/KataglyphisCppInference` | The inference core the plugin builds. Its own submodule, sibling to the plugin rather than nested inside it |
+| `third_party/RustProjectTemplate` | Rust core, bridged via `flutter_rust_bridge` — regenerate bindings with `flutter_rust_bridge_codegen generate` (a cargo binary baked into the build image, NOT a pub dependency; on a bare host `cargo install flutter_rust_bridge_codegen` first). `lib/src/rust/` is committed generated code — no build lane regenerates it |
+| `packages/kataglyphis_native_inference` | C++ inference plugin — **plain files, not a submodule**; a `pubspec.yaml` path dependency. Links GStreamer + ONNX Runtime via CMake/pkg-config |
+| `third_party/Cpp-Inference` | The inference core the plugin builds. Its own submodule, sibling to the plugin rather than nested inside it |
 | `scripts/windows/`, `scripts/linux/` | Thin wrappers over ContainerHub drivers + this repo's own glue |
-| `ExternalLib/Kataglyphis-ContainerHub` | The submodule owning every reusable script, module and doc |
+| `third_party/ContainerHub` | The submodule owning every reusable script, module and doc |
 
 **Windows webcam inference.** The Stream page runs a Rust-owned
 webcam → ONNX → Flutter-texture pipeline: `crates/media` GStreamer capture →
@@ -37,7 +37,7 @@ CMake → Cargokit). `mfvideosrc` needs the `mediafoundation` GStreamer plugin
 ## 2. What ContainerHub owns — links only
 
 **Do not restate these procedures here.** Start at
-[`ExternalLib/Kataglyphis-ContainerHub/docs/INDEX.md`](ExternalLib/Kataglyphis-ContainerHub/docs/INDEX.md),
+[`third_party/ContainerHub/docs/INDEX.md`](third_party/ContainerHub/docs/INDEX.md),
 which maps topic → owning document, so these links survive upstream
 reorganisation.
 
@@ -204,7 +204,7 @@ written out rather than linked.
   — six levels deep, pointing at `rust_builder/`, which is two. The kernel
   resolves the symlink *before* applying the `..`, so a chain counted from the
   symlink overshoots to `/` and Dart reports
-  `PathNotFoundException: … /ExternalLib/Kataglyphis-RustProjectTemplate/Cargo.toml`.
+  `PathNotFoundException: … /third_party/RustProjectTemplate/Cargo.toml`.
   `rust_builder/linux/CMakeLists.txt` therefore takes `REALPATH` of
   `CMAKE_CURRENT_SOURCE_DIR` first, which yields `../..` and survives the
   resolution. Verified against a rebuilt directory tree: six `..` fails, two
@@ -224,10 +224,10 @@ written out rather than linked.
   they return the same 60 files. The SDK now comes from `/opt/flutter` in the
   image, so nothing lands in the tree any more — but keep the tracked-file
   listing: a stray `flutter/` from an older run is git-ignored and still on
-  disk, and `ExternalLib/` and `build/` would be walked regardless.
+  disk, and `third_party/` and `build/` would be walked regardless.
   `dart analyze` is *not* affected and never was: it honours the
   `analyzer.exclude` list in `analysis_options.yaml`, which already names
-  `flutter/**`, `ExternalLib/**` and `rust_builder/**`. `dart format` ignores
+  `flutter/**`, `third_party/**` and `rust_builder/**`. `dart format` ignores
   that file entirely — which is the whole reason the file list has to be built
   outside it, and why the two helpers use exactly those three exclusions.
 
@@ -294,7 +294,7 @@ written out rather than linked.
   `WITH_STATIC_CRT OFF`, `ANTLR_BUILD_CPP_TESTS OFF`, `ANTLR_BUILD_SHARED OFF`,
   `/FIchrono`, and `LICENSE.txt` staged at the build root — its install rule
   assumes a monorepo layout. Wired up in the plugin's
-  `ExternalLib/CMakeLists.txt`.
+  `third_party/CMakeLists.txt`.
 
 ## 4. Build, run, test
 
@@ -392,30 +392,33 @@ is four ContainerHub actions and nothing hand-rolled:
 disk check, GHCR login, pull), `run-in-windows-container`,
 `actions/upload-artifact` and `upload-codeql-sarif`. Three consequences:
 
-- It prunes `external/Kataglyphis-DocumANTation` from the recursive checkout.
-  This repo's chains are Inference-Engine → KataglyphisCppInference →
-  ContainerHub → DocumANTation → md2pdfLib → `latex/{smile,awesome-beamer}`
-  and the same tail via RustProjectTemplate, and every level adds another
+- It prunes `third_party/DocumANTation` from the recursive checkout.
+  This repo's chains are Inference-Engine → Cpp-Inference → ContainerHub →
+  DocumANTation → md2pdfLib → `third_party/{smile,awesome-beamer}` and the same
+  tail via RustProjectTemplate, and every level adds another
   `.git/modules/<name>/` segment until git aborts with `fatal: '$GIT_DIR' too
-  big` — that is git's own limit, not MAX_PATH, so no clone root is short
-  enough. Retiring the NativeInferencePlugin submodule on 2026-09-05 took one
-  level out of the first chain (worst `.git/modules` path 253 → 212 characters)
-  but did **not** lift either chain over the limit. Measured by the `gitdir:`
-  string each `latex/*` gitfile carries:
+  big` — git's own limit, not MAX_PATH, so no clone root is short enough.
 
-  | chain | gitdir | `git rev-parse` |
-  | --- | --- | --- |
-  | `ContainerHub` directly | 180 | resolves |
-  | via `KataglyphisCppInference` | 230 | `fatal: '$GIT_DIR' too big` |
-  | via `RustProjectTemplate` | 238 | `fatal: '$GIT_DIR' too big` |
+  **Resolved on 2026-09-05.** Measured by the `gitdir:` string each gitfile
+  carries, at each step of the way:
 
-  So the threshold is between 180 and 230, and roughly 50 characters have to
-  go. Dropping the `Kataglyphis-` prefix from the three repos in the chain buys
-  36 — not enough on its own. The two largest single items are not repo names
-  at all: `md2pdfLib/presentation/template/latex/` inside DocumANTation is 34
-  characters, and the `ExternalLib/` + `external/` mount directories are 21
-  together. Neither touches a URL. DocumANTation is ContainerHub's LaTeX
-  tooling and the Windows build never reads it.
+  | chain | before | after md2pdfLib | after ContainerHub |
+  | --- | --- | --- | --- |
+  | `ContainerHub` directly | 180 ok | 158 ok | 149 ok |
+  | via `Cpp-Inference` | 230 **fatal** | 208 ok | 199 ok |
+  | via `RustProjectTemplate` | 238 **fatal** | 216 **fatal** | 207 ok |
+
+  Two directory renames did it, neither of them a repository rename:
+  `md2pdfLib/presentation/template/latex/` → `md2pdfLib/third_party/` inside
+  DocumANTation, and `external/Kataglyphis-DocumANTation` →
+  `third_party/DocumANTation` inside ContainerHub. Each saved segment counts
+  **twice**, once in the worktree path and once in the `gitdir` string, which is
+  why 25 characters behaved like 50. The threshold sits between 208 and 216.
+
+  Renaming the repositories on GitHub did **not** help here and was not meant
+  to: a submodule's directory comes from its `path` entry, not from the repo
+  name. DocumANTation is ContainerHub's LaTeX tooling and the Windows build
+  never reads it.
 - `mount-source`/`mount-target` stay unset: the action already defaults to
   `D:\ws` → `C:\ws`, which is where the short-path clone put the tree. Setting
   them to `github.workspace` would mount the submodule-less checkout instead.

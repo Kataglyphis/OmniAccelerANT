@@ -29,8 +29,9 @@ set(RUST_FEATURES "TRUE")
 # lexically and lands in .plugin_symlinks — AGENTS.md section 3.
 get_filename_component(_KCI_PLUGIN_PLATFORM_DIR "${CMAKE_CURRENT_SOURCE_DIR}" REALPATH)
 get_filename_component(_KCI_PLUGIN_ROOT "${_KCI_PLUGIN_PLATFORM_DIR}" DIRECTORY)
-get_filename_component(_KCI_EXTERNALLIB "${_KCI_PLUGIN_ROOT}" DIRECTORY)
-set(KCI_DIR "${_KCI_EXTERNALLIB}/KataglyphisCppInference")
+get_filename_component(_KCI_PACKAGES "${_KCI_PLUGIN_ROOT}" DIRECTORY)
+get_filename_component(_KCI_REPO_ROOT "${_KCI_PACKAGES}" DIRECTORY)
+set(KCI_DIR "${_KCI_REPO_ROOT}/third_party/Cpp-Inference")
 add_subdirectory(${KCI_DIR} ${CMAKE_CURRENT_BINARY_DIR}/native_build)
 
 # Define the plugin library target. Its name must not be changed (see comment

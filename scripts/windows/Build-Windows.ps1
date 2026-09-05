@@ -9,7 +9,7 @@
 param(
     [string] $WorkspaceDir = $PWD.Path,
     [string] $BuildRootDir = "",
-    [string] $RustCrateDir = "ExternalLib\Kataglyphis-RustProjectTemplate",
+    [string] $RustCrateDir = "third_party\RustProjectTemplate",
     [string] $RustDllName = "kataglyphis_rustprojecttemplate.dll",
     [string] $Configurations = "",
     [string] $CMakeGenerator = "Ninja",
@@ -41,7 +41,7 @@ if (-not (Test-Path -LiteralPath $buildConfigPath -PathType Leaf)) {
 $windowsBuildConfig = Get-KataglyphisWindowsBuildConfig
 
 # One bootstrap, one import list. Resolve-BuildModule looks every name up in
-# ExternalLib/Kataglyphis-ContainerHub first and only then in
+# third_party/ContainerHub first and only then in
 # scripts/windows/modules/, so a module that moves upstream is picked up here
 # without touching this script.
 . (Join-Path $PSScriptRoot 'Resolve-BuildModule.ps1')
@@ -369,7 +369,7 @@ try {
             }
 
             if ($currentPreset) {
-                $sourcePreset = Join-Path $workspace "ExternalLib\KataglyphisCppInference\CMakePresets.json"
+                $sourcePreset = Join-Path $workspace "third_party\Cpp-Inference\CMakePresets.json"
                 $destPreset = Join-Path $windowsSrc "CMakePresets.json"
                 if ((Test-Path $sourcePreset) -and -not (Test-Path $destPreset)) {
                     Write-BuildLog -Context $context -Message "Copying CMakePresets.json to windows directory..."

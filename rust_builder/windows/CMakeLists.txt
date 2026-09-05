@@ -12,7 +12,7 @@ project(${PROJECT_NAME} LANGUAGES CXX)
 # regardless of whether this CMakeLists.txt is processed from its original
 # location (rust_builder/windows/) or from a Flutter ephemeral symlink copy
 # (flutter/ephemeral/.plugin_symlinks/kataglyphis_rustprojecttemplate/windows/).
-get_filename_component(MANIFEST_ABS "${CMAKE_SOURCE_DIR}/../ExternalLib/Kataglyphis-RustProjectTemplate" ABSOLUTE)
+get_filename_component(MANIFEST_ABS "${CMAKE_SOURCE_DIR}/../third_party/RustProjectTemplate" ABSOLUTE)
 file(RELATIVE_PATH MANIFEST_REL "${CMAKE_CURRENT_SOURCE_DIR}" "${MANIFEST_ABS}")
 
 include("../cargokit/cmake/cargokit.cmake")
