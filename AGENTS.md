@@ -17,7 +17,8 @@ Rust core and a C++ inference plugin underneath it.
 | --- | --- |
 | `lib/` | The Flutter/Dart frontend |
 | `ExternalLib/Kataglyphis-RustProjectTemplate` | Rust core, bridged via `flutter_rust_bridge` — regenerate bindings with `flutter_rust_bridge_codegen generate` (a cargo binary baked into the build image, NOT a pub dependency; on a bare host `cargo install flutter_rust_bridge_codegen` first). `lib/src/rust/` is committed generated code — no build lane regenerates it |
-| `ExternalLib/Kataglyphis_NativeInferencePlugin` | C++ inference plugin (`native/KataglyphisCppInference`); links GStreamer + ONNX Runtime via CMake/pkg-config |
+| `ExternalLib/Kataglyphis_NativeInferencePlugin` | C++ inference plugin — **plain files, not a submodule**; a `pubspec.yaml` path dependency. Links GStreamer + ONNX Runtime via CMake/pkg-config |
+| `ExternalLib/KataglyphisCppInference` | The inference core the plugin builds. Its own submodule, sibling to the plugin rather than nested inside it |
 | `scripts/windows/`, `scripts/linux/` | Thin wrappers over ContainerHub drivers + this repo's own glue |
 | `ExternalLib/Kataglyphis-ContainerHub` | The submodule owning every reusable script, module and doc |
 
@@ -392,12 +393,18 @@ disk check, GHCR login, pull), `run-in-windows-container`,
 `actions/upload-artifact` and `upload-codeql-sarif`. Three consequences:
 
 - It prunes `external/Kataglyphis-DocumANTation` from the recursive checkout.
-  This repo's chain is Inference-Engine → NativeInferencePlugin →
-  KataglyphisCppInference → ContainerHub → DocumANTation → md2pdfLib →
-  `latex/{smile,awesome-beamer}`, and every level adds another
+  This repo's chains are Inference-Engine → KataglyphisCppInference →
+  ContainerHub → DocumANTation → md2pdfLib → `latex/{smile,awesome-beamer}`
+  and the same tail via RustProjectTemplate, and every level adds another
   `.git/modules/<name>/` segment until git aborts with `fatal: '$GIT_DIR' too
   big` — that is git's own limit, not MAX_PATH, so no clone root is short
-  enough. DocumANTation is ContainerHub's LaTeX tooling and the Windows build
+  enough. Retiring the NativeInferencePlugin submodule on 2026-09-05 took one
+  level out of the first chain (worst `.git/modules` path 253 → 212 characters,
+  now the RustProjectTemplate one). The measured threshold sits between those
+  two depths: DocumANTation's `latex/*` resolve under `ContainerHub` directly
+  and under `KataglyphisCppInference`, but not under `RustProjectTemplate`.
+  The remaining ~110 characters are the DocumANTation tail, which is shared by
+  both chains — that is where the next real gain is. DocumANTation is ContainerHub's LaTeX tooling and the Windows build
   never reads it.
 - `mount-source`/`mount-target` stay unset: the action already defaults to
   `D:\ws` → `C:\ws`, which is where the short-path clone put the tree. Setting

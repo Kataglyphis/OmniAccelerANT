@@ -1,0 +1,98 @@
+group = "com.example.kataglyphis_native_inference"
+version = "1.0-SNAPSHOT"
+
+buildscript {
+    ext.kotlin_version = "2.2.20"
+    repositories {
+        google()
+        mavenCentral()
+    }
+
+    dependencies {
+        classpath("com.android.tools.build:gradle:8.11.1")
+        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version")
+    }
+}
+
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+
+apply plugin: "com.android.library"
+apply plugin: "kotlin-android"
+
+android {
+    namespace = "com.example.kataglyphis_native_inference"
+
+    compileSdk = 36
+
+    // Pinned to the CI image — Inference-Engine AGENTS.md § 3.
+    buildToolsVersion = "36.0.0"
+    ndkVersion = "29.0.14206865"
+
+    externalNativeBuild {
+        cmake {
+            path "src/main/cpp/CMakeLists.txt"
+            version "4.1.2"
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_21
+        targetCompatibility = JavaVersion.VERSION_21
+    }
+
+    kotlinOptions {
+        jvmTarget = JavaVersion.VERSION_21
+    }
+
+    sourceSets {
+        main.java.srcDirs += "src/main/kotlin"
+        test.java.srcDirs += "src/test/kotlin"
+    }
+
+    defaultConfig {
+        minSdk = 26
+
+        consumerProguardFiles "consumer-rules.pro"
+
+        externalNativeBuild {
+            cmake {
+                arguments "-DANDROID_STL=c++_shared"
+
+                def gstreamerRootAndroid = System.getenv("GSTREAMER_ROOT_ANDROID")
+                if (!gstreamerRootAndroid && project.hasProperty("gstreamerRootAndroid")) {
+                    gstreamerRootAndroid = project.property("gstreamerRootAndroid")
+                }
+                if (gstreamerRootAndroid) {
+                    arguments "-DGSTREAMER_ROOT_ANDROID=${gstreamerRootAndroid}"
+                }
+            }
+        }
+
+        ndk {
+            // Nur noch arm64-v8a für moderne Android-Geräte
+            abiFilters "arm64-v8a"
+        }
+    }
+
+    dependencies {
+        testImplementation("org.jetbrains.kotlin:kotlin-test")
+        testImplementation("org.mockito:mockito-core:5.0.0")
+    }
+
+    testOptions {
+        unitTests.all {
+            useJUnitPlatform()
+
+            testLogging {
+               events "passed", "skipped", "failed", "standardOut", "standardError"
+               outputs.upToDateWhen {false}
+               showStandardStreams = true
+            }
+        }
+    }
+}
