@@ -22,7 +22,7 @@ param(
 	[switch] $KeepContainer,
 	[string] $ContainerName = "kataglyphis-linux-lane-$Lane-$Arch",
 	# AGENTS.md § 4.
-	[string[]] $ContainerNativePaths = @('/workspace/build', '/workspace/doc/.venv'),
+	[string[]] $ContainerNativePaths = @('/workspace/build'),
 	# Debugging switches only; CI has no equivalent.
 	[string[]] $Env = @()
 )

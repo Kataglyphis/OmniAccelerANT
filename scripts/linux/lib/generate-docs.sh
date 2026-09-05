@@ -93,15 +93,17 @@ if [[ -d "$DOC_API_DIR" ]]; then
 	uv_ensure_installed
 
 	echo "[Info] Creating venv with uv and installing dependencies..."
-	uv_venv_create "$DOC_ROOT/.venv" ""   # "" skips the --python pin, honouring UV_PYTHON
+	# Container-native, never in the workspace — AGENTS.md section 4.
+	DOC_VENV="${TMPDIR:-/tmp}/kataglyphis-docs-venv"
+	uv_venv_create "$DOC_VENV" ""   # "" skips the --python pin, honouring UV_PYTHON
 	# Vendor activate scripts reference unset vars; suspend nounset across the
 	# source and restore it (ContainerHub AGENTS.md § Shell safety, bug class 4).
 	_gd_flags="$-"
 	set +u
-	source "$DOC_ROOT/.venv/bin/activate"
+	source "$DOC_VENV/bin/activate"
 	if [[ "$_gd_flags" =~ u ]]; then set -u; fi
 	# --python is load-bearing: uv honours UV_PYTHON over the activated venv.
-	uv pip install --python "$DOC_ROOT/.venv/bin/python" markdown-it-py
+	uv pip install --python "$DOC_VENV/bin/python" markdown-it-py
 
 	python3 - "$DOC_API_DIR" <<'PY'
 import os

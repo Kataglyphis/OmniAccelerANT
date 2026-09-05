@@ -76,6 +76,15 @@ here.
       constraints, and Flutter warns that Gradle 8.14 / AGP 8.11.1 support ends
       soon (9.1.0 / 9.0.1 required). Neither blocks a build today.
 
+- [ ] `fatal: '$GIT_DIR' too big` still hits DocumANTation's `latex/*` in both
+      deep chains; retiring the plugin submodule shortened them without lifting
+      either over the limit (gitdir 230 and 238 against a threshold between 180
+      and 230 — AGENTS.md § 4). About 50 characters have to go. Cheapest first:
+      the `md2pdfLib/presentation/template/latex/` layout inside DocumANTation
+      (34) and the `ExternalLib/` + `external/` mount directories (21); both are
+      directory names, not repo names or URLs. Dropping the `Kataglyphis-`
+      prefix buys 36 more but touches every URL in seven repos.
+
 ## Open — verification gaps
 
 - [ ] `scripts/windows/Start-Windows.ps1` has never been launched: it needs a

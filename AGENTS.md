@@ -399,13 +399,23 @@ disk check, GHCR login, pull), `run-in-windows-container`,
   `.git/modules/<name>/` segment until git aborts with `fatal: '$GIT_DIR' too
   big` — that is git's own limit, not MAX_PATH, so no clone root is short
   enough. Retiring the NativeInferencePlugin submodule on 2026-09-05 took one
-  level out of the first chain (worst `.git/modules` path 253 → 212 characters,
-  now the RustProjectTemplate one). The measured threshold sits between those
-  two depths: DocumANTation's `latex/*` resolve under `ContainerHub` directly
-  and under `KataglyphisCppInference`, but not under `RustProjectTemplate`.
-  The remaining ~110 characters are the DocumANTation tail, which is shared by
-  both chains — that is where the next real gain is. DocumANTation is ContainerHub's LaTeX tooling and the Windows build
-  never reads it.
+  level out of the first chain (worst `.git/modules` path 253 → 212 characters)
+  but did **not** lift either chain over the limit. Measured by the `gitdir:`
+  string each `latex/*` gitfile carries:
+
+  | chain | gitdir | `git rev-parse` |
+  | --- | --- | --- |
+  | `ContainerHub` directly | 180 | resolves |
+  | via `KataglyphisCppInference` | 230 | `fatal: '$GIT_DIR' too big` |
+  | via `RustProjectTemplate` | 238 | `fatal: '$GIT_DIR' too big` |
+
+  So the threshold is between 180 and 230, and roughly 50 characters have to
+  go. Dropping the `Kataglyphis-` prefix from the three repos in the chain buys
+  36 — not enough on its own. The two largest single items are not repo names
+  at all: `md2pdfLib/presentation/template/latex/` inside DocumANTation is 34
+  characters, and the `ExternalLib/` + `external/` mount directories are 21
+  together. Neither touches a URL. DocumANTation is ContainerHub's LaTeX
+  tooling and the Windows build never reads it.
 - `mount-source`/`mount-target` stay unset: the action already defaults to
   `D:\ws` → `C:\ws`, which is where the short-path clone put the tree. Setting
   them to `github.workspace` would mount the submodule-less checkout instead.
