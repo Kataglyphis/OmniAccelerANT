@@ -72,6 +72,12 @@ here.
       git-ignored, but large and confusing: `flutter/` (2.5 GB, from when the
       lane installed the SDK into the workspace), `.ccache/`,
       `.flatpak-builder/`, `out/flatpak/`, `out/deb/`.
+- [ ] The Linux and Windows images resolve different dependency versions, so
+      `pubspec.lock` flips back and forth: a Linux lane run writes intl 0.20.3
+      and matcher 0.12.20, the next Windows run writes 0.20.2 and 0.12.19. Both
+      are committed states at different times, so whoever runs last "wins" and
+      the diff is pure noise. One of the two images has a different Dart SDK
+      constraint; find which and align them.
 - [ ] `flutter pub get` reports 45 packages held back by dependency
       constraints, and Flutter warns that Gradle 8.14 / AGP 8.11.1 support ends
       soon (9.1.0 / 9.0.1 required). Neither blocks a build today.

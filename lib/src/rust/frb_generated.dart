@@ -71,8 +71,7 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
   static const kDefaultExternalLibraryLoaderConfig =
       ExternalLibraryLoaderConfig(
         stem: 'kataglyphis_rustprojecttemplate',
-        ioDirectory:
-            'third_party/RustProjectTemplate/target/release/',
+        ioDirectory: 'third_party/RustProjectTemplate/target/release/',
         webPrefix: 'pkg/',
         wasmBindgenName: 'wasm_bindgen',
       );

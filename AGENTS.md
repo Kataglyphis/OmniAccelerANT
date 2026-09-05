@@ -151,6 +151,38 @@ written out rather than linked.
   `Cannot run Project.afterEvaluate(Action) when the project is already
   evaluated`. BACKLOG.md tracks collapsing these to one source of truth.
 
+- **`--gcc-toolchain` is load-bearing here, and ContainerHub deleted the helper
+  that set it.** `export_clang_gcc_toolchain_env` went away upstream on
+  2026-09-05 (`e2c63f7b`), documented as dead: *"had no caller in the build […]
+  nothing in the tree sets a bare `CC=clang`"*. Both statements are true of
+  ContainerHub and false of this repo — `export_toolchain_env` set exactly that
+  bare `CC=clang` and called the function. Upstream names
+  `/usr/local/bin/clang-<arch>` as the replacement, because those wrappers bake
+  `--gcc-toolchain` in themselves; **`:latest-cross` ships none of them**
+  (`ls /usr/local/bin | grep clang` is empty), so that branch is preferred but
+  never taken today. Two runs differing only in this flag settle what it is
+  worth:
+
+  | `CC` | result |
+  | --- | --- |
+  | `clang`, no flag | `clang++: error: linker command failed with exit code 1` |
+  | `clang --gcc-toolchain=/opt/gcc-16.2.0` | bundle + all four packages |
+
+  Without it clang resolves libstdc++ against the system copy rather than the
+  source-built GCC 16.2.0 the image provides. `export_toolchain_env` restores
+  the flags through `gcc_toolchain_prefix()`, which upstream kept — do not
+  hard-code `/opt/gcc-16.2.0`.
+
+  The wider lesson for every ContainerHub bump: upstream reasons about its own
+  tree when it removes something. "No caller" means no caller *there*.
+
+- **Editing a lane script while its container runs makes the log lie.** bash
+  sources `container-steps.sh` once at start, so a later edit does not take
+  effect — but the log then shows behaviour that no longer matches the file on
+  disk, and the next reader (including you, ten minutes on) draws the wrong
+  conclusion. This cost one run: the log said "falling back to bare clang" while
+  the file already had the fix. Wait for the container to exit.
+
 - **Rust `i64` is `int` natively and `BigInt` on web, so only the web lane
   catches the mismatch.** flutter_rust_bridge maps it to `PlatformInt64`, a
   typedef that resolves per platform, and app code that passes a plain `int`
