@@ -8,7 +8,8 @@ abstract class KataglyphisNativeInferencePlatform extends PlatformInterface {
 
   static final Object _token = Object();
 
-  static KataglyphisNativeInferencePlatform _instance = MethodChannelKataglyphisNativeInference();
+  static KataglyphisNativeInferencePlatform _instance =
+      MethodChannelKataglyphisNativeInference();
 
   /// The default instance of [KataglyphisNativeInferencePlatform] to use.
   ///

@@ -5,20 +5,20 @@ import 'package:kataglyphis_native_inference/kataglyphis_native_inference_method
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  MethodChannelKataglyphisNativeInference platform = MethodChannelKataglyphisNativeInference();
+  MethodChannelKataglyphisNativeInference platform =
+      MethodChannelKataglyphisNativeInference();
   const MethodChannel channel = MethodChannel('kataglyphis_native_inference');
 
   setUp(() {
-    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
-      channel,
-      (MethodCall methodCall) async {
-        return '42';
-      },
-    );
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (MethodCall methodCall) async {
+          return '42';
+        });
   });
 
   tearDown(() {
-    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(channel, null);
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, null);
   });
 
   test('getPlatformVersion', () async {
