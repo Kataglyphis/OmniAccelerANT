@@ -43,7 +43,7 @@ dhttpd --path doc/api --host 127.0.0.1 --port 8080
 
 The shared Sphinx theme/template that used to live in Kataglyphis-ContainerHub
 (`sphinx-kataglyphis-theme/` + `docs/source_templates/`) was moved into the
-[Kataglyphis-DocumANTation](https://github.com/Kataglyphis/Kataglyphis-DocumANTation) repository.
+[DocumANTation](https://github.com/Kataglyphis/DocumANTation) repository.
 Consumers vendor it as a submodule (`external/Kataglyphis-DocumANTation`) and install it via
 `requirements.txt`:
 

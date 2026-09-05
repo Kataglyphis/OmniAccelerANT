@@ -23,8 +23,8 @@ gst-launch-1.0 --version
 ## 2) Clone the repository
 
 ```bash
-git clone --recurse-submodules --branch develop git@github.com:Kataglyphis/Kataglyphis-Inference-Engine.git
-cd Kataglyphis-Inference-Engine
+git clone --recurse-submodules --branch develop git@github.com:Kataglyphis/Inference-Engine.git
+cd Inference-Engine
 ```
 
 If you cloned without submodules:

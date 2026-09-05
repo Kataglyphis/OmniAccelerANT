@@ -33,7 +33,7 @@ jobs:
       # ContainerHub's shared prologue: reclaim disk, check out, log in to ghcr,
       # pull with retries.
       - name: Prepare CI host
-        uses: Kataglyphis/Kataglyphis-ContainerHub/.github/actions/prepare-linux-ci-host@main
+        uses: Kataglyphis/ContainerHub/.github/actions/prepare-linux-ci-host@main
         with:
           image: ${{ matrix.container_image }}
           registry-username: ${{ github.actor }}
@@ -42,7 +42,7 @@ jobs:
           submodules: recursive
 
       - name: Run container
-        uses: Kataglyphis/Kataglyphis-ContainerHub/.github/actions/run-in-linux-container@main
+        uses: Kataglyphis/ContainerHub/.github/actions/run-in-linux-container@main
         with:
           image: ${{ matrix.container_image }}
           extra-args: --platform "${{ matrix.platform }}"

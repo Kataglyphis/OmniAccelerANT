@@ -9,10 +9,10 @@
 
 </div>
 
-[![Build + run + test on Linux natively](https://github.com/Kataglyphis/Kataglyphis-Inference-Engine/actions/workflows/dart_on_native_linux.yml/badge.svg)](https://github.com/Kataglyphis/Kataglyphis-Inference-Engine/actions/workflows/dart_on_native_linux.yml) [![Windows CMake (clang-cl) natively](https://github.com/Kataglyphis/Kataglyphis-Inference-Engine/actions/workflows/dart_on_native_windows.yml/badge.svg)](https://github.com/Kataglyphis/Kataglyphis-Inference-Engine/actions/workflows/dart_on_native_windows.yml) [![Build + test + run for web](https://github.com/Kataglyphis/Kataglyphis-Inference-Engine/actions/workflows/dart_on_web_linux.yml/badge.svg)](https://github.com/Kataglyphis/Kataglyphis-Inference-Engine/actions/workflows/dart_on_web_linux.yml)  
- [![Build + test + run android app](https://github.com/Kataglyphis/Kataglyphis-Inference-Engine/actions/workflows/dart_build_android_app.yml/badge.svg)](https://github.com/Kataglyphis/Kataglyphis-Inference-Engine/actions/workflows/dart_build_android_app.yml)[![Automatic Dependency Submission](https://github.com/Kataglyphis/Kataglyphis-Inference-Engine/actions/workflows/dependency-graph/auto-submission/badge.svg)](https://github.com/Kataglyphis/Kataglyphis-Inference-Engine/actions/workflows/dependency-graph/auto-submission)
-[![Dependabot Updates](https://github.com/Kataglyphis/Kataglyphis-Inference-Engine/actions/workflows/dependabot/dependabot-updates/badge.svg)](https://github.com/Kataglyphis/Kataglyphis-Inference-Engine/actions/workflows/dependabot/dependabot-updates)
-[![TopLang](https://img.shields.io/github/languages/top/Kataglyphis/Kataglyphis-Inference-Engine)]()
+[![Build + run + test on Linux natively](https://github.com/Kataglyphis/Inference-Engine/actions/workflows/dart_on_native_linux.yml/badge.svg)](https://github.com/Kataglyphis/Inference-Engine/actions/workflows/dart_on_native_linux.yml) [![Windows CMake (clang-cl) natively](https://github.com/Kataglyphis/Inference-Engine/actions/workflows/dart_on_native_windows.yml/badge.svg)](https://github.com/Kataglyphis/Inference-Engine/actions/workflows/dart_on_native_windows.yml) [![Build + test + run for web](https://github.com/Kataglyphis/Inference-Engine/actions/workflows/dart_on_web_linux.yml/badge.svg)](https://github.com/Kataglyphis/Inference-Engine/actions/workflows/dart_on_web_linux.yml)  
+ [![Build + test + run android app](https://github.com/Kataglyphis/Inference-Engine/actions/workflows/dart_build_android_app.yml/badge.svg)](https://github.com/Kataglyphis/Inference-Engine/actions/workflows/dart_build_android_app.yml)[![Automatic Dependency Submission](https://github.com/Kataglyphis/Inference-Engine/actions/workflows/dependency-graph/auto-submission/badge.svg)](https://github.com/Kataglyphis/Inference-Engine/actions/workflows/dependency-graph/auto-submission)
+[![Dependabot Updates](https://github.com/Kataglyphis/Inference-Engine/actions/workflows/dependabot/dependabot-updates/badge.svg)](https://github.com/Kataglyphis/Inference-Engine/actions/workflows/dependabot/dependabot-updates)
+[![TopLang](https://img.shields.io/github/languages/top/Kataglyphis/Inference-Engine)]()
 [![Donate](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://www.paypal.com/donate/?hosted_button_id=BX9AVVES2P9LN)
 [![Twitter](https://img.shields.io/twitter/follow/Cataglyphis_?style=social)](https://twitter.com/Cataglyphis_)
 [![YouTube](https://img.shields.io/youtube/channel/subscribers/UC3LZiH4sZzzaVBCUV8knYeg?style=social)](https://www.youtube.com/channel/UC3LZiH4sZzzaVBCUV8knYeg)
@@ -30,7 +30,7 @@ Kataglyphis-Inference-Engine bundles a Flutter/Dart frontend, a Rust/C++ inferen
 - 🎨 **GStreamer native GTK integration** – Leveraging users to write beautiful Linux AI inference apps.
 - 📹 **GStreamer WebRTC livestreaming** with ready-to-use pipelines for USB, Raspberry Pi, and Orange Pi cameras.
 - 🌉 **flutter_rust_bridge integration** – Ensures a seamless API boundary between Dart UI and Rust logic.
-- 🐳 **Containerized development flow** plus native instructions for Windows, Linux, web. For details in my build environment look into [Kataglyphis-ContainerHub](https://github.com/Kataglyphis/Kataglyphis-ContainerHub). On Windows the container engine is [Stevedore](https://github.com/slonopotamus/stevedore) and build containers run with `--isolation process` (full host CPU count) — see [docs/source/platforms.md](docs/source/platforms.md).
+- 🐳 **Containerized development flow** plus native instructions for Windows, Linux, web. For details in my build environment look into [ContainerHub](https://github.com/Kataglyphis/ContainerHub). On Windows the container engine is [Stevedore](https://github.com/slonopotamus/stevedore) and build containers run with `--isolation process` (full host CPU count) — see [docs/source/platforms.md](docs/source/platforms.md).
 - 🐍 **Python inference demos** for rapid experimentation alongside the Rust core.
 
 ### 📊 Feature Status Matrix
@@ -102,8 +102,8 @@ Kataglyphis-Inference-Engine bundles a Flutter/Dart frontend, a Rust/C++ inferen
   > On Windows I use [Git Bash](https://git-scm.com/install/windows) instead of  
   > Powershell or cmd
    ```bash
-   git clone --recurse-submodules --branch develop git@github.com:Kataglyphis/Kataglyphis-Inference-Engine.git
-   cd Kataglyphis-Inference-Engine
+   git clone --recurse-submodules --branch develop git@github.com:Kataglyphis/Inference-Engine.git
+   cd Inference-Engine
    ```
 2. Initialize submodules if needed.  
    If u used `--recurse-submodules` while cloning you are already good.  
@@ -255,5 +255,5 @@ Twitter: [@Cataglyphis_](https://twitter.com/Cataglyphis_)
 Email: cataglyphis@jonasheinle.de
 
 **Project Links:**
-- GitHub: [Kataglyphis-Inference-Engine](https://github.com/Kataglyphis/Kataglyphis-Inference-Engine)
+- GitHub: [Inference-Engine](https://github.com/Kataglyphis/Inference-Engine)
 - Homepage: [Official Site](https://kataglyphisinferenceengine.jonasheinle.de)

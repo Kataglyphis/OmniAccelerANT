@@ -4,13 +4,13 @@
 	branch = main
 [submodule "ExternalLib/Kataglyphis-ContainerHub"]
 	path = ExternalLib/Kataglyphis-ContainerHub
-	url = git@github.com:Kataglyphis/Kataglyphis-ContainerHub.git
+	url = git@github.com:Kataglyphis/ContainerHub.git
 	branch = main
 [submodule "ExternalLib/Kataglyphis-RustProjectTemplate"]
 	path = ExternalLib/Kataglyphis-RustProjectTemplate
-	url = git@github.com:Kataglyphis/Kataglyphis-RustProjectTemplate.git
+	url = git@github.com:Kataglyphis/RustProjectTemplate.git
 	branch = develop
 [submodule "ExternalLib/KataglyphisCppInference"]
 	path = ExternalLib/KataglyphisCppInference
-	url = git@github.com:Kataglyphis/Kataglyphis-Cpp-Inference.git
+	url = git@github.com:Kataglyphis/Cpp-Inference.git
 	branch = main

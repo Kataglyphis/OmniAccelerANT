@@ -30,7 +30,7 @@ jobs:
       # pull with retries. fetch-depth 0 because the docs/version stamping the
       # web build performs wants full history.
       - name: 🚚 Prepare CI host
-        uses: Kataglyphis/Kataglyphis-ContainerHub/.github/actions/prepare-linux-ci-host@main
+        uses: Kataglyphis/ContainerHub/.github/actions/prepare-linux-ci-host@main
         with:
           image: ${{ env.CONTAINER_IMAGE }}
           registry-username: ${{ github.actor }}
@@ -39,7 +39,7 @@ jobs:
           submodules: recursive
 
       - name: Run container
-        uses: Kataglyphis/Kataglyphis-ContainerHub/.github/actions/run-in-linux-container@main
+        uses: Kataglyphis/ContainerHub/.github/actions/run-in-linux-container@main
         with:
           image: ${{ env.CONTAINER_IMAGE }}
           extra-args: --privileged --platform "linux/amd64"

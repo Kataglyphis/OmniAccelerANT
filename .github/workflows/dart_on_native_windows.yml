@@ -22,7 +22,7 @@ jobs:
       # AGENTS.md § 4, "The CI lane".
       - name: Prepare Windows container host
         id: prep
-        uses: Kataglyphis/Kataglyphis-ContainerHub/.github/actions/prepare-windows-container-host@main
+        uses: Kataglyphis/ContainerHub/.github/actions/prepare-windows-container-host@main
         with:
           image: ghcr.io/kataglyphis/kataglyphis_beschleuniger:winamd64
           registry-password: ${{ secrets.GHCR_PAT }}
@@ -31,7 +31,7 @@ jobs:
             external/Kataglyphis-DocumANTation
 
       - name: Run container
-        uses: Kataglyphis/Kataglyphis-ContainerHub/.github/actions/run-in-windows-container@main
+        uses: Kataglyphis/ContainerHub/.github/actions/run-in-windows-container@main
         with:
           image: ghcr.io/kataglyphis/kataglyphis_beschleuniger:winamd64
           file: C:\ws\scripts\windows\Build-Windows.ps1
@@ -58,7 +58,7 @@ jobs:
 
       - name: Upload CodeQL SARIF
         if: always()
-        uses: Kataglyphis/Kataglyphis-ContainerHub/.github/actions/upload-codeql-sarif@main
+        uses: Kataglyphis/ContainerHub/.github/actions/upload-codeql-sarif@main
         with:
           workspace: ${{ steps.prep.outputs.workspace }}
           category: windows-clang-rust

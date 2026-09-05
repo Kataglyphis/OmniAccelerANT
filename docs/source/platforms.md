@@ -24,7 +24,7 @@ For WSL2 camera passthrough, ensure the USB device is attached before running th
 ### Containerized build (Stevedore, recommended)
 
 Windows builds run inside the `kataglyphis_beschleuniger:winamd64` image from
-[Kataglyphis-ContainerHub](https://github.com/Kataglyphis/Kataglyphis-ContainerHub) — the same
+[ContainerHub](https://github.com/Kataglyphis/ContainerHub) — the same
 image CI uses. The container engine on Windows is
 [Stevedore](https://github.com/slonopotamus/stevedore) (`winget install stevedore`); apply the
 post-install fixes from ContainerHub's `docs/windows-builds.md` (§ Stevedore Setup Fixes) and
