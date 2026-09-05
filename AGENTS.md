@@ -548,9 +548,9 @@ The step also does **not** gate on flatpak-builder's exit code any more. It asks
 be complete while a later stage fails. The exit code is reported in the warning,
 never used as the verdict.
 
-`appimage` is the one format still failing locally, and the cause is the image:
-`/usr/local/bin/appimagetool` is mode 711, so it cannot read itself through
-`/proc/self/exe`. `tar`, `deb` and `flatpak` all build.
+All four formats build locally on x64: tar, deb, flatpak and AppImage. The
+appimagetool mode-711 problem that used to break the last one is fixed in the
+image.
 
 It drives Rancher Desktop's `nerdctl` (found on `PATH`, else under
 `%ProgramFiles%`), because that is the local Linux engine on this box; CI uses
@@ -657,31 +657,12 @@ two `database analyze` suites; the actual `flutter build linux --release` only
 appears inside the generated `/tmp/codeql-build.sh` that CodeQL invokes. Budget
 hours, not minutes. The `arm64` branch is the plain
 `flutter clean && flutter pub get && flutter build linux --release`. To build the
-app on x64 without the scan, run those three commands through `run_container`
-directly instead of the stage.
+app on x64 without the scan, pass `-SkipCodeQL` to `Invoke-LinuxLane.ps1`.
 
-**`FLUTTER_DIR` defaults inside the workspace**, so the two architectures share
-one SDK directory. In CI that is harmless — each runner has its own checkout —
-but locally an x64 and an arm64 run in the same tree overwrite each other's SDK.
-Run them sequentially, re-running `setup_flutter` before each. (`flutter/*` is
-gitignored, so this does not dirty the tree.)
-
-**`run_container` invokes `docker` by name.** On a host whose Linux engine is
-containerd rather than dockerd — Rancher Desktop's default — put a `docker`
-shim that forwards to `nerdctl` ahead of it on `PATH`, or switch the engine to
-`dockerd (moby)`. Host-side setup for that lane (drive mounts, QEMU binfmt for
-foreign-arch runs) is ContainerHub's, see § 2.
-
-**`run_container` uses `${GITHUB_WORKSPACE:-$PWD}` as the bind source**, so on a
-Windows host set it to the **Windows** path form —
-`GITHUB_WORKSPACE='D:\GitHub\Kataglyphis-Inference-Engine'`. A WSL-style
-`/mnt/d/...` is accepted, mounts nothing, and reports no error; the build then
-fails somewhere far from the cause. From Git Bash also set `MSYS_NO_PATHCONV=1`
-so the container-side paths survive. Why this happens is ContainerHub's, § 2.
-
-`package` deletes `~/.pub-cache/hosted` and the build's `obj/` directory before
-taring the bundle — it is a CI packaging step, not something to run casually in
-a working tree.
+`FLUTTER_DIR` defaults to `/opt/flutter` — the image's SDK, shared by every
+lane and never written to. It used to default inside the workspace, which made
+an x64 and an arm64 run in the same tree overwrite each other's SDK; that is
+gone along with the installer.
 
 Quality gates — `Build-Windows.ps1` runs these by default (skip with
 `-SkipFormat` / `-SkipTests` / `-SkipDocs`). Note the format command is **not**
