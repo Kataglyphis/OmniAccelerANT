@@ -12,7 +12,8 @@ kataglyphis-inference-engine-linux-x64.tar.gz
 .cache/
 migrate_working_dir/
 
-flutter/*
+flutter/
+.ccache/
 
 *.tar.gz
 .tools/
