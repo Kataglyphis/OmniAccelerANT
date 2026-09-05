@@ -97,83 +97,64 @@ rejected; both would be regressions here, so do not "fix" their absence:
 Everything here is false or meaningless in another repo — that is why it is
 written out rather than linked.
 
-- **The image's Flutter SDK is partly root-owned, and it cannot be repaired
-  from inside.** `/opt/flutter` itself belongs to the runtime user, but
-  `packages/flutter_tools/.dart_tool` is `root:root` — a later root-run flutter
-  step recreated it after the image's `chown`. `flutter pub get` then dies with
-  `Cannot open file … package_config.json (OS Error: Permission denied,
-  errno = 13)`, which stops every Flutter lane before it builds anything.
-  The directory sits in a **read-only overlay layer**, so a non-owner can
-  neither empty it (that needs write permission on the directory itself) nor
-  rename it (the rename forces a copy-up and fails on the same files). Both
-  were tried and refused. The only remedy is to mount over it, which all three
-  Linux workflows and `Invoke-LinuxLane.ps1` now do:
+- **Six image gaps this repo used to work around are fixed in the image
+  (2026-09-05); do not reintroduce the workarounds.** Each cost at least one run
+  to diagnose, so the symptoms stay written down — if one reappears it is an
+  image regression, not something to patch around again.
+  `/opt/flutter/packages/flutter_tools/.dart_tool` was root-owned inside a
+  **read-only overlay layer**, which a non-owner can neither empty nor rename
+  (both were tried and refused); `flutter pub get` died with
+  `package_config.json (OS Error: Permission denied, errno = 13)` and only a
+  `--tmpfs …:rw,mode=1777` mount could mask it. `/opt/android-sdk` was fully
+  populated but neither `ANDROID_HOME` nor `ANDROID_SDK_ROOT` was in the image
+  ENV, so `flutter build apk` stopped with `[!] No Android SDK found` — and
+  because CodeQL wraps the build in `database create --command=…`, that
+  surfaced three steps later as `needs to be finalized`. `SCCACHE_DIR` and
+  `CCACHE_DIR` pointed into the mounted checkout, which pollutes the tree and
+  on a bind-mounted host drive simply fails (`Can't initialize ccache use:
+  Failed to set permissions`). `RUSTUP_HOME` and `CARGO_HOME` were `root:root`
+  against a uid-1001 container (`could not create temp file …: Permission
+  denied`; a hardlink copy is not a fix either — `protected_hardlinks` refuses
+  root-owned files, and the `cp -a` fallback nests the tree so Corrosion reads
+  an empty `rustc --version` and fails with `invalid value '' for
+  '--toolchain'`). The `:latest-cross` tag was single-platform (own entry
+  below), and there was no Java SDK. What remains is
+  `setup_compiler_cache`, which now only calls ContainerHub's `setup_sccache`:
+  that points `RUSTC_WRAPPER` and both CMake compiler launchers at the
+  **guarded** `sccache-launcher.sh`, which survives sccache's own fatal errors
+  when a CMake `TryCompile` deletes the scratch directory under it.
+
+- **The Android GStreamer SDK is in the image but unannounced.** It sits at
+  `/opt/android/gstreamer` as a flat prefix (`gst-android/ndk-build`,
+  `include/`, `lib/`), yet `GSTREAMER_ROOT_ANDROID` is not in the image ENV, so
+  the native plugin's `CMakeLists.txt` stops the Android lane at configure time
+  with `GSTREAMER_ROOT_ANDROID must be set`. The plugin accepts both the
+  per-ABI and the flat layout, so the path alone is enough.
+  `export_android_gstreamer_env` (`scripts/linux/lib/container-steps.sh`)
+  probes and exports it, and returns untouched when the variable is already
+  set — so it becomes a no-op the moment the image exports it, **which is the
+  real fix.**
+
+- **The image's Android prebuilts are x86-64; the app builds arm64-v8a. This
+  blocks the Android lane and nothing in this repo can move it.** GStreamer,
+  ONNX Runtime and OpenCV under `/opt/android/` are all
+  `ELF x86-64, for Android 34, built by NDK r29` — `libs/x86_64` and
+  `jni/abi-x86_64` are the only ABI directories OpenCV ships, and
+  `find /opt -name 'libgstreamer-1.0.*'` turns up no aarch64 build at all. The
+  app pins `abiFilters "arm64-v8a"` (the native plugin's `android/build.gradle`,
+  deliberately — real phones). So the compile succeeds and the link does not:
 
   ```
-  --tmpfs /opt/flutter/packages/flutter_tools/.dart_tool:rw,mode=1777
+  [1/2] Building CXX object .../gstreamer_native.cpp.o
+  [2/2] Linking .../arm64-v8a/libkataglyphis_native_inference.so
+  ld.lld: error: /opt/android/gstreamer/libgstreamer-1.0.a(gst.c.o) is incompatible with aarch64linux
   ```
 
-  `mode=1777` is load-bearing — tmpfs otherwise mounts as `root:root 755` and
-  nothing changes. With it, `flutter pub get` returns 0 and the SDK regenerates
-  `package_config.json` under the runtime uid. `ensure_writable_flutter_sdk`
-  only detects the condition and names this mount; it deliberately no longer
-  pretends to fix it. Remove the mount once the image chowns the whole SDK.
-
-- **The image has the Android SDK but never says where.** `/opt/android-sdk`
-  is fully populated (`build-tools`, `cmdline-tools/latest`, `licenses`, `ndk`,
-  `platforms`, `platform-tools`), yet neither `ANDROID_HOME` nor
-  `ANDROID_SDK_ROOT` is in the image ENV, so `flutter build apk` stops with
-  `[!] No Android SDK found`. That killed the whole Android lane in a way that
-  only surfaced three steps later: CodeQL runs the build through
-  `database create --command=…`, so the build's exit 1 aborted the run before
-  any database was finalized, producing three `needs to be finalized` errors
-  and finally `bundle source directory not found: build/app/outputs/flutter-apk`.
-  The `source ~/.bashrc` in the generated build script cannot help — CodeQL
-  spawns it under `preload_tracer`, and bashrc returns early for a
-  non-interactive shell. `export_android_sdk_env` probes and exports it, and
-  `codeql_write_build_script` bakes the resolved path into the generated
-  script. Both defer to an existing `ANDROID_HOME`, so setting it in the image
-  — **the real fix** — makes them no-ops.
-
-- **sccache, on both lanes, and never inside the source tree.** The image sets
-  `SCCACHE_DIR=/workspace/.sccache` and `CCACHE_DIR=/workspace/.ccache`, i.e.
-  into the mounted checkout: it pollutes the tree, can end up in uploaded
-  artifacts, and on a bind-mounted host drive it simply fails — flatpak-builder
-  stops with `Can't initialize ccache use: Failed to set permissions of
-  /workspace/.ccache/…`. `setup_compiler_cache`
-  (`scripts/linux/lib/container-steps.sh`) repoints both at
-  `/var/cache/{sccache,ccache}`, which the image already provisions writable for
-  uid 1001, then calls ContainerHub's `setup_sccache`. That sets `RUSTC_WRAPPER`
-  and both CMake compiler launchers to the **guarded** `sccache-launcher.sh`
-  rather than bare `sccache` — the wrapper survives sccache's own fatal errors
-  when a CMake `TryCompile` deletes the scratch directory under it. ccache stays
-  only as ContainerHub's documented fallback for invocations sccache refuses.
-  Verified in the image: sccache 0.17.0, server listening, all three variables
-  pointing at the launcher.
-
-- **`RUSTUP_HOME` in the image is root-owned; the container is not root.** The
-  image sets `RUSTUP_HOME=/usr/local/rustup` (and `CARGO_HOME=/usr/local/cargo`)
-  as ENV, both `root:root drwxr-xr-x`, while the container runs as uid 1001 —
-  so rustup dies with `could not create temp file
-  /usr/local/rustup/tmp/…: Permission denied`. The workflows already redirect
-  `CARGO_HOME` for this reason; `RUSTUP_HOME` cannot simply follow, because it
-  holds the toolchains rather than a cache. `ensure_writable_rustup_home`
-  (`scripts/linux/lib/container-steps.sh`) builds a real `/tmp/rustup-home`
-  with `toolchains/`, `tmp/` and `downloads/` and **symlinks each existing
-  toolchain in**, then re-exports. Nothing is copied, and `toolchains/` is a
-  real directory, so rustup can still install one — which the web lane needs,
-  since flutter_rust_bridge asks for the `nightly` channel while the image only
-  carries a dated `nightly-2026-06-28`. It returns early when the source is
-  already writable, so it becomes a no-op the moment the image ships a writable
-  rustup home, **which is the real fix.**
-  Do **not** hardlink-copy instead: the files are root-owned, `cp -al` is
-  refused by `protected_hardlinks` for uid 1001, and a `cp -a` fallback onto
-  the half-created target nests the tree at `rustup-home/rustup/…`. Corrosion
-  then reads an empty `rustc --version`, discards every toolchain, and fails
-  with `invalid value '' for '--toolchain'` — a failure two steps removed from
-  its cause. Verified in the image: the direct
-  `toolchains/<name>/bin/rustc --version` Corrosion uses resolves, as does the
-  shim, and both `tmp/` and `toolchains/` are writable.
+  20 such lines over 26 archives. Everything before it is green — that run had
+  zero `not writable`, `No Android SDK`, `Permission denied` or `must be set`
+  hits. Do not "fix" this by switching the lane to x86-64: that ABI is the
+  emulator's, not a shipping target. The image has to carry the arm64-v8a
+  prebuilts.
 
 - **The Rust manifest path must be counted from the *resolved* plugin dir.**
   Cargokit builds `CARGOKIT_MANIFEST_DIR` by string-joining
@@ -280,6 +261,17 @@ written out rather than linked.
 **Both lanes run the same thing locally and in CI. Reproduce locally first —
 CI is not a debugger.**
 
+**Run one lane at a time.** Every local lane bind-mounts the *same* checkout,
+and the generated files at its root are per-host, not per-lane:
+`android/local.properties` carries `flutter.sdk`, and the ephemeral plugin
+symlinks, `.dart_tool` and `ios/macos` `Generated.*` carry absolute paths. Two
+lanes running together overwrite each other mid-build, and the failure names
+neither of them — a Windows container run and a Linux Android run in parallel
+left `flutter.sdk=C:\ProgramData\scoop\apps\flutter\current` next to
+`sdk.dir=/opt/android-sdk`, and Gradle stopped with
+`Could not read script '/workspace/android/C:/ProgramData/…/native_plugin_loader.gradle.kts'`.
+CI never sees this: each lane is its own runner with its own clone.
+
 Windows builds run containerized, and **CI runs the exact same script** — the
 workflow [`dart_on_native_windows.yml`](.github/workflows/dart_on_native_windows.yml)
 calls `Build-Windows.ps1` through ContainerHub's `run-in-windows-container`
@@ -291,8 +283,17 @@ Locally:
   --mount "type=bind,source=$PWD,target=C:\ws-mnt" -w C:\ws-mnt `
   ghcr.io/kataglyphis/kataglyphis_beschleuniger:winamd64 `
   pwsh -NoProfile -ExecutionPolicy Bypass -File C:\ws-mnt\scripts\windows\Build-Windows.ps1 `
-    -Configurations "clangcl-release" -SkipMsixPackaging
+    -SkipMsixPackaging
 ```
+
+`-SkipMsixPackaging` alone is exactly what the workflow passes; adding
+`-Configurations` is a deliberate deviation, not the parity run. Verified
+2026-09-05: 22/22 steps in 3:40, `kataglyphis_inference_engine.exe`,
+`kataglyphis_rustprojecttemplate.dll` and `KataglyphisCppInference.dll` all
+rebuilt under `build\windows\x64\runner\x64-ClangCL-Windows-Release\`. The
+Windows engine is Stevedore's, **not** Rancher Desktop's — Rancher only serves
+Linux containers, and its `docker`/`nerdctl` shims are first on `PATH`, so the
+full path above is load-bearing.
 
 **The mount target must not already exist in the image.** `target=C:\workspace`
 fails at container creation with `hcs::CreateComputeSystem ... The request is not
@@ -418,7 +419,7 @@ those surfaces as a different, misleading error:
 | --- | --- | --- |
 | CMake/ninja build tree | named volume on `/workspace/build` | — |
 | flatpak repo, build tree, builder state, manifest staging **and the finished bundle** | `/tmp/flatpak-work` | `fchmod: Operation not permitted`, first from the OSTree repo, later from `build-bundle` |
-| ccache / sccache | `/var/cache/{ccache,sccache}` | `Can't initialize ccache use: Failed to set permissions` |
+| ccache / sccache | `/var/cache/{ccache,sccache}`, set by the image | `Can't initialize ccache use: Failed to set permissions` |
 
 Only the finished artifacts are written into `out/`. This is ContainerHub's
 documented rule for build directories and caches, applied to the packaging
@@ -445,6 +446,20 @@ It drives Rancher Desktop's `nerdctl` (found on `PATH`, else under
 `%ProgramFiles%`), because that is the local Linux engine on this box; CI uses
 `docker` through ContainerHub's `run-in-linux-container`. Everything inside the
 container is identical.
+
+**`-v name:/path` is not a named volume on Windows nerdctl.** It is a bind of
+`$PWD/name`, created silently, and `nerdctl volume create` beforehand changes
+nothing — the volume is made and never mounted. Proof: after five lane runs,
+`%TEMP%` held `kataglyphis-lane-native-x64-workspace-build/` and four siblings,
+729 MB each, while the volume of that name mounted through
+`--mount type=volume,…` was empty. One run started from the repo root even left
+a 151 MB directory of that name *in the checkout*. So the whole point of the
+volumes — keeping the write-heavy build tree off drvfs — was never in effect
+locally, and the failures it prevents were only avoided because the packaging
+steps had already been moved to `/tmp`. `Invoke-LinuxLane.ps1` now always uses
+`--mount type=volume,source=…,target=…`, which nerdctl cannot reinterpret as a
+path. CI is unaffected: there the Linux engine resolves the short form
+correctly.
 
 **Two traps, both of which produce a mount that resolves but is empty:**
 

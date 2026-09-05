@@ -84,8 +84,8 @@ Kataglyphis-Inference-Engine bundles a Flutter/Dart frontend, a Rust/C++ inferen
 | 🪟 **Windows** | x86-64 | ✔️ | Built with clang-cl, Win32 integration |
 | 🐧 **Linux** | x86-64 | ✔️ | Full GTK support, Docker ready |
 | 🐧 **Linux** | ARM64 | ✔️ | SBC optimized (RPi, OPi support) |
-| 🐧 **Linux** | RISC-V | ✔️ | Emerging architecture support |
-| 🤖 **Android** | ARM64/x86-64 | ✔️ | Native camera, NDK integration |
+| 🐧 **Linux** | RISC-V | 🔶 | Emerging architecture support. No CI lane in this repo — the `:latest-cross` image index carries a riscv64 variant, but nothing builds against it here. |
+| 🤖 **Android** | ARM64 | 🔶 | Native camera, NDK integration. The app targets `arm64-v8a` only; the CI image currently ships its Android GStreamer/ONNX/OpenCV prebuilts for x86-64, so the native library cannot link. Everything up to and including the compile step is green. |
 
 ---
 
@@ -179,6 +179,7 @@ Then open <http://127.0.0.1:8080>.
 | Getting Started | [docs/source/getting-started.md](docs/source/getting-started.md) | Environment prerequisites, installation, and run commands. |
 | Platform Guides | [docs/source/platforms.md](docs/source/platforms.md) | Container, Windows, Raspberry Pi, and web build instructions — incl. the Windows container troubleshooting table (Dev Drive, pkg-config, rustup/Cargokit, Debug-preset pitfalls). |
 | Agent / contributor guide | [AGENTS.md](AGENTS.md) | Build workflow, container pitfalls, and quality gates for coding agents and new contributors. |
+| Known cleanups | [BACKLOG.md](BACKLOG.md) | Refactors and verification gaps this repo knows about but has not done yet, in the format ContainerHub's agentic loop consumes. |
 | Camera Streaming | [docs/source/camera-streaming.md](docs/source/camera-streaming.md) | GStreamer WebRTC pipelines and Python inference demos. |
 | Upgrade guide | [docs/source/upgrade-guide.md](docs/source/upgrade-guide.md) | How to keep things up-to-date. |
 

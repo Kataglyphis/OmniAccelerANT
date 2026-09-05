@@ -53,14 +53,18 @@ $runDocs = if ($SkipDocs) { 'false' } else { ($Arch -eq 'x64').ToString().ToLowe
 # drvfs, which cannot do utime/chmod for the container uid — untarring the
 # Flutter SDK onto it fails on every entry. The volume keeps the lane's
 # arguments identical to CI's while the writes land on a Linux filesystem.
+#
+# Always the long --mount form. `-v name:/path` is a host-path bind on Windows
+# nerdctl, silently — AGENTS.md § 4.
 $volumeArgs = @()
 foreach ($nativePath in $ContainerNativePaths) {
 	$volumeName = "kataglyphis-lane-$Lane-$Arch" + ($nativePath -replace '[^A-Za-z0-9]+', '-')
 	& $engine 'volume' 'create' $volumeName 2>&1 | Out-Null
 	# Volumes start root-owned; the image runs as uid 1001.
-	& $engine 'run' '--rm' '--user' 'root' '-v' "${volumeName}:/vol" `
+	& $engine 'run' '--rm' '--user' 'root' `
+		'--mount' "type=volume,source=${volumeName},target=/vol" `
 		'--platform' $platform 'alpine' 'chown' '1001:1001' '/vol' 2>&1 | Out-Null
-	$volumeArgs += @('-v', "${volumeName}:${nativePath}")
+	$volumeArgs += @('--mount', "type=volume,source=${volumeName},target=${nativePath}")
 	Write-Host "volume : $volumeName -> $nativePath"
 }
 

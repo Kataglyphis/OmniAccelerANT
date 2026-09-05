@@ -125,6 +125,7 @@ source_bashrc_and_add_flutter_to_path "$FLUTTER_DIR"
 run_flutter_common_checks "$STRICT_CHECKS"
 run_check_cmd "$STRICT_CHECKS" flutter config --enable-android
 setup_compiler_cache
+export_android_gstreamer_env
 export_toolchain_env
 
 if maybe_truthy "$RUN_CODEQL"; then

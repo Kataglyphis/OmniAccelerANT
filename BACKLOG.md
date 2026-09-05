@@ -45,10 +45,22 @@ here.
 - [ ] `scripts/linux/lib/packaging-common.sh` keeps 15 alias functions so the
       existing call sites need no change. Call sites should move to the
       upstream `app_packaging_*` names and the aliases go.
+- [ ] Nothing stops two local lanes from running against the same checkout at
+      once, although the generated files at its root are per-host
+      (`android/local.properties`, the ephemeral plugin symlinks, `.dart_tool`).
+      `Invoke-LinuxLane.ps1` and `Build-Windows.ps1` could refuse to start while
+      another lane's container is up — the failure is otherwise attributed to
+      the innocent lane, see AGENTS.md § 4.
 - [ ] `scripts/linux/lib/check-linux.sh` is a human entry point with its own
       `usage` block but lives in `lib/`, next to sourced libraries. Same for the
       naming of `run-native-linux.sh` / `run-android.sh`, which read as
       host-side scripts but are what the CI lane actually invokes.
+- [b] `export_android_gstreamer_env` (`scripts/linux/lib/container-steps.sh`)
+      only exists because the image ships the Android GStreamer SDK at
+      `/opt/android/gstreamer` without exporting `GSTREAMER_ROOT_ANDROID`. It is
+      already written to no-op when the variable is set, so it can be deleted
+      outright once the image exports it — blocked on that. Same shape as the
+      six workarounds that were deleted on 2026-09-05.
 
 ## Open — hygiene
 

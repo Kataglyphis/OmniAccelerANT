@@ -114,6 +114,26 @@ setup_compiler_cache() {
   echo "[Info] SCCACHE_DIR=${SCCACHE_DIR:-<unset>}  RUSTC_WRAPPER=${RUSTC_WRAPPER:-<unset>}"
 }
 
+# The image ships the Android GStreamer SDK at /opt/android/gstreamer but
+# exports no GSTREAMER_ROOT_ANDROID, so the native plugin's CMakeLists stops
+# with "GSTREAMER_ROOT_ANDROID must be set" — AGENTS.md § 3. A no-op once the
+# image sets it.
+export_android_gstreamer_env() {
+  if [ -n "${GSTREAMER_ROOT_ANDROID:-}" ] && [ -d "${GSTREAMER_ROOT_ANDROID}" ]; then
+    return 0
+  fi
+  local candidate
+  for candidate in /opt/android/gstreamer /opt/gstreamer-android; do
+    if [ -d "$candidate" ]; then
+      export GSTREAMER_ROOT_ANDROID="$candidate"
+      echo "[Info] GSTREAMER_ROOT_ANDROID=$candidate"
+      return 0
+    fi
+  done
+  echo "[Warn] No Android GStreamer SDK found; the native plugin will not configure." >&2
+  return 0
+}
+
 export_toolchain_env() {
   export CC=clang
   export CXX=clang++
