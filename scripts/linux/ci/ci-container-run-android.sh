@@ -84,8 +84,7 @@ case "$BUILD_MODE" in
     ;;
 esac
 
-# CI passes no --flutter-version: resolve it, and its matching sha256, from
-# ContainerHub's versions.env (resolve_flutter_pin, ../lib/container-steps.sh).
+# resolve_flutter_pin — AGENTS.md § 4.
 if [[ -z "$FLUTTER_VERSION" ]]; then
   resolve_flutter_pin || exit 2
 fi
@@ -100,8 +99,7 @@ if ! validate_non_empty "--app-name" "$APP_NAME"; then
   exit 2
 fi
 
-# Android workflow checks should run non-strict to avoid hard CI failures
-# on formatting/analyze/test checks in this pipeline.
+# Non-strict, matching the workflow.
 STRICT_CHECKS="0"
 
 build_android_apk_release() {

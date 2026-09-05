@@ -113,8 +113,11 @@ echo "=== Dart checks: dependencies, format, analyze, test ==="
 run_flutter_common_checks "$STRICT_CHECKS" --extra-package ExternalLib/jotrockenmitlockenrepo
 
 echo "=== Enable flutter web + Rust WASM toolchain ==="
-#rustup component add rust-src --toolchain nightly-x86_64-unknown-linux-gnu || true
-#rustup target add wasm32-unknown-unknown --toolchain nightly || true
+# build-web runs wasm-pack with `-Z build-std=std,panic_abort`, which needs the
+# nightly toolchain plus rust-src. Installed explicitly rather than left to
+# rustup's auto-install, which rustup itself deprecates. Idempotent, and a
+# no-op once the image ships them — AGENTS.md § 3.
+rustup toolchain install nightly --component rust-src --target wasm32-unknown-unknown
 # No `|| true`: the failure used to resurface as an opaque "command not found".
 # cargo install writes into CARGO_HOME/bin, which need not be on PATH.
 cargo install flutter_rust_bridge_codegen

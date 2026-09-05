@@ -4,16 +4,11 @@ _container_steps_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=scripts/linux/lib/containerhub.sh
 source "${_container_steps_dir}/containerhub.sh"
 
-# Canonical boolean predicate (is_truthy) and info/warn/err logging come from
-# ContainerHub instead of being redefined here.
 containerhub_source linux/scripts/01-core/platform.sh
 containerhub_source linux/scripts/01-core/logging.sh
 
+# is_truthy plus a bare "y" and mixed case.
 maybe_truthy() {
-  # Thin alias over upstream's is_truthy(), the same delegation pattern
-  # ContainerHub's own _bool_truthy() uses. It keeps the two extra spellings
-  # this repo has always accepted and is_truthy does not — a bare "y", and
-  # mixed case such as "True" — so no call site changes meaning.
   local value="${1:-}"
   is_truthy "${value,,}" || [[ "${value,,}" == "y" ]]
 }
@@ -63,10 +58,7 @@ resolve_flutter_pin() {
   fi
 
   if [[ -n "${FLUTTER_VERSION:-}" ]]; then
-    # An explicit --flutter-version is a deliberate one-off. Do NOT export the
-    # pinned sha for it: it belongs to ${pinned_version}, and leaving it unset
-    # lets setup-flutter.sh report the mismatch by name instead of emitting a
-    # bare "Checksum verification FAILED".
+    # Deliberately leaves the sha unset — AGENTS.md § 4.
     return 0
   fi
 
@@ -87,8 +79,6 @@ setup_flutter_sdk() {
     setup_script="$(containerhub_path linux/scripts/setup-flutter-arm64.sh)" || return 1
   fi
 
-  # Resolved absolutely (containerhub_path), so this no longer silently depends
-  # on the caller's working directory being the repo root.
   chmod +x "$setup_script"
   "$setup_script" "$flutter_version" "$(dirname "${flutter_dir}")"
 
@@ -96,8 +86,7 @@ setup_flutter_sdk() {
   chmod -R u+rwX "${flutter_dir}" 2>/dev/null || true
 }
 
-# Delegates to ContainerHub; its format gate lists tracked files, so it does not
-# reformat the SDK that the lanes install at $PWD/flutter — AGENTS.md § 2.
+# Lists tracked files rather than walking the tree — AGENTS.md § 3.
 run_flutter_common_checks() {
   local strict_mode="${1:-0}" strict_flag
   shift || true
@@ -105,19 +94,14 @@ run_flutter_common_checks() {
   bash "$(containerhub_path linux/scripts/05-frameworks/flutter/flutter_checks.sh)" --strict "$strict_flag" "$@"
 }
 
-# sccache everywhere, like the Windows lane. ContainerHub's setup_sccache sets
-# RUSTC_WRAPPER and both CMake compiler launchers to the guarded launcher;
-# ccache stays only as its documented fallback.
+# AGENTS.md § 3.
 setup_compiler_cache() {
   containerhub_source linux/scripts/01-core/compiler-cache.sh
   setup_sccache
   echo "[Info] SCCACHE_DIR=${SCCACHE_DIR:-<unset>}  RUSTC_WRAPPER=${RUSTC_WRAPPER:-<unset>}"
 }
 
-# The image ships the Android GStreamer SDK at /opt/android/gstreamer but
-# exports no GSTREAMER_ROOT_ANDROID, so the native plugin's CMakeLists stops
-# with "GSTREAMER_ROOT_ANDROID must be set" — AGENTS.md § 3. A no-op once the
-# image sets it.
+# The image ships the SDK but announces it nowhere — AGENTS.md § 3.
 export_android_gstreamer_env() {
   if [ -n "${GSTREAMER_ROOT_ANDROID:-}" ] && [ -d "${GSTREAMER_ROOT_ANDROID}" ]; then
     return 0

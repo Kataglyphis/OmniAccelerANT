@@ -21,11 +21,9 @@ param(
 	[switch] $SkipDocs,
 	[switch] $KeepContainer,
 	[string] $ContainerName = "kataglyphis-linux-lane-$Lane-$Arch",
-	# Write-heavy trees that must not live on the bind-mounted host drive.
-	# See AGENTS.md § 4, "The Linux lane, locally".
+	# AGENTS.md § 4.
 	[string[]] $ContainerNativePaths = @('/workspace/build'),
-	# Extra NAME=VALUE pairs for the container. CI has no equivalent, so use it
-	# only for debugging switches the scripts read, never to change the build.
+	# Debugging switches only; CI has no equivalent.
 	[string[]] $Env = @()
 )
 
@@ -49,13 +47,8 @@ $platform = if ($Arch -eq 'x64') { 'linux/amd64' } else { 'linux/arm64' }
 $runCodeQL = if ($SkipCodeQL) { 'false' } else { ($Arch -eq 'x64').ToString().ToLower() }
 $runDocs = if ($SkipDocs) { 'false' } else { ($Arch -eq 'x64').ToString().ToLower() }
 
-# A named volume over each write-heavy path. The bind mount is NTFS through
-# drvfs, which cannot do utime/chmod for the container uid — untarring the
-# Flutter SDK onto it fails on every entry. The volume keeps the lane's
-# arguments identical to CI's while the writes land on a Linux filesystem.
-#
-# Always the long --mount form. `-v name:/path` is a host-path bind on Windows
-# nerdctl, silently — AGENTS.md § 4.
+# A named volume over each write-heavy path, always via the long --mount form
+# — AGENTS.md § 4.
 $volumeArgs = @()
 foreach ($nativePath in $ContainerNativePaths) {
 	$volumeName = "kataglyphis-lane-$Lane-$Arch" + ($nativePath -replace '[^A-Za-z0-9]+', '-')
@@ -111,7 +104,6 @@ $engineArgs = @(
 	'run', '--name', $ContainerName
 ) + $privilegedArgs + @(
 	'--platform', $platform
-	# No CARGO_HOME override: the image's own is writable for the runtime user.
 ) + @($Env | ForEach-Object { '-e'; $_ }) + @(
 	'-v', "${repoRoot}:/workspace"
 ) + $volumeArgs + @(
@@ -123,9 +115,7 @@ Write-Host "engine : $engine"
 Write-Host "command: $($engineArgs -join ' ')"
 Write-Host ''
 
-# nerdctl resolves a Windows source path itself; the already-translated
-# /mnt/<drive> form binds an empty directory instead. If the mount comes up
-# empty, D: is missing from containerd's own namespace — AGENTS.md § 4.
+# Windows source path, never the translated /mnt form — AGENTS.md § 4.
 & $engine @engineArgs
 $laneExitCode = $LASTEXITCODE
 

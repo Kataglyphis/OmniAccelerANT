@@ -135,6 +135,45 @@ written out rather than linked.
   set — so it becomes a no-op the moment the image exports it, **which is the
   real fix.**
 
+- **Every Android SDK component must be pinned to what the image ships.**
+  `/opt/android-sdk` is read-only, so any component the Android Gradle Plugin
+  asks for and does not find cannot be installed — Gradle stops with
+  `The SDK directory is not writable`, one component per run. AGP 8.11.1's
+  defaults (build-tools 35.0.0, NDK 27.0.12077973, cmake 3.22.1) are all
+  wrong for this image, which carries 36.0.0, 29.0.14206865 and 4.1.2. Four
+  places pin them and must agree: the global `subprojects` override in
+  `android/build.gradle.kts` (which also drags third-party plugins such as
+  permission_handler up from their own `compileSdk 35`), plus `android/app`,
+  the native plugin's `android/`, and `rust_builder/android/`. The override
+  block has to sit **above** the `evaluationDependsOn(":app")` block —
+  that one forces evaluation, and registering `afterEvaluate` afterwards throws
+  `Cannot run Project.afterEvaluate(Action) when the project is already
+  evaluated`. BACKLOG.md tracks collapsing these to one source of truth.
+
+- **Rust `i64` is `int` natively and `BigInt` on web, so only the web lane
+  catches the mismatch.** flutter_rust_bridge maps it to `PlatformInt64`, a
+  typedef that resolves per platform, and app code that passes a plain `int`
+  compiles everywhere except web:
+  `Error: The argument type 'int' can't be assigned to the parameter type
+  'BigInt'` — from `rust_webcam_view.dart`, in a widget whose own doc comment
+  calls it the Windows view. Wrap the value in `PlatformInt64Util.from(...)`,
+  which is the identity on native. It lives in
+  `package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart`, not in
+  the public `flutter_rust_bridge.dart`, and importing the generated binding
+  does not bring it along — Dart does not re-export transitively.
+
+- **The web lane needs the nightly toolchain's `rust-src`.**
+  `flutter_rust_bridge_codegen build-web` runs `wasm-pack … -Z
+  build-std=std,panic_abort`, so cargo compiles the standard library itself and
+  stops without the component:
+  `".../nightly-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/Cargo.lock"
+  does not exist, unable to build with the standard library`. The two `rustup`
+  lines that fix it sat commented out in `ci-container-run-web-linux.sh` — they
+  were disabled back when `RUSTUP_HOME` was root-owned and every `rustup` write
+  failed. That is fixed in the image, so they are live again; both are
+  idempotent and become no-ops once the image ships `rust-src` and the
+  `wasm32-unknown-unknown` target.
+
 - **The image's Android prebuilts are x86-64; the app builds arm64-v8a. This
   blocks the Android lane and nothing in this repo can move it.** GStreamer,
   ONNX Runtime and OpenCV under `/opt/android/` are all

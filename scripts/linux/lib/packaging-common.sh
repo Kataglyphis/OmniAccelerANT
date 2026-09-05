@@ -1,8 +1,6 @@
 #!/usr/bin/env bash
 
-# Thin wrapper over ContainerHub's app-packaging.sh: this file holds only what
-# is true for *this* app. Everything mechanical — tar/deb/AppImage/flatpak, the
-# container-native staging, the artifact assertion — is upstream.
+# App-specific values only; the mechanics are upstream.
 _packaging_common_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${_packaging_common_dir}/containerhub.sh"
 
@@ -14,8 +12,7 @@ APP_PACKAGING_ICON_FALLBACKS=("assets/icons/kataglyphis_app_icon.png")
 
 containerhub_source linux/scripts/lib/app-packaging.sh
 
-# The lane scripts call these names; upstream prefixes everything with
-# app_packaging_. Aliases rather than a rename at ~40 call sites.
+# Aliases for the upstream app_packaging_ names — see BACKLOG.md.
 packaging_assert_artifact()                  { app_packaging_assert_artifact "$@"; }
 packaging_run_privileged_cmd()               { app_packaging_run_privileged_cmd "$@"; }
 setup_packaging_dependencies_for_container() { app_packaging_setup_dependencies_for_container "$@"; }
