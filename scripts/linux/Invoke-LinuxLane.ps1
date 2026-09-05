@@ -79,11 +79,13 @@ $laneArgs = switch ($Lane) {
 			'--run-docs', $runDocs)
 	}
 	'android' {
+		# -apk, like the workflow and run-android.sh: the name is a path, and
+		# without it this lane overwrites the native lane's out/ — AGENTS.md § 4.
 		@('bash', '/workspace/scripts/linux/ci/ci-container-run-android.sh',
 			'--arch', $Arch,
 			'--build-mode', $BuildMode,
 			'--flutter-dir', '/opt/flutter',
-			'--app-name', $AppName,
+			'--app-name', "$AppName-apk",
 			'--run-codeql', $runCodeQL)
 	}
 	'web' {
