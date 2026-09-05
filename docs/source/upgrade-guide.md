@@ -29,5 +29,5 @@ cargo upgrade --pinned --package flutter_rust_bridge
 
 - [ ] `flutter analyze` passes
 - [ ] Relevant tests pass
-- [ ] `bash scripts/linux/generate-docs.sh` succeeds
+- [ ] `bash scripts/linux/lib/generate-docs.sh` succeeds
 - [ ] Streaming examples still run on at least one target device

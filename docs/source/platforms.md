@@ -133,27 +133,29 @@ Run the app on the host after a build:
 ### Standard build
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\add-gstreamer-to-path.ps1
 pwsh -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows\Build-Windows.ps1
 ```
+
+`pwsh`, not `powershell`: every ContainerHub module declares
+`#requires -Version 7.0`. GStreamer needs no PATH preamble — the image bakes
+`PKG_CONFIG_PATH` and the runtime DLLs.
 
 ### Build with custom workspace
 
 ```powershell
-pwsh -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows\Build-Windows.ps1 -WorkspaceDir "C:\GitHub\Kataglyphis-Inference-Engine"
+pwsh -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows\Build-Windows.ps1 -WorkspaceDir "C:\GitHub\Inference-Engine"
 ```
 
-### Fully configured build
+### Selected presets, no MSIX
 
 ```powershell
-.\build.ps1 `
-  -WorkspaceRoot "E:\flutter-project" `
-  -BuildType Release `
-  -Architecture x64 `
-  -CMakeGenerator "Ninja" `
-  -SkipFormatCheck `
-  -CleanBuild $true
+pwsh -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows\Build-Windows.ps1 `
+  -Configurations "clangcl-debug,clangcl-release" `
+  -SkipMsixPackaging
 ```
+
+`Build-Windows.ps1 -?` lists the rest. CI passes only `-SkipMsixPackaging`, so
+that invocation is the parity run — see AGENTS.md § 4.
 
 ## Android
 

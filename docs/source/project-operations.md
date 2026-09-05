@@ -14,9 +14,13 @@ Operational guide for contributors and maintainers.
 ### Static checks
 
 ```bash
-flutter analyze
-dart format --set-exit-if-changed .
+dart analyze
+dart format --output=none --set-exit-if-changed $(git ls-files '*.dart')
 ```
+
+Never `dart format .`: it walks `flutter/`, `third_party/` and `build/`, which
+`dart format` cannot be told to skip — it ignores `analysis_options.yaml`. Both
+lanes list tracked files instead, which is what the command above reproduces.
 
 ### Tests
 
@@ -30,7 +34,7 @@ flutter test integration_test/simple_test.dart
 Generate docs:
 
 ```bash
-bash scripts/linux/generate-docs.sh
+bash scripts/linux/lib/generate-docs.sh
 ```
 
 Preview docs:
@@ -81,8 +85,11 @@ kataglyphis_rustprojecttemplate's codegen version (2.11.1) should be the same as
 **Fix:** Regenerate the Flutter Rust Bridge bindings:
 
 ```bash
-flutter pub run flutter_rust_bridge_codegen
+flutter_rust_bridge_codegen generate
 ```
+
+It is a cargo binary baked into the build image, not a pub dependency — on a
+bare host, `cargo install flutter_rust_bridge_codegen` first.
 
 Then rebuild the project:
 ```bash

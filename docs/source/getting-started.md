@@ -63,7 +63,7 @@ Open `http://127.0.0.1:8080` in your browser.
 ## 5) Build API docs
 
 ```bash
-bash scripts/linux/generate-docs.sh
+bash scripts/linux/lib/generate-docs.sh
 ```
 
 Serve generated docs locally:
