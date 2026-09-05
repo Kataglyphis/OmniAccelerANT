@@ -25,8 +25,12 @@ list(APPEND PLUGIN_SOURCES
 )
 
 set(RUST_FEATURES "TRUE")
-# REALPATH: this dir is reached through the ephemeral plugin symlink — AGENTS.md � 3.
-get_filename_component(KCI_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../KataglyphisCppInference" REALPATH)
+# Resolve first, then walk up: a ".." inside the REALPATH argument is collapsed
+# lexically and lands in .plugin_symlinks — AGENTS.md section 3.
+get_filename_component(_KCI_PLUGIN_PLATFORM_DIR "${CMAKE_CURRENT_SOURCE_DIR}" REALPATH)
+get_filename_component(_KCI_PLUGIN_ROOT "${_KCI_PLUGIN_PLATFORM_DIR}" DIRECTORY)
+get_filename_component(_KCI_EXTERNALLIB "${_KCI_PLUGIN_ROOT}" DIRECTORY)
+set(KCI_DIR "${_KCI_EXTERNALLIB}/KataglyphisCppInference")
 add_subdirectory(${KCI_DIR} ${CMAKE_CURRENT_BINARY_DIR}/native_build)
 
 # Define the plugin library target. Its name must not be changed (see comment
