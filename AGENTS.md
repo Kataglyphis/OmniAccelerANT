@@ -207,6 +207,16 @@ written out rather than linked.
   idempotent and become no-ops once the image ships `rust-src` and the
   `wasm32-unknown-unknown` target.
 
+- **Renaming the Rust crate touches committed generated code.**
+  `lib/src/rust/frb_generated.dart` hard-codes the artefact name in
+  `kDefaultExternalLibraryLoaderConfig`: `stem` (`oxidant` → `oxidant.dll`,
+  `liboxidant.so`, `pkg/oxidant.js`) and `ioDirectory`
+  (`third_party/OxidANT/target/release/`). No lane regenerates that file, so a
+  `[lib] name` change in `Cargo.toml` stays silent until the app fails to load
+  its library at runtime. Windows repeats the name a second time in
+  `scripts/windows/Get-WindowsBuildConfig.ps1` (`RustDllName`,
+  `RustPluginSubDir`). Change all three together.
+
 - **The image's Android prebuilts are x86-64; the app builds arm64-v8a. This
   blocks the Android lane and nothing in this repo can move it.** GStreamer,
   ONNX Runtime and OpenCV under `/opt/android/` are all
@@ -428,7 +438,7 @@ disk check, GHCR login, pull), `run-in-windows-container`,
 - It prunes `third_party/DocumANTation` from the recursive checkout.
   This repo's chains are Inference-Engine → Cpp-Inference → ContainerHub →
   DocumANTation → md2pdfLib → `third_party/{smile,awesome-beamer}` and the same
-  tail via RustProjectTemplate, and every level adds another
+  tail via OxidANT, and every level adds another
   `.git/modules/<name>/` segment until git aborts with `fatal: '$GIT_DIR' too
   big` — git's own limit, not MAX_PATH, so no clone root is short enough.
 
@@ -439,7 +449,7 @@ disk check, GHCR login, pull), `run-in-windows-container`,
   | --- | --- | --- | --- |
   | `ContainerHub` directly | 180 ok | 158 ok | 149 ok |
   | via `Cpp-Inference` | 230 **fatal** | 208 ok | 199 ok |
-  | via `RustProjectTemplate` | 238 **fatal** | 216 **fatal** | 207 ok |
+  | via `OxidANT` | 238 **fatal** | 216 **fatal** | 207 ok |
 
   Two directory renames did it, neither of them a repository rename:
   `md2pdfLib/presentation/template/latex/` → `md2pdfLib/third_party/` inside
@@ -452,6 +462,16 @@ disk check, GHCR login, pull), `run-in-windows-container`,
   to: a submodule's directory comes from its `path` entry, not from the repo
   name. DocumANTation is ContainerHub's LaTeX tooling and the Windows build
   never reads it.
+
+  The numbers above were measured before `ExternalLib/` became `third_party/`.
+  That move shortens the chain further, but **only in a fresh clone**: git names
+  `.git/modules/<name>` after the `[submodule "<name>"]` header, and it keeps an
+  existing module directory when a submodule is moved in place. So `.gitmodules`
+  here reads `third_party/OxidANT` while this checkout's gitfile still says
+  `gitdir: ../../.git/modules/ExternalLib/Kataglyphis-RustProjectTemplate` — 23
+  characters that CI, which always clones fresh, does not pay. Reproduce with
+  `cat third_party/*/.git`. A local checkout is therefore the *worst* case; if it
+  resolves, CI does too.
 - `mount-source`/`mount-target` stay unset: the action already defaults to
   `D:\ws` → `C:\ws`, which is where the short-path clone put the tree. Setting
   them to `github.workspace` would mount the submodule-less checkout instead.
@@ -571,6 +591,11 @@ steps had already been moved to `/tmp`. `Invoke-LinuxLane.ps1` now always uses
 path. CI is unaffected: there the Linux engine resolves the short form
 correctly.
 
+`flutter clean` then logs `Failed to remove /workspace/build … Device or
+resource busy (errno 16)` on every run and keeps going: it empties the
+directory but cannot unlink the mount point itself. Cosmetic, and the direct
+consequence of mounting `build/` — not a failure to chase.
+
 **Two traps, both of which produce a mount that resolves but is empty:**
 
 - `D:` must exist inside *containerd's own* mount namespace, which is not the
@@ -687,7 +712,7 @@ as "passed".
 - [`docs/source/platforms.md`](docs/source/platforms.md) holds the full
   symptom→cause→fix table for containerized Windows builds.
 - `docs/source/conf.py` still uses the standalone `press` theme. The shared
-  Sphinx theme now lives in **Kataglyphis-DocumANTation** (ContainerHub consumes
+  Sphinx theme now lives in **DocumANTation** (ContainerHub consumes
   it as a submodule and installs it as `sphinx-kataglyphis-theme`); follow that
   pattern if migrating.
 - Update docs in the same PR as user-facing behaviour changes.

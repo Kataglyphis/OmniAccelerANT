@@ -37,29 +37,6 @@ get_filename_component(_KCI_REPO_ROOT "${_KCI_PACKAGES}" DIRECTORY)
 set(KCI_DIR "${_KCI_REPO_ROOT}/third_party/Cpp-Inference")
 add_subdirectory(${KCI_DIR} ${CMAKE_CURRENT_BINARY_DIR}/native_build)
 
-# --- Install KataglyphisCppInference together with this plugin ----------------
-# Only add install rules if the target actually exists (safety).
-# if(TARGET KataglyphisCppInference)
-
-#   # Install public headers (adjust path to actual headers if different)
-#   # Assume headers live in the native project include/ or Src/include.
-#   install(DIRECTORY
-#     ${KCI_DIR}/Src
-#     DESTINATION include/KataglyphisCppInference
-#     FILES_MATCHING PATTERN "*.h" PATTERN "*.hpp"
-#   )
-#   # Install the library target (runtime, shared lib, static archive)
-#   install(TARGETS KataglyphisCppInference
-#     EXPORT KataglyphisCppInferenceTargets
-#     RUNTIME DESTINATION bin        # executables on some platforms
-#     LIBRARY DESTINATION lib        # shared libs
-#     ARCHIVE DESTINATION lib        # static libs / import libs
-#     INCLUDES DESTINATION Src
-#   )
-# else()
-#   message(WARNING "Target KataglyphisCppInference not found; skipping install rules.")
-# endif()
-
 # Define the plugin library target. Its name must not be changed (see comment
 # on PLUGIN_NAME above).
 add_library(${PLUGIN_NAME} SHARED

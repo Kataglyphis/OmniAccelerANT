@@ -29,7 +29,7 @@ crates/media (gstreamer-rs)     src/webcam_engine.rs            src/api/webcam.r
   `gstreamer,onnxruntime_dynamic,onnxruntime_directml` (set for Windows via the
   `KATAGLYPHIS_RUST_FEATURES` env var, forwarded to cargo by the `rust_builder`
   CMake → Cargokit).
-- **Display:** the native plugin (`Kataglyphis_NativeInferencePlugin`) exports a
+- **Display:** the native plugin (`packages/kataglyphis_native_inference`) exports a
   C ABI (`knt_create_texture` implied via the `create` method, `knt_push_frame`,
   `knt_api_version`) that Rust resolves with `libloading`. The Flutter UI is a
   `Texture(textureId)` with a `CustomPaint` box overlay fed by the

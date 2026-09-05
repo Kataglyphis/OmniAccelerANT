@@ -3,7 +3,7 @@
     <img src="images/logo.png" alt="logo" width="200" />
   </a>
 
-  <h1>Kataglyphis_NativeInferencePlugin 🚀</h1>
+  <h1>kataglyphis_native_inference 🚀</h1>
 
   <h4> The glue 📄🧴✂️ for a cross platform inference engine to its native interface </h4>
 </div>
@@ -77,10 +77,10 @@ This enumeration also includes submodules.
 
 ### Installation
 
-1. Clone the repo
-   ```sh
-   git clone --recurse-submodules git@github.com:Kataglyphis/Kataglyphis_NativeInferencePlugin.git
-   ```
+This package is not standalone. It lives inside
+[Inference-Engine](https://github.com/Kataglyphis/Inference-Engine) as a path
+dependency at `packages/kataglyphis_native_inference`, and is built by that repo's
+lanes — clone Inference-Engine with `--recurse-submodules` instead.
 
 ## Tests
 

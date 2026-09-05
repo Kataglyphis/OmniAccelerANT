@@ -607,7 +607,7 @@ try {
         # A green build is not proof of delivery. Assert the runner exe that each
         # built preset was supposed to produce actually exists, so an empty or
         # silently-failed build cannot exit 0 (adopting-in-a-new-project.md § 2;
-        # the RustProjectTemplate Build-Windows.ps1 keeps the same gate on its MSIX).
+        # the OxidANT Build-Windows.ps1 keeps the same gate on its MSIX).
         # Asserts both the scratch and the host-synced tree — see AGENTS.md § 4.
         $missingArtifacts = @()
         foreach ($currentPreset in $presetsToRun) {

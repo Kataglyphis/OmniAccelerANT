@@ -8,7 +8,7 @@ This guide takes you from clone to a working local setup.
 - Rust toolchain (`rustup`, `cargo`)
 - Docker (optional but recommended for reproducible setup); on Windows install
   [Stevedore](https://github.com/slonopotamus/stevedore) and use its bundled `docker.exe` with
-  `--isolation process` for builds — see [Platforms](platforms.md) and Kataglyphis-ContainerHub
+  `--isolation process` for builds — see [Platforms](platforms.md) and ContainerHub
 - GStreamer runtime and tools (`gst-launch-1.0`)
 
 ### Verify your tooling

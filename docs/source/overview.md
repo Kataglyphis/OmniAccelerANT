@@ -18,7 +18,11 @@ Kataglyphis Inference Engine combines a Flutter frontend with native Rust/C++ in
 | `scripts/` | Build, tooling, and documentation automation |
 | `docs/source/` | Human-authored guide pages included in generated docs |
 | `doc/api/` | Generated API and guide output (pub-activated `dartdoc`, not the SDK-bundled `dart doc` — see the README) |
-| `third_party/` | External and related repositories/submodules |
+| `packages/kataglyphis_native_inference` | Flutter plugin (Windows/Linux) that bridges the C++ inference core to Dart — plain files and a `pubspec.yaml` path dependency, not a submodule |
+| `third_party/OxidANT` | Rust core (`oxidant` crate), bridged into `lib/src/rust/` by `flutter_rust_bridge` |
+| `third_party/Cpp-Inference` | The C++ inference core the plugin builds against |
+| `third_party/ContainerHub` | Shared build images, container actions, and CI helpers |
+| `third_party/ANThology` | Shared Flutter/Dart code (`anthology` package), a path dependency in `pubspec.yaml` |
 
 ## Core Design Goals
 

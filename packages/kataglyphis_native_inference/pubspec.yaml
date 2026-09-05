@@ -1,5 +1,5 @@
 name: kataglyphis_native_inference
-description: "A new Flutter plugin project."
+description: "Native texture + camera plugin for the Kataglyphis Inference Engine (Windows/Linux)."
 version: 0.0.1
 homepage: "jonasheinle.de"
 
