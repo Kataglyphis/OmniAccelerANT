@@ -369,7 +369,7 @@ try {
             }
 
             if ($currentPreset) {
-                $sourcePreset = Join-Path $workspace "ExternalLib\Kataglyphis_NativeInferencePlugin\native\KataglyphisCppInference\CMakePresets.json"
+                $sourcePreset = Join-Path $workspace "ExternalLib\KataglyphisCppInference\CMakePresets.json"
                 $destPreset = Join-Path $windowsSrc "CMakePresets.json"
                 if ((Test-Path $sourcePreset) -and -not (Test-Path $destPreset)) {
                     Write-BuildLog -Context $context -Message "Copying CMakePresets.json to windows directory..."
