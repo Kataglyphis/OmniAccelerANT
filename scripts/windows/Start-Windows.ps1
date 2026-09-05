@@ -9,7 +9,7 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
-$buildConfigPath = Join-Path $PSScriptRoot "WindowsBuildConfig.ps1"
+$buildConfigPath = Join-Path $PSScriptRoot "Get-WindowsBuildConfig.ps1"
 if (-not (Test-Path -LiteralPath $buildConfigPath -PathType Leaf)) {
 	throw "Required Windows build config not found: $buildConfigPath"
 }
@@ -41,7 +41,7 @@ $resolvedBuildRoots = Resolve-KataglyphisWindowsBuildRootCandidates `
 	-IncludeDefaultFallbacks
 
 if ($resolvedBuildRoots.Count -eq 0) {
-	throw "Build root directory could not be resolved. Set BuildRootDir in WindowsBuildConfig.ps1 or pass -BuildRootDir."
+	throw "Build root directory could not be resolved. Set BuildRootDir in Get-WindowsBuildConfig.ps1 or pass -BuildRootDir."
 }
 
 $selectedBuildRoot = $null

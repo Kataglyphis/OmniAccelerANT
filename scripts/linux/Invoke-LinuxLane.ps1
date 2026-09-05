@@ -106,12 +106,9 @@ $privilegedArgs = if ($Lane -eq 'android') { @() } else { @('--privileged') }
 $engineArgs = @(
 	'run', '--name', $ContainerName
 ) + $privilegedArgs + @(
-	'--platform', $platform,
-	'-e', 'CARGO_HOME=/tmp/cargo-home'
+	'--platform', $platform
+	# No CARGO_HOME override: the image's own is writable for the runtime user.
 ) + @($Env | ForEach-Object { '-e'; $_ }) + @(
-	# The image's own flutter_tools/.dart_tool is root-owned in a read-only
-	# overlay layer, so `flutter pub get` cannot rewrite it — AGENTS.md § 3.
-	'--tmpfs', '/opt/flutter/packages/flutter_tools/.dart_tool:rw,mode=1777',
 	'-v', "${repoRoot}:/workspace"
 ) + $volumeArgs + @(
 	'-w', '/workspace',

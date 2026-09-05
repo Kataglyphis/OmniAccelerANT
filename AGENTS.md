@@ -246,7 +246,7 @@ written out rather than linked.
   `build\windows\x64\runner\<preset>\` (and `plugins\<preset>\`), because
   `Build-Windows.ps1`:367 resolves the layout per preset and :399/:408 pass that
   as `-DCMAKE_INSTALL_PREFIX`. `x64-ClangCL-Windows-Release` is only the fallback
-  used when no preset is named (`WindowsBuildConfig.ps1`'s `CMakeConfiguration`).
+  used when no preset is named (`Get-WindowsBuildConfig.ps1`'s `CMakeConfiguration`).
   Presets no longer clobber each other — but `Start-Windows.ps1` must then be
   given the same preset name.
 - **Running on an unprovisioned host** (`STATUS_DLL_NOT_FOUND`): stage the

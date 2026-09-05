@@ -103,9 +103,7 @@ source_bashrc_and_add_flutter_to_path "$FLUTTER_DIR"
 git_safe_dirs "$FLUTTER_DIR"
 
 # Ensure clang has a usable C++ runtime/toolchain setup in container builds.
-ensure_writable_rustup_home
 setup_compiler_cache
-ensure_writable_flutter_sdk || true
 export_toolchain_env
 
 echo "=== Flutter doctor ==="

@@ -32,7 +32,7 @@ param(
 
 Set-StrictMode -Version Latest
 
-$buildConfigPath = Join-Path $PSScriptRoot "WindowsBuildConfig.ps1"
+$buildConfigPath = Join-Path $PSScriptRoot "Get-WindowsBuildConfig.ps1"
 if (-not (Test-Path -LiteralPath $buildConfigPath -PathType Leaf)) {
     throw "Required Windows build config not found: $buildConfigPath"
 }
@@ -71,7 +71,7 @@ if ([string]::IsNullOrWhiteSpace($BuildRootDir)) {
     if ($windowsBuildConfig.ContainsKey('BuildRootDir') -and -not [string]::IsNullOrWhiteSpace($windowsBuildConfig.BuildRootDir)) {
         $BuildRootDir = $windowsBuildConfig.BuildRootDir
     } else {
-        throw "Build root directory is not configured. Set BuildRootDir in WindowsBuildConfig.ps1 or pass -BuildRootDir."
+        throw "Build root directory is not configured. Set BuildRootDir in Get-WindowsBuildConfig.ps1 or pass -BuildRootDir."
     }
 }
 
@@ -96,7 +96,7 @@ $buildRootCandidates = @(Resolve-KataglyphisWindowsBuildRootCandidates `
     -WindowsBuildConfig $windowsBuildConfig)
 
 if ($buildRootCandidates.Count -eq 0) {
-    throw "Build root directory is not configured. Set BuildRootDir in WindowsBuildConfig.ps1 or pass -BuildRootDir."
+    throw "Build root directory is not configured. Set BuildRootDir in Get-WindowsBuildConfig.ps1 or pass -BuildRootDir."
 }
 
 # Persistent caching configurations for Docker volume mount

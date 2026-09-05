@@ -42,12 +42,7 @@ jobs:
         uses: Kataglyphis/Kataglyphis-ContainerHub/.github/actions/run-in-linux-container@main
         with:
           image: ${{ env.CONTAINER_IMAGE }}
-          # CARGO_HOME: the image sets it to /usr/local/cargo, which is root-owned
-          # while the container runs as uid 1001, so every cargo step that WRITES
-          # (registry index/cache, flutter_rust_bridge codegen) dies with
-          #   error: failed to create directory `/usr/local/cargo/registry/cache/...`
-          # Point it somewhere the uid owns, as the sibling Rust lanes already do.
-          extra-args: --privileged --platform "linux/amd64" -e CARGO_HOME=/tmp/cargo-home --tmpfs /opt/flutter/packages/flutter_tools/.dart_tool:rw,mode=1777
+          extra-args: --privileged --platform "linux/amd64"
           script: >-
             bash /workspace/scripts/linux/ci/ci-container-run-web-linux.sh
             --arch "x64"

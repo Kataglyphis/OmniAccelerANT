@@ -105,82 +105,13 @@ run_flutter_common_checks() {
   bash "$(containerhub_path linux/scripts/05-frameworks/flutter/flutter_checks.sh)" --strict "$strict_flag" "$@"
 }
 
-# The image's RUSTUP_HOME is root-owned while the container runs as uid 1001,
-# so rustup cannot write its temp files — AGENTS.md § 3. Real directories with
-# the toolchains symlinked in: nothing is copied, `toolchains/` still accepts a
-# new one, and it is a no-op once the image ships a writable rustup home.
-ensure_writable_rustup_home() {
-  local src="${RUSTUP_HOME:-/usr/local/rustup}"
-  [ -d "$src" ] || return 0
-  [ -w "$src/tmp" ] && return 0
-
-  local dst="${KATAGLYPHIS_RUSTUP_HOME:-/tmp/rustup-home}" toolchain
-  mkdir -p "$dst/toolchains" "$dst/tmp" "$dst/downloads" || return 1
-  for toolchain in "$src"/toolchains/*; do
-    [ -e "$toolchain" ] || continue
-    ln -sfn "$toolchain" "$dst/toolchains/$(basename "$toolchain")"
-  done
-  cp -p "$src/settings.toml" "$dst/" 2>/dev/null || true
-
-  export RUSTUP_HOME="$dst"
-  echo "[Info] RUSTUP_HOME -> $dst (image copy is not writable for uid $(id -u))"
-}
-
-# The image ships the SDK at /opt/android-sdk but exports no ANDROID_HOME, and
-# `flutter build apk` then reports "No Android SDK found" — AGENTS.md § 3.
-resolve_android_sdk_home() {
-  if [ -n "${ANDROID_HOME:-}" ] && [ -d "${ANDROID_HOME}" ]; then
-    printf '%s' "$ANDROID_HOME"; return 0
-  fi
-  local d
-  for d in "${ANDROID_SDK_ROOT:-}" /opt/android-sdk /usr/lib/android-sdk; do
-    [ -n "$d" ] && [ -d "$d/platform-tools" ] && { printf '%s' "$d"; return 0; }
-  done
-  return 1
-}
-
-export_android_sdk_env() {
-  local sdk
-  sdk="$(resolve_android_sdk_home)" || {
-    echo "[Warn] No Android SDK found; leaving ANDROID_HOME unset." >&2
-    return 0
-  }
-  export ANDROID_HOME="$sdk" ANDROID_SDK_ROOT="$sdk"
-  echo "[Info] ANDROID_HOME=$sdk"
-}
-
 # sccache everywhere, like the Windows lane. ContainerHub's setup_sccache sets
-# RUSTC_WRAPPER and both CMake compiler launchers; ccache stays only as its
-# documented fallback. The image points both cache dirs into the mounted source
-# tree, which is wrong on any host and impossible on a bind-mounted one — see
-# AGENTS.md § 3.
+# RUSTC_WRAPPER and both CMake compiler launchers to the guarded launcher;
+# ccache stays only as its documented fallback.
 setup_compiler_cache() {
-  case "${SCCACHE_DIR:-}" in /workspace/*|'') export SCCACHE_DIR=/var/cache/sccache ;; esac
-  case "${CCACHE_DIR:-}" in /workspace/*|'') export CCACHE_DIR=/var/cache/ccache ;; esac
-  mkdir -p "$SCCACHE_DIR" "$CCACHE_DIR" 2>/dev/null || true
-
   containerhub_source linux/scripts/01-core/compiler-cache.sh
   setup_sccache
-  echo "[Info] SCCACHE_DIR=$SCCACHE_DIR  RUSTC_WRAPPER=${RUSTC_WRAPPER:-<unset>}"
-}
-
-# The image chowns /opt/flutter to the runtime user, then a later root-run
-# flutter command recreates packages/flutter_tools/.dart_tool as root — so
-# `flutter pub get` dies with EACCES on package_config.json. AGENTS.md § 3.
-ensure_writable_flutter_sdk() {
-  # Two statements: `local` expands all its arguments before assigning any, so
-  # a second one cannot reference the first.
-  local sdk="${1:-${FLUTTER_DIR:-/opt/flutter}}"
-  local stale="$sdk/packages/flutter_tools/.dart_tool"
-  [ -d "$sdk" ] || return 0
-  [ -e "$stale" ] || return 0
-  [ -w "$stale" ] && return 0
-  # Nothing to repair from in here: the directory lives in a read-only overlay
-  # layer, so it can be neither emptied nor renamed by a non-owner. The lanes
-  # mount a writable tmpfs over it instead — see AGENTS.md § 3.
-  echo "[Warn] $stale is root-owned and not writable; 'flutter pub get' will fail." >&2
-  echo "[Warn] Run the container with: --tmpfs ${stale}:rw,mode=1777" >&2
-  return 1
+  echo "[Info] SCCACHE_DIR=${SCCACHE_DIR:-<unset>}  RUSTC_WRAPPER=${RUSTC_WRAPPER:-<unset>}"
 }
 
 export_toolchain_env() {
