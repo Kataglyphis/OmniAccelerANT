@@ -9,8 +9,13 @@ android {
     namespace = "com.example.kataglyphis_inference_engine"
     // compileSdk = flutter.compileSdkVersion
     // ndkVersion = flutter.ndkVersion
+    // These three must name components the CI image actually ships
+    // (/opt/android-sdk: build-tools 36.0.0, platforms android-36,
+    // ndk 29.0.14206865). The SDK directory is read-only there, so anything
+    // else makes Gradle try to install it and fail with
+    // "The SDK directory is not writable (/opt/android-sdk)".
     compileSdk = 36
-    buildToolsVersion = "35.0.0"
+    buildToolsVersion = "36.0.0"
     ndkVersion = "29.0.14206865"
 
     compileOptions {
