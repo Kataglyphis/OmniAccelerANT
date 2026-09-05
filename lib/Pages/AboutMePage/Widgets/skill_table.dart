@@ -2,10 +2,10 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:flutter/services.dart' show rootBundle;
-import 'package:jotrockenmitlockenrepo/Decoration/centered_box_decoration.dart';
-import 'package:jotrockenmitlockenrepo/constants.dart';
-import 'package:jotrockenmitlockenrepo/user_settings.dart';
-import 'package:jotrockenmitlockenrepo/Decoration/row_divider.dart';
+import 'package:anthology/Decoration/centered_box_decoration.dart';
+import 'package:anthology/constants.dart';
+import 'package:anthology/user_settings.dart';
+import 'package:anthology/Decoration/row_divider.dart';
 
 class SkillTable extends StatefulWidget {
   const SkillTable({

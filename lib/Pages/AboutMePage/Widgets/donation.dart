@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:jotrockenmitlockenrepo/Decoration/row_divider.dart';
-import 'package:jotrockenmitlockenrepo/Media/Image/openable_image.dart';
+import 'package:anthology/Decoration/row_divider.dart';
+import 'package:anthology/Media/Image/openable_image.dart';
 
 import 'package:kataglyphis_inference_engine/l10n/app_localizations.dart';
 

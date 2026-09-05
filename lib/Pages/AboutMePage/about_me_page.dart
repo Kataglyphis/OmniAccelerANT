@@ -6,11 +6,11 @@ import 'package:kataglyphis_inference_engine/Pages/AboutMePage/Widgets/sqlite3_h
 import 'package:kataglyphis_inference_engine/src/rust/api/simple.dart';
 import 'package:kataglyphis_inference_engine/utils/locale_utils.dart';
 import 'package:kataglyphis_native_inference/kataglyphis_native_inference.dart';
-import 'package:jotrockenmitlockenrepo/Layout/ResponsiveDesign/one_two_transition_widget.dart';
-import 'package:jotrockenmitlockenrepo/Pages/Footer/footer.dart';
-import 'package:jotrockenmitlockenrepo/app_attributes.dart';
-import 'package:jotrockenmitlockenrepo/constants.dart';
-import 'package:jotrockenmitlockenrepo/user_settings.dart';
+import 'package:anthology/Layout/ResponsiveDesign/one_two_transition_widget.dart';
+import 'package:anthology/Pages/Footer/footer.dart';
+import 'package:anthology/app_attributes.dart';
+import 'package:anthology/constants.dart';
+import 'package:anthology/user_settings.dart';
 
 /// About Me page displaying personal information, skills, and technical demos.
 ///

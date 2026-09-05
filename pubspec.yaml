@@ -19,7 +19,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  jotrockenmitlockenrepo:
+  anthology:
     path: third_party/ANThology
   kataglyphis_native_inference:
     path: packages/kataglyphis_native_inference
@@ -32,7 +32,7 @@ dependencies:
   flutter_localizations:
     sdk: flutter
   intl: ^0.20.2
-  kataglyphis_rustprojecttemplate:
+  oxidant:
     path: rust_builder
   permission_handler: ^12.0.1
 

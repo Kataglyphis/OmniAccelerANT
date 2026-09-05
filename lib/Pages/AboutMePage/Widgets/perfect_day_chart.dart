@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:jotrockenmitlockenrepo/Decoration/Charts/pie_chart.dart';
-import 'package:jotrockenmitlockenrepo/Decoration/Charts/pie_chart_data_entry.dart';
+import 'package:anthology/Decoration/Charts/pie_chart.dart';
+import 'package:anthology/Decoration/Charts/pie_chart_data_entry.dart';
 import 'package:kataglyphis_inference_engine/l10n/app_localizations.dart';
-import 'package:jotrockenmitlockenrepo/constants.dart';
+import 'package:anthology/constants.dart';
 
 class PerfectDay extends StatefulWidget {
   const PerfectDay({super.key});

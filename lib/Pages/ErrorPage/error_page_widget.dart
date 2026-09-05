@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:jotrockenmitlockenrepo/Decoration/centered_box_decoration.dart';
-import 'package:jotrockenmitlockenrepo/Decoration/component_group_decoration.dart';
+import 'package:anthology/Decoration/centered_box_decoration.dart';
+import 'package:anthology/Decoration/component_group_decoration.dart';
 
 /// Widget displaying a 404 error page with an animated GIF.
 ///

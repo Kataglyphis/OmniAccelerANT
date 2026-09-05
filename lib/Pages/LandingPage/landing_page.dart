@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:kataglyphis_inference_engine/l10n/app_localizations.dart';
 import 'package:kataglyphis_inference_engine/blog_dependent_app_attributes.dart';
 
-import 'package:jotrockenmitlockenrepo/Pages/Footer/footer.dart';
-import 'package:jotrockenmitlockenrepo/Layout/ResponsiveDesign/one_two_transition_widget.dart';
-import 'package:jotrockenmitlockenrepo/Pages/LandingPage/landing_page_entry.dart';
-import 'package:jotrockenmitlockenrepo/Url/external_link_config.dart';
-import 'package:jotrockenmitlockenrepo/app_attributes.dart';
+import 'package:anthology/Pages/Footer/footer.dart';
+import 'package:anthology/Layout/ResponsiveDesign/one_two_transition_widget.dart';
+import 'package:anthology/Pages/LandingPage/landing_page_entry.dart';
+import 'package:anthology/Url/external_link_config.dart';
+import 'package:anthology/app_attributes.dart';
 import 'package:kataglyphis_inference_engine/blog_page_config.dart';
 import 'package:go_router/go_router.dart';
 

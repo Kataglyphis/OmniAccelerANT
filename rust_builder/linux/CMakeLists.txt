@@ -4,7 +4,7 @@
 cmake_minimum_required(VERSION 3.10)
 
 # Project-level configuration.
-set(PROJECT_NAME "kataglyphis_rustprojecttemplate")
+set(PROJECT_NAME "oxidant")
 project(${PROJECT_NAME} LANGUAGES CXX)
 
 # REALPATH, not CMAKE_CURRENT_SOURCE_DIR: cargokit joins this as a plain string
@@ -16,12 +16,12 @@ get_filename_component(PLUGIN_LINUX_REAL "${CMAKE_CURRENT_SOURCE_DIR}" REALPATH)
 file(RELATIVE_PATH MANIFEST_REL "${PLUGIN_LINUX_REAL}" "${MANIFEST_ABS}")
 
 include("../cargokit/cmake/cargokit.cmake")
-apply_cargokit(${PROJECT_NAME} "${MANIFEST_REL}" kataglyphis_rustprojecttemplate "")
+apply_cargokit(${PROJECT_NAME} "${MANIFEST_REL}" oxidant "")
 
 # List of absolute paths to libraries that should be bundled with the plugin.
 # This list could contain prebuilt libraries, or libraries created by an
 # external build triggered from this build file.
-set(kataglyphis_rustprojecttemplate_bundled_libraries
+set(oxidant_bundled_libraries
   "${${PROJECT_NAME}_cargokit_lib}"
   PARENT_SCOPE
 )

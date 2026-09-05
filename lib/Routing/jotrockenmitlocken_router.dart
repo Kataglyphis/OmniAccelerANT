@@ -6,15 +6,15 @@ import 'package:kataglyphis_inference_engine/Pages/DataPage/media_critics_page.d
 import 'package:kataglyphis_inference_engine/Pages/StreamPage/stream_page.dart';
 import 'package:kataglyphis_inference_engine/Pages/ErrorPage/error_page.dart';
 import 'package:kataglyphis_inference_engine/blog_dependent_app_attributes.dart';
-import 'package:jotrockenmitlockenrepo/Pages/Footer/footer_page.dart';
+import 'package:anthology/Pages/Footer/footer_page.dart';
 import 'package:kataglyphis_inference_engine/Pages/LandingPage/landing_page.dart';
-import 'package:jotrockenmitlockenrepo/Pages/Footer/footer.dart';
-import 'package:jotrockenmitlockenrepo/Pages/Footer/footer_page_config.dart';
+import 'package:anthology/Pages/Footer/footer.dart';
+import 'package:anthology/Pages/Footer/footer_page_config.dart';
 import 'package:kataglyphis_inference_engine/blog_page_config.dart';
 import 'package:kataglyphis_inference_engine/my_two_cents_config.dart';
-import 'package:jotrockenmitlockenrepo/Routing/router_creater.dart';
-import 'package:jotrockenmitlockenrepo/app_attributes.dart';
-import 'package:jotrockenmitlockenrepo/Pages/stateful_branch_info_provider.dart';
+import 'package:anthology/Routing/router_creater.dart';
+import 'package:anthology/app_attributes.dart';
+import 'package:anthology/Pages/stateful_branch_info_provider.dart';
 
 /// Routes configuration for the Kataglyphis Inference Engine application.
 ///

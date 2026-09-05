@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:jotrockenmitlockenrepo/Pages/Footer/footer_config.dart';
-import 'package:jotrockenmitlockenrepo/Url/external_link_config.dart';
+import 'package:anthology/Pages/Footer/footer_config.dart';
+import 'package:anthology/Url/external_link_config.dart';
 import 'package:kataglyphis_inference_engine/l10n/app_localizations.dart';
 
 class JoTrockenMitLockenFooterConfig extends FooterConfig {

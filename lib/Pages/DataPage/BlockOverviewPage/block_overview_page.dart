@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:kataglyphis_inference_engine/Pages/DataPage/BlockOverviewPage/block_entry.dart';
 import 'package:kataglyphis_inference_engine/Pages/DataPage/BlockOverviewPage/block_entry_list.dart';
 import 'package:kataglyphis_inference_engine/blog_dependent_app_attributes.dart';
-import 'package:jotrockenmitlockenrepo/Pages/Footer/footer.dart';
-import 'package:jotrockenmitlockenrepo/app_attributes.dart';
+import 'package:anthology/Pages/Footer/footer.dart';
+import 'package:anthology/app_attributes.dart';
 import 'package:kataglyphis_inference_engine/l10n/app_localizations.dart';
-import 'package:jotrockenmitlockenrepo/Layout/ResponsiveDesign/single_page.dart';
+import 'package:anthology/Layout/ResponsiveDesign/single_page.dart';
 
 class BlockOverviewPage extends StatefulWidget {
   final AppAttributes appAttributes;

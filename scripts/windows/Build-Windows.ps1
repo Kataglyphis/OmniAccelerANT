@@ -9,8 +9,8 @@
 param(
     [string] $WorkspaceDir = $PWD.Path,
     [string] $BuildRootDir = "",
-    [string] $RustCrateDir = "third_party\RustProjectTemplate",
-    [string] $RustDllName = "kataglyphis_rustprojecttemplate.dll",
+    [string] $RustCrateDir = "third_party\OxidANT",
+    [string] $RustDllName = "oxidant.dll",
     [string] $Configurations = "",
     [string] $CMakeGenerator = "Ninja",
     [string] $CMakeBuildType = "Release",

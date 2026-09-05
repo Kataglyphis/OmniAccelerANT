@@ -1,9 +1,9 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:jotrockenmitlockenrepo/Pages/Footer/footer.dart';
-import 'package:jotrockenmitlockenrepo/Layout/ResponsiveDesign/single_page.dart';
-import 'package:jotrockenmitlockenrepo/app_attributes.dart';
+import 'package:anthology/Pages/Footer/footer.dart';
+import 'package:anthology/Layout/ResponsiveDesign/single_page.dart';
+import 'package:anthology/app_attributes.dart';
 import 'package:kataglyphis_inference_engine/settings/webrtc_settings.dart';
 import 'package:permission_handler/permission_handler.dart';
 

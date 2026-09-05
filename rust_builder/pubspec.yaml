@@ -1,4 +1,4 @@
-name: kataglyphis_rustprojecttemplate
+name: oxidant
 description: "Utility to build Rust code"
 version: 0.0.1
 publish_to: none

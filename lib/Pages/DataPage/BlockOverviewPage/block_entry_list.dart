@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:kataglyphis_inference_engine/Pages/DataPage/BlockOverviewPage/block_entry.dart';
-import 'package:jotrockenmitlockenrepo/Media/DataTable/data_list.dart';
-import 'package:jotrockenmitlockenrepo/Media/DataTable/datacell_content_strategies.dart';
-import 'package:jotrockenmitlockenrepo/app_attributes.dart';
+import 'package:anthology/Media/DataTable/data_list.dart';
+import 'package:anthology/Media/DataTable/datacell_content_strategies.dart';
+import 'package:anthology/app_attributes.dart';
 
 class BlockEntryList extends DataList {
   const BlockEntryList({

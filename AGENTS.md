@@ -232,7 +232,7 @@ written out rather than linked.
   Cargokit builds `CARGOKIT_MANIFEST_DIR` by string-joining
   `${CMAKE_CURRENT_SOURCE_DIR}/${manifest_dir}`, and for a Flutter plugin that
   directory is the ephemeral symlink
-  `linux/flutter/ephemeral/.plugin_symlinks/kataglyphis_rustprojecttemplate`
+  `linux/flutter/ephemeral/.plugin_symlinks/oxidant`
   — six levels deep, pointing at `rust_builder/`, which is two. The kernel
   resolves the symlink *before* applying the `..`, so a chain counted from the
   symlink overshoots to `/` and Dart reports
@@ -362,7 +362,7 @@ Locally:
 `-SkipMsixPackaging` alone is exactly what the workflow passes; adding
 `-Configurations` is a deliberate deviation, not the parity run. Verified
 2026-09-05: 22/22 steps in 3:40, `kataglyphis_inference_engine.exe`,
-`kataglyphis_rustprojecttemplate.dll` and `KataglyphisCppInference.dll` all
+`oxidant.dll` and `KataglyphisCppInference.dll` all
 rebuilt under `build\windows\x64\runner\x64-ClangCL-Windows-Release\`. The
 Windows engine is Stevedore's, **not** Rancher Desktop's — Rancher only serves
 Linux containers, and its `docker`/`nerdctl` shims are first on `PATH`, so the

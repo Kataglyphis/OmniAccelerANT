@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:kataglyphis_inference_engine/Pages/AboutMePage/Widgets/donation.dart';
-import 'package:jotrockenmitlockenrepo/Decoration/row_divider.dart';
-import 'package:jotrockenmitlockenrepo/Media/Image/openable_image.dart';
-import 'package:jotrockenmitlockenrepo/Media/email_button.dart';
-import 'package:jotrockenmitlockenrepo/SocialMedia/social_media_widgets.dart';
+import 'package:anthology/Decoration/row_divider.dart';
+import 'package:anthology/Media/Image/openable_image.dart';
+import 'package:anthology/Media/email_button.dart';
+import 'package:anthology/SocialMedia/social_media_widgets.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:jotrockenmitlockenrepo/Decoration/col_divider.dart';
+import 'package:anthology/Decoration/col_divider.dart';
 import 'package:kataglyphis_inference_engine/l10n/app_localizations.dart';
-import 'package:jotrockenmitlockenrepo/user_settings.dart';
+import 'package:anthology/user_settings.dart';
 
 class AboutMeTable extends StatefulWidget {
   const AboutMeTable({super.key, required this.userSettings});

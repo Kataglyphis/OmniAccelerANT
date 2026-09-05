@@ -12,11 +12,11 @@ import 'package:kataglyphis_inference_engine/Pages/Footer/Pages/configs/privacy_
 import 'package:kataglyphis_inference_engine/Pages/LandingPage/landing_page_navbar_page_config.dart';
 import 'package:kataglyphis_inference_engine/Pages/blog_dependent_screen_configurations.dart';
 import 'package:kataglyphis_inference_engine/blog_page_config.dart';
-import 'package:jotrockenmitlockenrepo/Pages/Footer/footer_page_config.dart';
+import 'package:anthology/Pages/Footer/footer_page_config.dart';
 import 'package:kataglyphis_inference_engine/my_two_cents_config.dart';
-import 'package:jotrockenmitlockenrepo/Pages/navbar_page_config.dart';
-import 'package:jotrockenmitlockenrepo/Pages/stateful_branch_info_provider.dart';
-import 'package:jotrockenmitlockenrepo/Routing/screen_configurations.dart';
+import 'package:anthology/Pages/navbar_page_config.dart';
+import 'package:anthology/Pages/stateful_branch_info_provider.dart';
+import 'package:anthology/Routing/screen_configurations.dart';
 
 class JotrockenmitLockenScreenConfigurations extends ScreenConfigurations
     with BlogDependentScreenConfigurations {

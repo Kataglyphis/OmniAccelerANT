@@ -77,7 +77,7 @@ above (see ContainerHub's `docs/conf.py`) when migrating.
 
 If you encounter this error at runtime:
 ```
-kataglyphis_rustprojecttemplate's codegen version (2.11.1) should be the same as runtime version (2.12.0)
+oxidant's codegen version (2.11.1) should be the same as runtime version (2.12.0)
 ```
 
 **Cause:** The generated Dart binding files (in `lib/src/rust/`) are out of sync with the `pubspec.yaml` dependency version.

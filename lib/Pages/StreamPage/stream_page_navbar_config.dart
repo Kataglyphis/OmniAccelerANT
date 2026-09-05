@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:kataglyphis_inference_engine/l10n/app_localizations.dart';
-import 'package:jotrockenmitlockenrepo/Pages/navbar_page_config.dart';
+import 'package:anthology/Pages/navbar_page_config.dart';
 
 class StreamPageNavBarConfig extends NavBarPageConfig {
   @override

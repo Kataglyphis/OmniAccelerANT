@@ -58,5 +58,5 @@ android {
 apply from: "../cargokit/gradle/plugin.gradle"
 cargokit {
     manifestDir = "../../third_party/OxidANT"
-    libname = "kataglyphis_rustprojecttemplate"
+    libname = "oxidant"
 }

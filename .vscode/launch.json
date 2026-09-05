@@ -48,20 +48,20 @@
             "flutterMode": "release"
         },
         {
-            "name": "jotrockenmitlockenrepo",
+            "name": "anthology",
             "cwd": "third_party/ANThology",
             "request": "launch",
             "type": "dart"
         },
         {
-            "name": "jotrockenmitlockenrepo (profile mode)",
+            "name": "anthology (profile mode)",
             "cwd": "third_party/ANThology",
             "request": "launch",
             "type": "dart",
             "flutterMode": "profile"
         },
         {
-            "name": "jotrockenmitlockenrepo (release mode)",
+            "name": "anthology (release mode)",
             "cwd": "third_party/ANThology",
             "request": "launch",
             "type": "dart",
