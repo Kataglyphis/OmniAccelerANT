@@ -64,5 +64,5 @@ app.*.map.json
 
 packages/kataglyphis_native_inference/.dart_tool/*
 
-third_party/jotrockenmitlockenrepo/.dart_tool/*
+third_party/ANThology/.dart_tool/*
 kataglyphis-inference-engine-linux-x64.tar.gz

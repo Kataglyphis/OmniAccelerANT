@@ -391,7 +391,7 @@ packages:
   jotrockenmitlockenrepo:
     dependency: "direct main"
     description:
-      path: "third_party/jotrockenmitlockenrepo"
+      path: "third_party/ANThology"
       relative: true
     source: path
     version: "1.1.0"

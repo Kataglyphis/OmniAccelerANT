@@ -1,14 +1,14 @@
-[submodule "third_party/jotrockenmitlockenrepo"]
-	path = third_party/jotrockenmitlockenrepo
-	url = https://github.com/Kataglyphis/jotrockenmitlockenrepo.git
+[submodule "third_party/ANThology"]
+	path = third_party/ANThology
+	url = https://github.com/Kataglyphis/ANThology.git
 	branch = main
 [submodule "third_party/ContainerHub"]
 	path = third_party/ContainerHub
 	url = git@github.com:Kataglyphis/ContainerHub.git
 	branch = main
-[submodule "third_party/RustProjectTemplate"]
-	path = third_party/RustProjectTemplate
-	url = git@github.com:Kataglyphis/RustProjectTemplate.git
+[submodule "third_party/OxidANT"]
+	path = third_party/OxidANT
+	url = git@github.com:Kataglyphis/OxidANT.git
 	branch = develop
 [submodule "third_party/Cpp-Inference"]
 	path = third_party/Cpp-Inference

@@ -20,7 +20,7 @@ dependencies:
   flutter:
     sdk: flutter
   jotrockenmitlockenrepo:
-    path: third_party/jotrockenmitlockenrepo
+    path: third_party/ANThology
   kataglyphis_native_inference:
     path: packages/kataglyphis_native_inference
   # The following adds the Cupertino Icons font to your application.

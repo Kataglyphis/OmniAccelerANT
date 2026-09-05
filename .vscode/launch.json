@@ -49,20 +49,20 @@
         },
         {
             "name": "jotrockenmitlockenrepo",
-            "cwd": "third_party/jotrockenmitlockenrepo",
+            "cwd": "third_party/ANThology",
             "request": "launch",
             "type": "dart"
         },
         {
             "name": "jotrockenmitlockenrepo (profile mode)",
-            "cwd": "third_party/jotrockenmitlockenrepo",
+            "cwd": "third_party/ANThology",
             "request": "launch",
             "type": "dart",
             "flutterMode": "profile"
         },
         {
             "name": "jotrockenmitlockenrepo (release mode)",
-            "cwd": "third_party/jotrockenmitlockenrepo",
+            "cwd": "third_party/ANThology",
             "request": "launch",
             "type": "dart",
             "flutterMode": "release"

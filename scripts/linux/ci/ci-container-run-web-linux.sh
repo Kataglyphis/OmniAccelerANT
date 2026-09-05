@@ -80,7 +80,7 @@ echo "=== Flutter doctor ==="
 flutter doctor -v
 
 echo "=== Dart checks: dependencies, format, analyze, test ==="
-run_flutter_common_checks "$STRICT_CHECKS" --extra-package third_party/jotrockenmitlockenrepo
+run_flutter_common_checks "$STRICT_CHECKS" --extra-package third_party/ANThology
 
 echo "=== Enable flutter web + Rust WASM toolchain ==="
 # build-web runs wasm-pack with `-Z build-std=std,panic_abort`, which needs the
@@ -97,7 +97,7 @@ flutter config --enable-web
 echo "=== Build Web App ==="
 flutter_rust_bridge_codegen build-web \
   --release \
-  --rust-root third_party/RustProjectTemplate
+  --rust-root third_party/OxidANT
 flutter build web --release --wasm
 
 echo "=== Web build completed successfully ==="

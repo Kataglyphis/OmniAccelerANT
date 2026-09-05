@@ -16,7 +16,7 @@ Rust core and a C++ inference plugin underneath it.
 | Path | What lives there |
 | --- | --- |
 | `lib/` | The Flutter/Dart frontend |
-| `third_party/RustProjectTemplate` | Rust core, bridged via `flutter_rust_bridge` — regenerate bindings with `flutter_rust_bridge_codegen generate` (a cargo binary baked into the build image, NOT a pub dependency; on a bare host `cargo install flutter_rust_bridge_codegen` first). `lib/src/rust/` is committed generated code — no build lane regenerates it |
+| `third_party/OxidANT` | Rust core, bridged via `flutter_rust_bridge` — regenerate bindings with `flutter_rust_bridge_codegen generate` (a cargo binary baked into the build image, NOT a pub dependency; on a bare host `cargo install flutter_rust_bridge_codegen` first). `lib/src/rust/` is committed generated code — no build lane regenerates it |
 | `packages/kataglyphis_native_inference` | C++ inference plugin — **plain files, not a submodule**; a `pubspec.yaml` path dependency. Links GStreamer + ONNX Runtime via CMake/pkg-config |
 | `third_party/Cpp-Inference` | The inference core the plugin builds. Its own submodule, sibling to the plugin rather than nested inside it |
 | `scripts/windows/`, `scripts/linux/` | Thin wrappers over ContainerHub drivers + this repo's own glue |
@@ -236,7 +236,7 @@ written out rather than linked.
   — six levels deep, pointing at `rust_builder/`, which is two. The kernel
   resolves the symlink *before* applying the `..`, so a chain counted from the
   symlink overshoots to `/` and Dart reports
-  `PathNotFoundException: … /third_party/RustProjectTemplate/Cargo.toml`.
+  `PathNotFoundException: … /third_party/OxidANT/Cargo.toml`.
   `rust_builder/linux/CMakeLists.txt` therefore takes `REALPATH` of
   `CMAKE_CURRENT_SOURCE_DIR` first, which yields `../..` and survives the
   resolution. Verified against a rebuilt directory tree: six `..` fails, two
