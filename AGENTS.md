@@ -287,7 +287,7 @@ written out rather than linked.
 - **A single-arch image tag looks exactly like broken code.** Until 2026-09-04
   `ghcr.io/kataglyphis/kataglyphis_beschleuniger:latest-cross` was an amd64-only
   tag, so both matrix rows pulled the same digest and the arm64 row ran x86-64
-  binaries on an `ubuntu-24.04-arm` runner:
+  binaries on an `ubuntu-26.04-arm` runner:
   `` /usr/local/cargo/bin/rustc: 1: ELF: not found `` plus a corrosion
   `FindRust.cmake` error. Nothing in this repo could work around it. The tag is
   now a proper OCI index (amd64, arm64, riscv64) and the symptom is gone —
@@ -556,7 +556,7 @@ Rust and C++ without a single error:
   the binary is the correct architecture (`ELF aarch64, static-pie linked`);
   qemu-user cannot load static-PIE executables.
 
-CI is unaffected: its arm64 row runs on a real `ubuntu-24.04-arm` runner, so
+CI is unaffected: its arm64 row runs on a real `ubuntu-26.04-arm` runner, so
 neither restriction applies. Locally, treat a failing flatpak/AppImage step on
 arm64 as expected and check the two messages above before investigating.
 

@@ -16,7 +16,7 @@ jobs:
     strategy:
       matrix:
         include:
-          - runs_on: ubuntu-24.04
+          - runs_on: ubuntu-26.04
             arch: x64
             build_mode: release
             platform: linux/amd64
