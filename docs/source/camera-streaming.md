@@ -42,7 +42,7 @@ build's DLL-bundling step stages `gstmediafoundation.dll`/`gstwinks.dll` +
 GStreamer core DLLs into the runner. To get `mfvideosrc`, build against a
 `windows-media` image whose GStreamer was compiled with
 `-Dgst-plugins-bad:mediafoundation=enabled` (ContainerHub
-`windows/scripts/build-gstreamer-from-source.ps1`).
+`windows/scripts/build/Build-GstreamerFromSource.ps1`).
 
 ## WebRTC pipelines (Linux / web)
 

@@ -304,10 +304,11 @@ written out rather than linked.
   CRT/COM startup are unhooked and it aborts with an unsuppressible `bad-free`
   when combase/ole32 frees them. That is a property of a COM-hosting Flutter
   app, not of the image. Microsoft's runtime (`VC\Tools\MSVC\<ver>\bin\Hostx64\x64\clang_rt.asan_dynamic-x86_64.dll`)
-  tracks Windows heap ownership and passes foreign frees through. The plugin's
-  `cmake/Sanitizers.cmake` links Microsoft's thunk + import lib while keeping
-  clang's instrumentation; `Start-Windows.ps1` stages the DLL next to the exe and
-  sets `ASAN_OPTIONS=alloc_dealloc_mismatch=0:check_malloc_usable_size=0`.
+  tracks Windows heap ownership and passes foreign frees through. The inference
+  core's `third_party/AccelerANTgine/cmake/Sanitizers.cmake` links Microsoft's
+  thunk + import lib while keeping clang's instrumentation; `Start-Windows.ps1`
+  stages the DLL next to the exe and sets
+  `ASAN_OPTIONS=alloc_dealloc_mismatch=0:check_malloc_usable_size=0`.
   Build-time needs a dynamic CRT throughout (`-shared-libsan`, **no `/MT`
   overrides anywhere** — module BMIs re-emit `detect_mismatch` into importers, so
   one `/MT` BMI poisons everything).
@@ -438,10 +439,13 @@ Two Windows-specific traps these steps carry:
   docs in `doc/api` (git-ignored).
 
 **MSIX packaging.** `msix_config.build_windows` is `false` on purpose: this
-script owns the build, and letting msix run its own `flutter build windows`
-makes it trip over the `CMakeCache.txt` synced back from the container-local
-build root (*"the current CMakeCache.txt directory … is different than the
-directory … where it was created"*, plus the wrong generator). The
+script owns the build, and a second `flutter build windows` driven by msix
+would only re-run — with a different generator — what the presets already
+produced. (Until 2026-09-06 it also tripped over a `CMakeCache.txt` synced back
+from the container-local build root — *"the current CMakeCache.txt directory …
+is different than the directory … where it was created"*. ContainerHub's
+`Sync-FastLocalArtifactsToHost` now excludes `CMakeCache.txt` and `CMakeFiles`
+from the sync-back, so the host tree gets artifacts, not CMake state.) The
 **MSIX Compatibility Layout** step exists because msix looks for
 `build\windows\x64\runner\Release\`, while the build installs to
 `runner\<preset>\`; it copies the preset's output into that flat `Release\`.

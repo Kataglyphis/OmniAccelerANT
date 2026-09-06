@@ -64,10 +64,6 @@ here.
 
 ## Open — hygiene
 
-- [ ] Generated files are tracked and every containerized build dirties them
-      with whatever mount path was used: `ios/Flutter/Generated.xcconfig`,
-      `ios/Flutter/flutter_export_environment.sh`, the macOS equivalents. They
-      declare themselves "do not check into version control".
 - [ ] Leftovers from before the image and packaging fixes are still on disk and
       git-ignored, but large and confusing: `flutter/` (2.5 GB, from when the
       lane installed the SDK into the workspace), `.ccache/`,
