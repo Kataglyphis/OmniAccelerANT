@@ -319,7 +319,7 @@ try {
         Invoke-BuildStep -Context $context -StepName "Flutter Ephemeral Build (C++ Headers)" -Script {
             $env:CC = "clang-cl"
             $env:CXX = "clang-cl"
-            try { Invoke-BuildExternal -Context $context -File "flutter" -Parameters @("build", "windows", "--config-only") -IgnoreExitCode } catch { Write-BuildLog -Context $context -Message "Flutter config failed as expected, continuing to patch..." }
+            Invoke-BuildExternal -Context $context -File "flutter" -Parameters @("build", "windows", "--config-only")
         }
 
         Invoke-BuildStep -Context $context -StepName "Fix Plugin Symlinks (Junctions)" -Script {
