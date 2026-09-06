@@ -64,3 +64,15 @@ app.*.map.json
 packages/kataglyphis_native_inference/.dart_tool/*
 
 third_party/ANThology/.dart_tool/*
+
+# Flutter regenerates these on every `pub get` and every build, and they carry
+# absolute, per-host paths: the Linux lane writes /opt/flutter + /workspace,
+# the Windows container writes C:\ProgramData\... + C:\ws-mnt. Tracked, they
+# flipped back and forth on every lane switch (AGENTS.md § 4). The files say
+# "do not edit or check into version control" themselves.
+ios/Flutter/Generated.xcconfig
+ios/Flutter/flutter_export_environment.sh
+ios/Flutter/ephemeral/flutter_native_integration.env
+macos/Flutter/ephemeral/Flutter-Generated.xcconfig
+macos/Flutter/ephemeral/flutter_export_environment.sh
+macos/Flutter/ephemeral/flutter_native_integration.env
