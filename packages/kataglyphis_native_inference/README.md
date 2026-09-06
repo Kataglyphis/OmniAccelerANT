@@ -8,9 +8,9 @@
   <h4> The glue 📄🧴✂️ for a cross platform inference engine to its native interface </h4>
 </div>
 
-<!-- [![Linux build](https://github.com/Kataglyphis/GraphicsEngineVulkan/actions/workflows/Linux.yml/badge.svg)](https://github.com/Kataglyphis/GraphicsEngineVulkan/actions/workflows/Linux.yml)
-[![Windows build](https://github.com/Kataglyphis/GraphicsEngineVulkan/actions/workflows/Windows.yml/badge.svg)](https://github.com/Kataglyphis/GraphicsEngineVulkan/actions/workflows/Windows.yml)
-[![TopLang](https://img.shields.io/github/languages/top/Kataglyphis/GraphicsEngineVulkan)]() -->
+<!-- [![Linux build](https://github.com/Kataglyphis/BeschleunigerBallett/actions/workflows/Linux.yml/badge.svg)](https://github.com/Kataglyphis/BeschleunigerBallett/actions/workflows/Linux.yml)
+[![Windows build](https://github.com/Kataglyphis/BeschleunigerBallett/actions/workflows/Windows.yml/badge.svg)](https://github.com/Kataglyphis/BeschleunigerBallett/actions/workflows/Windows.yml)
+[![TopLang](https://img.shields.io/github/languages/top/Kataglyphis/BeschleunigerBallett)]() -->
 [![Donate](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://www.paypal.com/paypalme/JonasHeinle)
 [![Twitter](https://img.shields.io/twitter/follow/Cataglyphis_?style=social)](https://twitter.com/Cataglyphis_)
 
@@ -80,7 +80,7 @@ This enumeration also includes submodules.
 This package is not standalone. It lives inside
 [OmniAccelerANT](https://github.com/Kataglyphis/OmniAccelerANT) as a path
 dependency at `packages/kataglyphis_native_inference`, and is built by that repo's
-lanes — clone Inference-Engine with `--recurse-submodules` instead.
+lanes — clone OmniAccelerANT with `--recurse-submodules` instead.
 
 ## Tests
 

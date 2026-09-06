@@ -382,13 +382,13 @@ Locally:
 
 `-SkipMsixPackaging` alone is exactly what the workflow passes; adding
 `-Configurations` is a deliberate deviation, not the parity run. Verified
-2026-09-05 after the renames: 22/22 steps, `omni_accelerant.exe` and
+2026-09-06: 22/22 steps, process exit 0, `omni_accelerant.exe` and
 `oxidant.dll` under
 `build\windows\x64\runner\x64-ClangCL-Windows-Release\`, `AccelerANTgine.dll`
 under `build\windows\x64\bin\`. That directory is never cleaned, so the
-previous run's `kataglyphis_inference_engine.exe` and
-`KataglyphisAccelerANTgine.dll` still sit beside them — compare timestamps, not
-presence, when checking a rename.
+pre-rename `kataglyphis_inference_engine.exe`,
+`kataglyphis_rustprojecttemplate.dll` and `CppInference.dll` still sit beside
+them — compare timestamps, not presence, when checking a rename.
 
 The Windows engine is Stevedore's, **not** Rancher Desktop's — Rancher only
 serves Linux containers, and its `docker`/`nerdctl` shims are first on `PATH`,
@@ -455,7 +455,7 @@ disk check, GHCR login, pull), `run-in-windows-container`,
 `actions/upload-artifact` and `upload-codeql-sarif`. Three consequences:
 
 - It prunes `third_party/DocumANTation` from the recursive checkout.
-  This repo's chains are Inference-Engine → AccelerANTgine → ContainerHub →
+  This repo's chains are OmniAccelerANT → AccelerANTgine → ContainerHub →
   DocumANTation → md2pdfLib → `third_party/{smile,awesome-beamer}` and the same
   tail via OxidANT, and every level adds another
   `.git/modules/<name>/` segment until git aborts with `fatal: '$GIT_DIR' too

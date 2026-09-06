@@ -103,7 +103,7 @@ OmniAccelerANT bundles a Flutter/Dart frontend, a Rust/C++ inference core, and a
   > Powershell or cmd
    ```bash
    git clone --recurse-submodules --branch develop git@github.com:Kataglyphis/OmniAccelerANT.git
-   cd Inference-Engine
+   cd OmniAccelerANT
    ```
 2. Initialize submodules if needed.  
    If u used `--recurse-submodules` while cloning you are already good.  

@@ -24,7 +24,7 @@ gst-launch-1.0 --version
 
 ```bash
 git clone --recurse-submodules --branch develop git@github.com:Kataglyphis/OmniAccelerANT.git
-cd Inference-Engine
+cd OmniAccelerANT
 ```
 
 If you cloned without submodules:

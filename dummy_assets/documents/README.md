@@ -15,10 +15,10 @@
 
 <h4 align="center">A graphics engine built on top of Vulkan <a href="https://jotrockenmitlocken.de" target="_blank"></a>.</h4>
 
-<!-- [![Linux build](https://github.com/Kataglyphis/GraphicsEngineVulkan/actions/workflows/Linux.yml/badge.svg)](https://github.com/Kataglyphis/GraphicsEngineVulkan/actions/workflows/Linux.yml)
-[![Windows build](https://github.com/Kataglyphis/GraphicsEngineVulkan/actions/workflows/Windows.yml/badge.svg)](https://github.com/Kataglyphis/GraphicsEngineVulkan/actions/workflows/Windows.yml)
-[![codecov](https://codecov.io/gh/Kataglyphis/GraphicsEngineVulkan/branch/main/graph/badge.svg?token=JTQFXPWWJH)](https://codecov.io/gh/Kataglyphis/GraphicsEngineVulkan)
-[![TopLang](https://img.shields.io/github/languages/top/Kataglyphis/GraphicsEngineVulkan)]()
+<!-- [![Linux build](https://github.com/Kataglyphis/BeschleunigerBallett/actions/workflows/Linux.yml/badge.svg)](https://github.com/Kataglyphis/BeschleunigerBallett/actions/workflows/Linux.yml)
+[![Windows build](https://github.com/Kataglyphis/BeschleunigerBallett/actions/workflows/Windows.yml/badge.svg)](https://github.com/Kataglyphis/BeschleunigerBallett/actions/workflows/Windows.yml)
+[![codecov](https://codecov.io/gh/Kataglyphis/BeschleunigerBallett/branch/main/graph/badge.svg?token=JTQFXPWWJH)](https://codecov.io/gh/Kataglyphis/BeschleunigerBallett)
+[![TopLang](https://img.shields.io/github/languages/top/Kataglyphis/BeschleunigerBallett)]()
 [![Donate](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://www.paypal.com/donate/?hosted_button_id=BX9AVVES2P9LN)
 [![Twitter](https://img.shields.io/twitter/follow/Cataglyphis_?style=social)](https://twitter.com/Cataglyphis_)
 [![YouTube](https://img.shields.io/youtube/channel/subscribers/UC3LZiH4sZzzaVBCUV8knYeg?style=social)](https://www.youtube.com/channel/UC3LZiH4sZzzaVBCUV8knYeg) -->
@@ -143,7 +143,7 @@ CMake 3.20 or higher required.<br />
 
 1. Clone the repo
    ```sh
-   git clone --recurse-submodules git@github.com:Kataglyphis/GraphicsEngineVulkan.git
+   git clone --recurse-submodules git@github.com:Kataglyphis/BeschleunigerBallett.git
    ```
 > **_NOTE:_**  With powershell in Windows git has currently a problem with cloning recursively. You might consider using
 the git bash.
@@ -165,7 +165,7 @@ the git bash.
   * [`buildEngine.sh`] 
   * [`buildEngine.bat`]
   ```sh
-  $ {WORKING_DIR}/GraphicsEngineVulkan/buildEngine[.sh/.bat]
+  $ {WORKING_DIR}/BeschleunigerBallett/buildEngine[.sh/.bat]
   ```
 
 # Shaders
@@ -181,8 +181,8 @@ appropriately.</br>
 * [Watch test results here](Documents/googletest/test_detail.xml)
 <h3>Code coverage results</h3>
 <h1 align="center">
-  <a href="https://jotrockenmitlocken.de"><img src="https://codecov.io/gh/Kataglyphis/GraphicsEngineVulkan/branch/main/graphs/sunburst.svg?token=JTQFXPWWJH" alt="VulkanEngine" width="350"></a>
-  <a href="https://jotrockenmitlocken.de"><img src="https://codecov.io/gh/Kataglyphis/GraphicsEngineVulkan/branch/main/graphs/tree.svg?token=JTQFXPWWJH" alt="VulkanEngine" width="350"></a>
+  <a href="https://jotrockenmitlocken.de"><img src="https://codecov.io/gh/Kataglyphis/BeschleunigerBallett/branch/main/graphs/sunburst.svg?token=JTQFXPWWJH" alt="VulkanEngine" width="350"></a>
+  <a href="https://jotrockenmitlocken.de"><img src="https://codecov.io/gh/Kataglyphis/BeschleunigerBallett/branch/main/graphs/tree.svg?token=JTQFXPWWJH" alt="VulkanEngine" width="350"></a>
 </h1> -->
 
 <!-- ROADMAP -->
@@ -213,7 +213,7 @@ Distributed under the BSD 3-Clause "New" or "Revised" License. See `LICENSE` for
 
 Jonas Heinle - [@Cataglyphis_](https://twitter.com/Cataglyphis_) - renderdude@jotrockenmitlocken.de
 
-Project Link: [https://github.com/Kataglyphis/GraphicsEngineVulkan](https://github.com/Kataglyphis/GraphicsEngineVulkan)
+Project Link: [https://github.com/Kataglyphis/BeschleunigerBallett](https://github.com/Kataglyphis/BeschleunigerBallett)
 
 
 

@@ -143,7 +143,7 @@ pwsh -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows\Build-Windows.ps
 ### Build with custom workspace
 
 ```powershell
-pwsh -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows\Build-Windows.ps1 -WorkspaceDir "C:\GitHub\Inference-Engine"
+pwsh -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows\Build-Windows.ps1 -WorkspaceDir "C:GitHubOmniAccelerANT"
 ```
 
 ### Selected presets, no MSIX
