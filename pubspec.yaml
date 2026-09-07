@@ -34,7 +34,7 @@ dependencies:
   intl: ^0.20.2
   oxidant:
     path: rust_builder
-  permission_handler: ^12.0.1
+  permission_handler: ^13.0.2
 
   provider: ^6.1.2
   sqlite3: ^3.3.1
