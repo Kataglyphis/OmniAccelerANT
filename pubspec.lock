@@ -299,10 +299,10 @@ packages:
     dependency: "direct main"
     description:
       name: flutter_rust_bridge
-      sha256: e87d6b9ee934dcd24a128ccb2bd91905d2d5fe5c06245d6a8f5477d4907a437a
+      sha256: ec69331e2335ab4d456c0a9fc700892c2c85b72b9c0cb39df3ecfe8833d5d5c8
       url: "https://pub.dev"
     source: hosted
-    version: "2.12.0"
+    version: "2.13.0"
   flutter_test:
     dependency: "direct dev"
     description: flutter
@@ -596,12 +596,11 @@ packages:
   permission_handler_windows:
     dependency: "direct overridden"
     description:
-      path: permission_handler_windows
-      ref: main
-      resolved-ref: a76fa90a1ca70028ae22e33befff0593124bcb5a
-      url: "https://github.com/Kataglyphis/flutter-permission-handler.git"
-    source: git
-    version: "0.2.3"
+      name: permission_handler_windows
+      sha256: caeae01858a0a7d2df67a445ac98e1ad95e55a0e77c73044f4e9b1c8c2289cbd
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.2.2"
   petitparser:
     dependency: transitive
     description:
