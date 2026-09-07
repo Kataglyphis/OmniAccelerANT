@@ -54,6 +54,8 @@ reorganisation.
 | appimagetool provisioning — pinned version + SHA256, not the moving `continuous` tag | `linux/scripts/02-toolchain/packaging-deps.sh`, subcommand `appimagetool` |
 | Python venv + `uv` provisioning (installer downloaded to a file and SHA-checkable, never `curl \| sh`) | `linux/scripts/01-core/python_uv.sh` |
 | The Dart gate for Linux lanes — deps, format, analyze, test, `--strict`/`--extra-package` | `linux/scripts/05-frameworks/flutter/flutter_checks.sh` |
+| The CMake gate's machinery — `code_quality_find_cmake_files` + `CODE_QUALITY_CMAKE_EXCLUDE_PATHS` on Linux, `Initialize-UvVenvPython` on Windows | `linux/scripts/lib/code-quality.sh`, `windows/scripts/modules/WindowsFormatting.Common.psm1` |
+| The canonical `.cmake-format.yaml` this repo's root copy syncs from, and the drift check | `shared/config/README.md` |
 
 Two upstream facts repeated here only because they bite before you reach a doc:
 
@@ -304,9 +306,9 @@ written out rather than linked.
   CRT/COM startup are unhooked and it aborts with an unsuppressible `bad-free`
   when combase/ole32 frees them. That is a property of a COM-hosting Flutter
   app, not of the image. Microsoft's runtime (`VC\Tools\MSVC\<ver>\bin\Hostx64\x64\clang_rt.asan_dynamic-x86_64.dll`)
-  tracks Windows heap ownership and passes foreign frees through. The inference
-  core's `third_party/AccelerANTgine/cmake/Sanitizers.cmake` links Microsoft's
-  thunk + import lib while keeping clang's instrumentation; `Start-Windows.ps1`
+  tracks Windows heap ownership and passes foreign frees through. ContainerHub's
+  `cmake/Sanitizers.cmake` (on the inference core's `CMAKE_MODULE_PATH`; its local copy is retired)
+  links Microsoft's thunk + import lib while keeping clang's instrumentation; `Start-Windows.ps1`
   stages the DLL next to the exe and sets
   `ASAN_OPTIONS=alloc_dealloc_mismatch=0:check_malloc_usable_size=0`.
   Build-time needs a dynamic CRT throughout (`-shared-libsan`, **no `/MT`
@@ -404,10 +406,10 @@ supported` on hosts whose Docker/hcsshim is version-skewed from the image —
 `C:\workspace` is a baked image dir. Use a fresh target (`C:\ws-mnt` above; CI
 mounts `D:\ws → C:\ws`). ContainerHub owns the why — see § 2.
 
-Three quality/output steps run before the native build (`-CodeQL` short-circuits
-before them), each skippable with the paired switch: **Dart format**
-(`-SkipFormat`), **Dart analyze + Flutter tests** (`-SkipTests`), **API docs
-generation** (`-SkipDocs`).
+Four quality/output steps run before the native build (`-CodeQL` short-circuits
+before them), each skippable with the paired switch: **Dart format + CMake
+format** (`-SkipFormat`), **Dart analyze + Flutter tests** (`-SkipTests`),
+**API docs generation** (`-SkipDocs`).
 
 **A failed step does not abort the run.** None of them is declared `-Critical`,
 and `-StopOnError` is off by default, so the step is recorded and the build
@@ -727,6 +729,7 @@ Quality gates — `Build-Windows.ps1` runs these by default (skip with
 
 ```bash
 dart format --output=none --set-exit-if-changed lib test integration_test test_driver
+cmake-format -c .cmake-format.yaml --check <the hand-maintained CMake files>
 flutter analyze
 flutter test
 dart pub global run dartdoc --output doc/api
@@ -735,7 +738,38 @@ dart pub global run dartdoc --output doc/api
 The Linux `checks` stage runs the same three (with `dart analyze` rather than
 `flutter analyze`) but suffixes each with `|| true`: it reports and moves on
 instead of failing the stage. Treat a green `checks` run as "was executed", not
-as "passed".
+as "passed". The CMake gate follows the same strictness switch:
+`run_cmake_format_check` runs in the native-Linux lane (strict only when the
+strict-checks knob says so — the GitHub workflow currently passes
+`--strict-checks false`, so there too it reports rather than fails), the
+Android lane (non-strict, matching its Dart checks) and `check-linux.sh`; the
+web lane builds no native CMake code and does not run it.
+
+**The CMake format gate covers hand-maintained CMake only — 13 files today.**
+Both lanes build the same list (`run_cmake_format_check` in
+`scripts/linux/lib/container-steps.sh`; the `CMake Format Verification` step in
+`Build-Windows.ps1`) and both exclude, each verified generated or vendored:
+`third_party/` and `build/`; `*/flutter/CMakeLists.txt` (header: "It should not
+be edited"); `*/generated_plugins.cmake` ("Generated file, do not edit");
+`*/ephemeral/` (rewritten on every `pub get`); `*/.cxx/` (Android Gradle's CMake
+build trees); `*/.plugin_symlinks/` (pub's junction farm);
+`rust_builder/cargokit/` (vendored — its README opens with "copied from
+Cargokit"); `.venv/` (created by the gate's own bootstrap). Do not widen the
+gate onto any of those: it would fight the generator or upstream.
+
+`.cmake-format.yaml` at the root is the consumer copy of ContainerHub's
+canonical config — `shared/config/README.md` owns why it is a copy. Refresh it
+with `pwsh -File third_party/ContainerHub/shared/config/Sync-SharedConfig.ps1
+-RepoRoot . -Write -Ignore
+'.clang-format,.clang-tidy,gcovr.cfg,.pre-commit-config.yaml'`. That `-Ignore`
+list is deliberate, not drift: of the five shared configs this Flutter app
+carries only `.cmake-format.yaml` — nothing here runs clang-format, clang-tidy,
+gcovr or the C++ pre-commit hooks. cmake-format itself comes from `PATH` or a
+uv venv fed by the root `requirements.txt` (`pyyaml` sits there because
+cmake-format cannot read its own YAML config without it). The config's
+`line_ending: unix` is why `.gitattributes` pins `CMakeLists.txt` and `*.cmake`
+to LF — a `core.autocrlf=true` checkout would otherwise fail `--check` on every
+file.
 
 ## 5. Docs owned by this repo
 

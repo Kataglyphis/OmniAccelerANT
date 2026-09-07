@@ -3,3 +3,9 @@
 # Workflows run under `shell: pwsh`; CRLF breaks multi-line run: blocks.
 .github/**/*.yml text eol=lf
 .github/**/*.yaml text eol=lf
+# The CMake format gate enforces line_ending: unix (.cmake-format.yaml), so a
+# core.autocrlf=true checkout must never flip these to CRLF — cmake-format
+# --check fails on every CRLF file. Same move as ContainerHub's .gitattributes
+# freezing *.cmake (its backlog #55).
+CMakeLists.txt text eol=lf
+*.cmake text eol=lf

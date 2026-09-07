@@ -13,15 +13,22 @@ project(${PROJECT_NAME} LANGUAGES CXX)
 # AGENTS.md § 3.
 get_filename_component(MANIFEST_ABS "${CMAKE_SOURCE_DIR}/../third_party/OxidANT" ABSOLUTE)
 get_filename_component(PLUGIN_LINUX_REAL "${CMAKE_CURRENT_SOURCE_DIR}" REALPATH)
-file(RELATIVE_PATH MANIFEST_REL "${PLUGIN_LINUX_REAL}" "${MANIFEST_ABS}")
+file(
+  RELATIVE_PATH
+  MANIFEST_REL
+  "${PLUGIN_LINUX_REAL}"
+  "${MANIFEST_ABS}")
 
 include("../cargokit/cmake/cargokit.cmake")
-apply_cargokit(${PROJECT_NAME} "${MANIFEST_REL}" oxidant "")
+apply_cargokit(
+  ${PROJECT_NAME}
+  "${MANIFEST_REL}"
+  oxidant
+  "")
 
 # List of absolute paths to libraries that should be bundled with the plugin.
 # This list could contain prebuilt libraries, or libraries created by an
 # external build triggered from this build file.
 set(oxidant_bundled_libraries
-  "${${PROJECT_NAME}_cargokit_lib}"
-  PARENT_SCOPE
-)
+    "${${PROJECT_NAME}_cargokit_lib}"
+    PARENT_SCOPE)

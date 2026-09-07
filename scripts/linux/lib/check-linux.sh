@@ -43,3 +43,4 @@ STRICT_CHECKS="$(resolve_strict_checks "$STRICT_CHECKS")"
 
 source_bashrc_and_add_flutter_to_path "$FLUTTER_DIR"
 run_flutter_common_checks "$STRICT_CHECKS"
+run_cmake_format_check "$STRICT_CHECKS"

@@ -38,6 +38,8 @@ codeql-db-cluster/**/*
 # Flutter/Dart/Pub related
 **/doc/api/
 doc/.venv/
+# uv venv the CMake format gate bootstraps at the repo root (both OSes).
+/.venv/
 **/ios/Flutter/.last_build_id
 .dart_tool/
 .flutter-plugins

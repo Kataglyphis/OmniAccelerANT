@@ -111,6 +111,7 @@ require_cmd dart
 
 # Run code quality checks
 run_flutter_common_checks "$STRICT_CHECKS"
+run_cmake_format_check "$STRICT_CHECKS"
 
 flutter config --enable-linux-desktop
 

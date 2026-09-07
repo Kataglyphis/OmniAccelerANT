@@ -1,0 +1,6 @@
+# CMake format gate tooling: read by the uv venv bootstrap in
+# run_cmake_format_check (Linux) and Initialize-UvVenvPython (Windows).
+# pyyaml is not a cmake-format dependency but reading .cmake-format.yaml
+# needs it — without it every run dies with "No module named 'yaml'".
+pyyaml
+cmake-format

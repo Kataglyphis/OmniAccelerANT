@@ -261,8 +261,44 @@ try {
                 Pop-Location
             }
         }
+
+        # cmake-format gate on the hand-maintained CMake, same covered set as
+        # run_cmake_format_check (scripts/linux/lib/container-steps.sh): the
+        # exclusions keep Flutter-generated and vendored Cargokit files out, so
+        # the gate never fights the generator. Upstream Get-ProjectCmakeFiles is
+        # NOT used: it knows nothing of flutter/CMakeLists.txt,
+        # generated_plugins.cmake, ephemeral/ or .cxx/ and would rewrite them.
+        Invoke-BuildStep -Context $context -StepName "CMake Format Verification" -Script {
+            Push-Location $workspace
+            try {
+                $cmakeFiles = @(& git -C $workspace ls-files -- 'CMakeLists.txt' '**/CMakeLists.txt' '*.cmake' '**/*.cmake' |
+                    Where-Object {
+                        $_ -notmatch '^(third_party|build)/' -and
+                        $_ -notmatch '(^|/)(ephemeral|\.cxx|\.plugin_symlinks)/' -and
+                        $_ -notmatch '(^|/)flutter/CMakeLists\.txt$' -and
+                        $_ -notmatch '(^|/)generated_plugins\.cmake$' -and
+                        $_ -notmatch '^rust_builder/cargokit/'
+                    } | Sort-Object -Unique)
+                if ($LASTEXITCODE -ne 0) { throw "git ls-files failed while listing CMake files." }
+                if ($cmakeFiles.Count -eq 0) { throw "The CMake format gate matched no files; the exclusion regexes are over-broad." }
+
+                $formatConfig = Join-Path $workspace '.cmake-format.yaml'
+                if (-not (Test-Path -LiteralPath $formatConfig -PathType Leaf)) {
+                    throw ".cmake-format.yaml is missing at the repo root; without it cmake-format silently uses built-in defaults. Restore the consumer copy with ContainerHub shared/config/Sync-SharedConfig.ps1 -Write (AGENTS.md paragraph 4)."
+                }
+
+                $venvPython = Initialize-UvVenvPython -Context $context -WorkspacePath $workspace
+                $cmakeFormatExe = Join-Path (Split-Path $venvPython -Parent) 'cmake-format.exe'
+                if (-not (Test-Path -LiteralPath $cmakeFormatExe -PathType Leaf)) {
+                    throw "cmake-format not found in venv: $cmakeFormatExe (cmake-format and pyyaml must be in requirements.txt)."
+                }
+                Invoke-BuildExternal -Context $context -File $cmakeFormatExe -Parameters (@('-c', $formatConfig, '--check') + $cmakeFiles)
+            } finally {
+                Pop-Location
+            }
+        }
     } else {
-        Write-BuildLog -Context $context -Message "Skipping Dart format verification (SkipFormat set)."
+        Write-BuildLog -Context $context -Message "Skipping Dart and CMake format verification (SkipFormat set)."
     }
 
     if (-not $SkipTests) {

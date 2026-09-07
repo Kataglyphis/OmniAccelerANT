@@ -102,6 +102,7 @@ git_safe_dirs "$FLUTTER_DIR"
 assert_flutter_available "$FLUTTER_DIR" || exit 2
 source_bashrc_and_add_flutter_to_path "$FLUTTER_DIR"
 run_flutter_common_checks "$STRICT_CHECKS"
+run_cmake_format_check "$STRICT_CHECKS"
 run_check_cmd "$STRICT_CHECKS" flutter config --enable-android
 setup_compiler_cache
 export_android_gstreamer_env

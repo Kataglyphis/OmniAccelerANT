@@ -63,6 +63,70 @@ run_flutter_common_checks() {
   bash "$(containerhub_path linux/scripts/05-frameworks/flutter/flutter_checks.sh)" --strict "$strict_flag" "$@"
 }
 
+# CMake format gate for the hand-maintained native build files. Enumeration and
+# exclude-glob handling come from ContainerHub's code-quality.sh; the globs keep
+# the gate off generated trees (Flutter's flutter/CMakeLists.txt +
+# generated_plugins.cmake + ephemeral, Android's .cxx) and vendored Cargokit —
+# the gate must never fight the generator. Windows twin: the "CMake Format
+# Verification" step in scripts/windows/Build-Windows.ps1. AGENTS.md § 4.
+run_cmake_format_check() {
+  local strict_mode="${1:-0}"
+  containerhub_source linux/scripts/lib/code-quality.sh
+
+  # cmake-format from PATH if the image ships it, else a uv venv fed by the
+  # root requirements.txt — same provisioning the Windows step uses.
+  if ! command -v cmake-format >/dev/null 2>&1; then
+    containerhub_source linux/scripts/01-core/python_uv.sh
+    if ! command -v uv >/dev/null 2>&1; then
+      echo "Error: cmake-format is not on PATH and uv is missing, so it cannot be bootstrapped." >&2
+      return 1
+    fi
+    # Empty python version: honour UV_PYTHON, which the CI images export.
+    # Only create when absent — uv_venv_create deletes an existing venv.
+    if [[ ! -d .venv ]]; then
+      uv_venv_create .venv ""
+    fi
+    uv_pip_install_requirements .venv requirements.txt
+    uv_venv_activate .venv
+    if ! command -v cmake-format >/dev/null 2>&1; then
+      echo "Error: cmake-format still unavailable after installing requirements.txt into .venv." >&2
+      return 1
+    fi
+  fi
+
+  if [[ ! -f .cmake-format.yaml ]]; then
+    echo "Error: no .cmake-format.yaml at the repo root; without it cmake-format silently" >&2
+    echo "       falls back to its built-in defaults. Restore the consumer copy with" >&2
+    echo "       ContainerHub shared/config/Sync-SharedConfig.ps1 -Write (AGENTS.md § 4)." >&2
+    return 1
+  fi
+
+  # shellcheck disable=SC2034  # read by code_quality_find_cmake_files.
+  local CODE_QUALITY_CMAKE_EXCLUDE_PATHS=(
+    './third_party/*'           # submodules: vendored, formatted by their own repos
+    '*/build/*'                 # build output at ANY depth: the root Flutter/cargokit tree
+                                # AND e.g. packages/*/example/build from a local example
+                                # build (find walks the working tree, not git ls-files -
+                                # no hand-maintained CMake lives under a build/ dir)
+    '*/ephemeral/*'             # Flutter tool rewrites these on every pub get
+    '*/.plugin_symlinks/*'      # pub's junction farm into packages/
+    '*/.cxx/*'                  # Android Gradle CMake build trees (compiler probes etc.)
+    '*/flutter/CMakeLists.txt'  # header: "It should not be edited."
+    '*/generated_plugins.cmake' # header: "Generated file, do not edit."
+    './rust_builder/cargokit/*' # vendored Cargokit (rust_builder/cargokit/README)
+    './.venv/*'                 # the venv this very gate bootstraps
+  )
+  local -a cmake_files
+  mapfile -t cmake_files < <(code_quality_find_cmake_files | sort)
+  if [[ ${#cmake_files[@]} -eq 0 ]]; then
+    echo "Error: the CMake format gate matched no files; the exclude globs are over-broad." >&2
+    return 1
+  fi
+
+  echo "[Info] cmake-format --check on ${#cmake_files[@]} CMake files."
+  run_check_cmd "$strict_mode" cmake-format -c .cmake-format.yaml --check "${cmake_files[@]}"
+}
+
 # AGENTS.md § 3.
 setup_compiler_cache() {
   containerhub_source linux/scripts/01-core/compiler-cache.sh
