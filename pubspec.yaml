@@ -56,91 +56,36 @@ dev_dependencies:
 flutter:
   generate: true
   uses-material-design: true
+  # The shared corpus (images, blog/footer documents, Montserrat + Roboto) now
+  # lives in the anthology package and is referenced as
+  # `packages/anthology/assets/...`. Only assets unique to this app remain here.
   assets:
     - assets/images/
-    - assets/images/Pages/AboutMe/
-    - assets/images/Pages/AboutMe/Bewerbungsbilder/
-    - assets/images/Pages/Data/
-    - assets/images/Pages/Error/
-    - assets/images/Pages/Blog/
-    - assets/images/Pages/Blog/VulkanRenderer/
-    - assets/images/cats/
-    - assets/images/aiBlog/
-    - assets/images/books/
     - assets/documents/
     - assets/documents/footer/
-    - assets/documents/blog/
     - assets/data/
     - assets/settings/
     - assets/settings/user_settings/
-    - assets/fonts/
 
-fonts:
-  - family: Montserrat
-    fonts:
-      - asset: assets/fonts/Montserrat/Montserrat-Thin.ttf
-      - asset: assets/fonts/Montserrat/Montserrat-ExtraLight.ttf
-      - asset: assets/fonts/Montserrat/Montserrat-Light.ttf
-      - asset: assets/fonts/Montserrat/Montserrat-Regular.ttf
-      - asset: assets/fonts/Montserrat/Montserrat-Medium.ttf
-      - asset: assets/fonts/Montserrat/Montserrat-SemiBold.ttf
-      - asset: assets/fonts/Montserrat/Montserrat-Bold.ttf
-      - asset: assets/fonts/Montserrat/Montserrat-ExtraBold.ttf
-      - asset: assets/fonts/Montserrat/Montserrat-Black.ttf
-      - asset: assets/fonts/Montserrat/Montserrat-ThinItalic.ttf
-        style: italic
-      - asset: assets/fonts/Montserrat/Montserrat-ExtraLightItalic.ttf
-        style: italic
-      - asset: assets/fonts/Montserrat/Montserrat-LightItalic.ttf
-        style: italic
-      - asset: assets/fonts/Montserrat/Montserrat-Italic.ttf
-        style: italic
-      - asset: assets/fonts/Montserrat/Montserrat-MediumItalic.ttf
-        style: italic
-      - asset: assets/fonts/Montserrat/Montserrat-SemiBoldItalic.ttf
-        style: italic
-      - asset: assets/fonts/Montserrat/Montserrat-BoldItalic.ttf
-        style: italic
-      - asset: assets/fonts/Montserrat/Montserrat-ExtraBoldItalic.ttf
-        style: italic
-      - asset: assets/fonts/Montserrat/Montserrat-BlackItalic.ttf
-        style: italic
-  - family: Roboto
-    fonts:
-      - asset: assets/fonts/Roboto/Roboto-Black.ttf
-      - asset: assets/fonts/Roboto/Roboto-BlackItalic.ttf
-        style: italic
-      - asset: assets/fonts/Roboto/Roboto-Bold.ttf
-        weight: 700
-      - asset: assets/fonts/Roboto/Roboto-BoldItalic.ttf
-        style: italic
-        weight: 700
-      - asset: assets/fonts/Roboto/Roboto-Italic.ttf
-        style: italic
-      - asset: assets/fonts/Roboto/Roboto-Light.ttf
-      - asset: assets/fonts/Roboto/Roboto-LightItalic.ttf
-        style: italic
-      - asset: assets/fonts/Roboto/Roboto-Medium.ttf
-        weight: 400
-      - asset: assets/fonts/Roboto/Roboto-MediumItalic.ttf
-        weight: 400
-        style: italic
-      - asset: assets/fonts/Roboto/Roboto-Regular.ttf
-      - asset: assets/fonts/Roboto/Roboto-Thin.ttf
-        weight: 200
-      - asset: assets/fonts/Roboto/Roboto-ThinItalic.ttf
-        weight: 200
-        style: italic
-  - family: Noto Sans
-    fonts:
-      - asset: assets/fonts/Noto_Sans/static/NotoSans-Regular.ttf
-      - asset: assets/fonts/Noto_Sans/static/NotoSans-Bold.ttf
-        weight: 700
-      - asset: assets/fonts/Noto_Sans/static/NotoSans-Italic.ttf
-        style: italic
-      - asset: assets/fonts/Noto_Sans/static/NotoSans-BoldItalic.ttf
-        style: italic
-        weight: 700
+  # NESTED under `flutter:` on purpose. This block used to sit at column 0 - a
+  # top-level pubspec key - which Flutter silently ignores, so FontManifest.json
+  # never carried a single custom face and `fontFamily: 'Roboto'` in main.dart
+  # fell back to the platform default. Montserrat and Roboto are declared by the
+  # anthology package now (as `packages/anthology/<family>`); Noto Sans is
+  # OmniAccelerANT-only, so it stays here - correctly nested.
+  fonts:
+    - family: Noto Sans
+      fonts:
+        - asset: assets/fonts/Noto_Sans/static/NotoSans-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/Noto_Sans/static/NotoSans-Italic.ttf
+          weight: 400
+          style: italic
+        - asset: assets/fonts/Noto_Sans/static/NotoSans-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/Noto_Sans/static/NotoSans-BoldItalic.ttf
+          weight: 700
+          style: italic
 
 flutter_launcher_icons:
   android: true

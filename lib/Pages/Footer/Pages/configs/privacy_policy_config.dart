@@ -1,11 +1,11 @@
+import 'package:anthology/l10n/anthology_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:anthology/Pages/Footer/footer_page_config.dart';
-import 'package:omni_accelerant/l10n/app_localizations.dart';
 
 class PrivacyPolicyFooterConfig extends FooterPageConfig {
   @override
   String getHeading(BuildContext context) {
-    return AppLocalizations.of(context)!.privacyPolicy;
+    return AnthologyLocalizations.of(context)!.privacyPolicy;
   }
 
   @override
@@ -15,11 +15,11 @@ class PrivacyPolicyFooterConfig extends FooterPageConfig {
 
   @override
   String getFilePathDe() {
-    return 'assets/documents/footer/privacyPolicyDe.md';
+    return 'packages/anthology/assets/documents/footer/privacyPolicyDe.md';
   }
 
   @override
   String getFilePathEn() {
-    return 'assets/documents/footer/privacyPolicyEn.md';
+    return 'packages/anthology/assets/documents/footer/privacyPolicyEn.md';
   }
 }

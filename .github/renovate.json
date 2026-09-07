@@ -1,0 +1,10 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "description": [
+    "OmniAccelerANT's Renovate config. Everything shared lives in the preset at ContainerHub's repository root (default.json); the one line below is the whole adoption.",
+    "The part this repo could not get any other way is the git-submodules manager, which Renovate DISABLES by default: all four gitlinks here (ANThology, ContainerHub, OxidANT, AccelerANTgine) have been unwatched since the day they were added, and three of them are owned and fast-moving. Each has a `branch =` entry in .gitmodules, which is what the manager needs to know what tip to bump towards.",
+    "Renovate resolves `github>Kataglyphis/ContainerHub` from ContainerHub's DEFAULT BRANCH, so a preset change reaches this repo only after it is merged there - and this file is inert until the Renovate GitHub App is actually installed on this repository. No bot has ever landed a commit here.",
+    ".github/dependabot.yml is deliberately still present; see the comment at its top for the hand-over condition."
+  ],
+  "extends": ["github>Kataglyphis/ContainerHub"]
+}

@@ -1,11 +1,11 @@
+import 'package:anthology/l10n/anthology_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:anthology/Pages/Footer/footer_page_config.dart';
-import 'package:omni_accelerant/l10n/app_localizations.dart';
 
 class ImprintFooterConfig extends FooterPageConfig {
   @override
   String getHeading(BuildContext context) {
-    return AppLocalizations.of(context)!.imprint;
+    return AnthologyLocalizations.of(context)!.imprint;
   }
 
   @override
@@ -15,11 +15,11 @@ class ImprintFooterConfig extends FooterPageConfig {
 
   @override
   String getFilePathDe() {
-    return 'assets/documents/footer/imprintDe.md';
+    return 'packages/anthology/assets/documents/footer/imprintDe.md';
   }
 
   @override
   String getFilePathEn() {
-    return 'assets/documents/footer/imprintEn.md';
+    return 'packages/anthology/assets/documents/footer/imprintEn.md';
   }
 }

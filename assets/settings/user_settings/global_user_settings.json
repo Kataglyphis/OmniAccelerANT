@@ -5,7 +5,7 @@
     "firstName": "Jonas",
     "lastName": "Heinle",
     "assetPathImgOfMe":
-        "assets/images/Pages/AboutMe/Bewerbungsbilder/a95a64ca_runterskaliert.jpg",
+        "packages/anthology/assets/images/Pages/AboutMe/Bewerbungsbilder/a95a64ca_runterskaliert.jpg",
     "aboutMeFileDe": "assets/settings/user_settings/user_skills_de.json",
     "aboutMeFileEn": "assets/settings/user_settings/user_skills_en.json",
 	"socialMediaLinksConfig": {

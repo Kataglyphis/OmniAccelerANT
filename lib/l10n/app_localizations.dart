@@ -98,12 +98,6 @@ abstract class AppLocalizations {
     Locale('en'),
   ];
 
-  /// Switch between dark and light mode!
-  ///
-  /// In en, this message translates to:
-  /// **'Brightness'**
-  String get brightness;
-
   /// No description provided for @homepage.
   ///
   /// In en, this message translates to:
@@ -121,18 +115,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Quotations'**
   String get quotations;
-
-  /// No description provided for @blockEntryOverview.
-  ///
-  /// In en, this message translates to:
-  /// **'Overview of all my blog posts'**
-  String get blockEntryOverview;
-
-  /// No description provided for @blockEntryOverviewDescription.
-  ///
-  /// In en, this message translates to:
-  /// **'Does not include reviews of books/movies/games'**
-  String get blockEntryOverviewDescription;
 
   /// No description provided for @books.
   ///
@@ -188,84 +170,6 @@ abstract class AppLocalizations {
   /// **'Collection of various quotations I am inspired by or just can laugh about'**
   String get quotationsDescription;
 
-  /// No description provided for @switchLang.
-  ///
-  /// In en, this message translates to:
-  /// **'Switch (DE/EN)'**
-  String get switchLang;
-
-  /// No description provided for @mailMe.
-  ///
-  /// In en, this message translates to:
-  /// **'Mail Me'**
-  String get mailMe;
-
-  /// No description provided for @shortDescriptionTextMyPersona.
-  ///
-  /// In en, this message translates to:
-  /// **'Interested in many things. I love breathing life into artificial neurons.'**
-  String get shortDescriptionTextMyPersona;
-
-  /// No description provided for @sleep.
-  ///
-  /// In en, this message translates to:
-  /// **'Sleep'**
-  String get sleep;
-
-  /// No description provided for @studying.
-  ///
-  /// In en, this message translates to:
-  /// **'Studying'**
-  String get studying;
-
-  /// No description provided for @sports.
-  ///
-  /// In en, this message translates to:
-  /// **'Sports'**
-  String get sports;
-
-  /// No description provided for @meditation.
-  ///
-  /// In en, this message translates to:
-  /// **'Meditation'**
-  String get meditation;
-
-  /// No description provided for @guitar.
-  ///
-  /// In en, this message translates to:
-  /// **'Guitar'**
-  String get guitar;
-
-  /// No description provided for @familyFriends.
-  ///
-  /// In en, this message translates to:
-  /// **'Family&Friends'**
-  String get familyFriends;
-
-  /// No description provided for @spendCoffe.
-  ///
-  /// In en, this message translates to:
-  /// **'You can get me some coffee'**
-  String get spendCoffe;
-
-  /// No description provided for @toogleLanguage.
-  ///
-  /// In en, this message translates to:
-  /// **'Toggle language'**
-  String get toogleLanguage;
-
-  /// No description provided for @toogleBrightness.
-  ///
-  /// In en, this message translates to:
-  /// **'Toggle brightness'**
-  String get toogleBrightness;
-
-  /// No description provided for @selectSeedColor.
-  ///
-  /// In en, this message translates to:
-  /// **'Select a seed color'**
-  String get selectSeedColor;
-
   /// No description provided for @aiPlayground.
   ///
   /// In en, this message translates to:
@@ -278,95 +182,11 @@ abstract class AppLocalizations {
   /// **'Rendering Playground'**
   String get renderingPlayground;
 
-  /// No description provided for @playgroundDescription.
-  ///
-  /// In en, this message translates to:
-  /// **'Visit my code repo'**
-  String get playgroundDescription;
-
-  /// No description provided for @myPerfectDay.
-  ///
-  /// In en, this message translates to:
-  /// **'My perfect Day'**
-  String get myPerfectDay;
-
-  /// No description provided for @imprint.
-  ///
-  /// In en, this message translates to:
-  /// **'Imprint'**
-  String get imprint;
-
-  /// No description provided for @contact.
-  ///
-  /// In en, this message translates to:
-  /// **'Contact'**
-  String get contact;
-
-  /// No description provided for @privacyPolicy.
-  ///
-  /// In en, this message translates to:
-  /// **'Privacy policy'**
-  String get privacyPolicy;
-
-  /// No description provided for @cookieStatement.
-  ///
-  /// In en, this message translates to:
-  /// **'Cookie statement'**
-  String get cookieStatement;
-
-  /// No description provided for @declarationOnAccessibility.
-  ///
-  /// In en, this message translates to:
-  /// **'Declaration on accessibility'**
-  String get declarationOnAccessibility;
-
-  /// No description provided for @disclaimer.
-  ///
-  /// In en, this message translates to:
-  /// **'Disclaimer: I accept no liability for the content of external links.'**
-  String get disclaimer;
-
-  /// No description provided for @copyright.
-  ///
-  /// In en, this message translates to:
-  /// **'Copyright © 2024 Jonas Heinle. \nAll rights reserved.'**
-  String get copyright;
-
-  /// No description provided for @copyrightFooterTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Copyright'**
-  String get copyrightFooterTitle;
-
-  /// No description provided for @visitBlogEntry.
-  ///
-  /// In en, this message translates to:
-  /// **'Visit blog entry'**
-  String get visitBlogEntry;
-
-  /// No description provided for @externalLinks.
-  ///
-  /// In en, this message translates to:
-  /// **'External links'**
-  String get externalLinks;
-
-  /// No description provided for @lastModified.
-  ///
-  /// In en, this message translates to:
-  /// **'Last modified'**
-  String get lastModified;
-
   /// No description provided for @follow.
   ///
   /// In en, this message translates to:
   /// **'Visit page'**
   String get follow;
-
-  /// No description provided for @entryRedirectText.
-  ///
-  /// In en, this message translates to:
-  /// **'Read more'**
-  String get entryRedirectText;
 
   /// No description provided for @rerunSqliteHealthcheck.
   ///

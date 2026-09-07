@@ -9,3 +9,17 @@
 # freezing *.cmake (its backlog #55).
 CMakeLists.txt text eol=lf
 *.cmake text eol=lf
+
+# Windows-only scripts stay CRLF-friendly; they never run under bash. Without a
+# rule the 7 first-party .ps1/.psm1 files checked out in a mixed w/lf + w/crlf
+# split (`git ls-files --eol '*.ps1'`), because nothing pinned them and each
+# client's core.autocrlf decided per file. Same convention as
+# BeschleunigerBallett, OrchestrANT and jotrockenmitlocken. (ContainerHub uses
+# `-text` instead, but only because its scripts are COPY'd into Docker images
+# where the byte content is a layer-cache key; Omni ships no Dockerfile.)
+*.ps1   text eol=crlf
+*.psm1  text eol=crlf
+*.psd1  text eol=crlf
+
+# exclude vendored trees from language analysis
+third_party/** linguist-vendored

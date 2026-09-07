@@ -30,6 +30,39 @@ jobs:
           exclude-submodules: |
             third_party/DocumANTation
 
+      # PowerShell parse gate, on the HOST, before the container build starts.
+      # Build-Windows.ps1 is 723 lines and runs INSIDE the container, so a bare
+      # syntax error in it is currently discovered only once docker has pulled
+      # ~54 GB and reached that RUN. Invoke-Lint.ps1's first pass is
+      # [Parser]::ParseFile over every script plus the AST traps
+      # (comma-attribute quoting, [switch] shadowing, glued parameter tokens);
+      # PSScriptAnalyzer runs as its advisory second pass, which is the script's
+      # own default - `-FailOnAnalyzer` is a separate, deliberate decision and is
+      # not being smuggled in here.
+      #
+      # working-directory is ABSOLUTELY LOAD-BEARING. `short-path-target: /d/ws`
+      # above means prepare-windows-container-host's own actions/checkout takes
+      # NO submodules; the complete tree - third_party/ContainerHub, and so this
+      # very script - exists only under the short-path clone the action reports
+      # as steps.prep.outputs.workspace (D:\ws). Run this from the default
+      # ${{ github.workspace }} instead and `pwsh -File` cannot even find
+      # Invoke-Lint.ps1; wire it against a tree that DOES have the hub but not
+      # this repo's scripts and it reports green over nothing. Same rule as the
+      # artifact paths below.
+      #
+      # -Path scripts is this repo's OWN PowerShell (scripts/windows/*.ps1,
+      # scripts/windows/modules/*.psm1, scripts/linux/Invoke-LinuxLane.ps1) and
+      # deliberately excludes rust_builder/cargokit/cmake/resolve_symlinks.ps1,
+      # vendored upstream code AGENTS.md § 4 already exempts from the CMake
+      # format gate for the same reason. The PSScriptAnalyzer ruleset is NOT
+      # copied here: Invoke-Lint.ps1 resolves it against its own $PSScriptRoot,
+      # so the hub hands it over by reference.
+      - name: Lint PowerShell (parse + AST traps)
+        working-directory: ${{ steps.prep.outputs.workspace }}
+        run: >-
+          pwsh -File third_party/ContainerHub/windows/scripts/Invoke-Lint.ps1
+          -Path scripts
+
       - name: Run container
         uses: Kataglyphis/ContainerHub/.github/actions/run-in-windows-container@main
         with:

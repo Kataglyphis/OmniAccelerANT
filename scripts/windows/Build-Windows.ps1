@@ -55,6 +55,7 @@ Import-BuildModule @(
     'WindowsFlutter.Common'     # plugin symlink + permission_handler patches, host artifact sync
     'WindowsCMake.Common'       # Remove-BuildRootSafe
     'WindowsGstPlugins.Common'  # Assert-PkgConfigModule
+    'WindowsUv.Common'          # Initialize-UvVenv + Install-UvRequirements (before its dependents)
     'WindowsFormatting.Common'  # Get-ProjectDartFiles
     'WindowsPaths.Common'       # project-local: this repo's Flutter windows/x64 layout
 )
@@ -287,10 +288,35 @@ try {
                     throw ".cmake-format.yaml is missing at the repo root; without it cmake-format silently uses built-in defaults. Restore the consumer copy with ContainerHub shared/config/Sync-SharedConfig.ps1 -Write (AGENTS.md paragraph 4)."
                 }
 
-                $venvPython = Initialize-UvVenvPython -Context $context -WorkspacePath $workspace
+                # Initialize-UvVenvPython is NOT used: it hard-codes
+                # <workspace>/requirements.txt and this repo carries no root
+                # requirements file. Given none it logs "skipping dependency
+                # sync" and returns an EMPTY venv, so the throw below would be
+                # the first sign anything went wrong. Drive the same upstream
+                # primitives directly against ContainerHub's pinned bootstrap
+                # set instead — the identical file run_cmake_format_check feeds
+                # uv on Linux (scripts/linux/lib/container-steps.sh).
+                if (-not (Get-Command 'uv' -ErrorAction SilentlyContinue)) {
+                    throw 'uv not found on PATH. Install Astral uv before running formatting steps.'
+                }
+
+                $cmakeFormatRequirements = Join-Path $workspace 'third_party/ContainerHub/linux/scripts/cmake-format.requirements.txt'
+                if (-not (Test-Path -LiteralPath $cmakeFormatRequirements -PathType Leaf)) {
+                    throw "cmake-format bootstrap pins not found: $cmakeFormatRequirements. If the whole directory is missing the submodule is not checked out: git submodule update --init --recursive third_party/ContainerHub."
+                }
+
+                $uvLogInfo = { param([string]$Message) Write-BuildLog -Context $context -Message $Message }
+                $uvLogWarning = { param([string]$Message) Write-BuildLogWarning -Context $context -Message $Message }
+                $uvRunner = { param([string]$File, [string[]]$Parameters) Invoke-BuildExternal -Context $context -File $File -Parameters $Parameters | Out-Null }
+
+                $venvPython = Initialize-UvVenv -Workspace $workspace -EnvName '.venv' `
+                    -CommandRunner $uvRunner -LogInfo $uvLogInfo -LogWarning $uvLogWarning
+                Install-UvRequirements -VenvPython $venvPython -RequirementsPath $cmakeFormatRequirements `
+                    -CommandRunner $uvRunner -LogInfo $uvLogInfo
+
                 $cmakeFormatExe = Join-Path (Split-Path $venvPython -Parent) 'cmake-format.exe'
                 if (-not (Test-Path -LiteralPath $cmakeFormatExe -PathType Leaf)) {
-                    throw "cmake-format not found in venv: $cmakeFormatExe (cmake-format and pyyaml must be in requirements.txt)."
+                    throw "cmake-format not found in venv: $cmakeFormatExe (expected from $cmakeFormatRequirements)."
                 }
                 Invoke-BuildExternal -Context $context -File $cmakeFormatExe -Parameters (@('-c', $formatConfig, '--check') + $cmakeFiles)
             } finally {

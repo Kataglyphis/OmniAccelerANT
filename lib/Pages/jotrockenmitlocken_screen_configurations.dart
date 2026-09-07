@@ -1,7 +1,7 @@
 import 'package:omni_accelerant/Pages/AboutMePage/about_me_page_navbar_config.dart';
 import 'package:omni_accelerant/Pages/DataPage/BlockOverviewPage/block_overview_page_config.dart';
 import 'package:omni_accelerant/Pages/StreamPage/stream_page_navbar_config.dart';
-import 'package:omni_accelerant/Pages/ErrorPage/error_page_stateful_branch_info_provider.dart';
+import 'package:anthology/Pages/ErrorPage/error_page_stateful_branch_info_provider.dart';
 import 'package:omni_accelerant/Pages/Footer/Pages/configs/contact_footer_config.dart';
 import 'package:omni_accelerant/Pages/Footer/Pages/configs/cookie_declaration_footer_config.dart';
 import 'package:omni_accelerant/Pages/Footer/Pages/configs/copyright_footer_config.dart';
@@ -10,10 +10,10 @@ import 'package:omni_accelerant/Pages/Footer/Pages/configs/imprint_footer_config
 import 'package:omni_accelerant/Pages/Footer/Pages/configs/open_source_licenses_footer_config.dart';
 import 'package:omni_accelerant/Pages/Footer/Pages/configs/privacy_policy_config.dart';
 import 'package:omni_accelerant/Pages/LandingPage/landing_page_navbar_page_config.dart';
-import 'package:omni_accelerant/Pages/blog_dependent_screen_configurations.dart';
-import 'package:omni_accelerant/blog_page_config.dart';
+import 'package:anthology/Pages/blog_dependent_screen_configurations.dart';
+import 'package:anthology/blog_page_config.dart';
 import 'package:anthology/Pages/Footer/footer_page_config.dart';
-import 'package:omni_accelerant/my_two_cents_config.dart';
+import 'package:anthology/my_two_cents_config.dart';
 import 'package:anthology/Pages/navbar_page_config.dart';
 import 'package:anthology/Pages/stateful_branch_info_provider.dart';
 import 'package:anthology/Routing/screen_configurations.dart';
