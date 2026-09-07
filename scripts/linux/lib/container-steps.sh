@@ -73,23 +73,29 @@ run_cmake_format_check() {
   local strict_mode="${1:-0}"
   containerhub_source linux/scripts/lib/code-quality.sh
 
-  # cmake-format from PATH if the image ships it, else a uv venv fed by the
-  # root requirements.txt — same provisioning the Windows step uses.
+  # cmake-format from PATH if the image ships it, else a uv venv fed by
+  # ContainerHub's pinned bootstrap set — same provisioning the Windows step
+  # uses. This repo carries no root requirements.txt: the pins (cmake-format
+  # plus the pyyaml it cannot read .cmake-format.yaml without) live upstream in
+  # linux/scripts/cmake-format.requirements.txt, so both platforms and every
+  # consumer repo install the same versions. docs/source/project-operations.md.
   if ! command -v cmake-format >/dev/null 2>&1; then
     containerhub_source linux/scripts/01-core/python_uv.sh
     if ! command -v uv >/dev/null 2>&1; then
       echo "Error: cmake-format is not on PATH and uv is missing, so it cannot be bootstrapped." >&2
       return 1
     fi
+    local cmake_format_requirements
+    cmake_format_requirements="$(containerhub_path linux/scripts/cmake-format.requirements.txt)" || return 1
     # Empty python version: honour UV_PYTHON, which the CI images export.
     # Only create when absent — uv_venv_create deletes an existing venv.
     if [[ ! -d .venv ]]; then
       uv_venv_create .venv ""
     fi
-    uv_pip_install_requirements .venv requirements.txt
+    uv_pip_install_requirements .venv "$cmake_format_requirements"
     uv_venv_activate .venv
     if ! command -v cmake-format >/dev/null 2>&1; then
-      echo "Error: cmake-format still unavailable after installing requirements.txt into .venv." >&2
+      echo "Error: cmake-format still unavailable after installing ${cmake_format_requirements} into .venv." >&2
       return 1
     fi
   fi

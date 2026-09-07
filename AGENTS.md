@@ -765,8 +765,13 @@ with `pwsh -File third_party/ContainerHub/shared/config/Sync-SharedConfig.ps1
 list is deliberate, not drift: of the five shared configs this Flutter app
 carries only `.cmake-format.yaml` — nothing here runs clang-format, clang-tidy,
 gcovr or the C++ pre-commit hooks. cmake-format itself comes from `PATH` or a
-uv venv fed by the root `requirements.txt` (`pyyaml` sits there because
-cmake-format cannot read its own YAML config without it). The config's
+uv venv fed by ContainerHub's pinned
+`third_party/ContainerHub/linux/scripts/cmake-format.requirements.txt` — there
+is no root `requirements.txt` (`pyyaml` sits in that pinned set because
+cmake-format cannot read its own YAML config without it). Both bootstraps read
+that one file: `run_cmake_format_check` in
+`scripts/linux/lib/container-steps.sh` and the "CMake Format Verification" step
+in `scripts/windows/Build-Windows.ps1`. The config's
 `line_ending: unix` is why `.gitattributes` pins `CMakeLists.txt` and `*.cmake`
 to LF — a `core.autocrlf=true` checkout would otherwise fail `--check` on every
 file.

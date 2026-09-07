@@ -49,7 +49,7 @@ The shared Sphinx theme/template that used to live in ContainerHub
 (`sphinx-kataglyphis-theme/` + `docs/source_templates/`) was moved into the
 [DocumANTation](https://github.com/Kataglyphis/DocumANTation) repository.
 Consumers vendor it as a submodule (`third_party/DocumANTation`) and install it via
-`requirements.txt`:
+a docs requirements file:
 
 ```text
 -e ./third_party/DocumANTation/sphinx-kataglyphis-theme
@@ -58,6 +58,13 @@ Consumers vendor it as a submodule (`third_party/DocumANTation`) and install it 
 `conf.py` then reduces to `from sphinx_kataglyphis import setup_theme; setup_theme(globals(), ...)`.
 This repo's `docs/source/conf.py` still uses the standalone `press` theme; follow the pattern
 above (see ContainerHub's `docs/conf.py`) when migrating.
+
+This repo no longer carries a root `requirements.txt`: the only thing it ever fed was
+the cmake-format gate, which now takes its pinned bootstrap set from
+`third_party/ContainerHub/linux/scripts/cmake-format.requirements.txt`. When the theme
+migration happens, add a docs-scoped requirements file (e.g. `docs/requirements.txt`)
+rather than resurrecting the root one — an unpinned root file next to a pinned shared
+one is exactly the drift this removal closes.
 
 ## CI/CD Notes
 

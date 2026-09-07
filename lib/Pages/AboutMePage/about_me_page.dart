@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
-import 'package:omni_accelerant/Pages/AboutMePage/Widgets/about_me_table.dart';
-import 'package:omni_accelerant/Pages/AboutMePage/Widgets/skill_table.dart';
+import 'package:anthology/Pages/AboutMePage/Widgets/about_me_table.dart';
+import 'package:anthology/Widgets/skill_table.dart';
 import 'package:omni_accelerant/Pages/AboutMePage/Widgets/sqlite3_healthcheck_widget.dart';
 import 'package:omni_accelerant/src/rust/api/simple.dart';
 import 'package:omni_accelerant/utils/locale_utils.dart';

@@ -1,17 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:omni_accelerant/Pages/AboutMePage/about_me_page.dart';
 import 'package:omni_accelerant/Pages/Blog/blog_page.dart';
-import 'package:omni_accelerant/Pages/DataPage/BlockOverviewPage/block_overview_page.dart';
+import 'package:anthology/Pages/DataPage/BlockOverviewPage/block_overview_page.dart';
 import 'package:omni_accelerant/Pages/DataPage/media_critics_page.dart';
 import 'package:omni_accelerant/Pages/StreamPage/stream_page.dart';
-import 'package:omni_accelerant/Pages/ErrorPage/error_page.dart';
+import 'package:anthology/Pages/ErrorPage/error_page.dart';
 import 'package:omni_accelerant/blog_dependent_app_attributes.dart';
 import 'package:anthology/Pages/Footer/footer_page.dart';
-import 'package:omni_accelerant/Pages/LandingPage/landing_page.dart';
+import 'package:anthology/Pages/LandingPage/landing_page.dart';
 import 'package:anthology/Pages/Footer/footer.dart';
 import 'package:anthology/Pages/Footer/footer_page_config.dart';
-import 'package:omni_accelerant/blog_page_config.dart';
-import 'package:omni_accelerant/my_two_cents_config.dart';
+import 'package:anthology/blog_page_config.dart';
+import 'package:anthology/my_two_cents_config.dart';
 import 'package:anthology/Routing/router_creater.dart';
 import 'package:anthology/app_attributes.dart';
 import 'package:anthology/Pages/stateful_branch_info_provider.dart';
@@ -38,7 +38,7 @@ import 'package:anthology/Pages/stateful_branch_info_provider.dart';
 /// final router = routesCreator.getRouterConfig(appAttributes, ...);
 /// ```
 class JotrockenMitLockenRoutes extends RoutesCreator {
-  BlogDependentAppAttributes blogDependentAppAttributes;
+  OmniBlogDependentAppAttributes blogDependentAppAttributes;
 
   JotrockenMitLockenRoutes({required this.blogDependentAppAttributes});
 

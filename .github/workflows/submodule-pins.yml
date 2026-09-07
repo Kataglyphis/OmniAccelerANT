@@ -1,0 +1,75 @@
+# .github/workflows/submodule-pins.yml
+#
+# Asserts that every submodule checkout sits at the commit this repository has
+# RECORDED for it, and that the recorded commit is reachable from the
+# submodule's remote. Nothing in this repo has ever checked either.
+#
+# Why it matters more here than almost anywhere else: OmniAccelerANT has four
+# submodules and three of them (ContainerHub, OxidANT, AccelerANTgine) are
+# owned and fast-moving, so a working tree that has quietly walked forward from
+# its gitlink is compiling something other than what is committed - and `git
+# submodule status` marks that only with a '+' that is easy to miss. The
+# reachability half catches the other direction: a gitlink bumped to a commit
+# that was never pushed builds on the machine that made it and on no other.
+#
+# The suite is ContainerHub's, run FROM the submodule and never copied in
+# (shared/windows/tests/Submodule.Pins.Tests.ps1, promoted 2026-09-07). It takes
+# the superproject root as a parameter; the composite action can only pass a
+# path, so the root arrives through the environment below.
+#
+# Runner is windows-2025, matching this repo's other Windows lane and the hub's
+# own copy of this workflow, because run-pester-suite installs Pester 3.4.0 by
+# default and 3.4.0 is a Windows PowerShell-era module. The suite itself is
+# dialect-agnostic (it asserts with `throw`, not `Should`), so this can move to
+# a cheaper runner the day the action is told a Core-compatible version.
+name: Submodule pins
+
+on:
+  push:
+    branches: ["main", "develop"]
+    paths:
+      - '.gitmodules'
+      - 'third_party/**'
+      - '.github/workflows/submodule-pins.yml'
+  pull_request:
+    branches: ["main", "develop"]
+    paths:
+      - '.gitmodules'
+      - 'third_party/**'
+      - '.github/workflows/submodule-pins.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: submodule-pins-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  pins:
+    name: submodule pins sit at their recorded, restorable commits
+    runs-on: windows-2025
+    timeout-minutes: 15
+    env:
+      # The suite would fall back to GITHUB_WORKSPACE on its own; naming it here
+      # keeps the wiring visible instead of implied. It must NOT be allowed to
+      # fall through to "the git top level of the current directory" - from
+      # inside the ContainerHub submodule that resolves to ContainerHub, not to
+      # this superproject.
+      CONTAINERHUB_PIN_CHECK_REPO_ROOT: ${{ github.workspace }}
+    steps:
+      # `submodules: true`, top-level only, matching the suite's non-recursive
+      # default - recursing over working trees a top-level checkout never
+      # fetched would report every one of them as missing. Without submodules at
+      # all the suite fails on its own vacuity guard rather than passing over an
+      # empty tree, which is the intended behaviour, not something to work
+      # around by dropping this input.
+      - name: Checkout
+        uses: actions/checkout@v7.0.1
+        with:
+          submodules: true
+
+      - name: Submodule pins sit at their recorded, restorable commits
+        uses: Kataglyphis/ContainerHub/.github/actions/run-pester-suite@main
+        with:
+          path: third_party/ContainerHub/shared/windows/tests/Submodule.Pins.Tests.ps1

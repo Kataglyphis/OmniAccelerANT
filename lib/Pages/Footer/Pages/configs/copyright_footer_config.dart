@@ -1,11 +1,11 @@
+import 'package:anthology/l10n/anthology_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:anthology/Pages/Footer/footer_page_config.dart';
-import 'package:omni_accelerant/l10n/app_localizations.dart';
 
 class CopyRightFooterConfig extends FooterPageConfig {
   @override
   String getHeading(BuildContext context) {
-    return AppLocalizations.of(context)!.copyrightFooterTitle;
+    return AnthologyLocalizations.of(context)!.copyrightFooterTitle;
   }
 
   @override
@@ -15,11 +15,11 @@ class CopyRightFooterConfig extends FooterPageConfig {
 
   @override
   String getFilePathDe() {
-    return 'assets/documents/footer/copyRightDe.md';
+    return 'packages/anthology/assets/documents/footer/copyRightDe.md';
   }
 
   @override
   String getFilePathEn() {
-    return 'assets/documents/footer/copyRightEn.md';
+    return 'packages/anthology/assets/documents/footer/copyRightEn.md';
   }
 }

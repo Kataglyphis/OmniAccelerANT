@@ -12,6 +12,107 @@ on:
     branches: ["main", "develop"]
 
 jobs:
+  # ---------------------------------------------------------------------------
+  # Host-side gates: ContainerHub's shared config drift check, shellcheck,
+  # actionlint and the gitleaks secret scan. Its own job on the GITHUB-HOSTED
+  # runner, deliberately NOT inside the container and NOT a step of `build`:
+  #
+  #   * pwsh. Sync-SharedConfig.ps1 is PowerShell and NONE of the hub's ten
+  #     Linux images ship pwsh, so a step inside run-in-linux-container could
+  #     only ever die on "pwsh: not found". pwsh IS preinstalled on the hosted
+  #     ubuntu image, which is the whole reason this runs out here.
+  #   * once, not twice. `build` is a two-row matrix (x64 + arm64) and every one
+  #     of these gates is architecture-independent, so folding them into it
+  #     would double the work and tie a lint verdict to the arm64 row that
+  #     AGENTS.md § 3 records as currently unable to pass.
+  #   * no image pull. Nothing here needs the ~GB cross image, so this job
+  #     reports in about two minutes instead of after the pull.
+  #
+  # Coverage these add that nothing else here had: `.cmake-format.yaml` is
+  # Sync-SharedConfig-managed and AGENTS.md § 4 documents the -Check contract,
+  # but until now both gates that touched it only tested that the file EXISTS -
+  # it sat at the canonical blob by luck. And this repo holds FTP credentials, a
+  # GHCR PAT and Android keystore secrets with no secret gate at all.
+  lint:
+    name: shared-config + shell + workflow + secret gates
+    runs-on: ubuntu-26.04
+    steps:
+      # recursive, not `true`: Sync-SharedConfig and the three lint scripts all
+      # live in third_party/ContainerHub, which is top-level, but the secret
+      # scan below reads the whole tree and a half-checked-out submodule would
+      # change what it sees between runs.
+      - name: Checkout
+        uses: actions/checkout@v7.0.1
+        with:
+          submodules: recursive
+          fetch-depth: 1
+
+      # The -Ignore list is the one AGENTS.md § 4 documents and is deliberate,
+      # not drift: of the five shared configs this Flutter app carries only
+      # .cmake-format.yaml. Passing it as one comma-separated string is correct
+      # under `pwsh -File`, where every argument arrives as a plain string - the
+      # script splits it itself.
+      - name: Shared tool config matches ContainerHub (Sync-SharedConfig -Check)
+        run: >-
+          pwsh -File third_party/ContainerHub/shared/config/Sync-SharedConfig.ps1
+          -RepoRoot .
+          -Check
+          -Ignore '.clang-format,.clang-tidy,gcovr.cfg,.pre-commit-config.yaml'
+
+      # The file list comes from `git ls-files`, NOT from a glob. A bare
+      # `scripts/**/*.sh` does not recurse without `shopt -s globstar`: in this
+      # repo it expands to 3 of the 19 tracked scripts, and a gate that grades
+      # 3 files while reading like it grades all of them is worse than no gate.
+      #
+      # The empty-list guard is load-bearing for the same reason: lint-shell.sh
+      # called with ZERO file arguments falls back to its OWN default scope,
+      # which is ContainerHub's tree - it would pass, green, having checked none
+      # of this repository's scripts.
+      #
+      # Both exclusions are code this repo does not own and cannot fix:
+      # third_party/ is the submodules, rust_builder/cargokit/ is the vendored
+      # Cargokit tree Flutter's Rust plugin template drops in. Every other gate
+      # exempts the same pair - AGENTS.md paragraph 4, the cmake-format steps on
+      # both platforms (the Windows one spells it
+      # `-notmatch '^rust_builder/cargokit/'`), and the "Lint PowerShell" step
+      # in dart_on_native_windows.yml, which skips Cargokit's resolve_symlinks.ps1
+      # for exactly this reason. 19 tracked *.sh minus Cargokit's 2 leaves the 17
+      # this gate grades. A finding in there is fixed upstream, never by
+      # loosening a shellcheck flag here.
+      - name: Lint shell scripts (ContainerHub shellcheck gate)
+        shell: bash
+        run: |
+          mapfile -t files < <(git ls-files '*.sh' | grep -v -e '^third_party/' -e '^rust_builder/cargokit/')
+          if [ "${#files[@]}" -eq 0 ]; then
+            echo "::error::no tracked *.sh outside third_party/ and rust_builder/cargokit/ - the file list driving this gate is empty, refusing to report green over nothing"
+            exit 1
+          fi
+          echo "shellcheck scope (${#files[@]} files):"
+          printf '  %s\n' "${files[@]}"
+          bash third_party/ContainerHub/linux/scripts/lint-shell.sh "${files[@]}"
+
+      # The explicit root is required, not cosmetic: this script sits INSIDE the
+      # submodule, so its default root resolves to ContainerHub and it would
+      # lint the hub's workflows instead of this repo's - green, over nothing.
+      # .github/actionlint.yaml teaches the pinned actionlint the ubuntu-26.04
+      # runner labels it predates.
+      - name: Lint workflows (ContainerHub actionlint gate)
+        run: >-
+          bash third_party/ContainerHub/linux/scripts/lint-workflows.sh
+          "${{ github.workspace }}"
+
+      # Same argument, same reason. Expect a triage batch on the first run: no
+      # secret gate has ever run over this tree, and the scan currently includes
+      # the checked-out third_party/ submodules because this repo ships no
+      # .gitleaks.toml of its own yet (without one the hub's config is used).
+      # Any finding is either a real leak - rotate and purge - or a false
+      # positive that earns ONE narrow, commented allowlist entry in a root
+      # .gitleaks.toml. Do not answer it with a blanket ignore file.
+      - name: Secret scan (ContainerHub gitleaks gate)
+        run: >-
+          bash third_party/ContainerHub/linux/scripts/lint-secrets.sh
+          "${{ github.workspace }}"
+
   build:
     strategy:
       # The arm64 row currently cannot pass (the image tag is amd64-only), and
@@ -85,13 +186,13 @@ jobs:
           sarif_file: codeql-results
       
       - name: Upload artifact
-        uses: actions/upload-artifact@v6.0.0
+        uses: actions/upload-artifact@v7.0.1
         with:
           name: ${{ matrix.app_name }}-linux-${{ matrix.arch }}-tar
           path: out/${{ matrix.app_name }}-linux-${{ matrix.arch }}.tar.gz
 
       - name: Upload Linux packages
-        uses: actions/upload-artifact@v6.0.0
+        uses: actions/upload-artifact@v7.0.1
         with:
           name: ${{ matrix.app_name }}-linux-${{ matrix.arch }}-packages
           path: |
@@ -108,7 +209,7 @@ jobs:
 
       - name: 📂 Sync files to domain
         if: ${{ matrix.arch == 'x64' }}
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.6
+        uses: SamKirkland/FTP-Deploy-Action@v4.4.0
         with:
           server: ${{ secrets.SERVER }}
           username: ${{ secrets.USERNAME }}

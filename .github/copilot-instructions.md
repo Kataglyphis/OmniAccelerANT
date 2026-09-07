@@ -3,11 +3,7 @@
 > Datei: `.github/copilot-instructions.md`
 
 ## Zweck
-Diese Datei gibt GitHub Copilot (inkl. Copilot Chat) repository‑weite Hinweise, wie Vorschläge, Code‑Snippets und Antworten formuliert werden sollen. Sie ist auf ein Multi‑Language‑Projekt ausgelegt: **C/C++**, **Rust**, **Dart/Flutter** (plus Hinweise zu `uv`‑basierten I/O‑Bindings), sowie generelle Tools wie **ruff**. Ziel ist konsistente Code‑Qualität, starke Typisierung und sichere Vorschläge.
-
-Hinweis: In diesem Dokument meint „**uv**“ in zwei Kontexten unterschiedliche Dinge:
-- **Python `uv`** = Package Manager/Runner.
-- **libuv** = native I/O‑Library (siehe Abschnitt zu libuv‑Bindings).
+Diese Datei gibt GitHub Copilot (inkl. Copilot Chat) repository‑weite Hinweise, wie Vorschläge, Code‑Snippets und Antworten formuliert werden sollen. Sie ist auf ein Multi‑Language‑Projekt ausgelegt: **C/C++**, **Rust**, **Dart/Flutter**. Ziel ist konsistente Code‑Qualität, starke Typisierung und sichere Vorschläge.
 
 ---
 
@@ -82,16 +78,6 @@ Dieses Repository enthält native Komponenten (C/C++), Rust‑Bibliotheken, und 
   - Prefer `flutter_lints`/`lints` (projektabhängig) und behandle Analyzer‑Warnings in CI als Fehler.
 - Tests: `flutter_test` für Widgets + Unit‑Tests.
 
-**Python (uv + ruff + ty)**
-- Package Manager/Runner: **`uv`** (Dependencies gehören in `pyproject.toml`; Lockfile/Sync über `uv`).
-- Tools sollen über `uv run …` ausgeführt werden (kein „global pip“, kein ungepinnter Tool‑Mix).
-- Lint/Style: `ruff` (und optional Formatter nach Projektpolicy).
-- Typisierung: **`ty`** als Type Checker; Copilot soll Typannotationen vollständig ergänzen und `Any` vermeiden.
-- Type‑Safety Regeln:
-  - `from __future__ import annotations` bevorzugen (falls Projektpolicy), und öffentliche APIs vollständig annotieren.
-  - Keine stillen `Any`‑Leaks: `Any`/`cast()`/`# type: ignore` nur mit Begründung und so lokal wie möglich.
-  - Collections/Generics immer parametrisieren (`list[str]` statt `list`).
-
 ---
 
 ## CI / Checks (nur Kommandos, keine Workflow‑Änderungen)
@@ -101,11 +87,11 @@ Copilot soll bei „How to validate“ bevorzugt konkrete, reproduzierbare Komma
 - clang-tidy: nur wenn `compile_commands.json` vorhanden ist; keine massiven Auto‑Fixes ohne Review.
 - Rust: `cargo fmt --check`, `cargo clippy -- -D warnings`, `cargo test`.
 - Flutter: nicht direkt aufrufen, sondern `scripts/linux/run-native-linux.sh` (ruft ContainerHubs `flutter_checks.sh`) bzw. `scripts/windows/Build-Windows.ps1` (nutzt `Get-ProjectDartFiles`). Nie `dart format .`: die Lanes legen das Flutter‑SDK in den Workspace, ein rekursiver Lauf formatiert es mit.
-- Python (uv): `uv sync` (ggf. „frozen“/locked nach Projektpolicy), dann `uv run ruff check .` und `uv run ty` (bzw. `uv run ty check`, je nach Tool‑Konfiguration).
 
-**I/O / libuv‑basierte Bindings**
-- Für libuv/uvloop/uvicorn‑artige APIs: keine blockierenden Aufrufe in Event‑Loop‑Callbacks vorschlagen.
-- Prefer async patterns and explicit threading/futures when interacting with native I/O.
+**Native I/O**
+- Prefer async patterns and explicit threading/futures when interacting with native I/O
+  (flutter_rust_bridge calls, Kamera-/GStreamer-Pipelines): keine blockierenden Aufrufe
+  im UI-Isolate oder in Event‑Loop‑Callbacks vorschlagen.
 
 ---
 

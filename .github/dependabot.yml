@@ -1,3 +1,30 @@
+# STATUS: kept deliberately, NOT superseded yet. Read this before deleting it.
+#
+# .github/renovate.json now extends the shared Kataglyphis preset
+# (github>Kataglyphis/ContainerHub), which turns on the github-actions and
+# git-submodules managers - neither of which this file has ever covered. The two
+# configs therefore do NOT overlap today: Dependabot watches `pub` here and
+# nothing else.
+#
+# They WILL overlap the moment Renovate actually runs: Renovate ships a `pub`
+# manager and would read the same pubspec.yaml, so the repo would get two PRs
+# per Dart dependency bump.
+#
+# Why this file survives that anyway, for now: Dependabot is part of GitHub and
+# needs no installation, whereas Renovate needs its GitHub App installed on this
+# repository - and nobody has confirmed that it is. No bot has ever landed a
+# commit in this repo, and this Dependabot config has never opened a PR either,
+# so "it produces nothing" is not evidence either way about which of the two is
+# wired up. Deleting the built-in one on the strength of an unverified app
+# install would leave the repo with zero dependency automation instead of the
+# one it has on paper.
+#
+# HAND-OVER CONDITION - do all three, then delete this file:
+#   1. Confirm the Renovate app is installed on Kataglyphis/OmniAccelerANT.
+#   2. Observe a Renovate PR (or its dependency dashboard issue) on this repo.
+#   3. Confirm that PR set includes a `pub` bump, i.e. Renovate really has taken
+#      over the one ecosystem this file owns.
+#
 # To get started with Dependabot version updates, you'll need to specify which
 # package ecosystems to update and where the package manifests are located.
 # Please see the documentation for all configuration options:

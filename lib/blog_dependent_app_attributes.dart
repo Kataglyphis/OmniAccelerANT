@@ -1,19 +1,19 @@
-import 'package:omni_accelerant/Pages/blog_dependent_screen_configurations.dart';
-import 'package:omni_accelerant/blog_page_config.dart';
-import 'package:omni_accelerant/my_two_cents_config.dart';
+import 'package:anthology/blog_dependent_app_attributes.dart';
 import 'package:omni_accelerant/settings/webrtc_settings.dart';
 
-class BlogDependentAppAttributes {
-  List<MyTwoCentsConfig> twoCentsConfigs;
-  List<BlogPageConfig> blockSettings;
+/// Omni's blog attributes: the shared three fields plus the WebRTC settings
+/// that only this app's stream page consumes.
+///
+/// Subclassing keeps [WebRTCSettings] - an Omni-only type - out of the shared
+/// package, while the shared landing and block-overview pages keep accepting
+/// this instance through their [BlogDependentAppAttributes] parameter.
+class OmniBlogDependentAppAttributes extends BlogDependentAppAttributes {
   WebRTCSettings webrtcSettings;
 
-  BlogDependentScreenConfigurations blogDependentScreenConfigurations;
-
-  BlogDependentAppAttributes({
-    required this.blogDependentScreenConfigurations,
-    required this.twoCentsConfigs,
-    required this.blockSettings,
+  OmniBlogDependentAppAttributes({
+    required super.blogDependentScreenConfigurations,
+    required super.twoCentsConfigs,
+    required super.blockSettings,
     required this.webrtcSettings,
   });
 }

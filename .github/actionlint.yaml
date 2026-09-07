@@ -1,0 +1,11 @@
+# ubuntu-26.04/-arm are GitHub preview labels (family-wide since 2026-09-06) that
+# pinned actionlint 1.7.12 - the latest release - predates; this only ADDS labels.
+#
+# Without this file the workflow-lint gate in dart_on_native_linux.yml fails on
+# every `runs-on: ubuntu-26.04` line with "label \"ubuntu-26.04\" is unknown"
+# before it can report a single real finding. Same file, same reason, as
+# BeschleunigerBallett's and ContainerHub's.
+self-hosted-runner:
+  labels:
+    - ubuntu-26.04
+    - ubuntu-26.04-arm

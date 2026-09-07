@@ -2,7 +2,7 @@
 	{
 		"routingName":"/books/fuenfGeheimnisse",
 		"filePath":"assets/documents/books/fuenfGeheimnisse.md",
-		"imageDir":"assets/images/aiBlog",
+		"imageDir":"packages/anthology/assets/images/aiBlog",
 		"mediaTitle":"Die fünf Geheimnisse, die Sie entdecken sollten, bevor Sie sterben",
 		"fileBaseDir": "assets/documents/books/",
 		"docsDesc": [
@@ -26,7 +26,7 @@
 	{
 		"routingName":"/books/ArnoAnzenbacherEinfuehrungPhilosophie",
 		"filePath":"assets/documents/books/Einführung in die Philosophie - Arno Anzenbacher.md",
-		"imageDir":"assets/images/books",
+		"imageDir":"packages/anthology/assets/images/books",
 		"mediaTitle":"Einführung in die Philosophie",
 		"fileBaseDir": "assets/documents/books/",
 		"docsDesc": []
@@ -34,7 +34,7 @@
 	{
 		"routingName":"/games/Gothic1",
 		"filePath":"assets/documents/games/Gothic1.md",
-		"imageDir":"assets/images/aiBlog",
+		"imageDir":"packages/anthology/assets/images/aiBlog",
 		"mediaTitle":"Gothic 1",
 		"fileBaseDir": "assets/documents/games/",
 		"docsDesc": [

@@ -51,7 +51,7 @@ jobs:
             --run-codeql false
 
       - name: Upload Web App Files for Deployment
-        uses: actions/upload-artifact@v6.0.0
+        uses: actions/upload-artifact@v7.0.1
         with:
           name: gstreamer-ai-web-frontend
           path: ${{ env.BUILD_DIR_RELEASE }}/**
