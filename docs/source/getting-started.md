@@ -54,6 +54,19 @@ v4l2-ctl --device=/dev/video0 --list-formats-ext
 
 ## 4) Run the app (web profile)
 
+The web build needs `web/sqlite3.wasm`. It is committed, but this is the one
+command that refreshes it, and the only thing in the repository that knows its
+version:
+
+```bash
+bash scripts/setup-sqlite3-wasm.sh
+```
+
+The version and its SHA256 both come from ContainerHub's `versions.env`, and the
+download is checksum-verified, so a tampered, truncated or simply *wrong-version*
+asset fails here rather than in a browser. That check is not theoretical: the
+copy that was committed did not match the version the script claimed to fetch.
+
 ```bash
 flutter run -d web-server --profile --web-port 8080 --web-hostname 0.0.0.0
 ```

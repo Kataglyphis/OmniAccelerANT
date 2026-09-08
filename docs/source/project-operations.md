@@ -22,6 +22,29 @@ Never `dart format .`: it walks `flutter/`, `third_party/` and `build/`, which
 `dart format` cannot be told to skip — it ignores `analysis_options.yaml`. Both
 lanes list tracked files instead, which is what the command above reproduces.
 
+### Lint gates (shell, workflows, secrets)
+
+```bash
+bash scripts/linux/run-lint-gates.sh
+```
+
+The exact command the `lint` job of `dart_on_native_linux.yml` runs — shellcheck,
+actionlint (plus the CI image-reference check) and the gitleaks secret scan, all
+three bootstrapped pinned from ContainerHub, all three run even after one fails.
+These used to exist only as `run:` blocks inside the workflow, so a failing merge
+gate could not be reproduced locally at all. The gitleaks arm self-tests first: an
+empty tree must scan clean and a planted token must be reported and must make the
+gate exit non-zero, so "found nothing" cannot be confused with "never ran".
+
+The one gate NOT in there is `Sync-SharedConfig.ps1 -Check`, which is PowerShell;
+none of ContainerHub's Linux images ship `pwsh`, so it stays a separate step of
+the same workflow job. Run it by hand with:
+
+```bash
+pwsh -File third_party/ContainerHub/shared/config/Sync-SharedConfig.ps1 -RepoRoot . -Check \
+  -Ignore '.clang-format,.clang-tidy,gcovr.cfg,.pre-commit-config.yaml'
+```
+
 ### Tests
 
 ```bash

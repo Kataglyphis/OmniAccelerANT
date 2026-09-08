@@ -29,13 +29,6 @@ require_cmd() {
   fi
 }
 
-run_nonfatal() {
-  if ! "$@"; then
-    echo "Warning: command failed (ignored): $*" >&2
-    return 0
-  fi
-}
-
 validate_non_empty() {
   local flag_name="${1:?flag name required}"
   local value="${2:-}"

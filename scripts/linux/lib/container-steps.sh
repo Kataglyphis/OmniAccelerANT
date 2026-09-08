@@ -63,6 +63,19 @@ run_flutter_common_checks() {
   bash "$(containerhub_path linux/scripts/05-frameworks/flutter/flutter_checks.sh)" --strict "$strict_flag" "$@"
 }
 
+_cmake_format_venv_create() {
+  containerhub_source linux/scripts/01-core/python_uv.sh
+  # Empty python version: honour UV_PYTHON, which the CI images export.
+  uv_venv_create .venv ""
+}
+
+_cmake_format_install_requirements() {
+  containerhub_source linux/scripts/01-core/python_uv.sh
+  local requirements
+  requirements="$(containerhub_path linux/scripts/cmake-format.requirements.txt)" || return 1
+  uv_pip_install_requirements .venv "$requirements"
+}
+
 # CMake format gate for the hand-maintained native build files. Enumeration and
 # exclude-glob handling come from ContainerHub's code-quality.sh; the globs keep
 # the gate off generated trees (Flutter's flutter/CMakeLists.txt +
@@ -79,26 +92,19 @@ run_cmake_format_check() {
   # plus the pyyaml it cannot read .cmake-format.yaml without) live upstream in
   # linux/scripts/cmake-format.requirements.txt, so both platforms and every
   # consumer repo install the same versions. docs/source/project-operations.md.
-  if ! command -v cmake-format >/dev/null 2>&1; then
-    containerhub_source linux/scripts/01-core/python_uv.sh
-    if ! command -v uv >/dev/null 2>&1; then
-      echo "Error: cmake-format is not on PATH and uv is missing, so it cannot be bootstrapped." >&2
-      return 1
-    fi
-    local cmake_format_requirements
-    cmake_format_requirements="$(containerhub_path linux/scripts/cmake-format.requirements.txt)" || return 1
-    # Empty python version: honour UV_PYTHON, which the CI images export.
-    # Only create when absent — uv_venv_create deletes an existing venv.
-    if [[ ! -d .venv ]]; then
-      uv_venv_create .venv ""
-    fi
-    uv_pip_install_requirements .venv "$cmake_format_requirements"
-    uv_venv_activate .venv
-    if ! command -v cmake-format >/dev/null 2>&1; then
-      echo "Error: cmake-format still unavailable after installing ${cmake_format_requirements} into .venv." >&2
-      return 1
-    fi
-  fi
+  #
+  # The bootstrap itself is upstream's code_quality_ensure_cmake_format, not a
+  # local copy of it. The two knobs below are FUNCTION names, exactly as
+  # ContainerHub's own preflight.sh sets them. What the hand-rolled version this
+  # replaces did NOT do, and what adopting buys: a `.venv` created on the other
+  # platform (Scripts/python.exe in this bind-mounted tree, or bin/python on the
+  # Windows host) was reused by an `[[ ! -d .venv ]]` guard and then died inside
+  # uv with "Exec format error"; upstream probes the interpreter and recreates
+  # it. It also finds Scripts/activate as well as bin/activate.
+  CODE_QUALITY_VENV_DIR="${PWD}/.venv"
+  CODE_QUALITY_UV_VENV_CREATE_SCRIPT=_cmake_format_venv_create
+  CODE_QUALITY_UV_INSTALL_REQUIREMENTS_SCRIPT=_cmake_format_install_requirements
+  code_quality_ensure_cmake_format
 
   if [[ ! -f .cmake-format.yaml ]]; then
     echo "Error: no .cmake-format.yaml at the repo root; without it cmake-format silently" >&2
@@ -130,7 +136,10 @@ run_cmake_format_check() {
   fi
 
   echo "[Info] cmake-format --check on ${#cmake_files[@]} CMake files."
-  run_check_cmd "$strict_mode" cmake-format -c .cmake-format.yaml --check "${cmake_files[@]}"
+  # Upstream's runner, not a bare `cmake-format` line: it is the same one that
+  # grades ContainerHub's own tree, and it is what makes the -c flag conditional
+  # on the config actually existing instead of passing a path that may not.
+  run_check_cmd "$strict_mode" code_quality_run_cmake_format --check "${cmake_files[@]}"
 }
 
 # AGENTS.md § 3.
