@@ -170,7 +170,7 @@ jobs:
             --app-name "${{ matrix.app_name }}"
             --package-formats "${{ matrix.package_formats }}"
             --install-packaging-deps "${{ matrix.install_packaging_deps }}"
-            --strict-checks false
+            --strict-checks true
             --run-codeql false
             --run-docs "${{ matrix.arch == 'x64' }}"
 

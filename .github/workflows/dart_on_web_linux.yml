@@ -55,7 +55,7 @@ jobs:
             bash /workspace/scripts/linux/ci/ci-container-run-web-linux.sh
             --arch "x64"
             --flutter-dir "${{ env.FLUTTER_DIR }}"
-            --strict-checks false
+            --strict-checks true
             --run-codeql false
 
       - name: Upload Web App Files for Deployment
