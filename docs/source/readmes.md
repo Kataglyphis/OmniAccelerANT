@@ -10,7 +10,6 @@ Curated README navigation for the most relevant project areas.
 ## Build & Tooling
 
 - [Rust Builder README](../../rust_builder/README.md)
-- [AI Scripts README](../../scripts/ai/README.md)
 
 ## Content/Data
 
