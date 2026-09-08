@@ -38,25 +38,28 @@ $ErrorActionPreference = 'Stop'
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 
 if (-not $Image) {
-	# versions.env is inert KEY=value data - parsed, never sourced, and never
-	# defaulted: a wrong-but-plausible image ref is exactly the drift this is
-	# here to prevent, so a missing key is a hard stop naming the file.
-	$versionsEnv = Join-Path $repoRoot 'third_party/ContainerHub/linux/scripts/01-core/versions.env'
-	if (-not (Test-Path -LiteralPath $versionsEnv)) {
-		throw "ContainerHub versions.env not found at $versionsEnv. Run: git submodule update --init --recursive third_party/ContainerHub"
+	# The family image reference is composed UPSTREAM, by
+	# WindowsContainerImage.Common's Get-CiImageReference, whose Linux twin is
+	# linux/scripts/ci-image-ref.sh and which ContainerHub's own
+	# test-ci-image-ref.sh asserts composes the same string as
+	# verify_ci_image_refs.py. What stood here was a third hand-rolled read of
+	# versions.env, and a subtly weaker one: its `(.+)$` kept surrounding
+	# quotes, which the upstream parser strips on purpose because a quoted value
+	# once propagated as data into CMake.
+	#
+	# Resolve-BuildModule looks the module up in third_party/ContainerHub first,
+	# so this is the same copy Build-Windows.ps1 builds against.
+	. (Join-Path $PSScriptRoot '..\windows\Resolve-BuildModule.ps1')
+	Import-BuildModule 'WindowsContainerImage.Common'
+	if (-not (Get-Command -Name 'Get-CiImageReference' -ErrorAction SilentlyContinue)) {
+		throw ("WindowsContainerImage.Common was imported but exports no Get-CiImageReference. " +
+			"The pinned ContainerHub predates it - bump third_party/ContainerHub, or pass -Image explicitly.")
 	}
-	$imageKeys = @{}
-	foreach ($line in Get-Content -LiteralPath $versionsEnv) {
-		if ($line -match '^(IMAGE_REGISTRY_PREFIX|CI_IMAGE_LINUX_TAG)=(.+)$') {
-			$imageKeys[$Matches[1]] = $Matches[2].Trim()
-		}
-	}
-	foreach ($key in @('IMAGE_REGISTRY_PREFIX', 'CI_IMAGE_LINUX_TAG')) {
-		if (-not $imageKeys.ContainsKey($key)) {
-			throw "$key is not defined in $versionsEnv. Bump the ContainerHub submodule, or pass -Image explicitly."
-		}
-	}
-	$Image = '{0}:{1}' -f $imageKeys['IMAGE_REGISTRY_PREFIX'], $imageKeys['CI_IMAGE_LINUX_TAG']
+	# No arguments: the function resolves versions.env from its OWN location, so
+	# the answer always comes out of the ContainerHub this repo actually pins.
+	# A missing key throws there, naming the file - never an empty image ref,
+	# which `nerdctl run` would read as "the next argument is the image".
+	$Image = Get-CiImageReference
 }
 
 if (-not $AppName) {

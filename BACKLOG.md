@@ -42,9 +42,10 @@ here.
       were verified identical, but nothing enforces that: a flag added to a
       workflow and not to the driver silently breaks local/CI parity, which is
       the entire point of the driver.
-- [ ] `scripts/linux/lib/packaging-common.sh` keeps 15 alias functions so the
-      existing call sites need no change. Call sites should move to the
-      upstream `app_packaging_*` names and the aliases go.
+- [ ] `scripts/linux/lib/packaging-common.sh` keeps 7 alias functions so the
+      existing call sites need no change (the 9 that had no caller left are
+      gone). Call sites should move to the upstream `app_packaging_*` names
+      and the remaining aliases go.
 - [ ] Nothing stops two local lanes from running against the same checkout at
       once, although the generated files at its root are per-host
       (`android/local.properties`, the ephemeral plugin symlinks, `.dart_tool`).

@@ -59,66 +59,38 @@ jobs:
           -Check
           -Ignore '.clang-format,.clang-tidy,gcovr.cfg,.pre-commit-config.yaml'
 
-      # The file list comes from `git ls-files`, NOT from a glob. A bare
-      # `scripts/**/*.sh` does not recurse without `shopt -s globstar`: in this
-      # repo it expands to 3 of the 19 tracked scripts, and a gate that grades
-      # 3 files while reading like it grades all of them is worse than no gate.
+      # ONE step, and the SAME command a developer types. The three gates below
+      # it - shellcheck, actionlint (+ CI image refs) and the gitleaks secret
+      # scan - used to be three inline `run:` blocks here, which meant the gate
+      # that blocks a merge could not be reproduced on a dev box at all. They
+      # now live in ContainerHub's linux/scripts/run-lint-gates.sh, reached
+      # through scripts/linux/run-lint-gates.sh; read that file's header for the
+      # scope rules and for why rust_builder/ is NOT excluded.
       #
-      # The empty-list guard is load-bearing for the same reason: lint-shell.sh
-      # called with ZERO file arguments falls back to its OWN default scope,
-      # which is ContainerHub's tree - it would pass, green, having checked none
-      # of this repository's scripts.
+      # What moving them upstream added, beyond one entry point: a gitleaks
+      # self-test (an empty tree must scan clean, a planted PAT must be reported
+      # at the path it was given and must make the gate exit non-zero - that is
+      # what separates "found nothing" from "never ran"), a secret scope built
+      # from `git ls-files` rather than the whole workspace, `git ls-files -z`
+      # so this repo's non-ASCII "dummy_assets<a-umlaut> directory does not
+      # arrive git-quoted and name nothing, and all three gates running even
+      # after one fails so a push produces one triage list instead of three.
       #
-      # Both exclusions are code this repo does not own and cannot fix:
-      # third_party/ is the submodules, rust_builder/cargokit/ is the vendored
-      # Cargokit tree Flutter's Rust plugin template drops in. Every other gate
-      # exempts the same pair - AGENTS.md paragraph 4, the cmake-format steps on
-      # both platforms (the Windows one spells it
-      # `-notmatch '^rust_builder/cargokit/'`), and the "Lint PowerShell" step
-      # in dart_on_native_windows.yml, which skips Cargokit's resolve_symlinks.ps1
-      # for exactly this reason. 19 tracked *.sh minus Cargokit's 2 leaves the 17
-      # this gate grades. A finding in there is fixed upstream, never by
-      # loosening a shellcheck flag here.
-      - name: Lint shell scripts (ContainerHub shellcheck gate)
+      # The explicit workspace argument is required, not cosmetic: the upstream
+      # script sits INSIDE the submodule, so any root derived from its own
+      # location resolves to ContainerHub and every gate reports green over the
+      # wrong tree. .github/actionlint.yaml still teaches the pinned actionlint
+      # the ubuntu-26.04 runner labels it predates.
+      #
+      # A gitleaks finding is a real leak - rotate and purge - or a false
+      # positive, and a false positive earns ONE narrow, commented allowlist
+      # entry in a .gitleaks.toml at THIS repo's root (the scanned tree's own
+      # config wins; the hub's is only the fallback). Never a blanket ignore
+      # file, and never a loosened rule in the hub for a finding only this repo
+      # has.
+      - name: Lint gates (ContainerHub shellcheck + actionlint + gitleaks)
         shell: bash
-        run: |
-          mapfile -t files < <(git ls-files '*.sh' | grep -v -e '^third_party/' -e '^rust_builder/cargokit/')
-          if [ "${#files[@]}" -eq 0 ]; then
-            echo "::error::no tracked *.sh outside third_party/ and rust_builder/cargokit/ - the file list driving this gate is empty, refusing to report green over nothing"
-            exit 1
-          fi
-          echo "shellcheck scope (${#files[@]} files):"
-          printf '  %s\n' "${files[@]}"
-          bash third_party/ContainerHub/linux/scripts/lint-shell.sh "${files[@]}"
-
-      # The explicit root is required, not cosmetic: this script sits INSIDE the
-      # submodule, so its default root resolves to ContainerHub and it would
-      # lint the hub's workflows instead of this repo's - green, over nothing.
-      # .github/actionlint.yaml teaches the pinned actionlint the ubuntu-26.04
-      # runner labels it predates.
-      - name: Lint workflows (ContainerHub actionlint gate)
-        run: >-
-          bash third_party/ContainerHub/linux/scripts/lint-workflows.sh
-          "${{ github.workspace }}"
-
-      # Same argument, same reason. Expect a triage batch on the first run: no
-      # secret gate has ever run over this tree, and a --no-git tree scan of the
-      # workspace covers the checked-out third_party/ submodules as well.
-      #
-      # Rule config AT THE PIN (ContainerHub f6cc09f7): the SCANNED TREE's own
-      # .gitleaks.toml wins and the hub's is only the fallback - see the "Rule
-      # config" block in the checked-out lint-secrets.sh. An earlier revision
-      # passed --config "<hub>/.gitleaks.toml" unconditionally; that is no
-      # longer what is pinned here.
-      #
-      # So a finding is a real leak - rotate and purge - or a false positive,
-      # and a false positive earns ONE narrow, commented allowlist entry in a
-      # .gitleaks.toml at THIS repo's root. Never a blanket ignore file, and
-      # never a loosened rule in the hub for a finding only this repo has.
-      - name: Secret scan (ContainerHub gitleaks gate)
-        run: >-
-          bash third_party/ContainerHub/linux/scripts/lint-secrets.sh
-          "${{ github.workspace }}"
+        run: bash scripts/linux/run-lint-gates.sh "${{ github.workspace }}"
 
   build:
     strategy:
