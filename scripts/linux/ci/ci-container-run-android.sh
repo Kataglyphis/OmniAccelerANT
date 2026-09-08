@@ -87,13 +87,6 @@ fi
 # Non-strict, matching the workflow.
 STRICT_CHECKS="0"
 
-build_android_apk_release() {
-  local build_mode="${1:-release}"
-  flutter clean
-  flutter pub get
-  flutter build apk --"$build_mode"
-}
-
 REPO_ROOT="$(resolve_repo_root /workspace)"
 cd "$REPO_ROOT"
 
@@ -101,25 +94,44 @@ git_safe_dirs "$FLUTTER_DIR"
 
 assert_flutter_available "$FLUTTER_DIR" || exit 2
 source_bashrc_and_add_flutter_to_path "$FLUTTER_DIR"
-run_flutter_common_checks "$STRICT_CHECKS"
+
+# Container-only preparation. None of this exists on a developer machine, which
+# is why it lives here and is NOT pushed down into run-android.sh.
 run_cmake_format_check "$STRICT_CHECKS"
-run_check_cmd "$STRICT_CHECKS" flutter config --enable-android
 setup_compiler_cache
 export_android_gstreamer_env
 export_toolchain_env "$MATRIX_ARCH"
 
 if maybe_truthy "$RUN_CODEQL"; then
-  if ! run_codeql_android "$FLUTTER_DIR" "$BUILD_MODE"; then
-    echo "Warning: CodeQL failed; continuing with regular APK build." >&2
-    cd /workspace
-    build_android_apk_release "$BUILD_MODE"
+  # CodeQL performs the APK build ITSELF: codeql_write_build_script wraps
+  # `flutter build apk --<mode>` and codeql_create_db_cluster runs it as the
+  # database's build command. run-android.sh's build cannot be reused inside
+  # that, so the checks it would have run are run explicitly here instead --
+  # run_flutter_common_checks is the same flutter_checks.sh --strict false call
+  # that run-android.sh makes.
+  run_flutter_common_checks "$STRICT_CHECKS"
+  run_check_cmd "$STRICT_CHECKS" flutter config --enable-android
+
+  # No fallback build. This used to catch a CodeQL failure, print a warning and
+  # build a plain APK, so the only real security scan in this repository could
+  # fail end to end while the lane stayed green and shipped an artifact. Under
+  # `set -e` the failure now ends the run, which is the gate working.
+  run_codeql_android "$FLUTTER_DIR" "$BUILD_MODE"
+
+  if [[ "$BUILD_MODE" == "release" ]]; then
+    package_android_apk_outputs_tar "$MATRIX_ARCH" "$APP_NAME"
+  else
+    echo "Info: packaging skipped because --build-mode is '$BUILD_MODE' (packaging is release-only)."
   fi
 else
-  build_android_apk_release "$BUILD_MODE"
-fi
-
-if [[ "$BUILD_MODE" == "release" ]]; then
-  package_android_apk_outputs_tar "$MATRIX_ARCH" "$APP_NAME"
-else
-  echo "Info: packaging skipped because --build-mode is '$BUILD_MODE' (packaging is release-only)."
+  # Delegate to the entry point the owner runs by hand -- checks, config,
+  # clean/pub get/build apk and packaging all live there. This is the same
+  # shape ci-container-run-native-linux.sh uses for run-native-linux.sh, and it
+  # is what keeps the CI path and the local path from drifting: the build body
+  # used to be copied into this file and the two copies had already diverged.
+  bash "$REPO_ROOT/scripts/linux/run-android.sh" \
+    --arch "$MATRIX_ARCH" \
+    --build-mode "$BUILD_MODE" \
+    --app-name "$APP_NAME" \
+    --flutter-dir "$FLUTTER_DIR"
 fi

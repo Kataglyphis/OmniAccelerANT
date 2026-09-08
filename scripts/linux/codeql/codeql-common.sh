@@ -70,7 +70,7 @@ codeql_analyze_cpp() {
   "$CODEQL" database analyze /tmp/codeql-db-cluster/cpp \
     --format=sarif-latest \
     --output=/workspace/codeql-results/cpp.sarif \
-    codeql/cpp-queries:codeql-suites/cpp-security-and-quality.qls || true
+    codeql/cpp-queries:codeql-suites/cpp-security-and-quality.qls
 }
 
 codeql_analyze_rust() {
@@ -78,7 +78,7 @@ codeql_analyze_rust() {
   "$CODEQL" database analyze /tmp/codeql-db-cluster/rust \
     --format=sarif-latest \
     --output=/workspace/codeql-results/rust.sarif \
-    codeql/rust-queries:codeql-suites/rust-security-and-quality.qls || true
+    codeql/rust-queries:codeql-suites/rust-security-and-quality.qls
 }
 
 # Kotlin is covered by the Java extractor, hence java-queries.
@@ -87,5 +87,5 @@ codeql_analyze_java() {
   "$CODEQL" database analyze /tmp/codeql-db-cluster/java \
     --format=sarif-latest \
     --output=/workspace/codeql-results/java.sarif \
-    codeql/java-queries:codeql-suites/java-security-and-quality.qls || true
+    codeql/java-queries:codeql-suites/java-security-and-quality.qls
 }
