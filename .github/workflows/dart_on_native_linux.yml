@@ -102,12 +102,23 @@ jobs:
           "${{ github.workspace }}"
 
       # Same argument, same reason. Expect a triage batch on the first run: no
-      # secret gate has ever run over this tree, and the scan currently includes
-      # the checked-out third_party/ submodules because this repo ships no
-      # .gitleaks.toml of its own yet (without one the hub's config is used).
-      # Any finding is either a real leak - rotate and purge - or a false
-      # positive that earns ONE narrow, commented allowlist entry in a root
-      # .gitleaks.toml. Do not answer it with a blanket ignore file.
+      # secret gate has ever run over this tree, and a --no-git tree scan of the
+      # workspace covers the checked-out third_party/ submodules as well.
+      #
+      # Rule config AT THE PIN (ContainerHub 71cfd6dc): always the hub's own
+      # .gitleaks.toml. That revision cd's into the submodule and passes
+      # --config "<hub>/.gitleaks.toml" unconditionally, so a .gitleaks.toml
+      # added at THIS repo's root is read by nothing - do not add one and
+      # expect it to take effect. Consumer-config resolution (the scanned
+      # tree's own .gitleaks.toml wins; the hub's is only the fallback) is
+      # committed in ContainerHub but is NOT in the revision pinned here; it
+      # starts working only once that pin is bumped.
+      #
+      # So a finding is a real leak - rotate and purge - or a false positive.
+      # Until the pin is bumped a false positive has to be answered in the
+      # hub's .gitleaks.toml (a ContainerHub change plus a pin bump here, not a
+      # local file); after the bump it earns ONE narrow, commented allowlist
+      # entry in a root .gitleaks.toml. Never a blanket ignore file.
       - name: Secret scan (ContainerHub gitleaks gate)
         run: >-
           bash third_party/ContainerHub/linux/scripts/lint-secrets.sh
