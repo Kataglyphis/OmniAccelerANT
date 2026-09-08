@@ -11,9 +11,14 @@ CMakeLists.txt text eol=lf
 *.cmake text eol=lf
 
 # Windows-only scripts stay CRLF-friendly; they never run under bash. Without a
-# rule the 7 first-party .ps1/.psm1 files checked out in a mixed w/lf + w/crlf
-# split (`git ls-files --eol '*.ps1'`), because nothing pinned them and each
-# client's core.autocrlf decided per file. Same convention as
+# rule the 6 first-party .ps1/.psm1 files (all under scripts/) checked out in a
+# mixed w/lf + w/crlf split (`git ls-files --eol '*.ps1' '*.psm1'`), because
+# nothing pinned them and each client's core.autocrlf decided per file. The
+# glob also catches a 7th match,
+# rust_builder/cargokit/cmake/resolve_symlinks.ps1 - vendored Cargokit, which
+# every lint gate here exempts (the PowerShell step scans `-Path scripts`).
+# Pinning its line endings too is harmless: this is a checkout attribute, not a
+# gate. Same convention as
 # BeschleunigerBallett, OrchestrANT and jotrockenmitlocken. (ContainerHub uses
 # `-text` instead, but only because its scripts are COPY'd into Docker images
 # where the byte content is a layer-cache key; Omni ships no Dockerfile.)
