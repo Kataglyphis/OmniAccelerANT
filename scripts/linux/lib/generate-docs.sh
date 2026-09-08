@@ -290,7 +290,10 @@ if [[ "${CI:-}" == "true" ]]; then
 		owner_uid=$(stat -c "%u" "$(pwd)")
 		owner_gid=$(stat -c "%g" "$(pwd)")
 		echo "[CI] Fixing ownership of $DOC_ROOT to ${owner_uid}:${owner_gid}"
-		chown -R "${owner_uid}:${owner_gid}" "$DOC_ROOT" || true
+		# No `|| true`. This chown is what makes the generated docs readable to
+		# the step that publishes them; if it fails the publish either fails
+		# later with a much worse message or ships nothing.
+		chown -R "${owner_uid}:${owner_gid}" "$DOC_ROOT"
 	fi
 else
 	echo "[Info] Skipping chown/stat (not in CI workflow)."

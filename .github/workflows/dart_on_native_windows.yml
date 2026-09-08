@@ -20,11 +20,19 @@ jobs:
 
       # Why DocumANTation is pruned and why the mount inputs stay unset:
       # AGENTS.md § 4, "The CI lane".
+      #
+      # `image:` is DELIBERATELY ABSENT, here and on the run step below. The
+      # family image ref has exactly one owner - IMAGE_REGISTRY_PREFIX +
+      # CI_IMAGE_WINDOWS_TAG in ContainerHub's
+      # linux/scripts/01-core/versions.env - and both composite actions carry
+      # that composed ref as the `image` input default, checked against
+      # versions.env by linux/scripts/verify_ci_image_refs.py. Omitting the
+      # input is how this lane inherits it; writing :winamd64 out again here
+      # and once more below would be two copies no gate compares to the first.
       - name: Prepare Windows container host
         id: prep
         uses: Kataglyphis/ContainerHub/.github/actions/prepare-windows-container-host@main
         with:
-          image: ghcr.io/kataglyphis/kataglyphis_beschleuniger:winamd64
           registry-password: ${{ secrets.GHCR_PAT }}
           short-path-target: /d/ws
           exclude-submodules: |
@@ -66,7 +74,6 @@ jobs:
       - name: Run container
         uses: Kataglyphis/ContainerHub/.github/actions/run-in-windows-container@main
         with:
-          image: ghcr.io/kataglyphis/kataglyphis_beschleuniger:winamd64
           file: C:\ws\scripts\windows\Build-Windows.ps1
           file-args: |
             -SkipMsixPackaging
@@ -89,6 +96,17 @@ jobs:
             ${{ steps.prep.outputs.workspace }}/logs/build-windows-*.log
             ${{ steps.prep.outputs.workspace }}/logs/build-summary-*.json
 
+      # NOTE, and it is a real gap rather than a defect introduced here: this
+      # step probes <workspace>/codeql-results and today that directory is
+      # never written. Build-Windows.ps1 runs Invoke-BuildCodeQL only under
+      # `if ($CodeQL)`, and the file-args above pass only -SkipMsixPackaging,
+      # so the probe reports found=false and the upload silently no-ops on
+      # every run. Unlike the native Linux lane - where the flow has no CodeQL
+      # implementation at all and the dead step was therefore deleted - the
+      # capability EXISTS here and only needs `-CodeQL` added to file-args.
+      # That is a cost decision about the Windows lane's runtime, so it is left
+      # to the owner rather than switched on from here. Until it is switched
+      # on, this lane contributes nothing to Code Scanning.
       - name: Upload CodeQL SARIF
         if: always()
         uses: Kataglyphis/ContainerHub/.github/actions/upload-codeql-sarif@main

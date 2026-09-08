@@ -23,8 +23,8 @@ jobs:
   #     ubuntu image, which is the whole reason this runs out here.
   #   * once, not twice. `build` is a two-row matrix (x64 + arm64) and every one
   #     of these gates is architecture-independent, so folding them into it
-  #     would double the work and tie a lint verdict to the arm64 row that
-  #     AGENTS.md § 3 records as currently unable to pass.
+  #     would run every one of them twice and tie a lint verdict to whichever
+  #     architecture happened to fail first.
   #   * no image pull. Nothing here needs the ~GB cross image, so this job
   #     reports in about two minutes instead of after the pull.
   #
@@ -105,20 +105,16 @@ jobs:
       # secret gate has ever run over this tree, and a --no-git tree scan of the
       # workspace covers the checked-out third_party/ submodules as well.
       #
-      # Rule config AT THE PIN (ContainerHub 71cfd6dc): always the hub's own
-      # .gitleaks.toml. That revision cd's into the submodule and passes
-      # --config "<hub>/.gitleaks.toml" unconditionally, so a .gitleaks.toml
-      # added at THIS repo's root is read by nothing - do not add one and
-      # expect it to take effect. Consumer-config resolution (the scanned
-      # tree's own .gitleaks.toml wins; the hub's is only the fallback) is
-      # committed in ContainerHub but is NOT in the revision pinned here; it
-      # starts working only once that pin is bumped.
+      # Rule config AT THE PIN (ContainerHub f6cc09f7): the SCANNED TREE's own
+      # .gitleaks.toml wins and the hub's is only the fallback - see the "Rule
+      # config" block in the checked-out lint-secrets.sh. An earlier revision
+      # passed --config "<hub>/.gitleaks.toml" unconditionally; that is no
+      # longer what is pinned here.
       #
-      # So a finding is a real leak - rotate and purge - or a false positive.
-      # Until the pin is bumped a false positive has to be answered in the
-      # hub's .gitleaks.toml (a ContainerHub change plus a pin bump here, not a
-      # local file); after the bump it earns ONE narrow, commented allowlist
-      # entry in a root .gitleaks.toml. Never a blanket ignore file.
+      # So a finding is a real leak - rotate and purge - or a false positive,
+      # and a false positive earns ONE narrow, commented allowlist entry in a
+      # .gitleaks.toml at THIS repo's root. Never a blanket ignore file, and
+      # never a loosened rule in the hub for a finding only this repo has.
       - name: Secret scan (ContainerHub gitleaks gate)
         run: >-
           bash third_party/ContainerHub/linux/scripts/lint-secrets.sh
@@ -126,9 +122,11 @@ jobs:
 
   build:
     strategy:
-      # The arm64 row currently cannot pass (the image tag is amd64-only), and
-      # with the default fail-fast it cancels the x64 row before it finishes —
-      # hiding whether the healthy lane is green. See AGENTS.md § 3.
+      # fail-fast off so one architecture failing still reports the other's
+      # verdict instead of cancelling it mid-run — AGENTS.md § 3. (The older
+      # reason recorded here, "the arm64 row cannot pass because the image tag
+      # is amd64-only", expired on 2026-09-04 when :latest-cross became a real
+      # multi-arch OCI index — AGENTS.md § 3 again.)
       fail-fast: false
       matrix:
         include:
@@ -138,7 +136,6 @@ jobs:
             platform: linux/amd64
             app_name: omni-accelerant
             flutter_dir: /opt/flutter
-            container_image: ghcr.io/kataglyphis/kataglyphis_beschleuniger:latest-cross
             package_formats: tar,deb,flatpak,appimage
             install_packaging_deps: true
           - runs_on: ubuntu-26.04-arm
@@ -147,14 +144,15 @@ jobs:
             platform: linux/arm64
             app_name: omni-accelerant
             flutter_dir: /opt/flutter
-            container_image: ghcr.io/kataglyphis/kataglyphis_beschleuniger:latest-cross
             package_formats: tar,deb,flatpak,appimage
             install_packaging_deps: true
 
     runs-on: ${{ matrix.runs_on }}
+    # No security-events: the native Linux flow implements no CodeQL scan (see
+    # the --run-codeql note on the container step), so nothing in this job
+    # writes code-scanning alerts. The scope comes back the day CodeQL does.
     permissions:
       contents: read
-      security-events: write
 
     steps:
       # Reclaim disk, check out, log in to ghcr and pull the image with retries
@@ -162,20 +160,36 @@ jobs:
       # cannot drift between this workflow and its siblings. The pull takes no
       # --platform, which is only correct for a multi-arch tag — see the arm64
       # note in AGENTS.md § 3.
+      #
+      # `image:` is DELIBERATELY ABSENT, here and on the run step below. The
+      # family image ref has exactly one owner — IMAGE_REGISTRY_PREFIX +
+      # CI_IMAGE_LINUX_TAG in ContainerHub's linux/scripts/01-core/versions.env
+      # — and both composite actions carry that composed ref as the `image`
+      # input default, checked against versions.env by
+      # linux/scripts/verify_ci_image_refs.py. Omitting the input is how this
+      # lane inherits it; a per-row `container_image` would be two more copies
+      # that no gate compares to the first.
       - name: Prepare CI host
         uses: Kataglyphis/ContainerHub/.github/actions/prepare-linux-ci-host@main
         with:
-          image: ${{ matrix.container_image }}
           registry-username: ${{ github.actor }}
           registry-password: ${{ secrets.GHCR_PAT }}
           fetch-depth: '1'
           submodules: recursive
 
+      # `-e CI=true` is load-bearing, not decoration. generate-docs.sh ends by
+      # chowning the generated doc/api/ tree from the container's root back to
+      # the uid that owns the bind-mounted workspace, and that block is guarded
+      # by `[[ "${CI:-}" == "true" ]]`. `docker run` inherits nothing from the
+      # runner's environment, so the branch never fired and the workflow paid
+      # for it with a `sudo chown -R` step of its own — the same work written
+      # twice, once in a script and once inline. The script is now the only
+      # copy. --strict-checks is still passed explicitly below, so this does
+      # not silently switch on resolve_strict_checks' CI default.
       - name: Run container
         uses: Kataglyphis/ContainerHub/.github/actions/run-in-linux-container@main
         with:
-          image: ${{ matrix.container_image }}
-          extra-args: --privileged --platform "${{ matrix.platform }}"
+          extra-args: --privileged --platform "${{ matrix.platform }}" -e CI=true
           script: >-
             bash /workspace/scripts/linux/ci/ci-container-run-native-linux.sh
             --arch "${{ matrix.arch }}"
@@ -185,17 +199,20 @@ jobs:
             --package-formats "${{ matrix.package_formats }}"
             --install-packaging-deps "${{ matrix.install_packaging_deps }}"
             --strict-checks false
-            --run-codeql "${{ matrix.arch == 'x64' }}"
+            --run-codeql false
             --run-docs "${{ matrix.arch == 'x64' }}"
 
-      # Upload SARIF to GitHub Code Scanning
-      - name: Upload CodeQL results SARIF
-        if: ${{ matrix.arch == 'x64' && hashFiles('codeql-results/*.sarif') != '' }}
-        continue-on-error: true
-        uses: github/codeql-action/upload-sarif@v4
-        with:
-          sarif_file: codeql-results
-      
+      # There is no "Upload CodeQL results SARIF" step here, on purpose. The
+      # native Linux flow implements no CodeQL scan — ci-container-run-native-linux.sh
+      # says so, and now REFUSES --run-codeql true instead of warning and
+      # carrying on — so the step that used to sit here could only ever be
+      # skipped: its hashFiles('codeql-results/*.sarif') guard never matched,
+      # and it carried continue-on-error: true on top of that. A permanently
+      # skipped upload reads like coverage and is none. Wire CodeQL into the
+      # native flow and this step plus `security-events: write` come back
+      # together. The android lane (dart_build_android_app.yml) is the one that
+      # really scans today.
+
       - name: Upload artifact
         uses: actions/upload-artifact@v7.0.1
         with:
@@ -211,13 +228,11 @@ jobs:
             out/*.AppImage
             out/*.flatpak
 
-      - name: Fix permissions for doc directory
-        if: ${{ matrix.arch == 'x64' }}
-        run: |
-          sudo chown -R $USER:$USER ./doc/api/
-          sudo chmod -R 755 ./doc/api/
-          ls -la ./doc/api/
-
+      # The doc/api/ ownership fixup that used to live here (sudo chown -R plus
+      # chmod -R 755) is gone: generate-docs.sh already chowns the tree to the
+      # uid that owns the workspace, and `-e CI=true` on the container step
+      # above is what makes that branch actually run. One implementation, in
+      # the script the owner can also run locally.
       - name: 📂 Sync files to domain
         if: ${{ matrix.arch == 'x64' }}
         uses: SamKirkland/FTP-Deploy-Action@v4.4.0

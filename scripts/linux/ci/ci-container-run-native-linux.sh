@@ -19,7 +19,7 @@ Options:
       --package-formats <csv>   Packaging formats (default: tar)
       --install-packaging-deps <bool> Install deps for deb/flatpak/appimage (default: false)
       --strict-checks <bool>    Fail on format/analyze/test errors (default: true in CI, false locally)
-      --run-codeql <bool>       Run CodeQL scan (default: false)
+      --run-codeql <bool>       Must be false: no CodeQL scan is implemented here
       --run-docs <bool>         Generate docs (default: true)
   -h, --help                    Show this help
 EOF
@@ -107,8 +107,17 @@ cd "$REPO_ROOT"
 git_safe_dirs "$FLUTTER_DIR"
 assert_flutter_available "$FLUTTER_DIR" || exit 2
 
-if [[ "$MATRIX_ARCH" == "x64" ]] && maybe_truthy "$RUN_CODEQL"; then
-  echo "[Warn] --run-codeql ist aktuell ein no-op im native Linux Flow und wird ignoriert."
+# CodeQL is NOT implemented in the native Linux flow. This used to print a
+# warning and carry on, which meant the workflow could ask for a scan, get
+# none, and still report success -- and the lane's SARIF upload step then found
+# nothing to upload and skipped, silently. Refusing the flag is the only
+# honest answer until run_codeql_native exists: the caller finds out at the
+# point it asked, not by noticing an empty results directory.
+if maybe_truthy "$RUN_CODEQL"; then
+  echo "Error: --run-codeql true was requested, but the native Linux flow implements no CodeQL scan." >&2
+  echo "       Pass --run-codeql false, or implement it (see scripts/linux/codeql/codeql-android.sh" >&2
+  echo "       for the shape the android lane uses)." >&2
+  exit 2
 fi
 
 # Optional: Packaging-Dependencies installieren

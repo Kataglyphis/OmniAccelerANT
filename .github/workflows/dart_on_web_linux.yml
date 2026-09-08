@@ -17,22 +17,31 @@ jobs:
   build:
     name: 🚀 Deploy website on push
     runs-on: ubuntu-26.04
+    # No security-events here: this lane passes --run-codeql false and has no
+    # SARIF upload step, so the scope granted nothing anything in the job could
+    # use.
     permissions:
       contents: read
-      security-events: write
 
     env:
-      CONTAINER_IMAGE: ghcr.io/kataglyphis/kataglyphis_beschleuniger:latest-cross
       FLUTTER_DIR: /opt/flutter
 
     steps:
       # ContainerHub's shared prologue: reclaim disk, check out, log in to ghcr,
       # pull with retries. fetch-depth 0 because the docs/version stamping the
       # web build performs wants full history.
+      #
+      # `image:` is DELIBERATELY ABSENT, here and on the run step below. The
+      # family image ref has exactly one owner - IMAGE_REGISTRY_PREFIX +
+      # CI_IMAGE_LINUX_TAG in ContainerHub's linux/scripts/01-core/versions.env
+      # - and both composite actions carry that composed ref as the `image`
+      # input default, checked against versions.env by
+      # linux/scripts/verify_ci_image_refs.py. Omitting the input is how this
+      # lane inherits it; a job-level CONTAINER_IMAGE env would be a second
+      # copy no gate compares to the first.
       - name: 🚚 Prepare CI host
         uses: Kataglyphis/ContainerHub/.github/actions/prepare-linux-ci-host@main
         with:
-          image: ${{ env.CONTAINER_IMAGE }}
           registry-username: ${{ github.actor }}
           registry-password: ${{ secrets.GHCR_PAT }}
           fetch-depth: '0'
@@ -41,7 +50,6 @@ jobs:
       - name: Run container
         uses: Kataglyphis/ContainerHub/.github/actions/run-in-linux-container@main
         with:
-          image: ${{ env.CONTAINER_IMAGE }}
           extra-args: --privileged --platform "linux/amd64"
           script: >-
             bash /workspace/scripts/linux/ci/ci-container-run-web-linux.sh

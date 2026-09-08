@@ -22,7 +22,6 @@ jobs:
             platform: linux/amd64
             app_name: omni-accelerant-apk
             flutter_dir: /opt/flutter
-            container_image: ghcr.io/kataglyphis/kataglyphis_beschleuniger:latest-cross
 
     runs-on: ${{ matrix.runs_on }}
     permissions:
@@ -32,10 +31,18 @@ jobs:
     steps:
       # ContainerHub's shared prologue: reclaim disk, check out, log in to ghcr,
       # pull with retries.
+      #
+      # `image:` is DELIBERATELY ABSENT, here and on the run step below. The
+      # family image ref has exactly one owner - IMAGE_REGISTRY_PREFIX +
+      # CI_IMAGE_LINUX_TAG in ContainerHub's linux/scripts/01-core/versions.env
+      # - and both composite actions carry that composed ref as the `image`
+      # input default, checked against versions.env by
+      # linux/scripts/verify_ci_image_refs.py. Omitting the input is how this
+      # lane inherits it; spelling the tag out again here would be a second
+      # copy no gate compares to the first.
       - name: Prepare CI host
         uses: Kataglyphis/ContainerHub/.github/actions/prepare-linux-ci-host@main
         with:
-          image: ${{ matrix.container_image }}
           registry-username: ${{ github.actor }}
           registry-password: ${{ secrets.GHCR_PAT }}
           fetch-depth: '1'
@@ -44,7 +51,6 @@ jobs:
       - name: Run container
         uses: Kataglyphis/ContainerHub/.github/actions/run-in-linux-container@main
         with:
-          image: ${{ matrix.container_image }}
           extra-args: --platform "${{ matrix.platform }}"
           script: >-
             bash /workspace/scripts/linux/ci/ci-container-run-android.sh
@@ -60,10 +66,17 @@ jobs:
           name: ${{ matrix.app_name }}-linux-${{ matrix.arch }}-tar
           path: out/${{ matrix.app_name }}-linux-${{ matrix.arch }}.tar.gz
 
-      # Upload SARIF to GitHub Code Scanning
+      # Upload SARIF to GitHub Code Scanning.
+      #
+      # No `continue-on-error`. This is the only lane in the repository that
+      # actually produces CodeQL results (codeql-android.sh), so a failed
+      # upload means the alerts never reached Code Scanning - exactly the
+      # outcome that suppression used to hide. The `hashFiles` guard already
+      # covers "no results to upload", and ci-container-run-android.sh now
+      # fails outright when the scan itself fails, so an empty results
+      # directory can no longer coexist with a green job.
       - name: Upload CodeQL results SARIF
         if: ${{ matrix.arch == 'x64' && hashFiles('codeql-results/*.sarif') != '' }}
-        continue-on-error: true
         uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: codeql-results
