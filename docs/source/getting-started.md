@@ -54,12 +54,12 @@ v4l2-ctl --device=/dev/video0 --list-formats-ext
 
 ## 4) Run the app (web profile)
 
-The web build needs `web/sqlite3.wasm`. It is committed, but this is the one
-command that refreshes it, and the only thing in the repository that knows its
-version:
+The web build needs `web/sqlite3.wasm`. It is committed; this is the command that
+refreshes it. The fetcher lives in ContainerHub, next to the version and SHA256
+it reads, rather than in a per-app copy:
 
 ```bash
-bash scripts/setup-sqlite3-wasm.sh
+bash third_party/ContainerHub/linux/scripts/05-frameworks/flutter/setup-sqlite3-wasm.sh .
 ```
 
 The version and its SHA256 both come from ContainerHub's `versions.env`, and the

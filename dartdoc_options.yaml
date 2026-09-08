@@ -35,5 +35,4 @@ dartdoc:
     - docs/source/roadmap.md
     - docs/source/upgrade-guide.md
     - rust_builder/README.md
-    - scripts/ai/README.md
     - assets/documents/README.md

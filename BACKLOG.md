@@ -52,10 +52,12 @@ here.
       `Invoke-LinuxLane.ps1` and `Build-Windows.ps1` could refuse to start while
       another lane's container is up — the failure is otherwise attributed to
       the innocent lane, see AGENTS.md § 4.
-- [ ] `scripts/linux/lib/check-linux.sh` is a human entry point with its own
-      `usage` block but lives in `lib/`, next to sourced libraries. Same for the
-      naming of `run-native-linux.sh` / `run-android.sh`, which read as
-      host-side scripts but are what the CI lane actually invokes.
+- [ ] `run-native-linux.sh` / `run-android.sh` read as host-side scripts but are
+      what the CI lane actually invokes — the naming still misleads.
+      (`scripts/linux/lib/check-linux.sh`, the other half of this entry, was
+      deleted: it was a human entry point sitting in `lib/` with no caller, and
+      the checks it ran are reached through `run-native-linux.sh` and the CI
+      drivers anyway.)
 - [b] `export_android_gstreamer_env` (`scripts/linux/lib/container-steps.sh`)
       only exists because the image ships the Android GStreamer SDK at
       `/opt/android/gstreamer` without exporting `GSTREAMER_ROOT_ANDROID`. It is
