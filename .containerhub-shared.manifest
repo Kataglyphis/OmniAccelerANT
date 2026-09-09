@@ -1,0 +1,15 @@
+# What this repo takes from ContainerHub. One row per asset: the id from
+# third_party/ContainerHub/shared/config/shared-assets.manifest, and a path only
+# when the copy does not sit at that registry row default.
+#
+# Checked by:
+#   bash third_party/ContainerHub/shared/config/sync-shared-config.sh --repo-root . --check
+#
+# The four names NOT listed here are not overrides - this Flutter app carries no
+# CMakeLists.txt, no C++ and no Dart pre-commit hooks, so .clang-format,
+# .clang-tidy, gcovr.cfg and .pre-commit-config.yaml were never taken. AGENTS.md
+# paragraph 4 records the same fact.
+
+cmake-format
+containerhub-sh
+resolve-build-module

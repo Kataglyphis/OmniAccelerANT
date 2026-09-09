@@ -26,10 +26,24 @@ set -euo pipefail
 #   * all three gates run even after one fails, so one push shows one triage
 #     list instead of three.
 #
-# WHAT IS NOT HERE, and why: the Sync-SharedConfig.ps1 -Check gate. It is
-# PowerShell, and none of ContainerHub's Linux images ship pwsh, so it cannot
-# join a bash aggregator. It stays a step of the same workflow job, on the
-# hosted runner where pwsh is preinstalled.
+# THE SHARED-CONFIG DRIFT GATE IS NOW HERE TOO, and this paragraph used to say
+# the opposite: "it is PowerShell, and none of ContainerHub's Linux images ship
+# pwsh, so it cannot join a bash aggregator." The premise was right and the
+# conclusion was wrong - ContainerHub ships a bash TWIN,
+# shared/config/sync-shared-config.sh, which takes the same --repo-root and
+# --check and is held to the same verdicts as the PowerShell half. Upstream's
+# aggregator now runs it as a fifth gate, so a developer sees drift on the same
+# local run as shellcheck, and a repo cannot go green over the shared files
+# again just because pwsh was unavailable.
+#
+# It compares what .containerhub-shared.manifest at this repo's root DECLARES -
+# .cmake-format.yaml, scripts/linux/lib/containerhub.sh and
+# scripts/windows/Resolve-BuildModule.ps1. The four config names this Flutter
+# app never took are undeclared and are never looked at.
+#
+# The workflow's separate hosted-runner `Sync-SharedConfig.ps1 -Check` step is
+# now a DUPLICATE of this gate, kept deliberately: it is the only thing in CI
+# that exercises the PowerShell half, and the two halves are required to agree.
 #
 # WHY --exclude third_party AND NOT rust_builder, although every other gate in
 # this repo exempts rust_builder/cargokit/: upstream's --exclude drops a
