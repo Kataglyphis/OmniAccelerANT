@@ -56,6 +56,7 @@ reorganisation.
 | The Dart gate for Linux lanes — deps, format, analyze, test, `--strict`/`--extra-package` | `linux/scripts/05-frameworks/flutter/flutter_checks.sh` |
 | The CMake gate's machinery — `code_quality_find_cmake_files` + `CODE_QUALITY_CMAKE_EXCLUDE_PATHS` on Linux, `Initialize-UvVenvPython` on Windows | `linux/scripts/lib/code-quality.sh`, `windows/scripts/modules/WindowsFormatting.Common.psm1` |
 | The canonical `.cmake-format.yaml` this repo's root copy syncs from, and the drift check | `shared/config/README.md` |
+| Dependency upgrades — Renovate as a local CLI, why `--platform=local` only detects, the pinned Node/Renovate bootstrap, why `--apply` refuses a branchless submodule | `docs/dependency-updates.md` |
 
 Two upstream facts repeated here only because they bite before you reach a doc:
 
@@ -774,6 +775,33 @@ in `scripts/windows/Build-Windows.ps1`. The config's
 `line_ending: unix` is why `.gitattributes` pins `CMakeLists.txt` and `*.cmake`
 to LF — a `core.autocrlf=true` checkout would otherwise fail `--check` on every
 file.
+
+### Dependency upgrades
+
+**Submodule upgrades go through this, not by hand.** It does not cover every
+dependency here — `--apply` moves gitlinks and nothing else, so `pubspec.yaml`
+stays a hand edit. Nothing in `.github/workflows/` runs it; it blocks no commit.
+
+```bash
+bash scripts/linux/renovate-local.sh                    # what is behind
+bash scripts/linux/renovate-local.sh --apply --dry-run  # the plan
+bash scripts/linux/renovate-local.sh --apply            # move the gitlinks
+```
+
+A wrapper over ContainerHub's `linux/scripts/renovate-local.sh`. Renovate runs
+as a local CLI and only **detects** — `--platform=local` cannot write — so the
+`--apply` half is git's, and it moves only submodules that declare a `branch =`.
+All four here do. **Leave the default `--managers git-submodules` alone unless
+you mean it:** scoped it answers in about four seconds, while an unscoped run walks
+every manager in this tree, takes minutes, and reports dependencies `--apply` cannot
+move (pubspec.yaml is pub's). Run it from WSL on this host: the bootstrap wants Node
+major 24 — `RENOVATE_NODE_VERSION` in the hub's
+`linux/scripts/01-core/versions.env`, a separate pin from the canonical
+`NODE_VERSION` — and there is no node on the Windows side. `--apply` also
+needs the git that *wrote* the working tree; the script sorts that out itself,
+using `git.exe` when WSL can reach it and refusing up front when it cannot.
+Why any of it —
+[`third_party/ContainerHub/docs/dependency-updates.md`](third_party/ContainerHub/docs/dependency-updates.md).
 
 ## 5. Docs owned by this repo
 
