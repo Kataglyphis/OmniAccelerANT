@@ -182,6 +182,7 @@ Then open <http://127.0.0.1:8080>.
 | Known cleanups | [BACKLOG.md](BACKLOG.md) | Refactors and verification gaps this repo knows about but has not done yet, in the format ContainerHub's agentic loop consumes. |
 | Camera Streaming | [docs/source/camera-streaming.md](docs/source/camera-streaming.md) | GStreamer WebRTC pipelines and Python inference demos. |
 | Upgrade guide | [docs/source/upgrade-guide.md](docs/source/upgrade-guide.md) | How to keep things up-to-date. |
+| Dependency upgrades | [third_party/ContainerHub/docs/dependency-updates.md](third_party/ContainerHub/docs/dependency-updates.md) | Renovate run as a local CLI. Submodule upgrades go through `bash scripts/linux/renovate-local.sh` (add `--apply` to move the gitlinks), not by hand; it does not cover `pubspec.yaml`. |
 
 Build the full documentation website with `dart pub global run dartdoc` (see the note above — not the SDK-bundled `dart doc`). The generated site in `doc/api` now includes the guides from `docs/source`.
 
