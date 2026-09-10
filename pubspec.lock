@@ -598,7 +598,7 @@ packages:
     description:
       path: permission_handler_windows
       ref: main
-      resolved-ref: a76fa90a1ca70028ae22e33befff0593124bcb5a
+      resolved-ref: "3773d3b59fb5f8eed719909097468a9f13707048"
       url: "https://github.com/Kataglyphis/flutter-permission-handler.git"
     source: git
     version: "0.2.3"
