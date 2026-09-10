@@ -6,6 +6,11 @@ source "${_container_steps_dir}/containerhub.sh"
 
 containerhub_source linux/scripts/01-core/platform.sh
 containerhub_source linux/scripts/01-core/logging.sh
+# gate_reset / run_gate / gate_skip / assert_gates. Sourced HERE rather than in
+# each driver because every driver that runs a check already sources this file,
+# and the batch itself is built by the driver - never by a helper below, which
+# would silently reset a batch its caller had opened.
+containerhub_source linux/scripts/01-core/gates.sh
 
 # is_truthy plus a bare "y" and mixed case.
 maybe_truthy() {
@@ -13,29 +18,62 @@ maybe_truthy() {
   is_truthy "${value,,}" || [[ "${value,,}" == "y" ]]
 }
 
-run_check_cmd() {
-  local strict_mode="${1:-0}"
-  shift
-  if maybe_truthy "$strict_mode"; then
-    "$@"
-  else
-    "$@" || true
-  fi
-}
+# run_check_cmd IS GONE (2026-09-09). It was:
+#
+#   if maybe_truthy "$strict_mode"; then "$@"; else "$@" || true; fi
+#
+# and the second arm did not "report and move on" - it destroyed the result.
+# No name, no exit status, no record: a caller could not tell a pass from a
+# failure afterwards, and neither could CI, whose only input is the exit code.
+# fc8b65c had already found the one gate it covered ("ran, printed, and could
+# never fail CI") and worked around it by flipping the workflow flags; this
+# removes the mechanism instead. Its two call sites went two different ways,
+# because they were never the same kind of thing:
+#
+#   * `flutter config --enable-android` is a STEP, not a check. It is now a bare
+#     call, like `flutter config --enable-web` in ci-container-run-web-linux.sh
+#     and `flutter config --enable-android` in run-android.sh, which were never
+#     wrapped. A config command that fails and is ignored just moves the failure
+#     into the build that follows it.
+#   * the cmake-format check is a GATE, and now runs as one - see
+#     run_cmake_format_check below and the run_gate batches in its two callers.
 
+# No `|| true` on either line any more, for the reason the web lane already
+# records above its `cargo install`: the failure only resurfaced later, wearing
+# somebody else's name. `git config --global --add` fails when the global config
+# cannot be written at all (unset or read-only HOME) — and in exactly that state
+# this function has NOT registered the safe directory, so the next git command
+# against /workspace dies with "detected dubious ownership", including the
+# `git ls-files` that upstream's flutter_checks.sh builds its file list from.
 git_safe_dirs() {
-  local flutter_dir="${1:-}"
-  git config --global --add safe.directory /workspace || true
+  local flutter_dir="${1:-}" dir
+  local -a dirs=(/workspace)
   if [[ -n "$flutter_dir" ]]; then
-    git config --global --add safe.directory "$flutter_dir" || true
+    dirs+=("$flutter_dir")
   fi
+  for dir in "${dirs[@]}"; do
+    if ! git config --global --add safe.directory "$dir"; then
+      echo "Error: could not record '$dir' as a git safe.directory." >&2
+      echo "       git could not write the global config (HOME=${HOME:-<unset>})." >&2
+      echo "       Every later git call against that tree would fail as 'dubious ownership'." >&2
+      return 1
+    fi
+  done
 }
 
 source_bashrc_and_add_flutter_to_path() {
   local flutter_dir="${1:-}"
   local original_flags="$-"
   set +u
-  source ~/.bashrc 2>/dev/null || true
+  # The one `|| true` in this file that is KEPT, and it is not a suppressed
+  # gate: a stock Ubuntu ~/.bashrc `return`s early in a non-interactive shell
+  # and the status it returns is whatever ran last, so non-zero here carries no
+  # meaning. `2>/dev/null` is gone, though — that part hid the diagnostics of a
+  # genuinely broken rc file, and the PATH this sets up is what the whole lane
+  # then runs flutter from. Absence is handled by the -f test, not by silence.
+  if [[ -f ~/.bashrc ]]; then
+    source ~/.bashrc || true
+  fi
   if [[ "$original_flags" =~ u ]]; then set -u; fi
   if [[ -n "$flutter_dir" ]]; then
     export PATH="${flutter_dir}/bin:$PATH"
@@ -56,11 +94,19 @@ assert_flutter_available() {
   echo "[Info] Flutter ${version:-<unknown>} from the image at ${flutter_dir}."
 }
 # Lists tracked files rather than walking the tree — AGENTS.md § 3.
+#
+# The driver resolution is a statement of its own, not a substitution inside the
+# command line: this function is called from inside run_gate, i.e. from a `||`
+# list, where `set -e` does NOT abort. A failing containerhub_path there left an
+# EMPTY first argument behind and ran `bash "" --strict false`, so a missing
+# upstream file reported as bash's own "No such file or directory" instead of
+# the path-and-fix message containerhub_path prints.
 run_flutter_common_checks() {
-  local strict_mode="${1:-0}" strict_flag
+  local strict_mode="${1:-0}" strict_flag checks
   shift || true
   if maybe_truthy "$strict_mode"; then strict_flag=true; else strict_flag=false; fi
-  bash "$(containerhub_path linux/scripts/05-frameworks/flutter/flutter_checks.sh)" --strict "$strict_flag" "$@"
+  checks="$(containerhub_path linux/scripts/05-frameworks/flutter/flutter_checks.sh)" || return 1
+  bash "$checks" --strict "$strict_flag" "$@"
 }
 
 _cmake_format_venv_create() {
@@ -82,9 +128,26 @@ _cmake_format_install_requirements() {
 # generated_plugins.cmake + ephemeral, Android's .cxx) and vendored Cargokit —
 # the gate must never fight the generator. Windows twin: the "CMake Format
 # Verification" step in scripts/windows/Build-Windows.ps1. AGENTS.md § 4.
+#
+# NO STRICTNESS SWITCH ANY MORE, and this is a behaviour change: the check used
+# to run through run_check_cmd, so a non-strict caller (the Android lane, and
+# any local `run-native-linux.sh` without --strict-checks) ran it and threw the
+# verdict away. What survives of that switch is what it was actually for: the
+# Dart checks still take --strict, because that flag belongs to upstream's
+# flutter_checks.sh and MEANS something there.
+# Measured before flipping, the same way fc8b65c measured it: the gate's 13
+# files are clean under this repo's .cmake-format.yaml, and the native-Linux
+# lane has passed --strict-checks true since fc8b65c - so any drift this now
+# catches on the Android lane is drift that already blocks the merge on the
+# native lane. AGENTS.md § "The Linux checks stage" now says the same.
 run_cmake_format_check() {
-  local strict_mode="${1:-0}"
-  containerhub_source linux/scripts/lib/code-quality.sh
+  if [ "$#" -gt 0 ]; then
+    echo "Error: run_cmake_format_check takes no arguments (got: $*)." >&2
+    echo "       It used to take a strictness flag and IGNORE the verdict when that" >&2
+    echo "       flag was false. Wrap the call in run_gate instead of passing one." >&2
+    return 2
+  fi
+  containerhub_source linux/scripts/lib/code-quality.sh || return 1
 
   # cmake-format from PATH if the image ships it, else a uv venv fed by
   # ContainerHub's pinned bootstrap set — same provisioning the Windows step
@@ -104,6 +167,20 @@ run_cmake_format_check() {
   CODE_QUALITY_VENV_DIR="${PWD}/.venv"
   CODE_QUALITY_UV_VENV_CREATE_SCRIPT=_cmake_format_venv_create
   CODE_QUALITY_UV_INSTALL_REQUIREMENTS_SCRIPT=_cmake_format_install_requirements
+  # Bare call, and no `|| return 1`: upstream's bootstrap has no non-zero RETURN
+  # path to guard. Every failure inside it is err() (01-core/logging.sh), which
+  # is `exit 1` - so the guard that used to stand here was unreachable, and the
+  # fall-through to the .cmake-format.yaml check that its comment described
+  # could not happen.
+  #
+  # That exit is only a RECORDED gate failure, rather than a dead driver, if
+  # run_gate runs its command in a subshell. That is a REQUIREMENT this file
+  # places on ContainerHub, not something the pin necessarily satisfies: it was
+  # added upstream on 2026-09-09 and reaches this repo only when the gitlink is
+  # bumped. Under an older pin the batch still exits non-zero (no false green),
+  # but it dies here and every finding already recorded is lost, so one push
+  # names one failure instead of all of them.
+  # third_party/ContainerHub/docs/shared-script-libraries.md#gate-aggregation-01-coregatessh
   code_quality_ensure_cmake_format
 
   if [[ ! -f .cmake-format.yaml ]]; then
@@ -139,7 +216,9 @@ run_cmake_format_check() {
   # Upstream's runner, not a bare `cmake-format` line: it is the same one that
   # grades ContainerHub's own tree, and it is what makes the -c flag conditional
   # on the config actually existing instead of passing a path that may not.
-  run_check_cmd "$strict_mode" code_quality_run_cmake_format --check "${cmake_files[@]}"
+  # Its exit status is this function's exit status - the caller's run_gate is
+  # what records it, and that caller's assert_gates is what raises it.
+  code_quality_run_cmake_format --check "${cmake_files[@]}"
 }
 
 # AGENTS.md § 3.

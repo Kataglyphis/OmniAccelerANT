@@ -739,11 +739,18 @@ dart pub global run dartdoc --output doc/api
 The Linux `checks` stage runs the same three (with `dart analyze` rather than
 `flutter analyze`) but suffixes each with `|| true`: it reports and moves on
 instead of failing the stage. Treat a green `checks` run as "was executed", not
-as "passed". The CMake gate follows the same strictness switch:
-`run_cmake_format_check` runs in the native-Linux lane and the Android lane (the
-latter non-strict, matching its Dart checks). Both GitHub workflows now pass
-`--strict-checks true`, so a formatting drift fails the lane instead of merely
-reporting; the web lane builds no native CMake code and does not run it.
+as "passed". The CMake gate NO LONGER follows that switch.
+`run_cmake_format_check` takes no arguments at all now: it used to accept a
+strictness flag and IGNORE its own verdict when that flag was false, so it errors
+(exit 2) if handed one rather than letting a stale caller pass silently. It runs in
+the native-Linux lane and the Android lane and is FATAL in both; the web lane builds
+no native CMake code and does not run it.
+
+That flip is safe for a measured reason, not an optimistic one: the gate's 13 files
+are already clean under this repo's `.cmake-format.yaml`, and the native-Linux lane
+has passed `--strict-checks true` since fc8b65c — so any drift the Android lane now
+catches is drift that already blocks the merge on the other lane. Wrap the call in
+`run_gate` when you want the batch to decide, rather than reaching for a flag.
 
 **The CMake format gate covers hand-maintained CMake only — 13 files today.**
 Both lanes build the same list (`run_cmake_format_check` in

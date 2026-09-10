@@ -97,7 +97,18 @@ source_bashrc_and_add_flutter_to_path "$FLUTTER_DIR"
 
 # Container-only preparation. None of this exists on a developer machine, which
 # is why it lives here and is NOT pushed down into run-android.sh.
-run_cmake_format_check "$STRICT_CHECKS"
+#
+# A one-gate batch and not a bare call: assert_gates is what turns a recorded
+# failure back into an exit code, and it is also what refuses to report green
+# over an empty batch, so a future second container-only check joins this list
+# instead of growing another accumulator. The lane's OTHER check,
+# run_flutter_common_checks, cannot join it: it runs only in the CodeQL branch
+# below, and in the other branch run-android.sh runs its own copy.
+# This gate no longer honours STRICT_CHECKS — it used to run here and discard
+# its verdict; see run_cmake_format_check in lib/container-steps.sh.
+gate_reset "code quality"
+run_gate "cmake-format --check" run_cmake_format_check
+assert_gates
 setup_compiler_cache
 export_android_gstreamer_env
 export_toolchain_env "$MATRIX_ARCH"
@@ -110,7 +121,13 @@ if maybe_truthy "$RUN_CODEQL"; then
   # run_flutter_common_checks is the same flutter_checks.sh --strict false call
   # that run-android.sh makes.
   run_flutter_common_checks "$STRICT_CHECKS"
-  run_check_cmd "$STRICT_CHECKS" flutter config --enable-android
+  # Bare, like run-android.sh:90 and the web lane's `flutter config
+  # --enable-web`: this is a configuration step, not a check. It used to run
+  # through run_check_cmd, which in this lane (STRICT_CHECKS is pinned to 0
+  # above) meant `flutter config --enable-android || true` — a failure here was
+  # discarded and resurfaced as an unexplained failure in the APK build that
+  # CodeQL drives below.
+  flutter config --enable-android
 
   # No fallback build. This used to catch a CodeQL failure, print a warning and
   # build a plain APK, so the only real security scan in this repository could

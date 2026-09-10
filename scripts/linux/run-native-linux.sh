@@ -109,9 +109,17 @@ cd "$REPO_ROOT"
 require_cmd flutter
 require_cmd dart
 
-# Run code quality checks
-run_flutter_common_checks "$STRICT_CHECKS"
-run_cmake_format_check "$STRICT_CHECKS"
+# Run code quality checks as ONE gate batch (ContainerHub 01-core/gates.sh,
+# reached through container-steps.sh). Both gates run even when the first one
+# fails, and the verdict is raised once, by assert_gates, before the build
+# starts. Before this, a Dart failure aborted the run under `set -e` and the
+# CMake gate's verdict was never learned at all — one round trip per finding.
+# --strict-checks still governs the Dart half, because that flag is upstream's
+# flutter_checks.sh flag; the CMake gate no longer has an advisory mode.
+gate_reset "code quality (${MATRIX_ARCH})"
+run_gate "flutter checks" run_flutter_common_checks "$STRICT_CHECKS"
+run_gate "cmake-format --check" run_cmake_format_check
+assert_gates
 
 flutter config --enable-linux-desktop
 
