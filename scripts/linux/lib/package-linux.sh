@@ -8,6 +8,26 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/cli-common.sh"
 source "$SCRIPT_DIR/packaging-common.sh"
 
+# gate_reset / run_gate / gate_skip / assert_gates — the fleet's "run every
+# gate, then fail once" accumulator. packaging-common.sh has already sourced
+# containerhub.sh, which is what finds the submodule.
+containerhub_source linux/scripts/01-core/gates.sh
+
+# gate_skip is NEWER than the rest of that file (2026-09-09), and this driver is
+# what it was added for: a packaging format whose tool is absent is neither a
+# pass nor a failure, and gates.sh had only two buckets. Probed here rather than
+# discovered at the first missing tool, where a pin that predates it would read
+# as "gate_skip: command not found" from inside the loop — and, before this
+# check existed, only after some formats had already been built.
+if ! declare -F gate_skip >/dev/null; then
+	echo "Error: the pinned ContainerHub's linux/scripts/01-core/gates.sh has no gate_skip." >&2
+	echo "       This driver needs its third bucket: 'the tool for this format is not" >&2
+	echo "       installed' is not a pass and not a failure, and counting it as either" >&2
+	echo "       is what the rewrite of this file removed. Bump the submodule:" >&2
+	echo "       git -C third_party/ContainerHub fetch origin && git -C third_party/ContainerHub checkout <sha>" >&2
+	exit 1
+fi
+
 usage() {
 	cat <<'EOF'
 Usage:
@@ -83,90 +103,60 @@ if [[ -z "$FORMATS" ]]; then
 fi
 
 IFS=',' read -r -a selected_formats <<< "$FORMATS"
-failures=()
-skipped=()
-created=()
+
+# ONE accumulator, and it is upstream's. What stood here was a fourth private
+# copy of it — failures/skipped/created arrays wrapped around four case arms
+# that differed only in which package_linux_bundle_* they called — and the
+# header of ContainerHub's linux/scripts/01-core/gates.sh names that
+# reinvention as the thing it exists to end.
+gate_reset "packaging ${APP_NAME} (${MATRIX_ARCH})"
 
 for raw_format in "${selected_formats[@]}"; do
 	format="$(echo "$raw_format" | xargs | tr '[:upper:]' '[:lower:]')"
 
+	# The whole of what the four arms used to differ by.
 	case "$format" in
-		tar)
-			if ! is_format_available "$format"; then
-				skipped+=("$format")
-				echo "Warning: skipped '$format' (required tool missing)." >&2
-				continue
-			fi
-			if ! package_linux_bundle_tar "$MATRIX_ARCH" "$APP_NAME"; then
-				failures+=("$format")
-			else
-				created+=("$format")
-			fi
-			;;
-		deb)
-			if ! is_format_available "$format"; then
-				skipped+=("$format")
-				echo "Warning: skipped '$format' (required tool missing)." >&2
-				continue
-			fi
-			if ! package_linux_bundle_deb "$MATRIX_ARCH" "$APP_NAME"; then
-				failures+=("$format")
-			else
-				created+=("$format")
-			fi
-			;;
-		flatpak)
-			if ! is_format_available "$format"; then
-				skipped+=("$format")
-				echo "Warning: skipped '$format' (required tool missing)." >&2
-				continue
-			fi
-			if ! package_linux_bundle_flatpak "$MATRIX_ARCH" "$APP_NAME"; then
-				failures+=("$format")
-			else
-				created+=("$format")
-			fi
-			;;
-		appimage)
-			if ! is_format_available "$format"; then
-				skipped+=("$format")
-				echo "Warning: skipped '$format' (required tool missing)." >&2
-				continue
-			fi
-			if ! package_linux_bundle_appimage "$MATRIX_ARCH" "$APP_NAME"; then
-				failures+=("$format")
-			else
-				created+=("$format")
-			fi
-			;;
-		"")
-			;;
+		tar) packager=package_linux_bundle_tar ;;
+		deb) packager=package_linux_bundle_deb ;;
+		flatpak) packager=package_linux_bundle_flatpak ;;
+		appimage) packager=package_linux_bundle_appimage ;;
+		"") continue ;;
 		*)
+			# Still fatal on the spot, and deliberately not a skipped gate: a
+			# format nobody implements is a typo in the caller's --formats, not
+			# a missing tool on this machine.
 			echo "Error: unsupported format '$format'" >&2
 			echo "Supported formats: tar, deb, flatpak, appimage" >&2
 			exit 2
 			;;
 	esac
+
+	if ! is_format_available "$format"; then
+		gate_skip "$format" "required tool missing"
+		continue
+	fi
+
+	run_gate "$format" "$packager" "$MATRIX_ARCH" "$APP_NAME"
 done
 
-if [[ "${#created[@]}" -gt 0 ]]; then
-	echo "Info: created package format(s): ${created[*]}"
-fi
-
-if [[ "${#skipped[@]}" -gt 0 ]]; then
-	echo "Warning: skipped package format(s): ${skipped[*]}" >&2
-	if [[ "$STRICT_MODE" -eq 1 ]]; then
-		echo "Error: strict mode enabled and at least one format was skipped." >&2
-		exit 1
-	fi
-fi
-
-if [[ "${#failures[@]}" -gt 0 ]]; then
-	echo "Error: packaging failed for format(s): ${failures[*]}" >&2
-	exit 1
-fi
-
-if [[ "${#created[@]}" -eq 0 ]]; then
-	echo "Error: no package artifacts were created." >&2
-	exit 1
+# The verdict, once. Every branch of the tail this replaces is now upstream's:
+#
+#   * "Info: created package format(s)" is the batch's passing gates — run_gate
+#     prints `== tar: ok ==` as each one lands and assert_gates counts them.
+#   * "packaging failed for format(s)" is assert_gates naming every failure,
+#     and it still names ALL of them: run_gate records rather than aborts, so a
+#     broken deb no longer hides whether appimage would have worked.
+#   * --strict is the DEFAULT upstream: assert_gates reds a skip unless it is
+#     handed --tolerate-skips, so tolerance is the thing you have to ask for
+#     and the thing that greps. Without --strict this driver asks for it,
+#     because a format whose tool is absent on a dev box is not a defect in
+#     the tree; in CI, where --strict is passed, it is.
+#   * "no package artifacts were created" is assert_gates refusing to report
+#     green over a batch in which nothing ran. That case is reached when every
+#     requested format was skipped, and --tolerate-skips does NOT cover it: a
+#     run that produced no artifact has nothing to ship, strict or not.
+if [[ "$STRICT_MODE" -eq 1 ]]; then
+	assert_gates
+else
+	assert_gates --tolerate-skips
 fi
