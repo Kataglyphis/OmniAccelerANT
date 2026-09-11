@@ -40,7 +40,7 @@ dependencies:
   sqlite3: ^3.3.1
   web: ^1.1.1
 dev_dependencies:
-  mockito: ^5.6.4
+  mockito: ^5.8.1
   flutter_test:
     sdk: flutter
   integration_test:
