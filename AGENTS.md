@@ -798,29 +798,48 @@ file.
 
 ### Dependency upgrades
 
-**Submodule upgrades go through this, not by hand.** It does not cover every
-dependency here — `--apply` moves gitlinks and nothing else, so `pubspec.yaml`
-stays a hand edit. Nothing in `.github/workflows/` runs it; it blocks no commit.
+**Submodule upgrades go through this, not by hand.** Nothing in
+`.github/workflows/` runs it; it blocks no commit.
 
-```bash
-bash scripts/linux/renovate-local.sh                    # what is behind
-bash scripts/linux/renovate-local.sh --apply --dry-run  # the plan
-bash scripts/linux/renovate-local.sh --apply            # move the gitlinks
+On this host, run it in the cross container:
+
+```powershell
+.\scripts\linux\Invoke-Renovate.ps1                      # what is behind
+.\scripts\linux\Invoke-Renovate.ps1 -Apply -DryRun       # the plan
+.\scripts\linux\Invoke-Renovate.ps1 -Apply               # apply the plan
+.\scripts\linux\Invoke-Renovate.ps1 -Managers pub        # narrow the managers
+.\scripts\linux\Invoke-Renovate.ps1 -Recurse             # owned submodules, in place
 ```
 
-A wrapper over ContainerHub's `linux/scripts/renovate-local.sh`. Renovate runs
-as a local CLI and only **detects** — `--platform=local` cannot write — so the
-`--apply` half is git's, and it moves only submodules that declare a `branch =`.
-All four here do. **Leave the default `--managers git-submodules` alone unless
-you mean it:** scoped it answers in about four seconds, while an unscoped run walks
-every manager in this tree, takes minutes, and reports dependencies `--apply` cannot
-move (pubspec.yaml is pub's). Run it from WSL on this host: the bootstrap wants Node
-major 24 — `RENOVATE_NODE_VERSION` in the hub's
-`linux/scripts/01-core/versions.env`, a separate pin from the canonical
-`NODE_VERSION` — and there is no node on the Windows side. `--apply` also
-needs the git that *wrote* the working tree; the script sorts that out itself,
-using `git.exe` when WSL can reach it and refusing up front when it cannot.
-Why any of it —
+`scripts/linux/renovate-local.sh` remains the language-independent entry point
+(every lane and Linux host calls it); the PowerShell runner only wires it to
+`nerdctl`: it mounts the repo at `/workspace`, adds the `safe.directory`
+entries the root-owned bind mount needs (`/workspace` and `/workspace/*` for the
+submodule worktrees), and forwards `-Apply`/`-DryRun`/`-Refresh`/
+`-Managers`/`-PrintBin`.
+
+**Why the container still downloads its own Node.** Renovate declares
+`engines.node ^24.11.0` and hard-exits on anything else, so the image's Node
+26.8.1 cannot run it (`Unsupported node environment detected`). The
+checksum-pinned Node 24.21.0 + Renovate 44.71.0 bootstrap stays, cached on the
+`kataglyphis-renovate-cache` named volume, so the download happens once per host
+instead of once per container.
+
+`-Recurse` walks the initialized submodules, keeps the Kataglyphis-owned ones,
+dedups them by remote identity (one canonical checkout per repo, the shallowest
+copy), orders them dependencies-first, and runs the same script in each —
+ContainerHub after DocumANTation, AccelerANTgine/OxidANT after ContainerHub.
+It writes into the vendored worktrees in place, which upstream's
+`renovate-fleet.sh` refuses by design: after an `-Apply`, commit and push each
+submodule, then move the gitlinks in every superproject that vendors it.
+
+Renovate is a local CLI and only **detects** — `--platform=local` cannot write —
+so the `--apply` half is this repo's own code: git for gitlinks and a located
+line rewrite for the manifests it reported. Managers default to **every manager
+whose file patterns match this tree** (eight today), so `--managers` narrows the
+run rather than enabling it. `--apply` needs the git that *wrote* the working
+tree; the script sorts that out itself and refuses up front rather than
+half-applying. Why any of it —
 [`third_party/ContainerHub/docs/dependency-updates.md`](third_party/ContainerHub/docs/dependency-updates.md).
 
 ## 5. Docs owned by this repo
