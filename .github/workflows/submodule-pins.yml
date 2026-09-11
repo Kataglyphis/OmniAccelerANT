@@ -65,7 +65,7 @@ jobs:
       # empty tree, which is the intended behaviour, not something to work
       # around by dropping this input.
       - name: Checkout
-        uses: actions/checkout@v7.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           submodules: true
 

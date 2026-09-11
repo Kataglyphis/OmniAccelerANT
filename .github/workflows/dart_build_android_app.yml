@@ -61,7 +61,7 @@ jobs:
             --run-codeql "${{ matrix.arch == 'x64' }}"
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v7.0.1
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: ${{ matrix.app_name }}-linux-${{ matrix.arch }}-tar
           path: out/${{ matrix.app_name }}-linux-${{ matrix.arch }}.tar.gz
@@ -77,6 +77,6 @@ jobs:
       # directory can no longer coexist with a green job.
       - name: Upload CodeQL results SARIF
         if: ${{ matrix.arch == 'x64' && hashFiles('codeql-results/*.sarif') != '' }}
-        uses: github/codeql-action/upload-sarif@v4
+        uses: github/codeql-action/upload-sarif@b96794f015dfd88f77b49b1c93e0fa7110f94c63
         with:
           sarif_file: codeql-results
