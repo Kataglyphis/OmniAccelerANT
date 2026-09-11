@@ -801,6 +801,9 @@ file.
 **Submodule upgrades go through this, not by hand.** Nothing in
 `.github/workflows/` runs it; it blocks no commit.
 
+**Report-first (owner directive 2026-09-11): a run reports. `-Apply` only when the
+owner explicitly asked for it in that turn.**
+
 On this host, run it in the cross container:
 
 ```powershell
