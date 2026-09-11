@@ -2,7 +2,6 @@ group = "com.example.kataglyphis_native_inference"
 version = "1.0-SNAPSHOT"
 
 buildscript {
-    ext.kotlin_version = "2.4.20"
     repositories {
         google()
         mavenCentral()
@@ -10,7 +9,6 @@ buildscript {
 
     dependencies {
         classpath("com.android.tools.build:gradle:9.4.0")
-        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version")
     }
 }
 
@@ -22,7 +20,6 @@ allprojects {
 }
 
 apply plugin: "com.android.library"
-apply plugin: "kotlin-android"
 
 android {
     namespace = "com.example.kataglyphis_native_inference"
@@ -43,10 +40,6 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_21
         targetCompatibility = JavaVersion.VERSION_21
-    }
-
-    kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_21
     }
 
     sourceSets {
@@ -94,5 +87,11 @@ android {
                showStandardStreams = true
             }
         }
+    }
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21
     }
 }

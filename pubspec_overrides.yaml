@@ -3,6 +3,10 @@
 # Remove this file once permission_handler_windows 0.2.3 is published, and drop
 # Update-PermissionHandlerWindows from the Windows build script with it.
 dependency_overrides:
+  # permission_handler_android 14.x requires compileSdk 37; the CI image ships
+  # android-36 only. 13.0.1 builds against 35/36 and implements the same
+  # platform interface. Drop this pin once the image carries android-37.
+  permission_handler_android: 13.0.1
   permission_handler_windows:
     git:
       url: https://github.com/Kataglyphis/flutter-permission-handler.git

@@ -142,8 +142,8 @@ written out rather than linked.
 - **Every Android SDK component must be pinned to what the image ships.**
   `/opt/android-sdk` is read-only, so any component the Android Gradle Plugin
   asks for and does not find cannot be installed — Gradle stops with
-  `The SDK directory is not writable`, one component per run. AGP 8.11.1's
-  defaults (build-tools 35.0.0, NDK 27.0.12077973, cmake 3.22.1) are all
+  `The SDK directory is not writable`, one component per run. AGP's defaults
+  (build-tools 35.x, NDK 27/28.x, cmake 3.22.1) are all
   wrong for this image, which carries 36.0.0, 29.0.14206865 and 4.1.2. Four
   places pin them and must agree: the global `subprojects` override in
   `android/build.gradle.kts` (which also drags third-party plugins such as
@@ -231,26 +231,39 @@ written out rather than linked.
   nothing. It also happens to be what keeps that call wrapped across three
   lines; the shorter name fits on one and `dart format` then rewrites the file.
 
-- **The image's Android prebuilts are x86-64; the app builds arm64-v8a. This
-  blocks the Android lane and nothing in this repo can move it.** GStreamer,
-  ONNX Runtime and OpenCV under `/opt/android/` are all
-  `ELF x86-64, for Android 34, built by NDK r29` — `libs/x86_64` and
-  `jni/abi-x86_64` are the only ABI directories OpenCV ships, and
-  `find /opt -name 'libgstreamer-1.0.*'` turns up no aarch64 build at all. The
-  app pins `abiFilters "arm64-v8a"` (the native plugin's `android/build.gradle`,
-  deliberately — real phones). So the compile succeeds and the link does not:
+- **The Android prebuilts are aarch64 now, and the lane's toolchain moved with
+  them.** Until 2026-09-11 the image carried `ELF x86-64` GStreamer/ONNX
+  Runtime/OpenCV under `/opt/android/` while the app builds `arm64-v8a`, so the
+  link died on every archive with `incompatible with aarch64linux`. The image
+  now ships only `arm64-v8a` (`libs/arm64-v8a`, `jni/abi-arm64-v8a`, and an
+  aarch64 `libgstreamer-1.0.a` built by NDK r29), so the lane links.
+  `abiFilters "arm64-v8a"` in the native plugin's `android/build.gradle` stays —
+  real phones, not the emulator.
+  AGP 9.4.0 + Gradle 9.7.1 builds that against four constraints, all
+  load-bearing:
 
-  ```
-  [1/2] Building CXX object .../gstreamer_native.cpp.o
-  [2/2] Linking .../arm64-v8a/libkataglyphis_native_inference.so
-  ld.lld: error: /opt/android/gstreamer/libgstreamer-1.0.a(gst.c.o) is incompatible with aarch64linux
-  ```
-
-  20 such lines over 26 archives. Everything before it is green — that run had
-  zero `not writable`, `No Android SDK`, `Permission denied` or `must be set`
-  hits. Do not "fix" this by switching the lane to x86-64: that ABI is the
-  emulator's, not a shipping target. The image has to carry the arm64-v8a
-  prebuilts.
+  - **Built-in Kotlin, with a declared KGP for the version check.**
+    `android.builtInKotlin=true` and no `kotlin-android` plugin anywhere; AGP
+    compiles Kotlin itself, and the target is set with
+    `kotlin { compilerOptions { jvmTarget = … } }`. AGP bundles KGP 2.2.10,
+    below Flutter's 2.2.20 floor, so `android/settings.gradle.kts` must keep
+    `id("org.jetbrains.kotlin.android") version "2.4.20" apply false` — the
+    declaration, not an application, is what raises the classpath KGP. Remove it
+    and Flutter stops with `Your project's Kotlin version (2.2.10) is lower than
+    Flutter's minimum supported version of 2.2.20`.
+  - **`android.newDsl=false` stays.** The Flutter Gradle plugin still needs the
+    legacy DSL types, AGP 9.4 marks them deprecated, and Gradle 9.7's Kotlin-DSL
+    script compilation turns that into `Script compilation errors`. That is why
+    `android/app/build.gradle.kts` opens with
+    `@file:Suppress("DEPRECATION", "DEPRECATION_ERROR")`.
+  - **Cargokit carries a Gradle 9 port.** `Project.exec` and `Project.buildDir`
+    are gone in Gradle 9; `rust_builder/cargokit/gradle/plugin.gradle` injects
+    `ExecOperations` and reads `project.layout.buildDirectory`. Upstream Cargokit
+    still has the old calls, so keep this patch when bumping the vendored copy.
+  - **`permission_handler_android` is pinned to 13.0.1** in
+    `pubspec_overrides.yaml`. The 14.x that permission_handler 13.0.2 resolves
+    needs `compileSdk 37`; the image ships android-36 and its SDK is read-only.
+    Drop the pin when the image carries 37.
 
 - **The Rust manifest path must be counted from the *resolved* plugin dir.**
   Cargokit builds `CARGOKIT_MANIFEST_DIR` by string-joining
