@@ -68,23 +68,39 @@ if ($gitCmd) {
 }
 $inner = $inner.Replace('__AUTOCRLF__', $autocrlf)
 
+$envFileArgs = @()
+$envFile = $null
+$ghCmd = Get-Command 'gh' -ErrorAction SilentlyContinue
+if ($ghCmd) {
+	$token = (& $ghCmd.Source auth token 2>$null | Select-Object -First 1)
+	if ($token) {
+		$envFile = Join-Path ([System.IO.Path]::GetTempPath()) "kataglyphis-renovate-$([guid]::NewGuid().ToString('N')).env"
+		Set-Content -LiteralPath $envFile -Value "GITHUB_COM_TOKEN=$token" -NoNewline
+		$envFileArgs = @('--env-file', $envFile)
+	}
+}
+
 $engineArgs = @(
 	'run', '--name', $ContainerName,
 	'--platform', 'linux/amd64',
 	'-v', "${repoRoot}:/workspace",
 	'--mount', "type=volume,source=${CacheVolume},target=/cache",
-	'-w', '/workspace',
+	'-w', '/workspace'
+) + $envFileArgs + @(
 	$Image,
 	'bash', '-c', $inner, '--'
 ) + $renovateArgs
 
 Write-Host "engine : $engine"
 Write-Host "cache  : $CacheVolume -> /cache"
+Write-Host "token  : $(if ($envFile) { 'GITHUB_COM_TOKEN from gh' } else { 'none (GitHub lookups may be rate-limited)' })"
 Write-Host "command: $($engineArgs -join ' ')"
 Write-Host ''
 
 & $engine @engineArgs
 $exitCode = $LASTEXITCODE
+
+if ($envFile) { Remove-Item -LiteralPath $envFile -Force -ErrorAction SilentlyContinue }
 
 if (-not $KeepContainer) {
 	& $engine 'container' 'remove' $ContainerName 2>&1 | Out-Null
