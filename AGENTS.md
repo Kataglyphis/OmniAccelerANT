@@ -824,9 +824,14 @@ submodule worktrees), and forwards `-Apply`/`-DryRun`/`-Refresh`/
 **Why the container still downloads its own Node.** Renovate declares
 `engines.node ^24.11.0` and hard-exits on anything else, so the image's Node
 26.8.1 cannot run it (`Unsupported node environment detected`). The
-checksum-pinned Node 24.21.0 + Renovate 44.71.0 bootstrap stays, cached on the
+checksum-pinned Node 24.21.0 + Renovate 44.82.0 bootstrap stays, cached on the
 `kataglyphis-renovate-cache` named volume, so the download happens once per host
 instead of once per container.
+
+**The runner passes `gh`'s token as `GITHUB_COM_TOKEN` when `gh` is
+authenticated.** Without it Renovate's GitHub API lookups are rate-limited and it
+can report stale GitHub Actions as up to date — DocumANTation's action majors
+were invisible until a token was supplied.
 
 `-Recurse` walks the initialized submodules, keeps the Kataglyphis-owned ones,
 dedups them by remote identity (one canonical checkout per repo, the shallowest
