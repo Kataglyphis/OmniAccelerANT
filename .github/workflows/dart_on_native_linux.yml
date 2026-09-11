@@ -42,7 +42,7 @@ jobs:
       # scan below reads the whole tree and a half-checked-out submodule would
       # change what it sees between runs.
       - name: Checkout
-        uses: actions/checkout@v7.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           submodules: recursive
           fetch-depth: 1
@@ -186,13 +186,13 @@ jobs:
       # really scans today.
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v7.0.1
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: ${{ matrix.app_name }}-linux-${{ matrix.arch }}-tar
           path: out/${{ matrix.app_name }}-linux-${{ matrix.arch }}.tar.gz
 
       - name: Upload Linux packages
-        uses: actions/upload-artifact@v7.0.1
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: ${{ matrix.app_name }}-linux-${{ matrix.arch }}-packages
           path: |
@@ -207,7 +207,7 @@ jobs:
       # the script the owner can also run locally.
       - name: 📂 Sync files to domain
         if: ${{ matrix.arch == 'x64' }}
-        uses: SamKirkland/FTP-Deploy-Action@v4.4.0
+        uses: SamKirkland/FTP-Deploy-Action@110f9186c050f71550953127052e77650219c287
         with:
           server: ${{ secrets.SERVER }}
           username: ${{ secrets.USERNAME }}
