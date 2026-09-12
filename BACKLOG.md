@@ -1,6 +1,6 @@
 # Backlog
 
-Follows the protocol ContainerHub's agentic loop (`shared/agentic-loop/`)
+Follows the protocol ANTfrastructure's agentic loop (`shared/agentic-loop/`)
 consumes, so this file can be handed to it unchanged when the loop is adopted
 here.
 
@@ -97,5 +97,5 @@ here.
 ## Not adopted yet
 
 The agentic loop itself — config, runner wrappers, `scripts/AgenticLoop/` — is
-not set up here. Templates live in ContainerHub's
+not set up here. Templates live in ANTfrastructure's
 `shared/agentic-loop/templates/`.

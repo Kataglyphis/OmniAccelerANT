@@ -1,16 +1,16 @@
 #!/usr/bin/env bash
 
 _container_steps_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# shellcheck source=scripts/linux/lib/containerhub.sh
-source "${_container_steps_dir}/containerhub.sh"
+# shellcheck source=scripts/linux/lib/antfrastructure.sh
+source "${_container_steps_dir}/antfrastructure.sh"
 
-containerhub_source linux/scripts/01-core/platform.sh
-containerhub_source linux/scripts/01-core/logging.sh
+antfrastructure_source linux/scripts/01-core/platform.sh
+antfrastructure_source linux/scripts/01-core/logging.sh
 # gate_reset / run_gate / gate_skip / assert_gates. Sourced HERE rather than in
 # each driver because every driver that runs a check already sources this file,
 # and the batch itself is built by the driver - never by a helper below, which
 # would silently reset a batch its caller had opened.
-containerhub_source linux/scripts/01-core/gates.sh
+antfrastructure_source linux/scripts/01-core/gates.sh
 
 # is_truthy plus a bare "y" and mixed case.
 maybe_truthy() {
@@ -97,33 +97,33 @@ assert_flutter_available() {
 #
 # The driver resolution is a statement of its own, not a substitution inside the
 # command line: this function is called from inside run_gate, i.e. from a `||`
-# list, where `set -e` does NOT abort. A failing containerhub_path there left an
+# list, where `set -e` does NOT abort. A failing antfrastructure_path there left an
 # EMPTY first argument behind and ran `bash "" --strict false`, so a missing
 # upstream file reported as bash's own "No such file or directory" instead of
-# the path-and-fix message containerhub_path prints.
+# the path-and-fix message antfrastructure_path prints.
 run_flutter_common_checks() {
   local strict_mode="${1:-0}" strict_flag checks
   shift || true
   if maybe_truthy "$strict_mode"; then strict_flag=true; else strict_flag=false; fi
-  checks="$(containerhub_path linux/scripts/05-frameworks/flutter/flutter_checks.sh)" || return 1
+  checks="$(antfrastructure_path linux/scripts/05-frameworks/flutter/flutter_checks.sh)" || return 1
   bash "$checks" --strict "$strict_flag" "$@"
 }
 
 _cmake_format_venv_create() {
-  containerhub_source linux/scripts/01-core/python_uv.sh
+  antfrastructure_source linux/scripts/01-core/python_uv.sh
   # Empty python version: honour UV_PYTHON, which the CI images export.
   uv_venv_create .venv ""
 }
 
 _cmake_format_install_requirements() {
-  containerhub_source linux/scripts/01-core/python_uv.sh
+  antfrastructure_source linux/scripts/01-core/python_uv.sh
   local requirements
-  requirements="$(containerhub_path linux/scripts/cmake-format.requirements.txt)" || return 1
+  requirements="$(antfrastructure_path linux/scripts/cmake-format.requirements.txt)" || return 1
   uv_pip_install_requirements .venv "$requirements"
 }
 
 # CMake format gate for the hand-maintained native build files. Enumeration and
-# exclude-glob handling come from ContainerHub's code-quality.sh; the globs keep
+# exclude-glob handling come from ANTfrastructure's code-quality.sh; the globs keep
 # the gate off generated trees (Flutter's flutter/CMakeLists.txt +
 # generated_plugins.cmake + ephemeral, Android's .cxx) and vendored Cargokit —
 # the gate must never fight the generator. Windows twin: the "CMake Format
@@ -147,10 +147,10 @@ run_cmake_format_check() {
     echo "       flag was false. Wrap the call in run_gate instead of passing one." >&2
     return 2
   fi
-  containerhub_source linux/scripts/lib/code-quality.sh || return 1
+  antfrastructure_source linux/scripts/lib/code-quality.sh || return 1
 
   # cmake-format from PATH if the image ships it, else a uv venv fed by
-  # ContainerHub's pinned bootstrap set — same provisioning the Windows step
+  # ANTfrastructure's pinned bootstrap set — same provisioning the Windows step
   # uses. This repo carries no root requirements.txt: the pins (cmake-format
   # plus the pyyaml it cannot read .cmake-format.yaml without) live upstream in
   # linux/scripts/cmake-format.requirements.txt, so both platforms and every
@@ -158,7 +158,7 @@ run_cmake_format_check() {
   #
   # The bootstrap itself is upstream's code_quality_ensure_cmake_format, not a
   # local copy of it. The two knobs below are FUNCTION names, exactly as
-  # ContainerHub's own preflight.sh sets them. What the hand-rolled version this
+  # ANTfrastructure's own preflight.sh sets them. What the hand-rolled version this
   # replaces did NOT do, and what adopting buys: a `.venv` created on the other
   # platform (Scripts/python.exe in this bind-mounted tree, or bin/python on the
   # Windows host) was reused by an `[[ ! -d .venv ]]` guard and then died inside
@@ -175,18 +175,18 @@ run_cmake_format_check() {
   #
   # That exit is only a RECORDED gate failure, rather than a dead driver, if
   # run_gate runs its command in a subshell. That is a REQUIREMENT this file
-  # places on ContainerHub, not something the pin necessarily satisfies: it was
+  # places on ANTfrastructure, not something the pin necessarily satisfies: it was
   # added upstream on 2026-09-09 and reaches this repo only when the gitlink is
   # bumped. Under an older pin the batch still exits non-zero (no false green),
   # but it dies here and every finding already recorded is lost, so one push
   # names one failure instead of all of them.
-  # third_party/ContainerHub/docs/shared-script-libraries.md#gate-aggregation-01-coregatessh
+  # third_party/ANTfrastructure/docs/shared-script-libraries.md#gate-aggregation-01-coregatessh
   code_quality_ensure_cmake_format
 
   if [[ ! -f .cmake-format.yaml ]]; then
     echo "Error: no .cmake-format.yaml at the repo root; without it cmake-format silently" >&2
     echo "       falls back to its built-in defaults. Restore the consumer copy with" >&2
-    echo "       ContainerHub shared/config/Sync-SharedConfig.ps1 -Write (AGENTS.md § 4)." >&2
+    echo "       ANTfrastructure shared/config/Sync-SharedConfig.ps1 -Write (AGENTS.md § 4)." >&2
     return 1
   fi
 
@@ -214,7 +214,7 @@ run_cmake_format_check() {
 
   echo "[Info] cmake-format --check on ${#cmake_files[@]} CMake files."
   # Upstream's runner, not a bare `cmake-format` line: it is the same one that
-  # grades ContainerHub's own tree, and it is what makes the -c flag conditional
+  # grades ANTfrastructure's own tree, and it is what makes the -c flag conditional
   # on the config actually existing instead of passing a path that may not.
   # Its exit status is this function's exit status - the caller's run_gate is
   # what records it, and that caller's assert_gates is what raises it.
@@ -223,7 +223,7 @@ run_cmake_format_check() {
 
 # AGENTS.md § 3.
 setup_compiler_cache() {
-  containerhub_source linux/scripts/01-core/compiler-cache.sh
+  antfrastructure_source linux/scripts/01-core/compiler-cache.sh
   setup_sccache
   echo "[Info] SCCACHE_DIR=${SCCACHE_DIR:-<unset>}  RUSTC_WRAPPER=${RUSTC_WRAPPER:-<unset>}"
 }
@@ -245,7 +245,7 @@ export_android_gstreamer_env() {
   return 0
 }
 
-# Points clang at the image's source-built GCC. ContainerHub deleted the helper
+# Points clang at the image's source-built GCC. ANTfrastructure deleted the helper
 # that did this; the wrappers it named as the replacement are not in this image
 # — AGENTS.md § 3.
 export_toolchain_env() {
@@ -259,7 +259,7 @@ export_toolchain_env() {
   fi
 
   export CC=clang CXX=clang++
-  containerhub_source linux/scripts/01-core/cross-gcc.sh || return 1
+  antfrastructure_source linux/scripts/01-core/cross-gcc.sh || return 1
   local root
   root="$(gcc_toolchain_prefix)"
   if [ ! -d "$root" ]; then

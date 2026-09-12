@@ -10,8 +10,8 @@ source "$SCRIPT_DIR/packaging-common.sh"
 
 # gate_reset / run_gate / gate_skip / assert_gates — the fleet's "run every
 # gate, then fail once" accumulator. packaging-common.sh has already sourced
-# containerhub.sh, which is what finds the submodule.
-containerhub_source linux/scripts/01-core/gates.sh
+# antfrastructure.sh, which is what finds the submodule.
+antfrastructure_source linux/scripts/01-core/gates.sh
 
 # gate_skip is NEWER than the rest of that file (2026-09-09), and this driver is
 # what it was added for: a packaging format whose tool is absent is neither a
@@ -20,11 +20,11 @@ containerhub_source linux/scripts/01-core/gates.sh
 # as "gate_skip: command not found" from inside the loop — and, before this
 # check existed, only after some formats had already been built.
 if ! declare -F gate_skip >/dev/null; then
-	echo "Error: the pinned ContainerHub's linux/scripts/01-core/gates.sh has no gate_skip." >&2
+	echo "Error: the pinned ANTfrastructure's linux/scripts/01-core/gates.sh has no gate_skip." >&2
 	echo "       This driver needs its third bucket: 'the tool for this format is not" >&2
 	echo "       installed' is not a pass and not a failure, and counting it as either" >&2
 	echo "       is what the rewrite of this file removed. Bump the submodule:" >&2
-	echo "       git -C third_party/ContainerHub fetch origin && git -C third_party/ContainerHub checkout <sha>" >&2
+	echo "       git -C third_party/ANTfrastructure fetch origin && git -C third_party/ANTfrastructure checkout <sha>" >&2
 	exit 1
 fi
 
@@ -107,7 +107,7 @@ IFS=',' read -r -a selected_formats <<< "$FORMATS"
 # ONE accumulator, and it is upstream's. What stood here was a fourth private
 # copy of it — failures/skipped/created arrays wrapped around four case arms
 # that differed only in which package_linux_bundle_* they called — and the
-# header of ContainerHub's linux/scripts/01-core/gates.sh names that
+# header of ANTfrastructure's linux/scripts/01-core/gates.sh names that
 # reinvention as the thing it exists to end.
 gate_reset "packaging ${APP_NAME} (${MATRIX_ARCH})"
 

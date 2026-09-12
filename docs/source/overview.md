@@ -21,7 +21,7 @@ OmniAccelerANT combines a Flutter frontend with native Rust/C++ inference and GS
 | `packages/kataglyphis_native_inference` | Flutter plugin (Windows/Linux) that bridges the C++ inference core to Dart — plain files and a `pubspec.yaml` path dependency, not a submodule |
 | `third_party/OxidANT` | Rust core (`oxidant` crate), bridged into `lib/src/rust/` by `flutter_rust_bridge` |
 | `third_party/AccelerANTgine` | The C++ inference core the plugin builds against |
-| `third_party/ContainerHub` | Shared build images, container actions, and CI helpers |
+| `third_party/ANTfrastructure` | Shared build images, container actions, and CI helpers |
 | `third_party/ANThology` | Shared Flutter/Dart code (`anthology` package), a path dependency in `pubspec.yaml` |
 
 ## Core Design Goals

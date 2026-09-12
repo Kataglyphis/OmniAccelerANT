@@ -6,14 +6,14 @@
 # invoked from the command line by running `flutter analyze`.
 #
 # The shared family policy (the flutter_lints include, the per-platform
-# excludes and the linter section) lives in ContainerHub and is pulled in BY
+# excludes and the linter section) lives in ANTfrastructure and is pulled in BY
 # REFERENCE below — Dart's native relative include, resolved from this file.
 # Deliberately not Sync-SharedConfig.ps1: that copies verbatim and would erase
 # this repo's extra excludes. The analyzer merges an included file with this
 # one and unions `analyzer.exclude`, so everything below is ADDITIVE to the
 # shared list (build/**, android/**, ios/**, web/**, windows/**, macos/**,
 # linux/**). Only the Omni-specific deltas belong here.
-include: third_party/ContainerHub/shared/config/analysis_options.yaml
+include: third_party/ANTfrastructure/shared/config/analysis_options.yaml
 
 analyzer:
   exclude:

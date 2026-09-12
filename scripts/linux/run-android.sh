@@ -83,9 +83,9 @@ cd "$REPO_ROOT"
 require_cmd flutter
 require_cmd dart
 
-# ContainerHub's gate: pub get + format + analyze + test, non-strict. Its format
+# ANTfrastructure's gate: pub get + format + analyze + test, non-strict. Its format
 # step lists tracked files instead of walking $PWD/flutter — AGENTS.md § 2.
-bash "$(containerhub_path linux/scripts/05-frameworks/flutter/flutter_checks.sh)" --strict false
+bash "$(antfrastructure_path linux/scripts/05-frameworks/flutter/flutter_checks.sh)" --strict false
 
 flutter config --enable-android
 

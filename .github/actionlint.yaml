@@ -4,7 +4,7 @@
 # Without this file the workflow-lint gate in dart_on_native_linux.yml fails on
 # every `runs-on: ubuntu-26.04` line with "label \"ubuntu-26.04\" is unknown"
 # before it can report a single real finding. Same file, same reason, as
-# BeschleunigerBallett's and ContainerHub's.
+# BeschleunigerBallett's and ANTfrastructure's.
 self-hosted-runner:
   labels:
     - ubuntu-26.04

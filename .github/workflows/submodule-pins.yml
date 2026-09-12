@@ -5,14 +5,14 @@
 # submodule's remote. Nothing in this repo has ever checked either.
 #
 # Why it matters more here than almost anywhere else: OmniAccelerANT has four
-# submodules and three of them (ContainerHub, OxidANT, AccelerANTgine) are
+# submodules and three of them (ANTfrastructure, OxidANT, AccelerANTgine) are
 # owned and fast-moving, so a working tree that has quietly walked forward from
 # its gitlink is compiling something other than what is committed - and `git
 # submodule status` marks that only with a '+' that is easy to miss. The
 # reachability half catches the other direction: a gitlink bumped to a commit
 # that was never pushed builds on the machine that made it and on no other.
 #
-# The suite is ContainerHub's, run FROM the submodule and never copied in
+# The suite is ANTfrastructure's, run FROM the submodule and never copied in
 # (shared/windows/tests/Submodule.Pins.Tests.ps1, promoted 2026-09-07). It takes
 # the superproject root as a parameter; the composite action can only pass a
 # path, so the root arrives through the environment below.
@@ -54,9 +54,9 @@ jobs:
       # The suite would fall back to GITHUB_WORKSPACE on its own; naming it here
       # keeps the wiring visible instead of implied. It must NOT be allowed to
       # fall through to "the git top level of the current directory" - from
-      # inside the ContainerHub submodule that resolves to ContainerHub, not to
+      # inside the ANTfrastructure submodule that resolves to ANTfrastructure, not to
       # this superproject.
-      CONTAINERHUB_PIN_CHECK_REPO_ROOT: ${{ github.workspace }}
+      ANTFRASTRUCTURE_PIN_CHECK_REPO_ROOT: ${{ github.workspace }}
     steps:
       # `submodules: true`, top-level only, matching the suite's non-recursive
       # default - recursing over working trees a top-level checkout never
@@ -70,6 +70,6 @@ jobs:
           submodules: true
 
       - name: Submodule pins sit at their recorded, restorable commits
-        uses: Kataglyphis/ContainerHub/.github/actions/run-pester-suite@main
+        uses: Kataglyphis/ANTfrastructure/.github/actions/run-pester-suite@main
         with:
-          path: third_party/ContainerHub/shared/windows/tests/Submodule.Pins.Tests.ps1
+          path: third_party/ANTfrastructure/shared/windows/tests/Submodule.Pins.Tests.ps1

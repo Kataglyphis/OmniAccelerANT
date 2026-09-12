@@ -86,7 +86,7 @@ Copilot soll bei „How to validate“ bevorzugt konkrete, reproduzierbare Komma
 - clang-format: `clang-format -i` (nur auf geänderten Dateien) oder ein Check‑Target.
 - clang-tidy: nur wenn `compile_commands.json` vorhanden ist; keine massiven Auto‑Fixes ohne Review.
 - Rust: `cargo fmt --check`, `cargo clippy -- -D warnings`, `cargo test`.
-- Flutter: nicht direkt aufrufen, sondern `scripts/linux/run-native-linux.sh` (ruft ContainerHubs `flutter_checks.sh`) bzw. `scripts/windows/Build-Windows.ps1` (nutzt `Get-ProjectDartFiles`). Nie `dart format .`: die Lanes legen das Flutter‑SDK in den Workspace, ein rekursiver Lauf formatiert es mit.
+- Flutter: nicht direkt aufrufen, sondern `scripts/linux/run-native-linux.sh` (ruft ANTfrastructures `flutter_checks.sh`) bzw. `scripts/windows/Build-Windows.ps1` (nutzt `Get-ProjectDartFiles`). Nie `dart format .`: die Lanes legen das Flutter‑SDK in den Workspace, ein rekursiver Lauf formatiert es mit.
 
 **Native I/O**
 - Prefer async patterns and explicit threading/futures when interacting with native I/O

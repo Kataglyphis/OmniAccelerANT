@@ -11,7 +11,7 @@ set -euo pipefail
 #
 # THIS IS A WRAPPER. The tool itself — the pinned Node/Renovate bootstrap, the
 # JSON report parse and the git half of --apply — lives upstream in
-# ContainerHub's linux/scripts/renovate-local.sh. This file exists so the family
+# ANTfrastructure's linux/scripts/renovate-local.sh. This file exists so the family
 # tool has a local entry point here, next to run-lint-gates.sh, rather than
 # being a path into third_party/ that everyone retypes. It is NOT a gate:
 # nothing in .github/workflows/ runs it and it blocks no commit.
@@ -33,7 +33,7 @@ set -euo pipefail
 # dependencies --apply cannot move (pubspec.yaml is pub's). Widen --managers
 # deliberately, one manager at a time.
 #
-# WHAT --apply WILL DO IN THIS REPO: all four gitlinks — ANThology, ContainerHub,
+# WHAT --apply WILL DO IN THIS REPO: all four gitlinks — ANThology, ANTfrastructure,
 # OxidANT, AccelerANTgine — declare a `branch =` in .gitmodules, so all four are
 # eligible and none are refused. That entry is what makes them eligible: upstream
 # passes EXPLICIT paths and never a bare `git submodule update --remote`, which
@@ -51,11 +51,11 @@ set -euo pipefail
 # cannot, instead of half-applying.
 #
 # Rationale, the pins and the GitHub-token variant — the hub owns all of it:
-# third_party/ContainerHub/docs/dependency-updates.md
+# third_party/ANTfrastructure/docs/dependency-updates.md
 
 _renovate_local_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# shellcheck source=scripts/linux/lib/containerhub.sh
-source "${_renovate_local_dir}/lib/containerhub.sh"
+# shellcheck source=scripts/linux/lib/antfrastructure.sh
+source "${_renovate_local_dir}/lib/antfrastructure.sh"
 
 usage() {
   cat <<'EOF'
@@ -65,8 +65,8 @@ Usage:
 
 Reports which of this repo's dependencies are behind, per .github/renovate.json,
 and with --apply moves the submodule gitlinks Renovate named. Options are passed
-straight through to ContainerHub's renovate-local.sh; see
-third_party/ContainerHub/docs/dependency-updates.md.
+straight through to ANTfrastructure's renovate-local.sh; see
+third_party/ANTfrastructure/docs/dependency-updates.md.
 
 The root defaults to this checkout. Give an override as an ABSOLUTE path: this
 wrapper runs from the repo root, so a relative one resolves against that.
@@ -84,11 +84,11 @@ for _arg in "$@"; do
   esac
 done
 
-if ! containerhub_path linux/scripts/renovate-local.sh >/dev/null; then
+if ! antfrastructure_path linux/scripts/renovate-local.sh >/dev/null; then
   echo "" >&2
-  echo "The Renovate driver is missing from the pinned ContainerHub. It is a newer" >&2
+  echo "The Renovate driver is missing from the pinned ANTfrastructure. It is a newer" >&2
   echo "addition than this pin, not a broken checkout. Bump the submodule:" >&2
-  echo "  git -C third_party/ContainerHub fetch origin && git -C third_party/ContainerHub checkout <sha>" >&2
+  echo "  git -C third_party/ANTfrastructure fetch origin && git -C third_party/ANTfrastructure checkout <sha>" >&2
   exit 1
 fi
 
@@ -97,4 +97,4 @@ fi
 # explicit root given by the caller is forwarded below and still wins.
 cd "$KATAGLYPHIS_REPO_ROOT"
 
-containerhub_exec linux/scripts/renovate-local.sh "$@"
+antfrastructure_exec linux/scripts/renovate-local.sh "$@"

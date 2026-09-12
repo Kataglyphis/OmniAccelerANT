@@ -1,7 +1,7 @@
 # STATUS: kept deliberately, NOT superseded yet. Read this before deleting it.
 #
 # .github/renovate.json now extends the shared Kataglyphis preset
-# (github>Kataglyphis/ContainerHub), which turns on the github-actions and
+# (github>Kataglyphis/ANTfrastructure), which turns on the github-actions and
 # git-submodules managers - neither of which this file has ever covered. The two
 # configs therefore do NOT overlap today: Dependabot watches `pub` here and
 # nothing else.

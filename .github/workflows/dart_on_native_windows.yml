@@ -23,7 +23,7 @@ jobs:
       #
       # `image:` is DELIBERATELY ABSENT, here and on the run step below. The
       # family image ref has exactly one owner - IMAGE_REGISTRY_PREFIX +
-      # CI_IMAGE_WINDOWS_TAG in ContainerHub's
+      # CI_IMAGE_WINDOWS_TAG in ANTfrastructure's
       # linux/scripts/01-core/versions.env - and both composite actions carry
       # that composed ref as the `image` input default, checked against
       # versions.env by linux/scripts/verify_ci_image_refs.py. Omitting the
@@ -31,7 +31,7 @@ jobs:
       # and once more below would be two copies no gate compares to the first.
       - name: Prepare Windows container host
         id: prep
-        uses: Kataglyphis/ContainerHub/.github/actions/prepare-windows-container-host@main
+        uses: Kataglyphis/ANTfrastructure/.github/actions/prepare-windows-container-host@main
         with:
           registry-password: ${{ secrets.GHCR_PAT }}
           short-path-target: /d/ws
@@ -50,7 +50,7 @@ jobs:
       #
       # working-directory is ABSOLUTELY LOAD-BEARING. `short-path-target: /d/ws`
       # above means prepare-windows-container-host's own actions/checkout takes
-      # NO submodules; the complete tree - third_party/ContainerHub, and so this
+      # NO submodules; the complete tree - third_party/ANTfrastructure, and so this
       # very script - exists only under the short-path clone the action reports
       # as steps.prep.outputs.workspace (D:\ws). Run this from the default
       # ${{ github.workspace }} instead and `pwsh -File` cannot even find
@@ -68,11 +68,11 @@ jobs:
       - name: Lint PowerShell (parse + AST traps)
         working-directory: ${{ steps.prep.outputs.workspace }}
         run: >-
-          pwsh -File third_party/ContainerHub/windows/scripts/Invoke-Lint.ps1
+          pwsh -File third_party/ANTfrastructure/windows/scripts/Invoke-Lint.ps1
           -Path scripts
 
       - name: Run container
-        uses: Kataglyphis/ContainerHub/.github/actions/run-in-windows-container@main
+        uses: Kataglyphis/ANTfrastructure/.github/actions/run-in-windows-container@main
         with:
           file: C:\ws\scripts\windows\Build-Windows.ps1
           file-args: |
@@ -109,7 +109,7 @@ jobs:
       # on, this lane contributes nothing to Code Scanning.
       - name: Upload CodeQL SARIF
         if: always()
-        uses: Kataglyphis/ContainerHub/.github/actions/upload-codeql-sarif@main
+        uses: Kataglyphis/ANTfrastructure/.github/actions/upload-codeql-sarif@main
         with:
           workspace: ${{ steps.prep.outputs.workspace }}
           category: windows-clang-rust

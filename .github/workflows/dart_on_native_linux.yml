@@ -13,7 +13,7 @@ on:
 
 jobs:
   # ---------------------------------------------------------------------------
-  # Host-side gates: ContainerHub's shared config drift check, shellcheck,
+  # Host-side gates: ANTfrastructure's shared config drift check, shellcheck,
   # actionlint and the gitleaks secret scan. Its own job on the GITHUB-HOSTED
   # runner, deliberately NOT inside the container and NOT a step of `build`:
   #
@@ -38,7 +38,7 @@ jobs:
     runs-on: ubuntu-26.04
     steps:
       # recursive, not `true`: Sync-SharedConfig and the three lint scripts all
-      # live in third_party/ContainerHub, which is top-level, but the secret
+      # live in third_party/ANTfrastructure, which is top-level, but the secret
       # scan below reads the whole tree and a half-checked-out submodule would
       # change what it sees between runs.
       - name: Checkout
@@ -52,9 +52,9 @@ jobs:
       # .cmake-format.yaml. Passing it as one comma-separated string is correct
       # under `pwsh -File`, where every argument arrives as a plain string - the
       # script splits it itself.
-      - name: Shared tool config matches ContainerHub (Sync-SharedConfig -Check)
+      - name: Shared tool config matches ANTfrastructure (Sync-SharedConfig -Check)
         run: >-
-          pwsh -File third_party/ContainerHub/shared/config/Sync-SharedConfig.ps1
+          pwsh -File third_party/ANTfrastructure/shared/config/Sync-SharedConfig.ps1
           -RepoRoot .
           -Check
           -Ignore '.clang-format,.clang-tidy,gcovr.cfg,.pre-commit-config.yaml'
@@ -63,7 +63,7 @@ jobs:
       # it - shellcheck, actionlint (+ CI image refs) and the gitleaks secret
       # scan - used to be three inline `run:` blocks here, which meant the gate
       # that blocks a merge could not be reproduced on a dev box at all. They
-      # now live in ContainerHub's linux/scripts/run-lint-gates.sh, reached
+      # now live in ANTfrastructure's linux/scripts/run-lint-gates.sh, reached
       # through scripts/linux/run-lint-gates.sh; read that file's header for the
       # scope rules and for why rust_builder/ is NOT excluded.
       #
@@ -78,7 +78,7 @@ jobs:
       #
       # The explicit workspace argument is required, not cosmetic: the upstream
       # script sits INSIDE the submodule, so any root derived from its own
-      # location resolves to ContainerHub and every gate reports green over the
+      # location resolves to ANTfrastructure and every gate reports green over the
       # wrong tree. .github/actionlint.yaml still teaches the pinned actionlint
       # the ubuntu-26.04 runner labels it predates.
       #
@@ -88,7 +88,7 @@ jobs:
       # config wins; the hub's is only the fallback). Never a blanket ignore
       # file, and never a loosened rule in the hub for a finding only this repo
       # has.
-      - name: Lint gates (ContainerHub shellcheck + actionlint + gitleaks)
+      - name: Lint gates (ANTfrastructure shellcheck + actionlint + gitleaks)
         shell: bash
         run: bash scripts/linux/run-lint-gates.sh "${{ github.workspace }}"
 
@@ -128,21 +128,21 @@ jobs:
 
     steps:
       # Reclaim disk, check out, log in to ghcr and pull the image with retries
-      # — ContainerHub's shared prologue, so the retry count and submodule flags
+      # — ANTfrastructure's shared prologue, so the retry count and submodule flags
       # cannot drift between this workflow and its siblings. The pull takes no
       # --platform, which is only correct for a multi-arch tag — see the arm64
       # note in AGENTS.md § 3.
       #
       # `image:` is DELIBERATELY ABSENT, here and on the run step below. The
       # family image ref has exactly one owner — IMAGE_REGISTRY_PREFIX +
-      # CI_IMAGE_LINUX_TAG in ContainerHub's linux/scripts/01-core/versions.env
+      # CI_IMAGE_LINUX_TAG in ANTfrastructure's linux/scripts/01-core/versions.env
       # — and both composite actions carry that composed ref as the `image`
       # input default, checked against versions.env by
       # linux/scripts/verify_ci_image_refs.py. Omitting the input is how this
       # lane inherits it; a per-row `container_image` would be two more copies
       # that no gate compares to the first.
       - name: Prepare CI host
-        uses: Kataglyphis/ContainerHub/.github/actions/prepare-linux-ci-host@main
+        uses: Kataglyphis/ANTfrastructure/.github/actions/prepare-linux-ci-host@main
         with:
           registry-username: ${{ github.actor }}
           registry-password: ${{ secrets.GHCR_PAT }}
@@ -159,7 +159,7 @@ jobs:
       # copy. --strict-checks is still passed explicitly below, so this does
       # not silently switch on resolve_strict_checks' CI default.
       - name: Run container
-        uses: Kataglyphis/ContainerHub/.github/actions/run-in-linux-container@main
+        uses: Kataglyphis/ANTfrastructure/.github/actions/run-in-linux-container@main
         with:
           extra-args: --privileged --platform "${{ matrix.platform }}" -e CI=true
           script: >-
