@@ -88,6 +88,10 @@ jobs:
       # config wins; the hub's is only the fallback). Never a blanket ignore
       # file, and never a loosened rule in the hub for a finding only this repo
       # has.
+      # uvx is how the shared aggregator runs ruff; the runner carries no uv.
+      - name: Install uv
+        uses: astral-sh/setup-uv@v9.0.0
+
       - name: Lint gates (ANTfrastructure shellcheck + actionlint + gitleaks)
         shell: bash
         run: bash scripts/linux/run-lint-gates.sh "${{ github.workspace }}"
