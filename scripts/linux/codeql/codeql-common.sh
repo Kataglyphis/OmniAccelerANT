@@ -32,9 +32,9 @@ codeql_write_build_script() {
   local flutter_build_cmd="$2"
   local flutter_dir="$3"
 
-  # GCC path from ContainerHub cross-gcc.sh; resolved here (heredoc is unquoted).
+  # GCC path from ANTfrastructure cross-gcc.sh; resolved here (heredoc is unquoted).
   local gcc_root
-  containerhub_source linux/scripts/01-core/cross-gcc.sh
+  antfrastructure_source linux/scripts/01-core/cross-gcc.sh
   gcc_root="${MYPROJECT_GCC_TOOLCHAIN_PATH:-$(gcc_toolchain_prefix)}"
 
   cat > "$build_script_path" <<EOF

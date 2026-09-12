@@ -30,18 +30,18 @@ bash scripts/linux/run-lint-gates.sh
 
 The exact command the `lint` job of `dart_on_native_linux.yml` runs — shellcheck,
 actionlint (plus the CI image-reference check) and the gitleaks secret scan, all
-three bootstrapped pinned from ContainerHub, all three run even after one fails.
+three bootstrapped pinned from ANTfrastructure, all three run even after one fails.
 These used to exist only as `run:` blocks inside the workflow, so a failing merge
 gate could not be reproduced locally at all. The gitleaks arm self-tests first: an
 empty tree must scan clean and a planted token must be reported and must make the
 gate exit non-zero, so "found nothing" cannot be confused with "never ran".
 
 The one gate NOT in there is `Sync-SharedConfig.ps1 -Check`, which is PowerShell;
-none of ContainerHub's Linux images ship `pwsh`, so it stays a separate step of
+none of ANTfrastructure's Linux images ship `pwsh`, so it stays a separate step of
 the same workflow job. Run it by hand with:
 
 ```bash
-pwsh -File third_party/ContainerHub/shared/config/Sync-SharedConfig.ps1 -RepoRoot . -Check \
+pwsh -File third_party/ANTfrastructure/shared/config/Sync-SharedConfig.ps1 -RepoRoot . -Check \
   -Ignore '.clang-format,.clang-tidy,gcovr.cfg,.pre-commit-config.yaml'
 ```
 
@@ -68,7 +68,7 @@ dhttpd --path doc/api --host 127.0.0.1 --port 8080
 
 ### Sphinx theme (moved to DocumANTation)
 
-The shared Sphinx theme/template that used to live in ContainerHub
+The shared Sphinx theme/template that used to live in ANTfrastructure
 (`sphinx-kataglyphis-theme/` + `docs/source_templates/`) was moved into the
 [DocumANTation](https://github.com/Kataglyphis/DocumANTation) repository.
 Consumers vendor it as a submodule (`third_party/DocumANTation`) and install it via
@@ -80,11 +80,11 @@ a docs requirements file:
 
 `conf.py` then reduces to `from sphinx_kataglyphis import setup_theme; setup_theme(globals(), ...)`.
 This repo's `docs/source/conf.py` still uses the standalone `press` theme; follow the pattern
-above (see ContainerHub's `docs/conf.py`) when migrating.
+above (see ANTfrastructure's `docs/conf.py`) when migrating.
 
 This repo no longer carries a root `requirements.txt`: the only thing it ever fed was
 the cmake-format gate, which now takes its pinned bootstrap set from
-`third_party/ContainerHub/linux/scripts/cmake-format.requirements.txt`. When the theme
+`third_party/ANTfrastructure/linux/scripts/cmake-format.requirements.txt`. When the theme
 migration happens, add a docs-scoped requirements file (e.g. `docs/requirements.txt`)
 rather than resurrecting the root one — an unpinned root file next to a pinned shared
 one is exactly the drift this removal closes.

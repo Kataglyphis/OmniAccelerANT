@@ -11,7 +11,7 @@ param(
 	[string] $Lane = 'native',
 	[ValidateSet('x64', 'arm64')]
 	[string] $Arch = 'x64',
-	# Empty resolves from ContainerHub's versions.env below. That file is the
+	# Empty resolves from ANTfrastructure's versions.env below. That file is the
 	# single source of truth for the family image ref and the workflows reach it
 	# through the composite actions' `image` input defaults; a literal here would
 	# be a fourth copy that nothing compares to the other three.
@@ -40,23 +40,23 @@ $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 if (-not $Image) {
 	# The family image reference is composed UPSTREAM, by
 	# WindowsContainerImage.Common's Get-CiImageReference, whose Linux twin is
-	# linux/scripts/ci-image-ref.sh and which ContainerHub's own
+	# linux/scripts/ci-image-ref.sh and which ANTfrastructure's own
 	# test-ci-image-ref.sh asserts composes the same string as
 	# verify_ci_image_refs.py. What stood here was a third hand-rolled read of
 	# versions.env, and a subtly weaker one: its `(.+)$` kept surrounding
 	# quotes, which the upstream parser strips on purpose because a quoted value
 	# once propagated as data into CMake.
 	#
-	# Resolve-BuildModule looks the module up in third_party/ContainerHub first,
+	# Resolve-BuildModule looks the module up in third_party/ANTfrastructure first,
 	# so this is the same copy Build-Windows.ps1 builds against.
 	. (Join-Path $PSScriptRoot '..\windows\Resolve-BuildModule.ps1')
 	Import-BuildModule 'WindowsContainerImage.Common'
 	if (-not (Get-Command -Name 'Get-CiImageReference' -ErrorAction SilentlyContinue)) {
 		throw ("WindowsContainerImage.Common was imported but exports no Get-CiImageReference. " +
-			"The pinned ContainerHub predates it - bump third_party/ContainerHub, or pass -Image explicitly.")
+			"The pinned ANTfrastructure predates it - bump third_party/ANTfrastructure, or pass -Image explicitly.")
 	}
 	# No arguments: the function resolves versions.env from its OWN location, so
-	# the answer always comes out of the ContainerHub this repo actually pins.
+	# the answer always comes out of the ANTfrastructure this repo actually pins.
 	# A missing key throws there, naming the file - never an empty image ref,
 	# which `nerdctl run` would read as "the next argument is the image".
 	$Image = Get-CiImageReference

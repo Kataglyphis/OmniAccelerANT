@@ -22,7 +22,7 @@ if (-not $Image) {
 	. (Join-Path $PSScriptRoot '..\windows\Resolve-BuildModule.ps1')
 	Import-BuildModule 'WindowsContainerImage.Common'
 	if (-not (Get-Command -Name 'Get-CiImageReference' -ErrorAction SilentlyContinue)) {
-		throw "WindowsContainerImage.Common exports no Get-CiImageReference; bump third_party/ContainerHub or pass -Image explicitly."
+		throw "WindowsContainerImage.Common exports no Get-CiImageReference; bump third_party/ANTfrastructure or pass -Image explicitly."
 	}
 	$Image = Get-CiImageReference
 }

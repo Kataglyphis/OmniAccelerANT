@@ -3,10 +3,10 @@
 Guidance for coding agents (and new contributors) working in
 OmniAccelerANT.
 
-Laid out per ContainerHub's
-[`shared/templates/AGENTS.md.template`](third_party/ContainerHub/shared/templates/README.md).
+Laid out per ANTfrastructure's
+[`shared/templates/AGENTS.md.template`](third_party/ANTfrastructure/shared/templates/README.md).
 The rule that shapes it: *would this still be true in a different project?* If
-yes, ContainerHub owns it and § 2 links to it. If no, it is written out in § 3.
+yes, ANTfrastructure owns it and § 2 links to it. If no, it is written out in § 3.
 
 ## 1. What this project is
 
@@ -19,8 +19,8 @@ Rust core and a C++ inference plugin underneath it.
 | `third_party/OxidANT` | Rust core, bridged via `flutter_rust_bridge` — regenerate bindings with `flutter_rust_bridge_codegen generate` (a cargo binary baked into the build image, NOT a pub dependency; on a bare host `cargo install flutter_rust_bridge_codegen` first). `lib/src/rust/` is committed generated code — no build lane regenerates it |
 | `packages/kataglyphis_native_inference` | C++ inference plugin — **plain files, not a submodule**; a `pubspec.yaml` path dependency. Links GStreamer + ONNX Runtime via CMake/pkg-config |
 | `third_party/AccelerANTgine` | The inference core the plugin builds. Its own submodule, sibling to the plugin rather than nested inside it |
-| `scripts/windows/`, `scripts/linux/` | Thin wrappers over ContainerHub drivers + this repo's own glue |
-| `third_party/ContainerHub` | The submodule owning every reusable script, module and doc |
+| `scripts/windows/`, `scripts/linux/` | Thin wrappers over ANTfrastructure drivers + this repo's own glue |
+| `third_party/ANTfrastructure` | The submodule owning every reusable script, module and doc |
 
 **Windows webcam inference.** The Stream page runs a Rust-owned
 webcam → ONNX → Flutter-texture pipeline: `crates/media` GStreamer capture →
@@ -34,10 +34,10 @@ CMake → Cargokit). `mfvideosrc` needs the `mediafoundation` GStreamer plugin
 [`docs/source/camera-streaming.md`](docs/source/camera-streaming.md)
 § *Windows: Rust-owned webcam inference*.
 
-## 2. What ContainerHub owns — links only
+## 2. What ANTfrastructure owns — links only
 
 **Do not restate these procedures here.** Start at
-[`third_party/ContainerHub/docs/INDEX.md`](third_party/ContainerHub/docs/INDEX.md),
+[`third_party/ANTfrastructure/docs/INDEX.md`](third_party/ANTfrastructure/docs/INDEX.md),
 which maps topic → owning document, so these links survive upstream
 reorganisation.
 
@@ -47,10 +47,10 @@ reorganisation.
 | Bind mount vs tar-pipe, **Dev Drive filter setup**, container reuse, measured timings | `docs/windows-container-build-performance.md` |
 | sccache's C++20-module blindness (clean + `SCCACHE_RECACHE=1` after a module-flag change) | `docs/windows-builds.md` |
 | The image's pkg-config and rustup provisioning | `AGENTS.md` + `docs/windows-builds.md` |
-| Wiring this repo to ContainerHub — resolver, actions, libraries | `docs/adopting-in-a-new-project.md` |
+| Wiring this repo to ANTfrastructure — resolver, actions, libraries | `docs/adopting-in-a-new-project.md` |
 | Linux container builds | `docs/linux-build-basics.md` |
 | Running the Linux lane locally on Windows (Rancher Desktop/nerdctl), and **a bind mount that resolves but is empty** — containerd's mount namespace, Windows vs WSL path form | `docs/rancher-desktop-linux-containers.md` |
-| The five shell-safety bug classes | ContainerHub `AGENTS.md` § *Shell safety conventions* |
+| The five shell-safety bug classes | ANTfrastructure `AGENTS.md` § *Shell safety conventions* |
 | appimagetool provisioning — pinned version + SHA256, not the moving `continuous` tag | `linux/scripts/02-toolchain/packaging-deps.sh`, subcommand `appimagetool` |
 | Python venv + `uv` provisioning (installer downloaded to a file and SHA-checkable, never `curl \| sh`) | `linux/scripts/01-core/python_uv.sh` |
 | The Dart gate for Linux lanes — deps, format, analyze, test, `--strict`/`--extra-package` | `linux/scripts/05-frameworks/flutter/flutter_checks.sh` |
@@ -60,21 +60,21 @@ reorganisation.
 
 Two upstream facts repeated here only because they bite before you reach a doc:
 
-- Every ContainerHub PowerShell module declares `#requires -Version 7.0`, so
+- Every ANTfrastructure PowerShell module declares `#requires -Version 7.0`, so
   `Build-Windows.ps1` and `Start-Windows.ps1` do too — launch with `pwsh`, never
   `powershell`. Under 5.1 it fails as an opaque `Import-Module` error.
-- Composite actions resolve at `@main`, so a ContainerHub change a workflow
+- Composite actions resolve at `@main`, so a ANTfrastructure change a workflow
   depends on must be pushed **before** the consumer change.
 
 **This repo's glue** (deliberately thin):
 
 - `scripts/windows/Resolve-BuildModule.ps1` — the one file that cannot live
   upstream, because it is what *finds* the submodule. `Import-BuildModule <Name>`
-  checks ContainerHub first, then `scripts/windows/modules/`, which holds only
+  checks ANTfrastructure first, then `scripts/windows/modules/`, which holds only
   genuinely project-specific modules (today: `WindowsPaths.Common`, encoding this
   repo's Flutter `build/windows/x64/{runner,plugins}` layout).
-- `scripts/linux/lib/containerhub.sh` — the bash twin: `containerhub_source`
-  and `containerhub_path`, resolved from `${BASH_SOURCE[0]}` so they work from
+- `scripts/linux/lib/antfrastructure.sh` — the bash twin: `antfrastructure_source`
+  and `antfrastructure_path`, resolved from `${BASH_SOURCE[0]}` so they work from
   any working directory.
 
 **Deliberately not reused.** Two upstream Windows pieces were evaluated and
@@ -123,7 +123,7 @@ written out rather than linked.
   an empty `rustc --version` and fails with `invalid value '' for
   '--toolchain'`). The `:latest-cross` tag was single-platform (own entry
   below), and there was no Java SDK. What remains is
-  `setup_compiler_cache`, which now only calls ContainerHub's `setup_sccache`:
+  `setup_compiler_cache`, which now only calls ANTfrastructure's `setup_sccache`:
   that points `RUSTC_WRAPPER` and both CMake compiler launchers at the
   **guarded** `sccache-launcher.sh`, which survives sccache's own fatal errors
   when a CMake `TryCompile` deletes the scratch directory under it.
@@ -154,11 +154,11 @@ written out rather than linked.
   `Cannot run Project.afterEvaluate(Action) when the project is already
   evaluated`. BACKLOG.md tracks collapsing these to one source of truth.
 
-- **`--gcc-toolchain` is load-bearing here, and ContainerHub deleted the helper
+- **`--gcc-toolchain` is load-bearing here, and ANTfrastructure deleted the helper
   that set it.** `export_clang_gcc_toolchain_env` went away upstream on
   2026-09-05 (`e2c63f7b`), documented as dead: *"had no caller in the build […]
   nothing in the tree sets a bare `CC=clang`"*. Both statements are true of
-  ContainerHub and false of this repo — `export_toolchain_env` set exactly that
+  ANTfrastructure and false of this repo — `export_toolchain_env` set exactly that
   bare `CC=clang` and called the function. Upstream names
   `/usr/local/bin/clang-<arch>` as the replacement, because those wrappers bake
   `--gcc-toolchain` in themselves; **`:latest-cross` ships none of them**
@@ -176,7 +176,7 @@ written out rather than linked.
   the flags through `gcc_toolchain_prefix()`, which upstream kept — do not
   hard-code `/opt/gcc-16.2.0`.
 
-  The wider lesson for every ContainerHub bump: upstream reasons about its own
+  The wider lesson for every ANTfrastructure bump: upstream reasons about its own
   tree when it removes something. "No caller" means no caller *there*.
 
 - **Editing a lane script while its container runs makes the log lie.** bash
@@ -320,7 +320,7 @@ written out rather than linked.
   CRT/COM startup are unhooked and it aborts with an unsuppressible `bad-free`
   when combase/ole32 frees them. That is a property of a COM-hosting Flutter
   app, not of the image. Microsoft's runtime (`VC\Tools\MSVC\<ver>\bin\Hostx64\x64\clang_rt.asan_dynamic-x86_64.dll`)
-  tracks Windows heap ownership and passes foreign frees through. ContainerHub's
+  tracks Windows heap ownership and passes foreign frees through. ANTfrastructure's
   `cmake/Sanitizers.cmake` (on the inference core's `CMAKE_MODULE_PATH`; its local copy is retired)
   links Microsoft's thunk + import lib while keeping clang's instrumentation; `Start-Windows.ps1`
   stages the DLL next to the exe and sets
@@ -385,7 +385,7 @@ CI never sees this: each lane is its own runner with its own clone.
 
 Windows builds run containerized, and **CI runs the exact same script** — the
 workflow [`dart_on_native_windows.yml`](.github/workflows/dart_on_native_windows.yml)
-calls `Build-Windows.ps1` through ContainerHub's `run-in-windows-container`
+calls `Build-Windows.ps1` through ANTfrastructure's `run-in-windows-container`
 action, so "works locally" and "works in CI" are the same steps by construction.
 Locally:
 
@@ -418,7 +418,7 @@ host.** The host's `cmake` is Strawberry Perl's 3.29.2 out of
 fails at container creation with `hcs::CreateComputeSystem ... The request is not
 supported` on hosts whose Docker/hcsshim is version-skewed from the image —
 `C:\workspace` is a baked image dir. Use a fresh target (`C:\ws-mnt` above; CI
-mounts `D:\ws → C:\ws`). ContainerHub owns the why — see § 2.
+mounts `D:\ws → C:\ws`). ANTfrastructure owns the why — see § 2.
 
 Four quality/output steps run before the native build (`-CodeQL` short-circuits
 before them), each skippable with the paired switch: **Dart format + CMake
@@ -444,7 +444,7 @@ Two Windows-specific traps these steps carry:
   RangeError while precaching the Flutter SDK's own `@docImport` comments
   (reproduced with a bare `flutter create`). The step `pub global activate
   dartdoc` (≥ 9.0.9, which fixes it) and runs that. This is really an image bug;
-  ContainerHub should ship a newer dartdoc.
+  ANTfrastructure should ship a newer dartdoc.
 
 - Preset aliases: `clangcl-{debug,profile,release}`, `msvc-{debug,release}`,
   `clang-{debug,profile,release}` → `x64-ClangCL-Windows-Debug` etc.
@@ -459,7 +459,7 @@ script owns the build, and a second `flutter build windows` driven by msix
 would only re-run — with a different generator — what the presets already
 produced. (Until 2026-09-06 it also tripped over a `CMakeCache.txt` synced back
 from the container-local build root — *"the current CMakeCache.txt directory …
-is different than the directory … where it was created"*. ContainerHub's
+is different than the directory … where it was created"*. ANTfrastructure's
 `Sync-FastLocalArtifactsToHost` now excludes `CMakeCache.txt` and `CMakeFiles`
 from the sync-back, so the host tree gets artifacts, not CMake state.) The
 **MSIX Compatibility Layout** step exists because msix looks for
@@ -469,13 +469,13 @@ Both halves were broken until 2026-09-03 and nobody noticed, because CI passes
 `-SkipMsixPackaging` — packaging is only exercised locally.
 
 **The CI lane** ([`dart_on_native_windows.yml`](.github/workflows/dart_on_native_windows.yml))
-is four ContainerHub actions and nothing hand-rolled:
+is four ANTfrastructure actions and nothing hand-rolled:
 `prepare-windows-container-host` (long paths, short-path clone, data-root move,
 disk check, GHCR login, pull), `run-in-windows-container`,
 `actions/upload-artifact` and `upload-codeql-sarif`. Three consequences:
 
 - It prunes `third_party/DocumANTation` from the recursive checkout.
-  This repo's chains are OmniAccelerANT → AccelerANTgine → ContainerHub →
+  This repo's chains are OmniAccelerANT → AccelerANTgine → ANTfrastructure →
   DocumANTation → md2pdfLib → `third_party/{smile,awesome-beamer}` and the same
   tail via OxidANT, and every level adds another
   `.git/modules/<name>/` segment until git aborts with `fatal: '$GIT_DIR' too
@@ -484,22 +484,22 @@ disk check, GHCR login, pull), `run-in-windows-container`,
   **Resolved on 2026-09-05.** Measured by the `gitdir:` string each gitfile
   carries, at each step of the way:
 
-  | chain | before | after md2pdfLib | after ContainerHub |
+  | chain | before | after md2pdfLib | after ANTfrastructure |
   | --- | --- | --- | --- |
-  | `ContainerHub` directly | 180 ok | 158 ok | 149 ok |
+  | `ANTfrastructure` directly | 180 ok | 158 ok | 149 ok |
   | via `AccelerANTgine` | 230 **fatal** | 208 ok | 199 ok |
   | via `OxidANT` | 238 **fatal** | 216 **fatal** | 207 ok |
 
   Two directory renames did it, neither of them a repository rename:
   `md2pdfLib/presentation/template/latex/` → `md2pdfLib/third_party/` inside
   DocumANTation, and `external/Kataglyphis-DocumANTation` →
-  `third_party/DocumANTation` inside ContainerHub. Each saved segment counts
+  `third_party/DocumANTation` inside ANTfrastructure. Each saved segment counts
   **twice**, once in the worktree path and once in the `gitdir` string, which is
   why 25 characters behaved like 50. The threshold sits between 208 and 216.
 
   Renaming the repositories on GitHub did **not** help here and was not meant
   to: a submodule's directory comes from its `path` entry, not from the repo
-  name. DocumANTation is ContainerHub's LaTeX tooling and the Windows build
+  name. DocumANTation is ANTfrastructure's LaTeX tooling and the Windows build
   never reads it.
 
   The numbers above were measured before `ExternalLib/` became `third_party/`.
@@ -590,7 +590,7 @@ those surfaces as a different, misleading error:
 | flatpak repo, build tree, builder state, manifest staging **and the finished bundle** | `/tmp/flatpak-work` | `fchmod: Operation not permitted`, first from the OSTree repo, later from `build-bundle` |
 | ccache / sccache | `/var/cache/{ccache,sccache}`, set by the image | `Can't initialize ccache use: Failed to set permissions` |
 
-Only the finished artifacts are written into `out/`. This is ContainerHub's
+Only the finished artifacts are written into `out/`. This is ANTfrastructure's
 documented rule for build directories and caches, applied to the packaging
 steps as well.
 
@@ -613,7 +613,7 @@ image.
 
 It drives Rancher Desktop's `nerdctl` (found on `PATH`, else under
 `%ProgramFiles%`), because that is the local Linux engine on this box; CI uses
-`docker` through ContainerHub's `run-in-linux-container`. Everything inside the
+`docker` through ANTfrastructure's `run-in-linux-container`. Everything inside the
 container is identical.
 
 **`-v name:/path` is not a named volume on Windows nerdctl.** It is a bind of
@@ -647,7 +647,7 @@ consequence of mounting `build/` — not a failure to chase.
   Without it the bind silently mounts an empty directory that containerd
   helpfully *creates*, so the path then exists and stays empty.
 - Pass the **Windows** path (`D:\…`). nerdctl translates it itself; handing it
-  the already-translated `/mnt/d/…` bypasses that and binds nothing. ContainerHub
+  the already-translated `/mnt/d/…` bypasses that and binds nothing. ANTfrastructure
   owns the full write-up — see § 2.
 
 `wsl: Failed to translate '<cwd>'` in the output is noise: `wsl.exe` cannot map
@@ -667,7 +667,7 @@ Run the app on the host once artifacts are back:
 ```
 
 Linux builds run containerized. **CI does not use the stage script below.** Its
-path is the ContainerHub composite action
+path is the ANTfrastructure composite action
 `.github/actions/run-in-linux-container@main`, which runs
 `scripts/linux/ci/ci-container-run-native-linux.sh` *inside* the container with
 CLI flags, not env vars
@@ -693,14 +693,14 @@ runs the very script CI runs.
 
 **Flutter comes from the image, and this repo does not have an opinion about
 which version.** It used to: three lanes resolved `FLUTTER_VERSION` and
-`FLUTTER_SDK_SHA256` out of ContainerHub's `versions.env`, exported the sha, and
+`FLUTTER_SDK_SHA256` out of ANTfrastructure's `versions.env`, exported the sha, and
 handed both to an installer. That machinery is gone — `resolve_flutter_pin`,
 `setup_flutter_sdk`, `install-flutter.sh` and the `--flutter-version` /
 `--install-flutter` flags with it. `assert_flutter_available` replaces all of
 it: it fails if `--flutter-dir` holds no `bin/flutter`, and otherwise reports
 the `frameworkVersion` it found and moves on.
 
-Why it went: the lanes were re-running ContainerHub's `setup-flutter.sh` at
+Why it went: the lanes were re-running ANTfrastructure's `setup-flutter.sh` at
 *run* time. That script is a build-stage script — its last step strips
 `bin/cache` on purpose — so every Android run re-extracted Flutter over the
 image's copy and then re-downloaded the 227 MB Dart SDK it had just deleted.
@@ -777,16 +777,16 @@ build trees); `*/.plugin_symlinks/` (pub's junction farm);
 Cargokit"); `.venv/` (created by the gate's own bootstrap). Do not widen the
 gate onto any of those: it would fight the generator or upstream.
 
-`.cmake-format.yaml` at the root is the consumer copy of ContainerHub's
+`.cmake-format.yaml` at the root is the consumer copy of ANTfrastructure's
 canonical config — `shared/config/README.md` owns why it is a copy. Refresh it
-with `pwsh -File third_party/ContainerHub/shared/config/Sync-SharedConfig.ps1
+with `pwsh -File third_party/ANTfrastructure/shared/config/Sync-SharedConfig.ps1
 -RepoRoot . -Write -Ignore
 '.clang-format,.clang-tidy,gcovr.cfg,.pre-commit-config.yaml'`. That `-Ignore`
 list is deliberate, not drift: of the five shared configs this Flutter app
 carries only `.cmake-format.yaml` — nothing here runs clang-format, clang-tidy,
 gcovr or the C++ pre-commit hooks. cmake-format itself comes from `PATH` or a
-uv venv fed by ContainerHub's pinned
-`third_party/ContainerHub/linux/scripts/cmake-format.requirements.txt` — there
+uv venv fed by ANTfrastructure's pinned
+`third_party/ANTfrastructure/linux/scripts/cmake-format.requirements.txt` — there
 is no root `requirements.txt` (`pyyaml` sits in that pinned set because
 cmake-format cannot read its own YAML config without it). Both bootstraps read
 that one file: `run_cmake_format_check` in
@@ -836,7 +836,7 @@ were invisible until a token was supplied.
 `-Recurse` walks the initialized submodules, keeps the Kataglyphis-owned ones,
 dedups them by remote identity (one canonical checkout per repo, the shallowest
 copy), orders them dependencies-first, and runs the same script in each —
-ContainerHub after DocumANTation, AccelerANTgine/OxidANT after ContainerHub.
+ANTfrastructure after DocumANTation, AccelerANTgine/OxidANT after ANTfrastructure.
 It writes into the vendored worktrees in place, which upstream's
 `renovate-fleet.sh` refuses by design: after an `-Apply`, commit and push each
 submodule, then move the gitlinks in every superproject that vendors it.
@@ -848,7 +848,7 @@ whose file patterns match this tree** (eight today), so `--managers` narrows the
 run rather than enabling it. `--apply` needs the git that *wrote* the working
 tree; the script sorts that out itself and refuses up front rather than
 half-applying. Why any of it —
-[`third_party/ContainerHub/docs/dependency-updates.md`](third_party/ContainerHub/docs/dependency-updates.md).
+[`third_party/ANTfrastructure/docs/dependency-updates.md`](third_party/ANTfrastructure/docs/dependency-updates.md).
 
 ## 5. Docs owned by this repo
 
@@ -857,7 +857,7 @@ half-applying. Why any of it —
 - [`docs/source/platforms.md`](docs/source/platforms.md) holds the full
   symptom→cause→fix table for containerized Windows builds.
 - `docs/source/conf.py` still uses the standalone `press` theme. The shared
-  Sphinx theme now lives in **DocumANTation** (ContainerHub consumes
+  Sphinx theme now lives in **DocumANTation** (ANTfrastructure consumes
   it as a submodule and installs it as `sphinx-kataglyphis-theme`); follow that
   pattern if migrating.
 - Update docs in the same PR as user-facing behaviour changes.

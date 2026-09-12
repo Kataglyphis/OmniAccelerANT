@@ -17,7 +17,7 @@ if (-not (Test-Path -LiteralPath $buildConfigPath -PathType Leaf)) {
 . $buildConfigPath
 $windowsBuildConfig = Get-KataglyphisWindowsBuildConfig
 
-# Same ContainerHub-first bootstrap the build script uses.
+# Same ANTfrastructure-first bootstrap the build script uses.
 . (Join-Path $PSScriptRoot 'Resolve-BuildModule.ps1')
 
 Import-BuildModule @(
@@ -136,7 +136,7 @@ try {
 	$needsAsan = ($Configuration -match "Debug") -or `
 		(Test-Path -LiteralPath (Join-Path $buildDirReleaseFull $asanDllName) -PathType Leaf)
 	if ($needsAsan) {
-		# ContainerHub's Get-AsanRuntimeDll (WindowsTesting.Common) rather than a
+		# ANTfrastructure's Get-AsanRuntimeDll (WindowsTesting.Common) rather than a
 		# glob over "Program Files*\Microsoft Visual Studio\*\BuildTools\...":
 		# that glob only ever matched the BuildTools SKU, so a
 		# Community/Professional/Enterprise install silently found nothing. The

@@ -1,4 +1,4 @@
-# Shared template lives in third_party/ContainerHub:
+# Shared template lives in third_party/ANTfrastructure:
 # linux/webserver/templates/flutter-web.htaccess
 
 # Begin .htaccess

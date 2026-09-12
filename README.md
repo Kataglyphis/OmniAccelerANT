@@ -30,7 +30,7 @@ OmniAccelerANT bundles a Flutter/Dart frontend, a Rust/C++ inference core, and a
 - 🎨 **GStreamer native GTK integration** – Leveraging users to write beautiful Linux AI inference apps.
 - 📹 **GStreamer WebRTC livestreaming** with ready-to-use pipelines for USB, Raspberry Pi, and Orange Pi cameras.
 - 🌉 **flutter_rust_bridge integration** – Ensures a seamless API boundary between Dart UI and Rust logic.
-- 🐳 **Containerized development flow** plus native instructions for Windows, Linux, web. For details in my build environment look into [ContainerHub](https://github.com/Kataglyphis/ContainerHub). On Windows the container engine is [Stevedore](https://github.com/slonopotamus/stevedore) and build containers run with `--isolation process` (full host CPU count) — see [docs/source/platforms.md](docs/source/platforms.md).
+- 🐳 **Containerized development flow** plus native instructions for Windows, Linux, web. For details in my build environment look into [ANTfrastructure](https://github.com/Kataglyphis/ANTfrastructure). On Windows the container engine is [Stevedore](https://github.com/slonopotamus/stevedore) and build containers run with `--isolation process` (full host CPU count) — see [docs/source/platforms.md](docs/source/platforms.md).
 - 🐍 **Python inference demos** for rapid experimentation alongside the Rust core.
 
 ### 📊 Feature Status Matrix
@@ -125,7 +125,7 @@ Refer to the detailed docs below for platform-specific requirements, camera stre
    | Android | `scripts/linux/ci/ci-container-run-android.sh` | `Invoke-LinuxLane.ps1 -Lane android` |
    | Web | `scripts/linux/ci/ci-container-run-web-linux.sh` | `Invoke-LinuxLane.ps1 -Lane web` |
 
-   The Linux entries go through ContainerHub's `run-in-linux-container` action
+   The Linux entries go through ANTfrastructure's `run-in-linux-container` action
    in CI and Rancher Desktop's `nerdctl` locally; inside the container the two
    are identical, down to the argument list. Reproduce a CI failure locally
    before pushing — that is the whole point of the arrangement.
@@ -138,8 +138,8 @@ Refer to the detailed docs below for platform-specific requirements, camera stre
    visible to *containerd's own* mount namespace, and QEMU binfmt registered
    for an arm64 run. The concrete commands are in
    [AGENTS.md § 4](AGENTS.md#4-build-run-test), "The Linux lane, locally";
-   the reasoning behind them is ContainerHub's, in
-   [`rancher-desktop-linux-containers.md`](third_party/ContainerHub/docs/rancher-desktop-linux-containers.md).
+   the reasoning behind them is ANTfrastructure's, in
+   [`rancher-desktop-linux-containers.md`](third_party/ANTfrastructure/docs/rancher-desktop-linux-containers.md).
    Both prerequisites are lost on a VM restart, and skipping either is silent:
    you get a bind mount that resolves and is empty, or an arm64 container
    running x86-64 binaries.
@@ -179,10 +179,10 @@ Then open <http://127.0.0.1:8080>.
 | Getting Started | [docs/source/getting-started.md](docs/source/getting-started.md) | Environment prerequisites, installation, and run commands. |
 | Platform Guides | [docs/source/platforms.md](docs/source/platforms.md) | Container, Windows, Raspberry Pi, and web build instructions — incl. the Windows container troubleshooting table (Dev Drive, pkg-config, rustup/Cargokit, Debug-preset pitfalls). |
 | Agent / contributor guide | [AGENTS.md](AGENTS.md) | Build workflow, container pitfalls, and quality gates for coding agents and new contributors. |
-| Known cleanups | [BACKLOG.md](BACKLOG.md) | Refactors and verification gaps this repo knows about but has not done yet, in the format ContainerHub's agentic loop consumes. |
+| Known cleanups | [BACKLOG.md](BACKLOG.md) | Refactors and verification gaps this repo knows about but has not done yet, in the format ANTfrastructure's agentic loop consumes. |
 | Camera Streaming | [docs/source/camera-streaming.md](docs/source/camera-streaming.md) | GStreamer WebRTC pipelines and Python inference demos. |
 | Upgrade guide | [docs/source/upgrade-guide.md](docs/source/upgrade-guide.md) | How to keep things up-to-date. |
-| Dependency upgrades | [third_party/ContainerHub/docs/dependency-updates.md](third_party/ContainerHub/docs/dependency-updates.md) | Renovate run as a local CLI. Submodule upgrades go through `bash scripts/linux/renovate-local.sh` (add `--apply` to move the gitlinks), not by hand; it does not cover `pubspec.yaml`. |
+| Dependency upgrades | [third_party/ANTfrastructure/docs/dependency-updates.md](third_party/ANTfrastructure/docs/dependency-updates.md) | Renovate run as a local CLI. Submodule upgrades go through `bash scripts/linux/renovate-local.sh` (add `--apply` to move the gitlinks), not by hand; it does not cover `pubspec.yaml`. |
 
 Build the full documentation website with `dart pub global run dartdoc` (see the note above — not the SDK-bundled `dart doc`). The generated site in `doc/api` now includes the guides from `docs/source`.
 

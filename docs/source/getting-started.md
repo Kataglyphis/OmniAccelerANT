@@ -8,7 +8,7 @@ This guide takes you from clone to a working local setup.
 - Rust toolchain (`rustup`, `cargo`)
 - Docker (optional but recommended for reproducible setup); on Windows install
   [Stevedore](https://github.com/slonopotamus/stevedore) and use its bundled `docker.exe` with
-  `--isolation process` for builds — see [Platforms](platforms.md) and ContainerHub
+  `--isolation process` for builds — see [Platforms](platforms.md) and ANTfrastructure
 - GStreamer runtime and tools (`gst-launch-1.0`)
 
 ### Verify your tooling
@@ -55,14 +55,14 @@ v4l2-ctl --device=/dev/video0 --list-formats-ext
 ## 4) Run the app (web profile)
 
 The web build needs `web/sqlite3.wasm`. It is committed; this is the command that
-refreshes it. The fetcher lives in ContainerHub, next to the version and SHA256
+refreshes it. The fetcher lives in ANTfrastructure, next to the version and SHA256
 it reads, rather than in a per-app copy:
 
 ```bash
-bash third_party/ContainerHub/linux/scripts/05-frameworks/flutter/setup-sqlite3-wasm.sh .
+bash third_party/ANTfrastructure/linux/scripts/05-frameworks/flutter/setup-sqlite3-wasm.sh .
 ```
 
-The version and its SHA256 both come from ContainerHub's `versions.env`, and the
+The version and its SHA256 both come from ANTfrastructure's `versions.env`, and the
 download is checksum-verified, so a tampered, truncated or simply *wrong-version*
 asset fails here rather than in a browser. That check is not theoretical: the
 copy that was committed did not match the version the script claimed to fetch.

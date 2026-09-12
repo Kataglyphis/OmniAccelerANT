@@ -1,6 +1,6 @@
 #requires -Version 7.0
 
-# Every ContainerHub build module declares `#requires -Version 7.0`, so this
+# Every ANTfrastructure build module declares `#requires -Version 7.0`, so this
 # script must be launched with `pwsh`, never Windows PowerShell 5.1's
 # `powershell` — otherwise the failure surfaces as an opaque Import-Module
 # error deep in the preamble instead of here.
@@ -41,7 +41,7 @@ if (-not (Test-Path -LiteralPath $buildConfigPath -PathType Leaf)) {
 $windowsBuildConfig = Get-KataglyphisWindowsBuildConfig
 
 # One bootstrap, one import list. Resolve-BuildModule looks every name up in
-# third_party/ContainerHub first and only then in
+# third_party/ANTfrastructure first and only then in
 # scripts/windows/modules/, so a module that moves upstream is picked up here
 # without touching this script.
 . (Join-Path $PSScriptRoot 'Resolve-BuildModule.ps1')
@@ -216,7 +216,7 @@ try {
         if ($env:KATAGLYPHIS_RUST_FEATURES -match "gstreamer") {
             # gstreamer-sys and friends resolve the GStreamer dev files through
             # pkg-config at cargo build time — fail fast here instead of deep
-            # inside Ninja. ContainerHub's gate checks ALL THREE modules the
+            # inside Ninja. ANTfrastructure's gate checks ALL THREE modules the
             # crate binds (gstreamer / gstreamer-app / gstreamer-video, see
             # crates/media/Cargo.toml), reports the resolved versions and prints
             # PKG_CONFIG_PATH on failure; the old probe only tried
@@ -242,7 +242,7 @@ try {
     }
 
     # The three quality gates AGENTS.md documents, driven straight through
-    # ContainerHub's Invoke-BuildExternal (which logs the command line and fails
+    # ANTfrastructure's Invoke-BuildExternal (which logs the command line and fails
     # the step on a non-zero exit).
     #
     # These used to call Invoke-DartFormatVerification / Invoke-DartAnalysis /
@@ -250,7 +250,7 @@ try {
     # since recorded all three steps as "The term ... is not recognized"
     # (logs/build-summary-*.json), so format, analyze and test have not actually
     # gated anything. They are Flutter-specific, so they belong here rather than
-    # upstream in ContainerHub.
+    # upstream in ANTfrastructure.
     if (-not $SkipFormat) {
         Invoke-BuildStep -Context $context -StepName "Dart Format Verification" -Script {
             Push-Location $workspace
@@ -285,7 +285,7 @@ try {
 
                 $formatConfig = Join-Path $workspace '.cmake-format.yaml'
                 if (-not (Test-Path -LiteralPath $formatConfig -PathType Leaf)) {
-                    throw ".cmake-format.yaml is missing at the repo root; without it cmake-format silently uses built-in defaults. Restore the consumer copy with ContainerHub shared/config/Sync-SharedConfig.ps1 -Write (AGENTS.md paragraph 4)."
+                    throw ".cmake-format.yaml is missing at the repo root; without it cmake-format silently uses built-in defaults. Restore the consumer copy with ANTfrastructure shared/config/Sync-SharedConfig.ps1 -Write (AGENTS.md paragraph 4)."
                 }
 
                 # Initialize-UvVenvPython is NOT used: it hard-codes
@@ -293,16 +293,16 @@ try {
                 # requirements file. Given none it logs "skipping dependency
                 # sync" and returns an EMPTY venv, so the throw below would be
                 # the first sign anything went wrong. Drive the same upstream
-                # primitives directly against ContainerHub's pinned bootstrap
+                # primitives directly against ANTfrastructure's pinned bootstrap
                 # set instead — the identical file run_cmake_format_check feeds
                 # uv on Linux (scripts/linux/lib/container-steps.sh).
                 if (-not (Get-Command 'uv' -ErrorAction SilentlyContinue)) {
                     throw 'uv not found on PATH. Install Astral uv before running formatting steps.'
                 }
 
-                $cmakeFormatRequirements = Join-Path $workspace 'third_party/ContainerHub/linux/scripts/cmake-format.requirements.txt'
+                $cmakeFormatRequirements = Join-Path $workspace 'third_party/ANTfrastructure/linux/scripts/cmake-format.requirements.txt'
                 if (-not (Test-Path -LiteralPath $cmakeFormatRequirements -PathType Leaf)) {
-                    throw "cmake-format bootstrap pins not found: $cmakeFormatRequirements. If the whole directory is missing the submodule is not checked out: git submodule update --init --recursive third_party/ContainerHub."
+                    throw "cmake-format bootstrap pins not found: $cmakeFormatRequirements. If the whole directory is missing the submodule is not checked out: git submodule update --init --recursive third_party/ANTfrastructure."
                 }
 
                 $uvLogInfo = { param([string]$Message) Write-BuildLog -Context $context -Message $Message }
@@ -733,7 +733,7 @@ try {
             $flutterLogs | Move-Item -Destination $logDirPath -Force
         }
 
-        # Bounded log growth, ContainerHub's retention policy: keep plenty (the
+        # Bounded log growth, ANTfrastructure's retention policy: keep plenty (the
         # incident is always in the newest ones) and only trim the tail. Runs
         # last so this build's own log is among the newest kept.
         Limit-DiagnosticLogs -Directory $logDirPath -Keep 60

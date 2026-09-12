@@ -8,7 +8,7 @@ set -euo pipefail
 #
 # THIS IS A WRAPPER. All three gates, the git-ls-files scope construction, the
 # empty-scope vacuity guards and the run-all-three-then-fail-once accumulator
-# live upstream in ContainerHub's linux/scripts/run-lint-gates.sh. Until now
+# live upstream in ANTfrastructure's linux/scripts/run-lint-gates.sh. Until now
 # this repo had NO local entry point for any of them: they existed only as three
 # `run:` blocks in .github/workflows/dart_on_native_linux.yml, so the gate that
 # blocks a merge could not be reproduced on a dev box at all. That workflow job
@@ -27,17 +27,17 @@ set -euo pipefail
 #     list instead of three.
 #
 # THE SHARED-CONFIG DRIFT GATE IS NOW HERE TOO, and this paragraph used to say
-# the opposite: "it is PowerShell, and none of ContainerHub's Linux images ship
+# the opposite: "it is PowerShell, and none of ANTfrastructure's Linux images ship
 # pwsh, so it cannot join a bash aggregator." The premise was right and the
-# conclusion was wrong - ContainerHub ships a bash TWIN,
+# conclusion was wrong - ANTfrastructure ships a bash TWIN,
 # shared/config/sync-shared-config.sh, which takes the same --repo-root and
 # --check and is held to the same verdicts as the PowerShell half. Upstream's
 # aggregator now runs it as a fifth gate, so a developer sees drift on the same
 # local run as shellcheck, and a repo cannot go green over the shared files
 # again just because pwsh was unavailable.
 #
-# It compares what .containerhub-shared.manifest at this repo's root DECLARES -
-# .cmake-format.yaml, scripts/linux/lib/containerhub.sh and
+# It compares what .antfrastructure-shared.manifest at this repo's root DECLARES -
+# .cmake-format.yaml, scripts/linux/lib/antfrastructure.sh and
 # scripts/windows/Resolve-BuildModule.ps1. The four config names this Flutter
 # app never took are undeclared and are never looked at.
 #
@@ -61,15 +61,15 @@ set -euo pipefail
 # linter: it is read as a directive. SC1072 caught exactly that in this header.)
 
 _run_lint_gates_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# shellcheck source=scripts/linux/lib/containerhub.sh
-source "${_run_lint_gates_dir}/lib/containerhub.sh"
+# shellcheck source=scripts/linux/lib/antfrastructure.sh
+source "${_run_lint_gates_dir}/lib/antfrastructure.sh"
 
 usage() {
   cat <<'EOF'
 Usage:
   bash scripts/linux/run-lint-gates.sh [<repo root>]
 
-Runs ContainerHub's shellcheck, actionlint and gitleaks gates over this
+Runs ANTfrastructure's shellcheck, actionlint and gitleaks gates over this
 repository. The root defaults to this checkout; CI passes $GITHUB_WORKSPACE.
 EOF
 }
@@ -100,18 +100,18 @@ done
 TARGET_ROOT="${REPO_ROOT_ARG:-$KATAGLYPHIS_REPO_ROOT}"
 
 # The root is passed explicitly and never inferred by the upstream script: it
-# runs from INSIDE third_party/ContainerHub, where anything derived from its own
+# runs from INSIDE third_party/ANTfrastructure, where anything derived from its own
 # location resolves to the submodule and every gate reports green over the wrong
 # tree. That is the same bug that made lint-secrets.sh and lint-workflows.sh
 # take a root in the first place.
-if ! containerhub_path linux/scripts/run-lint-gates.sh >/dev/null; then
+if ! antfrastructure_path linux/scripts/run-lint-gates.sh >/dev/null; then
   echo "" >&2
-  echo "The aggregator is missing from the pinned ContainerHub. The three gates it" >&2
+  echo "The aggregator is missing from the pinned ANTfrastructure. The three gates it" >&2
   echo "drives (lint-shell.sh, lint-workflows.sh, lint-secrets.sh) are all present," >&2
   echo "so this is a pin that predates linux/scripts/run-lint-gates.sh, not a broken" >&2
   echo "checkout. Bump the submodule:" >&2
-  echo "  git -C third_party/ContainerHub fetch origin && git -C third_party/ContainerHub checkout <sha>" >&2
+  echo "  git -C third_party/ANTfrastructure fetch origin && git -C third_party/ANTfrastructure checkout <sha>" >&2
   exit 1
 fi
 
-containerhub_exec linux/scripts/run-lint-gates.sh "$TARGET_ROOT" --exclude third_party
+antfrastructure_exec linux/scripts/run-lint-gates.sh "$TARGET_ROOT" --exclude third_party

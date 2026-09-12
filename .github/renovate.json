@@ -1,10 +1,10 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "description": [
-    "OmniAccelerANT's Renovate config. Everything shared lives in the preset at ContainerHub's repository root (default.json); the one line below is the whole adoption.",
-    "The part this repo could not get any other way is the git-submodules manager, which Renovate DISABLES by default: all four gitlinks here (ANThology, ContainerHub, OxidANT, AccelerANTgine) have been unwatched since the day they were added, and three of them are owned and fast-moving. Each has a `branch =` entry in .gitmodules, which is what the manager needs to know what tip to bump towards.",
-    "Renovate resolves `github>Kataglyphis/ContainerHub` from ContainerHub's DEFAULT BRANCH, so a preset change reaches this repo only after it is merged there. The Renovate GitHub App is NOT installed on this repository and will not be (owner decision, 2026-09-09), so no bot will ever land a commit here - but this file is not idle: ContainerHub's linux/scripts/renovate-local.sh reads exactly it.",
+    "OmniAccelerANT's Renovate config. Everything shared lives in the preset at ANTfrastructure's repository root (default.json); the one line below is the whole adoption.",
+    "The part this repo could not get any other way is the git-submodules manager, which Renovate DISABLES by default: all four gitlinks here (ANThology, ANTfrastructure, OxidANT, AccelerANTgine) have been unwatched since the day they were added, and three of them are owned and fast-moving. Each has a `branch =` entry in .gitmodules, which is what the manager needs to know what tip to bump towards.",
+    "Renovate resolves `github>Kataglyphis/ANTfrastructure` from ANTfrastructure's DEFAULT BRANCH, so a preset change reaches this repo only after it is merged there. The Renovate GitHub App is NOT installed on this repository and will not be (owner decision, 2026-09-09), so no bot will ever land a commit here - but this file is not idle: ANTfrastructure's linux/scripts/renovate-local.sh reads exactly it.",
     ".github/dependabot.yml is deliberately still present; see the comment at its top for the hand-over condition."
   ],
-  "extends": ["github>Kataglyphis/ContainerHub"]
+  "extends": ["github>Kataglyphis/ANTfrastructure"]
 }

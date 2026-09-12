@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Render staged Markdown guides into a `dart doc` site and wire its navigation.
 
-LOCAL STAND-IN for ContainerHub's linux/scripts/lib/dartdoc-guides.py. It is a
+LOCAL STAND-IN for ANTfrastructure's linux/scripts/lib/dartdoc-guides.py. It is a
 byte-for-byte copy of that file except for this docstring and one function,
 inject_sidebar_nav; keeping the divergence that small is the point, because
 retiring this file is `git diff` against upstream, deleting it, and calling

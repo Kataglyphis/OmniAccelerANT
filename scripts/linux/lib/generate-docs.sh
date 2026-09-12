@@ -5,7 +5,7 @@ set -euo pipefail
 # Markdown guides with sidebar navigation, then chown back to the host user in
 # CI.
 #
-# THIS IS A WRAPPER over ContainerHub's linux/scripts/lib/dartdoc-build.sh,
+# THIS IS A WRAPPER over ANTfrastructure's linux/scripts/lib/dartdoc-build.sh,
 # whose header states the contract implemented below: "A wrapper sets the
 # DARTDOC_BUILD_* variables, sources this file and calls dartdoc_build_main."
 # What used to be here was a hand-written re-implementation of all eight steps —
@@ -28,7 +28,7 @@ set -euo pipefail
 # The renderer below is therefore KEPT, with the tolerant per-page skip its
 # predecessor had — plus the vacuity guard it did NOT have, so a run that
 # navigates nothing fails instead of reporting success.
-# RETIRE THIS BLOCK once ContainerHub's inject_sidebar_nav treats a JS-filled
+# RETIRE THIS BLOCK once ANTfrastructure's inject_sidebar_nav treats a JS-filled
 # sidebar as a legitimate no-op: delete the heredoc and call
 # dartdoc_build_render_guides. The config written for it is already upstream's
 # exact tab-separated format, so nothing else has to change.
@@ -99,7 +99,7 @@ DARTDOC_BUILD_FOOTER_LINKS=(
 export DARTDOC_BUILD_THEME_CSS DARTDOC_BUILD_IMAGES_DIR \
 	DARTDOC_BUILD_TITLE_SUFFIX DARTDOC_BUILD_FOOTER_TITLE
 
-containerhub_source linux/scripts/lib/dartdoc-build.sh
+antfrastructure_source linux/scripts/lib/dartdoc-build.sh
 
 dartdoc_build_generate
 dartdoc_build_apply_theme

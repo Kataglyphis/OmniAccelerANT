@@ -109,7 +109,7 @@ cd "$REPO_ROOT"
 require_cmd flutter
 require_cmd dart
 
-# Run code quality checks as ONE gate batch (ContainerHub 01-core/gates.sh,
+# Run code quality checks as ONE gate batch (ANTfrastructure 01-core/gates.sh,
 # reached through container-steps.sh). Both gates run even when the first one
 # fails, and the verdict is raised once, by assert_gates, before the build
 # starts. Before this, a Dart failure aborted the run under `set -e` and the
