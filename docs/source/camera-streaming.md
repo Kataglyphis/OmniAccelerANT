@@ -49,10 +49,10 @@ GStreamer core DLLs into the runner. To get `mfvideosrc`, build against a
 ### Cat detection stream (Rust, native)
 
 `third_party/OxidANT/crates/cat_webrtc` (`kataglyphis_cat_webrtc`) is the
-maintained producer: V4L2 capture → YOLO ONNX (cats = COCO class 15) → boxes
-burned into the RGBA frames → `webrtcsink`. It runs its own signalling server
-(`run-signalling-server=true`, plain `ws://`, default port 8443), so no
-separate signalling process is needed.
+maintained producer: V4L2 or libcamera capture → YOLO ONNX (cats = COCO class
+15) → boxes burned into the RGBA frames → `webrtcsink`. It runs its own
+signalling server (`run-signalling-server=true`, plain `ws://`, default port
+8443), so no separate signalling process is needed.
 
 ```bash
 cd third_party/OxidANT
@@ -68,6 +68,12 @@ crate, so any checkout works). `--score`, `--width/--height/--fps`,
 built-in server, but the signaller's rustls rejects self-signed CA certificates
 (`CaUsedAsEndEntity`), so terminate TLS in a proxy instead — `serve.sh` does.
 
+`--libcamera` captures through `libcamerasrc` instead of `v4l2src`; use it for
+the Raspberry Pi CSI camera, whose `rp1-cfe` V4L2 nodes carry raw Bayer that
+`videoconvert` cannot process. Inference runs on a background thread, so the
+WebRTC stream keeps camera rate while the boxes lag one inference behind
+(seconds per frame on a Pi 5 CPU).
+
 Serve the web build with the COOP/COEP headers the Stream page needs and the
 `/webrtc-ws` proxy:
 
@@ -77,7 +83,7 @@ Serve the web build with the COOP/COEP headers the Stream page needs and the
 rustup toolchain install nightly --component rust-src --target wasm32-unknown-unknown
 cargo install flutter_rust_bridge_codegen
 flutter_rust_bridge_codegen build-web --release --rust-root third_party/OxidANT
-flutter build web --release
+flutter build web --release --wasm
 
 scripts/linux/cat-stream/serve.sh          # :8444 TLS, proxies to :8443
 ```
@@ -85,10 +91,28 @@ scripts/linux/cat-stream/serve.sh          # :8444 TLS, proxies to :8443
 `signalingServerUrl` in `assets/settings/webrtc_settings.json` is
 host-relative by default (`/webrtc-ws`); the web client resolves it against the
 page's origin, so the same build works on localhost, a LAN IP and a Raspberry
-Pi. Open `https://<host>:8444/` and accept the certificate warning. USB cameras
-and, on Pi OS, the CSI camera through its V4L2 device work with `--v4l2`; if
-`v4l2src` cannot open the device, the manual `libcamerasrc` pipeline below is
-the fallback.
+Pi. Open `https://<host>:8444/` and accept the certificate warning.
+
+USB cameras work with `--v4l2 /dev/videoX`. For a Pi's CSI camera use
+`--libcamera`; on a Raspberry Pi 5 running the `:latest-cross` image the
+container route is:
+
+```bash
+scripts/linux/cat-stream/run-producer-pi.sh --build   # first run builds the producer
+scripts/linux/cat-stream/serve.sh                     # :8444 TLS, proxies to :8443
+```
+
+**Why the Pi 5 needs a runner script.** The image ships upstream libcamera
+0.7.2 / libpisp 1.5, which cannot drive a Pi 5 on kernel 6.18: the kernel
+renamed the `rp1-cfe` media entities to underscores (`rp1-cfe-fe_image0`) and
+moved to the libpisp 1.7 uAPI, so the pipeline handler cannot acquire the CFE
+and the upstream IPA segfaults when isolation is forced. `run-producer-pi.sh`
+collects the host's Raspberry Pi OS libcamera stack (0.7.2+rpt, which matches
+the kernel) plus its library closure into `build/cat-stream/hostlibs`, mounts
+that ahead of the image's copy, grants the rootless container ACL access to
+`/dev/{video,media,dma_heap}*`, and runs with `seccomp=unconfined` (the IPA
+proxy forks). GStreamer 1.29, `webrtcsink`, ONNX Runtime and the Rust binary
+still come from the image.
 
 The numbered steps below are the manual `gst-launch-1.0` pipelines, kept for
 cases the Rust producer does not cover.
@@ -180,3 +204,10 @@ GST_DEBUG=3 python3 demo_yolov5.py
 - Use `GST_DEBUG=2` or `GST_DEBUG=3` to inspect pipeline performance and caps negotiation.
 - Validate camera device permissions (`/dev/video*`) when streams fail to start.
 - Ensure host/port pairs in `signaller::uri` match your signalling server.
+- If the page loads but the app never starts, check the `main.dart.mjs`
+  `Content-Type`: Flutter's wasm bootstrap loads it with a dynamic `import()`,
+  which browsers reject for `application/octet-stream`. `serve.sh` maps `.mjs`
+  to `application/javascript` for exactly that reason.
+- On a host firewall (e.g. UFW on Raspberry Pi OS), allow `8444/tcp` and the
+  WebRTC media UDP range (`32768:60999/udp`, LAN-scoped is enough) — the
+  browser otherwise connects for signalling but ICE never completes.

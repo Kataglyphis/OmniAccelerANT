@@ -36,11 +36,13 @@ CMake → Cargokit). `mfvideosrc` needs the `mediafoundation` GStreamer plugin
 
 **Linux/web cat detection stream.** The same Stream page consumes a WebRTC
 stream produced by `third_party/OxidANT/crates/cat_webrtc`
-(`kataglyphis_cat_webrtc`): V4L2 → ONNX (cat = COCO class 15) → boxes burned
-into the RGBA frames → `webrtcsink` with its own signalling server.
+(`kataglyphis_cat_webrtc`): V4L2/libcamera → ONNX (cat = COCO class 15) → boxes
+burned into the RGBA frames → `webrtcsink` with its own signalling server.
 `scripts/linux/cat-stream/serve.sh` puts HTTPS + COOP/COEP + a `/webrtc-ws`
 proxy in front of it, so one build works on localhost, a LAN IP or a
-Raspberry Pi. Runbook: README § *Live cat detection stream*.
+Raspberry Pi; on a Pi 5 CSI camera,
+`scripts/linux/cat-stream/run-producer-pi.sh` is the producer half (see § 3's
+glue list). Runbook: README § *Live cat detection stream*.
 
 ## 2. What ANTfrastructure owns — links only
 
@@ -91,6 +93,11 @@ Two upstream facts repeated here only because they bite before you reach a doc:
 - `scripts/linux/cat-stream/serve.sh` — serves the web build over TLS with the
   Stream page's COOP/COEP headers and proxies `/webrtc-ws` to the cat producer.
   No container involved; it is the deployment half of the demo.
+- `scripts/linux/cat-stream/run-producer-pi.sh` — runs the cat producer from the
+  image against a Pi 5 CSI camera (`--libcamera`), bind-mounting the host's
+  Raspberry Pi OS libcamera stack ahead of the image's outdated upstream copy
+  (the kernel 6.18 `rp1-cfe` entity rename + libpisp 1.7). `--build` builds the
+  producer first; `--libs-only` refreshes the cached library closure.
 
 **Deliberately not reused.** Two upstream Windows pieces were evaluated and
 rejected; both would be regressions here, so do not "fix" their absence:
