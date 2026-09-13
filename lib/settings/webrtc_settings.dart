@@ -5,6 +5,8 @@
 /// Settings are typically loaded from `assets/settings/webrtc_settings.json`.
 library;
 
+import 'package:flutter/foundation.dart' show kIsWeb;
+
 /// Video encoding configuration settings for WebRTC streams.
 ///
 /// These settings control the default resolution, framerate, and bitrate
@@ -137,6 +139,10 @@ class AndroidSettings {
 /// }
 /// ```
 ///
+/// `signalingServerUrl` may also be host-relative (`/webrtc-ws`): the web
+/// client then connects to the page's own origin, which makes one build work
+/// on localhost, a LAN IP and a Raspberry Pi alike.
+///
 /// See also:
 /// - [VideoSettings] for video encoding configuration
 /// - [TextureSettings] for native texture rendering configuration
@@ -157,7 +163,9 @@ class WebRTCSettings {
   ///
   /// Throws [FormatException] if required fields are missing or have wrong types.
   WebRTCSettings.fromJsonFile(Map<String, dynamic> json)
-    : signalingServerUrl = _requireString(json, 'signalingServerUrl'),
+    : signalingServerUrl = _resolveSignalingServerUrl(
+        _requireString(json, 'signalingServerUrl'),
+      ),
       reconnectionTimeoutMs = _requireInt(json, 'reconnectionTimeoutMs'),
       stunServers = _parseStringList(json, 'stunServers'),
       turnServers = _parseStringList(json, 'turnServers'),
@@ -167,7 +175,9 @@ class WebRTCSettings {
 
   /// The WebSocket URL for the signaling server.
   ///
-  /// Should use `wss://` for secure connections in production.
+  /// Should use `wss://` for secure connections in production. A host-relative
+  /// value (starting with `/`) is resolved against the page's origin on the
+  /// web; native platforms keep the configured string unchanged.
   final String signalingServerUrl;
 
   /// Timeout in milliseconds before attempting to reconnect.
@@ -250,4 +260,24 @@ List<String> _parseStringList(Map<String, dynamic> json, String key) {
     );
   }
   return value.map((e) => e.toString()).toList();
+}
+
+/// Resolves a host-relative signaling URL against the page it was served from.
+///
+/// On the web a value such as `/webrtc-ws` is served by the same reverse proxy
+/// that serves the app, so no hostname or port is baked into the build. An
+/// absolute URL (one with a scheme, e.g. `wss://host:8443`) passes through
+/// untouched, as does everything on native platforms — only the web client
+/// consumes this value.
+String _resolveSignalingServerUrl(String configured) {
+  if (!kIsWeb || !configured.startsWith('/')) {
+    return configured;
+  }
+  final page = Uri.base;
+  return Uri(
+    scheme: page.scheme == 'https' ? 'wss' : 'ws',
+    host: page.host,
+    port: page.hasPort ? page.port : null,
+    path: configured,
+  ).toString();
 }
