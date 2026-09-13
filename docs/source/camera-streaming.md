@@ -72,14 +72,23 @@ Serve the web build with the COOP/COEP headers the Stream page needs and the
 `/webrtc-ws` proxy:
 
 ```bash
+# once — web/pkg/ is a generated frb artefact (gitignored), so regenerate it
+# the way the web CI lane does before building the frontend
+rustup toolchain install nightly --component rust-src --target wasm32-unknown-unknown
+cargo install flutter_rust_bridge_codegen
+flutter_rust_bridge_codegen build-web --release --rust-root third_party/OxidANT
 flutter build web --release
+
 scripts/linux/cat-stream/serve.sh          # :8444 TLS, proxies to :8443
 ```
 
 `signalingServerUrl` in `assets/settings/webrtc_settings.json` is
 host-relative by default (`/webrtc-ws`); the web client resolves it against the
 page's origin, so the same build works on localhost, a LAN IP and a Raspberry
-Pi. Open `https://<host>:8444/` and accept the certificate warning.
+Pi. Open `https://<host>:8444/` and accept the certificate warning. USB cameras
+and, on Pi OS, the CSI camera through its V4L2 device work with `--v4l2`; if
+`v4l2src` cannot open the device, the manual `libcamerasrc` pipeline below is
+the fallback.
 
 The numbered steps below are the manual `gst-launch-1.0` pipelines, kept for
 cases the Rust producer does not cover.
