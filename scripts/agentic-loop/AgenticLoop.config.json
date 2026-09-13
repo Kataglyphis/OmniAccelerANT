@@ -1,0 +1,96 @@
+{
+  "_comment": "Agentic-loop config for OmniAccelerANT. Engine opencode: planner opencode-go/glm-5.2, executor/fixer opencode-go/deepseek-v4.1-flash. Windows builds and tests run in the family Windows image through scripts/windows/Build-Windows-Container.ps1. Reference: third_party/ANTfrastructure/docs/windows-agentic-loop.md.",
+  "engine": "opencode",
+  "promptOverlays": {
+    "_comment": "Project deltas on ANTfrastructure's shared role prompts. The composed text is GENERATED into .opencode/agents/<role>.md (gitignored) - edit these files, never that one.",
+    "plannerPromptOverlayFile": "scripts/agentic-loop/prompts/planner-overlay.md",
+    "executorPromptOverlayFile": "scripts/agentic-loop/prompts/executor-overlay.md"
+  },
+  "engines": {
+    "opencode": {
+      "plannerModel": "opencode-go/glm-5.2",
+      "executorModel": "opencode-go/deepseek-v4.1-flash"
+    }
+  },
+  "intervals": {
+    "buildEveryNTasks": 3,
+    "qualityEveryNTasks": 5,
+    "refactorEveryNIterations": 3,
+    "fullMatrixEveryNIterations": 0,
+    "testAfterBuild": true,
+    "maxExecutorRetries": 3,
+    "loopDelaySeconds": 10,
+    "maxIterations": 0,
+    "timeoutSeconds": 1200,
+    "plannerTimeoutSeconds": 1800,
+    "executorTimeoutSeconds": 7200,
+    "agentRetries": 2,
+    "agentRetryDelaySeconds": 30,
+    "fixBuildFailures": true,
+    "maxConsecutiveBuildFailures": 3,
+    "waitForUsageLimitReset": true
+  },
+  "backlog": {
+    "skipPlannerWhenTasksPending": true,
+    "deleteCompletedTasks": true
+  },
+  "git": {
+    "autoCommit": true,
+    "commitPrefix": "agentic-loop"
+  },
+  "logging": {
+    "logDir": "logs/agentic-loop",
+    "logToConsole": true
+  },
+  "build": {
+    "_comment": "Windows: host-side container driver; it always skips docs and MSIX and reuses one container. Tests are the Dart gates in-container via -TestsOnly. Quality commands stay empty - Build-Windows.ps1 runs the Dart+CMake format gate on every loop build. Linux: an adapter mapping the loop's --preset/--build-dir contract onto run-native-linux.sh; NOT yet exercised (the loop has only been run on Windows, and the Linux side additionally needs the opencode CLI on that host).",
+    "windowsScript": "scripts/windows/Build-Windows-Container.ps1",
+    "linuxScript": "scripts/linux/agentic-build.sh",
+    "windowsTestCommand": "pwsh -ExecutionPolicy Bypass -File \"scripts\\windows\\Build-Windows-Container.ps1\" -TestsOnly",
+    "linuxTestCommand": "",
+    "windowsQualityCommand": "",
+    "linuxQualityCommand": ""
+  },
+  "buildMatrix": {
+    "_comment": "Windows names are Build-Windows.ps1 preset aliases; the loop cycles them. sanitizer is none everywhere on purpose: the test phase is Dart-only, so no sanitizer env crosses into the container. Linux names map to a build mode through scripts/linux/agentic-build.sh.",
+    "windows": [
+      {
+        "name": "clangcl-release",
+        "sanitizer": "none",
+        "buildDir": "build",
+        "buildType": "Release",
+        "testCommand": null
+      },
+      {
+        "name": "clangcl-debug",
+        "sanitizer": "none",
+        "buildDir": "build",
+        "buildType": "Debug",
+        "testCommand": null
+      }
+    ],
+    "linux": [
+      {
+        "name": "linux-release",
+        "sanitizer": "none",
+        "buildDir": "build",
+        "buildType": "Release",
+        "testCommand": null
+      },
+      {
+        "name": "linux-profile",
+        "sanitizer": "none",
+        "buildDir": "build",
+        "buildType": "RelWithDebInfo",
+        "testCommand": null
+      },
+      {
+        "name": "linux-debug",
+        "sanitizer": "none",
+        "buildDir": "build",
+        "buildType": "Debug",
+        "testCommand": null
+      }
+    ]
+  }
+}
