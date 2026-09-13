@@ -144,6 +144,33 @@ Refer to the detailed docs below for platform-specific requirements, camera stre
    you get a bind mount that resolves and is empty, or an arm64 container
    running x86-64 binaries.
 
+### Live cat detection stream (Linux / Raspberry Pi)
+
+`third_party/OxidANT`'s `kataglyphis_cat_webrtc` captures a camera, runs the
+YOLO ONNX model for cats (COCO class 15), burns the boxes into the frames and
+publishes them as a WebRTC stream that the Flutter web app's **Stream** page
+consumes. One native Linux host does everything — a Raspberry Pi included:
+
+```bash
+# 1. the producer (in third_party/OxidANT); USB cameras use --v4l2
+cargo build --release -p kataglyphis_cat_webrtc
+ORT_DYLIB_PATH=/path/to/libonnxruntime.so \
+  target/release/kataglyphis_cat_webrtc --v4l2 /dev/video0
+
+# 2. once: the web frontend
+flutter build web --release
+
+# 3. HTTPS + COOP/COEP + the /webrtc-ws proxy in front of both (:8444)
+scripts/linux/cat-stream/serve.sh
+```
+
+Open `https://<host>:8444/` — on the phone too, accepting the self-signed
+certificate warning. `signalingServerUrl` in
+`assets/settings/webrtc_settings.json` is host-relative (`/webrtc-ws`), so the
+web client connects to the origin it was served from and no hostname is baked
+into the build. Pipeline details, flags and troubleshooting:
+[docs/source/camera-streaming.md](docs/source/camera-streaming.md).
+
 ### Browse the API docs locally
 
 Generate the site into `doc/api`, then serve it. Use the pub-activated

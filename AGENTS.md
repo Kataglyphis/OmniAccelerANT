@@ -34,6 +34,14 @@ CMake → Cargokit). `mfvideosrc` needs the `mediafoundation` GStreamer plugin
 [`docs/source/camera-streaming.md`](docs/source/camera-streaming.md)
 § *Windows: Rust-owned webcam inference*.
 
+**Linux/web cat detection stream.** The same Stream page consumes a WebRTC
+stream produced by `third_party/OxidANT/crates/cat_webrtc`
+(`kataglyphis_cat_webrtc`): V4L2 → ONNX (cat = COCO class 15) → boxes burned
+into the RGBA frames → `webrtcsink` with its own signalling server.
+`scripts/linux/cat-stream/serve.sh` puts HTTPS + COOP/COEP + a `/webrtc-ws`
+proxy in front of it, so one build works on localhost, a LAN IP or a
+Raspberry Pi. Runbook: README § *Live cat detection stream*.
+
 ## 2. What ANTfrastructure owns — links only
 
 **Do not restate these procedures here.** Start at
@@ -76,6 +84,13 @@ Two upstream facts repeated here only because they bite before you reach a doc:
 - `scripts/linux/lib/antfrastructure.sh` — the bash twin: `antfrastructure_source`
   and `antfrastructure_path`, resolved from `${BASH_SOURCE[0]}` so they work from
   any working directory.
+- `scripts/agentic-loop/` — the adopted planner/executor loop: config, both
+  runner wrappers, prompt overlays. Engine `opencode`, executor
+  `opencode-go/deepseek-v4.1-flash`. Its Windows build/test driver is
+  `scripts/windows/Build-Windows-Container.ps1`. Rules and commands: § 4.
+- `scripts/linux/cat-stream/serve.sh` — serves the web build over TLS with the
+  Stream page's COOP/COEP headers and proxies `/webrtc-ws` to the cat producer.
+  No container involved; it is the deployment half of the demo.
 
 **Deliberately not reused.** Two upstream Windows pieces were evaluated and
 rejected; both would be regressions here, so do not "fix" their absence:
@@ -366,6 +381,38 @@ written out rather than linked.
   assumes a monorepo layout. Wired up in
   `third_party/AccelerANTgine/third_party/CMakeLists.txt` — the inference core's
   own dependency list, not the plugin's.
+- **The web Stream page needs a trustworthy origin, and the phone needs TLS in
+  a proxy.** Chromium grants cross-origin isolation (COOP/COEP →
+  `SharedArrayBuffer`, which the page checks) only on HTTPS or localhost, so a
+  phone on the LAN gets no stream over plain HTTP. The GStreamer signalling
+  server cannot end TLS for this repo's certificates — rustls rejects a
+  self-signed one with `CaUsedAsEndEntity` — so
+  `scripts/linux/cat-stream/serve.sh` serves the build and terminates TLS
+  (port 8444) while proxying `/webrtc-ws` to the producer's plain `ws://`
+  server (port 8443). The producer's `--cert/--key` exist; the proxy is the
+  supported path.
+- **`signalingServerUrl` may be host-relative, and only web resolves it.** A
+  value starting with `/` (the committed `/webrtc-ws`) becomes
+  `wss://<page-host>/webrtc-ws` in `WebRTCSettings.fromJsonFile`
+  (`lib/settings/webrtc_settings.dart`); absolute `ws(s)://` URLs pass through
+  untouched, as does everything on native, where the value is unused
+  (`WebRTCView` is web-only).
+- **The frb Dart bindings must match the Rust runtime's frb version.** They
+  were stale at 2.12.0 against 2.13.0 and the web build died with an empty
+  `Uncaught` before `pkg/oxidant.js` loaded. Regenerate both sides together:
+  `flutter_rust_bridge_codegen generate` writes `lib/src/rust/` **and**
+  OxidANT's `src/frb_generated.rs`; when the wasm artefacts are involved,
+  `flutter_rust_bridge_codegen build-web --release --rust-root
+  third_party/OxidANT`. `web/pkg/` is generated and gitignored.
+- **Windows host only: the webcam reaches WSL over usbipd, and WebRTC needs
+  mirrored networking.** `usbipd attach --wsl --busid <id>` (bus ids change)
+  plus `modprobe uvcvideo` gives the container `/dev/video0`;
+  `[wsl2] networkingMode=mirrored` in `%USERPROFILE%\.wslconfig` is what makes
+  UDP media work — NAT mode drops it, and the port mapping looks fine until
+  the stream never arrives. Both vanish on a WSL restart. `nerdctl pull` of a
+  Docker Hub image can also fail on credential lookup (`A specified logon
+  session does not exist`); pulling from inside the VM with an empty
+  `DOCKER_CONFIG` is the workaround that worked.
 
 ## 4. Build, run, test
 
@@ -453,6 +500,27 @@ Two Windows-specific traps these steps carry:
   closing **Delivery Check** cannot be skipped.
 - Logs land in `logs/` (`build-windows-*.log` + `build-summary-*.json`); API
   docs in `doc/api` (git-ignored).
+
+**The agentic loop (adopted 2026-09-13).** `scripts/agentic-loop/` holds the
+config, both runner wrappers and the project prompt overlays. Engine `opencode`,
+executor `opencode-go/deepseek-v4.1-flash`, planner `opencode-go/glm-5.2`. It
+runs on the host and builds through `scripts/windows/Build-Windows-Container.ps1`,
+which drives `Build-Windows.ps1` in a **reused** Stevedore container (tar-pipe
+transport, `WindowsContainerBuild.Reuse`, so Cargo/sccache/pub caches survive)
+and always skips docs and MSIX. Tests are `-TestsOnly` — the Dart gates in the
+same container. The config contract and build-matrix semantics are owned by
+[`third_party/ANTfrastructure/docs/windows-agentic-loop.md`](third_party/ANTfrastructure/docs/windows-agentic-loop.md);
+`.opencode/agents/` is generated and gitignored — edit the overlays, never it.
+
+```powershell
+pwsh -File scripts/agentic-loop/Invoke-AgenticLoop.ps1            # planner + executor
+pwsh -File scripts/agentic-loop/Invoke-AgenticLoop.ps1 -DryRun    # wiring check
+pwsh -File scripts/agentic-loop/Invoke-AgenticLoop.ps1 -PlannerOnly
+pwsh -File scripts/agentic-loop/Invoke-AgenticLoop.ps1 -ExecutorOnly
+```
+
+The loop does not watch CI and auto-commits with `git add -A`; do not run
+interactive work in the same tree without checking whether it is live.
 
 **MSIX packaging.** `msix_config.build_windows` is `false` on purpose: this
 script owns the build, and a second `flutter build windows` driven by msix

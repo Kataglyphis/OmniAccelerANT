@@ -46,6 +46,44 @@ GStreamer core DLLs into the runner. To get `mfvideosrc`, build against a
 
 ## WebRTC pipelines (Linux / web)
 
+### Cat detection stream (Rust, native)
+
+`third_party/OxidANT/crates/cat_webrtc` (`kataglyphis_cat_webrtc`) is the
+maintained producer: V4L2 capture → YOLO ONNX (cats = COCO class 15) → boxes
+burned into the RGBA frames → `webrtcsink`. It runs its own signalling server
+(`run-signalling-server=true`, plain `ws://`, default port 8443), so no
+separate signalling process is needed.
+
+```bash
+cd third_party/OxidANT
+cargo build --release -p kataglyphis_cat_webrtc
+ORT_DYLIB_PATH=/path/to/libonnxruntime.so \
+  target/release/kataglyphis_cat_webrtc --v4l2 /dev/video0
+```
+
+`--test` streams a `videotestsrc` pattern, `--image <file>` loops a still image
+(the default is ANThology's `Thundy.jpg` — defaults resolve relative to the
+crate, so any checkout works). `--score`, `--width/--height/--fps`,
+`--all-classes` and `--name` tune the stream. `--cert/--key` enable WSS on the
+built-in server, but the signaller's rustls rejects self-signed CA certificates
+(`CaUsedAsEndEntity`), so terminate TLS in a proxy instead — `serve.sh` does.
+
+Serve the web build with the COOP/COEP headers the Stream page needs and the
+`/webrtc-ws` proxy:
+
+```bash
+flutter build web --release
+scripts/linux/cat-stream/serve.sh          # :8444 TLS, proxies to :8443
+```
+
+`signalingServerUrl` in `assets/settings/webrtc_settings.json` is
+host-relative by default (`/webrtc-ws`); the web client resolves it against the
+page's origin, so the same build works on localhost, a LAN IP and a Raspberry
+Pi. Open `https://<host>:8444/` and accept the certificate warning.
+
+The numbered steps below are the manual `gst-launch-1.0` pipelines, kept for
+cases the Rust producer does not cover.
+
 ## 1) Start the signalling server
 
 ```bash
