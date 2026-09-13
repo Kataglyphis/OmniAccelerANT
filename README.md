@@ -157,7 +157,11 @@ cargo build --release -p kataglyphis_cat_webrtc
 ORT_DYLIB_PATH=/path/to/libonnxruntime.so \
   target/release/kataglyphis_cat_webrtc --v4l2 /dev/video0
 
-# 2. once: the web frontend
+# 2. once: the web frontend. web/pkg/ is a generated frb artefact (gitignored),
+#    so this is the same sequence the web CI lane runs.
+rustup toolchain install nightly --component rust-src --target wasm32-unknown-unknown
+cargo install flutter_rust_bridge_codegen
+flutter_rust_bridge_codegen build-web --release --rust-root third_party/OxidANT
 flutter build web --release
 
 # 3. HTTPS + COOP/COEP + the /webrtc-ws proxy in front of both (:8444)
