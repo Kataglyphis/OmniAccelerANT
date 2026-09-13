@@ -94,8 +94,9 @@ here.
       nor load the static-PIE `appimagetool` — AGENTS.md § 4. Blocked on a real
       arm64 machine; nothing to change here.
 
-## Not adopted yet
+## Agentic loop
 
-The agentic loop itself — config, runner wrappers, `scripts/AgenticLoop/` — is
-not set up here. Templates live in ANTfrastructure's
-`shared/agentic-loop/templates/`.
+Adopted 2026-09-13: `scripts/agentic-loop/` (config, runner wrappers, prompt
+overlays); executor model `opencode-go/deepseek-v4.1-flash`. Windows builds go
+through `scripts/windows/Build-Windows-Container.ps1`. Run commands and rules:
+AGENTS.md § 4.

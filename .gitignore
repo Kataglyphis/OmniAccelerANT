@@ -84,3 +84,8 @@ macos/Flutter/ephemeral/flutter_native_integration.env
 # build output, not source. Same rule as BeschleunigerBallett, OrchestrANT and
 # ANTfrastructure. Tracked, they drew hand edits from rename sweeps (6d2ca00).
 docs/build/*
+
+# Agentic-loop role prompts for the opencode engine, GENERATED from
+# ANTfrastructure's shared system prompt + scripts/agentic-loop/prompts/*-overlay.md.
+# A build artefact - edit the overlay, never this.
+.opencode/agents/
