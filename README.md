@@ -162,7 +162,7 @@ ORT_DYLIB_PATH=/path/to/libonnxruntime.so \
 rustup toolchain install nightly --component rust-src --target wasm32-unknown-unknown
 cargo install flutter_rust_bridge_codegen
 flutter_rust_bridge_codegen build-web --release --rust-root third_party/OxidANT
-flutter build web --release
+flutter build web --release --wasm
 
 # 3. HTTPS + COOP/COEP + the /webrtc-ws proxy in front of both (:8444)
 scripts/linux/cat-stream/serve.sh
@@ -172,7 +172,10 @@ Open `https://<host>:8444/` — on the phone too, accepting the self-signed
 certificate warning. `signalingServerUrl` in
 `assets/settings/webrtc_settings.json` is host-relative (`/webrtc-ws`), so the
 web client connects to the origin it was served from and no hostname is baked
-into the build. Pipeline details, flags and troubleshooting:
+into the build. On a Raspberry Pi 5 with the CSI camera,
+`scripts/linux/cat-stream/run-producer-pi.sh --build` replaces step 1: it adds
+`--libcamera` and the host-libcamera container wiring the Pi 5 kernel needs.
+Pipeline details, flags and troubleshooting:
 [docs/source/camera-streaming.md](docs/source/camera-streaming.md).
 
 ### Browse the API docs locally

@@ -78,6 +78,11 @@ events { worker_connections 128; }
 
 http {
   ${mime_include}
+  # Flutter's dart2wasm entrypoint ('main.dart.mjs') is loaded with a dynamic
+  # import(), which browsers reject unless the response is a JavaScript MIME
+  # type. mime.types on Debian/Raspberry Pi OS predates the extension, and the
+  # default_type below would otherwise turn it into application/octet-stream.
+  types { application/javascript mjs; }
   default_type application/octet-stream;
   access_log ${state_dir}/access.log;
   client_body_temp_path ${state_dir}/client_body;
