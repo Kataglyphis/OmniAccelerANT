@@ -502,7 +502,7 @@ class StreamPageState extends State<StreamPage> {
               ),
               const SizedBox(height: 20),
               const Text(
-                'WebRTC Stream',
+                'Trouble Tabbls Cat Cam',
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
             ],
