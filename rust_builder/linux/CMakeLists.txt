@@ -10,7 +10,7 @@ project(${PROJECT_NAME} LANGUAGES CXX)
 # REALPATH, not CMAKE_CURRENT_SOURCE_DIR: cargokit joins this as a plain string
 # onto the ephemeral symlink path, and the kernel resolves that symlink before
 # applying the "..", so a chain counted from the symlink overshoots. See
-# AGENTS.md § 3.
+# AGENTS.md § 4.
 get_filename_component(MANIFEST_ABS "${CMAKE_SOURCE_DIR}/../third_party/OxidANT" ABSOLUTE)
 get_filename_component(PLUGIN_LINUX_REAL "${CMAKE_CURRENT_SOURCE_DIR}" REALPATH)
 file(

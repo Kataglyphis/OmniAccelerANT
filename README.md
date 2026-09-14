@@ -50,8 +50,7 @@ OmniAccelerANT bundles a Flutter/Dart frontend, a Rust/C++ inference core, and a
 
 | Category | Feature | Win x64 | Linux x64 | Linux ARM64 | Linux RISC-V | Android |
 |----------|---------|:-------:|:---------:|:-----------:|:------------:|:-------:|
-| **Containerization** | 🐳 Dockerfile | ✔️ | ✔️ | ✔️ | ✔️ | N/A |
-| | 🐳 Docker Compose | N/A | ✔️ | ✔️ | ✔️ | N/A |
+| **Containerization** | 🐳 Builds in ANTfrastructure `:latest-cross` / `:winamd64` images | ✔️ | ✔️ | ✔️ | ✔️ | ✔️ |
 | **Native Integration** | 🎨 GTK Integration | N/A | ✔️ | ✔️ | ✔️ | N/A |
 | | 🪟 Win32 API | ✔️ | N/A | N/A | N/A | N/A |
 | | 🤖 Android NDK | N/A | N/A | N/A | N/A | ✔️ |
@@ -116,7 +115,7 @@ Refer to the detailed docs below for platform-specific requirements, camera stre
 
 3. Build the app. **Every lane runs containerized, and local runs invoke the
    same script CI invokes** — the exact commands, presets and switches are in
-   [AGENTS.md § 4](AGENTS.md#4-build-run-test):
+   [AGENTS.md § 5](AGENTS.md#5-build-run-test):
 
    | Lane | What CI runs | Locally |
    |---|---|---|
@@ -130,14 +129,11 @@ Refer to the detailed docs below for platform-specific requirements, camera stre
    are identical, down to the argument list. Reproduce a CI failure locally
    before pushing — that is the whole point of the arrangement.
 
-   Note that the Linux `build_linux` stage runs a full CodeQL analysis on `x64`,
-   not just a build — see AGENTS.md before starting one.
-
    Building the Linux lane locally on a Windows host has host-side
    prerequisites — Rancher Desktop's engine, the drive the repo lives on being
    visible to *containerd's own* mount namespace, and QEMU binfmt registered
    for an arm64 run. The concrete commands are in
-   [AGENTS.md § 4](AGENTS.md#4-build-run-test), "The Linux lane, locally";
+   [AGENTS.md § 5](AGENTS.md#5-build-run-test), "The Linux lane, locally";
    the reasoning behind them is ANTfrastructure's, in
    [`rancher-desktop-linux-containers.md`](third_party/ANTfrastructure/docs/rancher-desktop-linux-containers.md).
    Both prerequisites are lost on a VM restart, and skipping either is silent:

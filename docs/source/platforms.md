@@ -43,9 +43,9 @@ caps, and the `docker build` prohibition are ANTfrastructure's, not this project
 
 ```powershell
 & $docker run --rm --isolation process `
-  --mount "type=bind,source=$PWD,target=C:\workspace" -w C:\workspace `
+  --mount "type=bind,source=$PWD,target=C:\ws-mnt" -w C:\ws-mnt `
   ghcr.io/kataglyphis/kataglyphis_beschleuniger:winamd64 `
-  pwsh -NoProfile -ExecutionPolicy Bypass -File C:\workspace\scripts\windows\Build-Windows.ps1 `
+  pwsh -NoProfile -ExecutionPolicy Bypass -File C:\ws-mnt\scripts\windows\Build-Windows.ps1 `
     -Configurations "clangcl-debug,clangcl-profile,clangcl-release" -SkipMsixPackaging
 ```
 
@@ -111,7 +111,7 @@ Run the app on the host after a build:
 .\scripts\windows\Start-Windows.ps1 -Configuration x64-ClangCL-Windows-Debug
 ```
 
-### Troubleshooting containerized Windows builds (verified 2026-07-15)
+### Troubleshooting containerized Windows builds
 
 | Symptom | Cause | Fix |
 |---------|-------|-----|
@@ -121,7 +121,6 @@ Run the app on the host after a build:
 | `lld-link ... mismatch detected for 'RuntimeLibrary'` (Debug preset) | A `/MT` override (root `CMAKE_MSVC_RUNTIME_LIBRARY`, an abseil `/MT` hack, or a C++20 module BMI built `/MT` re-emitting `detect_mismatch` into importers) collides with Flutter's `/MD` | Remove **every** `/MT` override and compile ASAN with `/clang:-shared-libsan` so clang emits dynamic-CRT link directives. All wired up in the upstream module `third_party/ANTfrastructure/cmake/Sanitizers.cmake`, reached via `CMAKE_MODULE_PATH` (the inference core's own copy is retired), plus the no-`/MT` policy in `third_party/AccelerANTgine/third_party/CMakeLists.txt`. Diagnose stray directives with `llvm-readobj --coff-directives <obj>`. |
 | Instrumented app dies instantly `STATUS_ENTRYPOINT_NOT_FOUND` (−1073741511) | The staged `clang_rt.asan_dynamic-x86_64.dll` is LLVM's, but the binary's baked-in thunk imports Microsoft-named allocator forwarders (`__asan_new`, `__asan_delete`, …), or vice-versa | Link **and** stage a matched pair. The Debug preset links Microsoft's thunk+import lib (ANTfrastructure's `cmake/Sanitizers.cmake`, on `CMAKE_MODULE_PATH`, points the link-search at `VC\Tools\MSVC\<ver>\lib\x64`); `Start-Windows.ps1` stages the matching `clang_rt.asan_dynamic-x86_64.dll` from the same MSVC dir. |
 | Instrumented app aborts on startup with `bad-free` / `bad-malloc_usable_size` | LLVM's ASan runtime loads after ucrtbase, so CRT/COM startup allocations are unhooked and abort when freed through interceptors | Use **Microsoft's** ASan runtime (VS BuildTools) — it tracks Windows heap ownership and passes foreign frees through — plus `ASAN_OPTIONS=alloc_dealloc_mismatch=0:check_malloc_usable_size=0`. This is the shipped Debug-preset config; the full app runs clean under it. |
-| Only one preset's artifacts survive a multi-preset build | **All** presets install into the same `build\windows\x64\runner\x64-ClangCL-Windows-Release\` (the layout ignores the preset for the install prefix) | Copy the runner dir away between presets, or fix `Resolve-KataglyphisWindowsLayout`/`Get-WindowsBuildConfig.ps1` to use per-preset install prefixes. |
 | App exits with `STATUS_DLL_NOT_FOUND` (−1073741515) on a host without GStreamer/ONNX installs | The native plugin links GStreamer + ONNX Runtime, provided by `C:\runtime` in the container, `C:\Program Files\gstreamer` + `C:\onnxruntime` on a provisioned host | Stage from the image into the runner: `C:\runtime\bin\*.dll` and `C:\runtime\lib\onnxruntime-source\bin\*.dll` (onnxruntime + DirectML) → `runner\...\bin\`; `C:\runtime\lib\gstreamer-1.0\` → `runner\...\lib\gstreamer-1.0\` (GStreamer locates plugins relative to its core DLL). `Start-Windows.ps1` puts `runner\bin` on `PATH`. |
 | `git init/clone/checkout` fails with `could not write config file` / `unable to write new index file` inside the container | Same `wcifs` rename/create flakiness in layer dirs | Do git surgery outside the layer zone (fresh `C:\` dirs work), or `git archive | tar -x` trees into place; a bind-mounted workspace avoids it entirely. |
 | `docker run --mount` fails: `hcs::CreateComputeSystem ... Die Anforderung wird nicht unterstützt` although the source is plain NTFS | The mount **target** already exists in the image (e.g. baked `C:\workspace`) — refused on skewed hosts | Mount to a path that does not exist in the image (e.g. `target=C:\ws-mnt`) and pass `-w C:\ws-mnt`. |
@@ -155,7 +154,7 @@ pwsh -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows\Build-Windows.ps
 ```
 
 `Build-Windows.ps1 -?` lists the rest. CI passes only `-SkipMsixPackaging`, so
-that invocation is the parity run — see AGENTS.md § 4.
+that invocation is the parity run — see AGENTS.md § 5.
 
 ## Android
 

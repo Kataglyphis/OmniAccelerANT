@@ -17,16 +17,12 @@ here.
       for anything it does not recognise, so a riscv64 host would build and
       package as amd64 rather than failing. Upstream's `arch_normalize` passes
       unknown values through instead. Three lane scripts call it.
-- [ ] The Linux CodeQL driver swallows failures with `|| true`
-      (`scripts/linux/codeql/codeql-common.sh`), while the Windows twin throws.
-      A CodeQL run that produces no database currently reports success. This is
-      a rewrite, not a move — the two sides disagree about what a failure is.
 - [ ] `rust_builder/windows/CMakeLists.txt` still resolves the Rust manifest
       against `CMAKE_CURRENT_SOURCE_DIR`; the Linux twin was changed to
       `REALPATH` because the ephemeral plugin symlink made the `..` chain
       overshoot. Windows is green today only because `Build-Windows.ps1` has a
       `Fix Plugin Symlinks (Junctions)` step. Aligning the two needs a full
-      Windows container build to prove it — see AGENTS.md § 3.
+      Windows container build to prove it — see AGENTS.md § 4.
 
 ## Open — duplication and drift
 
@@ -51,7 +47,7 @@ here.
       (`android/local.properties`, the ephemeral plugin symlinks, `.dart_tool`).
       `Invoke-LinuxLane.ps1` and `Build-Windows.ps1` could refuse to start while
       another lane's container is up — the failure is otherwise attributed to
-      the innocent lane, see AGENTS.md § 4.
+      the innocent lane, see AGENTS.md § 5.
 - [ ] `run-native-linux.sh` / `run-android.sh` read as host-side scripts but are
       what the CI lane actually invokes — the naming still misleads.
       (`scripts/linux/lib/check-linux.sh`, the other half of this entry, was
@@ -78,8 +74,7 @@ here.
       the diff is pure noise. One of the two images has a different Dart SDK
       constraint; find which and align them.
 - [ ] `flutter pub get` reports 45 packages held back by dependency
-      constraints, and Flutter warns that Gradle 8.14 / AGP 8.11.1 support ends
-      soon (9.1.0 / 9.0.1 required). Neither blocks a build today.
+      constraints. Does not block a build today.
 
 
 ## Open — verification gaps
@@ -91,7 +86,7 @@ here.
       the Linux matrix job names changed twice in one session.
 - [b] flatpak and AppImage on arm64 are only ever exercised in CI: locally
       `qemu-user` cannot carry `unshare(CLONE_NEWUSER)` through for bubblewrap,
-      nor load the static-PIE `appimagetool` — AGENTS.md § 4. Blocked on a real
+      nor load the static-PIE `appimagetool` — AGENTS.md § 5. Blocked on a real
       arm64 machine; nothing to change here.
 
 ## Agentic loop
@@ -99,4 +94,4 @@ here.
 Adopted 2026-09-13: `scripts/agentic-loop/` (config, runner wrappers, prompt
 overlays); executor model `opencode-go/deepseek-v4.1-flash`. Windows builds go
 through `scripts/windows/Build-Windows-Container.ps1`. Run commands and rules:
-AGENTS.md § 4.
+AGENTS.md § 5.

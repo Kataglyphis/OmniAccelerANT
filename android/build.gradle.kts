@@ -15,7 +15,7 @@ subprojects {
     val newSubprojectBuildDir: Directory = newBuildDir.dir(project.name)
     project.layout.buildDirectory.value(newSubprojectBuildDir)
 }
-// Must stay above evaluationDependsOn — AGENTS.md § 3.
+// Must stay above evaluationDependsOn — AGENTS.md § 4.
 subprojects {
     afterEvaluate {
         extensions.findByName("android")?.let { ext ->

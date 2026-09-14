@@ -36,14 +36,10 @@ gate could not be reproduced locally at all. The gitleaks arm self-tests first: 
 empty tree must scan clean and a planted token must be reported and must make the
 gate exit non-zero, so "found nothing" cannot be confused with "never ran".
 
-The one gate NOT in there is `Sync-SharedConfig.ps1 -Check`, which is PowerShell;
-none of ANTfrastructure's Linux images ship `pwsh`, so it stays a separate step of
-the same workflow job. Run it by hand with:
-
-```bash
-pwsh -File third_party/ANTfrastructure/shared/config/Sync-SharedConfig.ps1 -RepoRoot . -Check \
-  -Ignore '.clang-format,.clang-tidy,gcovr.cfg,.pre-commit-config.yaml'
-```
+The shared-config drift check is one of that command's gates, not a separate
+step: `bash scripts/linux/run-lint-gates.sh` runs it. The workflow's `pwsh`
+`Sync-SharedConfig.ps1 -Check` step is the PowerShell twin of the same gate,
+kept so both halves stay exercised and are required to agree.
 
 ### Tests
 

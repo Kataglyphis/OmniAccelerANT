@@ -6,7 +6,7 @@ OmniAccelerANT.
 Laid out per ANTfrastructure's
 [`shared/templates/AGENTS.md.template`](third_party/ANTfrastructure/shared/templates/README.md).
 The rule that shapes it: *would this still be true in a different project?* If
-yes, ANTfrastructure owns it and § 2 links to it. If no, it is written out in § 3.
+yes, ANTfrastructure owns it and § 2 links to it. If no, it is written out in § 4.
 
 ## 1. What this project is
 
@@ -41,7 +41,7 @@ burned into the RGBA frames → `webrtcsink` with its own signalling server.
 `scripts/linux/cat-stream/serve.sh` puts HTTPS + COOP/COEP + a `/webrtc-ws`
 proxy in front of it, so one build works on localhost, a LAN IP or a
 Raspberry Pi; on a Pi 5 CSI camera,
-`scripts/linux/cat-stream/run-producer-pi.sh` is the producer half (see § 3's
+`scripts/linux/cat-stream/run-producer-pi.sh` is the producer half (see § 2's
 glue list). Runbook: README § *Live cat detection stream*.
 
 ## 2. What ANTfrastructure owns — links only
@@ -59,7 +59,7 @@ reorganisation.
 | The image's pkg-config and rustup provisioning | `AGENTS.md` + `docs/windows-builds.md` |
 | Wiring this repo to ANTfrastructure — resolver, actions, libraries | `docs/adopting-in-a-new-project.md` |
 | Linux container builds | `docs/linux-build-basics.md` |
-| Running the Linux lane locally on Windows (Rancher Desktop/nerdctl), and **a bind mount that resolves but is empty** — containerd's mount namespace, Windows vs WSL path form | `docs/rancher-desktop-linux-containers.md` |
+| Running the Linux lane locally on Windows (Rancher Desktop/nerdctl), and **a bind mount that resolves but is empty** — containerd's mount namespace, Windows vs WSL path form | [`docs/rancher-desktop-linux-containers.md` § *An empty mount is not a missing drive*](third_party/ANTfrastructure/docs/rancher-desktop-linux-containers.md#an-empty-mount-is-not-a-missing-drive) |
 | The five shell-safety bug classes | ANTfrastructure `AGENTS.md` § *Shell safety conventions* |
 | appimagetool provisioning — pinned version + SHA256, not the moving `continuous` tag | `linux/scripts/02-toolchain/packaging-deps.sh`, subcommand `appimagetool` |
 | Python venv + `uv` provisioning (installer downloaded to a file and SHA-checkable, never `curl \| sh`) | `linux/scripts/01-core/python_uv.sh` |
@@ -89,7 +89,7 @@ Two upstream facts repeated here only because they bite before you reach a doc:
 - `scripts/agentic-loop/` — the adopted planner/executor loop: config, both
   runner wrappers, prompt overlays. Engine `opencode`, executor
   `opencode-go/deepseek-v4.1-flash`. Its Windows build/test driver is
-  `scripts/windows/Build-Windows-Container.ps1`. Rules and commands: § 4.
+  `scripts/windows/Build-Windows-Container.ps1`. Rules and commands: § 5.
 - `scripts/linux/cat-stream/serve.sh` — serves the web build over TLS with the
   Stream page's COOP/COEP headers and proxies `/webrtc-ws` to the cat producer.
   No container involved; it is the deployment half of the demo.
@@ -118,7 +118,34 @@ rejected; both would be regressions here, so do not "fix" their absence:
   runner bundle. It also fuses configure and build into one step, while the
   `Native Assets Directory Fix` step must run between them.
 
-## 3. Pitfalls specific to this project
+## 3. Critical invariant: submodule pins
+
+Builds are only supported against the **recorded submodule gitlinks** — the
+commits CI builds green. There are four:
+[`third_party/ANTfrastructure`](third_party/ANTfrastructure) (the hub, § 2),
+[`third_party/OxidANT`](third_party/OxidANT) (the Rust core behind
+flutter_rust_bridge), [`third_party/AccelerANTgine`](third_party/AccelerANTgine)
+(the inference core the Windows plugin links) and
+[`third_party/ANThology`](third_party/ANThology) (the shared Dart package).
+`git submodule update --checkout --recursive` restores them. If a drifted
+checkout is what you actually want, move the gitlink **and** fix the fallout in
+the same change — a working tree that has quietly walked forward from its
+gitlink is compiling something other than what is committed, and `git submodule
+status` marks that only with a `+`.
+
+Drift is guarded by ANTfrastructure's shared Pester suite, run from
+[`.github/workflows/submodule-pins.yml`](.github/workflows/submodule-pins.yml)
+after any pin bump. It checks both directions: each checkout sits at the
+recorded commit, and the recorded commit is reachable from that submodule's
+remote — a gitlink bumped to a commit that was never pushed builds on the
+machine that made it and on no other.
+
+**What nothing here asserts:** `AccelerANTgine` and `OxidANT` each carry a
+`third_party/ANTfrastructure` pin of their own, free to differ from this repo's.
+Bumping the hub here does not bump the hub those two build against; that has to
+happen in their own repositories.
+
+## 4. Pitfalls specific to this project
 
 Everything here is false or meaningless in another repo — that is why it is
 written out rather than linked.
@@ -232,6 +259,14 @@ written out rather than linked.
   idempotent and become no-ops once the image ships `rust-src` and the
   `wasm32-unknown-unknown` target.
 
+- **The web lane installs `flutter_rust_bridge_codegen` only when the image has
+  none.** `:latest-cross` ships the binary at `FLUTTER_RUST_BRIDGE_VERSION`,
+  which it also exports; the unconditional `cargo install` that used to sit
+  here rebuilt 174 crates on every CI run and then failed the lane. The guard
+  is `command -v` plus `cargo install --locked --version "${FLUTTER_RUST_BRIDGE_VERSION}"`,
+  so a bare host gets the same pin the image carries — never a floating latest,
+  and never `--force`.
+
 - **Renaming the Rust crate touches committed generated code.**
   `lib/src/rust/frb_generated.dart` hard-codes the artefact name in
   `kDefaultExternalLibraryLoaderConfig`: `stem` (`oxidant` → `oxidant.dll`,
@@ -337,19 +372,12 @@ written out rather than linked.
   log is usually GitHub **echoing the retry script's source**, not running it —
   it cost hours of chasing a pull that had in fact succeeded.
 
-- **ASAN works, but only against Microsoft's runtime.** LLVM's
-  `clang_rt.asan_dynamic` loads *after* ucrtbase, so allocations made during
-  CRT/COM startup are unhooked and it aborts with an unsuppressible `bad-free`
-  when combase/ole32 frees them. That is a property of a COM-hosting Flutter
-  app, not of the image. Microsoft's runtime (`VC\Tools\MSVC\<ver>\bin\Hostx64\x64\clang_rt.asan_dynamic-x86_64.dll`)
-  tracks Windows heap ownership and passes foreign frees through. ANTfrastructure's
-  `cmake/Sanitizers.cmake` (on the inference core's `CMAKE_MODULE_PATH`; its local copy is retired)
-  links Microsoft's thunk + import lib while keeping clang's instrumentation; `Start-Windows.ps1`
-  stages the DLL next to the exe and sets
-  `ASAN_OPTIONS=alloc_dealloc_mismatch=0:check_malloc_usable_size=0`.
-  Build-time needs a dynamic CRT throughout (`-shared-libsan`, **no `/MT`
-  overrides anywhere** — module BMIs re-emit `detect_mismatch` into importers, so
-  one `/MT` BMI poisons everything).
+- **ASAN works, but only against Microsoft's runtime** — LLVM's loads after
+  ucrtbase and aborts `bad-free` on the COM startup allocations a Flutter app
+  makes, which is why `Start-Windows.ps1` stages the MSVC DLL and why no `/MT`
+  override may exist anywhere. The runtime choice, the linked thunk pair and the
+  `ASAN_OPTIONS` are ANTfrastructure's:
+  [`docs/windows-clang-cl-sanitizers.md`](third_party/ANTfrastructure/docs/windows-clang-cl-sanitizers.md).
 - **The clangcl-Debug preset ships with ASAN ON** and builds + runs green (Dart
   VM up, camera live). Historic gotchas, all fixed: naive ASAN dragged `/MT`
   into Flutter's `/MD` objects (`lld-link` RuntimeLibrary mismatch), and
@@ -421,7 +449,7 @@ written out rather than linked.
   session does not exist`); pulling from inside the VM with an empty
   `DOCKER_CONFIG` is the workaround that worked.
 
-## 4. Build, run, test
+## 5. Build, run, test
 
 **Both lanes run the same thing locally and in CI. Reproduce locally first —
 CI is not a debugger.**
@@ -527,7 +555,9 @@ pwsh -File scripts/agentic-loop/Invoke-AgenticLoop.ps1 -ExecutorOnly
 ```
 
 The loop does not watch CI and auto-commits with `git add -A`; do not run
-interactive work in the same tree without checking whether it is live.
+interactive work in the same tree without checking whether it is live. The loop
+itself is ANTfrastructure's —
+[`docs/adopting-in-a-new-project.md` § 4](third_party/ANTfrastructure/docs/adopting-in-a-new-project.md#4-the-agentic-loop).
 
 **MSIX packaging.** `msix_config.build_windows` is `false` on purpose: this
 script owns the build, and a second `flutter build windows` driven by msix
@@ -599,7 +629,7 @@ CI passes `-SkipMsixPackaging`, and `-CodeQL` is off there because of runtimes.
 
 ### The Linux lane, locally
 
-`scripts/linux/Invoke-LinuxLane.ps1` starts the same image and runs the same script
+`scripts/windows/Invoke-LinuxLane.ps1` starts the same image and runs the same script
 with the same arguments as that lane's workflow. `-Lane` selects which:
 
 | `-Lane` | script | workflow |
@@ -613,10 +643,10 @@ together. The argument sets are meant to match exactly — the android lane also
 matches in *not* passing `--privileged`.
 
 ```powershell
-.\scripts\linux\Invoke-LinuxLane.ps1 -SkipCodeQL -SkipDocs            # native, x64
-.\scripts\linux\Invoke-LinuxLane.ps1 -Lane android -SkipCodeQL
-.\scripts\linux\Invoke-LinuxLane.ps1 -Lane web
-.\scripts\linux\Invoke-LinuxLane.ps1 -Arch arm64                      # needs QEMU, see below
+.\scripts\windows\Invoke-LinuxLane.ps1 -SkipDocs                        # native, x64
+.\scripts\windows\Invoke-LinuxLane.ps1 -Lane android -SkipCodeQL
+.\scripts\windows\Invoke-LinuxLane.ps1 -Lane web
+.\scripts\windows\Invoke-LinuxLane.ps1 -Arch arm64                      # needs QEMU, see below
 ```
 
 **arm64 locally needs QEMU registered once per VM boot.** Rancher's VM starts
@@ -713,14 +743,11 @@ consequence of mounting `build/` — not a failure to chase.
 **Two traps, both of which produce a mount that resolves but is empty:**
 
 - `D:` must exist inside *containerd's own* mount namespace, which is not the
-  distro's. It is transient — gone after the VM restarts:
-
-  ```pwsh
-  wsl -d rancher-desktop -u root -e sh -c 'pid=$(ps -eo pid,comm | awk "\$2==\"containerd\" {print \$1; exit}"); nsenter -t "$pid" -m -- sh -c "mkdir -p /mnt/d && mount -t drvfs D: /mnt/d"'
-  ```
-
-  Without it the bind silently mounts an empty directory that containerd
-  helpfully *creates*, so the path then exists and stays empty.
+  distro's, and it is gone after every VM restart; without it the bind silently
+  mounts an empty directory that containerd helpfully *creates*, so the path
+  then exists and stays empty. The `wsl`/`nsenter`/drvfs one-liner that fixes it
+  is ANTfrastructure's:
+  [`docs/rancher-desktop-linux-containers.md` § *An empty mount is not a missing drive*](third_party/ANTfrastructure/docs/rancher-desktop-linux-containers.md#an-empty-mount-is-not-a-missing-drive).
 - Pass the **Windows** path (`D:\…`). nerdctl translates it itself; handing it
   the already-translated `/mnt/d/…` bypasses that and binds nothing. ANTfrastructure
   owns the full write-up — see § 2.
@@ -763,7 +790,7 @@ There is no separate host-side driver any more. The legacy
 `ci-dart-on-native-linux.sh` / `ci-dart-build-android-app.sh` pair and their
 `ci-common.sh` were removed on 2026-09-04: no workflow ever referenced them,
 they carried a third copy of the CodeQL logic, and they re-implemented what CI
-actually runs instead of invoking it. Use `Invoke-LinuxLane.ps1` (§ 4), which
+actually runs instead of invoking it. Use `Invoke-LinuxLane.ps1` (§ 5), which
 runs the very script CI runs.
 
 **Flutter comes from the image, and this repo does not have an opinion about
@@ -799,13 +826,16 @@ and swaps `_` for `-`, so `omni_accelerant` yields `omni-accelerant`.
 rename had to find. The workflows still pass the value explicitly, which is
 what keeps CI independent of a host's `pwd`.
 
-**`build_linux` on `x64` is not just a build — it is a full CodeQL run.** That
-branch downloads the CodeQL CLI, builds a `--db-cluster` for c/cpp/rust and runs
-two `database analyze` suites; the actual `flutter build linux --release` only
-appears inside the generated `/tmp/codeql-build.sh` that CodeQL invokes. Budget
-hours, not minutes. The `arm64` branch is the plain
-`flutter clean && flutter pub get && flutter build linux --release`. To build the
-app on x64 without the scan, pass `-SkipCodeQL` to `Invoke-LinuxLane.ps1`.
+**CodeQL runs in the android lane and nowhere else.**
+`scripts/linux/codeql/codeql-android.sh` installs the CLI, builds a
+`--db-cluster` for c/cpp/rust/java/kotlin around `flutter build apk` and runs
+three `database analyze` suites — budget hours, not minutes. The native lane
+implements none and its driver *refuses* `--run-codeql true` with exit 2 rather
+than reporting success over a scan that never happened;
+`Invoke-LinuxLane.ps1` hard-codes `false` for it and for web. So `-SkipCodeQL`
+changes nothing except under `-Lane android`, and the native `build` job (both
+matrix rows) is the plain
+`flutter clean && flutter pub get && flutter build linux --release`.
 
 `FLUTTER_DIR` defaults to `/opt/flutter` — the image's SDK, shared by every
 lane and never written to. It used to default inside the workspace, which made
@@ -855,11 +885,12 @@ gate onto any of those: it would fight the generator or upstream.
 `.cmake-format.yaml` at the root is the consumer copy of ANTfrastructure's
 canonical config — `shared/config/README.md` owns why it is a copy. Refresh it
 with `pwsh -File third_party/ANTfrastructure/shared/config/Sync-SharedConfig.ps1
--RepoRoot . -Write -Ignore
-'.clang-format,.clang-tidy,gcovr.cfg,.pre-commit-config.yaml'`. That `-Ignore`
-list is deliberate, not drift: of the five shared configs this Flutter app
-carries only `.cmake-format.yaml` — nothing here runs clang-format, clang-tidy,
-gcovr or the C++ pre-commit hooks. cmake-format itself comes from `PATH` or a
+-RepoRoot . -Write` (or `bash
+third_party/ANTfrastructure/shared/config/sync-shared-config.sh --repo-root .
+--write`) — no `-Ignore`: what this repo takes is declared in
+[`.antfrastructure-shared.manifest`](.antfrastructure-shared.manifest), three rows,
+and the scripts refuse `-Ignore` while that file exists. cmake-format itself
+comes from `PATH` or a
 uv venv fed by ANTfrastructure's pinned
 `third_party/ANTfrastructure/linux/scripts/cmake-format.requirements.txt` — there
 is no root `requirements.txt` (`pyyaml` sits in that pinned set because
@@ -882,11 +913,11 @@ owner explicitly asked for it in that turn.**
 On this host, run it in the cross container:
 
 ```powershell
-.\scripts\linux\Invoke-Renovate.ps1                      # what is behind
-.\scripts\linux\Invoke-Renovate.ps1 -Apply -DryRun       # the plan
-.\scripts\linux\Invoke-Renovate.ps1 -Apply               # apply the plan
-.\scripts\linux\Invoke-Renovate.ps1 -Managers pub        # narrow the managers
-.\scripts\linux\Invoke-Renovate.ps1 -Recurse             # owned submodules, in place
+.\scripts\windows\Invoke-Renovate.ps1                      # what is behind
+.\scripts\windows\Invoke-Renovate.ps1 -Apply -DryRun       # the plan
+.\scripts\windows\Invoke-Renovate.ps1 -Apply               # apply the plan
+.\scripts\windows\Invoke-Renovate.ps1 -Managers pub        # narrow the managers
+.\scripts\windows\Invoke-Renovate.ps1 -Recurse             # owned submodules, in place
 ```
 
 `scripts/linux/renovate-local.sh` remains the language-independent entry point
@@ -896,12 +927,11 @@ entries the root-owned bind mount needs (`/workspace` and `/workspace/*` for the
 submodule worktrees), and forwards `-Apply`/`-DryRun`/`-Refresh`/
 `-Managers`/`-PrintBin`.
 
-**Why the container still downloads its own Node.** Renovate declares
-`engines.node ^24.11.0` and hard-exits on anything else, so the image's Node
-26.8.1 cannot run it (`Unsupported node environment detected`). The
-checksum-pinned Node 24.21.0 + Renovate 44.82.0 bootstrap stays, cached on the
-`kataglyphis-renovate-cache` named volume, so the download happens once per host
-instead of once per container.
+**Why the container still downloads its own Node.** Renovate's `engines.node`
+range excludes the image's Node, so the bootstrap pulls a checksum-pinned one
+onto the `kataglyphis-renovate-cache` volume — the versions and the rationale
+are ANTfrastructure's:
+[`docs/dependency-updates.md`](third_party/ANTfrastructure/docs/dependency-updates.md).
 
 **The runner passes `gh`'s token as `GITHUB_COM_TOKEN` when `gh` is
 authenticated.** Without it Renovate's GitHub API lookups are rate-limited and it
@@ -925,7 +955,7 @@ tree; the script sorts that out itself and refuses up front rather than
 half-applying. Why any of it —
 [`third_party/ANTfrastructure/docs/dependency-updates.md`](third_party/ANTfrastructure/docs/dependency-updates.md).
 
-## 5. Docs owned by this repo
+## 6. Docs owned by this repo
 
 - Guides live in `docs/source/` (MyST Markdown, Sphinx via `docs/make.bat` /
   `Makefile`); Dart API docs via `dart doc`.
