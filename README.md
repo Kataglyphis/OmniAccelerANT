@@ -177,8 +177,12 @@ into the build. On a Raspberry Pi 5 with the CSI camera,
 `--libcamera` and the host-libcamera container wiring the Pi 5 kernel needs. A
 Pi Zero 2 W runs the same image with that swap and a `gst-launch` no-AI stream
 on top of it (512 MB is not enough for the Rust producer), and a RISC-V SoC
-runs the riscv64 variant natively with a USB webcam via `--v4l2`. Pipeline
-details, flags and troubleshooting:
+runs the riscv64 variant natively with a USB webcam via `--v4l2`. A producer
+on another board is fronted from the dev host without deploying the web build
+there: `serve.sh --producer-host <board-ip> --producer-port 8443 --state-dir
+build/cat-stream/<board>` — use the board's IP (nginx resolves the name once at
+startup) and open that instance's port on the dev host too. Pipeline details,
+flags and troubleshooting:
 [docs/source/camera-streaming.md](docs/source/camera-streaming.md).
 
 ### Browse the API docs locally
