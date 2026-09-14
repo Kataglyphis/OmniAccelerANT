@@ -72,7 +72,9 @@ built-in server, but the signaller's rustls rejects self-signed CA certificates
 the Raspberry Pi CSI camera, whose `rp1-cfe` V4L2 nodes carry raw Bayer that
 `videoconvert` cannot process. Inference runs on a background thread, so the
 WebRTC stream keeps camera rate while the boxes lag one inference behind
-(seconds per frame on a Pi 5 CPU).
+(seconds per frame on a Pi 5 CPU). `--no-inference` skips the model entirely —
+no ORT, no detector, frames published unannotated — for camera/WebRTC bring-up
+and for hosts too weak to run YOLO.
 
 Serve the web build with the COOP/COEP headers the Stream page needs and the
 `/webrtc-ws` proxy:
@@ -113,6 +115,49 @@ that ahead of the image's copy, grants the rootless container ACL access to
 `/dev/{video,media,dma_heap}*`, and runs with `seccomp=unconfined` (the IPA
 proxy forks). GStreamer 1.29, `webrtcsink`, ONNX Runtime and the Rust binary
 still come from the image.
+
+**Raspberry Pi Zero 2 W.** The image runs there too, but the Rust producer
+does not fit the board (512 MB RAM, no practical way to build on it), and the
+image's libcamera cannot drive the Zero's camera either: with `rpi/vc4` on the
+imx708 its isolated IPA process worker dies on start (`Failed to call start:
+-110`, then the socket is unreachable), while the host's rpt build runs the
+threaded proxy and works. The working no-AI recipe is the container plus the
+*same* host-libcamera swap, driven by `gst-launch`. Copy the closure collected
+by `run-producer-pi.sh` (or refresh it there with `--libs-only`) to the Zero,
+then:
+
+```bash
+# on the Zero; ~/cat-cam/hostlibs is build/cat-stream/hostlibs from the dev host
+sudo nerdctl run --rm --name zero-producer --user 0:0 --privileged \
+  --network host -v /dev:/dev -v /run/udev:/run/udev:ro \
+  -v /usr/lib/aarch64-linux-gnu/libcamera:/usr/lib/aarch64-linux-gnu/libcamera:ro \
+  -v /usr/share/libcamera:/usr/share/libcamera:ro \
+  -v "$HOME/cat-cam/hostlibs":/hostlibs:ro \
+  -e LD_LIBRARY_PATH=/hostlibs:/opt/gstreamer/lib/multiarch:/opt/gstreamer/lib:/usr/local/lib:/opt/opencv5/lib:/usr/lib/aarch64-linux-gnu \
+  --entrypoint bash ghcr.io/kataglyphis/kataglyphis_beschleuniger:latest-cross \
+  -lc 'exec gst-launch-1.0 -e \
+    webrtcsink name=ws run-signalling-server=true signalling-server-host=0.0.0.0 signalling-server-port=8443 meta="meta,name=Zero-Cat-Cam" \
+    libcamerasrc ! video/x-raw,format=RGB,width=640,height=480,framerate=15/1 ! videoconvert ! video/x-raw,format=I420 ! vp8enc deadline=1 ! ws.'
+```
+
+Two traps bite anyone wiring this by hand: the image's `entrypoint.sh` sources
+`libcamera-env.sh`, which re-prepends `/opt/libcamera/lib` and silently
+overrides the `LD_LIBRARY_PATH` above — hence `--entrypoint bash`; and
+`webrtcsink`'s `meta` must be a space-free structure in gst-launch
+(`meta="meta,name=Zero-Cat-Cam"`; a space fails to parse). The dev host's
+`serve.sh` (:8444) fronts the Zero without deploying the web build to it, by
+tunnelling only the signalling:
+
+```bash
+ssh -N -L 8443:127.0.0.1:8443 himbeergsaelzlight.local   # run on the dev host
+```
+
+Media is WebRTC UDP, browser ↔ Zero, direct on the LAN. If the container is
+too heavy for the board, `scripts/linux/cat-stream/package-producer-bundle.sh`
+exports a container-less aarch64 bundle (producer + pruned GStreamer + the
+image's glibc, ~180 MB) that runs against the host's libcamera with no
+container and no toolchain; and `--no-inference` is the next step up from this
+`gst-launch` bring-up.
 
 The numbered steps below are the manual `gst-launch-1.0` pipelines, kept for
 cases the Rust producer does not cover.
