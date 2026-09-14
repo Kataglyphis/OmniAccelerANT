@@ -26,7 +26,14 @@ set -euo pipefail
 script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 repo_root="$(cd -- "${script_dir}/../../.." && pwd)"
 
-image="ghcr.io/kataglyphis/kataglyphis_beschleuniger:latest-cross"
+# The image ref is ANTfrastructure's, never spelled out here: versions.env is
+# the fleet's one owner of both tags, and a literal copy freezes at today's.
+# Resolved in two assignments, never one: a command substitution that dies
+# inside a larger expansion is swallowed by `set -e`.
+# shellcheck source=../lib/antfrastructure.sh
+source "${script_dir}/../lib/antfrastructure.sh"
+_ci_image_ref_sh="$(antfrastructure_path linux/scripts/ci-image-ref.sh)"
+image="$(bash "${_ci_image_ref_sh}")"
 target_volume="kataglyphis-cat-target"
 cargo_volume="kataglyphis-cat-cargo"
 container_name="cat-producer"

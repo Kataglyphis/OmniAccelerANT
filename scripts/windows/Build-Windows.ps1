@@ -285,7 +285,7 @@ try {
 
                 $formatConfig = Join-Path $workspace '.cmake-format.yaml'
                 if (-not (Test-Path -LiteralPath $formatConfig -PathType Leaf)) {
-                    throw ".cmake-format.yaml is missing at the repo root; without it cmake-format silently uses built-in defaults. Restore the consumer copy with ANTfrastructure shared/config/Sync-SharedConfig.ps1 -Write (AGENTS.md paragraph 4)."
+                    throw ".cmake-format.yaml is missing at the repo root; without it cmake-format silently uses built-in defaults. Restore the consumer copy with ANTfrastructure shared/config/Sync-SharedConfig.ps1 -Write (AGENTS.md paragraph 5)."
                 }
 
                 # Initialize-UvVenvPython is NOT used: it hard-codes
@@ -597,7 +597,7 @@ try {
 
     Invoke-BuildStep -Context $context -StepName "MSIX Compatibility Layout" -Script {
         foreach ($currentPreset in $presetsToRun) {
-            # CI names no preset; fall back to the default — see AGENTS.md § 4.
+            # CI names no preset; fall back to the default — see AGENTS.md § 5.
             $currentPreset = if ([string]::IsNullOrEmpty($currentPreset)) {
                 $windowsBuildConfig.CMakeConfiguration
             } else {
@@ -670,7 +670,7 @@ try {
         # built preset was supposed to produce actually exists, so an empty or
         # silently-failed build cannot exit 0 (adopting-in-a-new-project.md § 2;
         # the OxidANT Build-Windows.ps1 keeps the same gate on its MSIX).
-        # Asserts both the scratch and the host-synced tree — see AGENTS.md § 4.
+        # Asserts both the scratch and the host-synced tree — see AGENTS.md § 5.
         $missingArtifacts = @()
         foreach ($currentPreset in $presetsToRun) {
             $effectivePreset = if ([string]::IsNullOrEmpty($currentPreset)) {

@@ -86,12 +86,13 @@ echo "=== Enable flutter web + Rust WASM toolchain ==="
 # build-web runs wasm-pack with `-Z build-std=std,panic_abort`, which needs the
 # nightly toolchain plus rust-src. Installed explicitly rather than left to
 # rustup's auto-install, which rustup itself deprecates. Idempotent, and a
-# no-op once the image ships them — AGENTS.md § 3.
+# no-op once the image ships them — AGENTS.md § 4.
 rustup toolchain install nightly --component rust-src --target wasm32-unknown-unknown
-# No `|| true`: the failure used to resurface as an opaque "command not found".
-# cargo install writes into CARGO_HOME/bin, which need not be on PATH.
-cargo install flutter_rust_bridge_codegen
-export PATH="${CARGO_HOME:-$HOME/.cargo}/bin:$PATH"
+export PATH="${CARGO_HOME}/bin:$PATH"
+# The image already ships the codegen at FLUTTER_RUST_BRIDGE_VERSION; a bare host
+# installs that same pin. No `|| true` (it hid a "command not found") and no
+# --force (it rebuilds 174 crates on every run of a lane that has the binary).
+command -v flutter_rust_bridge_codegen >/dev/null 2>&1 || cargo install --locked --version "${FLUTTER_RUST_BRIDGE_VERSION:?not set: the image exports it}" flutter_rust_bridge_codegen
 flutter config --enable-web
 
 echo "=== Build Web App ==="
