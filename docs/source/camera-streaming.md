@@ -90,6 +90,10 @@ flutter build web --release --wasm
 scripts/linux/cat-stream/serve.sh          # :8444 TLS, proxies to :8443
 ```
 
+`serve.sh` also takes `--producer-host`/`--producer-port` to front a producer
+on another board, and `--state-dir` so several instances (one per producer)
+can run side by side.
+
 `signalingServerUrl` in `assets/settings/webrtc_settings.json` is
 host-relative by default (`/webrtc-ws`); the web client resolves it against the
 page's origin, so the same build works on localhost, a LAN IP and a Raspberry
@@ -158,6 +162,29 @@ exports a container-less aarch64 bundle (producer + pruned GStreamer + the
 image's glibc, ~180 MB) that runs against the host's libcamera with no
 container and no toolchain; and `--no-inference` is the next step up from this
 `gst-launch` bring-up.
+
+**RISC-V SoC (SpacemiT X100).** `:latest-cross` is a multi-arch index
+(amd64/arm64/riscv64), so the same tag runs there natively and the producer
+builds inside the container in minutes on 8 cores — GStreamer, `v4l2src` and
+ONNX Runtime are all riscv64 builds in the image. A USB webcam (e.g. a
+Logitech C270) needs no libcamera: run with `--v4l2 /dev/videoN`. On Ubuntu
+the host-level work is permissions and firewall: the node is `root:video 660`
+and the user is usually not in `video`, so grant an ACL
+(`sudo setfacl -m u:$USER:rw /dev/videoN`), and UFW needs `8443/tcp` plus the
+WebRTC UDP range (`sudo ufw allow 32768:60999/udp`) because the browser
+connects directly to the board for media. The dev host can front it without
+deploying the web build:
+
+```bash
+scripts/linux/cat-stream/serve.sh --port 8446 \
+  --producer-host 192.168.188.146 --producer-port 8443 \
+  --state-dir build/cat-stream/x100
+```
+
+Use the board's **IP, not its mDNS name**, in `--producer-host`: nginx
+resolves `proxy_pass` hostnames once at startup, so a DHCP or mDNS address
+change leaves it proxying into the void with a `101` in the access log and no
+connection on the producer.
 
 The numbered steps below are the manual `gst-launch-1.0` pipelines, kept for
 cases the Rust producer does not cover.

@@ -41,9 +41,10 @@ burned into the RGBA frames → `webrtcsink` with its own signalling server.
 `scripts/linux/cat-stream/serve.sh` puts HTTPS + COOP/COEP + a `/webrtc-ws`
 proxy in front of it, so one build works on localhost, a LAN IP or a
 Raspberry Pi; on a Pi 5 CSI camera,
-`scripts/linux/cat-stream/run-producer-pi.sh` is the producer half, and a Pi
-Zero 2 W runs the image with the same host-libcamera swap plus a `gst-launch`
-no-AI pipeline (the Rust producer does not fit 512 MB) — see § 3's glue list.
+`scripts/linux/cat-stream/run-producer-pi.sh` is the producer half, a Pi Zero
+2 W runs the image with the same host-libcamera swap plus a `gst-launch` no-AI
+pipeline (the Rust producer does not fit 512 MB), and a RISC-V SoC runs the
+riscv64 variant natively with a USB webcam (`--v4l2`) — see § 3's glue list.
 Runbook: README § *Live cat detection stream*.
 
 ## 2. What ANTfrastructure owns — links only
@@ -95,6 +96,8 @@ Two upstream facts repeated here only because they bite before you reach a doc:
 - `scripts/linux/cat-stream/serve.sh` — serves the web build over TLS with the
   Stream page's COOP/COEP headers and proxies `/webrtc-ws` to the cat producer.
   No container involved; it is the deployment half of the demo.
+  `--producer-host`/`--producer-port` front a producer on another board and
+  `--state-dir` keeps concurrent instances apart.
 - `scripts/linux/cat-stream/run-producer-pi.sh` — runs the cat producer from the
   image against a Pi 5 CSI camera (`--libcamera`), bind-mounting the host's
   Raspberry Pi OS libcamera stack ahead of the image's outdated upstream copy
@@ -425,6 +428,15 @@ written out rather than linked.
   the Pi 5 runner does the same by exec'ing the binary directly); and
   gst-launch's `webrtcsink` `meta` must be a space-free structure
   (`meta="meta,name=Zero-Cat-Cam"`; a name with spaces fails to parse).
+- **A RISC-V board runs the same image, but the host has opinions.** The
+  SpacemiT X100 runs the riscv64 variant of `:latest-cross` natively (the
+  producer builds in the container in minutes); a USB webcam needs `--v4l2`,
+  an ACL on the camera node (it is `root:video 660` and the user is normally
+  not in `video`) and UFW rules for `8443/tcp` plus the WebRTC UDP range
+  (`32768:60999/udp`). `serve.sh --producer-host` must be given the board's
+  **IP, not its mDNS name**: nginx resolves `proxy_pass` hostnames once at
+  startup, so a DHCP or mDNS address change leaves it answering `101` while
+  nothing ever reaches the producer.
 - **The frb Dart bindings must match the Rust runtime's frb version.** They
   were stale at 2.12.0 against 2.13.0 and the web build died with an empty
   `Uncaught` before `pkg/oxidant.js` loaded. Regenerate both sides together:
