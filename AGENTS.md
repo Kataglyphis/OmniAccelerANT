@@ -41,8 +41,10 @@ burned into the RGBA frames → `webrtcsink` with its own signalling server.
 `scripts/linux/cat-stream/serve.sh` puts HTTPS + COOP/COEP + a `/webrtc-ws`
 proxy in front of it, so one build works on localhost, a LAN IP or a
 Raspberry Pi; on a Pi 5 CSI camera,
-`scripts/linux/cat-stream/run-producer-pi.sh` is the producer half (see § 3's
-glue list). Runbook: README § *Live cat detection stream*.
+`scripts/linux/cat-stream/run-producer-pi.sh` is the producer half, and a Pi
+Zero 2 W runs the image with the same host-libcamera swap plus a `gst-launch`
+no-AI pipeline (the Rust producer does not fit 512 MB) — see § 3's glue list.
+Runbook: README § *Live cat detection stream*.
 
 ## 2. What ANTfrastructure owns — links only
 
@@ -98,6 +100,12 @@ Two upstream facts repeated here only because they bite before you reach a doc:
   Raspberry Pi OS libcamera stack ahead of the image's outdated upstream copy
   (the kernel 6.18 `rp1-cfe` entity rename + libpisp 1.7). `--build` builds the
   producer first; `--libs-only` refreshes the cached library closure.
+- `scripts/linux/cat-stream/package-producer-bundle.sh` — container-less
+  fallback for boards that cannot run the image comfortably (Pi Zero 2 W):
+  exports the producer, a pruned GStreamer subset, the image's glibc (invoked
+  through the bundled loader) and the library closure into
+  `build/cat-stream/pi-bundle/` (~180 MB, aarch64). The target only needs
+  libcamera installed; `--deploy HOST` rsyncs it there.
 
 **Deliberately not reused.** Two upstream Windows pieces were evaluated and
 rejected; both would be regressions here, so do not "fix" their absence:
@@ -404,6 +412,19 @@ written out rather than linked.
   (`lib/settings/webrtc_settings.dart`); absolute `ws(s)://` URLs pass through
   untouched, as does everything on native, where the value is unused
   (`WebRTCView` is web-only).
+- **A Pi Zero 2 W runs the image, but only with the host libcamera stack.**
+  The image's upstream libcamera cannot drive the Zero's imx708 via `rpi/vc4`
+  either: its isolated IPA process worker dies on start (`Failed to call
+  start: -110`, then the socket is unreachable), while the host's rpt build
+  uses the threaded proxy and works. The Zero also cannot build or run the
+  Rust producer comfortably (512 MB), so the bring-up is the container +
+  hostlibs mount + a `gst-launch` pipeline, exactly like the Pi 5's swap. Two
+  traps: the image's `entrypoint.sh` sources `libcamera-env.sh`, which
+  re-prepends `/opt/libcamera/lib` and silently overrides any
+  `LD_LIBRARY_PATH` handed to `nerdctl run` (bypass it with `--entrypoint` —
+  the Pi 5 runner does the same by exec'ing the binary directly); and
+  gst-launch's `webrtcsink` `meta` must be a space-free structure
+  (`meta="meta,name=Zero-Cat-Cam"`; a name with spaces fails to parse).
 - **The frb Dart bindings must match the Rust runtime's frb version.** They
   were stale at 2.12.0 against 2.13.0 and the web build died with an empty
   `Uncaught` before `pkg/oxidant.js` loaded. Regenerate both sides together:
