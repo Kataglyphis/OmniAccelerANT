@@ -3,7 +3,7 @@
 <#
 .SYNOPSIS
 Runs the Linux CI lane locally, in the same image and with the same script and
-arguments the workflow uses. See AGENTS.md § 4.
+arguments the workflow uses. See AGENTS.md § 5.
 #>
 
 param(
@@ -17,7 +17,7 @@ param(
 	# be a fourth copy that nothing compares to the other three.
 	[string] $Image = '',
 	[string] $BuildMode = 'release',
-	# Empty resolves from pubspec.yaml below — AGENTS.md § 4.
+	# Empty resolves from pubspec.yaml below — AGENTS.md § 5.
 	[string] $AppName = '',
 	[string] $PackageFormats = 'tar,deb,flatpak,appimage',
 	[string] $InstallPackagingDeps = 'true',
@@ -26,7 +26,7 @@ param(
 	[switch] $SkipDocs,
 	[switch] $KeepContainer,
 	[string] $ContainerName = "kataglyphis-linux-lane-$Lane-$Arch",
-	# AGENTS.md § 4.
+	# AGENTS.md § 5.
 	[string[]] $ContainerNativePaths = @('/workspace/build'),
 	# Debugging switches only; CI has no equivalent.
 	[string[]] $Env = @()
@@ -49,7 +49,7 @@ if (-not $Image) {
 	#
 	# Resolve-BuildModule looks the module up in third_party/ANTfrastructure first,
 	# so this is the same copy Build-Windows.ps1 builds against.
-	. (Join-Path $PSScriptRoot '..\windows\Resolve-BuildModule.ps1')
+	. (Join-Path $PSScriptRoot 'Resolve-BuildModule.ps1')
 	Import-BuildModule 'WindowsContainerImage.Common'
 	if (-not (Get-Command -Name 'Get-CiImageReference' -ErrorAction SilentlyContinue)) {
 		throw ("WindowsContainerImage.Common was imported but exports no Get-CiImageReference. " +
@@ -88,7 +88,7 @@ $runCodeQL = if ($SkipCodeQL) { 'false' } else { ($Arch -eq 'x64').ToString().To
 $runDocs = if ($SkipDocs) { 'false' } else { ($Arch -eq 'x64').ToString().ToLower() }
 
 # A named volume over each write-heavy path, always via the long --mount form
-# — AGENTS.md § 4.
+# — AGENTS.md § 5.
 $volumeArgs = @()
 foreach ($nativePath in $ContainerNativePaths) {
 	$volumeName = "kataglyphis-lane-$Lane-$Arch" + ($nativePath -replace '[^A-Za-z0-9]+', '-')
@@ -120,7 +120,7 @@ $laneArgs = switch ($Lane) {
 	}
 	'android' {
 		# -apk, like the workflow and run-android.sh: the name is a path, and
-		# without it this lane overwrites the native lane's out/ — AGENTS.md § 4.
+		# without it this lane overwrites the native lane's out/ — AGENTS.md § 5.
 		@('bash', '/workspace/scripts/linux/ci/ci-container-run-android.sh',
 			'--arch', $Arch,
 			'--build-mode', $BuildMode,
@@ -163,7 +163,7 @@ Write-Host "engine : $engine"
 Write-Host "command: $($engineArgs -join ' ')"
 Write-Host ''
 
-# Windows source path, never the translated /mnt form — AGENTS.md § 4.
+# Windows source path, never the translated /mnt form — AGENTS.md § 5.
 & $engine @engineArgs
 $laneExitCode = $LASTEXITCODE
 

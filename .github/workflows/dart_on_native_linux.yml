@@ -29,7 +29,7 @@ jobs:
   #     reports in about two minutes instead of after the pull.
   #
   # Coverage these add that nothing else here had: `.cmake-format.yaml` is
-  # Sync-SharedConfig-managed and AGENTS.md § 4 documents the -Check contract,
+  # Sync-SharedConfig-managed and AGENTS.md § 5 documents the -Check contract,
   # but until now both gates that touched it only tested that the file EXISTS -
   # it sat at the canonical blob by luck. And this repo holds FTP credentials, a
   # GHCR PAT and Android keystore secrets with no secret gate at all.
@@ -47,17 +47,14 @@ jobs:
           submodules: recursive
           fetch-depth: 1
 
-      # The -Ignore list is the one AGENTS.md § 4 documents and is deliberate,
-      # not drift: of the five shared configs this Flutter app carries only
-      # .cmake-format.yaml. Passing it as one comma-separated string is correct
-      # under `pwsh -File`, where every argument arrives as a plain string - the
-      # script splits it itself.
+      # The PowerShell twin of the bash `shared-config drift` gate that
+      # scripts/linux/run-lint-gates.sh runs, kept so both halves are exercised.
+      # The asset set comes from .antfrastructure-shared.manifest.
       - name: Shared tool config matches ANTfrastructure (Sync-SharedConfig -Check)
         run: >-
           pwsh -File third_party/ANTfrastructure/shared/config/Sync-SharedConfig.ps1
           -RepoRoot .
           -Check
-          -Ignore '.clang-format,.clang-tidy,gcovr.cfg,.pre-commit-config.yaml'
 
       # ONE step, and the SAME command a developer types. The three gates below
       # it - shellcheck, actionlint (+ CI image refs) and the gitleaks secret
@@ -76,11 +73,11 @@ jobs:
       # arrive git-quoted and name nothing, and all three gates running even
       # after one fails so a push produces one triage list instead of three.
       #
-      # The explicit workspace argument is required, not cosmetic: the upstream
-      # script sits INSIDE the submodule, so any root derived from its own
-      # location resolves to ANTfrastructure and every gate reports green over the
-      # wrong tree. .github/actionlint.yaml still teaches the pinned actionlint
-      # the ubuntu-26.04 runner labels it predates.
+      # No argument: the wrapper derives this repo's root from its own location
+      # and passes it upstream, which refuses to infer one (its half lives
+      # INSIDE the submodule and would grade ANTfrastructure's tree instead).
+      # .github/actionlint.yaml still teaches the pinned actionlint the
+      # ubuntu-26.04 runner labels it predates.
       #
       # A gitleaks finding is a real leak - rotate and purge - or a false
       # positive, and a false positive earns ONE narrow, commented allowlist
@@ -94,15 +91,18 @@ jobs:
 
       - name: Lint gates (ANTfrastructure shellcheck + actionlint + gitleaks)
         shell: bash
-        run: bash scripts/linux/run-lint-gates.sh "${{ github.workspace }}"
+        run: bash scripts/linux/run-lint-gates.sh
 
   build:
+    # The gates above are cheap and architecture-independent: no point paying
+    # for two container pulls to learn a shell script has a typo.
+    needs: lint
     strategy:
       # fail-fast off so one architecture failing still reports the other's
-      # verdict instead of cancelling it mid-run — AGENTS.md § 3. (The older
+      # verdict instead of cancelling it mid-run — AGENTS.md § 4. (The older
       # reason recorded here, "the arm64 row cannot pass because the image tag
       # is amd64-only", expired on 2026-09-04 when :latest-cross became a real
-      # multi-arch OCI index — AGENTS.md § 3 again.)
+      # multi-arch OCI index — AGENTS.md § 4 again.)
       fail-fast: false
       matrix:
         include:
@@ -135,7 +135,7 @@ jobs:
       # — ANTfrastructure's shared prologue, so the retry count and submodule flags
       # cannot drift between this workflow and its siblings. The pull takes no
       # --platform, which is only correct for a multi-arch tag — see the arm64
-      # note in AGENTS.md § 3.
+      # note in AGENTS.md § 4.
       #
       # `image:` is DELIBERATELY ABSENT, here and on the run step below. The
       # family image ref has exactly one owner — IMAGE_REGISTRY_PREFIX +
@@ -204,14 +204,18 @@ jobs:
             out/*.AppImage
             out/*.flatpak
 
+      # The hub action, not SamKirkland's directly: it owns the family's FTP
+      # pin, the readable/writable proof on the tree and the refusal to sync an
+      # empty local-dir over a live site - ANTfrastructure docs/ftp-deploys.md.
       # The doc/api/ ownership fixup that used to live here (sudo chown -R plus
       # chmod -R 755) is gone: generate-docs.sh already chowns the tree to the
       # uid that owns the workspace, and `-e CI=true` on the container step
-      # above is what makes that branch actually run. One implementation, in
-      # the script the owner can also run locally.
+      # above is what makes that branch actually run.
+      # push only: a pull_request from a fork gets no secrets, so this step
+      # could only ever fail there on an empty password.
       - name: 📂 Sync files to domain
-        if: ${{ matrix.arch == 'x64' }}
-        uses: SamKirkland/FTP-Deploy-Action@110f9186c050f71550953127052e77650219c287
+        if: ${{ matrix.arch == 'x64' && github.event_name == 'push' }}
+        uses: Kataglyphis/ANTfrastructure/.github/actions/deploy-over-ftp@main
         with:
           server: ${{ secrets.SERVER }}
           username: ${{ secrets.USERNAME }}

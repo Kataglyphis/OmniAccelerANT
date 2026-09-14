@@ -80,7 +80,7 @@ source_bashrc_and_add_flutter_to_path() {
   fi
 }
 
-# The image owns the Flutter SDK; nothing here installs one — AGENTS.md § 3.
+# The image owns the Flutter SDK; nothing here installs one — AGENTS.md § 4.
 assert_flutter_available() {
   local flutter_dir="${1:?flutter_dir is required}"
   if [[ ! -x "${flutter_dir}/bin/flutter" ]]; then
@@ -93,7 +93,7 @@ assert_flutter_available() {
     "${flutter_dir}/bin/cache/flutter.version.json" 2>/dev/null | head -1)"
   echo "[Info] Flutter ${version:-<unknown>} from the image at ${flutter_dir}."
 }
-# Lists tracked files rather than walking the tree — AGENTS.md § 3.
+# Lists tracked files rather than walking the tree — AGENTS.md § 4.
 #
 # The driver resolution is a statement of its own, not a substitution inside the
 # command line: this function is called from inside run_gate, i.e. from a `||`
@@ -127,7 +127,7 @@ _cmake_format_install_requirements() {
 # the gate off generated trees (Flutter's flutter/CMakeLists.txt +
 # generated_plugins.cmake + ephemeral, Android's .cxx) and vendored Cargokit —
 # the gate must never fight the generator. Windows twin: the "CMake Format
-# Verification" step in scripts/windows/Build-Windows.ps1. AGENTS.md § 4.
+# Verification" step in scripts/windows/Build-Windows.ps1. AGENTS.md § 5.
 #
 # NO STRICTNESS SWITCH ANY MORE, and this is a behaviour change: the check used
 # to run through run_check_cmd, so a non-strict caller (the Android lane, and
@@ -186,7 +186,7 @@ run_cmake_format_check() {
   if [[ ! -f .cmake-format.yaml ]]; then
     echo "Error: no .cmake-format.yaml at the repo root; without it cmake-format silently" >&2
     echo "       falls back to its built-in defaults. Restore the consumer copy with" >&2
-    echo "       ANTfrastructure shared/config/Sync-SharedConfig.ps1 -Write (AGENTS.md § 4)." >&2
+    echo "       ANTfrastructure shared/config/Sync-SharedConfig.ps1 -Write (AGENTS.md § 5)." >&2
     return 1
   fi
 
@@ -221,14 +221,14 @@ run_cmake_format_check() {
   code_quality_run_cmake_format --check "${cmake_files[@]}"
 }
 
-# AGENTS.md § 3.
+# AGENTS.md § 4.
 setup_compiler_cache() {
   antfrastructure_source linux/scripts/01-core/compiler-cache.sh
   setup_sccache
   echo "[Info] SCCACHE_DIR=${SCCACHE_DIR:-<unset>}  RUSTC_WRAPPER=${RUSTC_WRAPPER:-<unset>}"
 }
 
-# The image ships the SDK but announces it nowhere — AGENTS.md § 3.
+# The image ships the SDK but announces it nowhere — AGENTS.md § 4.
 export_android_gstreamer_env() {
   if [ -n "${GSTREAMER_ROOT_ANDROID:-}" ] && [ -d "${GSTREAMER_ROOT_ANDROID}" ]; then
     return 0
@@ -247,7 +247,7 @@ export_android_gstreamer_env() {
 
 # Points clang at the image's source-built GCC. ANTfrastructure deleted the helper
 # that did this; the wrappers it named as the replacement are not in this image
-# — AGENTS.md § 3.
+# — AGENTS.md § 4.
 export_toolchain_env() {
   local arch="${1:-${MATRIX_ARCH:-amd64}}"
   case "$arch" in x64) arch=amd64 ;; esac

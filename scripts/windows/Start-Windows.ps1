@@ -153,7 +153,7 @@ try {
 				}
 			}
 			Write-Host "[Start-Windows] Staged Microsoft ASan runtime: $msAsan"
-			# Prepend, never skip — see AGENTS.md § 3 (ASAN).
+			# Prepend, never skip — see AGENTS.md § 4 (ASAN).
 			$repoAsanOptions = "alloc_dealloc_mismatch=0:check_malloc_usable_size=0"
 			$env:ASAN_OPTIONS = if ([string]::IsNullOrWhiteSpace($env:ASAN_OPTIONS)) {
 				$repoAsanOptions

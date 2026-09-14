@@ -19,7 +19,7 @@ $ErrorActionPreference = 'Stop'
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 
 if (-not $Image) {
-	. (Join-Path $PSScriptRoot '..\windows\Resolve-BuildModule.ps1')
+	. (Join-Path $PSScriptRoot 'Resolve-BuildModule.ps1')
 	Import-BuildModule 'WindowsContainerImage.Common'
 	if (-not (Get-Command -Name 'Get-CiImageReference' -ErrorAction SilentlyContinue)) {
 		throw "WindowsContainerImage.Common exports no Get-CiImageReference; bump third_party/ANTfrastructure or pass -Image explicitly."

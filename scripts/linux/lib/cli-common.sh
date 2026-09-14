@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
 
-set -euo pipefail
-
 detect_arch() {
   case "$(uname -m)" in
     x86_64|amd64) echo "x64" ;;
@@ -68,7 +66,7 @@ resolve_repo_root() {
   fi
 }
 
-# pubspec.yaml's package name is the single source of truth — AGENTS.md § 4.
+# pubspec.yaml's package name is the single source of truth — AGENTS.md § 5.
 resolve_app_name() {
   local lib_dir pubspec name
   lib_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
