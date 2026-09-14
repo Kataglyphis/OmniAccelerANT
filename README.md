@@ -176,8 +176,9 @@ into the build. On a Raspberry Pi 5 with the CSI camera,
 `scripts/linux/cat-stream/run-producer-pi.sh --build` replaces step 1: it adds
 `--libcamera` and the host-libcamera container wiring the Pi 5 kernel needs. A
 Pi Zero 2 W runs the same image with that swap and a `gst-launch` no-AI stream
-on top of it (512 MB is not enough for the Rust producer). Pipeline details,
-flags and troubleshooting:
+on top of it (512 MB is not enough for the Rust producer), and a RISC-V SoC
+runs the riscv64 variant natively with a USB webcam via `--v4l2`. Pipeline
+details, flags and troubleshooting:
 [docs/source/camera-streaming.md](docs/source/camera-streaming.md).
 
 ### Browse the API docs locally
