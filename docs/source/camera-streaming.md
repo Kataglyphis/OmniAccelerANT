@@ -283,3 +283,7 @@ GST_DEBUG=3 python3 demo_yolov5.py
 - On a host firewall (e.g. UFW on Raspberry Pi OS), allow `8444/tcp` and the
   WebRTC media UDP range (`32768:60999/udp`, LAN-scoped is enough) — the
   browser otherwise connects for signalling but ICE never completes.
+- Each `serve.sh` instance (one per board) listens on its own port, and the
+  **dev host's** firewall has to allow every one of them, not just the first:
+  a second board's page stays unreachable while the first board's still works,
+  which reads like a producer problem but is a missing `ufw allow 8446/tcp`.
