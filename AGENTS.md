@@ -436,7 +436,10 @@ written out rather than linked.
   (`32768:60999/udp`). `serve.sh --producer-host` must be given the board's
   **IP, not its mDNS name**: nginx resolves `proxy_pass` hostnames once at
   startup, so a DHCP or mDNS address change leaves it answering `101` while
-  nothing ever reaches the producer.
+  nothing ever reaches the producer. Each `serve.sh` instance also needs its
+  own port opened on the **dev host** — a second board's page stays
+  unreachable while the first board's still works, which reads like a
+  producer fault but is a missing `ufw allow 8446/tcp`.
 - **The frb Dart bindings must match the Rust runtime's frb version.** They
   were stale at 2.12.0 against 2.13.0 and the web build died with an empty
   `Uncaught` before `pkg/oxidant.js` loaded. Regenerate both sides together:
