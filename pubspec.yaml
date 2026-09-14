@@ -101,7 +101,7 @@ flutter_launcher_icons:
     icon_size: 256
 
 msix_config:
-  # Build-Windows.ps1 owns the build; msix only packages. See AGENTS.md § 4.
+  # Build-Windows.ps1 owns the build; msix only packages. See AGENTS.md § 5.
   build_windows: false
   display_name: OmniAccelerANT
   publisher_display_name: Kataglyphis

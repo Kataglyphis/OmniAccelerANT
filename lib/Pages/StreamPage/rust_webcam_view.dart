@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-// PlatformInt64Util: i64 is `int` natively and `BigInt` on web — AGENTS.md § 3.
+// PlatformInt64Util: i64 is `int` natively and `BigInt` on web — AGENTS.md § 4.
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
 import 'package:omni_accelerant/src/rust/api/webcam.dart';
