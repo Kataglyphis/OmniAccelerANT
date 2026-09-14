@@ -47,6 +47,9 @@ doc/.venv/
 .pub-cache/
 .pub/
 /build/
+/target/
+*.profraw
+*.profdata
 
 # Symbolication related
 app.*.symbols
@@ -70,7 +73,7 @@ third_party/ANThology/.dart_tool/*
 # Flutter regenerates these on every `pub get` and every build, and they carry
 # absolute, per-host paths: the Linux lane writes /opt/flutter + /workspace,
 # the Windows container writes C:\ProgramData\... + C:\ws-mnt. Tracked, they
-# flipped back and forth on every lane switch (AGENTS.md § 4). The files say
+# flipped back and forth on every lane switch (AGENTS.md § 5). The files say
 # "do not edit or check into version control" themselves.
 ios/Flutter/Generated.xcconfig
 ios/Flutter/flutter_export_environment.sh
