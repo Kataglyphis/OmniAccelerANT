@@ -116,7 +116,11 @@ flutter_rust_bridge_codegen generate
 ```
 
 It is a cargo binary baked into the build image, not a pub dependency — on a
-bare host, `cargo install flutter_rust_bridge_codegen` first.
+bare host install it first, at the version this repo pins rather than at latest:
+`cargo install --locked --version 2.13.0 flutter_rust_bridge_codegen` (the
+`flutter_rust_bridge` pin in `third_party/OxidANT/Cargo.toml`; the image exports
+the same number as `FLUTTER_RUST_BRIDGE_VERSION`). Installing latest is how the
+mismatch above happens in the first place.
 
 Then rebuild the project:
 ```bash

@@ -81,7 +81,7 @@ Serve the web build with the COOP/COEP headers the Stream page needs and the
 # once — web/pkg/ is a generated frb artefact (gitignored), so regenerate it
 # the way the web CI lane does before building the frontend
 rustup toolchain install nightly --component rust-src --target wasm32-unknown-unknown
-cargo install flutter_rust_bridge_codegen
+cargo install --locked --version 2.13.0 flutter_rust_bridge_codegen  # the pin in third_party/OxidANT/Cargo.toml
 flutter_rust_bridge_codegen build-web --release --rust-root third_party/OxidANT
 flutter build web --release --wasm
 

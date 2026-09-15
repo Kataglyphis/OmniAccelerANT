@@ -16,7 +16,7 @@ Rust core and a C++ inference plugin underneath it.
 | Path | What lives there |
 | --- | --- |
 | `lib/` | The Flutter/Dart frontend |
-| `third_party/OxidANT` | Rust core, bridged via `flutter_rust_bridge` — regenerate bindings with `flutter_rust_bridge_codegen generate` (a cargo binary baked into the build image, NOT a pub dependency; on a bare host `cargo install flutter_rust_bridge_codegen` first). `lib/src/rust/` is committed generated code — no build lane regenerates it |
+| `third_party/OxidANT` | Rust core, bridged via `flutter_rust_bridge` — regenerate bindings with `flutter_rust_bridge_codegen generate` (a cargo binary baked into the build image, NOT a pub dependency; on a bare host `cargo install --locked --version <pin> flutter_rust_bridge_codegen` first, where `<pin>` is `FLUTTER_RUST_BRIDGE_VERSION` in the image or the `flutter_rust_bridge` version pinned in `third_party/OxidANT/Cargo.toml` (`=2.13.0` today) off it — a floating latest desynchronises the Dart bindings from the Rust runtime). `lib/src/rust/` is committed generated code — no build lane regenerates it |
 | `packages/kataglyphis_native_inference` | C++ inference plugin — **plain files, not a submodule**; a `pubspec.yaml` path dependency. Links GStreamer + ONNX Runtime via CMake/pkg-config |
 | `third_party/AccelerANTgine` | The inference core the plugin builds. Its own submodule, sibling to the plugin rather than nested inside it |
 | `scripts/windows/`, `scripts/linux/` | Thin wrappers over ANTfrastructure drivers + this repo's own glue |
