@@ -50,6 +50,14 @@ if ($Managers) { $renovateArgs += @('--managers', $Managers) }
 
 $entry = if ($Recurse) { 'scripts/linux/renovate-submodules.sh' } else { 'scripts/linux/renovate-local.sh' }
 
+# The insteadOf rewrite is NOT dead weight now that this repo's .gitmodules is
+# https throughout (2026-09-15). -Recurse walks INTO the vendored checkouts and
+# runs renovate there too, and their own .gitmodules still carry ssh remotes:
+# third_party/AccelerANTgine/.gitmodules:20 (ANTfrastructure) and :29 (nanobind,
+# not even a Kataglyphis repo), third_party/OxidANT/.gitmodules:3. The container
+# has no ssh key, so without this line those submodule lookups fail rather than
+# report. Delete it only once every nested .gitmodules the recursion reaches is
+# https - the two Kataglyphis ones are owned by their own repos' audit items.
 $inner = @'
 git config --global --add safe.directory '/workspace'
 git config --global --add safe.directory '/workspace/*'
