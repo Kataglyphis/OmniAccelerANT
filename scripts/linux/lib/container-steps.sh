@@ -80,6 +80,22 @@ _cmake_format_install_requirements() {
   uv_pip_install_requirements .venv "$requirements"
 }
 
+# cmake-format from PATH if the image ships it, else a uv venv fed by
+# ANTfrastructure's pinned bootstrap set — same provisioning the Windows step
+# uses. This repo carries no root requirements.txt: the pins (cmake-format
+# plus the pyyaml it cannot read .cmake-format.yaml without) live upstream in
+# linux/scripts/cmake-format.requirements.txt, so both platforms and every
+# consumer repo install the same versions. docs/source/project-operations.md.
+#
+# The bootstrap itself is upstream's code_quality_ensure_cmake_format, not a
+# local copy of it. The two knobs below are FUNCTION names, exactly as
+# ANTfrastructure's own preflight.sh sets them. What the hand-rolled version this
+# replaces did NOT do, and what adopting buys: a `.venv` created on the other
+# platform (Scripts/python.exe in this bind-mounted tree, or bin/python on the
+# Windows host) was reused by an `[[ ! -d .venv ]]` guard and then died inside
+# uv with "Exec format error"; upstream probes the interpreter and recreates
+# it. It also finds Scripts/activate as well as bin/activate.
+
 # CMake format gate for the hand-maintained native build files. Enumeration and
 # exclude-glob handling come from ANTfrastructure's code-quality.sh; the globs keep
 # the gate off generated trees (Flutter's flutter/CMakeLists.txt +
@@ -107,21 +123,6 @@ run_cmake_format_check() {
   fi
   antfrastructure_source linux/scripts/lib/code-quality.sh || return 1
 
-  # cmake-format from PATH if the image ships it, else a uv venv fed by
-  # ANTfrastructure's pinned bootstrap set — same provisioning the Windows step
-  # uses. This repo carries no root requirements.txt: the pins (cmake-format
-  # plus the pyyaml it cannot read .cmake-format.yaml without) live upstream in
-  # linux/scripts/cmake-format.requirements.txt, so both platforms and every
-  # consumer repo install the same versions. docs/source/project-operations.md.
-  #
-  # The bootstrap itself is upstream's code_quality_ensure_cmake_format, not a
-  # local copy of it. The two knobs below are FUNCTION names, exactly as
-  # ANTfrastructure's own preflight.sh sets them. What the hand-rolled version this
-  # replaces did NOT do, and what adopting buys: a `.venv` created on the other
-  # platform (Scripts/python.exe in this bind-mounted tree, or bin/python on the
-  # Windows host) was reused by an `[[ ! -d .venv ]]` guard and then died inside
-  # uv with "Exec format error"; upstream probes the interpreter and recreates
-  # it. It also finds Scripts/activate as well as bin/activate.
   CODE_QUALITY_VENV_DIR="${PWD}/.venv"
   CODE_QUALITY_UV_VENV_CREATE_SCRIPT=_cmake_format_venv_create
   CODE_QUALITY_UV_INSTALL_REQUIREMENTS_SCRIPT=_cmake_format_install_requirements
@@ -162,6 +163,9 @@ run_cmake_format_check() {
     '*/generated_plugins.cmake' # header: "Generated file, do not edit."
     './rust_builder/cargokit/*' # vendored Cargokit (rust_builder/cargokit/README)
     './.venv/*'                 # the venv this very gate bootstraps
+    './.pub-cache/*'            # pub's download cache. fe93f5a moved PUB_CACHE to
+                                # <repo>/.pub-cache and run-native-linux.sh:120 runs
+                                # `pub get` first, so dependency CMake now lands in-tree.
   )
   local -a cmake_files
   mapfile -t cmake_files < <(code_quality_find_cmake_files | sort)
