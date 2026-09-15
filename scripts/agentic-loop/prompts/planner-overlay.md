@@ -17,7 +17,7 @@ that own every shared procedure. Do not restate those procedures in a task.
   `lib/src/rust/` is committed generated code; the `dbName` string in
   `lib/src/db/sqlite3_loader_web.dart` is a deliberate browser-database name; the
   Android SDK pins in four Gradle files must stay in agreement; and the two
-  Windows pieces AGENTS.md § 2 marks "deliberately not reused" must stay out.
+  Windows pieces AGENTS.md § 2 (What ANTfrastructure owns) marks "deliberately not reused" must stay out.
 - **Never plan a `dart format .`** — the recursive walk escapes the tracked
   file list and has rewritten the SDK before (AGENTS.md § 4).
 - **Prefer tasks verifiable on Windows**, because that is where the executor

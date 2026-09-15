@@ -235,7 +235,7 @@ flutter run \
 Both entries below are **fixed**. They are kept because each cost at least one
 CI run to diagnose and each reappears looking like broken code rather than like
 a broken image — if a symptom comes back, it is an image regression, and the
-answer is to fix the image, not to restore the workaround. AGENTS.md § 4 carries
+answer is to fix the image, not to restore the workaround. AGENTS.md § 4 (Pitfalls specific to this project) carries
 the one-line version of each.
 
 - **Six image gaps this repo used to work around are fixed in the image
@@ -330,7 +330,7 @@ Both halves were broken until 2026-09-03 and nobody noticed, because CI passes
 
 ## The Windows CI lane and the `$GIT_DIR` limit
 
-**The CI lane** ([`dart_on_native_windows.yml`](.github/workflows/dart_on_native_windows.yml))
+**The CI lane** ([`dart_on_native_windows.yml`](../../.github/workflows/dart_on_native_windows.yml))
 is four ANTfrastructure actions and nothing hand-rolled:
 `prepare-windows-container-host` (long paths, short-path clone, data-root move,
 disk check, GHCR login, pull), `run-in-windows-container`,

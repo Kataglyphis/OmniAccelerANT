@@ -1,0 +1,21 @@
+# shellcheck -S warning findings frozen per (file, code), over the file set
+# scripts/linux/run-lint-gates.sh grades. Frozen 2026-09-15, the first run with
+# `--ratchets` on.
+# Format: <file> | SC<code> | <count> | <reason>   (the reason is the rest of the line)
+# The four-way rule applies: a new pair, a HIGHER count, an unrecorded LOWER
+# count and a row whose pair is gone all FAIL. Fix one and lower or delete its
+# row in the same commit.
+#
+# Every row below was read before it was written. None is "shellcheck is noisy".
+
+rust_builder/cargokit/build_pod.sh | SC1090 | 1 | VENDORED Cargokit (rust_builder/cargokit/README), not this repo's code and not this repo's to fix. Non-constant source of a sibling the tool cannot resolve statically. Upstream it at flutter-rust-bridge/cargokit or leave it; every other gate here already exempts this tree, and the shell gate deliberately does NOT, because rust_builder also holds 13 first-party files (run-lint-gates.sh:11).
+rust_builder/cargokit/build_pod.sh | SC3010 | 1 | VENDORED Cargokit, `#!/bin/sh` with a bash-ism: `[[ ]]` is undefined in POSIX sh. Real, and real upstream; changing the shebang or the test in a vendored tree is exactly the local patch that makes the next Cargokit bump a merge conflict.
+rust_builder/cargokit/build_pod.sh | SC3030 | 1 | VENDORED Cargokit, same shebang mismatch: array assignment in POSIX sh.
+rust_builder/cargokit/build_pod.sh | SC3046 | 1 | VENDORED Cargokit, same shebang mismatch: `set -o pipefail` in POSIX sh.
+rust_builder/cargokit/build_pod.sh | SC3054 | 1 | VENDORED Cargokit, same shebang mismatch: array element expansion in POSIX sh.
+scripts/agentic-loop/Run-AgenticLoop.sh | SC1090 | 1 | KEEP: the sourced path is $AGENTIC_LIB, resolved at runtime from ANTfrastructure or from the local fallback, so no literal `# shellcheck source=` can name it - a directive would document one of the two layouts and lie about the other. The file's existence is checked by the guard immediately above the source.
+scripts/linux/ci/ci-container-run-web-linux.sh | SC2034 | 1 | KEEP: RUN_CODEQL is parsed and never read because the WEB lane implements no CodeQL scan. The flag stays in the parse loop on purpose - Invoke-LinuxLane.ps1 and dart_on_web_linux.yml both pass `--run-codeql false`, and dropping the option would make an explicit false an "unknown argument" exit 2. The native lane's driver refuses a TRUE value by name; this one has never been passed one.
+scripts/linux/codeql/codeql-android.sh | SC2164 | 1 | KEEP: `cd /workspace` inside run_codeql_android, which the caller reaches only after ci-container-run-android.sh has already resolved and entered the same workspace. A `|| exit` here would report the second failure of a directory whose absence already failed the driver.
+scripts/linux/codeql/codeql-common.sh | SC2164 | 2 | KEEP: the pushd/popd pair in codeql_install_cli around the unzip. The directory is one this function just created with `mkdir -p`; if that failed, the mkdir did, and the pushd's message would name the symptom rather than the cause.
+scripts/linux/lib/container-steps.sh | SC2034 | 3 | KEEP: CODE_QUALITY_VENV_DIR, CODE_QUALITY_UV_VENV_CREATE_SCRIPT and CODE_QUALITY_UV_INSTALL_REQUIREMENTS_SCRIPT are the knobs upstream's code_quality_ensure_cmake_format reads - two of them are FUNCTION names, exactly as ANTfrastructure's own preflight.sh sets them. This file only writes them; the reader is linux/scripts/lib/code-quality.sh, sourced on the line above.
+scripts/linux/lib/packaging-common.sh | SC2034 | 1 | KEEP: APP_PACKAGING_ICON_FALLBACKS is an array, so it cannot be `export`ed the way the four scalars beside it are (bash does not put arrays in the environment). It is read by app-packaging.sh, sourced two lines below, in the same shell.

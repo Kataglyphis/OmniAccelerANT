@@ -1,0 +1,13 @@
+# Frozen 2026-09-15, the first run with `--ratchets` on: functions whose LAST
+# statement is a conditional, reviewed and KEPT because the caller reads that
+# status as an ANSWER, never as success. Two-way: a frozen function that stops
+# ending on a conditional is STALE and its line goes.
+# Format: <file>	<function>.
+#
+# maybe_truthy is a pure predicate - `is_truthy "${v,,}" || [[ "${v,,}" == y ]]`
+# - and every call site is a condition (`if maybe_truthy "$RUN_CODEQL"`, in the
+# three ci-container-run-*.sh drivers). A false answer is the point; returning 1
+# is the contract, and making it `return 0` would turn every "false" flag into a
+# "true" one.
+
+scripts/linux/lib/container-steps.sh	maybe_truthy

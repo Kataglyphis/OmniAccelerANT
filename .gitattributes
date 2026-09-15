@@ -26,5 +26,13 @@ CMakeLists.txt text eol=lf
 *.psm1  text eol=crlf
 *.psd1  text eol=crlf
 
+# The ratchet freeze files, pinned LF for the same reason ANTfrastructure pins
+# its own (.gitattributes:75): the gates that read them run in the Linux CI
+# image, and on this host they run over a bind mount of a Windows checkout. A
+# CRLF checkout would hand them keys with a trailing carriage return while Linux
+# CI, where core.autocrlf is off, stays green - the exact split the family's
+# eol=lf rules exist to prevent.
+*.allow text eol=lf
+
 # exclude vendored trees from language analysis
 third_party/** linguist-vendored

@@ -3,9 +3,6 @@
 
 # AI Blog
 
-![Clouds](ScreenshotWorleyNoise.png)
-*image_caption*d
-
 This is inline latex: $f(x) = \\sum\_{i=0}^{n} \\frac{a_i}{1+x}$
 This is block level latex:
 

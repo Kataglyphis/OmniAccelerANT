@@ -91,8 +91,9 @@ rustup toolchain install nightly --component rust-src --target wasm32-unknown-un
 # runs under `set -euo pipefail`, so without the default the guard below aborts
 # on the very host it exists to serve.
 export PATH="${CARGO_HOME:-$HOME/.cargo}/bin:$PATH"
-# The image ships the codegen at FLUTTER_RUST_BRIDGE_VERSION (ANTfrastructure
-# docs/consumer-image-contract.md, "The web lane toolchain"); a bare-host run
+# The image ships the codegen at FLUTTER_RUST_BRIDGE_VERSION
+# (third_party/ANTfrastructure/docs/consumer-image-contract.md, "The web lane
+# toolchain"); a bare-host run
 # installs the same pin. No `|| true` (it hid a "command not found") and no
 # --force (--force rebuilds 174 crates per run of a lane that has the binary).
 command -v flutter_rust_bridge_codegen >/dev/null 2>&1 || cargo install --locked --version "${FLUTTER_RUST_BRIDGE_VERSION:?not set: the image exports it; on a bare host use the version pinned in third_party/OxidANT/Cargo.toml}" flutter_rust_bridge_codegen
