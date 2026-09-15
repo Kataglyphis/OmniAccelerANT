@@ -82,6 +82,10 @@ codeql_analyze_rust() {
 }
 
 # Kotlin is covered by the Java extractor, hence java-queries.
+# CALLERLESS ON PURPOSE since 2026-09-15: codeql-android.sh no longer builds a
+# java database, because the extractor's Kotlin plugin refuses this repo's KGP
+# and kills the build with it. Kept so restoring the scan is one line in
+# codeql-android.sh, not a rewrite -- see the comment there.
 codeql_analyze_java() {
   mkdir -p /workspace/codeql-results
   "$CODEQL" database analyze /tmp/codeql-db-cluster/java \
