@@ -13,7 +13,6 @@
   <a href="camera-streaming.md">Camera Streaming</a> •
   <a href="readmes.md">Readmes</a> •
   <a href="project-operations.md">Project Operations</a> •
-  <a href="roadmap.md">Roadmap</a> •
   <a href="upgrade-guide.md">Upgrade Guide</a>
 </p>
 
@@ -26,10 +25,9 @@
 | [Overview](overview.md) | High-level summary, key features, dependencies, and toolchain. |
 | [Getting Started](getting-started.md) | Environment prerequisites, installation steps, and run commands. |
 | [Platforms](platforms.md) | Container, Windows, Raspberry Pi, and Web build guides. |
-| [Camera Streaming](camera-streaming.md) | GStreamer WebRTC pipelines and Python inference demos. |
+| [Camera Streaming](camera-streaming.md) | GStreamer WebRTC pipelines and the Rust cat-detection producer. |
 | [Readmes](readmes.md) | Curated links to the key README files in this repository. |
-| [Project Operations](project-operations.md) | Tests, roadmap, contribution process, literature, and upgrade notes. |
-| [Roadmap](roadmap.md) | Planned milestones and implementation phases. |
+| [Project Operations](project-operations.md) | Tests, contribution process, repository hygiene, and upgrade notes. |
 | [Upgrade Guide](upgrade-guide.md) | Dependency and bridge update procedures. |
 
 Use the navigation above to jump directly to the section you need. Keep documentation updates in the same pull request as code changes when behavior or setup instructions change.

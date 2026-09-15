@@ -6,7 +6,7 @@ This documentation covers the full Kataglyphis stack: Flutter/Dart frontend, Rus
 
 - **New contributors:** [Getting Started](source/getting-started.md)
 - **Deployment targets:** [Platform Guides](source/platforms.md)
-- **Streaming + inference demos:** [Camera Streaming](source/camera-streaming.md)
+- **Streaming + inference pipelines:** [Camera Streaming](source/camera-streaming.md)
 - **README navigation:** [Readmes](source/readmes.md)
 - **Team workflows:** [Project Operations](source/project-operations.md)
 
@@ -17,10 +17,9 @@ This documentation covers the full Kataglyphis stack: Flutter/Dart frontend, Rus
 | [Overview](source/overview.md) | Architecture, repository layout, and key design goals. |
 | [Getting Started](source/getting-started.md) | Local setup, first run, and verification checks. |
 | [Platforms](source/platforms.md) | Linux, Windows, Android, Raspberry Pi, and Web instructions. |
-| [Camera Streaming](source/camera-streaming.md) | GStreamer WebRTC and Python inference pipelines. |
+| [Camera Streaming](source/camera-streaming.md) | GStreamer WebRTC pipelines and the Rust cat-detection producer. |
 | [Readmes](source/readmes.md) | Curated links to all relevant README entry points. |
 | [Project Operations](source/project-operations.md) | Build/test/doc workflows, release notes, and contribution flow. |
-| [Roadmap](source/roadmap.md) | Planned features and implementation phases. |
 | [Upgrade Guide](source/upgrade-guide.md) | Dependency and bridge upgrade procedures. |
 
 ## What This Project Delivers

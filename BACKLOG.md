@@ -73,8 +73,10 @@ here.
       are committed states at different times, so whoever runs last "wins" and
       the diff is pure noise. One of the two images has a different Dart SDK
       constraint; find which and align them.
-- [ ] `flutter pub get` reports 45 packages held back by dependency
-      constraints. Does not block a build today.
+- [ ] `flutter pub get` reports packages held back by dependency constraints.
+      Re-counted 2026-09-15 in `:latest-cross` (`flutter pub get --dry-run`):
+      **20**, not the 45 this row claimed when it was written. Does not block a
+      build today; re-count before acting on it, the number moves with the image.
 
 
 ## Open — verification gaps

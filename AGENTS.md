@@ -957,12 +957,12 @@ half-applying. Why any of it —
 
 ## 6. Docs owned by this repo
 
-- Guides live in `docs/source/` (MyST Markdown, Sphinx via `docs/make.bat` /
-  `Makefile`); Dart API docs via `dart doc`.
+- Guides live in `docs/source/` as plain Markdown, published through exactly one
+  builder: `scripts/linux/lib/generate-docs.sh`, whose `DARTDOC_BUILD_GUIDES` array
+  is the list of pages. There is no Sphinx site — the `sphinx-quickstart`
+  scaffolding was deleted on 2026-09-15, unused by every lane
+  ([`docs/source/project-operations.md`](docs/source/project-operations.md)
+  § *There is no Sphinx site here*).
 - [`docs/source/platforms.md`](docs/source/platforms.md) holds the full
   symptom→cause→fix table for containerized Windows builds.
-- `docs/source/conf.py` still uses the standalone `press` theme. The shared
-  Sphinx theme now lives in **DocumANTation** (ANTfrastructure consumes
-  it as a submodule and installs it as `sphinx-kataglyphis-theme`); follow that
-  pattern if migrating.
 - Update docs in the same PR as user-facing behaviour changes.

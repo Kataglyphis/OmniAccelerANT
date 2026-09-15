@@ -32,7 +32,6 @@ dartdoc:
     - docs/source/camera-streaming.md
     - docs/source/readmes.md
     - docs/source/project-operations.md
-    - docs/source/roadmap.md
     - docs/source/upgrade-guide.md
     - rust_builder/README.md
     - assets/documents/README.md

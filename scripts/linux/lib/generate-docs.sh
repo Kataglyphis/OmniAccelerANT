@@ -62,9 +62,11 @@ export DARTDOC_BUILD_PROJECT_ROOT
 DARTDOC_BUILD_CLEAN_CMD=(flutter clean)
 DARTDOC_BUILD_DOC_CMD=(dart doc)
 
-# The Sphinx press-theme override sheet, shared with the Sphinx site so both
-# render the same brand. Its first line is the marker upstream truncates a
-# previous append at, so a rebuild replaces rather than stacks.
+# The brand override sheet. Its name and its first line still say "Sphinx press
+# theme" because that first line is the marker upstream truncates a previous
+# append at, so a rebuild replaces rather than stacks -- renaming either would
+# make every rebuild stack instead. There is no Sphinx site any more; the
+# scaffolding was deleted on 2026-09-15 and this sheet has one consumer.
 DARTDOC_BUILD_THEME_CSS="${DARTDOC_BUILD_PROJECT_ROOT}/docs/source/_static/css/dartdoc-theme-overrides.css"
 DARTDOC_BUILD_IMAGES_DIR="${DARTDOC_BUILD_PROJECT_ROOT}/images"
 
@@ -85,7 +87,6 @@ DARTDOC_BUILD_GUIDES=(
 	"${DARTDOC_BUILD_PROJECT_ROOT}/docs/source/camera-streaming.md|camera-streaming|Camera Streaming"
 	"${DARTDOC_BUILD_PROJECT_ROOT}/docs/source/readmes.md|readmes|Readmes"
 	"${DARTDOC_BUILD_PROJECT_ROOT}/docs/source/project-operations.md|project-operations|Project Operations"
-	"${DARTDOC_BUILD_PROJECT_ROOT}/docs/source/roadmap.md|roadmap|Roadmap"
 	"${DARTDOC_BUILD_PROJECT_ROOT}/docs/source/upgrade-guide.md|upgrade-guide|Upgrade Guide"
 )
 
