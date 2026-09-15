@@ -98,18 +98,20 @@ USB cameras work with `--v4l2 /dev/videoX`. For a Pi's CSI camera use
 container route is:
 
 ```bash
-scripts/linux/cat-stream/run-producer-pi.sh --build   # first run builds the producer
-scripts/linux/cat-stream/serve.sh                     # :8444 TLS, proxies to :8443
+# The producer runner lives in OxidANT, which owns crates/cat_webrtc.
+third_party/OxidANT/scripts/linux/cat-stream/run-producer-pi.sh --build
+scripts/linux/cat-stream/serve.sh   # :8444 TLS, proxies to :8443
 ```
 
 **Why the Pi 5 needs a runner script.** The image ships upstream libcamera
 0.7.2 / libpisp 1.5, which cannot drive a Pi 5 on kernel 6.18: the kernel
 renamed the `rp1-cfe` media entities to underscores (`rp1-cfe-fe_image0`) and
 moved to the libpisp 1.7 uAPI, so the pipeline handler cannot acquire the CFE
-and the upstream IPA segfaults when isolation is forced. `run-producer-pi.sh`
-collects the host's Raspberry Pi OS libcamera stack (0.7.2+rpt, which matches
-the kernel) plus its library closure into `build/cat-stream/hostlibs`, mounts
-that ahead of the image's copy, grants the rootless container ACL access to
+and the upstream IPA segfaults when isolation is forced. OxidANT's
+`scripts/linux/cat-stream/run-producer-pi.sh` collects the host's Raspberry Pi
+OS libcamera stack (0.7.2+rpt, which matches the kernel) plus its library
+closure into OxidANT's own `build/cat-stream/hostlibs`, mounts that ahead of
+the image's copy, grants the rootless container ACL access to
 `/dev/{video,media,dma_heap}*`, and runs with `seccomp=unconfined` (the IPA
 proxy forks). GStreamer 1.29, `webrtcsink`, ONNX Runtime and the Rust binary
 still come from the image.
