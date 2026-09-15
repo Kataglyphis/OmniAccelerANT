@@ -19,4 +19,16 @@ source "${_run_lint_gates_dir}/lib/antfrastructure.sh"
 # shell gate today — 19 tracked *.sh, `-S error` clean. If a future Cargokit
 # bump breaks that, the fix is an upstream --exclude that takes a path prefix,
 # not a suppression here.
-antfrastructure_exec linux/scripts/run-lint-gates.sh "${KATAGLYPHIS_REPO_ROOT}" --exclude third_party "$@"
+#
+# --ratchets adds the eight measurement gates that take --root (code size,
+# complexity, dead functions, comment size, stdout returns, masked declarations,
+# trailing conditionals, the shellcheck warning ratchet) plus the doc-links gate
+# over this tree, reading freeze files from the repo root. It is ON because
+# those freeze files are seeded and committed (2026-09-15); upstream keeps the
+# flag opt-in only because a tree with no freeze files is red on its first run,
+# and that first report is what seeds them. The CI lane passes `ratchets: true`
+# for the same reason, and the two have to agree.
+antfrastructure_exec linux/scripts/run-lint-gates.sh "${KATAGLYPHIS_REPO_ROOT}" \
+  --exclude third_party \
+  --ratchets \
+  "$@"

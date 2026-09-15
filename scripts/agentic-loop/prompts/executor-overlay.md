@@ -29,7 +29,7 @@ host-native CMake here: the host's cmake is Strawberry Perl's 3.29.2 out of
   `doc/api/` are gitignored. If `git status` shows them, leave them alone.
 - **Deliberate traps — do not "fix" them:** committed generated code under
   `lib/src/rust/`; the `dbName` string in `lib/src/db/sqlite3_loader_web.dart`;
-  the four agreeing Android SDK pins; and the pieces AGENTS.md § 2 marks as
+  the four agreeing Android SDK pins; and the pieces AGENTS.md § 2 (What ANTfrastructure owns) marks as
   deliberately not reused.
 - **Read `AGENTS.md` before editing build scripts** — § 3 lists the traps that
   each cost at least one real run.

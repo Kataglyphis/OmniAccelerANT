@@ -87,7 +87,7 @@ with `pwsh -File third_party/ANTfrastructure/shared/config/Sync-SharedConfig.ps1
 -RepoRoot . -Write` (or `bash
 third_party/ANTfrastructure/shared/config/sync-shared-config.sh --repo-root .
 --write`) — no `-Ignore`: what this repo takes is declared in
-[`.antfrastructure-shared.manifest`](.antfrastructure-shared.manifest), three rows,
+[`.antfrastructure-shared.manifest`](../../.antfrastructure-shared.manifest), three rows,
 and the scripts refuse `-Ignore` while that file exists. cmake-format itself
 comes from `PATH` or a
 uv venv fed by ANTfrastructure's pinned
@@ -191,14 +191,14 @@ history rewrite to be worth doing: the 72 undeclared font faces, then
 
 ## Dependency upgrades, in detail
 
-AGENTS.md § 5 has the commands and the report-first rule. These are the
+AGENTS.md § 5 (Build, run, test) has the commands and the report-first rule. These are the
 behaviours that surprise people.
 
 **Why the container still downloads its own Node.** Renovate's `engines.node`
 range excludes the image's Node, so the bootstrap pulls a checksum-pinned one
 onto the `kataglyphis-renovate-cache` volume — the versions and the rationale
 are ANTfrastructure's:
-[`docs/dependency-updates.md`](third_party/ANTfrastructure/docs/dependency-updates.md).
+[`third_party/ANTfrastructure/docs/dependency-updates.md`](../../third_party/ANTfrastructure/docs/dependency-updates.md).
 
 **The runner passes `gh`'s token as `GITHUB_COM_TOKEN` when `gh` is
 authenticated.** Without it Renovate's GitHub API lookups are rate-limited and it
@@ -212,14 +212,14 @@ whose file patterns match this tree** (eight today), so `--managers` narrows the
 run rather than enabling it. `--apply` needs the git that *wrote* the working
 tree; the script sorts that out itself and refuses up front rather than
 half-applying. Why any of it —
-[`third_party/ANTfrastructure/docs/dependency-updates.md`](third_party/ANTfrastructure/docs/dependency-updates.md).
+[`third_party/ANTfrastructure/docs/dependency-updates.md`](../../third_party/ANTfrastructure/docs/dependency-updates.md).
 
 ## Troubleshooting
 
 ### The Linux lane, locally
 
 `scripts/windows/Invoke-LinuxLane.ps1` runs the same image, script and arguments
-as the Linux workflows; AGENTS.md § 5 holds the lane table and the rules. What
+as the Linux workflows; AGENTS.md § 5 (Build, run, test) holds the lane table and the rules. What
 follows is the evidence behind those rules — each cost at least one run to find,
 and each has a symptom that names something other than its cause.
 

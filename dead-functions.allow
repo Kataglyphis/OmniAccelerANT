@@ -1,0 +1,16 @@
+# Frozen 2026-09-15, the first run with `--ratchets` on: shell functions the
+# scanner sees no caller for. Two-way: a frozen function that gains a caller in
+# the corpus, or is deleted, is STALE and its line goes.
+# Format: <file>	<function>.
+#
+# codeql_analyze_java is CALLERLESS ON PURPOSE since 0364703 (2026-09-15).
+# codeql-android.sh stopped asking for a java/kotlin database because CodeQL's
+# Java extractor injects a Kotlin compiler plugin with a hard upper bound below
+# this repo's declared KGP, and against it the whole Gradle BUILD dies - not
+# just the scan (run 34870931651, task
+# :kataglyphis_native_inference:compileReleaseKotlin). The function is kept so
+# restoring the scan is one line in codeql-android.sh rather than a rewrite; the
+# comment at codeql-android.sh:10 names the dispatch site and the condition
+# (CodeQL's ceiling clearing 2.4.20) under which this row goes.
+
+scripts/linux/codeql/codeql-common.sh	codeql_analyze_java

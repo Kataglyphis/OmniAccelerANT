@@ -1,0 +1,33 @@
+# Frozen 2026-09-15, the first run with `--ratchets` on
+# (scripts/linux/run-lint-gates.sh, and `ratchets: true` on the CI lane).
+# The gate refuses NEW oversized comment blocks and GROWTH in a frozen one; a
+# block that shrinks under the limit means DELETING its line here, not editing
+# it. Format: <file>	<first line of the block>, which is why no line number
+# appears - a block must not re-flag because something above it moved.
+#
+# Nothing here is a TODO list. Thirteen blocks. Eleven predate the gate and each
+# records WHY the code is shaped as it is: which upstream function replaced a
+# local fork, which verdict was measured before a strictness switch was removed,
+# which failure a guard was written against. The two in
+# scripts/linux/lib/antfrastructure.sh are upstream's own template body plus the
+# header saying this copy is body-mode - edit the body and the shared-config
+# drift gate turns DRIFTED, so the warning has to sit in the file.
+#
+# This repo DOES have a docs/ tree, and moving any of these into it is a real
+# option - but it would put the explanation a click away from the twenty lines
+# it explains. Do it when a block starts describing a PROCESS rather than the
+# code beneath it, not to satisfy a line count.
+
+scripts/agentic-loop/Run-AgenticLoop.sh	# ──────────────────────────────────────────────────────────
+scripts/linux/cat-stream/serve.sh	#!/usr/bin/env bash
+scripts/linux/ci/ci-container-run-android.sh	# Container-only preparation. None of this exists on a devel
+scripts/linux/codeql/codeql-android.sh	# NO --language=java / --language=kotlin, and therefore no c
+scripts/linux/lib/antfrastructure.sh	# Replace this process with a ANTfrastructure driver, forwar
+scripts/linux/lib/antfrastructure.sh	#!/usr/bin/env bash
+scripts/linux/lib/container-steps.sh	# Bare call, and no `|| return 1`: upstream's bootstrap has
+scripts/linux/lib/container-steps.sh	# CMake format gate for the hand-maintained native build fil
+scripts/linux/lib/container-steps.sh	# cmake-format from PATH if the image ships it, else a uv ve
+scripts/linux/lib/container-steps.sh	# run_check_cmd IS GONE (2026-09-09). It was:
+scripts/linux/package-linux.sh	# The verdict, once. Every branch of the tail this replaces
+scripts/linux/renovate-local.sh	# Dependency upgrades for this repo, driven by Renovate run
+scripts/linux/run-lint-gates.sh	# WHY --exclude third_party AND NOT rust_builder, although e
