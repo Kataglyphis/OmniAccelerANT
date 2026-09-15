@@ -41,8 +41,11 @@ burned into the RGBA frames → `webrtcsink` with its own signalling server.
 `scripts/linux/cat-stream/serve.sh` puts HTTPS + COOP/COEP + a `/webrtc-ws`
 proxy in front of it, so one build works on localhost, a LAN IP or a
 Raspberry Pi; on a Pi 5 CSI camera the producer half is **OxidANT's**
-`third_party/OxidANT/scripts/linux/cat-stream/run-producer-pi.sh` (see § 2's
-glue list). Runbook: README § *Live cat detection stream*.
+`third_party/OxidANT/scripts/linux/cat-stream/run-producer-pi.sh`, a Pi Zero
+2 W runs the image with the same host-libcamera swap plus a `gst-launch` no-AI
+pipeline (the Rust producer does not fit 512 MB), and a RISC-V SoC runs the
+riscv64 variant natively with a USB webcam (`--v4l2`) — see § 2's glue list.
+Runbook: README § *Live cat detection stream*.
 
 **`cat_webrtc` is this app's only WebRTC producer.** AccelerANTgine carries a
 second, unrelated one — `Src/webrtc_streamer.{ixx,cpp}`, reached only through
@@ -102,6 +105,8 @@ Two upstream facts repeated here only because they bite before you reach a doc:
 - `scripts/linux/cat-stream/serve.sh` — serves the web build over TLS with the
   Stream page's COOP/COEP headers and proxies `/webrtc-ws` to the cat producer.
   No container involved; it is the deployment half of the demo.
+  `--producer-host`/`--producer-port` front a producer on another board and
+  `--state-dir` keeps concurrent instances apart.
 - `third_party/OxidANT/scripts/linux/cat-stream/run-producer-pi.sh` — **not in
   this repo.** It moved to OxidANT under decision D12, which owns the
   `cat_webrtc` crate it builds and starts; this repo keeps the pointer, not a
@@ -111,6 +116,12 @@ Two upstream facts repeated here only because they bite before you reach a doc:
   entity rename + libpisp 1.7). `--build` builds the producer first;
   `--libs-only` refreshes the cached library closure. `serve.sh` above is the
   half that stays here, because the Flutter web build is this repo's.
+- `scripts/linux/cat-stream/package-producer-bundle.sh` — container-less
+  fallback for boards that cannot run the image comfortably (Pi Zero 2 W):
+  exports the producer, a pruned GStreamer subset, the image's glibc (invoked
+  through the bundled loader) and the library closure into
+  `build/cat-stream/pi-bundle/` (~180 MB, aarch64). The target only needs
+  libcamera installed; `--deploy HOST` rsyncs it there.
 
 **Deliberately not reused.** Two upstream Windows pieces were evaluated and
 rejected — `WindowsAppRunner.Common` (its executable probe would launch the
@@ -420,6 +431,31 @@ written out rather than linked.
   (`lib/settings/webrtc_settings.dart`); absolute `ws(s)://` URLs pass through
   untouched, as does everything on native, where the value is unused
   (`WebRTCView` is web-only).
+- **A Pi Zero 2 W runs the image, but only with the host libcamera stack.**
+  The image's upstream libcamera cannot drive the Zero's imx708 via `rpi/vc4`
+  either: its isolated IPA process worker dies on start (`Failed to call
+  start: -110`, then the socket is unreachable), while the host's rpt build
+  uses the threaded proxy and works. The Zero also cannot build or run the
+  Rust producer comfortably (512 MB), so the bring-up is the container +
+  hostlibs mount + a `gst-launch` pipeline, exactly like the Pi 5's swap. Two
+  traps: the image's `entrypoint.sh` sources `libcamera-env.sh`, which
+  re-prepends `/opt/libcamera/lib` and silently overrides any
+  `LD_LIBRARY_PATH` handed to `nerdctl run` (bypass it with `--entrypoint` —
+  the Pi 5 runner does the same by exec'ing the binary directly); and
+  gst-launch's `webrtcsink` `meta` must be a space-free structure
+  (`meta="meta,name=Zero-Cat-Cam"`; a name with spaces fails to parse).
+- **A RISC-V board runs the same image, but the host has opinions.** The
+  SpacemiT X100 runs the riscv64 variant of `:latest-cross` natively (the
+  producer builds in the container in minutes); a USB webcam needs `--v4l2`,
+  an ACL on the camera node (it is `root:video 660` and the user is normally
+  not in `video`) and UFW rules for `8443/tcp` plus the WebRTC UDP range
+  (`32768:60999/udp`). `serve.sh --producer-host` must be given the board's
+  **IP, not its mDNS name**: nginx resolves `proxy_pass` hostnames once at
+  startup, so a DHCP or mDNS address change leaves it answering `101` while
+  nothing ever reaches the producer. Each `serve.sh` instance also needs its
+  own port opened on the **dev host** — a second board's page stays
+  unreachable while the first board's still works, which reads like a
+  producer fault but is a missing `ufw allow 8446/tcp`.
 - **The frb Dart bindings must match the Rust runtime's frb version.** They
   were stale at 2.12.0 against 2.13.0 and the web build died with an empty
   `Uncaught` before `pkg/oxidant.js` loaded. Regenerate both sides together:
