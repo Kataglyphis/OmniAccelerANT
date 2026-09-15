@@ -5,8 +5,12 @@ set -euo pipefail
 # Unterstützte Formate: tar, deb, flatpak, appimage
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "$SCRIPT_DIR/cli-common.sh"
-source "$SCRIPT_DIR/packaging-common.sh"
+# This driver sits in scripts/linux/ because it is an executable, not a
+# library; lib/ holds only sourced files. Hence the lib/ prefix below.
+# shellcheck source=scripts/linux/lib/cli-common.sh
+source "$SCRIPT_DIR/lib/cli-common.sh"
+# shellcheck source=scripts/linux/lib/packaging-common.sh
+source "$SCRIPT_DIR/lib/packaging-common.sh"
 
 # gate_reset / run_gate / gate_skip / assert_gates — the fleet's "run every
 # gate, then fail once" accumulator. packaging-common.sh has already sourced
@@ -31,7 +35,7 @@ fi
 usage() {
 	cat <<'EOF'
 Usage:
-	bash scripts/linux/lib/package-linux.sh [options]
+	bash scripts/linux/package-linux.sh [options]
 
 Options:
 	-a, --arch <x64|arm64>   Zielarchitektur (default: auto-detect)

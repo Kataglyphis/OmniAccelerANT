@@ -53,7 +53,7 @@ flutter test integration_test/simple_test.dart
 Generate docs:
 
 ```bash
-bash scripts/linux/lib/generate-docs.sh
+bash scripts/linux/generate-docs.sh
 ```
 
 Preview docs:
@@ -65,7 +65,7 @@ dhttpd --path doc/api --host 127.0.0.1 --port 8080
 ### There is no Sphinx site here
 
 `docs/source/` is Markdown source for exactly one consumer: the `dart doc` site
-that `scripts/linux/lib/generate-docs.sh` builds, which stages each guide listed in
+that `scripts/linux/generate-docs.sh` builds, which stages each guide listed in
 that script's `DARTDOC_BUILD_GUIDES` array. The `docs/Makefile`, `docs/make.bat`,
 `docs/source/conf.py` and `docs/source/index.rst` that used to sit beside it were
 scaffolding from `sphinx-quickstart` that no lane, workflow or script ever

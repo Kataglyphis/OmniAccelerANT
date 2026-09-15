@@ -958,7 +958,7 @@ half-applying. Why any of it —
 ## 6. Docs owned by this repo
 
 - Guides live in `docs/source/` as plain Markdown, published through exactly one
-  builder: `scripts/linux/lib/generate-docs.sh`, whose `DARTDOC_BUILD_GUIDES` array
+  builder: `scripts/linux/generate-docs.sh`, whose `DARTDOC_BUILD_GUIDES` array
   is the list of pages. There is no Sphinx site — the `sphinx-quickstart`
   scaffolding was deleted on 2026-09-15, unused by every lane
   ([`docs/source/project-operations.md`](docs/source/project-operations.md)

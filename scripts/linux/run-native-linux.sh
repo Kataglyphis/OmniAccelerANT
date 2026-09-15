@@ -132,7 +132,7 @@ if [[ "$RUN_PACKAGING" -eq 1 && "$BUILD_MODE" == "release" ]]; then
   if maybe_truthy "$STRICT_CHECKS"; then
     _strict_package_arg+=(--strict)
   fi
-  bash scripts/linux/lib/package-linux.sh --arch "$MATRIX_ARCH" --app-name "$APP_NAME" --formats "$PACKAGE_FORMATS" "${_strict_package_arg[@]}"
+  bash scripts/linux/package-linux.sh --arch "$MATRIX_ARCH" --app-name "$APP_NAME" --formats "$PACKAGE_FORMATS" "${_strict_package_arg[@]}"
 elif [[ "$RUN_PACKAGING" -eq 1 ]]; then
   echo "Info: packaging skipped because --build-mode is '$BUILD_MODE' (packaging is release-only)."
 else
@@ -143,7 +143,7 @@ fi
 case "${RUN_DOCS,,}" in
   1|true|yes|y|on)
     if [[ "$MATRIX_ARCH" == "x64" ]]; then
-      bash scripts/linux/lib/generate-docs.sh
+      bash scripts/linux/generate-docs.sh
     else
       echo "Info: docs generation is only enabled on x64; skipping for arch '$MATRIX_ARCH'."
     fi
