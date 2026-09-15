@@ -44,6 +44,15 @@ Raspberry Pi; on a Pi 5 CSI camera,
 `scripts/linux/cat-stream/run-producer-pi.sh` is the producer half (see § 2's
 glue list). Runbook: README § *Live cat detection stream*.
 
+**`cat_webrtc` is this app's only WebRTC producer.** AccelerANTgine carries a
+second, unrelated one — `Src/webrtc_streamer.{ixx,cpp}`, reached only through
+`cli_main.cpp`'s `--webrtc` flag, with its own GStreamer signalling on
+`ws://127.0.0.1:8443`. It compiles into the `AccelerANTgine` shared library that
+`packages/kataglyphis_native_inference` links, but nothing in this app calls it:
+the plugin's own sources do not mention WebRTC at all, and the Stream page's
+stream comes from the Rust crate. Two producers, one repo apart; do not wire
+them together expecting a shared signalling path.
+
 ## 2. What ANTfrastructure owns — links only
 
 **Do not restate these procedures here.** Start at

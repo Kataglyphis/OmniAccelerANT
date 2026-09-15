@@ -48,8 +48,18 @@ jobs:
           fetch-depth: 1
 
       # The PowerShell twin of the bash `shared-config drift` gate that
-      # scripts/linux/run-lint-gates.sh runs, kept so both halves are exercised.
-      # The asset set comes from .antfrastructure-shared.manifest.
+      # scripts/linux/run-lint-gates.sh runs (see that script's header), kept so
+      # both halves are exercised and are required to agree.
+      #
+      # The asset set comes from .antfrastructure-shared.manifest, three rows:
+      # cmake-format, antfrastructure-sh, resolve-build-module. There is no
+      # -Ignore here and there must not be: the four names it used to carry
+      # (.clang-format, .clang-tidy, gcovr.cfg, .pre-commit-config.yaml) were
+      # never TAKEN by this repo in the first place - a Flutter app with no
+      # hand-written CMakeLists.txt, no C++ and no Dart pre-commit hooks - so
+      # they are absent, not drifted, and ignoring them only hid whether the
+      # three real assets still matched. Sync-SharedConfig.ps1 refuses -Ignore
+      # while the manifest exists, which is why the step was silently red.
       - name: Shared tool config matches ANTfrastructure (Sync-SharedConfig -Check)
         run: >-
           pwsh -File third_party/ANTfrastructure/shared/config/Sync-SharedConfig.ps1
