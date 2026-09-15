@@ -21,6 +21,7 @@ dependencies:
     sdk: flutter
   anthology:
     path: third_party/ANThology
+    version: 2.0.0
   kataglyphis_native_inference:
     path: packages/kataglyphis_native_inference
   # The following adds the Cupertino Icons font to your application.
