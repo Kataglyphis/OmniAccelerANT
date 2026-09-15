@@ -18,9 +18,25 @@ dart analyze
 dart format --output=none --set-exit-if-changed $(git ls-files '*.dart')
 ```
 
-Never `dart format .`: it walks `flutter/`, `third_party/` and `build/`, which
-`dart format` cannot be told to skip — it ignores `analysis_options.yaml`. Both
-lanes list tracked files instead, which is what the command above reproduces.
+**Never `dart format .`.** It ignores `analysis_options.yaml` entirely, so the
+recursive walk reaches `flutter/`, `third_party/` and `build/` — directories
+`dart format` cannot be told to skip. It is not theoretical: back when the lanes
+installed the Flutter SDK *inside* the mounted workspace, run 33810449411
+(2026-09-03) reported `Formatted 7404 files (627 changed)` with 604 of them
+under `flutter/`. That alone fails `--set-exit-if-changed`, and it rewrote the
+SDK on disk on the way.
+
+Both lanes list tracked files instead — `code_quality_find_dart_files` on Linux,
+`Get-ProjectDartFiles` on Windows, the same 60 files — which is what the command
+above reproduces. Keep the tracked-file listing even now that the SDK comes from
+`/opt/flutter` in the image: a stray `flutter/` from an older run is git-ignored
+and still on disk, and `third_party/` and `build/` would be walked regardless.
+
+`dart analyze` is **not** affected and never was: it honours the
+`analyzer.exclude` list in `analysis_options.yaml`, which already names
+`flutter/**`, `third_party/**` and `rust_builder/**`. `dart format` ignores that
+file entirely — which is the whole reason the file list has to be built outside
+it, and why the two helpers use exactly those three exclusions.
 
 ### Lint gates (shell, workflows, secrets)
 
@@ -40,6 +56,50 @@ The shared-config drift check is one of that command's gates, not a separate
 step: `bash scripts/linux/run-lint-gates.sh` runs it. The workflow's `pwsh`
 `Sync-SharedConfig.ps1 -Check` step is the PowerShell twin of the same gate,
 kept so both halves stay exercised and are required to agree.
+
+### The CMake format gate
+
+The gate is **fatal** in the native-Linux lane and the Android lane, and
+`run_cmake_format_check` takes no arguments at all: it used to accept a
+strictness flag and ignore its own verdict when that flag was false, so it now
+errors (exit 2) if handed one rather than letting a stale caller pass silently.
+That is safe for a measured reason, not an optimistic one — the gate's 13 files
+are already clean and the native-Linux lane has passed `--strict-checks true`
+since fc8b65c, so the Android lane can only catch drift that already blocks the
+merge on the other lane. The web lane builds no native CMake code and does not
+run it.
+
+**The CMake format gate covers hand-maintained CMake only — 13 files today.**
+Both lanes build the same list (`run_cmake_format_check` in
+`scripts/linux/lib/container-steps.sh`; the `CMake Format Verification` step in
+`Build-Windows.ps1`) and both exclude, each verified generated or vendored:
+`third_party/` and `build/`; `*/flutter/CMakeLists.txt` (header: "It should not
+be edited"); `*/generated_plugins.cmake` ("Generated file, do not edit");
+`*/ephemeral/` (rewritten on every `pub get`); `*/.cxx/` (Android Gradle's CMake
+build trees); `*/.plugin_symlinks/` (pub's junction farm);
+`rust_builder/cargokit/` (vendored — its README opens with "copied from
+Cargokit"); `.venv/` (created by the gate's own bootstrap). Do not widen the
+gate onto any of those: it would fight the generator or upstream.
+
+`.cmake-format.yaml` at the root is the consumer copy of ANTfrastructure's
+canonical config — `shared/config/README.md` owns why it is a copy. Refresh it
+with `pwsh -File third_party/ANTfrastructure/shared/config/Sync-SharedConfig.ps1
+-RepoRoot . -Write` (or `bash
+third_party/ANTfrastructure/shared/config/sync-shared-config.sh --repo-root .
+--write`) — no `-Ignore`: what this repo takes is declared in
+[`.antfrastructure-shared.manifest`](.antfrastructure-shared.manifest), three rows,
+and the scripts refuse `-Ignore` while that file exists. cmake-format itself
+comes from `PATH` or a
+uv venv fed by ANTfrastructure's pinned
+`third_party/ANTfrastructure/linux/scripts/cmake-format.requirements.txt` — there
+is no root `requirements.txt` (`pyyaml` sits in that pinned set because
+cmake-format cannot read its own YAML config without it). Both bootstraps read
+that one file: `run_cmake_format_check` in
+`scripts/linux/lib/container-steps.sh` and the "CMake Format Verification" step
+in `scripts/windows/Build-Windows.ps1`. The config's
+`line_ending: unix` is why `.gitattributes` pins `CMakeLists.txt` and `*.cmake`
+to LF — a `core.autocrlf=true` checkout would otherwise fail `--check` on every
+file.
 
 ### Tests
 
@@ -129,7 +189,148 @@ history rewrite to be worth doing: the 72 undeclared font faces, then
 - Regenerate bridge code when Rust API signatures change.
 - Update docs in the same pull request for any user-facing behavior changes.
 
+## Dependency upgrades, in detail
+
+AGENTS.md § 5 has the commands and the report-first rule. These are the
+behaviours that surprise people.
+
+**Why the container still downloads its own Node.** Renovate's `engines.node`
+range excludes the image's Node, so the bootstrap pulls a checksum-pinned one
+onto the `kataglyphis-renovate-cache` volume — the versions and the rationale
+are ANTfrastructure's:
+[`docs/dependency-updates.md`](third_party/ANTfrastructure/docs/dependency-updates.md).
+
+**The runner passes `gh`'s token as `GITHUB_COM_TOKEN` when `gh` is
+authenticated.** Without it Renovate's GitHub API lookups are rate-limited and it
+can report stale GitHub Actions as up to date — DocumANTation's action majors
+were invisible until a token was supplied.
+
+Renovate is a local CLI and only **detects** — `--platform=local` cannot write —
+so the `--apply` half is this repo's own code: git for gitlinks and a located
+line rewrite for the manifests it reported. Managers default to **every manager
+whose file patterns match this tree** (eight today), so `--managers` narrows the
+run rather than enabling it. `--apply` needs the git that *wrote* the working
+tree; the script sorts that out itself and refuses up front rather than
+half-applying. Why any of it —
+[`third_party/ANTfrastructure/docs/dependency-updates.md`](third_party/ANTfrastructure/docs/dependency-updates.md).
+
 ## Troubleshooting
+
+### The Linux lane, locally
+
+`scripts/windows/Invoke-LinuxLane.ps1` runs the same image, script and arguments
+as the Linux workflows; AGENTS.md § 5 holds the lane table and the rules. What
+follows is the evidence behind those rules — each cost at least one run to find,
+and each has a symptom that names something other than its cause.
+
+**arm64 locally needs QEMU registered once per VM boot.** Rancher's VM starts
+with no emulators at all — `binfmt` reports `"emulators": null` and only
+`linux/amd64` variants under `supported`, so an arm64 container would run
+x86-64 binaries and die exactly as CI did before the image went multi-arch
+(`rustc: 1: ELF: not found`). Register it with:
+
+```powershell
+nerdctl run --rm --privileged tonistiigi/binfmt --install arm64
+nerdctl run --rm --privileged tonistiigi/binfmt          # verify: qemu-aarch64 listed
+nerdctl run --rm --platform linux/arm64 alpine uname -m  # verify: aarch64
+```
+
+Like the `D:` mount in containerd's namespace, this does not survive a VM
+restart. The arm64 layers are a separate pull — about 6 GB over the wire, 30 GB
+on disk next to the amd64 copy (`nerdctl pull --platform linux/arm64 …`) — and
+every compile then runs under emulation, so expect it to be far slower than the
+native x64 lane.
+
+**Emulated arm64 produces tar and deb, never flatpak or AppImage.** Both fail
+inside `qemu-user`, for reasons that have nothing to do with this repo or the
+image, and both were verified 2026-09-05 after a full arm64 build that compiled
+Rust and C++ without a single error:
+
+- `bwrap: Creating new namespace failed, likely because the kernel does not
+  support user namespaces` — the kernel does support them
+  (`/proc/sys/user/max_user_namespaces` is 123100) and `--privileged` is passed;
+  qemu-user simply does not carry `unshare(CLONE_NEWUSER)` through, and
+  flatpak-builder sandboxes every module with bubblewrap.
+- `/usr/local/bin/appimagetool: cannot execute binary file: Exec format error` —
+  the binary is the correct architecture (`ELF aarch64, static-pie linked`);
+  qemu-user cannot load static-PIE executables.
+
+CI is unaffected: its arm64 row runs on a real `ubuntu-26.04-arm` runner, so
+neither restriction applies. Locally, treat a failing flatpak/AppImage step on
+arm64 as expected and check the two messages above before investigating.
+
+**`error: fchmod` after `Pruning cache` is not the prune.** That combination cost
+hours. `Pruning cache` is merely flatpak-builder's *last* output line; it exits
+0. The error underneath came from `flatpak build-bundle`, which chmods the file
+it writes — and that file was `out/…flatpak`, on the host mount. The bundle is
+now written under `/tmp/flatpak-work` and copied out afterwards. `set -x` around
+the function answered this in one run, after three rounds of eliminating
+plausible-looking causes had only moved the symptom.
+
+The step also does **not** gate on flatpak-builder's exit code any more. It asks
+`ostree --repo=<repo> refs` whether the app is committed, because the export can
+be complete while a later stage fails. The exit code is reported in the warning,
+never used as the verdict.
+
+All four formats build locally on x64: tar, deb, flatpak and AppImage. The
+appimagetool mode-711 problem that used to break the last one is fixed in the
+image.
+
+**`-v name:/path` is not a named volume on Windows nerdctl.** It is a bind of
+`$PWD/name`, created silently, and `nerdctl volume create` beforehand changes
+nothing — the volume is made and never mounted. Proof: after five lane runs,
+`%TEMP%` held `kataglyphis-lane-native-x64-workspace-build/` and four siblings,
+729 MB each, while the volume of that name mounted through
+`--mount type=volume,…` was empty. One run started from the repo root even left
+a 151 MB directory of that name *in the checkout*. So the whole point of the
+volumes — keeping the write-heavy build tree off drvfs — was never in effect
+locally, and the failures it prevents were only avoided because the packaging
+steps had already been moved to `/tmp`. `Invoke-LinuxLane.ps1` now always uses
+`--mount type=volume,source=…,target=…`, which nerdctl cannot reinterpret as a
+path. CI is unaffected: there the Linux engine resolves the short form
+correctly.
+
+`flutter clean` then logs `Failed to remove /workspace/build … Device or
+resource busy (errno 16)` on every run and keeps going: it empties the
+directory but cannot unlink the mount point itself. Cosmetic, and the direct
+consequence of mounting `build/` — not a failure to chase.
+
+There is no separate host-side driver any more. The legacy
+`ci-dart-on-native-linux.sh` / `ci-dart-build-android-app.sh` pair and their
+`ci-common.sh` were removed on 2026-09-04: no workflow ever referenced them,
+they carried a third copy of the CodeQL logic, and they re-implemented what CI
+actually runs instead of invoking it. Use `Invoke-LinuxLane.ps1` (§ 5), which
+runs the very script CI runs.
+
+**Flutter comes from the image, and this repo does not have an opinion about
+
+Why it went: the lanes were re-running ANTfrastructure's `setup-flutter.sh` at
+*run* time. That script is a build-stage script — its last step strips
+`bin/cache` on purpose — so every Android run re-extracted Flutter over the
+image's copy and then re-downloaded the 227 MB Dart SDK it had just deleted.
+Upstream now returns early when the requested version is already bootstrapped,
+and this repo no longer calls it at all.
+
+That flip is safe for a measured reason, not an optimistic one: the gate's 13 files
+are already clean under this repo's `.cmake-format.yaml`, and the native-Linux lane
+has passed `--strict-checks true` since fc8b65c — so any drift the Android lane now
+catches is drift that already blocks the merge on the other lane. Wrap the call in
+`run_gate` when you want the batch to decide, rather than reaching for a flag.
+
+
+`--flutter-dir` only says *where* to look; it defaults to `/opt/flutter`. There
+is no `--install-flutter` and no `--flutter-version` — see *Flutter comes from
+the image* below.
+
+which version.** It used to: three lanes resolved `FLUTTER_VERSION` and
+`FLUTTER_SDK_SHA256` out of ANTfrastructure's `versions.env`, exported the sha, and
+handed both to an installer. That machinery is gone — `resolve_flutter_pin`,
+`setup_flutter_sdk`, `install-flutter.sh` and the `--flutter-version` /
+`--install-flutter` flags with it. `assert_flutter_available` replaces all of
+it: it fails if `--flutter-dir` holds no `bin/flutter`, and otherwise reports
+the `frameworkVersion` it found and moves on.
+
+To change the Flutter version, change the image.
 
 ### flutter_rust_bridge Version Mismatch
 
