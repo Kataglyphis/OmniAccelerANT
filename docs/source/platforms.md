@@ -214,3 +214,263 @@ flutter run \
   --web-header=Cross-Origin-Opener-Policy=same-origin \
   --web-header=Cross-Origin-Embedder-Policy=require-corp
 ```
+
+## Image gaps and image-tag history
+
+Both entries below are **fixed**. They are kept because each cost at least one
+CI run to diagnose and each reappears looking like broken code rather than like
+a broken image — if a symptom comes back, it is an image regression, and the
+answer is to fix the image, not to restore the workaround. AGENTS.md § 4 carries
+the one-line version of each.
+
+- **Six image gaps this repo used to work around are fixed in the image
+  (2026-09-05); do not reintroduce the workarounds.** Each cost at least one run
+  to diagnose, so the symptoms stay written down — if one reappears it is an
+  image regression, not something to patch around again.
+  `/opt/flutter/packages/flutter_tools/.dart_tool` was root-owned inside a
+  **read-only overlay layer**, which a non-owner can neither empty nor rename
+  (both were tried and refused); `flutter pub get` died with
+  `package_config.json (OS Error: Permission denied, errno = 13)` and only a
+  `--tmpfs …:rw,mode=1777` mount could mask it. `/opt/android-sdk` was fully
+  populated but neither `ANDROID_HOME` nor `ANDROID_SDK_ROOT` was in the image
+  ENV, so `flutter build apk` stopped with `[!] No Android SDK found` — and
+  because CodeQL wraps the build in `database create --command=…`, that
+  surfaced three steps later as `needs to be finalized`. `SCCACHE_DIR` and
+  `CCACHE_DIR` pointed into the mounted checkout, which pollutes the tree and
+  on a bind-mounted host drive simply fails (`Can't initialize ccache use:
+  Failed to set permissions`). `RUSTUP_HOME` and `CARGO_HOME` were `root:root`
+  against a uid-1001 container (`could not create temp file …: Permission
+  denied`; a hardlink copy is not a fix either — `protected_hardlinks` refuses
+  root-owned files, and the `cp -a` fallback nests the tree so Corrosion reads
+  an empty `rustc --version` and fails with `invalid value '' for
+  '--toolchain'`). The `:latest-cross` tag was single-platform (own entry
+  below), and there was no Java SDK. What remains is
+  `setup_compiler_cache`, which now only calls ANTfrastructure's `setup_sccache`:
+  that points `RUSTC_WRAPPER` and both CMake compiler launchers at the
+  **guarded** `sccache-launcher.sh`, which survives sccache's own fatal errors
+  when a CMake `TryCompile` deletes the scratch directory under it.
+
+- **A single-arch image tag looks exactly like broken code.** Until 2026-09-04
+  `ghcr.io/kataglyphis/kataglyphis_beschleuniger:latest-cross` was an amd64-only
+  tag, so both matrix rows pulled the same digest and the arm64 row ran x86-64
+  binaries on an `ubuntu-26.04-arm` runner:
+  `` /usr/local/cargo/bin/rustc: 1: ELF: not found `` plus a corrosion
+  `FindRust.cmake` error. Nothing in this repo could work around it. The tag is
+  now a proper OCI index (amd64, arm64, riscv64) and the symptom is gone —
+  verified by the pulled digest matching the registry's index digest, and by
+  both rows failing identically afterwards instead of differently.
+  Two things that survive from that hunt: `fail-fast: false` stays on the
+  matrix, because the failing arm64 row used to cancel x64 before it finished
+  and hid whether the healthy lane was green; and a `Failed to pull` line in a
+  log is usually GitHub **echoing the retry script's source**, not running it —
+  it cost hours of chasing a pull that had in fact succeeded.
+
+## Windows build-step traps and MSIX packaging
+
+The rules these came from are in AGENTS.md § 5; the evidence is here.
+
+`-SkipMsixPackaging` alone is exactly what the workflow passes; adding
+`-Configurations` is a deliberate deviation, not the parity run. Verified
+2026-09-06: 22/22 steps, process exit 0, `omni_accelerant.exe` and
+`oxidant.dll` under
+`build\windows\x64\runner\x64-ClangCL-Windows-Release\`, `AccelerANTgine.dll`
+under `build\windows\x64\bin\`. That directory is never cleaned, so the
+pre-rename `kataglyphis_inference_engine.exe`,
+`kataglyphis_rustprojecttemplate.dll` and `CppInference.dll` still sit beside
+them — compare timestamps, not presence, when checking a rename.
+
+The Windows engine is Stevedore's, **not** Rancher Desktop's — Rancher only
+serves Linux containers, and its `docker`/`nerdctl` shims are first on `PATH`,
+so the full path above is load-bearing. **Run it in the container, not on the
+host.** The host's `cmake` is Strawberry Perl's 3.29.2 out of
+`C:\Strawberry\c\bin`, which shadows anything newer and fails
+`cmake_minimum_required(VERSION 3.31.6)` at configure; the image carries 4.4.0.
+
+Two Windows-specific traps these steps carry:
+
+- The format gate formats `lib test integration_test test_driver`, **not `.`**:
+  `dart format .` recurses into `.git`, and the deeply nested vendored submodule
+  gitdir exceeds Windows MAX_PATH, so the listing throws and the gate crashes
+  before formatting anything.
+- Docs generation does **not** use the SDK-bundled `dart doc`. The dartdoc 9.0.4
+  in the current image crashes on *any* Flutter app — a `_stripDocImports`
+  RangeError while precaching the Flutter SDK's own `@docImport` comments
+  (reproduced with a bare `flutter create`). The step `pub global activate
+  dartdoc` (≥ 9.0.9, which fixes it) and runs that. This is really an image bug;
+  ANTfrastructure should ship a newer dartdoc.
+
+**MSIX packaging.** `msix_config.build_windows` is `false` on purpose: this
+script owns the build, and a second `flutter build windows` driven by msix
+would only re-run — with a different generator — what the presets already
+produced. (Until 2026-09-06 it also tripped over a `CMakeCache.txt` synced back
+from the container-local build root — *"the current CMakeCache.txt directory …
+is different than the directory … where it was created"*. ANTfrastructure's
+`Sync-FastLocalArtifactsToHost` now excludes `CMakeCache.txt` and `CMakeFiles`
+from the sync-back, so the host tree gets artifacts, not CMake state.) The
+**MSIX Compatibility Layout** step exists because msix looks for
+`build\windows\x64\runner\Release\`, while the build installs to
+`runner\<preset>\`; it copies the preset's output into that flat `Release\`.
+Both halves were broken until 2026-09-03 and nobody noticed, because CI passes
+`-SkipMsixPackaging` — packaging is only exercised locally.
+
+## The Windows CI lane and the `$GIT_DIR` limit
+
+**The CI lane** ([`dart_on_native_windows.yml`](.github/workflows/dart_on_native_windows.yml))
+is four ANTfrastructure actions and nothing hand-rolled:
+`prepare-windows-container-host` (long paths, short-path clone, data-root move,
+disk check, GHCR login, pull), `run-in-windows-container`,
+`actions/upload-artifact` and `upload-codeql-sarif`. Three consequences:
+
+- It prunes `third_party/DocumANTation` from the recursive checkout.
+  This repo's chains are OmniAccelerANT → AccelerANTgine → ANTfrastructure →
+  DocumANTation → md2pdfLib → `third_party/{smile,awesome-beamer}` and the same
+  tail via OxidANT, and every level adds another
+  `.git/modules/<name>/` segment until git aborts with `fatal: '$GIT_DIR' too
+  big` — git's own limit, not MAX_PATH, so no clone root is short enough.
+
+  **Resolved on 2026-09-05.** Measured by the `gitdir:` string each gitfile
+  carries, at each step of the way:
+
+  | chain | before | after md2pdfLib | after ANTfrastructure |
+  | --- | --- | --- | --- |
+  | `ANTfrastructure` directly | 180 ok | 158 ok | 149 ok |
+  | via `AccelerANTgine` | 230 **fatal** | 208 ok | 199 ok |
+  | via `OxidANT` | 238 **fatal** | 216 **fatal** | 207 ok |
+
+  Two directory renames did it, neither of them a repository rename:
+  `md2pdfLib/presentation/template/latex/` → `md2pdfLib/third_party/` inside
+  DocumANTation, and `external/Kataglyphis-DocumANTation` →
+  `third_party/DocumANTation` inside ANTfrastructure. Each saved segment counts
+  **twice**, once in the worktree path and once in the `gitdir` string, which is
+  why 25 characters behaved like 50. The threshold sits between 208 and 216.
+
+  Renaming the repositories on GitHub did **not** help here and was not meant
+  to: a submodule's directory comes from its `path` entry, not from the repo
+  name. DocumANTation is ANTfrastructure's LaTeX tooling and the Windows build
+  never reads it.
+
+  The numbers above were measured before `ExternalLib/` became `third_party/`.
+  That move shortens the chain further, but **only in a fresh clone**: git names
+  `.git/modules/<name>` after the `[submodule "<name>"]` header, and it keeps an
+  existing module directory when a submodule is moved in place. So `.gitmodules`
+  here reads `third_party/OxidANT` while this checkout's gitfile still says
+  `gitdir: ../../.git/modules/ExternalLib/Kataglyphis-RustProjectTemplate` — 23
+  characters that CI, which always clones fresh, does not pay. Reproduce with
+  `cat third_party/*/.git`. A local checkout is therefore the *worst* case; if it
+  resolves, CI does too.
+- `mount-source`/`mount-target` stay unset: the action already defaults to
+  `D:\ws` → `C:\ws`, which is where the short-path clone put the tree. Setting
+  them to `github.workspace` would mount the submodule-less checkout instead.
+- Artifact paths are therefore **absolute under the short-path clone**
+  (`steps.prep.outputs.workspace`), never relative to `github.workspace`. A
+  relative path matches nothing there, and `if-no-files-found: error` would
+  report that as a missing build. `upload-codeql-sarif` exists for the same
+  reason: `hashFiles()` only sees inside `GITHUB_WORKSPACE`.
+
+## Windows pieces deliberately not reused
+
+**Deliberately not reused.** Two upstream Windows pieces were evaluated and
+rejected; both would be regressions here, so do not "fix" their absence:
+
+- `WindowsAppRunner.Common` (`Invoke-AppRun` / `Resolve-AppExecutablePath`).
+  Its executable probe tries `<BuildRoot>\<exe>` first and ends in a recursive
+  first-match search. This tree holds **four** copies of the runner exe
+  (`runner\`, `runner\Release\` from the MSIX layout step, `runner\<preset>\`,
+  `runner\<preset>\Release\`), so it would launch the flat one and ignore
+  `-Configuration` entirely. `Start-Windows.ps1` instead resolves through
+  `Resolve-KataglyphisWindowsLayout`, which knows the preset layout and
+  validates the Rust plugin DLL alongside the exe. `Invoke-AppRun` also has no
+  log parameter, so adopting it would drop the `Tee-Object` run log.
+- `Invoke-CmakeConfigureAndBuild` (`WindowsCMake.Common`). It makes `-Preset`
+  mandatory (this repo also has a generator/`CMAKE_BUILD_TYPE` path), passes no
+  `-S` source directory (the CMake source here is `windows/`, not the repo
+  root), and offers no `--target` — but `--target install` is what produces the
+  runner bundle. It also fuses configure and build into one step, while the
+  `Native Assets Directory Fix` step must run between them.
+
+## Android and cross-toolchain constraints
+
+The rules are in AGENTS.md § 4; the measurements that produced them are here.
+
+- **`--gcc-toolchain` is load-bearing here, and ANTfrastructure deleted the helper
+  that set it.** `export_clang_gcc_toolchain_env` went away upstream on
+  2026-09-05 (`e2c63f7b`), documented as dead: *"had no caller in the build […]
+  nothing in the tree sets a bare `CC=clang`"*. Both statements are true of
+  ANTfrastructure and false of this repo — `export_toolchain_env` set exactly that
+  bare `CC=clang` and called the function. Upstream names
+  `/usr/local/bin/clang-<arch>` as the replacement, because those wrappers bake
+  `--gcc-toolchain` in themselves; **`:latest-cross` ships none of them**
+  (`ls /usr/local/bin | grep clang` is empty), so that branch is preferred but
+  never taken today. Two runs differing only in this flag settle what it is
+  worth:
+
+  | `CC` | result |
+  | --- | --- |
+  | `clang`, no flag | `clang++: error: linker command failed with exit code 1` |
+  | `clang --gcc-toolchain=/opt/gcc-16.2.0` | bundle + all four packages |
+
+  Without it clang resolves libstdc++ against the system copy rather than the
+  source-built GCC 16.2.0 the image provides. `export_toolchain_env` restores
+  the flags through `gcc_toolchain_prefix()`, which upstream kept — do not
+  hard-code `/opt/gcc-16.2.0`.
+
+  The wider lesson for every ANTfrastructure bump: upstream reasons about its own
+  tree when it removes something. "No caller" means no caller *there*.
+
+- **The Android prebuilts are aarch64 now, and the lane's toolchain moved with
+  them.** Until 2026-09-11 the image carried `ELF x86-64` GStreamer/ONNX
+  Runtime/OpenCV under `/opt/android/` while the app builds `arm64-v8a`, so the
+  link died on every archive with `incompatible with aarch64linux`. The image
+  now ships only `arm64-v8a` (`libs/arm64-v8a`, `jni/abi-arm64-v8a`, and an
+  aarch64 `libgstreamer-1.0.a` built by NDK r29), so the cause of that message is
+  gone from the image. **Do not read that as "the lane links" — nobody has seen
+  it get there.** The workflow has a single matrix row (x64) and that row runs
+  under CodeQL, which since then has stopped the Gradle build at Kotlin
+  compilation, several steps before the native link (next bullet, and the
+  observed run below). Dropping the java database from the cluster is what
+  should let a run reach the link step and settle it.
+  `abiFilters "arm64-v8a"` in the native plugin's
+  `android/build.gradle` stays — real phones, not the emulator.
+  AGP 9.4.0 + Gradle 9.7.1 builds that against four constraints, all
+  load-bearing:
+
+  - **Built-in Kotlin, with a declared KGP for the version check — and CodeQL
+    has a ceiling under it.** `android.builtInKotlin=true` and no
+    `kotlin-android` plugin anywhere; AGP compiles Kotlin itself, and the target
+    is set with `kotlin { compilerOptions { jvmTarget = … } }`. AGP bundles KGP
+    2.2.10, below Flutter's 2.2.20 floor, so `android/settings.gradle.kts` must
+    keep `id("org.jetbrains.kotlin.android") version "2.4.20" apply false` — the
+    declaration, not an application, is what raises the classpath KGP. Remove it
+    and Flutter stops with `Your project's Kotlin version (2.2.10) is lower than
+    Flutter's minimum supported version of 2.2.20`.
+
+    The floor has a ceiling above it that belongs to a different tool. CodeQL's
+    Java extractor injects a Kotlin compiler plugin, and that plugin's upper
+    bound sits **below** the KGP this repo declares, so asking for a java
+    database killed the whole Gradle build rather than just the scan — observed
+    state, run 34870931651 (2026-09-14), task
+    `:kataglyphis_native_inference:compileReleaseKotlin`:
+    `Kotlin version 2.4.20 is too recent. CodeQL currently supports versions
+    below 2.4.20`, after which `database create` reported `Exit status 1 from
+    command: [/tmp/codeql-build.sh]` and the lane exited 2 with no APK.
+    The two bounds cannot both be satisfied by one KGP *and* a java database:
+    Flutter wants ≥ 2.2.20, CodeQL wants < 2.4.20, and 2.4.20 is what is
+    declared. `scripts/linux/codeql/codeql-android.sh` therefore builds the
+    cluster for **cpp, c and rust only** — where this project's inference code
+    actually is — and `codeql_analyze_java` is kept, callerless, in
+    `codeql-common.sh` for the day the ceiling clears. Do not "fix" the missing
+    java rows by lowering the KGP: that trades a building app for a scan of five
+    glue files.
+  - **`android.newDsl=false` stays.** The Flutter Gradle plugin still needs the
+    legacy DSL types, AGP 9.4 marks them deprecated, and Gradle 9.7's Kotlin-DSL
+    script compilation turns that into `Script compilation errors`. That is why
+    `android/app/build.gradle.kts` opens with
+    `@file:Suppress("DEPRECATION", "DEPRECATION_ERROR")`.
+  - **Cargokit carries a Gradle 9 port.** `Project.exec` and `Project.buildDir`
+    are gone in Gradle 9; `rust_builder/cargokit/gradle/plugin.gradle` injects
+    `ExecOperations` and reads `project.layout.buildDirectory`. Upstream Cargokit
+    still has the old calls, so keep this patch when bumping the vendored copy.
+  - **`permission_handler_android` is pinned to 13.0.1** in
+    `pubspec_overrides.yaml`. The 14.x that permission_handler 13.0.2 resolves
+    needs `compileSdk 37`; the image ships android-36 and its SDK is read-only.
+    Drop the pin when the image carries 37.
