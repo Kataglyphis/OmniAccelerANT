@@ -293,21 +293,45 @@ written out rather than linked.
   Runtime/OpenCV under `/opt/android/` while the app builds `arm64-v8a`, so the
   link died on every archive with `incompatible with aarch64linux`. The image
   now ships only `arm64-v8a` (`libs/arm64-v8a`, `jni/abi-arm64-v8a`, and an
-  aarch64 `libgstreamer-1.0.a` built by NDK r29), so the lane links.
-  `abiFilters "arm64-v8a"` in the native plugin's `android/build.gradle` stays —
-  real phones, not the emulator.
+  aarch64 `libgstreamer-1.0.a` built by NDK r29), so the cause of that message is
+  gone from the image. **Do not read that as "the lane links" — nobody has seen
+  it get there.** The workflow has a single matrix row (x64) and that row runs
+  under CodeQL, which since then has stopped the Gradle build at Kotlin
+  compilation, several steps before the native link (next bullet, and the
+  observed run below). Dropping the java database from the cluster is what
+  should let a run reach the link step and settle it.
+  `abiFilters "arm64-v8a"` in the native plugin's
+  `android/build.gradle` stays — real phones, not the emulator.
   AGP 9.4.0 + Gradle 9.7.1 builds that against four constraints, all
   load-bearing:
 
-  - **Built-in Kotlin, with a declared KGP for the version check.**
-    `android.builtInKotlin=true` and no `kotlin-android` plugin anywhere; AGP
-    compiles Kotlin itself, and the target is set with
-    `kotlin { compilerOptions { jvmTarget = … } }`. AGP bundles KGP 2.2.10,
-    below Flutter's 2.2.20 floor, so `android/settings.gradle.kts` must keep
-    `id("org.jetbrains.kotlin.android") version "2.4.20" apply false` — the
+  - **Built-in Kotlin, with a declared KGP for the version check — and CodeQL
+    has a ceiling under it.** `android.builtInKotlin=true` and no
+    `kotlin-android` plugin anywhere; AGP compiles Kotlin itself, and the target
+    is set with `kotlin { compilerOptions { jvmTarget = … } }`. AGP bundles KGP
+    2.2.10, below Flutter's 2.2.20 floor, so `android/settings.gradle.kts` must
+    keep `id("org.jetbrains.kotlin.android") version "2.4.20" apply false` — the
     declaration, not an application, is what raises the classpath KGP. Remove it
     and Flutter stops with `Your project's Kotlin version (2.2.10) is lower than
     Flutter's minimum supported version of 2.2.20`.
+
+    The floor has a ceiling above it that belongs to a different tool. CodeQL's
+    Java extractor injects a Kotlin compiler plugin, and that plugin's upper
+    bound sits **below** the KGP this repo declares, so asking for a java
+    database killed the whole Gradle build rather than just the scan — observed
+    state, run 34870931651 (2026-09-14), task
+    `:kataglyphis_native_inference:compileReleaseKotlin`:
+    `Kotlin version 2.4.20 is too recent. CodeQL currently supports versions
+    below 2.4.20`, after which `database create` reported `Exit status 1 from
+    command: [/tmp/codeql-build.sh]` and the lane exited 2 with no APK.
+    The two bounds cannot both be satisfied by one KGP *and* a java database:
+    Flutter wants ≥ 2.2.20, CodeQL wants < 2.4.20, and 2.4.20 is what is
+    declared. `scripts/linux/codeql/codeql-android.sh` therefore builds the
+    cluster for **cpp, c and rust only** — where this project's inference code
+    actually is — and `codeql_analyze_java` is kept, callerless, in
+    `codeql-common.sh` for the day the ceiling clears. Do not "fix" the missing
+    java rows by lowering the KGP: that trades a building app for a scan of five
+    glue files.
   - **`android.newDsl=false` stays.** The Flutter Gradle plugin still needs the
     legacy DSL types, AGP 9.4 marks them deprecated, and Gradle 9.7's Kotlin-DSL
     script compilation turns that into `Script compilation errors`. That is why
@@ -385,8 +409,13 @@ written out rather than linked.
   `clang_rt.fuzzer`.
 - **Each preset installs into its own directory** —
   `build\windows\x64\runner\<preset>\` (and `plugins\<preset>\`), because
-  `Build-Windows.ps1`:367 resolves the layout per preset and :399/:408 pass that
-  as `-DCMAKE_INSTALL_PREFIX`. `x64-ClangCL-Windows-Release` is only the fallback
+  `Build-Windows.ps1` calls `Resolve-KataglyphisWindowsLayout -Configuration
+  $currentPreset` once per preset inside the `foreach ($currentPreset in
+  $presetsToRun)` loop and passes the `$currentBuildDirFull` it returns
+  (`$layout.RunnerDir`) as `-DCMAKE_INSTALL_PREFIX` on both configure paths, the
+  `--preset` one and the generator one. Grep those names rather than line
+  numbers: the refs that stood here (367/399/408) had already rotted to
+  413/445/454. `x64-ClangCL-Windows-Release` is only the fallback
   used when no preset is named (`Get-WindowsBuildConfig.ps1`'s `CMakeConfiguration`).
   Presets no longer clobber each other — but `Start-Windows.ps1` must then be
   given the same preset name.
@@ -828,8 +857,10 @@ what keeps CI independent of a host's `pwd`.
 
 **CodeQL runs in the android lane and nowhere else.**
 `scripts/linux/codeql/codeql-android.sh` installs the CLI, builds a
-`--db-cluster` for c/cpp/rust/java/kotlin around `flutter build apk` and runs
-three `database analyze` suites — budget hours, not minutes. The native lane
+`--db-cluster` for **c, cpp and rust** around `flutter build apk` and runs two
+`database analyze` suites — budget hours, not minutes. Java and Kotlin are
+deliberately not in that cluster: CodeQL's Java extractor refuses this repo's
+KGP and kills the Gradle build with it — § 4, the built-in-Kotlin bullet. The native lane
 implements none and its driver *refuses* `--run-codeql true` with exit 2 rather
 than reporting success over a scan that never happened;
 `Invoke-LinuxLane.ps1` hard-codes `false` for it and for web. So `-SkipCodeQL`
