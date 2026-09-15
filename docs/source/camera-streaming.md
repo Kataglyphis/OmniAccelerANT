@@ -72,7 +72,9 @@ built-in server, but the signaller's rustls rejects self-signed CA certificates
 the Raspberry Pi CSI camera, whose `rp1-cfe` V4L2 nodes carry raw Bayer that
 `videoconvert` cannot process. Inference runs on a background thread, so the
 WebRTC stream keeps camera rate while the boxes lag one inference behind
-(seconds per frame on a Pi 5 CPU).
+(seconds per frame on a Pi 5 CPU). `--no-inference` skips the model entirely —
+no ORT, no detector, frames published unannotated — for camera/WebRTC bring-up
+and for hosts too weak to run YOLO.
 
 Serve the web build with the COOP/COEP headers the Stream page needs and the
 `/webrtc-ws` proxy:
@@ -87,6 +89,10 @@ flutter build web --release --wasm
 
 scripts/linux/cat-stream/serve.sh          # :8444 TLS, proxies to :8443
 ```
+
+`serve.sh` also takes `--producer-host`/`--producer-port` to front a producer
+on another board, and `--state-dir` so several instances (one per producer)
+can run side by side.
 
 `signalingServerUrl` in `assets/settings/webrtc_settings.json` is
 host-relative by default (`/webrtc-ws`); the web client resolves it against the
@@ -107,14 +113,87 @@ scripts/linux/cat-stream/serve.sh   # :8444 TLS, proxies to :8443
 0.7.2 / libpisp 1.5, which cannot drive a Pi 5 on kernel 6.18: the kernel
 renamed the `rp1-cfe` media entities to underscores (`rp1-cfe-fe_image0`) and
 moved to the libpisp 1.7 uAPI, so the pipeline handler cannot acquire the CFE
-and the upstream IPA segfaults when isolation is forced. OxidANT's
-`scripts/linux/cat-stream/run-producer-pi.sh` collects the host's Raspberry Pi
-OS libcamera stack (0.7.2+rpt, which matches the kernel) plus its library
-closure into OxidANT's own `build/cat-stream/hostlibs`, mounts that ahead of
+and the upstream IPA segfaults when isolation is forced.
+`third_party/OxidANT/scripts/linux/cat-stream/run-producer-pi.sh` collects the
+host's Raspberry Pi OS libcamera stack (0.7.2+rpt, which matches the kernel)
+plus its library closure into OxidANT's own
+`third_party/OxidANT/build/cat-stream/hostlibs`, mounts that ahead of
 the image's copy, grants the rootless container ACL access to
 `/dev/{video,media,dma_heap}*`, and runs with `seccomp=unconfined` (the IPA
 proxy forks). GStreamer 1.29, `webrtcsink`, ONNX Runtime and the Rust binary
 still come from the image.
+
+**Raspberry Pi Zero 2 W.** The image runs there too, but the Rust producer
+does not fit the board (512 MB RAM, no practical way to build on it), and the
+image's libcamera cannot drive the Zero's camera either: with `rpi/vc4` on the
+imx708 its isolated IPA process worker dies on start (`Failed to call start:
+-110`, then the socket is unreachable), while the host's rpt build runs the
+threaded proxy and works. The working no-AI recipe is the container plus the
+*same* host-libcamera swap, driven by `gst-launch`. Copy the closure collected
+by OxidANT's `third_party/OxidANT/scripts/linux/cat-stream/run-producer-pi.sh`
+(or refresh it there with `--libs-only`) to the Zero, then:
+
+```bash
+# On the Zero. ~/cat-cam/hostlibs is the dev host's
+# third_party/OxidANT/build/cat-stream/hostlibs, and IMAGE is the family CI
+# reference — composed on the dev host by
+#   bash third_party/ANTfrastructure/linux/scripts/ci-image-ref.sh
+# and carried over, never typed out, so a tag bump in the hub's versions.env
+# reaches this recipe too.
+IMAGE=<the line that command printed>
+sudo nerdctl run --rm --name zero-producer --user 0:0 --privileged \
+  --network host -v /dev:/dev -v /run/udev:/run/udev:ro \
+  -v /usr/lib/aarch64-linux-gnu/libcamera:/usr/lib/aarch64-linux-gnu/libcamera:ro \
+  -v /usr/share/libcamera:/usr/share/libcamera:ro \
+  -v "$HOME/cat-cam/hostlibs":/hostlibs:ro \
+  -e LD_LIBRARY_PATH=/hostlibs:/opt/gstreamer/lib/multiarch:/opt/gstreamer/lib:/usr/local/lib:/opt/opencv5/lib:/usr/lib/aarch64-linux-gnu \
+  --entrypoint bash "${IMAGE}" \
+  -lc 'exec gst-launch-1.0 -e \
+    webrtcsink name=ws run-signalling-server=true signalling-server-host=0.0.0.0 signalling-server-port=8443 meta="meta,name=Zero-Cat-Cam" \
+    libcamerasrc ! video/x-raw,format=RGB,width=640,height=480,framerate=15/1 ! videoconvert ! video/x-raw,format=I420 ! vp8enc deadline=1 ! ws.'
+```
+
+Two traps bite anyone wiring this by hand: the image's `entrypoint.sh` sources
+`libcamera-env.sh`, which re-prepends `/opt/libcamera/lib` and silently
+overrides the `LD_LIBRARY_PATH` above — hence `--entrypoint bash`; and
+`webrtcsink`'s `meta` must be a space-free structure in gst-launch
+(`meta="meta,name=Zero-Cat-Cam"`; a space fails to parse). The dev host's
+`serve.sh` (:8444) fronts the Zero without deploying the web build to it, by
+tunnelling only the signalling:
+
+```bash
+ssh -N -L 8443:127.0.0.1:8443 himbeergsaelzlight.local   # run on the dev host
+```
+
+Media is WebRTC UDP, browser ↔ Zero, direct on the LAN. If the container is
+too heavy for the board, `scripts/linux/cat-stream/package-producer-bundle.sh`
+exports a container-less aarch64 bundle (producer + pruned GStreamer + the
+image's glibc, ~180 MB) that runs against the host's libcamera with no
+container and no toolchain; and `--no-inference` is the next step up from this
+`gst-launch` bring-up.
+
+**RISC-V SoC (SpacemiT X100).** `:latest-cross` is a multi-arch index
+(amd64/arm64/riscv64), so the same tag runs there natively and the producer
+builds inside the container in minutes on 8 cores — GStreamer, `v4l2src` and
+ONNX Runtime are all riscv64 builds in the image. A USB webcam (e.g. a
+Logitech C270) needs no libcamera: run with `--v4l2 /dev/videoN`. On Ubuntu
+the host-level work is permissions and firewall: the node is `root:video 660`
+and the user is usually not in `video`, so grant an ACL
+(`sudo setfacl -m u:$USER:rw /dev/videoN`), and UFW needs `8443/tcp` plus the
+WebRTC UDP range (`sudo ufw allow 32768:60999/udp`) because the browser
+connects directly to the board for media. The dev host can front it without
+deploying the web build:
+
+```bash
+scripts/linux/cat-stream/serve.sh --port 8446 \
+  --producer-host 192.168.188.146 --producer-port 8443 \
+  --state-dir build/cat-stream/x100
+```
+
+Use the board's **IP, not its mDNS name**, in `--producer-host`: nginx
+resolves `proxy_pass` hostnames once at startup, so a DHCP or mDNS address
+change leaves it proxying into the void with a `101` in the access log and no
+connection on the producer.
 
 The numbered steps below are the manual `gst-launch-1.0` pipelines, kept for
 cases the Rust producer does not cover.
@@ -179,3 +258,7 @@ flutter run -d web-server --profile --web-port 8080 --web-hostname 0.0.0.0
 - On a host firewall (e.g. UFW on Raspberry Pi OS), allow `8444/tcp` and the
   WebRTC media UDP range (`32768:60999/udp`, LAN-scoped is enough) — the
   browser otherwise connects for signalling but ICE never completes.
+- Each `serve.sh` instance (one per board) listens on its own port, and the
+  **dev host's** firewall has to allow every one of them, not just the first:
+  a second board's page stays unreachable while the first board's still works,
+  which reads like a producer problem but is a missing `ufw allow 8446/tcp`.

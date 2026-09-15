@@ -5,7 +5,7 @@
 # it. Format: <file>	<first line of the block>, which is why no line number
 # appears - a block must not re-flag because something above it moved.
 #
-# Nothing here is a TODO list. Thirteen blocks. Eleven predate the gate and each
+# Nothing here is a TODO list. Fourteen blocks. Eleven predate the gate and each
 # records WHY the code is shaped as it is: which upstream function replaced a
 # local fork, which verdict was measured before a strictness switch was removed,
 # which failure a guard was written against. The two in
@@ -13,12 +13,19 @@
 # header saying this copy is body-mode - edit the body and the shared-config
 # drift gate turns DRIFTED, so the warning has to sit in the file.
 #
+# The fourteenth came in with origin/develop's cat-stream work (merged
+# 2026-09-15): package-producer-bundle.sh's header is the bundle's contract -
+# what is exported, what the target host must already have, and the two
+# commands you run there - so it sits beside the code for the same reason
+# serve.sh's does, one row below.
+#
 # This repo DOES have a docs/ tree, and moving any of these into it is a real
 # option - but it would put the explanation a click away from the twenty lines
 # it explains. Do it when a block starts describing a PROCESS rather than the
 # code beneath it, not to satisfy a line count.
 
 scripts/agentic-loop/Run-AgenticLoop.sh	# ──────────────────────────────────────────────────────────
+scripts/linux/cat-stream/package-producer-bundle.sh	#!/usr/bin/env bash
 scripts/linux/cat-stream/serve.sh	#!/usr/bin/env bash
 scripts/linux/ci/ci-container-run-android.sh	# Container-only preparation. None of this exists on a devel
 scripts/linux/codeql/codeql-android.sh	# NO --language=java / --language=kotlin, and therefore no c

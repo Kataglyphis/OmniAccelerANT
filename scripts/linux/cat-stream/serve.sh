@@ -10,28 +10,37 @@
 # solves both and keeps the producer on plain WS.
 #
 # Usage:
-#   scripts/linux/cat-stream/serve.sh [--port 8444] [--producer-port 8443]
+#   scripts/linux/cat-stream/serve.sh [--port 8444] [--producer-host 127.0.0.1]
+#                                     [--producer-port 8443]
 #                                     [--web-root build/web]
+#                                     [--state-dir build/cat-stream]
 #
-# The producer has to listen on --producer-port (its --listen-port) and the
-# web build's signalingServerUrl has to be /webrtc-ws (the default) or an
-# absolute wss:// URL pointing at this server.
+# The producer has to listen on --producer-host:--producer-port (its
+# --listen-port) and the web build's signalingServerUrl has to be
+# /webrtc-ws (the default) or an absolute wss:// URL pointing at this
+# server. Use --producer-host to front a producer on another board (e.g. a
+# Pi Zero 2 W or a RISC-V SoC) without deploying the web build there; give
+# each concurrent instance its own --state-dir (config, pid, TLS, logs).
 set -euo pipefail
 
 script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 repo_root="$(cd -- "${script_dir}/../../.." && pwd)"
 
 port=8444
+producer_host=127.0.0.1
 producer_port=8443
 web_root="${repo_root}/build/web"
+state_dir="${repo_root}/build/cat-stream"
 
 while [ $# -gt 0 ]; do
   case "$1" in
     --port) port="${2:?--port needs a value}"; shift 2 ;;
+    --producer-host) producer_host="${2:?--producer-host needs a value}"; shift 2 ;;
     --producer-port) producer_port="${2:?--producer-port needs a value}"; shift 2 ;;
     --web-root) web_root="${2:?--web-root needs a value}"; shift 2 ;;
+    --state-dir) state_dir="${2:?--state-dir needs a value}"; shift 2 ;;
     -h|--help)
-      printf 'usage: %s [--port N] [--producer-port N] [--web-root DIR]\n' "$0"
+      printf 'usage: %s [--port N] [--producer-host HOST] [--producer-port N] [--web-root DIR] [--state-dir DIR]\n' "$0"
       exit 0
       ;;
     *) printf 'unknown argument: %s\n' "$1" >&2; exit 2 ;;
@@ -47,7 +56,11 @@ command -v nginx >/dev/null 2>&1 || {
   exit 1
 }
 
-state_dir="${repo_root}/build/cat-stream"
+# nginx resolves a relative -c against the -p prefix, which would double the
+# path; make the state dir absolute up front.
+mkdir -p "${state_dir}"
+state_dir="$(cd -- "${state_dir}" && pwd)"
+
 tls_dir="${state_dir}/tls"
 mkdir -p "${tls_dir}" \
   "${state_dir}/client_body" "${state_dir}/proxy" "${state_dir}/fastcgi" \
@@ -103,7 +116,7 @@ http {
     add_header Cross-Origin-Embedder-Policy require-corp always;
 
     location /webrtc-ws {
-      proxy_pass http://127.0.0.1:${producer_port};
+      proxy_pass http://${producer_host}:${producer_port};
       proxy_http_version 1.1;
       proxy_set_header Upgrade \$http_upgrade;
       proxy_set_header Connection "Upgrade";
@@ -118,5 +131,5 @@ http {
 EOF
 
 printf 'serving %s on https://<host>:%s/ (self-signed — accept the warning)\n' "${web_root}" "${port}"
-printf 'proxying /webrtc-ws to the producer on 127.0.0.1:%s\n' "${producer_port}"
+printf 'proxying /webrtc-ws to the producer on %s:%s\n' "${producer_host}" "${producer_port}"
 exec nginx -c "${state_dir}/nginx.conf" -p "${state_dir}" -g 'daemon off;'
