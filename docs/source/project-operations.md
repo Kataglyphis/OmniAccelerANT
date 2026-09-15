@@ -326,9 +326,13 @@ which version.** It used to: three lanes resolved `FLUTTER_VERSION` and
 `FLUTTER_SDK_SHA256` out of ANTfrastructure's `versions.env`, exported the sha, and
 handed both to an installer. That machinery is gone — `resolve_flutter_pin`,
 `setup_flutter_sdk`, `install-flutter.sh` and the `--flutter-version` /
-`--install-flutter` flags with it. `assert_flutter_available` replaces all of
-it: it fails if `--flutter-dir` holds no `bin/flutter`, and otherwise reports
-the `frameworkVersion` it found and moves on.
+`--install-flutter` flags with it. ANTfrastructure's
+`flutter_lane_prepare_env` replaces all of it: it returns non-zero if
+`--flutter-dir` holds no `bin/flutter`, and otherwise puts the SDK on `PATH`,
+registers the workspace `safe.directory`, sets `PUB_CACHE` and prints the
+`flutter --version` this run got. Until 2026-09-15 this repo did the same three
+things itself, in `scripts/linux/lib/container-steps.sh` and in a different
+order per lane.
 
 To change the Flutter version, change the image.
 

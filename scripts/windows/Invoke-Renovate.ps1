@@ -18,8 +18,11 @@ $ErrorActionPreference = 'Stop'
 
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 
+# Dot-sourced unconditionally: BOTH module imports below need it, and one of
+# them is not inside the -Image guard.
+. (Join-Path $PSScriptRoot 'Resolve-BuildModule.ps1')
+
 if (-not $Image) {
-	. (Join-Path $PSScriptRoot 'Resolve-BuildModule.ps1')
 	Import-BuildModule 'WindowsContainerImage.Common'
 	if (-not (Get-Command -Name 'Get-CiImageReference' -ErrorAction SilentlyContinue)) {
 		throw "WindowsContainerImage.Common exports no Get-CiImageReference; bump third_party/ANTfrastructure or pass -Image explicitly."
@@ -36,11 +39,6 @@ if (-not $engine) {
 	throw "nerdctl not found. Install Rancher Desktop, or put nerdctl on PATH."
 }
 
-& $engine 'volume' 'create' $CacheVolume 2>&1 | Out-Null
-& $engine 'run' '--rm' '--user' 'root' `
-	'--mount' "type=volume,source=${CacheVolume},target=/vol" `
-	'--platform' 'linux/amd64' 'alpine' 'chown' '1001:1001' '/vol' 2>&1 | Out-Null
-
 $renovateArgs = @()
 if ($Apply) { $renovateArgs += '--apply' }
 if ($DryRun) { $renovateArgs += '--dry-run' }
@@ -48,25 +46,43 @@ if ($Refresh) { $renovateArgs += '--refresh' }
 if ($PrintBin) { $renovateArgs += '--print-bin' }
 if ($Managers) { $renovateArgs += @('--managers', $Managers) }
 
-$entry = if ($Recurse) { 'scripts/linux/renovate-submodules.sh' } else { 'scripts/linux/renovate-local.sh' }
+# -Recurse is ANTfrastructure's renovate-fleet.sh in --vendored mode, not a local
+# walker any more. This repo carried one (scripts/linux/renovate-submodules.sh,
+# 135 lines) because the fleet driver refused to write inside a vendored
+# checkout; --vendored/--in-place is the opt-in for exactly the two cases that
+# refusal was never about, and this container is the second of them - it mounts
+# ONE superproject, so every repo the run can reach is vendored and the default
+# order is empty. third_party/ANTfrastructure/docs/dependency-updates.md
+# #-vendored-the-two-cases-where-writing-in-place-is-right
+if ($Recurse) {
+	$entry = 'third_party/ANTfrastructure/linux/scripts/renovate-fleet.sh'
+	$renovateArgs += '--vendored'
+} else {
+	$entry = 'scripts/linux/renovate-local.sh'
+}
 
-# The insteadOf rewrite is NOT dead weight now that this repo's .gitmodules is
-# https throughout (2026-09-15). -Recurse walks INTO the vendored checkouts and
-# runs renovate there too, and their own .gitmodules still carry ssh remotes:
-# third_party/AccelerANTgine/.gitmodules:20 (ANTfrastructure) and :29 (nanobind,
-# not even a Kataglyphis repo), third_party/OxidANT/.gitmodules:3. The container
-# has no ssh key, so without this line those submodule lookups fail rather than
-# report. Delete it only once every nested .gitmodules the recursion reaches is
-# https - the two Kataglyphis ones are owned by their own repos' audit items.
+# Embedded in the command rather than passed after a `bash -c ... --`: the
+# shared driver runs one bash string and forwards no trailing argv. Single
+# quoted, with the POSIX '\'' escape, so a --managers value cannot reach the
+# shell as syntax.
+$quotedArgs = ($renovateArgs | ForEach-Object { "'" + ($_ -replace "'", "'\''") + "'" }) -join ' '
+
+# NO url.insteadOf REWRITE ANY MORE. It stood here while the vendored
+# checkouts' own .gitmodules still carried ssh remotes, which a container with
+# no ssh key cannot resolve. As of 2026-09-15 every .gitmodules this recursion
+# reaches is https: third_party/AccelerANTgine (7 entries, including nanobind),
+# third_party/OxidANT (1), third_party/ANTfrastructure (1, DocumANTation) and
+# this repo's own 4. Re-check before reinstating it, do not assume.
 $inner = @'
+set -e
 git config --global --add safe.directory '/workspace'
 git config --global --add safe.directory '/workspace/*'
-git config --global url."https://github.com/".insteadOf "git@github.com:"
 __AUTOCRLF__
 export RENOVATE_LOCAL_CACHE=/cache/kataglyphis
-bash __ENTRY__ "$@"
+test -f __ENTRY__ || { echo "no __ENTRY__ in the mounted workspace" >&2; exit 1; }
+bash __ENTRY__ __ARGS__
 '@
-$inner = $inner.Replace('__ENTRY__', $entry)
+$inner = $inner.Replace('__ENTRY__', $entry).Replace('__ARGS__', $quotedArgs)
 
 $autocrlf = ''
 $gitCmd = Get-Command 'git' -ErrorAction SilentlyContinue
@@ -76,42 +92,52 @@ if ($gitCmd) {
 }
 $inner = $inner.Replace('__AUTOCRLF__', $autocrlf)
 
-$envFileArgs = @()
-$envFile = $null
+$envFile = ''
 $ghCmd = Get-Command 'gh' -ErrorAction SilentlyContinue
 if ($ghCmd) {
 	$token = (& $ghCmd.Source auth token 2>$null | Select-Object -First 1)
 	if ($token) {
 		$envFile = Join-Path ([System.IO.Path]::GetTempPath()) "kataglyphis-renovate-$([guid]::NewGuid().ToString('N')).env"
 		Set-Content -LiteralPath $envFile -Value "GITHUB_COM_TOKEN=$token" -NoNewline
-		$envFileArgs = @('--env-file', $envFile)
 	}
 }
 
-$engineArgs = @(
-	'run', '--name', $ContainerName,
-	'--platform', 'linux/amd64',
-	'-v', "${repoRoot}:/workspace",
-	'--mount', "type=volume,source=${CacheVolume},target=/cache",
-	'-w', '/workspace'
-) + $envFileArgs + @(
-	$Image,
-	'bash', '-c', $inner, '--'
-) + $renovateArgs
+# THE CONTAINER INVOCATION IS NOT THIS REPO'S. A hand-typed `run --name
+# --platform -v --mount -w --env-file` line stood here, one of a family of such
+# lines across the consumers that had each drifted. ANTfrastructure's
+# WindowsBuildSweep.Common owns it as Invoke-InLinuxContainerBuild, which grew
+# -Engine/-Platform/-Name/-KeepContainer/-NamedVolumes/-EnvFile for exactly this
+# caller; it also creates and chowns the cache volume (a fresh one is
+# root-owned and the image runs as uid 1001), which was a second copy here.
+# -DockerExe wins over -Engine and keeps the resolved Rancher Desktop path.
+Import-BuildModule 'WindowsBuildSweep.Common'
+if (-not (Get-Command -Name 'Invoke-InLinuxContainerBuild' -ErrorAction SilentlyContinue)) {
+	throw ("WindowsBuildSweep.Common was imported but exports no Invoke-InLinuxContainerBuild. " +
+		"The pinned ANTfrastructure predates it - bump third_party/ANTfrastructure.")
+}
+
+$runnerArgs = @{
+	RepoRoot      = $repoRoot
+	Image         = $Image
+	Command       = $inner
+	DockerExe     = $engine
+	Engine        = 'nerdctl'
+	Platform      = 'linux/amd64'
+	Name          = $ContainerName
+	KeepContainer = [bool]$KeepContainer
+	NamedVolumes  = @("${CacheVolume}:/cache")
+}
+if ($envFile) { $runnerArgs['EnvFile'] = $envFile }
 
 Write-Host "engine : $engine"
 Write-Host "cache  : $CacheVolume -> /cache"
+Write-Host "entry  : $entry $quotedArgs"
 Write-Host "token  : $(if ($envFile) { 'GITHUB_COM_TOKEN from gh' } else { 'none (GitHub lookups may be rate-limited)' })"
-Write-Host "command: $($engineArgs -join ' ')"
 Write-Host ''
 
-& $engine @engineArgs
+Invoke-InLinuxContainerBuild @runnerArgs
 $exitCode = $LASTEXITCODE
 
 if ($envFile) { Remove-Item -LiteralPath $envFile -Force -ErrorAction SilentlyContinue }
-
-if (-not $KeepContainer) {
-	& $engine 'container' 'remove' $ContainerName 2>&1 | Out-Null
-}
 
 exit $exitCode

@@ -638,10 +638,13 @@ translates it itself and handing it the already-translated `/mnt/d/…` binds
 nothing. A `wsl: Failed to translate '<cwd>'` line in the output is noise, not a
 failed mount.
 
-No lane installs Flutter. `assert_flutter_available` checks that one exists at
-`--flutter-dir` and reports the version it found; whatever the image carries is
-what gets used. A multi-GB `flutter/` in the repo is a leftover from before
-that — git-ignored, and safe to remove.
+No lane installs Flutter. ANTfrastructure's `flutter_lane_prepare_env`
+([`05-frameworks/flutter/lane-prologue.sh`](third_party/ANTfrastructure/linux/scripts/05-frameworks/flutter/lane-prologue.sh))
+checks that one exists at `--flutter-dir`, puts it on `PATH`, registers the
+workspace `safe.directory`, points `PUB_CACHE` at `.pub-cache` and reports the
+version it found; whatever the image carries is what gets used. A multi-GB
+`flutter/` in the repo is a leftover from before that — git-ignored, and safe to
+remove.
 
 Run the app on the host once artifacts are back:
 
@@ -669,9 +672,9 @@ bash /workspace/scripts/linux/ci/ci-container-run-native-linux.sh \
 is no `--install-flutter` and no `--flutter-version`.
 
 **Flutter comes from the image, and this repo does not have an opinion about
-which version.** `assert_flutter_available` fails if `--flutter-dir` holds no
-`bin/flutter`, and otherwise reports the `frameworkVersion` it found and moves
-on. To change the Flutter version, change the image. Why the pin-and-install
+which version.** `flutter_lane_prepare_env` returns non-zero if `--flutter-dir`
+holds no `bin/flutter`, and otherwise prints the `flutter --version` this run
+got and moves on. To change the Flutter version, change the image. Why the pin-and-install
 machinery went, and what it was costing every Android run:
 [`docs/source/project-operations.md`](docs/source/project-operations.md)
 § *The Linux lane, locally*.
@@ -787,13 +790,16 @@ for, and what goes wrong without it:
 [`docs/source/project-operations.md`](docs/source/project-operations.md)
 § *Dependency upgrades, in detail*.
 
-`-Recurse` walks the initialized submodules, keeps the Kataglyphis-owned ones,
-dedups them by remote identity (one canonical checkout per repo, the shallowest
-copy), orders them dependencies-first, and runs the same script in each —
-ANTfrastructure after DocumANTation, AccelerANTgine/OxidANT after ANTfrastructure.
-It writes into the vendored worktrees in place, which upstream's
-`renovate-fleet.sh` refuses by design: after an `-Apply`, commit and push each
-submodule, then move the gitlinks in every superproject that vendors it.
+`-Recurse` runs ANTfrastructure's `renovate-fleet.sh --vendored`. The fleet
+driver finds the repos BESIDE the superproject, dedups by remote identity and
+orders them dependencies-first; `--vendored` then appends the vendored
+checkouts of identities that have no own checkout, which inside this container
+is all of them — the mount is one superproject and there is nothing beside it.
+This repo carried its own 135-line submodule walker until 2026-09-15 because
+the fleet driver refused to write in place at all; that refusal is now an
+opt-in, and writing into a vendored worktree still means: after an `-Apply`,
+commit and push each submodule, then move the gitlinks in every superproject
+that vendors it.
 
 Renovate is a local CLI and only **detects** — `--platform=local` cannot write
 — so the `--apply` half is this repo's own code, and `--managers` narrows a run

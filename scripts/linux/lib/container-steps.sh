@@ -11,6 +11,8 @@ antfrastructure_source linux/scripts/01-core/logging.sh
 # and the batch itself is built by the driver - never by a helper below, which
 # would silently reset a batch its caller had opened.
 antfrastructure_source linux/scripts/01-core/gates.sh
+# flutter_lane_prepare_env / flutter_build_web - see the block below.
+antfrastructure_source linux/scripts/05-frameworks/flutter/lane-prologue.sh
 
 # is_truthy plus a bare "y" and mixed case.
 maybe_truthy() {
@@ -38,61 +40,17 @@ maybe_truthy() {
 #   * the cmake-format check is a GATE, and now runs as one - see
 #     run_cmake_format_check below and the run_gate batches in its two callers.
 
-# No `|| true` on either line any more, for the reason the web lane already
-# records above its `cargo install`: the failure only resurfaced later, wearing
-# somebody else's name. `git config --global --add` fails when the global config
-# cannot be written at all (unset or read-only HOME) — and in exactly that state
-# this function has NOT registered the safe directory, so the next git command
-# against /workspace dies with "detected dubious ownership", including the
-# `git ls-files` that upstream's flutter_checks.sh builds its file list from.
-git_safe_dirs() {
-  local flutter_dir="${1:-}" dir
-  local -a dirs=(/workspace)
-  if [[ -n "$flutter_dir" ]]; then
-    dirs+=("$flutter_dir")
-  fi
-  for dir in "${dirs[@]}"; do
-    if ! git config --global --add safe.directory "$dir"; then
-      echo "Error: could not record '$dir' as a git safe.directory." >&2
-      echo "       git could not write the global config (HOME=${HOME:-<unset>})." >&2
-      echo "       Every later git call against that tree would fail as 'dubious ownership'." >&2
-      return 1
-    fi
-  done
-}
+# THE FLUTTER LANE PROLOGUE IS NOT THIS REPO'S ANY MORE (2026-09-15).
+# git_safe_dirs, source_bashrc_and_add_flutter_to_path and
+# assert_flutter_available stood here; ANTfrastructure owns the routine as
+# flutter_lane_prepare_env, sourced above, which RETURNS rather than exits.
+# Two of their behaviours went with them and neither is a loss, both measured
+# against the pinned image: the `--global` safe.directory for the SDK is a
+# no-op (setup-package-image.sh:556 registers it at --system level) and
+# sourcing ~/.bashrc to find flutter is one too (Dockerfile.package:268 puts
+# /opt/flutter/bin on PATH for every shell). One behaviour is new: PUB_CACHE
+# defaults to <repo>/.pub-cache, gitignored at .gitignore:47. AGENTS.md § 5.
 
-source_bashrc_and_add_flutter_to_path() {
-  local flutter_dir="${1:-}"
-  local original_flags="$-"
-  set +u
-  # The one `|| true` in this file that is KEPT, and it is not a suppressed
-  # gate: a stock Ubuntu ~/.bashrc `return`s early in a non-interactive shell
-  # and the status it returns is whatever ran last, so non-zero here carries no
-  # meaning. `2>/dev/null` is gone, though — that part hid the diagnostics of a
-  # genuinely broken rc file, and the PATH this sets up is what the whole lane
-  # then runs flutter from. Absence is handled by the -f test, not by silence.
-  if [[ -f ~/.bashrc ]]; then
-    source ~/.bashrc || true
-  fi
-  if [[ "$original_flags" =~ u ]]; then set -u; fi
-  if [[ -n "$flutter_dir" ]]; then
-    export PATH="${flutter_dir}/bin:$PATH"
-  fi
-}
-
-# The image owns the Flutter SDK; nothing here installs one — AGENTS.md § 4.
-assert_flutter_available() {
-  local flutter_dir="${1:?flutter_dir is required}"
-  if [[ ! -x "${flutter_dir}/bin/flutter" ]]; then
-    echo "Error: no Flutter at ${flutter_dir}. The image provides it; this repo" >&2
-    echo "       never installs one. Check --flutter-dir and the image tag." >&2
-    return 1
-  fi
-  local version
-  version="$(sed -n 's/.*"frameworkVersion"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' \
-    "${flutter_dir}/bin/cache/flutter.version.json" 2>/dev/null | head -1)"
-  echo "[Info] Flutter ${version:-<unknown>} from the image at ${flutter_dir}."
-}
 # Lists tracked files rather than walking the tree — AGENTS.md § 4.
 #
 # The driver resolution is a statement of its own, not a substitution inside the
