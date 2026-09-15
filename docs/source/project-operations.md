@@ -86,6 +86,37 @@ cmake-format gate, which now takes its pinned bootstrap set from
 requirements file would be docs-scoped for the same reason — an unpinned root
 file next to a pinned shared one is exactly the drift that removal closed.
 
+## Large tracked binaries
+
+Measured 2026-09-15: **148 MiB across 451 tracked files**, of which roughly
+141 MiB is binary assets. The inventory, so nobody has to re-derive it:
+
+| What | Size | Why it is tracked |
+|------|------|-------------------|
+| `dummy_assets/` | 79.7 MiB, 16 files | Fixture corpus mirroring the shape of `assets/`. 82.9 MiB of it is two PDFs, `documents/thesis/{Master,Bachelor}_Thesis.pdf`. **Nothing references it** — not `pubspec.yaml`'s asset list, not `lib/`, not a test, not a script. It is sample content for trying the document pages against. |
+| `assets/fonts/Noto_Sans/` | 47.9 MiB, 76 files | The complete Noto Sans family as shipped by Google Fonts: 2 variable fonts plus all 72 static faces. `pubspec.yaml` declares **4** of them (Regular, Italic, Bold, BoldItalic). The other 72 files are the download, not a requirement. |
+| `assets/videos/funnyandsummy.mp4` | 12.3 MiB | Demo clip. Not in `pubspec.yaml`'s asset list and not referenced from `lib/`. |
+| `assets/icons/kataglyphis_app_icon.png` | 1.9 MiB | Load-bearing: `flutter_launcher_icons` generates every platform icon set from it (`pubspec.yaml` names it five times), so it must stay at source resolution. |
+| `images/overview.gif` | 1.6 MiB | README illustration. |
+| `web/sqlite3.wasm` | 0.7 MiB | The sqlite3 WASM build the web app loads. Fetched and checksum-verified by ANTfrastructure's `setup-sqlite3-wasm.sh`; the committed copy is a convenience, and it has been wrong before (see [Getting Started](getting-started.md)). |
+
+**The history is not being rewritten.** No `git filter-repo`, no BFG, no LFS
+migration. Four repositories pin this one by gitlink or consume it in a
+recursive checkout; a rewrite changes every commit sha and every one of those
+pins, plus every clone anyone holds, to save clone time nobody has complained
+about. The decision is to document what is there and stop it growing.
+
+Stopping it growing is `.gitignore`: media, archives, documents and model
+weights are ignored by extension. Already-tracked files are unaffected —
+`.gitignore` never untracks anything — so this changes nothing about the table
+above. It changes the next one: a new asset the app genuinely ships is added
+with `git add -f <path>` and earns a row here saying what it is for. Having to
+type `-f` is the whole mechanism.
+
+If the tree is ever trimmed, the order is obvious from the table and needs no
+history rewrite to be worth doing: the 72 undeclared font faces, then
+`dummy_assets/`, then the video. All three are deletions in a normal commit.
+
 ## CI/CD Notes
 
 - Linux native, Windows native, Web, and Android pipelines are available via GitHub Actions.

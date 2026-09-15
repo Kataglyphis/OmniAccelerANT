@@ -89,6 +89,37 @@ macos/Flutter/ephemeral/flutter_native_integration.env
 # cannot put rendered HTML back into the tree.
 docs/build/*
 
+# LARGE BINARIES: nothing new joins the ones already tracked.
+#
+# This tree carries 148 MiB in 451 tracked files and almost all of it is binary
+# assets -- the inventory and the reasons are in
+# docs/source/project-operations.md, "Large tracked binaries". That history is
+# NOT being rewritten (no filter-repo, no BFG, no LFS migration): a rewrite
+# changes every sha in a repo four other repositories pin by gitlink, for a
+# clone-size win nobody is asking for. What is worth doing is stopping the
+# growth, which is what these rules are.
+#
+# So: media, archives, documents and model weights are ignored by extension. An
+# asset the app genuinely ships is added deliberately, with `git add -f <path>`,
+# and gets a line in that doc section saying what it is for. Being forced to
+# type -f is the entire mechanism.
+*.mp4
+*.mov
+*.avi
+*.mkv
+*.webm
+*.pdf
+*.zip
+*.7z
+*.rar
+*.iso
+*.dmg
+*.onnx
+*.pt
+*.pth
+*.safetensors
+*.tflite
+
 # Agentic-loop role prompts for the opencode engine, GENERATED from
 # ANTfrastructure's shared system prompt + scripts/agentic-loop/prompts/*-overlay.md.
 # A build artefact - edit the overlay, never this.
