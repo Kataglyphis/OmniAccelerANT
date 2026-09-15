@@ -34,12 +34,14 @@ set -euo pipefail
 # exact tab-separated format, so nothing else has to change.
 #
 # Local invocation is unchanged and is the one the docs quote:
-#   bash scripts/linux/lib/generate-docs.sh
+#   bash scripts/linux/generate-docs.sh
 # CI reaches it through scripts/linux/run-native-linux.sh, same arguments.
 
 _generate_docs_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# This wrapper sits in scripts/linux/ because it is an executable, not a
+# library; lib/ holds only sourced files (and the renderer below).
 # shellcheck source=scripts/linux/lib/container-steps.sh
-source "${_generate_docs_dir}/container-steps.sh"
+source "${_generate_docs_dir}/lib/container-steps.sh"
 
 # KEPT, and not upstream's business: the image puts Flutter on PATH through
 # ~/.bashrc, which a non-interactive `bash script.sh` never reads.
@@ -126,7 +128,7 @@ trap 'rm -f "$RENDER_CONFIG"' EXIT
 	done
 } >"$RENDER_CONFIG"
 
-"$DARTDOC_BUILD_PYTHON" "${_generate_docs_dir}/dartdoc-guides-local.py" \
+"$DARTDOC_BUILD_PYTHON" "${_generate_docs_dir}/lib/dartdoc-guides-local.py" \
 	"$DOC_API_DIR" "$RENDER_CONFIG"
 
 dartdoc_build_fix_ownership
