@@ -90,10 +90,10 @@ STRICT_CHECKS="0"
 REPO_ROOT="$(resolve_repo_root /workspace)"
 cd "$REPO_ROOT"
 
-git_safe_dirs "$FLUTTER_DIR"
-
-assert_flutter_available "$FLUTTER_DIR" || exit 2
-source_bashrc_and_add_flutter_to_path "$FLUTTER_DIR"
+# PATH, the workspace safe.directory, PUB_CACHE and the `flutter --version`
+# measurement, in one upstream call - lib/container-steps.sh says what the
+# three local functions this replaces did that the image already does.
+flutter_lane_prepare_env "$FLUTTER_DIR" || exit 2
 
 # Container-only preparation. None of this exists on a developer machine, which
 # is why it lives here and is NOT pushed down into run-android.sh.

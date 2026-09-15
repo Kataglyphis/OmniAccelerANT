@@ -68,9 +68,8 @@ if [[ "$REPO_ROOT" != "/workspace" ]]; then
 fi
 cd "$REPO_ROOT"
 
-assert_flutter_available "$FLUTTER_DIR" || exit 2
-source_bashrc_and_add_flutter_to_path "$FLUTTER_DIR"
-git_safe_dirs "$FLUTTER_DIR"
+# See lib/container-steps.sh for what this replaces.
+flutter_lane_prepare_env "$FLUTTER_DIR" || exit 2
 
 # Ensure clang has a usable C++ runtime/toolchain setup in container builds.
 setup_compiler_cache
@@ -103,6 +102,6 @@ echo "=== Build Web App ==="
 flutter_rust_bridge_codegen build-web \
   --release \
   --rust-root third_party/OxidANT
-flutter build web --release --wasm
+flutter_build_web --wasm
 
 echo "=== Web build completed successfully ==="

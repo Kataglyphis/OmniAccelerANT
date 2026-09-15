@@ -4,17 +4,32 @@ Build and run instructions by target platform.
 
 ## Container Setup (Linux/WSL)
 
-Use the published container image for reproducible tooling:
+To run a command in the family Linux CI image, use ANTfrastructure's driver
+rather than typing an engine line. It owns the image reference, the bind mount
+at `/workspace` and the `safe.directory` that mount needs, picks `nerdctl` or
+`docker` for you, and sets the `MSYS_NO_PATHCONV` a Git Bash caller needs:
 
 ```bash
+bash third_party/ANTfrastructure/linux/scripts/run-in-ci-image.sh . -- flutter --version
+```
+
+The **Stream demo** needs three things that driver deliberately does not expose
+— an interactive TTY, published ports and a `--device` passthrough — so it stays
+a direct engine call. The image reference is still not typed here: the same
+`ci-image-ref.sh` the driver calls composes it out of the hub's `versions.env`,
+which is the family's one owner of both CI image refs.
+
+```bash
+IMAGE="$(bash third_party/ANTfrastructure/linux/scripts/ci-image-ref.sh)"
 docker run -it --rm \
   -v "$(pwd)":/workspace \
+  -w /workspace \
   -p 9090:9090 \
   -p 8443:8443 \
   -p 8444:8444 \
   -p 5173:5173 \
   --device=/dev/video0 \
-  ghcr.io/kataglyphis/kataglyphis_beschleuniger:latest-cross
+  "${IMAGE}"
 ```
 
 For WSL2 camera passthrough, ensure the USB device is attached before running the container.

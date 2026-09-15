@@ -104,8 +104,8 @@ if [[ "$REPO_ROOT" != "/workspace" ]]; then
 fi
 cd "$REPO_ROOT"
 
-git_safe_dirs "$FLUTTER_DIR"
-assert_flutter_available "$FLUTTER_DIR" || exit 2
+# See lib/container-steps.sh for what this replaces.
+flutter_lane_prepare_env "$FLUTTER_DIR" || exit 2
 
 # CodeQL is NOT implemented in the native Linux flow. This used to print a
 # warning and carry on, which meant the workflow could ask for a scan, get

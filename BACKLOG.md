@@ -56,9 +56,10 @@ here.
       drivers anyway. `package-linux.sh` and `generate-docs.sh` were the last
       two executables in `lib/` and moved up to `scripts/linux/` on 2026-09-15,
       so the rule now holds without exception: **`scripts/linux/lib/` holds only
-      files that are sourced or imported, never a file you invoke.** The one
-      remaining non-`.sh` there, `dartdoc-guides-local.py`, is run by
-      `generate-docs.sh` as data, not by a human.)
+      files that are sourced or imported, never a file you invoke.**
+      `dartdoc-guides-local.py`, the one non-`.sh` file that was left there, is
+      gone too: ANTfrastructure upstreamed its three divergences on 2026-09-15
+      and `generate-docs.sh` calls `dartdoc_build_main`.)
 - [b] `export_android_gstreamer_env` (`scripts/linux/lib/container-steps.sh`)
       only exists because the image ships the Android GStreamer SDK at
       `/opt/android/gstreamer` without exporting `GSTREAMER_ROOT_ANDROID`. It is
