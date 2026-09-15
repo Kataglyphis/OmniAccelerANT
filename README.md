@@ -168,8 +168,9 @@ certificate warning. `signalingServerUrl` in
 `assets/settings/webrtc_settings.json` is host-relative (`/webrtc-ws`), so the
 web client connects to the origin it was served from and no hostname is baked
 into the build. On a Raspberry Pi 5 with the CSI camera,
-`scripts/linux/cat-stream/run-producer-pi.sh --build` replaces step 1: it adds
-`--libcamera` and the host-libcamera container wiring the Pi 5 kernel needs.
+`third_party/OxidANT/scripts/linux/cat-stream/run-producer-pi.sh --build`
+replaces step 1 — it lives in OxidANT, which owns the producer crate — and adds
+`--libcamera` plus the host-libcamera container wiring the Pi 5 kernel needs.
 Pipeline details, flags and troubleshooting:
 [docs/source/camera-streaming.md](docs/source/camera-streaming.md).
 
