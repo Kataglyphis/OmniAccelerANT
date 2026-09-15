@@ -62,28 +62,29 @@ Preview docs:
 dhttpd --path doc/api --host 127.0.0.1 --port 8080
 ```
 
-### Sphinx theme (moved to DocumANTation)
+### There is no Sphinx site here
 
-The shared Sphinx theme/template that used to live in ANTfrastructure
-(`sphinx-kataglyphis-theme/` + `docs/source_templates/`) was moved into the
-[DocumANTation](https://github.com/Kataglyphis/DocumANTation) repository.
-Consumers vendor it as a submodule (`third_party/DocumANTation`) and install it via
-a docs requirements file:
+`docs/source/` is Markdown source for exactly one consumer: the `dart doc` site
+that `scripts/linux/lib/generate-docs.sh` builds, which stages each guide listed in
+that script's `DARTDOC_BUILD_GUIDES` array. The `docs/Makefile`, `docs/make.bat`,
+`docs/source/conf.py` and `docs/source/index.rst` that used to sit beside it were
+scaffolding from `sphinx-quickstart` that no lane, workflow or script ever
+invoked; they were deleted on 2026-09-15 and git history keeps them. Add a guide
+by adding the file and one array row, not by reviving a second doc builder.
 
-```text
--e ./third_party/DocumANTation/sphinx-kataglyphis-theme
-```
+If a Sphinx site is ever wanted, take the shared theme rather than the
+standalone `press` theme the deleted `conf.py` named: it lives in
+[DocumANTation](https://github.com/Kataglyphis/DocumANTation), consumers vendor
+it as `third_party/DocumANTation` and install it through a docs-scoped
+requirements file (`-e ./third_party/DocumANTation/sphinx-kataglyphis-theme`),
+and `conf.py` then reduces to
+`from sphinx_kataglyphis import setup_theme; setup_theme(globals(), ...)`.
 
-`conf.py` then reduces to `from sphinx_kataglyphis import setup_theme; setup_theme(globals(), ...)`.
-This repo's `docs/source/conf.py` still uses the standalone `press` theme; follow the pattern
-above (see ANTfrastructure's `docs/conf.py`) when migrating.
-
-This repo no longer carries a root `requirements.txt`: the only thing it ever fed was
-the cmake-format gate, which now takes its pinned bootstrap set from
-`third_party/ANTfrastructure/linux/scripts/cmake-format.requirements.txt`. When the theme
-migration happens, add a docs-scoped requirements file (e.g. `docs/requirements.txt`)
-rather than resurrecting the root one — an unpinned root file next to a pinned shared
-one is exactly the drift this removal closes.
+This repo carries no root `requirements.txt`: the only thing it ever fed was the
+cmake-format gate, which now takes its pinned bootstrap set from
+`third_party/ANTfrastructure/linux/scripts/cmake-format.requirements.txt`. A docs
+requirements file would be docs-scoped for the same reason — an unpinned root
+file next to a pinned shared one is exactly the drift that removal closed.
 
 ## CI/CD Notes
 

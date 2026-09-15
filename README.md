@@ -31,7 +31,6 @@ OmniAccelerANT bundles a Flutter/Dart frontend, a Rust/C++ inference core, and a
 - 📹 **GStreamer WebRTC livestreaming** with ready-to-use pipelines for USB, Raspberry Pi, and Orange Pi cameras.
 - 🌉 **flutter_rust_bridge integration** – Ensures a seamless API boundary between Dart UI and Rust logic.
 - 🐳 **Containerized development flow** plus native instructions for Windows, Linux, web. For details in my build environment look into [ANTfrastructure](https://github.com/Kataglyphis/ANTfrastructure). On Windows the container engine is [Stevedore](https://github.com/slonopotamus/stevedore) and build containers run with `--isolation process` (full host CPU count) — see [docs/source/platforms.md](docs/source/platforms.md).
-- 🐍 **Python inference demos** for rapid experimentation alongside the Rust core.
 
 ### 📊 Feature Status Matrix
 
@@ -210,7 +209,7 @@ Then open <http://127.0.0.1:8080>.
 | Platform Guides | [docs/source/platforms.md](docs/source/platforms.md) | Container, Windows, Raspberry Pi, and web build instructions — incl. the Windows container troubleshooting table (Dev Drive, pkg-config, rustup/Cargokit, Debug-preset pitfalls). |
 | Agent / contributor guide | [AGENTS.md](AGENTS.md) | Build workflow, container pitfalls, and quality gates for coding agents and new contributors. |
 | Known cleanups | [BACKLOG.md](BACKLOG.md) | Refactors and verification gaps this repo knows about but has not done yet, in the format ANTfrastructure's agentic loop consumes. |
-| Camera Streaming | [docs/source/camera-streaming.md](docs/source/camera-streaming.md) | GStreamer WebRTC pipelines and Python inference demos. |
+| Camera Streaming | [docs/source/camera-streaming.md](docs/source/camera-streaming.md) | GStreamer WebRTC pipelines, the Rust cat-detection producer, and the Windows webcam path. |
 | Upgrade guide | [docs/source/upgrade-guide.md](docs/source/upgrade-guide.md) | How to keep things up-to-date. |
 | Dependency upgrades | [third_party/ANTfrastructure/docs/dependency-updates.md](third_party/ANTfrastructure/docs/dependency-updates.md) | Renovate run as a local CLI. Submodule upgrades go through `bash scripts/linux/renovate-local.sh` (add `--apply` to move the gitlinks), not by hand; it does not cover `pubspec.yaml`. |
 
@@ -218,12 +217,14 @@ Build the full documentation website with `dart pub global run dartdoc` (see the
 
 ## Tests
 
-Testing infrastructure is under active development. Track progress on the roadmap or contribute test plans via pull requests.
+Testing infrastructure is under active development. The open gaps are tracked in
+[BACKLOG.md](BACKLOG.md) — contribute test plans via pull requests.
 
 ## Roadmap
 
-Upcoming features and improvements will be documented in this repository.  
-Please have a look [docs/source/roadmap.md](docs/source/roadmap.md) for more deetails.
+Planned work lives in [BACKLOG.md](BACKLOG.md), in the format ANTfrastructure's
+agentic loop consumes. The aspirational `docs/source/roadmap.md` that used to sit
+here was never filled in and was deleted on 2026-09-15; git history keeps it.
 
 ## Contributing
 
