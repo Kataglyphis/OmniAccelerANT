@@ -140,6 +140,15 @@ recorded commit, and the recorded commit is reachable from that submodule's
 remote — a gitlink bumped to a commit that was never pushed builds on the
 machine that made it and on no other.
 
+**Submodule URLs are `https://github.com/Kataglyphis/<repo>.git`, all four.**
+Not `git@github.com:`. An ssh remote needs a key, and none of the places that
+have to resolve these has one: a CI runner, the `:latest-cross` container the
+Renovate runner starts, and anyone cloning the repo without a GitHub account.
+`git submodule update --init` then fails with `Permission denied (publickey)` on
+a repository that is public. `git config -f .gitmodules submodule.<path>.url …`
+is the way to change one; follow it with `git submodule sync` so the existing
+checkout's remote moves too.
+
 **What nothing here asserts:** `AccelerANTgine` and `OxidANT` each carry a
 `third_party/ANTfrastructure` pin of their own, free to differ from this repo's.
 Bumping the hub here does not bump the hub those two build against; that has to
