@@ -155,7 +155,7 @@ ORT_DYLIB_PATH=/path/to/libonnxruntime.so \
 # 2. once: the web frontend. web/pkg/ is a generated frb artefact (gitignored),
 #    so this is the same sequence the web CI lane runs.
 rustup toolchain install nightly --component rust-src --target wasm32-unknown-unknown
-cargo install flutter_rust_bridge_codegen
+cargo install --locked --version 2.13.0 flutter_rust_bridge_codegen  # the pin in third_party/OxidANT/Cargo.toml
 flutter_rust_bridge_codegen build-web --release --rust-root third_party/OxidANT
 flutter build web --release --wasm
 

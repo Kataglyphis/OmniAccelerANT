@@ -7,7 +7,10 @@ Use this guide when upgrading dependencies or changing Rust/Dart bridge APIs.
 Regenerate bindings whenever Rust function signatures, structs, enums, or modules exposed to Dart change.
 
 ```bash
-cargo install flutter_rust_bridge_codegen
+# Match the codegen to the `flutter_rust_bridge` pin in
+# third_party/OxidANT/Cargo.toml (`=2.13.0` today). A floating latest writes
+# bindings the Rust runtime then refuses at load time.
+cargo install --locked --version 2.13.0 flutter_rust_bridge_codegen
 flutter_rust_bridge_codegen generate
 ```
 
