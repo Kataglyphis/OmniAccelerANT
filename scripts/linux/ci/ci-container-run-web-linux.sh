@@ -88,7 +88,10 @@ echo "=== Enable flutter web + Rust WASM toolchain ==="
 # rustup's auto-install, which rustup itself deprecates. Idempotent, and a
 # no-op once the image ships them — AGENTS.md § 4.
 rustup toolchain install nightly --component rust-src --target wasm32-unknown-unknown
-export PATH="${CARGO_HOME}/bin:$PATH"
+# CARGO_HOME is exported by the image; a bare host has it unset, and this file
+# runs under `set -euo pipefail`, so without the default the guard below aborts
+# on the very host it exists to serve.
+export PATH="${CARGO_HOME:-$HOME/.cargo}/bin:$PATH"
 # The image already ships the codegen at FLUTTER_RUST_BRIDGE_VERSION; a bare host
 # installs that same pin. No `|| true` (it hid a "command not found") and no
 # --force (it rebuilds 174 crates on every run of a lane that has the binary).
