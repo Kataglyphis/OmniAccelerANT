@@ -8,17 +8,22 @@ On Windows the **Stream** page runs a fully local webcam → ONNX → texture pi
 owned end-to-end by Rust — no signalling server, no browser. Video frames never
 cross the Dart bridge; only detection metadata does.
 
-> **Linux is being brought to the same design** (owner decision, 2026-09-16). It
-> is an *addition*: the WebRTC cat-stream below stays, and a Linux build with no
-> `KATAGLYPHIS_RUST_FEATURES` keeps today's C++ GStreamer MethodChannel path
-> exactly as it is. Landed so far: the feature forwarding in
-> `rust_builder/linux/CMakeLists.txt`. Still to land: a Linux `knt_push_frame`
-> export in the native plugin, ORT dylib resolution, and the Dart branch that
-> routes Linux to `RustWebcamView`. Two things to know before starting — the
-> Linux feature set cannot include `onnxruntime_directml` (DirectML is
-> Windows-only), and OxidANT's compiled-in default model path resolves to
-> `crates/inference/resources/models/`, a directory that does not exist, so pass
-> a model path explicitly or set `KATAGLYPHIS_ONNX_MODEL`.
+> **Linux has the same design as of 2026-09-16 — built, not yet seen working.**
+> It is an *addition*: the WebRTC cat-stream below stays, and a Linux build with
+> no `KATAGLYPHIS_RUST_FEATURES` keeps the C++ GStreamer MethodChannel path
+> exactly as it is. All four links are in the tree — the `knt_push_frame` C ABI,
+> the feature forwarding, ONNX Runtime bundling, and the Dart branch behind a
+> runtime `listCameras()` probe.
+>
+> Build it with
+> `KATAGLYPHIS_RUST_FEATURES=gstreamer,onnxruntime_dynamic` — **not**
+> `onnxruntime_directml`, which is a Windows-only execution provider. Then check
+> the ABI with `scripts/linux/check-knt-abi.sh` (see below).
+>
+> **No frame has actually reached the screen yet**, and the packaged artifacts do
+> not carry their GStreamer dependency closure. BACKLOG.md tracks both, plus the
+> model path a packaged build needs. Do not treat a green lane as a working
+> camera.
 
 **Data flow:**
 

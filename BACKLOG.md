@@ -24,6 +24,94 @@ here.
       `Fix Plugin Symlinks (Junctions)` step. Aligning the two needs a full
       Windows container build to prove it — see AGENTS.md § 4.
 
+## Open — Linux Rust webcam inference (landed 2026-09-16, not yet usable)
+
+All four links are in the tree and the lane is green, but nothing here has
+produced a frame and nothing this repo publishes can run the feature off the
+build image. Ordered so each item is independently verifiable.
+
+- [ ] **The packaged Linux artifacts do not carry their GStreamer closure, and
+      this is true even with the features OFF.** `readelf -d` on
+      `bundle/lib/libkataglyphis_native_inference_plugin.so` lists eight
+      unconditional `DT_NEEDED` entries — `libgstreamer-1.0.so.0`,
+      `libgstbase`, `libgstapp`, `libgstvideo`, `libgstwebrtc`, `libgstsdp`,
+      `libgstanalytics` — and `bundle/lib/` contains none of them, while the
+      `.deb` declares only `libc6`, `libstdc++6`, `libgtk-3-0`
+      (`app-packaging.sh`). So tar and deb only start on a host that already
+      has GStreamer 1.29. Invisible in the build image, whose ld.so cache has
+      everything — which is why a green lane never caught it. The flatpak may
+      be fine (`org.freedesktop.Platform` ships GStreamer); AppImage is
+      unchecked. Precedent for the fix is in this repo:
+      `scripts/linux/cat-stream/package-producer-bundle.sh` globs the closure
+      and writes a launcher. Decide bundle-the-closure vs declare-the-dependency
+      before writing code; they are different products.
+- [ ] **A `readelf`-based closure gate would have caught the row above in one
+      second, with no display and no container-in-container.** For the runner
+      and every `bundle/lib/*.so`, read `DT_NEEDED` and fail unless each name is
+      bundled or in an allowlist that is literally the `.deb`'s `Depends` set.
+      Natural home: `scripts/linux/run-native-linux.sh`, after the Flutter build
+      and before packaging. Deterministic and arch-independent, unlike anything
+      that needs to launch the app.
+- [ ] **`liboxidant.so` has no `RUNPATH`, so ort's `dlopen` cannot find the
+      bundled ONNX Runtime even though the file is now there.** `readelf -d`
+      shows the runner carrying `RUNPATH [/opt/gcc-16.2.0/lib64:$ORIGIN/lib]`
+      and `liboxidant.so` carrying none — and glibc resolves a `dlopen` against
+      the *calling* object's search path, not the executable's. 02886c3 fixed
+      the linked dependency (`libonnxruntime.so.1` is a real `DT_NEEDED` and is
+      bundled); the runtime-loaded half still needs either `ORT_DYLIB_PATH` set
+      by a launcher — `package-producer-bundle.sh` already writes exactly such a
+      launcher — or `RUNPATH` on the cargokit output.
+- [ ] **Nothing sets `KATAGLYPHIS_ONNX_MODEL`, and a packaged build has no
+      model.** `grep -rn KATAGLYPHIS_ONNX_MODEL scripts/ rust_builder/ lib/
+      pubspec.yaml` returns nothing. OxidANT's fallback resolves to
+      `<workspace>/resources/models/yolov10m.onnx` (fixed in 7b8ffb3 — it used
+      to name a directory that never existed), which is the checkout, not a
+      bundle. Local runs work only because the 61 MB model sits at
+      `/workspace`. Either the launcher points at a bundled model or the UI
+      fails with "no model configured"; both beat file-not-found.
+- [ ] **No lane sets `KATAGLYPHIS_RUST_FEATURES`, so CI has never built the
+      Linux feature path.** The only setter in the repo is
+      `scripts/windows/Build-Windows.ps1:211-212`. Every Linux lane run to date,
+      local and CI, built the crate featureless. Turning it on in
+      `run-native-linux.sh` or the workflow is a small change — but land it
+      AFTER the closure work above, or CI starts publishing a featured artifact
+      that cannot start.
+- [ ] **`scripts/linux/check-knt-abi.sh` is not wired into anything.**
+      `grep -rn check-knt-abi scripts/ .github/` finds only the script and its
+      docs. It is the one piece of real verification the feature has, and it
+      runs only when a human remembers. Its `--bundle-lib` default is also
+      hard-coded to `build/linux/x64/release/bundle/lib`, so it needs
+      parameterising from the lane's arch and build mode first.
+- [b] **No frame has travelled Rust → `knt_push_frame` → texture.** Blocked on
+      hardware, not on code: frames end in a GTK texture and no lane has a
+      `DISPLAY`. The dev box is Windows with a C920 and `usbipd` installed, so
+      the route exists (§ 4) — attach the camera to WSL, run the bundle under
+      Xvfb in the image, and grep the log for
+      `[my_texture] first pushed frame`. Needs `xvfb` in the image, or an
+      `apt-get install` as root inside the container.
+
+## Open — smaller code leftovers
+
+- [ ] **`MyTexture`'s `copy_pixels` and `set_color` still race.** 2026-09-16
+      added a `pushed_mutex` covering the `knt_push_frame` path and fixed the
+      32-bit overflow in both, but `set_color` writes `self->buffer` while
+      `copy_pixels` reads it with no shared lock. Clicking a colour button
+      during playback tears rather than crashes, because the buffer is never
+      reallocated after `my_texture_new` — which is why this is a leftover and
+      not the bus-watch-level bug it resembles. Windows solved the same shape
+      with a `present_buffer_`; record whichever way it goes in a comment, so
+      the asymmetry is not "fixed" by accident later.
+- [ ] **Dead Windows arm in `stream_page.dart`.** The `if (_isWindows)` branch
+      that sends `setPipeline` as a map is unreachable: `_useRustWebcam` is
+      unconditionally true on Windows, so the MethodChannel path is never taken
+      there. Harmless, and deleting it needs no Windows build — but it reads as
+      a live platform difference.
+- [ ] **`books/` and `games/` markdown are missing**, ratcheted in
+      `test/settings_asset_paths_test.dart`'s `_knownMissing`. Every `/books/*`
+      and `/games/*` route renders a failed load on the deployed web build.
+      Equivalents exist under `dummy_assets/`, so this is a content decision,
+      not a recovery problem. Shrink the ratchet set; never grow it.
+
 ## Open — duplication and drift
 
 - [ ] Android SDK component versions are pinned in four places: the global
@@ -73,6 +161,37 @@ here.
       already written to no-op when the variable is set, so it can be deleted
       outright once the image exports it — blocked on that. Same shape as the
       six workarounds that were deleted on 2026-09-05.
+
+## Open — release and repository state
+
+- [ ] **`main` is 246 commits behind `develop`**, last synced by PR #23. Decide
+      what `main` is for. If it is the release branch, that gap is the finding;
+      if nothing reads it, say so in a doc and stop carrying it. Nothing in
+      `.github/workflows/` triggers on `main` alone any more, so today it costs
+      nothing but confuses every reader.
+- [ ] **`version:` is still `1.1.0+1`**, which is what the annotated tag
+      `1.1.0+1` already names — 246 commits ago. `app-packaging.sh` stamps it
+      into the `.deb` `Version:`, the AppImage filename and the flatpak
+      filename, so every artifact built since is version-indistinguishable from
+      that release. `msix_config.msix_version` repeats it by hand at
+      `pubspec.yaml`, so the two move together or drift.
+- [ ] **Branch protection after the develop-default rollout (2026-09-16).**
+      `develop` is now the default in all 11 active non-fork Kataglyphis repos.
+      Protection is per-branch, so whatever guarded `main` in the seven that
+      were switched does not guard `develop`. This repo already protected
+      `develop`; the others may now have an unprotected default.
+- [ ] **Three of the four build lanes have no concurrency group.** The web lane
+      got one when it gained a `pull_request` trigger; native, android and
+      windows did not. Consecutive pushes to one ref run in full, in parallel.
+      Cancelling an in-progress Windows or Android run has a different cost
+      profile from the web one, which is why it was left as its own decision.
+- [ ] **Dependabot #40 (mockito 5.7.0 → 5.8.1) may be the wrong fix.** Check
+      whether anything imports `mockito` — if nothing does, drop the dev
+      dependency rather than bumping it. It will also need a rebase against the
+      current `pubspec.lock`. (#43 is blocked for a real reason, recorded as
+      CON5 on ANTfrastructure's backlog: it moves
+      `permission_handler_android` to 14.x, which needs `compileSdk 37` while
+      the image is read-only at android-36.)
 
 ## Open — hygiene
 
@@ -134,6 +253,16 @@ here.
 
 ## Open — verification gaps
 
+- [ ] **The Android Kotlin bus-error fix is unbuilt.**
+      `KataglyphisNativeInferencePlugin.kt`'s `handleNoArgCommand` now reports
+      `GStreamerNative.getLastError()` alongside the throwable, so a failed
+      `play` says why instead of "play failed". Nothing has compiled it: the
+      Android lane has a single matrix row, that row runs CodeQL, and CodeQL's
+      Kotlin extractor stops Gradle before the Kotlin step (§ 4). It is a
+      ten-line change shaped exactly like `handleSetPipeline` twenty lines
+      above it, but "shaped like working code" is not a build. Cheapest fix is
+      probably a Gradle unit-test task for that module alone, which would also
+      give the plugin its first JVM test.
 - [ ] `scripts/windows/Start-Windows.ps1` has never been launched: it needs a
       desktop session, not a container.
 - [ ] The `-CodeQL` path of `Build-Windows.ps1` has never been exercised.
