@@ -43,7 +43,7 @@ dependencies:
   sqlite3: ^3.3.1
   web: ^1.1.1
 dev_dependencies:
-  mockito: ^5.6.4
+  mockito: ^5.8.1
   # Declared because test/pinned_artefacts_test.dart imports it directly; it was
   # already present transitively, which the analyzer flags rather than allows.
   crypto: ^3.0.6
