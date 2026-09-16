@@ -22,6 +22,17 @@ on:
   pull_request:
     branches: ["main", "develop"]
 
+# Same shape as submodule-pins.yml. This lane builds the Rust wasm and
+# recompiles the standard library, so two runs of it on one ref is the most
+# expensive way to learn the same thing twice — and the pull_request trigger
+# above is what made that reachable, because every push to a PR branch starts
+# another one. The other three build lanes have no group either; adding theirs
+# is a separate change, since cancelling an in-progress Windows or Android run
+# has a different cost profile.
+concurrency:
+  group: web-linux-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
     name: 🚀 Deploy website on push
