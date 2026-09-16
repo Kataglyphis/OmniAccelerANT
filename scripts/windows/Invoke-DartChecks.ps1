@@ -66,13 +66,19 @@ if (-not $engine) {
 }
 
 if (-not $Image) {
-	$versionsEnv = Join-Path $repoRoot 'third_party/ANTfrastructure/linux/scripts/01-core/versions.env'
-	if (-not (Test-Path $versionsEnv)) {
-		throw "versions.env not found at $versionsEnv — run 'git submodule update --checkout --recursive'."
+	# Get-CiImageReference, exactly as Invoke-LinuxLane.ps1 does it — see the
+	# longer note there. A hand-rolled versions.env read stood here first and
+	# was the fourth copy of a parse the hub owns and tests
+	# (test-ci-image-ref.sh asserts it agrees with verify_ci_image_refs.py).
+	. (Join-Path $PSScriptRoot 'Resolve-BuildModule.ps1')
+	Import-BuildModule 'WindowsContainerImage.Common'
+	if (-not (Get-Command -Name 'Get-CiImageReference' -ErrorAction SilentlyContinue)) {
+		throw ("WindowsContainerImage.Common was imported but exports no Get-CiImageReference. " +
+			"The pinned ANTfrastructure predates it - bump third_party/ANTfrastructure, or pass -Image explicitly.")
 	}
-	$prefix = (Select-String -Path $versionsEnv -Pattern '^\s*IMAGE_REGISTRY_PREFIX=(.+)$').Matches[0].Groups[1].Value.Trim('"', "'")
-	$tag = (Select-String -Path $versionsEnv -Pattern '^\s*CI_IMAGE_LINUX_TAG=(.+)$').Matches[0].Groups[1].Value.Trim('"', "'")
-	$Image = "${prefix}:${tag}"
+	# No arguments: it resolves versions.env from its own location, so the answer
+	# comes out of the ANTfrastructure this repo actually pins.
+	$Image = Get-CiImageReference
 }
 
 # Volumes start root-owned; the image runs as uid 1001.

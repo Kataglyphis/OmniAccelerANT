@@ -156,7 +156,14 @@ static gboolean my_texture_copy_pixels(FlPixelBufferTexture* texture,
                                        GError** error) {
   (void)error;
   MyTexture* self = MY_TEXTURE(texture);
-  
+
+  // my_texture_new leaves buffer null if its allocation failed, and every
+  // branch below memcpys into it. Failing the callback is the honest answer;
+  // Flutter then skips the frame instead of the process dying here.
+  if (!self->buffer) {
+    return FALSE;
+  }
+
   const size_t buffer_size =
       static_cast<size_t>(self->width) * static_cast<size_t>(self->height) * 4U;
 
@@ -271,9 +278,12 @@ void my_texture_set_color(FlTexture* texture, uint8_t r, uint8_t g, uint8_t b) {
   g_return_if_fail(MY_IS_TEXTURE(self));
   if (!self->buffer) return;
 
-  const uint32_t pixels = self->width * self->height;
-  for (uint32_t i = 0; i < pixels; ++i) {
-    uint8_t* p = self->buffer + i * 4;
+  // size_t throughout: both the pixel count and the byte offset overflow a
+  // uint32_t on a large texture, and the offset does so first.
+  const size_t pixels =
+      static_cast<size_t>(self->width) * static_cast<size_t>(self->height);
+  for (size_t i = 0; i < pixels; ++i) {
+    uint8_t* p = self->buffer + i * 4U;
     p[0] = r;
     p[1] = g;
     p[2] = b;
@@ -313,8 +323,19 @@ FlTexture* my_texture_new(uint32_t width, uint32_t height, uint8_t r, uint8_t g,
   MyTexture* self = MY_TEXTURE(g_object_new(my_texture_get_type(), nullptr));
   self->width = width;
   self->height = height;
-  self->buffer = static_cast<uint8_t*>(malloc(width * height * 4));
-  memset(self->buffer, 0, width * height * 4);
+  // size_t, not the uint32_t product: `width * height * 4` promotes to a
+  // 32-bit int, so anything past ~4096x4096 wraps and mallocs far less than
+  // copy_pixels then writes. The malloc result is checked because the
+  // set_color below writes width*height*4 bytes unconditionally.
+  const size_t buffer_bytes =
+      static_cast<size_t>(width) * static_cast<size_t>(height) * 4U;
+  self->buffer = static_cast<uint8_t*>(malloc(buffer_bytes));
+  if (!self->buffer) {
+    g_warning("[my_texture] out of memory for a %ux%u texture (%zu bytes)",
+              width, height, buffer_bytes);
+    return FL_TEXTURE(self);
+  }
+  memset(self->buffer, 0, buffer_bytes);
 
   gst_init(nullptr, nullptr);
 

@@ -815,8 +815,8 @@ on the stage:
 
 | Lane | `--strict-checks` | A failing format/analyze/test |
 | --- | --- | --- |
-| native Linux ([`dart_on_native_linux.yml`](.github/workflows/dart_on_native_linux.yml):172) | `true` | reds the lane |
-| web ([`dart_on_web_linux.yml`](.github/workflows/dart_on_web_linux.yml):58) | `true` | reds the lane |
+| native Linux ([`dart_on_native_linux.yml`](.github/workflows/dart_on_native_linux.yml)) | `true` | reds the lane |
+| web ([`dart_on_web_linux.yml`](.github/workflows/dart_on_web_linux.yml)) | `true` | reds the lane |
 | android (`ci-container-run-android.sh`) | not passed | reports and moves on — deliberate |
 
 So "treat a green `checks` run as *was executed*, not as *passed*" is true of
