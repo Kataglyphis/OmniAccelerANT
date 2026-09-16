@@ -177,6 +177,75 @@ If the tree is ever trimmed, the order is obvious from the table and needs no
 history rewrite to be worth doing: the 72 undeclared font faces, then
 `dummy_assets/`, then the video. All three are deletions in a normal commit.
 
+## Serving the web build
+
+Two servers, one contract. Both must send `Cross-Origin-Opener-Policy: same-origin`
+and `Cross-Origin-Embedder-Policy: require-corp`, and both must serve `.wasm` as
+`application/wasm` — the Stream page checks `crossOriginIsolated` before using
+its SharedArrayBuffer, and `WebAssembly.compileStreaming()` refuses anything that
+is not `application/wasm`.
+
+| Where | Config |
+| --- | --- |
+| The cat-stream demo, any board | `scripts/linux/cat-stream/serve.sh` (generates its own nginx.conf) |
+| The hosted site | [`nginx.conf`](../../third_party/ANTfrastructure/linux/webserver/nginx.conf) + [`security-headers.conf`](../../third_party/ANTfrastructure/linux/webserver/security-headers.conf) |
+
+**There is no `web/.htaccess` any more.** It was deleted on 2026-09-16: the site
+is served by nginx, which never reads one, so every rule in it — the headers, the
+wasm MIME type, the caching — was inert. Keeping it was worse than not having it,
+because it read like the deployment's source of truth while changing nothing. Two
+things it got wrong are worth recording so they are not reintroduced: it sent
+`Cross-Origin-Embedder-Policy: credentialless`, which Safari does not implement,
+and it matched `\.(js|wasm|…)$` with `max-age=31536000, immutable`, which covers
+`main.dart.js`, `flutter_bootstrap.js` and `main.dart.wasm` — none of which are
+content-hashed, so a redeploy would never have reached a returning visitor.
+Upstream's nginx config gets both right.
+
+`web/index.html` also carries three `<meta http-equiv>` COOP/COEP tags' worth of
+explanation and no tags: browsers honour those headers only as real HTTP
+responses, never as `<meta>`, so the ones that used to sit there had never done
+anything.
+
+## The web lane's CanvasKit source
+
+`scripts/linux/ci/ci-container-run-web-linux.sh` builds with
+`--no-web-resources-cdn`. The flag defaults to **on** in `flutter build web`,
+and leaving it on bakes `https://www.gstatic.com/flutter-canvaskit/<engineRevision>`
+into two independent places:
+
+1. the `flutter.js` loader's base URL — a single URL shared by the canvaskit and
+   skwasm branches, so `--wasm` does **not** escape it; and
+2. the `FLUTTER_WEB_CANVASKIT_URL` dart-define compiled into the app.
+
+The renderer files ship in `build/web/canvaskit/` either way, so the default
+buys nothing but a CDN round trip — and the whole point of the cat-stream
+runbook is a Raspberry Pi serving `build/web` on a LAN. A host with no route to
+`gstatic.com` renders a blank page with nothing in the console.
+
+**Verify it with the bootstrap key, not with grep:**
+
+```bash
+grep -o '"useLocalCanvasKit":[a-z]*' build/web/flutter_bootstrap.js   # => "useLocalCanvasKit":true
+```
+
+The key is emitted **only** when true, so its absence is the regression.
+
+**Do not verify by grepping for `gstatic`.** `flutter.js` and
+`flutter_bootstrap.js` each keep exactly one hit whether the flag is on or off,
+because the URL is a string literal in the *untaken* arm of the loader's own
+ternary:
+
+```js
+e.engineRevision && !e.useLocalCanvasKit
+  ? W("https://www.gstatic.com/flutter-canvaskit", e.engineRevision)
+  : "canvaskit"
+```
+
+`useLocalCanvasKit` flips that branch to the local `canvaskit` directory; it does
+not delete the string. Measured 2026-09-16 on a `--wasm` build: 1 hit in each of
+those two files before and after, 0 in `main.dart.mjs`. A "gstatic must be 0"
+check would fail forever and teach the next reader that the flag does not work.
+
 ## CI/CD Notes
 
 - Linux native, Windows native, Web, and Android pipelines are available via GitHub Actions.

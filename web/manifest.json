@@ -1,11 +1,11 @@
 {
-    "name": "kataglyphis-webfrontendproject",
-    "short_name": "kataglyphis-webfrontendproject",
+    "name": "OmniAccelerANT",
+    "short_name": "OmniAccelerANT",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0B1220",
     "theme_color": "#0B1220",
-    "description": "Find out about ME",
+    "description": "Cross-platform AI inference: a Flutter frontend over a Rust core, with live GStreamer WebRTC object detection.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

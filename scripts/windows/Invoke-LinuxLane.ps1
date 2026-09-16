@@ -21,13 +21,48 @@ param(
 	[string] $AppName = '',
 	[string] $PackageFormats = 'tar,deb,flatpak,appimage',
 	[string] $InstallPackagingDeps = 'true',
-	[string] $StrictChecks = 'false',
+	# 'true' because both Linux workflows pass --strict-checks true
+	# (dart_on_native_linux.yml:172, dart_on_web_linux.yml:58) and this driver's
+	# entire contract is "same image, same script, same arguments as the
+	# workflow". It defaulted to 'false' until 2026-09-16, which meant the local
+	# lane graded LESS than CI: a format or analyze failure warned here and red
+	# there, so the one run that was supposed to catch it was the one that could
+	# not. Note this is not the same switch as the android lane's non-strict
+	# checks (ci-container-run-android.sh), which are deliberate.
+	[string] $StrictChecks = 'true',
 	[switch] $SkipCodeQL,
 	[switch] $SkipDocs,
 	[switch] $KeepContainer,
 	[string] $ContainerName = "kataglyphis-linux-lane-$Lane-$Arch",
 	# AGENTS.md § 5.
-	[string[]] $ContainerNativePaths = @('/workspace/build'),
+	#
+	# '/workspace/.pub-cache' joined this list on 2026-09-16. PUB_CACHE defaults
+	# to <repo>/.pub-cache (ANTfrastructure's lane-prologue.sh:63), which on this
+	# box is a bind-mounted Windows drive — and pub installs a package by
+	# renaming it out of .pub-cache/_temp, which is exactly the operation a
+	# Windows bind mount cannot do for the container uid:
+	#   Rename failed, path = '/workspace/.pub-cache/_temp/dirXXXXXX'
+	#   (OS Error: Permission denied, errno = 13)
+	# The trap is that it only fires when pub actually DOWNLOADS something. With
+	# a warm cache the lane resolves from disk, renames nothing and passes — so
+	# this sat undetected until a pubspec.yaml edit changed the resolution. In
+	# other words the local lane was green precisely as long as you did not touch
+	# dependencies, which is when you most want it. CI is unaffected: there the
+	# workspace is a real Linux filesystem.
+	# '/workspace/third_party/OxidANT/target' joined for the same reason on the
+	# same day, found by the web lane: cargo builds an rlib by writing a
+	# temp-archive directory and then REMOVING it, and the bind mount refuses the
+	# remove for the container uid:
+	#   error: failed to build archive at '.../libwasm_bindgen_macro_support-*.rlib':
+	#   failed to remove temporary directory: Permission denied (os error 13)
+	#   at path '.../out/.tmpXXXXXX.temp-archive'
+	# The web lane hits it hardest because `-Z build-std` recompiles the standard
+	# library, so it is doing archive work for hundreds of crates.
+	[string[]] $ContainerNativePaths = @(
+		'/workspace/build',
+		'/workspace/.pub-cache',
+		'/workspace/third_party/OxidANT/target'
+	),
 	# Debugging switches only; CI has no equivalent.
 	[string[]] $Env = @()
 )
@@ -129,8 +164,13 @@ $laneArgs = switch ($Lane) {
 			'--run-codeql', $runCodeQL)
 	}
 	'web' {
+		# $Arch, not a literal: the workflow only has an x64 row today, but the
+		# driver still selects the container --platform from -Arch, so a literal
+		# here built an x64 app inside an arm64 container and said nothing.
+		# The lane script validates the value, so a bad one exits 2 rather than
+		# guessing.
 		@('bash', '/workspace/scripts/linux/ci/ci-container-run-web-linux.sh',
-			'--arch', 'x64',
+			'--arch', $Arch,
 			'--flutter-dir', '/opt/flutter',
 			'--strict-checks', $StrictChecks,
 			'--run-codeql', 'false')
@@ -163,12 +203,29 @@ Write-Host "engine : $engine"
 Write-Host "command: $($engineArgs -join ' ')"
 Write-Host ''
 
-# Windows source path, never the translated /mnt form — AGENTS.md § 5.
-& $engine @engineArgs
-$laneExitCode = $LASTEXITCODE
+# Pre-clean, because containerd owns the container and the nerdctl client does
+# not. Ctrl-C or a killed shell leaves it Up, and the NEXT run then dies on
+#   name-store error / name "<name>" is already used by ID "<64 hex>"
+# while the plain `container remove` below ALSO fails on it
+#   ("is in running status. unpause/stop container first or force removal"),
+# so the lane stays wedged until someone runs `nerdctl rm -f` by hand.
+# `remove --force` exits 0 both on a running leftover and on no container at
+# all, which is what makes it safe to run unconditionally.
+& $engine 'container' 'remove' '--force' $ContainerName 2>&1 | Out-Null
 
-if (-not $KeepContainer) {
-	& $engine 'container' 'remove' $ContainerName 2>&1 | Out-Null
+$laneExitCode = 1
+try {
+	# Windows source path, never the translated /mnt form — AGENTS.md § 5.
+	& $engine @engineArgs
+	$laneExitCode = $LASTEXITCODE
+}
+finally {
+	# In a finally so an interrupt cleans up too. -KeepContainer still wins, and
+	# nothing here may touch $laneExitCode — the caller's verdict is the lane's,
+	# not the cleanup's.
+	if (-not $KeepContainer) {
+		& $engine 'container' 'remove' '--force' $ContainerName 2>&1 | Out-Null
+	}
 }
 
 exit $laneExitCode

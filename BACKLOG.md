@@ -37,7 +37,14 @@ here.
 - [ ] `Invoke-LinuxLane.ps1` repeats each workflow's argument list. The sets
       were verified identical, but nothing enforces that: a flag added to a
       workflow and not to the driver silently breaks local/CI parity, which is
-      the entire point of the driver.
+      the entire point of the driver. **Sharpened 2026-09-16:** the flag *names*
+      were identical and the parity was still broken — `-StrictChecks` defaulted
+      to `'false'` while both workflows passed `true`, so the driver graded less
+      than CI for every local run. A checker that diffs flag names would not
+      have caught it; it has to compare the **values** the driver actually
+      sends, which means invoking it with `-WhatIf`-style arg capture (the
+      command line is already echoed at `:163`) and diffing against the
+      workflow's `script:` block.
 - [ ] `scripts/linux/lib/packaging-common.sh` keeps 7 alias functions so the
       existing call sites need no change (the 9 that had no caller left are
       gone). Call sites should move to the upstream `app_packaging_*` names
@@ -84,6 +91,46 @@ here.
       **20**, not the 45 this row claimed when it was written. Does not block a
       build today; re-count before acting on it, the number moves with the image.
 
+
+## Open — the web lane's rustup step
+
+- [ ] `rustup toolchain install nightly --component rust-src --target
+      wasm32-unknown-unknown` (`ci-container-run-web-linux.sh`) fails in the
+      container as soon as a **newer** nightly exists than the one the image
+      baked:
+
+      ```
+      info: syncing channel updates for nightly-x86_64-unknown-linux-gnu
+      info: latest update on 2026-09-16 for version 1.100.0-nightly (215a8af4b)
+      info: removing previous version of component cargo
+      info: rolling back changes
+      error: could not rename 'component' file from
+        '/usr/local/rustup/toolchains/nightly-x86_64-unknown-linux-gnu/share/zsh/site-functions'
+        to '/usr/local/rustup/tmp/…/bk': Invalid cross-device link (os error 18)
+      ```
+
+      Observed 2026-09-16 on the local lane. The step is documented as
+      "idempotent, and a no-op once the image ships them" (AGENTS.md § 4) — that
+      is true only while the image's nightly *is* the latest nightly. On any
+      later day rustup tries to UPDATE it, and the update renames files out of a
+      read-only overlay layer into `$RUSTUP_HOME/tmp`, which is EXDEV.
+      The Dart gate runs before this step and passed, so the failure is confined
+      to the wasm half.
+
+      **Worked around 2026-09-16** by guarding the step on the components
+      actually being absent, matching the `command -v
+      flutter_rust_bridge_codegen` guard three lines below it. Verified in
+      `:latest-cross`: both `rust-src` and `wasm32-unknown-unknown` report
+      `(installed)`, so the guard skips the install and the lane no longer
+      touches rustup at all.
+
+      That is a workaround, not the fix. **The image is the right place:** it
+      already ships both components, so it should also ensure nothing needs to
+      update them — either by pinning nightly to a dated channel
+      (`nightly-YYYY-MM-DD`) or by putting `RUSTUP_HOME` somewhere writable.
+      Until then, a bare host with no nightly still takes the install path and
+      is still exposed. Raise it against ANTfrastructure's image rather than
+      adding more here.
 
 ## Open — verification gaps
 

@@ -2,11 +2,23 @@
 
 Practical WebRTC streaming and inference pipelines for Kataglyphis.
 
-## Windows: Rust-owned webcam inference (local, no WebRTC)
+## Rust-owned webcam inference (local, no WebRTC)
 
 On Windows the **Stream** page runs a fully local webcam → ONNX → texture pipeline
 owned end-to-end by Rust — no signalling server, no browser. Video frames never
 cross the Dart bridge; only detection metadata does.
+
+> **Linux is being brought to the same design** (owner decision, 2026-09-16). It
+> is an *addition*: the WebRTC cat-stream below stays, and a Linux build with no
+> `KATAGLYPHIS_RUST_FEATURES` keeps today's C++ GStreamer MethodChannel path
+> exactly as it is. Landed so far: the feature forwarding in
+> `rust_builder/linux/CMakeLists.txt`. Still to land: a Linux `knt_push_frame`
+> export in the native plugin, ORT dylib resolution, and the Dart branch that
+> routes Linux to `RustWebcamView`. Two things to know before starting — the
+> Linux feature set cannot include `onnxruntime_directml` (DirectML is
+> Windows-only), and OxidANT's compiled-in default model path resolves to
+> `crates/inference/resources/models/`, a directory that does not exist, so pass
+> a model path explicitly or set `KATAGLYPHIS_ONNX_MODEL`.
 
 **Data flow:**
 
@@ -43,6 +55,44 @@ GStreamer core DLLs into the runner. To get `mfvideosrc`, build against a
 `windows-media` image whose GStreamer was compiled with
 `-Dgst-plugins-bad:mediafoundation=enabled` (ANTfrastructure
 `windows/scripts/build/Build-GstreamerFromSource.ps1`).
+
+### Checking the knt ABI
+
+`scripts/linux/check-knt-abi.sh` verifies the C ABI the Rust webcam engine
+depends on: that `knt_api_version` and `knt_push_frame` are exported from the
+built plugin, are callable from outside the library, and return their
+documented error codes (`-1` bad arguments, `-2` unknown texture id).
+
+It exists because that ABI is resolved **by name at runtime** with `libloading`.
+A rename, a dropped export or a visibility change is not a compile error on
+either side — the app builds, ships, and then silently never shows a frame. The
+script `dlopen`s the plugin exactly as Rust does, so a failure here is a failure
+Rust would also hit.
+
+It does not, and cannot, check that a real frame reaches the screen: frames end
+in a GTK texture, and no lane has a `DISPLAY`. Seeing an actual frame needs a
+Linux desktop session and a camera — on the Windows dev box that means the
+`usbipd attach --wsl` route in AGENTS.md § 4.
+
+Run it after a native build. The artefact is an ELF `.so`, so on a Windows host
+it goes through a container, with the lane's build volume mounted:
+
+```powershell
+nerdctl run --rm --platform linux/amd64 `
+  -v "C:\GitHub\OmniAccelerANT:/workspace" -w /workspace `
+  --mount "type=volume,source=kataglyphis-lane-native-x64-workspace-build,target=/workspace/build" `
+  ghcr.io/kataglyphis/kataglyphis_beschleuniger:latest-cross `
+  bash scripts/linux/check-knt-abi.sh
+```
+
+Expected output:
+
+```
+ok   knt_api_version   = 1
+ok   knt_push_frame    bad args -> -1
+ok   knt_push_frame    unknown texture -> -2
+knt ABI OK
+```
 
 ## WebRTC pipelines (Linux / web)
 
@@ -85,7 +135,7 @@ Serve the web build with the COOP/COEP headers the Stream page needs and the
 rustup toolchain install nightly --component rust-src --target wasm32-unknown-unknown
 cargo install --locked --version 2.13.0 flutter_rust_bridge_codegen  # the pin in third_party/OxidANT/Cargo.toml
 flutter_rust_bridge_codegen build-web --release --rust-root third_party/OxidANT
-flutter build web --release --wasm
+flutter build web --release --wasm --no-web-resources-cdn
 
 scripts/linux/cat-stream/serve.sh          # :8444 TLS, proxies to :8443
 ```
@@ -255,6 +305,19 @@ flutter run -d web-server --profile --web-port 8080 --web-hostname 0.0.0.0
   `Content-Type`: Flutter's wasm bootstrap loads it with a dynamic `import()`,
   which browsers reject for `application/octet-stream`. `serve.sh` maps `.mjs`
   to `application/javascript` for exactly that reason.
+- The same trap one extension over, and the one likelier to bite on an older
+  board: nginx added `application/wasm` to its bundled `mime.types` in 1.21.x,
+  so Debian bullseye, Raspberry Pi OS bullseye and Ubuntu 22.04 (all nginx
+  1.18.0) serve `main.dart.wasm` as `application/octet-stream` and
+  `WebAssembly.compileStreaming()` refuses it — a blank page with nothing in the
+  console naming the cause. `serve.sh` declares `.wasm` itself so the nginx
+  version stops mattering; if you serve the build some other way, check it with
+  `curl -kI https://<host>:8444/main.dart.wasm | grep -i content-type`.
+- A browser that reports `ERR_CERT_COMMON_NAME_INVALID` and offers no
+  click-through is holding a certificate generated before `serve.sh` started
+  writing a `subjectAltName`. The cert is cached in `--state-dir`, and `serve.sh`
+  now regenerates a CN-only one on sight — but if you pinned or exported the old
+  one, delete `build/cat-stream/tls/` and let it rebuild.
 - On a host firewall (e.g. UFW on Raspberry Pi OS), allow `8444/tcp` and the
   WebRTC media UDP range (`32768:60999/udp`, LAN-scoped is enough) — the
   browser otherwise connects for signalling but ICE never completes.
