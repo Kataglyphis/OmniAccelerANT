@@ -31,7 +31,6 @@ class MediaCriticsPage extends StatelessWidget {
       appAttributes: appAttributes,
       footer: footer,
       config: mediaCriticsPageConfig,
-      appendixTitle: 'Appendix',
     );
   }
 }

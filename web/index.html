@@ -19,24 +19,37 @@
 
     <meta charset="UTF-8">
     <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-    <meta name="description" content="Interesting web app applications.">
+    <meta name="description"
+        content="Cross-platform AI inference: a Flutter frontend over a Rust core, with live GStreamer WebRTC object detection.">
 
     <!-- iOS meta tags & icons -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black">
-    <meta name="apple-mobile-web-app-title" content="kataglyphis-webfrontendproject">
+    <meta name="apple-mobile-web-app-title" content="OmniAccelerANT">
     <link rel="apple-touch-icon" href="icons/Icon-192.png">
 
-    <!-- For rust web assembly -->
-    <meta http-equiv="Cross-Origin-Opener-Policy" content="same-origin">
-    <meta http-equiv="Cross-Origin-Embedder-Policy" content="require-corp">
-    <meta http-equiv="Cross-Origin-Resource-Policy" content="cross-origin">
+    <!--
+    Cross-origin isolation (COOP/COEP) is NOT configured here, and cannot be.
+    Browsers only honour Cross-Origin-Opener-Policy, Cross-Origin-Embedder-Policy
+    and Cross-Origin-Resource-Policy as real HTTP response headers; as
+    <meta http-equiv> they are ignored outright. Three such tags sat here until
+    2026-09-16 and had never had any effect — which mattered, because the page
+    checks for crossOriginIsolated below before using its SharedArrayBuffer.
+
+    The two places that really set them, and which must agree:
+      - scripts/linux/cat-stream/serve.sh  (the nginx demo server in this repo)
+      - third_party/ANTfrastructure/linux/webserver/nginx.conf +
+        security-headers.conf              (the hosted build)
+    Both send COOP: same-origin and COEP: require-corp. A web/.htaccess used to
+    sit beside them; it was deleted on 2026-09-16 because the site is served by
+    nginx, which never reads one.
+  -->
 
     <!-- Favicon -->
     <link rel="icon" type="image/png" href="favicon.png" />
 
-    <title>kataglyphis-webfrontendproject</title>
+    <title>OmniAccelerANT</title>
     <link rel="manifest" href="manifest.json">
 
     <script src="javascript/utils.js"></script>

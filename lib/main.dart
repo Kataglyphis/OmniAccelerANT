@@ -1,6 +1,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -19,6 +20,7 @@ import 'package:omni_accelerant/Routing/jotrockenmitlocken_router.dart';
 import 'package:omni_accelerant/blog_dependent_app_attributes.dart';
 import 'package:omni_accelerant/l10n/app_localizations.dart';
 import 'package:omni_accelerant/settings/webrtc_settings.dart';
+import 'package:omni_accelerant/src/boot/boot_overlay.dart';
 import 'package:omni_accelerant/src/rust/frb_generated.dart';
 
 /// Everything this app reads off disk before its first frame.
@@ -84,7 +86,20 @@ Future<OmniBootstrapData> loadAppSettings() async {
 }
 
 Future<void> main() async {
-  await RustLib.init();
+  // Anything that stops RustLib.init() stops runApp, leaving web/index.html's
+  // spinner up forever with the cause only in the console. The TIMEOUT is the
+  // load-bearing half: the likeliest web failure, a build published without
+  // web/pkg/, does not throw at all — frb's loader awaits a <script>'s
+  // onLoad, a 404 fires `error` instead, and the await never completes. So a
+  // catch alone would still hang. See AGENTS.md § 4 for the sibling
+  // frb-version-mismatch failure, which does throw.
+  try {
+    await RustLib.init().timeout(const Duration(seconds: 20));
+  } catch (error, stackTrace) {
+    showBootFailure(error, stackTrace);
+    rethrow;
+  }
+  dismissBootOverlay();
   runApp(const App());
 }
 
