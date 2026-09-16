@@ -68,10 +68,18 @@ if(CARGOKIT_EXTRA_CARGO_FLAGS MATCHES "onnxruntime")
     # target. Bundling the REALPATH instead gets 31 MB under a versioned name
     # dlopen never asks for. configure_file COPYONLY resolves both at once.
     get_filename_component(ONNXRUNTIME_REAL "${ONNXRUNTIME_LIB}" REALPATH)
-    set(ONNXRUNTIME_STAGED "${CMAKE_CURRENT_BINARY_DIR}/libonnxruntime.so")
-    configure_file("${ONNXRUNTIME_REAL}" "${ONNXRUNTIME_STAGED}" COPYONLY)
-    list(APPEND oxidant_extra_bundled_libraries "${ONNXRUNTIME_STAGED}")
-    message(STATUS "Bundling ONNX Runtime: ${ONNXRUNTIME_REAL}")
+    # BOTH sonames, as real files. Measured with readelf on the built bundle:
+    # the plugin DT_NEEDEDs the VERSIONED libonnxruntime.so.1, so staging only
+    # the unversioned name left the linked dependency unsatisfied; and ort's
+    # load-dynamic dlopens the BARE name, which needs the unversioned one. A
+    # symlink is not an option — install(FILES) copies the link, whose target
+    # then dangles. So two copies of a 31 MB file, deliberately.
+    foreach(_ort_name libonnxruntime.so libonnxruntime.so.1)
+      set(_ort_staged "${CMAKE_CURRENT_BINARY_DIR}/${_ort_name}")
+      configure_file("${ONNXRUNTIME_REAL}" "${_ort_staged}" COPYONLY)
+      list(APPEND oxidant_extra_bundled_libraries "${_ort_staged}")
+    endforeach()
+    message(STATUS "Bundling ONNX Runtime (both sonames): ${ONNXRUNTIME_REAL}")
   else()
     message(
       WARNING
