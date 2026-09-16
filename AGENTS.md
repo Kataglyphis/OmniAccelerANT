@@ -39,13 +39,20 @@ falls back to `ksvideosrc`. Details in
 [`docs/source/camera-streaming.md`](docs/source/camera-streaming.md)
 § *Rust-owned webcam inference*.
 
-**Linux is getting this too — owner decision, 2026-09-16.** Until then Linux
-native has no local inference at all: its Stream page drives a C++ GStreamer
-pipeline over a MethodChannel into an `FlTexture`, with no ONNX anywhere. The
-env-var forwarding above is live on Linux as of the same date; the remaining
-links are a Linux `knt_push_frame` export, ORT dylib resolution, and a Dart
-branch. **This is an addition, not a replacement** — see the two paragraphs
-below, which stay true.
+**Linux has this too as of 2026-09-16 — built, not yet seen working.** All four
+links are in the tree: the `knt_push_frame`/`knt_api_version` C ABI exported
+from the Linux plugin, `KATAGLYPHIS_RUST_FEATURES` forwarding, ONNX Runtime
+bundling, and a Dart branch that routes Linux to `RustWebcamView` behind a
+runtime `listCameras()` probe — so a build with no features set keeps the C++
+GStreamer MethodChannel path unchanged. **This is an addition, not a
+replacement**: the two paragraphs below stay true.
+
+What is NOT done: **no frame has travelled Rust → `knt_push_frame` → texture.**
+The ABI is verified only by `scripts/linux/check-knt-abi.sh`, which dlopens the
+built plugin and checks the symbols and error codes; a real frame needs a Linux
+desktop session and a camera. No lane sets `KATAGLYPHIS_RUST_FEATURES` either,
+so CI still only ever builds the featureless Linux app. BACKLOG.md tracks both,
+and the packaging gap under them.
 
 **Linux/web cat detection stream.** The same Stream page consumes a WebRTC
 stream produced by `third_party/OxidANT/crates/cat_webrtc`
