@@ -9,8 +9,17 @@ env:
   LOCAL_ASSETS_FOLDER: "assets"
   BUILD_DIR_RELEASE: "build/web"
 
+# The web lane is the ONLY place several failure classes can be caught: Rust
+# `i64` is `int` natively and `BigInt` on web, `dart:js_interop` code compiles
+# nowhere else, and a stale frb binding shows up as an empty `Uncaught` in the
+# browser (AGENTS.md § 4). Running it only after merge meant develop was where
+# those were discovered. The job NAME is deliberately unchanged — it is the
+# required-status-check string on develop's branch protection, and renaming it
+# while adding a trigger is the breakage BACKLOG.md warns about.
 on:
   push:
+    branches: ["main", "develop"]
+  pull_request:
     branches: ["main", "develop"]
 
 jobs:

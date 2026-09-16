@@ -19,6 +19,23 @@ file(
   "${PLUGIN_LINUX_REAL}"
   "${MANIFEST_ABS}")
 
+# Cargo feature set, read from the environment at configure time — the same
+# block as rust_builder/windows/CMakeLists.txt, deliberately byte-identical so
+# the two cannot drift. Unset (a plain `flutter build linux`) builds the crate
+# feature-less and the webcam API reports itself disabled, which is exactly
+# today's behaviour. The channel is CARGOKIT_EXTRA_CARGO_FLAGS, a local patch in
+# rust_builder/cargokit/cmake/cargokit.cmake with no if(WIN32) in it; the fourth
+# argument to apply_cargokit is NOT a features parameter on either platform.
+# Linux feature set and the ONNX runtime it needs: docs/source/camera-streaming.md.
+if(DEFINED ENV{KATAGLYPHIS_RUST_FEATURES}
+   AND NOT
+       "$ENV{KATAGLYPHIS_RUST_FEATURES}"
+       STREQUAL
+       "")
+  set(CARGOKIT_EXTRA_CARGO_FLAGS "--features $ENV{KATAGLYPHIS_RUST_FEATURES}")
+  message(STATUS "Rust crate features: $ENV{KATAGLYPHIS_RUST_FEATURES}")
+endif()
+
 include("../cargokit/cmake/cargokit.cmake")
 apply_cargokit(
   ${PROJECT_NAME}
@@ -26,9 +43,46 @@ apply_cargokit(
   oxidant
   "")
 
+# ONNX Runtime is dlopen'd at runtime by ort's load-dynamic, so it is NOT an
+# ELF dependency of liboxidant.so and nothing bundles it automatically. Inside
+# the build image that is invisible — libonnxruntime.so is in the ld.so cache —
+# and it breaks only once the bundle is installed on a machine that has no
+# system copy, which is every tar/deb/flatpak/AppImage target. Bundled only
+# when the features actually ask for it, so a featureless build stays byte-for-
+# byte what it was. Note the image has TWO copies in its cache (/opt/opencv5
+# and onnxruntime-cpu); the explicit path is what keeps this deterministic.
+set(oxidant_extra_bundled_libraries "")
+if(CARGOKIT_EXTRA_CARGO_FLAGS MATCHES "onnxruntime")
+  find_library(
+    ONNXRUNTIME_LIB
+    NAMES onnxruntime
+    HINTS "/usr/local/lib/onnxruntime-cpu/lib"
+    PATH_SUFFIXES lib)
+  if(ONNXRUNTIME_LIB)
+    # Staged as a real file under the UNVERSIONED name, which is the only
+    # combination that works. ort's load-dynamic dlopens the bare soname
+    # "libonnxruntime.so" and the runner's RPATH is $ORIGIN/lib, so the bundle
+    # needs that exact name; but install(FILES) on the distro symlink copies
+    # the LINK, and its target is not in the bundle — measured: a 0-byte
+    # `libonnxruntime.so -> libonnxruntime.so.1.29.0` that dangles on every
+    # target. Bundling the REALPATH instead gets 31 MB under a versioned name
+    # dlopen never asks for. configure_file COPYONLY resolves both at once.
+    get_filename_component(ONNXRUNTIME_REAL "${ONNXRUNTIME_LIB}" REALPATH)
+    set(ONNXRUNTIME_STAGED "${CMAKE_CURRENT_BINARY_DIR}/libonnxruntime.so")
+    configure_file("${ONNXRUNTIME_REAL}" "${ONNXRUNTIME_STAGED}" COPYONLY)
+    list(APPEND oxidant_extra_bundled_libraries "${ONNXRUNTIME_STAGED}")
+    message(STATUS "Bundling ONNX Runtime: ${ONNXRUNTIME_REAL}")
+  else()
+    message(
+      WARNING
+        "KATAGLYPHIS_RUST_FEATURES asks for onnxruntime but libonnxruntime.so was not found. The bundle will start and then fail to load the model at runtime. Set ORT_DYLIB_PATH on the target, or install ONNX Runtime."
+    )
+  endif()
+endif()
+
 # List of absolute paths to libraries that should be bundled with the plugin.
 # This list could contain prebuilt libraries, or libraries created by an
 # external build triggered from this build file.
 set(oxidant_bundled_libraries
-    "${${PROJECT_NAME}_cargokit_lib}"
+    "${${PROJECT_NAME}_cargokit_lib}" ${oxidant_extra_bundled_libraries}
     PARENT_SCOPE)
