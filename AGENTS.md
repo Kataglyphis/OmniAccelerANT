@@ -22,17 +22,30 @@ Rust core and a C++ inference plugin underneath it.
 | `scripts/windows/`, `scripts/linux/` | Thin wrappers over ANTfrastructure drivers + this repo's own glue |
 | `third_party/ANTfrastructure` | The submodule owning every reusable script, module and doc |
 
-**Windows webcam inference.** The Stream page runs a Rust-owned
-webcam → ONNX → Flutter-texture pipeline: `crates/media` GStreamer capture →
-`src/webcam_engine.rs` → frb `src/api/webcam.rs` stream. Frames reach the texture
-through the native plugin's `knt_push_frame` C ABI; only detection metadata
-crosses the bridge. Gated by the Rust features
-`gstreamer,onnxruntime_dynamic,onnxruntime_directml`, enabled on Windows via the
-`KATAGLYPHIS_RUST_FEATURES` env var (forwarded to cargo by `rust_builder`'s
-CMake → Cargokit). `mfvideosrc` needs the `mediafoundation` GStreamer plugin
-**and** a Windows client host; it falls back to `ksvideosrc`. Details in
+**Rust-owned webcam inference (Windows today, Linux in progress).** The Stream
+page runs a Rust-owned webcam → ONNX → Flutter-texture pipeline: `crates/media`
+GStreamer capture → `src/webcam_engine.rs` → frb `src/api/webcam.rs` stream.
+Frames reach the texture through the native plugin's `knt_push_frame` C ABI;
+only detection metadata crosses the bridge. Gated by Rust features passed via
+the `KATAGLYPHIS_RUST_FEATURES` env var, read at CMake configure time by
+`rust_builder/<platform>/CMakeLists.txt` and handed to cargo through
+`CARGOKIT_EXTRA_CARGO_FLAGS` — a local patch in `rust_builder/cargokit/`, which
+is vendored here, **not** a submodule. The fourth argument to `apply_cargokit`
+is *not* a features parameter on either platform; do not try to pass them there.
+Windows uses `gstreamer,onnxruntime_dynamic,onnxruntime_directml`; DirectML is a
+Windows-only execution provider, so Linux takes a different set. `mfvideosrc`
+needs the `mediafoundation` GStreamer plugin **and** a Windows client host; it
+falls back to `ksvideosrc`. Details in
 [`docs/source/camera-streaming.md`](docs/source/camera-streaming.md)
-§ *Windows: Rust-owned webcam inference*.
+§ *Rust-owned webcam inference*.
+
+**Linux is getting this too — owner decision, 2026-09-16.** Until then Linux
+native has no local inference at all: its Stream page drives a C++ GStreamer
+pipeline over a MethodChannel into an `FlTexture`, with no ONNX anywhere. The
+env-var forwarding above is live on Linux as of the same date; the remaining
+links are a Linux `knt_push_frame` export, ORT dylib resolution, and a Dart
+branch. **This is an addition, not a replacement** — see the two paragraphs
+below, which stay true.
 
 **Linux/web cat detection stream.** The same Stream page consumes a WebRTC
 stream produced by `third_party/OxidANT/crates/cat_webrtc`
@@ -599,6 +612,40 @@ and the `$GIT_DIR` limit*.
 
 CI passes `-SkipMsixPackaging`, and `-CodeQL` is off there because of runtimes.
 
+### The Dart gate in 23 seconds, without a lane
+
+**There is no Flutter or Dart SDK on the Windows dev box** — `flutter` is not on
+`PATH` and there is no host SDK to put there. That makes it look as though the
+smallest unit of feedback is a whole container lane. It is not: the image
+carries the SDK at `/opt/flutter`, and running *only* the Dart gate against a
+bind-mounted checkout costs **23 s warm** (measured 2026-09-16; 214 s the first
+time, which is `flutter pub get` populating the cache volume).
+
+```powershell
+# once: the cache volume must belong to the container's uid, like every other
+# volume this repo mounts — see Invoke-LinuxLane.ps1's chown step.
+nerdctl run --rm --platform linux/amd64 `
+  --mount "type=volume,source=oa-fastloop-pub,target=/vol" alpine chown -R 1001:1001 /vol
+
+# then, per edit:
+nerdctl run --rm --platform linux/amd64 `
+  -v "C:\GitHub\OmniAccelerANT:/workspace" -w /workspace `
+  --mount "type=volume,source=oa-fastloop-pub,target=/pubcache" -e PUB_CACHE=/pubcache `
+  ghcr.io/kataglyphis/kataglyphis_beschleuniger:latest-cross `
+  bash -lc 'export PATH=/opt/flutter/bin:$PATH; git config --global --add safe.directory "*"; flutter test'
+```
+
+Swap `flutter test` for `flutter analyze` (~164 s — it analyses the whole
+workspace) or for both. `PUB_CACHE` on a named volume is what makes the second
+run cheap, and it is also the rule from § 5: write-heavy paths stay off the host
+mount.
+
+**This is not a substitute for the lane.** It runs the Dart gate and nothing
+else — no `dart format` file listing, no CMake gate, no build, no packaging, and
+it never touches the C++ or Rust. Use it to iterate; use `Invoke-LinuxLane.ps1`
+to believe the result. It is also why "add a test" is a cheap proposal in this
+repo and not an expensive one.
+
 ### The Linux lane, locally
 
 `scripts/windows/Invoke-LinuxLane.ps1` starts the same image and runs the same script
@@ -637,6 +684,8 @@ those surfaces as a different, misleading error:
 | What | Where it lives now | Symptom when it did not |
 | --- | --- | --- |
 | CMake/ninja build tree | named volume on `/workspace/build` | — |
+| pub's download cache | named volume on `/workspace/.pub-cache` | `Rename failed, path = '/workspace/.pub-cache/_temp/…' (OS Error: Permission denied, errno = 13)`, then `Failed to update packages` — **but only on a run that downloads something.** A warm cache resolves from disk and renames nothing, so the local lane passed for as long as nobody edited `pubspec.yaml` |
+| cargo's target tree | named volume on `/workspace/third_party/OxidANT/target` | `error: failed to build archive at '…/libwasm_bindgen_macro_support-*.rlib': failed to remove temporary directory: Permission denied (os error 13) at path '…/out/.tmpXXXXXX.temp-archive'`. Same class as the row above, one verb over: the mount refuses the **remove**, not the write. The web lane hits it hardest because `-Z build-std` recompiles the standard library |
 | flatpak repo, build tree, builder state, manifest staging **and the finished bundle** | `/tmp/flatpak-work` | `fchmod: Operation not permitted`, first from the OSTree repo, later from `build-bundle` |
 | ccache / sccache | `/var/cache/{ccache,sccache}`, set by the image | `Can't initialize ccache use: Failed to set permissions` |
 
@@ -761,9 +810,28 @@ dart pub global run dartdoc --output doc/api
 ```
 
 The Linux `checks` stage runs the same three (with `dart analyze` rather than
-`flutter analyze`) but suffixes each with `|| true`: it reports and moves on
-instead of failing the stage. Treat a green `checks` run as "was executed", not
-as "passed". The CMake gate NO LONGER follows that switch.
+`flutter analyze`), and **whether a failure is fatal depends on the lane**, not
+on the stage:
+
+| Lane | `--strict-checks` | A failing format/analyze/test |
+| --- | --- | --- |
+| native Linux ([`dart_on_native_linux.yml`](.github/workflows/dart_on_native_linux.yml)) | `true` | reds the lane |
+| web ([`dart_on_web_linux.yml`](.github/workflows/dart_on_web_linux.yml)) | `true` | reds the lane |
+| android (`ci-container-run-android.sh`) | not passed | reports and moves on — deliberate |
+
+So "treat a green `checks` run as *was executed*, not as *passed*" is true of
+the **android** lane only. It was true of all three until fc8b65c turned
+`--strict-checks true` on for native, and this paragraph went on claiming the
+`|| true` behaviour for every lane long after that — while a paragraph eight
+lines below said the opposite. The `|| warn` arm still exists; it moved upstream
+into `flutter_checks.sh` and is what the android lane still takes.
+
+`Invoke-LinuxLane.ps1` passes `-StrictChecks true` by default (since
+2026-09-16) so a local run grades exactly as CI does. It defaulted to `false`
+before that, which is the failure mode the driver exists to prevent: the lane
+you run to reproduce CI was the more forgiving of the two.
+
+The CMake gate NO LONGER follows that switch.
 `run_cmake_format_check` takes no arguments at all now: it used to accept a
 strictness flag and IGNORE its own verdict when that flag was false, so it errors
 (exit 2) if handed one rather than letting a stale caller pass silently. It runs in

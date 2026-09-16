@@ -7,7 +7,7 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
 import 'package:omni_accelerant/src/rust/api/webcam.dart';
 
-/// Windows webcam live-inference view, fully driven by Rust.
+/// Webcam live-inference view, fully driven by Rust (Windows and Linux).
 ///
 /// The Rust engine owns the GStreamer capture pipeline and ONNX inference;
 /// video frames go straight from Rust into the native plugin's Flutter

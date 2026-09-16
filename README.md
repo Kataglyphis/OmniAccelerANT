@@ -157,7 +157,7 @@ ORT_DYLIB_PATH=/path/to/libonnxruntime.so \
 rustup toolchain install nightly --component rust-src --target wasm32-unknown-unknown
 cargo install --locked --version 2.13.0 flutter_rust_bridge_codegen  # the pin in third_party/OxidANT/Cargo.toml
 flutter_rust_bridge_codegen build-web --release --rust-root third_party/OxidANT
-flutter build web --release --wasm
+flutter build web --release --wasm --no-web-resources-cdn
 
 # 3. HTTPS + COOP/COEP + the /webrtc-ws proxy in front of both (:8444)
 scripts/linux/cat-stream/serve.sh

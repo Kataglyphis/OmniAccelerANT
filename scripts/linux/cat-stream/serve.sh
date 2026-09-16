@@ -66,15 +66,52 @@ mkdir -p "${tls_dir}" \
   "${state_dir}/client_body" "${state_dir}/proxy" "${state_dir}/fastcgi" \
   "${state_dir}/uwsgi" "${state_dir}/scgi"
 
-if [ ! -f "${tls_dir}/cert.pem" ]; then
+# A certificate with only a CN and no subjectAltName is rejected outright by
+# every current browser (Chrome dropped the CN fallback in 58), which is the
+# difference between "click through the warning once" and "this page cannot be
+# reached" — and on a phone the click-through is the whole bring-up path. So the
+# cert carries a SAN covering every name this server can plausibly be reached
+# by: localhost, the loopback literals, the host's name and its LAN addresses.
+# An existing CN-only cert is regenerated rather than kept, because the guard
+# below is a cache and a cached broken cert is indistinguishable from a broken
+# server.
+cert_has_san() {
+  [ -f "${tls_dir}/cert.pem" ] || return 1
+  openssl x509 -in "${tls_dir}/cert.pem" -noout -ext subjectAltName \
+    >/dev/null 2>&1
+}
+
+if ! cert_has_san; then
   command -v openssl >/dev/null 2>&1 || {
-    printf 'openssl not found and no certificate in %s — install openssl\n' "${tls_dir}" >&2
+    printf 'openssl not found and no usable certificate in %s — install openssl\n' "${tls_dir}" >&2
     exit 1
   }
-  printf 'generating a self-signed certificate in %s\n' "${tls_dir}" >&2
+  if [ -f "${tls_dir}/cert.pem" ]; then
+    printf 'certificate in %s has no subjectAltName — regenerating\n' "${tls_dir}" >&2
+  else
+    printf 'generating a self-signed certificate in %s\n' "${tls_dir}" >&2
+  fi
+
+  # `hostname -I` is Linux-only and prints every global address, space
+  # separated; it is absent on some minimal images, hence the `|| true` and the
+  # unconditional loopback entries. Duplicates in a SAN list are harmless.
+  san="DNS:localhost,DNS:$(hostname 2>/dev/null || echo cat-stream),IP:127.0.0.1,IP:::1"
+  for addr in $(hostname -I 2>/dev/null || true); do
+    case "${addr}" in
+      *:*) san="${san},IP:${addr}" ;;
+      *.*) san="${san},IP:${addr}" ;;
+    esac
+  done
+
+  # -addext needs openssl 1.1.1 (bullseye ships it). The fallback keeps a very
+  # old host working rather than failing the whole demo over a warning-level
+  # nicety.
   openssl req -x509 -newkey rsa:2048 -sha256 -days 825 -nodes \
     -keyout "${tls_dir}/key.pem" -out "${tls_dir}/cert.pem" \
-    -subj "/CN=cat-stream" >/dev/null 2>&1
+    -subj "/CN=cat-stream" -addext "subjectAltName=${san}" >/dev/null 2>&1 ||
+    openssl req -x509 -newkey rsa:2048 -sha256 -days 825 -nodes \
+      -keyout "${tls_dir}/key.pem" -out "${tls_dir}/cert.pem" \
+      -subj "/CN=cat-stream" >/dev/null 2>&1
 fi
 
 mime_include=""
@@ -91,11 +128,19 @@ events { worker_connections 128; }
 
 http {
   ${mime_include}
-  # Flutter's dart2wasm entrypoint ('main.dart.mjs') is loaded with a dynamic
-  # import(), which browsers reject unless the response is a JavaScript MIME
-  # type. mime.types on Debian/Raspberry Pi OS predates the extension, and the
-  # default_type below would otherwise turn it into application/octet-stream.
-  types { application/javascript mjs; }
+  # Both extensions are declared here because the host's mime.types cannot be
+  # trusted to carry them: nginx 1.18 (Debian/Pi OS bullseye, Ubuntu 22.04) has
+  # neither, default_type below then makes them application/octet-stream, and
+  # both the dynamic import() of main.dart.mjs and compileStreaming() of
+  # main.dart.wasm refuse that — a blank page naming no cause. Harmless on a
+  # newer nginx, which logs "duplicate extension" at warn and continues.
+  # Symptoms and the curl check: docs/source/camera-streaming.md, Troubleshooting.
+  # NB: no backticks in this comment — the heredoc is unquoted, so backticks in
+  # prose are command substitution.
+  types {
+    application/javascript mjs;
+    application/wasm        wasm;
+  }
   default_type application/octet-stream;
   access_log ${state_dir}/access.log;
   client_body_temp_path ${state_dir}/client_body;

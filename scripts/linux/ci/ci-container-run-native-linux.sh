@@ -17,7 +17,7 @@ Options:
       --flutter-dir <path>      Flutter SDK directory (default: /opt/flutter, baked into the image)
   -n, --app-name <name>         Artifact base name (required)
       --package-formats <csv>   Packaging formats (default: tar)
-      --install-packaging-deps <bool> Install deps for deb/flatpak/appimage (default: false)
+      --install-packaging-deps <bool> Install the flathub runtime; only consulted when --package-formats has flatpak (default: false)
       --strict-checks <bool>    Fail on format/analyze/test errors (default: true in CI, false locally)
       --run-codeql <bool>       Must be false: no CodeQL scan is implemented here
       --run-docs <bool>         Generate docs (default: true)
@@ -120,8 +120,16 @@ if maybe_truthy "$RUN_CODEQL"; then
   exit 2
 fi
 
-# Optional: Packaging-Dependencies installieren
-if maybe_truthy "$INSTALL_PACKAGING_DEPS"; then
+# Gated on flatpak being ASKED FOR, not just on the flag. The only thing this
+# adds for a tar/deb/appimage run is a `flatpak --user install` of Platform+Sdk,
+# the two largest refs of a set upstream measures at ~1.9 GB per run per arch.
+# dpkg-deb ships in the image and the AppImage packager provisions appimagetool
+# itself, so `--package-formats tar` was paying that for nothing. The predicate
+# is upstream's own, already used by run_command_with_packaging_runtime below.
+# Detail: docs/source/project-operations.md § The Linux lane, locally.
+if ! app_packaging_formats_include_flatpak "$PACKAGE_FORMATS"; then
+  echo "[Info] No flatpak in --package-formats '${PACKAGE_FORMATS}'; skipping the flathub runtime install."
+elif maybe_truthy "$INSTALL_PACKAGING_DEPS"; then
   setup_packaging_dependencies_for_container "$MATRIX_ARCH"
 fi
 

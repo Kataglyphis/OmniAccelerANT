@@ -31,7 +31,6 @@ class BlogPage extends StatelessWidget {
       appAttributes: appAttributes,
       footer: footer,
       config: blogPageConfig,
-      appendixTitle: 'Appendix',
     );
   }
 }

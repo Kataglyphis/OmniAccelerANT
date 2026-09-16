@@ -36,9 +36,9 @@ class KataglyphisNativeInferencePlugin :
             "create" -> handleCreate(call, result)
             "setPipeline" -> handleSetPipeline(call, result)
             "diagnose" -> handleDiagnose(result)
-            "play" -> handleNoArgCommand(result) { controller -> controller.play() }
-            "pause" -> handleNoArgCommand(result) { controller -> controller.pause() }
-            "stop" -> handleNoArgCommand(result) { controller -> controller.stop() }
+            "play" -> handleNoArgCommand(result, "play") { controller -> controller.play() }
+            "pause" -> handleNoArgCommand(result, "pause") { controller -> controller.pause() }
+            "stop" -> handleNoArgCommand(result, "stop") { controller -> controller.stop() }
             "setColor" -> handleSetColor(call, result)
             else -> result.notImplemented()
         }
@@ -127,12 +127,16 @@ class KataglyphisNativeInferencePlugin :
             return
         }
 
-        handleNoArgCommand(result) { controller ->
+        handleNoArgCommand(result, "setColor") { controller ->
             controller.setColor(r.toInt(), g.toInt(), b.toInt())
         }
     }
 
-    private inline fun handleNoArgCommand(result: Result, crossinline block: (GStreamerController) -> Unit) {
+    private inline fun handleNoArgCommand(
+        result: Result,
+        command: String,
+        crossinline block: (GStreamerController) -> Unit,
+    ) {
         val controller = gstreamerController ?: run {
             result.error("no_controller", "Plugin binding is unavailable", null)
             return
@@ -141,8 +145,26 @@ class KataglyphisNativeInferencePlugin :
         runCatching { block(controller) }
             .onSuccess { result.success(null) }
             .onFailure { throwable ->
-                Log.e("KataglyphisGStreamer", "Command failed", throwable)
-                result.error("command_failed", throwable.message, null)
+                Log.e("KataglyphisGStreamer", "$command failed", throwable)
+
+                // Same shape as handleSetPipeline above, and for the same
+                // reason. The throwable's message is a constant from
+                // GStreamerController ("play failed"), while the useful half —
+                // the bus error the native side drained into g_last_error — is
+                // only reachable through getLastError(). Reporting the
+                // throwable alone put "Pipeline error: play failed" on screen
+                // and left the cause in logcat. The code stays
+                // "command_failed": stream_page.dart keys its source-fallback
+                // chain on exactly that string.
+                val nativeDetails = runCatching { GStreamerNative.getLastError() }.getOrNull()
+                val details = listOfNotNull(throwable.message, nativeDetails)
+                    .joinToString("\n")
+                    .ifBlank { "$command failed" }
+                result.error(
+                    "command_failed",
+                    details,
+                    null,
+                )
             }
     }
 }

@@ -5,6 +5,7 @@ import 'package:anthology/Pages/Footer/footer.dart';
 import 'package:anthology/Layout/ResponsiveDesign/single_page.dart';
 import 'package:anthology/app_attributes.dart';
 import 'package:omni_accelerant/settings/webrtc_settings.dart';
+import 'package:omni_accelerant/src/rust/api/webcam.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 // Web imports (only loaded on web)
@@ -162,6 +163,48 @@ class GStreamerPipelineBuilder {
 }
 
 // ============================================================================
+// Source fallback policy
+// ============================================================================
+
+/// The ordered video sources to try on each platform, best first.
+///
+/// Android had a fallback chain from the start; Linux did not, and Linux is the
+/// platform where the first choice most often fails — `v4l2src device=/dev/video0`
+/// is wrong on any machine with no webcam, a webcam on `video1`, or a webcam
+/// that cannot produce MJPEG at the requested geometry. Before this list the
+/// page just showed a dead texture in all three cases.
+///
+/// Every chain ends in `videotestsrc`, which needs no hardware: reaching the
+/// last entry means "the app works, your camera does not", and that is a far
+/// more useful thing to put on screen than a blank rectangle.
+const Map<TargetPlatform, List<String>> kSourceCandidates =
+    <TargetPlatform, List<String>>{
+      TargetPlatform.android: <String>[
+        'ahcsrc',
+        'autovideosrc',
+        'videotestsrc',
+      ],
+      TargetPlatform.linux: <String>['v4l2src', 'autovideosrc', 'videotestsrc'],
+      TargetPlatform.macOS: <String>['avfvideosrc', 'videotestsrc'],
+      TargetPlatform.windows: <String>['ksvideosrc', 'videotestsrc'],
+    };
+
+/// The fallback chain for [platform], or a hardware-free default.
+List<String> sourceCandidatesFor(TargetPlatform platform) =>
+    kSourceCandidates[platform] ?? const <String>['videotestsrc'];
+
+/// The next source to try after [failed], or `null` when the chain is exhausted.
+///
+/// Returns `null` for a source that is not in the chain at all, so a pipeline
+/// the user picked by hand fails with its own error instead of silently
+/// restarting the platform chain from somewhere in the middle.
+String? nextSourceAfter(String failed, List<String> candidates) {
+  final int index = candidates.indexOf(failed);
+  if (index == -1 || index + 1 >= candidates.length) return null;
+  return candidates[index + 1];
+}
+
+// ============================================================================
 // StreamPage Widget
 // ============================================================================
 
@@ -217,18 +260,27 @@ class StreamPageState extends State<StreamPage> {
   int get _androidHeight => widget.webrtcSettings.android.height;
   int get _androidFps => widget.webrtcSettings.android.fps;
 
-  // Order: try modern Camera2 NDK (ahcsrc), then generic autodetect, then test pattern
-  final List<String> _androidSourceCandidates = const <String>[
-    'ahcsrc',
-    'autovideosrc',
-    'videotestsrc',
-  ];
+  /// This platform's fallback chain — see [kSourceCandidates].
+  List<String> get _sourceCandidates =>
+      sourceCandidatesFor(defaultTargetPlatform);
 
   int get _targetTextureWidth => _isAndroid ? _androidWidth : textureWidth;
   int get _targetTextureHeight => _isAndroid ? _androidHeight : textureHeight;
 
   bool get _isWindows => defaultTargetPlatform == TargetPlatform.windows;
   bool get _isLinux => defaultTargetPlatform == TargetPlatform.linux;
+
+  /// Whether the Rust core in THIS build can drive the webcam.
+  ///
+  /// Windows always ships the features. Linux ships them only when the build
+  /// was configured with `KATAGLYPHIS_RUST_FEATURES` (see
+  /// `rust_builder/linux/CMakeLists.txt`), which a plain `flutter build linux`
+  /// does not set — so the answer has to come from the binary at runtime, not
+  /// from the platform. When it is false Linux keeps the C++ GStreamer
+  /// MethodChannel view it has always had.
+  bool get _useRustWebcam => _isWindows || (_isLinux && _rustWebcamAvailable);
+
+  bool _rustWebcamAvailable = false;
   bool get _isMacOS => defaultTargetPlatform == TargetPlatform.macOS;
   bool get _isAndroid => defaultTargetPlatform == TargetPlatform.android;
 
@@ -243,22 +295,39 @@ class StreamPageState extends State<StreamPage> {
   @override
   void initState() {
     super.initState();
+    if (_isLinux) {
+      _rustWebcamAvailable = _probeRustWebcam();
+    }
     _defaultNativeSource = _pickDefaultSource();
     textureId = _initNativeIfNeeded();
   }
 
-  String _pickDefaultSource() {
-    if (_isWindows) return 'ksvideosrc';
-    if (_isLinux) return 'v4l2src';
-    if (_isMacOS) return 'avfvideosrc';
-    if (_isAndroid) return 'ahcsrc';
-    return 'videotestsrc';
+  /// Asks the Rust core whether it was built with the webcam features.
+  ///
+  /// `listCameras()` is the cheapest honest probe: it is `#[frb(sync)]`, and a
+  /// featureless build makes it throw ("webcam capture is disabled") rather
+  /// than return an empty list — so an exception means "not compiled in", not
+  /// "no cameras". An empty list from a features-ON build is a real answer and
+  /// still counts as available; the Rust view has its own test-pattern source.
+  bool _probeRustWebcam() {
+    try {
+      listCameras();
+      return true;
+    } catch (e) {
+      debugPrint(
+        'Rust webcam features not available in this build ($e); '
+        'falling back to the GStreamer MethodChannel view.',
+      );
+      return false;
+    }
   }
 
+  String _pickDefaultSource() => _sourceCandidates.first;
+
   Future<int?> _initNativeIfNeeded() async {
-    // Windows uses the Rust-driven webcam view, which creates the plugin's
-    // (single) texture itself — creating it here too would race it.
-    if (kIsWeb || _isWindows || !(_isLinux || _isMacOS || _isAndroid)) {
+    // The Rust-driven webcam view creates the plugin's (single) texture itself,
+    // so creating it here too would race it.
+    if (kIsWeb || _useRustWebcam || !(_isLinux || _isMacOS || _isAndroid)) {
       return null;
     }
 
@@ -344,12 +413,15 @@ class StreamPageState extends State<StreamPage> {
       final message = e.message ?? '';
       final bool missingElement =
           message.contains('no element') || message.contains('not found');
-      final bool shouldRetryAndroid =
-          _isAndroid &&
-          source != null &&
-          (missingElement || e.code == 'command_failed');
+      // Was `_isAndroid &&` until 2026-09-16. Nothing about the retry is
+      // Android-specific: a missing element or a failed state change means the
+      // same thing everywhere, and Linux is where the first choice fails most
+      // often. The Linux plugin now reports the real bus error, so `e.message`
+      // here names the actual cause on the way past.
+      final bool shouldRetry =
+          source != null && (missingElement || e.code == 'command_failed');
 
-      if (shouldRetryAndroid) {
+      if (shouldRetry) {
         final String? diag = await channel
             .invokeMethod<String>('diagnose')
             .catchError((_) => null);
@@ -357,12 +429,12 @@ class StreamPageState extends State<StreamPage> {
           debugPrint('GStreamer diagnose:\n$diag');
         }
 
-        final String? nextSource = _nextAndroidSource(source);
+        final String? nextSource = nextSourceAfter(source, _sourceCandidates);
         if (nextSource != null) {
           debugPrint(
             missingElement
-                ? 'Android pipeline "$source" missing; trying "$nextSource"'
-                : 'Android pipeline "$source" failed; trying "$nextSource"',
+                ? 'Pipeline "$source" missing an element; trying "$nextSource"'
+                : 'Pipeline "$source" failed; trying "$nextSource"',
           );
           await _setPipeline(
             _pipelineBuilder.build(nextSource),
@@ -374,18 +446,16 @@ class StreamPageState extends State<StreamPage> {
 
       if (!mounted) return;
       setState(() {
-        _errorMessage = _isAndroid && shouldRetryAndroid
-            ? 'GStreamer pipeline failed on Android (tried: ${_androidSourceCandidates.join(', ')}). See logs for diagnose output.'
+        // Reaching the end of the chain and reporting the first source's error
+        // would be misleading, so say what was tried. `e.message` is the last
+        // failure, which on Linux is now the real GStreamer bus error.
+        _errorMessage = shouldRetry
+            ? 'No video source worked (tried: ${_sourceCandidates.join(', ')}). '
+                  'Last error: ${e.message}'
             : 'Pipeline error: ${e.message}';
         _isPlaying = false;
       });
     }
-  }
-
-  String? _nextAndroidSource(String failedSource) {
-    final int idx = _androidSourceCandidates.indexOf(failedSource);
-    if (idx == -1 || idx + 1 >= _androidSourceCandidates.length) return null;
-    return _androidSourceCandidates[idx + 1];
   }
 
   Future<void> _togglePlayPause() async {
@@ -447,8 +517,9 @@ class StreamPageState extends State<StreamPage> {
       return _buildWebView();
     }
 
-    // Windows: Rust-owned webcam capture + ONNX inference
-    if (_isWindows) {
+    // Windows always, Linux when the Rust features were compiled in:
+    // Rust-owned webcam capture + ONNX inference.
+    if (_useRustWebcam) {
       return _buildRustWebcamPage();
     }
 
@@ -496,7 +567,7 @@ class StreamPageState extends State<StreamPage> {
             children: [
               _buildWebRTCContainer(
                 child: webrtc_import.WebRTCView(
-                  signalingUrl: widget.webrtcSettings.signalingServerUrl,
+                  settings: widget.webrtcSettings,
                   producerIdToConsume: null,
                 ),
               ),
@@ -787,7 +858,7 @@ class StreamPageState extends State<StreamPage> {
         const SizedBox(height: 12),
         _buildWebRTCContainer(
           child: webrtc_import.WebRTCView(
-            signalingUrl: widget.webrtcSettings.signalingServerUrl,
+            settings: widget.webrtcSettings,
             producerIdToConsume: null,
           ),
         ),
