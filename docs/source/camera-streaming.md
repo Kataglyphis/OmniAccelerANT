@@ -129,7 +129,9 @@ the Raspberry Pi CSI camera, whose `rp1-cfe` V4L2 nodes carry raw Bayer that
 WebRTC stream keeps camera rate while the boxes lag one inference behind
 (seconds per frame on a Pi 5 CPU). `--no-inference` skips the model entirely —
 no ORT, no detector, frames published unannotated — for camera/WebRTC bring-up
-and for hosts too weak to run YOLO.
+and for hosts too weak to run YOLO. `--rotate 90|180|270` flips the stream with
+`videoflip` (180 for a camera mounted upside down); inference sees the rotated
+frame, so the boxes still line up.
 
 Serve the web build with the COOP/COEP headers the Stream page needs and the
 `/webrtc-ws` proxy:
@@ -235,7 +237,8 @@ nodes need the same ACL as the camera nodes, or libcamera reports
 `Could not open any dma-buf provider` and registration fails with `-12`
 (ENOMEM); and `/opt/gcc-16.2.0/lib64` must be on `LD_LIBRARY_PATH`, or the
 image's ONNX Runtime dies with `GLIBCXX_3.4.36 not found` (the image's GCC 16
-libstdc++ is what ORT was built against).
+libstdc++ is what ORT was built against). The Pi 4's camera here is mounted
+upside down, so its runner passes `--rotate 180`.
 
 **RISC-V SoC (SpacemiT X100).** `:latest-cross` is a multi-arch index
 (amd64/arm64/riscv64), so the same tag runs there natively and the producer
