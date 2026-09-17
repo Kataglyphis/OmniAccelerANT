@@ -67,6 +67,9 @@ Raspberry Pi; on a Pi 5 CSI camera the producer half is **OxidANT's**
 2 W runs the image with the same host-libcamera swap plus a `gst-launch` no-AI
 pipeline (the Rust producer does not fit 512 MB), and a RISC-V SoC runs the
 riscv64 variant natively with a USB webcam (`--v4l2`) — see § 2's glue list.
+In the deployed shape **each board serves its own homepage** — producer,
+`serve.sh` and the web build all on the board, all on `https://<board>:8444/`;
+`serve.sh --producer-host` is only for looking at one board from another host.
 Runbook: README § *Live cat detection stream*.
 
 **`cat_webrtc` is this app's only WebRTC producer.** AccelerANTgine carries a
@@ -480,7 +483,14 @@ written out rather than linked.
   `LD_LIBRARY_PATH` handed to `nerdctl run` (bypass it with `--entrypoint` —
   the Pi 5 runner does the same by exec'ing the binary directly); and
   gst-launch's `webrtcsink` `meta` must be a space-free structure
-  (`meta="meta,name=Zero-Cat-Cam"`; a name with spaces fails to parse).
+  (`meta="meta,name=Zero-Cat-Cam"`; a name with spaces fails to parse). The
+  same swap carries any unicam/VC4 Pi (a Pi 4 runs the Rust producer with
+  inference that way); there the `/dev/dma_heap/*` nodes need the camera
+  ACLs too (`Could not open any dma-buf provider`, registration `-12`) and
+  `/opt/gcc-16.2.0/lib64` must be on `LD_LIBRARY_PATH` for the image's ONNX
+  Runtime (`GLIBCXX_3.4.36 not found` otherwise). A camera mounted upside down
+  is a producer flag (`--rotate 180`), or in the Zero's hand-written
+  gst-launch pipeline a `videoflip method=rotate-180` element.
 - **A RISC-V board runs the same image, but the host has opinions.** The
   SpacemiT X100 runs the riscv64 variant of `:latest-cross` natively (the
   producer builds in the container in minutes); a USB webcam needs `--v4l2`,
@@ -493,6 +503,12 @@ written out rather than linked.
   own port opened on the **dev host** — a second board's page stays
   unreachable while the first board's still works, which reads like a
   producer fault but is a missing `ufw allow 8446/tcp`.
+- **Nothing on the boards survives a reboot by itself.** A producer is a
+  `nerdctl run` container and `serve.sh` is a foreground nginx: a board's (or
+  the Pi 5's) reboot takes the streams and pages down until they are started
+  again, and hand-set ACLs die with re-enumerated device nodes — the X100's
+  C270 re-plug did exactly that. Durability is systemd units for producer and
+  `serve.sh` plus a udev rule for the camera ACLs; nothing installs them yet.
 - **The frb Dart bindings must match the Rust runtime's frb version.** They
   were stale at 2.12.0 against 2.13.0 and the web build died with an empty
   `Uncaught` before `pkg/oxidant.js` loaded. Regenerate both sides together:

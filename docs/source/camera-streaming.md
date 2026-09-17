@@ -173,7 +173,9 @@ the Raspberry Pi CSI camera, whose `rp1-cfe` V4L2 nodes carry raw Bayer that
 WebRTC stream keeps camera rate while the boxes lag one inference behind
 (seconds per frame on a Pi 5 CPU). `--no-inference` skips the model entirely —
 no ORT, no detector, frames published unannotated — for camera/WebRTC bring-up
-and for hosts too weak to run YOLO.
+and for hosts too weak to run YOLO. `--rotate 90|180|270` flips the stream with
+`videoflip` (180 for a camera mounted upside down); inference sees the rotated
+frame, so the boxes still line up.
 
 Serve the web build with the COOP/COEP headers the Stream page needs and the
 `/webrtc-ws` proxy:
@@ -191,7 +193,22 @@ scripts/linux/cat-stream/serve.sh          # :8444 TLS, proxies to :8443
 
 `serve.sh` also takes `--producer-host`/`--producer-port` to front a producer
 on another board, and `--state-dir` so several instances (one per producer)
-can run side by side.
+can run side by side. In the **deployed shape every board serves its own
+homepage**: producer on `:8443` and `serve.sh` + the web build on `:8444`, both
+on the board — the dev host's `serve.sh` is for its own camera, or for an
+ad-hoc look at another board via `--producer-host`.
+
+The boards this repo has been deployed on:
+
+| Board | Arch | Camera | Producer | Board-side quirks |
+| --- | --- | --- | --- | --- |
+| Raspberry Pi 5 | arm64 | imx219 (CSI) | Rust, inference | host-libcamera swap (rp1/pisp entity rename + libpisp 1.7) |
+| Raspberry Pi Zero 2 W | arm64 | imx708 (CSI, mounted upside down) | `gst-launch`, no AI (512 MB) | host swap (vc4), `videoflip method=rotate-180` |
+| Raspberry Pi 4 | arm64 | imx708 (CSI, mounted upside down) | Rust, inference | host swap (vc4), `/dev/dma_heap` ACLs, GCC 16 libs for ORT, `--rotate 180` |
+| SpacemiT X100 | riscv64 | Logitech C270 (USB) | Rust, inference | no libcamera; camera ACL + udev rule, UFW `8443/8444` + UDP |
+
+All four run the same `:latest-cross` (a multi-arch index) and the same web
+build; the board-side pieces are the producer, `serve.sh` and nginx.
 
 `signalingServerUrl` in `assets/settings/webrtc_settings.json` is
 host-relative by default (`/webrtc-ws`); the web client resolves it against the
@@ -212,7 +229,13 @@ scripts/linux/cat-stream/serve.sh   # :8444 TLS, proxies to :8443
 0.7.2 / libpisp 1.5, which cannot drive a Pi 5 on kernel 6.18: the kernel
 renamed the `rp1-cfe` media entities to underscores (`rp1-cfe-fe_image0`) and
 moved to the libpisp 1.7 uAPI, so the pipeline handler cannot acquire the CFE
-and the upstream IPA segfaults when isolation is forced.
+and the upstream IPA segfaults when isolation is forced. Build with the runner
+(`--build`): it mounts OxidANT at `/workspace`, and a binary built from the
+superproject layout instead carries a compiled-in model path pointing at
+`/workspace/third_party/OxidANT/resources/...`, which does not exist under that
+mount — the producer then dies with `No ONNX backend available`. Cargo caches
+by source mtime, so after switching contexts `touch crates/cat_webrtc/src/main.rs`
+forces the recompile.
 `third_party/OxidANT/scripts/linux/cat-stream/run-producer-pi.sh` collects the
 host's Raspberry Pi OS libcamera stack (0.7.2+rpt, which matches the kernel)
 plus its library closure into OxidANT's own
@@ -249,19 +272,30 @@ sudo nerdctl run --rm --name zero-producer --user 0:0 --privileged \
   --entrypoint bash "${IMAGE}" \
   -lc 'exec gst-launch-1.0 -e \
     webrtcsink name=ws run-signalling-server=true signalling-server-host=0.0.0.0 signalling-server-port=8443 meta="meta,name=Zero-Cat-Cam" \
-    libcamerasrc ! video/x-raw,format=RGB,width=640,height=480,framerate=15/1 ! videoconvert ! video/x-raw,format=I420 ! vp8enc deadline=1 ! ws.'
+    libcamerasrc ! video/x-raw,format=RGB,width=640,height=480,framerate=15/1 ! videoconvert ! videoflip method=rotate-180 ! video/x-raw,format=I420 ! vp8enc deadline=1 ! ws.'
 ```
+
+The `videoflip` is there because this Zero's camera is mounted upside down
+(drop it, or change the method, for an upright camera — `--rotate` is the
+producer's equivalent).
 
 Two traps bite anyone wiring this by hand: the image's `entrypoint.sh` sources
 `libcamera-env.sh`, which re-prepends `/opt/libcamera/lib` and silently
 overrides the `LD_LIBRARY_PATH` above — hence `--entrypoint bash`; and
 `webrtcsink`'s `meta` must be a space-free structure in gst-launch
-(`meta="meta,name=Zero-Cat-Cam"`; a space fails to parse). The dev host's
-`serve.sh` (:8444) fronts the Zero without deploying the web build to it, by
-tunnelling only the signalling:
+(`meta="meta,name=Zero-Cat-Cam"`; a space fails to parse). For its own
+homepage, install nginx on the board (`sudo apt install nginx`; it lands in
+`/usr/sbin`, which is not on the user's `PATH`), open UFW (`8444/tcp` plus the
+WebRTC UDP range), copy the web build and `serve.sh` over, and run it there:
 
 ```bash
-ssh -N -L 8443:127.0.0.1:8443 himbeergsaelzlight.local   # run on the dev host
+# from the dev host
+rsync -a build/web/ himbeergsaelzlight.local:cat-cam/build/web/
+rsync -a scripts/linux/cat-stream/serve.sh \
+  himbeergsaelzlight.local:cat-cam/scripts/linux/cat-stream/serve.sh
+# on the Zero (serve.sh derives its repo root from its own path, so the
+# scripts/linux/cat-stream/ layout under ~/cat-cam is deliberate)
+cd ~/cat-cam && PATH=/usr/sbin:$PATH bash scripts/linux/cat-stream/serve.sh
 ```
 
 Media is WebRTC UDP, browser ↔ Zero, direct on the LAN. If the container is
@@ -270,6 +304,23 @@ exports a container-less aarch64 bundle (producer + pruned GStreamer + the
 image's glibc, ~180 MB) that runs against the host's libcamera with no
 container and no toolchain; and `--no-inference` is the next step up from this
 `gst-launch` bring-up.
+
+**Other VC4/unicam Pis (e.g. Pi 4).** The same host-libcamera swap applies,
+but the Rust producer fits there, and it needs **no board-specific runner**:
+the Pi 5's runner works as-is — it collects the host libcamera closure, ACLs
+`/dev/{video,media,dma_heap}*` (the dma_heap nodes matter here, or libcamera
+reports `Could not open any dma-buf provider` and registration fails with
+`-12`/ENOMEM) and puts `/opt/gcc-16.2.0/lib64` on `LD_LIBRARY_PATH`, which is
+what the image's ONNX Runtime needs (`GLIBCXX_3.4.36 not found` otherwise).
+The Pi 4's camera here is mounted upside down, so:
+
+```bash
+third_party/OxidANT/scripts/linux/cat-stream/run-producer-pi.sh --build --rotate 180
+```
+
+Its homepage works like the Zero's: nginx is preinstalled on Pi OS, `serve.sh`
+runs with `PATH=/usr/sbin:$PATH` from a repo checkout (`~/OmniAccelerANT` here;
+its board-local producer wrapper is `~/zweckle-producer.sh`).
 
 **RISC-V SoC (SpacemiT X100).** `:latest-cross` is a multi-arch index
 (amd64/arm64/riscv64), so the same tag runs there natively and the producer
@@ -280,19 +331,41 @@ the host-level work is permissions and firewall: the node is `root:video 660`
 and the user is usually not in `video`, so grant an ACL
 (`sudo setfacl -m u:$USER:rw /dev/videoN`), and UFW needs `8443/tcp` plus the
 WebRTC UDP range (`sudo ufw allow 32768:60999/udp`) because the browser
-connects directly to the board for media. The dev host can front it without
-deploying the web build:
+connects directly to the board for media. The udev rule keeps the ACL across a
+re-plug (the C270 re-enumerates and a hand-set ACL dies with the old node):
 
 ```bash
-scripts/linux/cat-stream/serve.sh --port 8446 \
-  --producer-host 192.168.188.146 --producer-port 8443 \
-  --state-dir build/cat-stream/x100
+printf 'SUBSYSTEM=="video4linux", RUN+="/usr/bin/setfacl -m u:%s:rw /dev/%%k"\n' "$USER" \
+  | sudo tee /etc/udev/rules.d/99-catcam-acl.rules
+sudo udevadm control --reload-rules && sudo udevadm trigger --subsystem-match=video4linux
 ```
 
-Use the board's **IP, not its mDNS name**, in `--producer-host`: nginx
-resolves `proxy_pass` hostnames once at startup, so a DHCP or mDNS address
-change leaves it proxying into the void with a `101` in the access log and no
-connection on the producer.
+For its own homepage: `sudo apt install nginx`, UFW `8444/tcp` plus the WebRTC
+UDP range, then the same web-build + `serve.sh` copy as the Zero. Its
+producer, from an OxidANT checkout carried over to `~/OxidANT` (`IMAGE` as
+above):
+
+```bash
+# build once (model paths resolve because OxidANT is mounted at /workspace)
+nerdctl run --rm --user 0:0 --network host -v "$HOME/OxidANT":/workspace \
+  -v kataglyphis-cat-target:/cargo-target -v kataglyphis-cat-cargo:/cargo-home \
+  -e CARGO_TARGET_DIR=/cargo-target -e CARGO_HOME=/cargo-home \
+  --entrypoint bash "$IMAGE" -lc \
+  'cd /workspace && cargo build --release --locked -p kataglyphis_cat_webrtc'
+
+# run (detached; the board's wrapper is ~/x100-producer.sh)
+nerdctl run -d --rm --name x100-producer --user 0:0 --privileged --network host \
+  -v /dev:/dev -v "$HOME/OxidANT":/workspace \
+  -v kataglyphis-cat-target:/cargo-target \
+  -e ORT_DYLIB_PATH=/opt/opencv5/lib/libonnxruntime.so -e RUST_LOG=info \
+  --entrypoint /cargo-target/release/kataglyphis_cat_webrtc "$IMAGE" \
+  --v4l2 /dev/video9 --listen-port 8443 --name "Mintberry Cat Cam"
+```
+
+If you front it from another host instead (`serve.sh --producer-host`), use its
+**IP, not its mDNS name**: nginx resolves `proxy_pass` hostnames once at
+startup, so a DHCP or mDNS address change leaves it proxying into the void with
+a `101` in the access log and no connection on the producer.
 
 The numbered steps below are the manual `gst-launch-1.0` pipelines, kept for
 cases the Rust producer does not cover.
