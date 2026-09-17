@@ -35,6 +35,7 @@ is_system_soname() {
 # pipelines (v4l2src jpegdec videoconvert appsink autovideosrc videotestsrc) and
 # the Rust capture (crates/media) between them use exactly these. Bundler and
 # gate share the list so a plugin cannot silently stop travelling.
+# shellcheck disable=SC2034  # read by bundle-runtime-closure.sh and check-bundle-closure.sh
 GST_BUNDLED_PLUGIN_NAMES=(
   coreelements app videoconvertscale videotestsrc autodetect jpeg video4linux2
 )
