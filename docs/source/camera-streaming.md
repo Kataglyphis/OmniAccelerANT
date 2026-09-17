@@ -207,8 +207,12 @@ sudo nerdctl run --rm --name zero-producer --user 0:0 --privileged \
   --entrypoint bash "${IMAGE}" \
   -lc 'exec gst-launch-1.0 -e \
     webrtcsink name=ws run-signalling-server=true signalling-server-host=0.0.0.0 signalling-server-port=8443 meta="meta,name=Zero-Cat-Cam" \
-    libcamerasrc ! video/x-raw,format=RGB,width=640,height=480,framerate=15/1 ! videoconvert ! video/x-raw,format=I420 ! vp8enc deadline=1 ! ws.'
+    libcamerasrc ! video/x-raw,format=RGB,width=640,height=480,framerate=15/1 ! videoconvert ! videoflip method=rotate-180 ! video/x-raw,format=I420 ! vp8enc deadline=1 ! ws.'
 ```
+
+The `videoflip` is there because this Zero's camera is mounted upside down
+(drop it, or change the method, for an upright camera — `--rotate` is the
+producer's equivalent).
 
 Two traps bite anyone wiring this by hand: the image's `entrypoint.sh` sources
 `libcamera-env.sh`, which re-prepends `/opt/libcamera/lib` and silently

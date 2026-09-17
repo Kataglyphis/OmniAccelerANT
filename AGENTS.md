@@ -469,7 +469,8 @@ written out rather than linked.
   ACLs too (`Could not open any dma-buf provider`, registration `-12`) and
   `/opt/gcc-16.2.0/lib64` must be on `LD_LIBRARY_PATH` for the image's ONNX
   Runtime (`GLIBCXX_3.4.36 not found` otherwise). A camera mounted upside down
-  is a producer flag, not a pipeline edit: `--rotate 180` (videoflip).
+  is a producer flag (`--rotate 180`), or in the Zero's hand-written
+  gst-launch pipeline a `videoflip method=rotate-180` element.
 - **A RISC-V board runs the same image, but the host has opinions.** The
   SpacemiT X100 runs the riscv64 variant of `:latest-cross` natively (the
   producer builds in the container in minutes); a USB webcam needs `--v4l2`,
