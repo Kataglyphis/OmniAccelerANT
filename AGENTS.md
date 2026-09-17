@@ -503,12 +503,15 @@ written out rather than linked.
   own port opened on the **dev host** — a second board's page stays
   unreachable while the first board's still works, which reads like a
   producer fault but is a missing `ufw allow 8446/tcp`.
-- **Nothing on the boards survives a reboot by itself.** A producer is a
+- **Nothing on the boards starts on boot — by choice.** A producer is a
   `nerdctl run` container and `serve.sh` is a foreground nginx: a board's (or
   the Pi 5's) reboot takes the streams and pages down until they are started
   again, and hand-set ACLs die with re-enumerated device nodes — the X100's
-  C270 re-plug did exactly that. Durability is systemd units for producer and
-  `serve.sh` plus a udev rule for the camera ACLs; nothing installs them yet.
+  C270 re-plug did exactly that. There are no systemd units on purpose; each
+  board instead carries a local `~/cat-cam.sh start|stop|status` that brings up
+  its producer and its nginx in one command. The camera ACLs still want a udev
+  rule (`/etc/udev/rules.d/99-catcam-acl.rules` on the X100) to survive a
+  re-plug.
 - **The frb Dart bindings must match the Rust runtime's frb version.** They
   were stale at 2.12.0 against 2.13.0 and the web build died with an empty
   `Uncaught` before `pkg/oxidant.js` loaded. Regenerate both sides together:
