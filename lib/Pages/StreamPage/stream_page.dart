@@ -393,13 +393,10 @@ class StreamPageState extends State<StreamPage> {
         await channel.invokeMethod('stop');
       }
 
-      if (_isWindows) {
-        await channel.invokeMethod('setPipeline', <String, String>{
-          'pipeline': pipelineString,
-        });
-      } else {
-        await channel.invokeMethod('setPipeline', pipelineString);
-      }
+      // One call shape: the map form that stood behind `if (_isWindows)` was
+      // unreachable there — _useRustWebcam is unconditionally true on Windows,
+      // so this MethodChannel path is only ever taken elsewhere.
+      await channel.invokeMethod('setPipeline', pipelineString);
       await channel.invokeMethod('play');
 
       if (!mounted) return;

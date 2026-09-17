@@ -21,6 +21,7 @@ list(
   APPEND
   PLUGIN_SOURCES
   "kataglyphis_native_inference_plugin.cc"
+  "runtime_paths.cc"
   "my_texture.cc")
 
 list(APPEND PLUGIN_MODULES "my_texture.ixx")

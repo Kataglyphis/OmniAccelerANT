@@ -30,18 +30,10 @@ android {
         namespace 'com.flutter_rust_bridge.rust_lib_omni_accelerant'
     }
 
-    // Bumping the plugin compileSdkVersion requires all clients of this plugin
-    // to bump the version in their app.
-    compileSdkVersion 36
-
-    // AGENTS.md § 4.
-    buildToolsVersion "36.0.0"
-
-    // Use the NDK version
-    // declared in /android/app/build.gradle file of the Flutter project.
-    // Replace it with a version number if this plugin requires a specfic NDK version.
-    // (e.g. ndkVersion "23.1.7779620")
-    ndkVersion android.ndkVersion
+    // compileSdkVersion, buildToolsVersion and ndkVersion come from the root
+    // android/build.gradle.kts - one source of truth for what /opt/android-sdk
+    // ships (AGENTS.md § 4). Cargokit reads them in gradle.afterProject, after
+    // the root override has set them.
 
     compileOptions {
         // Flutter's Android toolchain and most plugins target Java 17.

@@ -1,10 +1,15 @@
 #!/usr/bin/env bash
 
 detect_arch() {
-  case "$(uname -m)" in
+  local machine
+  machine="$(uname -m)"
+  case "$machine" in
     x86_64|amd64) echo "x64" ;;
     aarch64|arm64) echo "arm64" ;;
-    *) echo "x64" ;;
+    # Unknown values pass through, like upstream's arch_normalize: the callers
+    # all run validate_arch, which names the flag and the accepted values. The
+    # x64 fallback that stood here let a riscv64 host build and package amd64.
+    *) echo "$machine" ;;
   esac
 }
 

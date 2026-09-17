@@ -5,23 +5,43 @@
 # dropped export is not a compile error on either side: the app builds and then
 # silently never shows a frame. This dlopens the plugin the way Rust does.
 #
-#   scripts/linux/check-knt-abi.sh [--bundle-lib DIR]
-#
+#   scripts/linux/check-knt-abi.sh [--arch x64|arm64] [--build-mode MODE] [--bundle-lib DIR]
 # Rationale and limits: docs/source/camera-streaming.md § Checking the knt ABI
 set -euo pipefail
 
-bundle_lib="build/linux/x64/release/bundle/lib"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=scripts/linux/lib/cli-common.sh
+source "$SCRIPT_DIR/lib/cli-common.sh"
+
+matrix_arch="$(detect_arch)"
+build_mode="release"
+bundle_lib=""
 
 while [ $# -gt 0 ]; do
   case "$1" in
+    --arch) matrix_arch="${2:?--arch needs a value}"; shift 2 ;;
+    --build-mode) build_mode="${2:?--build-mode needs a value}"; shift 2 ;;
     --bundle-lib) bundle_lib="${2:?--bundle-lib needs a value}"; shift 2 ;;
     -h|--help)
-      printf 'usage: %s [--bundle-lib DIR]\n' "$0"
+      printf 'usage: %s [--arch x64|arm64] [--build-mode debug|profile|release] [--bundle-lib DIR]\n' "$0"
       exit 0
       ;;
     *) printf 'unknown argument: %s\n' "$1" >&2; exit 2 ;;
   esac
 done
+
+if ! validate_arch "$matrix_arch"; then
+  exit 2
+fi
+case "$build_mode" in
+  debug|profile|release) ;;
+  *) printf 'Error: --build-mode must be debug, profile or release (got: %s)\n' "${build_mode:-<empty>}" >&2; exit 2 ;;
+esac
+
+if [ -z "$bundle_lib" ]; then
+  repo_root="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+  bundle_lib="${repo_root}/build/linux/${matrix_arch}/${build_mode}/bundle/lib"
+fi
 
 plugin="${bundle_lib}/libkataglyphis_native_inference_plugin.so"
 [ -f "${plugin}" ] || {

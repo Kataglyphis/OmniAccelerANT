@@ -18,7 +18,8 @@ Options:
   --build-mode <debug|profile|release> Build mode for flutter build apk (default: release)
       --flutter-dir <path>      Flutter SDK directory (default: /opt/flutter, baked into the image)
   -n, --app-name <name>         Artifact base name (required)
-      --run-codeql <bool>       Run CodeQL scan (default: true)
+      --run-codeql <bool>       Run CodeQL scan (default: false; the scan is
+                                hours and is a manual/local run since 2026-09-17)
   -h, --help                    Show this help
 EOF
 }
@@ -27,7 +28,7 @@ MATRIX_ARCH=""
 BUILD_MODE="release"
 FLUTTER_DIR="/opt/flutter"
 APP_NAME=""
-RUN_CODEQL="1"
+RUN_CODEQL="0"
 STRICT_CHECKS="0"
 
 while [[ $# -gt 0 ]]; do
@@ -136,7 +137,7 @@ if maybe_truthy "$RUN_CODEQL"; then
   run_codeql_android "$FLUTTER_DIR" "$BUILD_MODE"
 
   if [[ "$BUILD_MODE" == "release" ]]; then
-    package_android_apk_outputs_tar "$MATRIX_ARCH" "$APP_NAME"
+    app_packaging_package_android_apk_outputs_tar "$MATRIX_ARCH" "$APP_NAME"
   else
     echo "Info: packaging skipped because --build-mode is '$BUILD_MODE' (packaging is release-only)."
   fi

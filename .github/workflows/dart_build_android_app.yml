@@ -11,6 +11,15 @@ on:
   pull_request:
     branches: ["main", "develop"]
 
+# Per-ref group, like the web lane. The APK build is minutes, not seconds, and
+# this lane no longer runs CodeQL (owner directive 2026-09-17): the scan is
+# budgeted in hours and is a manual/local run now - see the --run-codeql false
+# below and AGENTS.md § 5. A superseded run's verdict can never be the one that
+# matters, so leaving it queued behind a new commit is pure cost.
+concurrency:
+  group: android-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
     strategy:
@@ -24,9 +33,10 @@ jobs:
             flutter_dir: /opt/flutter
 
     runs-on: ${{ matrix.runs_on }}
+    # No security-events: the CodeQL scan is off in CI, so nothing uploads
+    # SARIF here any more.
     permissions:
       contents: read
-      security-events: write
 
     steps:
       # ANTfrastructure's shared prologue: reclaim disk, check out, log in to ghcr,
@@ -58,25 +68,10 @@ jobs:
             --build-mode "${{ matrix.build_mode }}"
             --flutter-dir "${{ matrix.flutter_dir }}"
             --app-name "${{ matrix.app_name }}"
-            --run-codeql "${{ matrix.arch == 'x64' }}"
+            --run-codeql false
 
       - name: Upload artifact
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: ${{ matrix.app_name }}-linux-${{ matrix.arch }}-tar
           path: out/${{ matrix.app_name }}-linux-${{ matrix.arch }}.tar.gz
-
-      # Upload SARIF to GitHub Code Scanning.
-      #
-      # No `continue-on-error`. This is the only lane in the repository that
-      # actually produces CodeQL results (codeql-android.sh), so a failed
-      # upload means the alerts never reached Code Scanning - exactly the
-      # outcome that suppression used to hide. The `hashFiles` guard already
-      # covers "no results to upload", and ci-container-run-android.sh now
-      # fails outright when the scan itself fails, so an empty results
-      # directory can no longer coexist with a green job.
-      - name: Upload CodeQL results SARIF
-        if: ${{ matrix.arch == 'x64' && hashFiles('codeql-results/*.sarif') != '' }}
-        uses: github/codeql-action/upload-sarif@b96794f015dfd88f77b49b1c93e0fa7110f94c63
-        with:
-          sarif_file: codeql-results

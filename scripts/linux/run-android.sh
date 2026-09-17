@@ -93,8 +93,17 @@ flutter clean
 flutter pub get
 flutter build apk --"$BUILD_MODE"
 
+# The plugin's JVM test, which no lane ran until 2026-09-17. Fatal on purpose:
+# the android lane's Dart checks are non-strict only because they were inherited
+# that way, and this step is what proved the test source set even compiled — its
+# dependencies block sat inside android{} and resolved to nothing, and Gradle 9
+# needs the JUnit launcher declared explicitly. Both fixes live in
+# packages/kataglyphis_native_inference/android/build.gradle. The wrapper and
+# daemon are warm from the apk build above, so this is configuration cost only.
+(cd android && ./gradlew :kataglyphis_native_inference:testDebugUnitTest --console=plain)
+
 if [[ "$BUILD_MODE" == "release" ]]; then
-  package_android_apk_outputs_tar "$MATRIX_ARCH" "$APP_NAME"
+  app_packaging_package_android_apk_outputs_tar "$MATRIX_ARCH" "$APP_NAME"
 else
   echo "Info: packaging skipped because --build-mode is '$BUILD_MODE' (packaging is release-only)."
 fi

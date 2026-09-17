@@ -6,6 +6,13 @@ on:
   pull_request:
     branches: ["main", "develop"]
 
+# Per-ref group, like the web lane. A superseded run's verdict can never be the
+# one branch protection asks for, and leaving Windows container builds stacked
+# is the most expensive way to learn the same thing twice.
+concurrency:
+  group: native-windows-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   BUILD_DIR_RELEASE: build/windows/x64/runner/x64-ClangCL-Windows-Release
 

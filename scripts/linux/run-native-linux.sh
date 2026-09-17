@@ -123,9 +123,33 @@ assert_gates
 
 flutter config --enable-linux-desktop
 
+# Rust features for the crate cargokit builds at CMake install time. The Linux
+# product is the Rust webcam path, so the lane sets them the way
+# Build-Windows.ps1 does; set KATAGLYPHIS_RUST_FEATURES="" explicitly to build
+# featureless. Distinct from Windows: DirectML is a Windows-only provider.
+if [[ -z "${KATAGLYPHIS_RUST_FEATURES+x}" ]]; then
+  export KATAGLYPHIS_RUST_FEATURES="gstreamer,onnxruntime_dynamic"
+fi
+echo "Rust features: '${KATAGLYPHIS_RUST_FEATURES}'"
+
 # Clean and build (pub get already done above, skip duplicate call)
 flutter clean
 flutter build linux --"$BUILD_MODE"
+
+# Packaging carries the bundle as-is, so the runtime closure and the two
+# headless bundle gates run before package-linux.sh ever sees it. Release-only:
+# a debug bundle is not a shipping artifact. Why the closure exists:
+# docs/source/camera-streaming.md.
+if [[ "$BUILD_MODE" == "release" ]]; then
+  bash scripts/linux/bundle-runtime-closure.sh --arch "$MATRIX_ARCH" --build-mode "$BUILD_MODE"
+
+  gate_reset "bundle checks (${MATRIX_ARCH})"
+  run_gate "knt ABI" bash scripts/linux/check-knt-abi.sh --arch "$MATRIX_ARCH" --build-mode "$BUILD_MODE"
+  run_gate "runtime closure" bash scripts/linux/check-bundle-closure.sh --arch "$MATRIX_ARCH" --build-mode "$BUILD_MODE"
+  assert_gates
+else
+  echo "Info: runtime closure and bundle gates are release-only (build-mode is '$BUILD_MODE')."
+fi
 
 if [[ "$RUN_PACKAGING" -eq 1 && "$BUILD_MODE" == "release" ]]; then
   _strict_package_arg=()

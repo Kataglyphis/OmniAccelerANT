@@ -8,10 +8,11 @@ cmake_minimum_required(VERSION 3.14)
 set(PROJECT_NAME "oxidant")
 project(${PROJECT_NAME} LANGUAGES CXX)
 
-# Resolve Rust manifest relative to CMAKE_CURRENT_SOURCE_DIR so the path works
-# regardless of whether this CMakeLists.txt is processed from its original
-# location (rust_builder/windows/) or from a Flutter ephemeral symlink copy
-# (flutter/ephemeral/.plugin_symlinks/oxidant/windows/).
+# Counted from CMAKE_CURRENT_SOURCE_DIR, NOT REALPATH, and that asymmetry with
+# rust_builder/linux/CMakeLists.txt is deliberate: Windows normalizes ".."
+# lexically, so the ups counted from this junction path land on the repo root,
+# while Linux resolves the symlink first and overshoots. Proved by build
+# 2026-09-17 - the REALPATH form fails with PathNotFoundException. AGENTS.md § 4.
 get_filename_component(MANIFEST_ABS "${CMAKE_SOURCE_DIR}/../third_party/OxidANT" ABSOLUTE)
 file(
   RELATIVE_PATH

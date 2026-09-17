@@ -58,6 +58,17 @@ struct _MyTexture {
   gboolean logged_no_registrar;
   gboolean logged_first_sample;
   gboolean logged_first_push;
+
+  // set_color must not touch `buffer`: copy_pixels runs on the raster thread
+  // and is its only writer, while set_color arrives on the platform thread.
+  // It publishes a request here instead, applied by the next copy_pixels.
+  // Windows solves the same shape with a present_buffer_ - the asymmetry is
+  // deliberate; do not "unify" it without a frame-ownership story.
+  GMutex buffer_mutex;
+  gboolean has_pending_color;
+  uint8_t pending_r;
+  uint8_t pending_g;
+  uint8_t pending_b;
 };
 
 G_DEFINE_TYPE(MyTexture, my_texture, fl_pixel_buffer_texture_get_type())
@@ -98,6 +109,24 @@ static void force_alpha_opaque(uint8_t* buffer, uint32_t width, uint32_t height)
   for (uint64_t index = 0; index < pixel_count; ++index) {
     buffer[index * 4U + 3U] = 255U;
   }
+}
+
+// Runs only from copy_pixels, which is the one writer of `buffer`.
+static void apply_pending_color(MyTexture* self) {
+  g_mutex_lock(&self->buffer_mutex);
+  if (self->has_pending_color && self->buffer) {
+    const size_t pixels =
+        static_cast<size_t>(self->width) * static_cast<size_t>(self->height);
+    for (size_t index = 0; index < pixels; ++index) {
+      uint8_t* pixel = self->buffer + index * 4U;
+      pixel[0] = self->pending_r;
+      pixel[1] = self->pending_g;
+      pixel[2] = self->pending_b;
+      pixel[3] = 255U;
+    }
+    self->has_pending_color = FALSE;
+  }
+  g_mutex_unlock(&self->buffer_mutex);
 }
 
 static void my_texture_dispose(GObject* object) {
@@ -142,10 +171,13 @@ static void my_texture_dispose(GObject* object) {
   g_mutex_unlock(&self->pushed_mutex);
   g_mutex_clear(&self->pushed_mutex);
 
+  g_mutex_lock(&self->buffer_mutex);
   if (self->buffer) {
     free(self->buffer);
     self->buffer = nullptr;
   }
+  g_mutex_unlock(&self->buffer_mutex);
+  g_mutex_clear(&self->buffer_mutex);
 
   G_OBJECT_CLASS(my_texture_parent_class)->dispose(object);
 }
@@ -205,6 +237,10 @@ static gboolean my_texture_copy_pixels(FlPixelBufferTexture* texture,
   GstSample* sample = self->last_sample ? gst_sample_ref(self->last_sample) : nullptr;
   g_mutex_unlock(&self->sample_mutex);
 
+  // Tracks whether a frame actually made it into `buffer`; a requested colour
+  // must survive a copy_pixels run that had no frame to show, and must not
+  // overwrite one that did.
+  gboolean copied_frame = FALSE;
   if (sample) {
     GstBuffer* buffer = gst_sample_get_buffer(sample);
     GstCaps* caps = gst_sample_get_caps(sample);
@@ -234,6 +270,7 @@ static gboolean my_texture_copy_pixels(FlPixelBufferTexture* texture,
               memcpy(self->buffer + dst_offset, map.data + src_offset, row_bytes);
             }
           }
+          copied_frame = TRUE;
         }
 
         force_alpha_opaque(self->buffer, self->width, self->height);
@@ -252,6 +289,7 @@ static gboolean my_texture_copy_pixels(FlPixelBufferTexture* texture,
         if (copy_size < buffer_size) {
           memset(self->buffer + copy_size, 0, buffer_size - copy_size);
         }
+        copied_frame = TRUE;
 
         force_alpha_opaque(self->buffer, self->width, self->height);
 
@@ -266,7 +304,11 @@ static gboolean my_texture_copy_pixels(FlPixelBufferTexture* texture,
 
     gst_sample_unref(sample);
   }
-  
+
+  if (!copied_frame) {
+    apply_pending_color(self);
+  }
+
   *out_buffer = self->buffer;
   *width = self->width;
   *height = self->height;
@@ -278,17 +320,16 @@ void my_texture_set_color(FlTexture* texture, uint8_t r, uint8_t g, uint8_t b) {
   g_return_if_fail(MY_IS_TEXTURE(self));
   if (!self->buffer) return;
 
-  // size_t throughout: both the pixel count and the byte offset overflow a
-  // uint32_t on a large texture, and the offset does so first.
-  const size_t pixels =
-      static_cast<size_t>(self->width) * static_cast<size_t>(self->height);
-  for (size_t i = 0; i < pixels; ++i) {
-    uint8_t* p = self->buffer + i * 4U;
-    p[0] = r;
-    p[1] = g;
-    p[2] = b;
-    p[3] = 255;
-  }
+  // Hand the colour to copy_pixels rather than writing `buffer` here; the
+  // mutex makes the handoff atomic, and the loop it replaces raced the raster
+  // thread. size_t because width*height and the byte offset both overflow a
+  // uint32_t on a large texture.
+  g_mutex_lock(&self->buffer_mutex);
+  self->pending_r = r;
+  self->pending_g = g;
+  self->pending_b = b;
+  self->has_pending_color = TRUE;
+  g_mutex_unlock(&self->buffer_mutex);
 
   if (self->texture_registrar) {
     request_texture_frame_available(self, "set_color");
@@ -315,8 +356,13 @@ static void my_texture_init(MyTexture* self) {
   self->logged_no_registrar = FALSE;
   self->logged_first_sample = FALSE;
   self->logged_first_push = FALSE;
+  self->has_pending_color = FALSE;
+  self->pending_r = 0U;
+  self->pending_g = 0U;
+  self->pending_b = 0U;
   g_mutex_init(&self->sample_mutex);
   g_mutex_init(&self->pushed_mutex);
+  g_mutex_init(&self->buffer_mutex);
 }
 
 FlTexture* my_texture_new(uint32_t width, uint32_t height, uint8_t r, uint8_t g, uint8_t b) {

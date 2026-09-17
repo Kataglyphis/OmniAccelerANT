@@ -5,6 +5,10 @@
 # `database create` wraps the build, the app was never built either.
 : "${CODEQL_INSTALL_DIR:=/tmp/codeql-cli}"
 CODEQL="${CODEQL_INSTALL_DIR}/codeql/codeql"
+# Scopes the scan to this product's code: build output and vendored libraries
+# are filtered out of the analysis. Why, and what it does NOT do (extraction):
+# .github/codeql/codeql-config.yml.
+: "${CODEQL_CONFIG:=/workspace/.github/codeql/codeql-config.yml}"
 
 codeql_install_cli() {
   local tmpdir="${1:-/tmp/codeql}"
@@ -62,9 +66,13 @@ codeql_create_db_cluster() {
     --db-cluster \
     "$@" \
     --source-root=/workspace \
+    --codescanning-config="$CODEQL_CONFIG" \
     --command="$build_script_path"
 }
 
+# The paths-ignore filters travel inside the database (stored by
+# --codescanning-config at create time) and are applied here; the explicit suite
+# stays because `database analyze` has no --codescanning-config flag of its own.
 codeql_analyze_cpp() {
   mkdir -p /workspace/codeql-results
   "$CODEQL" database analyze /tmp/codeql-db-cluster/cpp \

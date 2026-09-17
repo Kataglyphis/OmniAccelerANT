@@ -125,12 +125,12 @@ fi
 # the two largest refs of a set upstream measures at ~1.9 GB per run per arch.
 # dpkg-deb ships in the image and the AppImage packager provisions appimagetool
 # itself, so `--package-formats tar` was paying that for nothing. The predicate
-# is upstream's own, already used by run_command_with_packaging_runtime below.
+# is upstream's own, already used by app_packaging_run_command_with_runtime below.
 # Detail: docs/source/project-operations.md § The Linux lane, locally.
 if ! app_packaging_formats_include_flatpak "$PACKAGE_FORMATS"; then
   echo "[Info] No flatpak in --package-formats '${PACKAGE_FORMATS}'; skipping the flathub runtime install."
 elif maybe_truthy "$INSTALL_PACKAGING_DEPS"; then
-  setup_packaging_dependencies_for_container "$MATRIX_ARCH"
+  app_packaging_setup_dependencies_for_container "$MATRIX_ARCH"
 fi
 
 # Ensure clang has a usable C++ runtime/toolchain setup in container builds.
@@ -138,7 +138,7 @@ setup_compiler_cache
 export_toolchain_env "$MATRIX_ARCH"
 
 # Check + Build + Packaging (delegiert an run-native-linux.sh)
-run_command_with_packaging_runtime "$PACKAGE_FORMATS" \
+app_packaging_run_command_with_runtime "$PACKAGE_FORMATS" \
   bash scripts/linux/run-native-linux.sh \
     --arch "$MATRIX_ARCH" \
     --build-mode "$BUILD_MODE" \
