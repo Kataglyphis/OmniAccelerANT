@@ -65,6 +65,9 @@ Raspberry Pi; on a Pi 5 CSI camera the producer half is **OxidANT's**
 2 W runs the image with the same host-libcamera swap plus a `gst-launch` no-AI
 pipeline (the Rust producer does not fit 512 MB), and a RISC-V SoC runs the
 riscv64 variant natively with a USB webcam (`--v4l2`) — see § 2's glue list.
+In the deployed shape **each board serves its own homepage** — producer,
+`serve.sh` and the web build all on the board, all on `https://<board>:8444/`;
+`serve.sh --producer-host` is only for looking at one board from another host.
 Runbook: README § *Live cat detection stream*.
 
 **`cat_webrtc` is this app's only WebRTC producer.** AccelerANTgine carries a
@@ -483,6 +486,12 @@ written out rather than linked.
   own port opened on the **dev host** — a second board's page stays
   unreachable while the first board's still works, which reads like a
   producer fault but is a missing `ufw allow 8446/tcp`.
+- **Nothing on the boards survives a reboot by itself.** A producer is a
+  `nerdctl run` container and `serve.sh` is a foreground nginx: a board's (or
+  the Pi 5's) reboot takes the streams and pages down until they are started
+  again, and hand-set ACLs die with re-enumerated device nodes — the X100's
+  C270 re-plug did exactly that. Durability is systemd units for producer and
+  `serve.sh` plus a udev rule for the camera ACLs; nothing installs them yet.
 - **The frb Dart bindings must match the Rust runtime's frb version.** They
   were stale at 2.12.0 against 2.13.0 and the web build died with an empty
   `Uncaught` before `pkg/oxidant.js` loaded. Regenerate both sides together:

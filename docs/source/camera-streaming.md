@@ -149,7 +149,22 @@ scripts/linux/cat-stream/serve.sh          # :8444 TLS, proxies to :8443
 
 `serve.sh` also takes `--producer-host`/`--producer-port` to front a producer
 on another board, and `--state-dir` so several instances (one per producer)
-can run side by side.
+can run side by side. In the **deployed shape every board serves its own
+homepage**: producer on `:8443` and `serve.sh` + the web build on `:8444`, both
+on the board — the dev host's `serve.sh` is for its own camera, or for an
+ad-hoc look at another board via `--producer-host`.
+
+The boards this repo has been deployed on:
+
+| Board | Arch | Camera | Producer | Board-side quirks |
+| --- | --- | --- | --- | --- |
+| Raspberry Pi 5 | arm64 | imx219 (CSI) | Rust, inference | host-libcamera swap (rp1/pisp entity rename + libpisp 1.7) |
+| Raspberry Pi Zero 2 W | arm64 | imx708 (CSI, mounted upside down) | `gst-launch`, no AI (512 MB) | host swap (vc4), `videoflip method=rotate-180` |
+| Raspberry Pi 4 | arm64 | imx708 (CSI, mounted upside down) | Rust, inference | host swap (vc4), `/dev/dma_heap` ACLs, GCC 16 libs for ORT, `--rotate 180` |
+| SpacemiT X100 | riscv64 | Logitech C270 (USB) | Rust, inference | no libcamera; camera ACL + udev rule, UFW `8443/8444` + UDP |
+
+All four run the same `:latest-cross` (a multi-arch index) and the same web
+build; the board-side pieces are the producer, `serve.sh` and nginx.
 
 `signalingServerUrl` in `assets/settings/webrtc_settings.json` is
 host-relative by default (`/webrtc-ws`); the web client resolves it against the
@@ -224,12 +239,19 @@ Two traps bite anyone wiring this by hand: the image's `entrypoint.sh` sources
 `libcamera-env.sh`, which re-prepends `/opt/libcamera/lib` and silently
 overrides the `LD_LIBRARY_PATH` above — hence `--entrypoint bash`; and
 `webrtcsink`'s `meta` must be a space-free structure in gst-launch
-(`meta="meta,name=Zero-Cat-Cam"`; a space fails to parse). The dev host's
-`serve.sh` (:8444) fronts the Zero without deploying the web build to it, by
-tunnelling only the signalling:
+(`meta="meta,name=Zero-Cat-Cam"`; a space fails to parse). For its own
+homepage, install nginx on the board (`sudo apt install nginx`; it lands in
+`/usr/sbin`, which is not on the user's `PATH`), open UFW (`8444/tcp` plus the
+WebRTC UDP range), copy the web build and `serve.sh` over, and run it there:
 
 ```bash
-ssh -N -L 8443:127.0.0.1:8443 himbeergsaelzlight.local   # run on the dev host
+# from the dev host
+rsync -a build/web/ himbeergsaelzlight.local:cat-cam/build/web/
+rsync -a scripts/linux/cat-stream/serve.sh \
+  himbeergsaelzlight.local:cat-cam/scripts/linux/cat-stream/serve.sh
+# on the Zero (serve.sh derives its repo root from its own path, so the
+# scripts/linux/cat-stream/ layout under ~/cat-cam is deliberate)
+cd ~/cat-cam && PATH=/usr/sbin:$PATH bash scripts/linux/cat-stream/serve.sh
 ```
 
 Media is WebRTC UDP, browser ↔ Zero, direct on the LAN. If the container is
@@ -248,7 +270,10 @@ nodes need the same ACL as the camera nodes, or libcamera reports
 (ENOMEM); and `/opt/gcc-16.2.0/lib64` must be on `LD_LIBRARY_PATH`, or the
 image's ONNX Runtime dies with `GLIBCXX_3.4.36 not found` (the image's GCC 16
 libstdc++ is what ORT was built against). The Pi 4's camera here is mounted
-upside down, so its runner passes `--rotate 180`.
+upside down, so its runner passes `--rotate 180`. It serves its own homepage
+like the Zero: nginx is preinstalled on Pi OS, `serve.sh` runs with
+`PATH=/usr/sbin:$PATH`, and the board's runners are `~/zweckle-producer.sh`
+(producer) and the repo checkout's `scripts/linux/cat-stream/serve.sh` (web).
 
 **RISC-V SoC (SpacemiT X100).** `:latest-cross` is a multi-arch index
 (amd64/arm64/riscv64), so the same tag runs there natively and the producer
@@ -259,16 +284,19 @@ the host-level work is permissions and firewall: the node is `root:video 660`
 and the user is usually not in `video`, so grant an ACL
 (`sudo setfacl -m u:$USER:rw /dev/videoN`), and UFW needs `8443/tcp` plus the
 WebRTC UDP range (`sudo ufw allow 32768:60999/udp`) because the browser
-connects directly to the board for media. The dev host can front it without
-deploying the web build:
+connects directly to the board for media. The udev rule keeps the ACL across a
+re-plug (the C270 re-enumerates and a hand-set ACL dies with the old node):
 
 ```bash
-scripts/linux/cat-stream/serve.sh --port 8446 \
-  --producer-host 192.168.188.146 --producer-port 8443 \
-  --state-dir build/cat-stream/x100
+printf 'SUBSYSTEM=="video4linux", RUN+="/usr/bin/setfacl -m u:%s:rw /dev/%%k"\n' "$USER" \
+  | sudo tee /etc/udev/rules.d/99-catcam-acl.rules
+sudo udevadm control --reload-rules && sudo udevadm trigger --subsystem-match=video4linux
 ```
 
-Use the board's **IP, not its mDNS name**, in `--producer-host`: nginx
+For its own homepage: `sudo apt install nginx`, UFW `8444/tcp` plus the WebRTC
+UDP range, then the same web-build + `serve.sh` copy as the Zero. Its board
+runner is `~/x100-producer.sh`. If you front a producer from another host
+instead (`serve.sh --producer-host`), use its **IP, not its mDNS name**: nginx
 resolves `proxy_pass` hostnames once at startup, so a DHCP or mDNS address
 change leaves it proxying into the void with a `101` in the access log and no
 connection on the producer.
