@@ -210,11 +210,15 @@ The boards this repo has been deployed on:
 All four run the same `:latest-cross` (a multi-arch index) and the same web
 build; the board-side pieces are the producer, `serve.sh` and nginx.
 
-**Starting is one command, and deliberately not a service.** Nothing on a board
-starts on boot; each board carries a small local `~/cat-cam.sh start|stop|status`
-that brings up (or tears down) its producer and its nginx together and prints
-the board's own URL. After a reboot that script is the whole procedure — there
-are no systemd units on purpose.
+**Starting is one command, and autostart is opt-in.** Each board carries a
+small local `~/cat-cam.sh start|stop|status` that brings up (or tears down) its
+producer and its nginx together and prints the board's own URL; after a reboot
+that script is the whole procedure. A board that should come up on boot opts in
+with a systemd unit whose `ExecStart` is that script — the Zero runs
+`cat-cam.service` (`Type=oneshot`, `RemainAfterExit=yes`, `User=<user>`,
+`ExecStop=~/cat-cam.sh stop`), the others deliberately have none. `start`
+removes a stale container first: one left in `Created` state after a crash
+blocks the named run with `name-store error` and would fail the boot start.
 
 `signalingServerUrl` in `assets/settings/webrtc_settings.json` is
 host-relative by default (`/webrtc-ws`); the web client resolves it against the
