@@ -178,10 +178,11 @@ Pi 4 (or any VC4/unicam Pi) runs the same host-libcamera swap with the Rust
 producer and inference; a camera mounted upside down is `--rotate 180`. In the
 deployed shape each board runs its own copy of this web build and `serve.sh`,
 so its own camera appears on `https://<board>:8444/` (the per-board recipes are
-in the doc below); `serve.sh --producer-host <board-ip>` is only for looking at
-another board from the dev host — use its IP (nginx resolves the name once at
-startup) and open that instance's port there too. Pipeline details, flags and
-troubleshooting:
+in the doc below) — and a board is started with one command, its local
+`~/cat-cam.sh start` (no autostart, by design); `serve.sh --producer-host
+<board-ip>` is only for looking at another board from the dev host — use its IP
+(nginx resolves the name once at startup) and open that instance's port there
+too. Pipeline details, flags and troubleshooting:
 [docs/source/camera-streaming.md](docs/source/camera-streaming.md).
 
 ### Browse the API docs locally

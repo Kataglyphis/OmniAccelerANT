@@ -210,6 +210,12 @@ The boards this repo has been deployed on:
 All four run the same `:latest-cross` (a multi-arch index) and the same web
 build; the board-side pieces are the producer, `serve.sh` and nginx.
 
+**Starting is one command, and deliberately not a service.** Nothing on a board
+starts on boot; each board carries a small local `~/cat-cam.sh start|stop|status`
+that brings up (or tears down) its producer and its nginx together and prints
+the board's own URL. After a reboot that script is the whole procedure — there
+are no systemd units on purpose.
+
 `signalingServerUrl` in `assets/settings/webrtc_settings.json` is
 host-relative by default (`/webrtc-ws`); the web client resolves it against the
 page's origin, so the same build works on localhost, a LAN IP and a Raspberry
@@ -289,10 +295,10 @@ homepage, install nginx on the board (`sudo apt install nginx`; it lands in
 WebRTC UDP range), copy the web build and `serve.sh` over, and run it there:
 
 ```bash
-# from the dev host
-rsync -a build/web/ himbeergsaelzlight.local:cat-cam/build/web/
+# from the dev host (<board> is the target's ssh name)
+rsync -a build/web/ <board>:cat-cam/build/web/
 rsync -a scripts/linux/cat-stream/serve.sh \
-  himbeergsaelzlight.local:cat-cam/scripts/linux/cat-stream/serve.sh
+  <board>:cat-cam/scripts/linux/cat-stream/serve.sh
 # on the Zero (serve.sh derives its repo root from its own path, so the
 # scripts/linux/cat-stream/ layout under ~/cat-cam is deliberate)
 cd ~/cat-cam && PATH=/usr/sbin:$PATH bash scripts/linux/cat-stream/serve.sh
@@ -359,7 +365,7 @@ nerdctl run -d --rm --name x100-producer --user 0:0 --privileged --network host 
   -v kataglyphis-cat-target:/cargo-target \
   -e ORT_DYLIB_PATH=/opt/opencv5/lib/libonnxruntime.so -e RUST_LOG=info \
   --entrypoint /cargo-target/release/kataglyphis_cat_webrtc "$IMAGE" \
-  --v4l2 /dev/video9 --listen-port 8443 --name "Mintberry Cat Cam"
+  --v4l2 /dev/video9 --listen-port 8443 --name "Cat Cam"
 ```
 
 If you front it from another host instead (`serve.sh --producer-host`), use its
