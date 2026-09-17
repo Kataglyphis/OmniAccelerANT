@@ -463,7 +463,12 @@ written out rather than linked.
   `LD_LIBRARY_PATH` handed to `nerdctl run` (bypass it with `--entrypoint` —
   the Pi 5 runner does the same by exec'ing the binary directly); and
   gst-launch's `webrtcsink` `meta` must be a space-free structure
-  (`meta="meta,name=Zero-Cat-Cam"`; a name with spaces fails to parse).
+  (`meta="meta,name=Zero-Cat-Cam"`; a name with spaces fails to parse). The
+  same swap carries any unicam/VC4 Pi (a Pi 4 runs the Rust producer with
+  inference that way); there the `/dev/dma_heap/*` nodes need the camera
+  ACLs too (`Could not open any dma-buf provider`, registration `-12`) and
+  `/opt/gcc-16.2.0/lib64` must be on `LD_LIBRARY_PATH` for the image's ONNX
+  Runtime (`GLIBCXX_3.4.36 not found` otherwise).
 - **A RISC-V board runs the same image, but the host has opinions.** The
   SpacemiT X100 runs the riscv64 variant of `:latest-cross` natively (the
   producer builds in the container in minutes); a USB webcam needs `--v4l2`,

@@ -227,6 +227,16 @@ image's glibc, ~180 MB) that runs against the host's libcamera with no
 container and no toolchain; and `--no-inference` is the next step up from this
 `gst-launch` bring-up.
 
+**Other VC4/unicam Pis (e.g. Pi 4).** The same host-libcamera swap applies,
+but the Rust producer fits there: run it in the container with the `hostlibs`
+mount and `--libcamera` (that is `~/zweckle-producer.sh` on the Pi 4, name
+`Zweckle Cat Cam`). Two extra bits beyond the Zero: the `/dev/dma_heap/*`
+nodes need the same ACL as the camera nodes, or libcamera reports
+`Could not open any dma-buf provider` and registration fails with `-12`
+(ENOMEM); and `/opt/gcc-16.2.0/lib64` must be on `LD_LIBRARY_PATH`, or the
+image's ONNX Runtime dies with `GLIBCXX_3.4.36 not found` (the image's GCC 16
+libstdc++ is what ORT was built against).
+
 **RISC-V SoC (SpacemiT X100).** `:latest-cross` is a multi-arch index
 (amd64/arm64/riscv64), so the same tag runs there natively and the producer
 builds inside the container in minutes on 8 cores — GStreamer, `v4l2src` and
