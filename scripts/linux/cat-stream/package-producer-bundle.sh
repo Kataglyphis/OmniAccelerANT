@@ -89,7 +89,7 @@ done
 # vp8enc -> webrtcsink (which pulls in the webrtc/sdp/dtls/sctp/nice bits).
 gst_lib_dir=/opt/gstreamer/lib/multiarch
 gst_plugin_dir="${gst_lib_dir}/gstreamer-1.0"
-for plugin in coreelements app videoconvertscale videorate videotestsrc debugutilsbad vpx rswebrtc webrtc nice sdp dtls sctp rtpmanager rtp; do
+for plugin in coreelements app videoconvertscale videorate videofilter videotestsrc debugutilsbad vpx rswebrtc webrtc nice sdp dtls sctp rtpmanager rtp; do
   if [ -e "${gst_plugin_dir}/libgst${plugin}.so" ]; then
     cp -L "${gst_plugin_dir}/libgst${plugin}.so" /out/gstreamer-1.0/
   else
