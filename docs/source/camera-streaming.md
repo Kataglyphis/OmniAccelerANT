@@ -170,7 +170,13 @@ scripts/linux/cat-stream/serve.sh   # :8444 TLS, proxies to :8443
 0.7.2 / libpisp 1.5, which cannot drive a Pi 5 on kernel 6.18: the kernel
 renamed the `rp1-cfe` media entities to underscores (`rp1-cfe-fe_image0`) and
 moved to the libpisp 1.7 uAPI, so the pipeline handler cannot acquire the CFE
-and the upstream IPA segfaults when isolation is forced.
+and the upstream IPA segfaults when isolation is forced. Build with the runner
+(`--build`): it mounts OxidANT at `/workspace`, and a binary built from the
+superproject layout instead carries a compiled-in model path pointing at
+`/workspace/third_party/OxidANT/resources/...`, which does not exist under that
+mount — the producer then dies with `No ONNX backend available`. Cargo caches
+by source mtime, so after switching contexts `touch crates/cat_webrtc/src/main.rs`
+forces the recompile.
 `third_party/OxidANT/scripts/linux/cat-stream/run-producer-pi.sh` collects the
 host's Raspberry Pi OS libcamera stack (0.7.2+rpt, which matches the kernel)
 plus its library closure into OxidANT's own
