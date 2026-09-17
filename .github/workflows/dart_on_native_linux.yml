@@ -11,6 +11,13 @@ on:
   pull_request:
     branches: ["main", "develop"]
 
+# Per-ref group, like the web lane. A superseded run's verdict can never be the
+# one branch protection asks for, and the matrix rows are QEMU-free but still
+# tens of minutes each.
+concurrency:
+  group: native-linux-${{ github.ref }}
+  cancel-in-progress: true
+
 # Top-level, so every job below inherits it and none can be added without one.
 # `build` still restates it next to the note saying why it has no
 # security-events scope. Nothing here writes through GITHUB_TOKEN: the ghcr

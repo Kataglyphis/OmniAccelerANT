@@ -24,16 +24,13 @@ apply plugin: "com.android.library"
 android {
     namespace = "com.example.kataglyphis_native_inference"
 
-    compileSdk = 36
-
-    // Pinned to the CI image — OmniAccelerANT AGENTS.md § 4.
-    buildToolsVersion = "36.0.0"
-    ndkVersion = "29.0.14206865"
-
+    // compileSdk, buildToolsVersion and ndkVersion come from the root
+    // android/build.gradle.kts; the CMake version reads the same values
+    // (AGENTS.md § 4).
     externalNativeBuild {
         cmake {
             path "src/main/cpp/CMakeLists.txt"
-            version "4.1.2"
+            version rootProject.ext.kataglyphisCmake
         }
     }
 
@@ -72,12 +69,10 @@ android {
         }
     }
 
-    dependencies {
-        testImplementation("org.jetbrains.kotlin:kotlin-test")
-        testImplementation("org.mockito:mockito-core:5.23.0")
-    }
-
     testOptions {
+        // android.os.Build is a stub jar in JVM unit tests; without this,
+        // getPlatformVersion's Build.VERSION.RELEASE throws "not mocked".
+        unitTests.returnDefaultValues = true
         unitTests.all {
             useJUnitPlatform()
 
@@ -94,4 +89,20 @@ kotlin {
     compilerOptions {
         jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21
     }
+}
+
+// Top-level, not inside android {}: a dependencies block in there resolves
+// against the extension and never reaches the project, which is why the test
+// source set compiled with no test framework on its classpath until 2026-09-17.
+// Plain junit-jupiter, not kotlin-test: with AGP's built-in Kotlin the test
+// classpath carries no Kotlin platform attributes, so the KMP-published
+// kotlin-test resolves to a metadata-only variant and every `import
+// kotlin.test.*` fails "Unresolved reference" while Gradle reports it on the
+// classpath. testOptions.unitTests already uses the JUnit platform.
+dependencies {
+    testImplementation "org.junit.jupiter:junit-jupiter:5.11.4"
+    // Gradle 9 stopped injecting the JUnit Platform launcher; without it the
+    // suite dies in TestSuiteExecutionException before any test runs.
+    testRuntimeOnly "org.junit.platform:junit-platform-launcher:1.11.4"
+    testImplementation "org.mockito:mockito-core:5.23.0"
 }

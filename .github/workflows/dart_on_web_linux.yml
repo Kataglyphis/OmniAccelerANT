@@ -13,9 +13,10 @@ env:
 # `i64` is `int` natively and `BigInt` on web, `dart:js_interop` code compiles
 # nowhere else, and a stale frb binding shows up as an empty `Uncaught` in the
 # browser (AGENTS.md § 4). Running it only after merge meant develop was where
-# those were discovered. The job NAME is deliberately unchanged — it is the
-# required-status-check string on develop's branch protection, and renaming it
-# while adding a trigger is the breakage BACKLOG.md warns about.
+# those were discovered. The job NAME is deliberately unchanged — it was the
+# required-status-check string on develop's branch protection, and BACKLOG.md
+# records that neither branch carries protection as of 2026-09-17, so check
+# before renaming rather than assuming the name is load-bearing.
 on:
   push:
     branches: ["main", "develop"]
@@ -26,9 +27,9 @@ on:
 # recompiles the standard library, so two runs of it on one ref is the most
 # expensive way to learn the same thing twice — and the pull_request trigger
 # above is what made that reachable, because every push to a PR branch starts
-# another one. The other three build lanes have no group either; adding theirs
-# is a separate change, since cancelling an in-progress Windows or Android run
-# has a different cost profile.
+# another one. The other three build lanes got their own per-ref groups
+# (native-windows-, native-linux-, android-) with the same
+# cancel-in-progress: true; see BACKLOG.md.
 concurrency:
   group: web-linux-${{ github.ref }}
   cancel-in-progress: true

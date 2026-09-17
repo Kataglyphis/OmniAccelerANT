@@ -30,9 +30,23 @@ param(
 	# not. Note this is not the same switch as the android lane's non-strict
 	# checks (ci-container-run-android.sh), which are deliberate.
 	[string] $StrictChecks = 'true',
-	[switch] $SkipCodeQL,
+	# CodeQL is OFF by default since 2026-09-17 (owner directive): the android
+	# scan is budgeted in hours and no longer runs in CI, so the driver and the
+	# workflow both send --run-codeql false. This switch is the local opt-in for
+	# a manual, scoped run — it deliberately makes -CheckParity differ.
+	[switch] $RunCodeQL,
 	[switch] $SkipDocs,
 	[switch] $KeepContainer,
+	# Compare the arguments this driver would send against the lane's workflow
+	# (`script:` + `extra-args`), resolving ${{ matrix.* }} and ${{ env.* }} the
+	# way the workflow would. Reports and exits without running the lane.
+	# BACKLOG.md: a checker that diffs flag NAMES would not have caught
+	# -StrictChecks defaulting to 'false' against a workflow passing 'true'.
+	[switch] $CheckParity,
+	# Run even though another lane's container is up. The generated files at the
+	# checkout root are per-host, so two lanes on one tree overwrite each other
+	# and the failure names the innocent lane — AGENTS.md § 5.
+	[switch] $Force,
 	[string] $ContainerName = "kataglyphis-linux-lane-$Lane-$Arch",
 	# AGENTS.md § 5.
 	#
@@ -71,6 +85,90 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
+
+# Reads a lane workflow's container invocation: the folded `script:` block with
+# its ${{ }} expressions unresolved, and every `env:` block of the file keyed by
+# name. Deliberately not a YAML parser — the three files are controlled here,
+# and a generic parser is a dependency this driver does not carry.
+function Get-LaneWorkflowSpec {
+	param([Parameter(Mandatory)][string] $Path)
+
+	$lines = Get-Content -LiteralPath $Path
+	$envMap = @{}
+	$envIndent = -1
+	$scriptIndent = -1
+	$scriptParts = @()
+
+	foreach ($line in $lines) {
+		if ($line -match '^(\s*)env:\s*$') {
+			$envIndent = $Matches[1].Length
+			continue
+		}
+		if ($envIndent -ge 0) {
+			if ($line -match '^\s*$') { continue }
+			$indent = $line.Length - $line.TrimStart().Length
+			if ($indent -le $envIndent) {
+				$envIndent = -1
+			}
+			elseif ($line -match '^\s*([A-Za-z_][A-Za-z0-9_]*):\s*(.+?)\s*$') {
+				$envMap[$Matches[1]] = $Matches[2].Trim('"').Trim("'")
+			}
+		}
+		if ($scriptIndent -lt 0) {
+			if ($line -match '^(\s*)script:\s*>?-?\s*$') { $scriptIndent = $Matches[1].Length }
+			continue
+		}
+		if ($line -match '^\s*$') { continue }
+		$indent = $line.Length - $line.TrimStart().Length
+		if ($indent -le $scriptIndent) { break }
+		$scriptParts += $line.Trim()
+	}
+
+	if ($scriptIndent -lt 0) {
+		throw "No folded 'script:' block in $Path"
+	}
+	return [pscustomobject]@{ Script = ($scriptParts -join ' '); Env = $envMap }
+}
+
+# Turns ${{ ... }} into values this run would have. Everything unresolvable
+# throws: a placeholder nobody taught this function about must not compare as
+# an empty string and pass.
+function Resolve-LaneExpression {
+	param([Parameter(Mandatory)][string] $Text, [Parameter(Mandatory)][hashtable] $Values, [Parameter(Mandatory)][hashtable] $EnvMap)
+
+	$evaluator = {
+		param($match)
+		$expr = $match.Groups[1].Value.Trim()
+		if ($expr -match "^matrix\.arch\s*==\s*'x64'$") { return $Values['arch_is_x64'] }
+		if ($expr -match '^matrix\.([A-Za-z_][A-Za-z0-9_]*)$') {
+			$key = $Matches[1]
+			if ($Values.ContainsKey($key)) { return $Values[$key] }
+			throw "parity: no resolution for `${{ matrix.$key }}"
+		}
+		if ($expr -match '^env\.([A-Za-z_][A-Za-z0-9_]*)$') {
+			$key = $Matches[1]
+			if ($EnvMap.ContainsKey($key)) { return $EnvMap[$key] }
+			throw "parity: no resolution for `${{ env.$key }}"
+		}
+		throw "parity: unresolvable expression `${{ $expr }}"
+	}
+	return [regex]::Replace($Text, '\$\{\{\s*([^}]+?)\s*\}\}', $evaluator)
+}
+
+# --flag value pairs as an ordered map; a flag with no value maps to '<flag>'.
+function Get-FlagMap {
+	param([string[]] $Tokens)
+	$map = [ordered]@{}
+	for ($i = 0; $i -lt $Tokens.Count; $i++) {
+		if (-not $Tokens[$i].StartsWith('--')) { continue }
+		$value = '<flag>'
+		if (($i + 1) -lt $Tokens.Count -and -not $Tokens[$i + 1].StartsWith('--')) {
+			$value = $Tokens[$i + 1]
+		}
+		$map[$Tokens[$i]] = $value.Trim('"').Trim("'")
+	}
+	return $map
+}
 
 if (-not $Image) {
 	# The family image reference is composed UPSTREAM, by
@@ -113,13 +211,30 @@ if (-not $engine) {
 	throw "nerdctl not found. Install Rancher Desktop, or put nerdctl on PATH."
 }
 
+# One lane at a time against this checkout — AGENTS.md § 5. The generated files
+# at the root (android/local.properties, .dart_tool, the ephemeral plugin
+# symlinks) are per-host, and two lanes running together overwrite each other
+# mid-build while the failure names the innocent lane. The Windows build
+# container is in the pattern because the trap spans platforms.
+$laneContainers = & $engine 'ps' '--format' '{{.Names}}' 2>$null
+$busy = @($laneContainers | Where-Object {
+		($_ -like 'kataglyphis-linux-lane-*' -and $_ -ne $ContainerName) -or
+		$_ -eq 'omniaccelerant-agentic-build'
+	})
+if ($busy.Count -gt 0 -and -not $Force) {
+	throw ("Another lane's container is up: $($busy -join ', '). Two lanes on one checkout " +
+		"overwrite each other's generated files (AGENTS.md § 5). Wait for it to exit, " +
+		"or pass -Force when you know it is idle.")
+}
+
 # The workflow matrix pairs arch with platform; keep the pairs in step.
 $platform = if ($Arch -eq 'x64') { 'linux/amd64' } else { 'linux/arm64' }
 
-# Only the android lane implements a CodeQL scan. The native lane's driver now
-# REFUSES --run-codeql true rather than warning and carrying on, and the web
-# lane has never passed anything but false, so this is per-lane, not global.
-$runCodeQL = if ($SkipCodeQL) { 'false' } else { ($Arch -eq 'x64').ToString().ToLower() }
+# Only the android lane implements a CodeQL scan, and since 2026-09-17 it is a
+# manual opt-in: the workflow passes false, so the driver's default matches it
+# (AGENTS.md § 5). -RunCodeQL is the local deviation. The local's name must not
+# collide with the switch: PowerShell variable names are case-insensitive.
+$runCodeQLArg = if ($RunCodeQL) { 'true' } else { 'false' }
 $runDocs = if ($SkipDocs) { 'false' } else { ($Arch -eq 'x64').ToString().ToLower() }
 
 # A named volume over each write-heavy path, always via the long --mount form
@@ -161,7 +276,7 @@ $laneArgs = switch ($Lane) {
 			'--build-mode', $BuildMode,
 			'--flutter-dir', '/opt/flutter',
 			'--app-name', "$AppName-apk",
-			'--run-codeql', $runCodeQL)
+			'--run-codeql', $runCodeQLArg)
 	}
 	'web' {
 		# $Arch, not a literal: the workflow only has an x64 row today, but the
@@ -175,6 +290,61 @@ $laneArgs = switch ($Lane) {
 			'--strict-checks', $StrictChecks,
 			'--run-codeql', 'false')
 	}
+}
+
+# Parity is about the VALUES the driver sends, not the flag names: the recorded
+# failure was -StrictChecks defaulting to 'false' against workflows passing
+# 'true', which a name-only diff cannot see. BACKLOG.md § duplication and drift.
+if ($CheckParity) {
+	$workflowFile = switch ($Lane) {
+		'native' { 'dart_on_native_linux.yml' }
+		'android' { 'dart_build_android_app.yml' }
+		'web' { 'dart_on_web_linux.yml' }
+	}
+	$workflowPath = Join-Path $repoRoot ".github/workflows/$workflowFile"
+	$spec = Get-LaneWorkflowSpec -Path $workflowPath
+	# Exactly the values a workflow LOCAL run would have; job-level env comes
+	# from the file, matrix values from this run's parameters.
+	$parityValues = @{
+		arch                   = $Arch
+		build_mode             = $BuildMode
+		flutter_dir            = '/opt/flutter'
+		app_name               = if ($Lane -eq 'android') { "$AppName-apk" } else { $AppName }
+		package_formats        = $PackageFormats
+		install_packaging_deps = $InstallPackagingDeps
+		platform               = $platform
+		arch_is_x64            = if ($Arch -eq 'x64') { 'true' } else { 'false' }
+	}
+	$resolvedScript = Resolve-LaneExpression -Text $spec.Script -Values $parityValues -EnvMap $spec.Env
+	$workflowTokens = @($resolvedScript -split '\s+' | Where-Object { $_ })
+	$workflowMap = Get-FlagMap -Tokens $workflowTokens
+	$driverMap = Get-FlagMap -Tokens $laneArgs
+
+	$mismatches = @()
+	if ($workflowTokens[0] -ne $laneArgs[0] -or $workflowTokens[1] -ne $laneArgs[1]) {
+		$mismatches += "script: workflow '$($workflowTokens[0..1] -join ' ')' vs driver '$($laneArgs[0..1] -join ' ')'"
+	}
+	foreach ($flag in $workflowMap.Keys) {
+		if (-not $driverMap.Contains($flag)) {
+			$mismatches += "workflow sends $flag '$($workflowMap[$flag])'; driver does not"
+		}
+		elseif ($driverMap[$flag] -ne $workflowMap[$flag]) {
+			$mismatches += "${flag}: workflow '$($workflowMap[$flag])' vs driver '$($driverMap[$flag])'"
+		}
+	}
+	foreach ($flag in $driverMap.Keys) {
+		if (-not $workflowMap.Contains($flag)) {
+			$mismatches += "driver sends $flag '$($driverMap[$flag])'; workflow does not"
+		}
+	}
+
+	if ($mismatches.Count -gt 0) {
+		Write-Host "parity FAILED ($Lane vs $workflowFile):"
+		$mismatches | ForEach-Object { Write-Host "  - $_" }
+		exit 1
+	}
+	Write-Host "parity ok ($Lane vs $workflowFile)"
+	exit 0
 }
 
 # The android workflow does not pass --privileged; the other two do.

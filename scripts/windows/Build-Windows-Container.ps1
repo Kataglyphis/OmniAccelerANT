@@ -29,6 +29,10 @@
 .PARAMETER TestsOnly
   Run the Dart gates in the container instead of a build
   (scripts/windows/Invoke-WindowsDartGates.ps1).
+.PARAMETER CodeQL
+  Run Build-Windows.ps1's CodeQL path (database cluster + analysis) inside the
+  container. -CodeQLDownload fetches the query packs; the first run also
+  downloads the CodeQL CLI into the container.
 .PARAMETER FreshContainer
   Discard the reusable build container first.
 .PARAMETER Image
@@ -43,7 +47,10 @@ param(
     [switch]$SkipFormat,
     [switch]$TestsOnly,
     [switch]$FreshContainer,
-    [string]$Image = ''
+    [string]$Image = '',
+    [switch]$CodeQL,
+    [switch]$CodeQLDownload,
+    [switch]$CleanCodeQLDb
 )
 
 Set-StrictMode -Version Latest
@@ -88,6 +95,12 @@ if ($TestsOnly) {
     if (-not [string]::IsNullOrWhiteSpace($Configurations)) { $buildArgv += @('-Configurations', $Configurations) }
     if ($SkipTests) { $buildArgv += '-SkipTests' }
     if ($SkipFormat) { $buildArgv += '-SkipFormat' }
+    # CodeQL mode: Build-Windows.ps1 exits after Invoke-BuildCodeQL, which runs
+    # the inner build itself. Without -CodeQLDownload the query suites are not
+    # in the container and both analyze attempts fail.
+    if ($CodeQL) { $buildArgv += '-CodeQL' }
+    if ($CodeQLDownload) { $buildArgv += '-CodeQLDownload' }
+    if ($CleanCodeQLDb) { $buildArgv += '-CleanCodeQLDb' }
 }
 
 # Only what the host actually runs comes back; the container keeps the full
@@ -114,10 +127,17 @@ $outputDirs = if ($TestsOnly) {
 # earlier local builds, and bsdtar ABORTS the whole archive on their stat
 # failure - the stream silently lost everything after them. The build
 # regenerates the ephemeral tree in-container (Flutter Pub Get + config-only).
+# `third_party/OxidANT/target` joined this list on 2026-09-17, after it broke a
+# build: the sync-back of the container's cargo cache writes Linux symlinks into
+# this host tree as Windows reparse points with no readable target (found on
+# cxxbridge/rust/cxx.h), and bsdtar then ABORTS the whole inbound archive on the
+# stat failure - the build started with no scripts at all. The container builds
+# into its own rust_target (CARGO_TARGET_DIR), so the host copy is not an input.
 $inboundExclude = @(
     '.git/modules', '.git/objects/pack', '.git/objects/??',
     'build', 'out', 'logs', 'ephemeral',
-    '.dart_tool', '.venv', 'doc/api', 'third_party/DocumANTation'
+    '.dart_tool', '.venv', 'doc/api', 'third_party/DocumANTation',
+    'third_party/OxidANT/target'
 )
 
 # Invoke-ContainerBuild emits the in-container command's stdout as pipeline

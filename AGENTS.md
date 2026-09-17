@@ -48,11 +48,13 @@ GStreamer MethodChannel path unchanged. **This is an addition, not a
 replacement**: the two paragraphs below stay true.
 
 What is NOT done: **no frame has travelled Rust → `knt_push_frame` → texture.**
-The ABI is verified only by `scripts/linux/check-knt-abi.sh`, which dlopens the
-built plugin and checks the symbols and error codes; a real frame needs a Linux
-desktop session and a camera. No lane sets `KATAGLYPHIS_RUST_FEATURES` either,
-so CI still only ever builds the featureless Linux app. BACKLOG.md tracks both,
-and the packaging gap under them.
+The ABI is verified by `scripts/linux/check-knt-abi.sh`, which dlopens the built
+plugin and checks the symbols and error codes — and which the native lane now
+runs. A real frame needs a Linux desktop session and a camera. The lane sets
+`KATAGLYPHIS_RUST_FEATURES=gstreamer,onnxruntime_dynamic` by default as of
+2026-09-17 (empty string opts out), and the packaged artifacts carry their
+GStreamer/ONNX Runtime/model closure, so the featureless app is no longer the
+only Linux product. BACKLOG.md tracks the frame.
 
 **Linux/web cat detection stream.** The same Stream page consumes a WebRTC
 stream produced by `third_party/OxidANT/crates/cat_webrtc`
@@ -257,6 +259,17 @@ written out rather than linked.
   conclusion. This cost one run: the log said "falling back to bare clang" while
   the file already had the fix. Wait for the container to exit.
 
+- **A packaged Linux artifact must carry its runtime closure, and the runner's
+  `$ORIGIN/lib` is not enough for a dlopen'd plugin.** RUNPATH is not transitive
+  — measured — so every bundled ELF needs its own `$ORIGIN`, the GStreamer libs
+  (resolved from DT_NEEDED against pkg-config, never `ldd`, because the image
+  also has a distro copy) and the seven pipeline plugins travel in `bundle/lib`,
+  and `runtime_paths.cc` points `GST_PLUGIN_PATH`/`ORT_DYLIB_PATH`/
+  `KATAGLYPHIS_ONNX_MODEL` at the siblings. `bundle-runtime-closure.sh` packs and
+  `check-bundle-closure.sh` grades (bundled-or-allowlisted DT_NEEDED plus a
+  reachable rpath); both run in the native lane before packaging. Detail:
+  `docs/source/camera-streaming.md` § *Relocatable Linux bundles*.
+
 - **Rust `i64` is `int` natively and `BigInt` on web, so only the web lane
   catches the mismatch.** flutter_rust_bridge maps it to `PlatformInt64`, a
   typedef that resolves per platform, and app code that passes a plain `int`
@@ -315,11 +328,14 @@ written out rather than linked.
   Runtime/OpenCV while the app builds `arm64-v8a`, so every archive died with
   `incompatible with aarch64linux`. The image ships only `arm64-v8a` now, so the
   cause is gone from the image — but **do not read that as "the lane links"**:
-  the workflow has a single matrix row (x64), that row runs CodeQL, and CodeQL
-  has been stopping the Gradle build at Kotlin compilation several steps before
-  the native link. `abiFilters "arm64-v8a"` stays — real phones, not the
-  emulator. AGP 9.4.0 + Gradle 9.7.1 builds that against four constraints, all
-  load-bearing and none of them optional:
+  the workflow has a single matrix row (x64), and since 2026-09-17 that row
+  passes `--run-codeql false` (AGENTS.md § 5), so CI runs the same plain
+  `flutter build apk` the local lane does — Kotlin, the native link and the
+  plugin's JVM test included; before that, the CodeQL build was stopping at
+  Kotlin compilation several steps before the native link. `abiFilters
+  "arm64-v8a"` stays — real phones, not the emulator. AGP 9.4.0 + Gradle 9.7.1
+  builds that against four constraints, all load-bearing and none of them
+  optional:
 
   - **Built-in Kotlin, with a declared KGP for the version check — and CodeQL
     has a ceiling under it.** `android.builtInKotlin=true`, no `kotlin-android`
@@ -330,10 +346,10 @@ written out rather than linked.
     belonging to a different tool — CodeQL's Java extractor refuses KGP 2.4.20
     and takes the whole Gradle build with it, so
     `scripts/linux/codeql/codeql-android.sh` builds the cluster for **cpp, c and
-    rust only**. Do not "fix" the missing java rows by lowering the KGP: that
-    trades a building app for a scan of five glue files. The observed run and
-    both error messages are in that script's header comment and in
-    [`docs/source/platforms.md`](docs/source/platforms.md)
+    rust only** on its manual runs. Do not "fix" the missing java rows by
+    lowering the KGP: that trades a building app for a scan of five glue files.
+    The observed run and both error messages are in that script's header comment
+    and in [`docs/source/platforms.md`](docs/source/platforms.md)
     § *Android and cross-toolchain constraints*.
   - **`android.newDsl=false` stays.** The Flutter Gradle plugin still needs the
     legacy DSL types, which AGP 9.4 deprecates and Gradle 9.7's Kotlin-DSL
@@ -361,11 +377,12 @@ written out rather than linked.
   `rust_builder/linux/CMakeLists.txt` therefore takes `REALPATH` of
   `CMAKE_CURRENT_SOURCE_DIR` first, which yields `../..` and survives the
   resolution. Verified against a rebuilt directory tree: six `..` fails, two
-  succeed.
-  `rust_builder/windows/CMakeLists.txt` still has the original construct and is
-  deliberately left alone — that lane is green, and it has its own
-  `Fix Plugin Symlinks (Junctions)` build step. Do not "unify" the two without
-  a full Windows container build to prove it.
+  succeed. `rust_builder/windows/CMakeLists.txt` must KEEP
+  `CMAKE_CURRENT_SOURCE_DIR` — the asymmetry is deliberate and was proved by a
+  full container build on 2026-09-17: Windows normalizes `..` **lexically**, so
+  the ups counted from the junction path land on the repo root there, and the
+  REALPATH form fails with `PathNotFoundException: …\third_party\OxidANT\
+  Cargo.toml`. Do not "unify" the two.
 
 - **Never `dart format .` here.** It ignores `analysis_options.yaml` entirely,
   so the recursive walk reaches `flutter/`, `third_party/` and `build/` — one
@@ -670,10 +687,21 @@ matches in *not* passing `--privileged`.
 
 ```powershell
 .\scripts\windows\Invoke-LinuxLane.ps1 -SkipDocs                        # native, x64
-.\scripts\windows\Invoke-LinuxLane.ps1 -Lane android -SkipCodeQL
+.\scripts\windows\Invoke-LinuxLane.ps1 -Lane android
 .\scripts\windows\Invoke-LinuxLane.ps1 -Lane web
 .\scripts\windows\Invoke-LinuxLane.ps1 -Arch arm64                      # needs QEMU, see below
 ```
+
+`-Lane android -RunCodeQL` is the local opt-in for the hours-long CodeQL scan;
+CI no longer runs it (AGENTS.md § 5).
+
+The native lane sets `KATAGLYPHIS_RUST_FEATURES=gstreamer,onnxruntime_dynamic`
+before `flutter build linux` — set it to the empty string to opt out — and for a
+release build runs `bundle-runtime-closure.sh`, then the `knt ABI` and
+`runtime closure` gates, between the build and packaging. `Invoke-LinuxLane.ps1
+-CheckParity` diffs the *values* it would send against the lane's workflow
+(change driver and workflow together), and it refuses to start while another
+lane's container is up (`-Force` overrides).
 
 **arm64 locally needs QEMU registered once per VM boot**, and an emulated
 arm64 run produces tar and deb but never flatpak or AppImage: `qemu-user` does
@@ -786,18 +814,33 @@ and swaps `_` for `-`, so `omni_accelerant` yields `omni-accelerant`.
 rename had to find. The workflows still pass the value explicitly, which is
 what keeps CI independent of a host's `pwd`.
 
-**CodeQL runs in the android lane and nowhere else.**
-`scripts/linux/codeql/codeql-android.sh` installs the CLI, builds a
-`--db-cluster` for **c, cpp and rust** around `flutter build apk` and runs two
-`database analyze` suites — budget hours, not minutes. Java and Kotlin are
-deliberately not in that cluster: CodeQL's Java extractor refuses this repo's
-KGP and kills the Gradle build with it — § 4, the built-in-Kotlin bullet. The native lane
+**CodeQL runs only when asked for, and never in CI (owner directive
+2026-09-17).** `scripts/linux/codeql/codeql-android.sh` installs the CLI, builds
+a `--db-cluster` for **c, cpp and rust** around `flutter build apk` and runs two
+`database analyze` suites — budget hours, not minutes, which is why the android
+workflow and `Invoke-LinuxLane.ps1` both send `--run-codeql false` and the
+driver's local opt-in is `-RunCodeQL`. Java and Kotlin are deliberately not in
+that cluster: CodeQL's Java extractor refuses this repo's KGP and kills the
+Gradle build with it — § 4, the built-in-Kotlin bullet. The native lane
 implements none and its driver *refuses* `--run-codeql true` with exit 2 rather
-than reporting success over a scan that never happened;
-`Invoke-LinuxLane.ps1` hard-codes `false` for it and for web. So `-SkipCodeQL`
-changes nothing except under `-Lane android`, and the native `build` job (both
-matrix rows) is the plain
+than reporting success over a scan that never happened. So CI's android lane is
+the plain `flutter build apk` plus the plugin's JVM test, and the native `build`
+job (both matrix rows) is the plain
 `flutter clean && flutter pub get && flutter build linux --release`.
+
+The scan is scoped by
+[`.github/codeql/codeql-config.yml`](.github/codeql/codeql-config.yml) —
+`paths-ignore` for build output, AccelerANTgine's vendored libraries, the
+non-inference submodules and Cargokit — passed to `database create` as
+`--codescanning-config`; the filters travel in the database to
+`database analyze`. It scopes the *analysis*, not extraction: a built
+language's extractor still sees those files, and the Rust extractor indexes the
+cargo registry under `usr/local/cargo` (21k files on the 2026-09-17 run), which
+no source-root-relative path filter can reach. What it buys is the outcome:
+that run produced 10 Rust findings, all under `third_party/OxidANT`, and none
+from an ignored path. The Windows `-CodeQL` path has no config seam in
+upstream's `WindowsCodeQL.Common.psm1` and indexed vendored code when exercised
+on 2026-09-17 — do not rerun it unscoped.
 
 `FLUTTER_DIR` defaults to `/opt/flutter` — the image's SDK, shared by every
 lane and never written to. It used to default inside the workspace, which made

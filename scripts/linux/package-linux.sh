@@ -120,10 +120,10 @@ for raw_format in "${selected_formats[@]}"; do
 
 	# The whole of what the four arms used to differ by.
 	case "$format" in
-		tar) packager=package_linux_bundle_tar ;;
-		deb) packager=package_linux_bundle_deb ;;
-		flatpak) packager=package_linux_bundle_flatpak ;;
-		appimage) packager=package_linux_bundle_appimage ;;
+		tar) packager=app_packaging_package_linux_bundle_tar ;;
+		deb) packager=app_packaging_package_linux_bundle_deb ;;
+		flatpak) packager=app_packaging_package_linux_bundle_flatpak ;;
+		appimage) packager=app_packaging_package_linux_bundle_appimage ;;
 		"") continue ;;
 		*)
 			# Still fatal on the spot, and deliberately not a skipped gate: a

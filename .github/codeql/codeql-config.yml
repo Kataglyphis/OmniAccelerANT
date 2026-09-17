@@ -1,0 +1,28 @@
+name: "OmniAccelerANT CodeQL config"
+
+# What this scan is FOR: the cpp/rust inference code this product owns. Without
+# the filter, CodeQL's Rust extractor indexes every Cargo.toml under the source
+# root - the 2026-09-17 Windows run found 187 manifests, including corrosion's
+# own test crates under build/.../_deps - and the C++ extractor follows the
+# build into every vendored library AccelerANTgine compiles.
+#
+# paths-ignore scopes what is ANALYSED. It does not stop extraction for a built
+# language (GitHub docs: "if you want to limit code scanning to specific
+# directories ... you must specify appropriate build steps"), so the extractors
+# still see these files; their findings are what this removes.
+paths-ignore:
+  # CMake FetchContent sources (corrosion, ...) and generated build output.
+  - build
+  # Cargo's target tree: generated cxxbridge sources and dependency build output.
+  - third_party/OxidANT/target
+  # Vendored libraries inside AccelerANTgine: nlohmann_json, tomlplusplus,
+  # spdlog, abseil, Google Benchmark, corrosion, ...
+  - third_party/AccelerANTgine/third_party
+  # Submodules that are not the inference core this scan exists for.
+  - third_party/ANTfrastructure
+  - third_party/ANThology
+  - third_party/DocumANTation
+  # Vendored Cargokit - upstream's own repo, exempted from every lint gate here.
+  - rust_builder/cargokit
+  # Vendored GStreamer Java/NDK glue copied into the plugin.
+  - packages/kataglyphis_native_inference/android/src/main/java/org/freedesktop/gstreamer

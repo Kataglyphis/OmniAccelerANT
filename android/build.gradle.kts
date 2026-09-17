@@ -5,6 +5,15 @@ allprojects {
     }
 }
 
+// Single source of truth for the SDK components the CI image ships
+// (/opt/android-sdk is read-only, so anything else makes Gradle try to install
+// and fail). Modules read these instead of repeating literals, and the
+// subprojects override below covers third-party plugins - AGENTS.md § 4.
+extra["kataglyphisCompileSdk"] = 36
+extra["kataglyphisBuildTools"] = "36.0.0"
+extra["kataglyphisNdk"] = "29.0.14206865"
+extra["kataglyphisCmake"] = "4.1.2"
+
 val newBuildDir: Directory =
     rootProject.layout.buildDirectory
         .dir("../../build")
@@ -20,8 +29,9 @@ subprojects {
     afterEvaluate {
         extensions.findByName("android")?.let { ext ->
             val android = ext as com.android.build.gradle.BaseExtension
-            android.compileSdkVersion(36)
-            android.buildToolsVersion = "36.0.0"
+            android.compileSdkVersion(rootProject.extra["kataglyphisCompileSdk"] as Int)
+            android.buildToolsVersion = rootProject.extra["kataglyphisBuildTools"] as String
+            android.ndkVersion = rootProject.extra["kataglyphisNdk"] as String
         }
     }
 }

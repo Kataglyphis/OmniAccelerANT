@@ -15,15 +15,15 @@ cross the Dart bridge; only detection metadata does.
 > the feature forwarding, ONNX Runtime bundling, and the Dart branch behind a
 > runtime `listCameras()` probe.
 >
-> Build it with
-> `KATAGLYPHIS_RUST_FEATURES=gstreamer,onnxruntime_dynamic` — **not**
-> `onnxruntime_directml`, which is a Windows-only execution provider. Then check
-> the ABI with `scripts/linux/check-knt-abi.sh` (see below).
+> As of 2026-09-17 the **native lane** sets
+> `KATAGLYPHIS_RUST_FEATURES=gstreamer,onnxruntime_dynamic` by default — **not**
+> `onnxruntime_directml`, which is a Windows-only execution provider — and the
+> packaged artifacts carry their GStreamer/ONNX Runtime/model closure (below).
+> `check-knt-abi.sh` runs in the lane.
 >
-> **No frame has actually reached the screen yet**, and the packaged artifacts do
-> not carry their GStreamer dependency closure. BACKLOG.md tracks both, plus the
-> model path a packaged build needs. Do not treat a green lane as a working
-> camera.
+> **No frame has actually reached the screen yet.** That needs a Linux desktop
+> session and a camera; BACKLOG.md tracks it. Do not treat a green lane as a
+> working camera.
 
 **Data flow:**
 
@@ -98,6 +98,50 @@ ok   knt_push_frame    bad args -> -1
 ok   knt_push_frame    unknown texture -> -2
 knt ABI OK
 ```
+
+### Relocatable Linux bundles
+
+The native lane packages four formats from one bundle tree. Until 2026-09-17
+that tree assumed the host had the image's GStreamer: the plugin DT_NEEDs seven
+`libgst*` sonames, `bundle/lib` carried none of them, and the `.deb` declared
+only `libc6, libstdc++6, libgtk-3-0`. The lane was green because the image's
+ld.so cache has everything — which is exactly why no lane had caught it.
+
+What travels in the bundle now (`scripts/linux/bundle-runtime-closure.sh`, run by
+the lane for release builds, before packaging):
+
+- **the GStreamer closure**, resolved from DT_NEEDED against pkg-config's
+  `libdir` — never `ldd`, because the image also carries a distro GStreamer and
+  `ldd` may pick that one — plus the pipeline plugins listed in
+  `scripts/linux/lib/bundle-runtime.sh`;
+- **ONNX Runtime** for the featured crate, plus the 59 MB detector model at
+  `data/resources/models/yolov10m.onnx`;
+- **an `$ORIGIN` rpath on every bundled ELF.** RUNPATH is not transitive: a
+  dlopen'd plugin cannot reach a sibling through the runner's `$ORIGIN/lib`
+  (measured), so "the file is present but unreachable" is the failure the gate
+  rejects. The runner carries `$ORIGIN/lib:$ORIGIN/../lib` because the flatpak
+  manifest installs the binary into `/app/bin` with the libraries in `/app/lib`.
+
+At runtime the plugin's ELF constructor (`runtime_paths.cc`) points
+`GST_PLUGIN_PATH`, `ORT_DYLIB_PATH` and `KATAGLYPHIS_ONNX_MODEL` at those
+siblings — each only when the file exists and the environment does not already
+name one, so a user override always wins.
+
+`scripts/linux/check-bundle-closure.sh` grades the result headlessly — one
+second, no display, no container-in-container: every DT_NEEDED of the runner and
+of every bundle lib is bundled or in the documented system allowlist, every
+bundled dependency is reachable through an `$ORIGIN`-relative RUNPATH, and the
+pipeline plugins exist. A missing GStreamer lib fails the lane here instead of on
+the first target machine. Both gates run in `run-native-linux.sh` after
+`flutter build linux`.
+
+The system allowlist is the GTK desktop stack the `.deb`'s `Depends` stand for.
+It deliberately does not include GStreamer, ONNX Runtime or the camera stack —
+those are the bundle's job.
+
+Not covered by any of this: seeing a frame (BACKLOG.md, hardware-blocked), and
+the `.deb` still naming only its GTK dependencies — correct now that GStreamer
+travels, but it means the target is assumed to have a desktop stack.
 
 ## WebRTC pipelines (Linux / web)
 

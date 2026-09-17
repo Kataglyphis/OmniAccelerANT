@@ -43,7 +43,8 @@ dependencies:
   sqlite3: ^3.3.1
   web: ^1.1.1
 dev_dependencies:
-  mockito: ^5.6.4
+  # No mockito: nothing under lib/, test/, integration_test/ or test_driver/
+  # imports it, so the dev dependency is gone rather than bumped (Dependabot #40).
   # Declared because test/pinned_artefacts_test.dart imports it directly; it was
   # already present transitively, which the analyzer flags rather than allows.
   crypto: ^3.0.6
