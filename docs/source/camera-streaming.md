@@ -262,18 +262,21 @@ container and no toolchain; and `--no-inference` is the next step up from this
 `gst-launch` bring-up.
 
 **Other VC4/unicam Pis (e.g. Pi 4).** The same host-libcamera swap applies,
-but the Rust producer fits there: run it in the container with the `hostlibs`
-mount and `--libcamera` (that is `~/zweckle-producer.sh` on the Pi 4, name
-`Zweckle Cat Cam`). Two extra bits beyond the Zero: the `/dev/dma_heap/*`
-nodes need the same ACL as the camera nodes, or libcamera reports
-`Could not open any dma-buf provider` and registration fails with `-12`
-(ENOMEM); and `/opt/gcc-16.2.0/lib64` must be on `LD_LIBRARY_PATH`, or the
-image's ONNX Runtime dies with `GLIBCXX_3.4.36 not found` (the image's GCC 16
-libstdc++ is what ORT was built against). The Pi 4's camera here is mounted
-upside down, so its runner passes `--rotate 180`. It serves its own homepage
-like the Zero: nginx is preinstalled on Pi OS, `serve.sh` runs with
-`PATH=/usr/sbin:$PATH`, and the board's runners are `~/zweckle-producer.sh`
-(producer) and the repo checkout's `scripts/linux/cat-stream/serve.sh` (web).
+but the Rust producer fits there, and it needs **no board-specific runner**:
+the Pi 5's runner works as-is — it collects the host libcamera closure, ACLs
+`/dev/{video,media,dma_heap}*` (the dma_heap nodes matter here, or libcamera
+reports `Could not open any dma-buf provider` and registration fails with
+`-12`/ENOMEM) and puts `/opt/gcc-16.2.0/lib64` on `LD_LIBRARY_PATH`, which is
+what the image's ONNX Runtime needs (`GLIBCXX_3.4.36 not found` otherwise).
+The Pi 4's camera here is mounted upside down, so:
+
+```bash
+third_party/OxidANT/scripts/linux/cat-stream/run-producer-pi.sh --build --rotate 180
+```
+
+Its homepage works like the Zero's: nginx is preinstalled on Pi OS, `serve.sh`
+runs with `PATH=/usr/sbin:$PATH` from a repo checkout (`~/OmniAccelerANT` here;
+its board-local producer wrapper is `~/zweckle-producer.sh`).
 
 **RISC-V SoC (SpacemiT X100).** `:latest-cross` is a multi-arch index
 (amd64/arm64/riscv64), so the same tag runs there natively and the producer
@@ -294,12 +297,31 @@ sudo udevadm control --reload-rules && sudo udevadm trigger --subsystem-match=vi
 ```
 
 For its own homepage: `sudo apt install nginx`, UFW `8444/tcp` plus the WebRTC
-UDP range, then the same web-build + `serve.sh` copy as the Zero. Its board
-runner is `~/x100-producer.sh`. If you front a producer from another host
-instead (`serve.sh --producer-host`), use its **IP, not its mDNS name**: nginx
-resolves `proxy_pass` hostnames once at startup, so a DHCP or mDNS address
-change leaves it proxying into the void with a `101` in the access log and no
-connection on the producer.
+UDP range, then the same web-build + `serve.sh` copy as the Zero. Its
+producer, from an OxidANT checkout carried over to `~/OxidANT` (`IMAGE` as
+above):
+
+```bash
+# build once (model paths resolve because OxidANT is mounted at /workspace)
+nerdctl run --rm --user 0:0 --network host -v "$HOME/OxidANT":/workspace \
+  -v kataglyphis-cat-target:/cargo-target -v kataglyphis-cat-cargo:/cargo-home \
+  -e CARGO_TARGET_DIR=/cargo-target -e CARGO_HOME=/cargo-home \
+  --entrypoint bash "$IMAGE" -lc \
+  'cd /workspace && cargo build --release --locked -p kataglyphis_cat_webrtc'
+
+# run (detached; the board's wrapper is ~/x100-producer.sh)
+nerdctl run -d --rm --name x100-producer --user 0:0 --privileged --network host \
+  -v /dev:/dev -v "$HOME/OxidANT":/workspace \
+  -v kataglyphis-cat-target:/cargo-target \
+  -e ORT_DYLIB_PATH=/opt/opencv5/lib/libonnxruntime.so -e RUST_LOG=info \
+  --entrypoint /cargo-target/release/kataglyphis_cat_webrtc "$IMAGE" \
+  --v4l2 /dev/video9 --listen-port 8443 --name "Mintberry Cat Cam"
+```
+
+If you front it from another host instead (`serve.sh --producer-host`), use its
+**IP, not its mDNS name**: nginx resolves `proxy_pass` hostnames once at
+startup, so a DHCP or mDNS address change leaves it proxying into the void with
+a `101` in the access log and no connection on the producer.
 
 The numbered steps below are the manual `gst-launch-1.0` pipelines, kept for
 cases the Rust producer does not cover.
