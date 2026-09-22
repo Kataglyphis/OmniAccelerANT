@@ -49,7 +49,7 @@ OmniAccelerANT bundles a Flutter/Dart frontend, a Rust/C++ inference core, and a
 
 | Category | Feature | Win x64 | Linux x64 | Linux ARM64 | Linux RISC-V | Android |
 |----------|---------|:-------:|:---------:|:-----------:|:------------:|:-------:|
-| **Containerization** | 🐳 Builds in ANTfrastructure `:latest` / `:winamd64` images | ✔️ | ✔️ | ✔️ | ✔️ | ✔️ |
+| **Containerization** | 🐳 Builds in ANTfrastructure `:latest` (linux) / `:winamd64` (windows) images; `:winarm64` is the arm64 artifact bundle | ✔️ | ✔️ | ✔️ | ✔️ | ✔️ |
 | **Native Integration** | 🎨 GTK Integration | N/A | ✔️ | ✔️ | ✔️ | N/A |
 | | 🪟 Win32 API | ✔️ | N/A | N/A | N/A | N/A |
 | | 🤖 Android NDK | N/A | N/A | N/A | N/A | ✔️ |
