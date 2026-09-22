@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Packages a self-contained aarch64 runtime bundle of the cat producer for a
-# host that cannot run the :latest-cross container (e.g. a Raspberry Pi Zero
+# host that cannot run the :latest container (e.g. a Raspberry Pi Zero
 # 2 W with 512 MB RAM). The producer, its GStreamer subset and the transitive
 # closure of their shared libraries are exported from the image into
 # build/cat-stream/pi-bundle/; the bundle runs natively with its own run.sh.

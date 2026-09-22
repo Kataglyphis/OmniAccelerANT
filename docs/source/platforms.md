@@ -414,7 +414,7 @@ The rules are in AGENTS.md § 4; the measurements that produced them are here.
   ANTfrastructure and false of this repo — `export_toolchain_env` set exactly that
   bare `CC=clang` and called the function. Upstream names
   `/usr/local/bin/clang-<arch>` as the replacement, because those wrappers bake
-  `--gcc-toolchain` in themselves; **`:latest-cross` ships none of them**
+  `--gcc-toolchain` in themselves; **`:latest` ships none of them**
   (`ls /usr/local/bin | grep clang` is empty), so that branch is preferred but
   never taken today. Two runs differing only in this flag settle what it is
   worth:
