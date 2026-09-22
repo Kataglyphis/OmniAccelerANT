@@ -86,7 +86,7 @@ it goes through a container, with the lane's build volume mounted:
 nerdctl run --rm --platform linux/amd64 `
   -v "C:\GitHub\OmniAccelerANT:/workspace" -w /workspace `
   --mount "type=volume,source=kataglyphis-lane-native-x64-workspace-build,target=/workspace/build" `
-  ghcr.io/kataglyphis/kataglyphis_beschleuniger:latest-cross `
+  ghcr.io/kataglyphis/kataglyphis_beschleuniger:latest `
   bash scripts/linux/check-knt-abi.sh
 ```
 
@@ -207,7 +207,7 @@ The boards this repo has been deployed on:
 | Raspberry Pi 4 | arm64 | imx708 (CSI, mounted upside down) | Rust, inference | host swap (vc4), `/dev/dma_heap` ACLs, GCC 16 libs for ORT, `--rotate 180` |
 | SpacemiT X100 | riscv64 | Logitech C270 (USB) | Rust, inference | no libcamera; camera ACL + udev rule, UFW `8443/8444` + UDP |
 
-All four run the same `:latest-cross` (a multi-arch index) and the same web
+All four run the same `:latest` (a multi-arch index) and the same web
 build; the board-side pieces are the producer, `serve.sh` and nginx.
 
 **Starting is one command, and autostart is opt-in.** Each board carries a
@@ -226,7 +226,7 @@ page's origin, so the same build works on localhost, a LAN IP and a Raspberry
 Pi. Open `https://<host>:8444/` and accept the certificate warning.
 
 USB cameras work with `--v4l2 /dev/videoX`. For a Pi's CSI camera use
-`--libcamera`; on a Raspberry Pi 5 running the `:latest-cross` image the
+`--libcamera`; on a Raspberry Pi 5 running the `:latest` image the
 container route is:
 
 ```bash
@@ -332,7 +332,7 @@ Its homepage works like the Zero's: nginx is preinstalled on Pi OS, `serve.sh`
 runs with `PATH=/usr/sbin:$PATH` from a repo checkout (`~/OmniAccelerANT` here;
 its board-local producer wrapper is `~/zweckle-producer.sh`).
 
-**RISC-V SoC (SpacemiT X100).** `:latest-cross` is a multi-arch index
+**RISC-V SoC (SpacemiT X100).** `:latest` is a multi-arch index
 (amd64/arm64/riscv64), so the same tag runs there natively and the producer
 builds inside the container in minutes on 8 cores — GStreamer, `v4l2src` and
 ONNX Runtime are all riscv64 builds in the image. A USB webcam (e.g. a

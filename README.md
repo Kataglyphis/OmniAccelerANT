@@ -49,7 +49,7 @@ OmniAccelerANT bundles a Flutter/Dart frontend, a Rust/C++ inference core, and a
 
 | Category | Feature | Win x64 | Linux x64 | Linux ARM64 | Linux RISC-V | Android |
 |----------|---------|:-------:|:---------:|:-----------:|:------------:|:-------:|
-| **Containerization** | 🐳 Builds in ANTfrastructure `:latest-cross` / `:winamd64` images | ✔️ | ✔️ | ✔️ | ✔️ | ✔️ |
+| **Containerization** | 🐳 Builds in ANTfrastructure `:latest` / `:winamd64` images | ✔️ | ✔️ | ✔️ | ✔️ | ✔️ |
 | **Native Integration** | 🎨 GTK Integration | N/A | ✔️ | ✔️ | ✔️ | N/A |
 | | 🪟 Win32 API | ✔️ | N/A | N/A | N/A | N/A |
 | | 🤖 Android NDK | N/A | N/A | N/A | N/A | ✔️ |
@@ -82,7 +82,7 @@ OmniAccelerANT bundles a Flutter/Dart frontend, a Rust/C++ inference core, and a
 | 🪟 **Windows** | x86-64 | ✔️ | Built with clang-cl, Win32 integration |
 | 🐧 **Linux** | x86-64 | ✔️ | Full GTK support, Docker ready |
 | 🐧 **Linux** | ARM64 | ✔️ | SBC optimized (RPi, OPi support) |
-| 🐧 **Linux** | RISC-V | 🔶 | Emerging architecture support. No CI lane in this repo — the `:latest-cross` image index carries a riscv64 variant, but nothing builds against it here. |
+| 🐧 **Linux** | RISC-V | 🔶 | Emerging architecture support. No CI lane in this repo — the `:latest` image index carries a riscv64 variant, but nothing builds against it here. |
 | 🤖 **Android** | ARM64 | 🔶 | Native camera, NDK integration. The app targets `arm64-v8a` only. The image's Android GStreamer/ONNX/OpenCV prebuilts became `arm64-v8a` on 2026-09-11, so the old `incompatible with aarch64linux` link failure is gone — but the lane has not reached the link step since, because its only matrix row runs CodeQL and CodeQL's Kotlin extractor stops the Gradle build first (AGENTS.md § 4). |
 
 ---

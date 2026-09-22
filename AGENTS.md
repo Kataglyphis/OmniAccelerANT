@@ -182,7 +182,7 @@ machine that made it and on no other.
 
 **Submodule URLs are `https://github.com/Kataglyphis/<repo>.git`, all four.**
 Not `git@github.com:`. An ssh remote needs a key, and none of the places that
-have to resolve these has one: a CI runner, the `:latest-cross` container the
+have to resolve these has one: a CI runner, the `:latest` container the
 Renovate runner starts, and anyone cloning the repo without a GitHub account.
 `git submodule update --init` then fails with `Permission denied (publickey)` on
 a repository that is public. `git config -f .gitmodules submodule.<path>.url …`
@@ -249,7 +249,7 @@ written out rather than linked.
   source-built GCC 16.2.0 and the link dies; with it the bundle and all four
   packages build. `export_toolchain_env` restores the flags through
   `gcc_toolchain_prefix()` — do not hard-code `/opt/gcc-16.2.0`. Upstream names
-  `/usr/local/bin/clang-<arch>` as the replacement and `:latest-cross` ships
+  `/usr/local/bin/clang-<arch>` as the replacement and `:latest` ships
   none of them, so that branch is preferred and never taken. The two-run
   comparison, and the wider lesson for every hub bump, are in
   [`docs/source/platforms.md`](docs/source/platforms.md)
@@ -298,7 +298,7 @@ written out rather than linked.
   `wasm32-unknown-unknown` target.
 
 - **The web lane installs `flutter_rust_bridge_codegen` only when the image has
-  none.** `:latest-cross` ships the binary at `FLUTTER_RUST_BRIDGE_VERSION`,
+  none.** `:latest` ships the binary at `FLUTTER_RUST_BRIDGE_VERSION`,
   which it also exports; the unconditional `cargo install` that used to sit
   here rebuilt 174 crates on every CI run and then failed the lane. The guard
   is `command -v` plus `cargo install --locked --version "${FLUTTER_RUST_BRIDGE_VERSION}"`,
@@ -397,7 +397,7 @@ written out rather than linked.
   [`docs/source/project-operations.md`](docs/source/project-operations.md)
   § *Static checks*.
 
-- **A single-arch image tag looks exactly like broken code.** `:latest-cross`
+- **A single-arch image tag looks exactly like broken code.** `:latest` (then `:latest-cross`)
   was an amd64-only tag until 2026-09-04, so the arm64 matrix row ran x86-64
   binaries (`rustc: 1: ELF: not found`) and nothing in this repo could work
   around it. The tag is a proper OCI index now. Two habits survive the hunt:
@@ -492,7 +492,7 @@ written out rather than linked.
   is a producer flag (`--rotate 180`), or in the Zero's hand-written
   gst-launch pipeline a `videoflip method=rotate-180` element.
 - **A RISC-V board runs the same image, but the host has opinions.** The
-  SpacemiT X100 runs the riscv64 variant of `:latest-cross` natively (the
+  SpacemiT X100 runs the riscv64 variant of `:latest` natively (the
   producer builds in the container in minutes); a USB webcam needs `--v4l2`,
   an ACL on the camera node (it is `root:video 660` and the user is normally
   not in `video`) and UFW rules for `8443/tcp` plus the WebRTC UDP range
@@ -675,7 +675,7 @@ nerdctl run --rm --platform linux/amd64 `
 nerdctl run --rm --platform linux/amd64 `
   -v "C:\GitHub\OmniAccelerANT:/workspace" -w /workspace `
   --mount "type=volume,source=oa-fastloop-pub,target=/pubcache" -e PUB_CACHE=/pubcache `
-  ghcr.io/kataglyphis/kataglyphis_beschleuniger:latest-cross `
+  ghcr.io/kataglyphis/kataglyphis_beschleuniger:latest `
   bash -lc 'export PATH=/opt/flutter/bin:$PATH; git config --global --add safe.directory "*"; flutter test'
 ```
 
