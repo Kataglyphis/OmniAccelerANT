@@ -205,8 +205,8 @@ written out rather than linked.
   `.dart_tool` inside a read-only overlay layer, a populated `/opt/android-sdk`
   with neither `ANDROID_HOME` nor `ANDROID_SDK_ROOT` exported, `SCCACHE_DIR` and
   `CCACHE_DIR` pointing into the mounted checkout, root-owned `RUSTUP_HOME` and
-  `CARGO_HOME` against a uid-1001 container, a single-platform `:latest-cross`
-  tag, and no Java SDK. If one reappears it is an image regression, not
+  `CARGO_HOME` against a uid-1001 container, a single-platform `:latest` tag
+  (then `:latest-cross`), and no Java SDK. If one reappears it is an image regression, not
   something to patch around again — every symptom, and why each obvious local
   fix did not work, is kept in
   [`docs/source/platforms.md`](docs/source/platforms.md)
