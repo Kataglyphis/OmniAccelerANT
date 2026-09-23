@@ -34,6 +34,9 @@ repo_root="$(cd -- "${script_dir}/../../.." && pwd)"
 source "${script_dir}/../lib/antfrastructure.sh"
 _ci_image_ref_sh="$(antfrastructure_path linux/scripts/ci-image-ref.sh)"
 image="$(bash "${_ci_image_ref_sh}")"
+# The hub's G6 census, mounted into the assembling run to prove the bundle's ONNX Runtime.
+_ort_census_sh="$(antfrastructure_path linux/scripts/06-packaging/check-ort-provenance.sh)"
+ort_census_dir="$(dirname "${_ort_census_sh}")"
 target_volume="kataglyphis-cat-target"
 cargo_volume="kataglyphis-cat-cargo"
 bundle_dir="${repo_root}/build/cat-stream/pi-bundle"
@@ -74,6 +77,7 @@ mkdir -p "${bundle_dir}"
 nerdctl run --rm -i --user 0:0 \
   -v "${target_volume}":/cargo-target \
   -v "${bundle_dir}":/out \
+  -v "${ort_census_dir}":/ort-census:ro \
   --entrypoint bash "${image}" -s <<'BUNDLE_BUILDER'
 set -euo pipefail
 
@@ -128,12 +132,19 @@ for lib in "${gst_lib_dir}"/libgst*.so* "${gst_lib_dir}"/libges*.so*; do
   cp -L "${lib}" /out/lib/
 done
 
-# Dynamic-load-only dependency: nothing links against it, the producer loads
-# it when a detector is created, so copy it explicitly.
-for lib in /opt/opencv5/lib/libonnxruntime.so*; do
+# Dynamic-load-only (the producer loads it for a detector): the chain build only, never
+# /opt/opencv5's copy (owner rule 2026-09-23), and none is a failure; G6 below proves the bytes.
+ort_chain_dir="${ORT_LIB_LOCATION:-/usr/local/lib/onnxruntime-cpu/lib}"
+ort_copied=0
+for lib in "${ort_chain_dir}"/libonnxruntime.so*; do
   [ -e "${lib}" ] || continue
   cp -L "${lib}" /out/lib/
+  ort_copied=$((ort_copied + 1))
 done
+if [ "${ort_copied}" -eq 0 ]; then
+  printf 'error: no chain-built libonnxruntime.so* in %s\n' "${ort_chain_dir}" >&2
+  exit 1
+fi
 
 # The image's glib is built against glibc 2.43 while Raspberry Pi OS ships
 # 2.41, so the C runtime is part of the bundle too (run.sh invokes this loader
@@ -156,6 +167,8 @@ while ((${#queue[@]})); do
     # target's own build (its IPA and tuning match the target's kernel).
     case "${base}" in
       libcamera.so.0.7|libcamera.so.0.7.*|libcamera-base.so.0.7|libcamera-base.so.0.7.*) continue ;;
+      # Already bundled from the chain dir above; ldd could resolve /opt/opencv5's copy.
+      libonnxruntime.so*) continue ;;
     esac
     [ -n "${seen[${base}]:-}" ] && continue
     seen[${base}]=1
@@ -172,6 +185,11 @@ for lib in /out/lib/*; do
     ln -s "$(basename "${lib}")" "/out/lib/${soname}"
   fi
 done
+
+# run.sh starts the producer with --library-path lib/; its RUNPATH says the same to G6's ld.so model.
+# The verdict: every ORT binary in /out is this image's chain build and the producer resolves to it.
+patchelf --set-rpath '$ORIGIN/../lib' /out/bin/kataglyphis_cat_webrtc
+bash /ort-census/check-ort-provenance.sh /out
 
 printf 'bundle: %s files, %s\n' "$(find /out -type f | wc -l)" "$(du -sh /out | cut -f1)"
 BUNDLE_BUILDER

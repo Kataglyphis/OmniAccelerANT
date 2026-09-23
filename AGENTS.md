@@ -120,7 +120,9 @@ Two upstream facts repeated here only because they bite before you reach a doc:
   upstream, because it is what *finds* the submodule. `Import-BuildModule <Name>`
   checks ANTfrastructure first, then `scripts/windows/modules/`, which holds only
   genuinely project-specific modules (today: `WindowsPaths.Common`, encoding this
-  repo's Flutter `build/windows/x64/{runner,plugins}` layout).
+  repo's Flutter `build/windows/x64/{runner,plugins}` layout, and
+  `WindowsOrtRunner.Common`, which stages the chain ONNX Runtime into that runner
+  and stamps the hub's G6 verdict on it — § 4).
 - `scripts/linux/lib/antfrastructure.sh` — the bash twin: `antfrastructure_source`
   and `antfrastructure_path`, resolved from `${BASH_SOURCE[0]}` so they work from
   any working directory.
@@ -147,7 +149,9 @@ Two upstream facts repeated here only because they bite before you reach a doc:
   exports the producer, a pruned GStreamer subset, the image's glibc (invoked
   through the bundled loader) and the library closure into
   `build/cat-stream/pi-bundle/` (~180 MB, aarch64). The target only needs
-  libcamera installed; `--deploy HOST` rsyncs it there.
+  libcamera installed; `--deploy HOST` rsyncs it there. Its ONNX Runtime is the
+  image's chain copy, and the same image run proves the finished bundle with
+  ANTfrastructure's G6 census before anything leaves the container.
 
 **Deliberately not reused.** Two upstream Windows pieces were evaluated and
 rejected — `WindowsAppRunner.Common` (its executable probe would launch the
@@ -271,7 +275,18 @@ written out rather than linked.
   and `runtime_paths.cc` points `GST_PLUGIN_PATH`/`ORT_DYLIB_PATH`/
   `KATAGLYPHIS_ONNX_MODEL` at the siblings. `bundle-runtime-closure.sh` packs and
   `check-bundle-closure.sh` grades (bundled-or-allowlisted DT_NEEDED plus a
-  reachable rpath); both run in the native lane before packaging. Detail:
+  reachable rpath, and ANTfrastructure's G6 census,
+  `linux/scripts/06-packaging/check-ort-provenance.sh <bundle>`: every ORT binary
+  byte-identical to the image's chain ORT and every importer's RUNPATH reaching
+  it). The packer takes `libonnxruntime*` only from `ORT_LIB_LOCATION` or
+  `/usr/local/lib/onnxruntime-cpu/lib`, a directory used only once its
+  `libonnxruntime.so` carries the chain's source path
+  `/opt/onnxruntime/onnxruntime/core/` — never `/opt/opencv5/lib`'s copy, which
+  the ld.so cache offers first — and gives a dlopen-only ORT user an `$ORIGIN`
+  RUNPATH so G6 can resolve it; both run in the native lane before packaging.
+  G6 runs whenever any bundled file is ORT-named or names the ORT ABI, so an ORT
+  user with no ORT beside it fails as well; `scripts/linux/tests/test-check-bundle-closure.sh`
+  mutation-tests that in the lane's code-quality batch. Detail:
   `docs/source/camera-streaming.md` § *Relocatable Linux bundles*.
 
 - **Rust `i64` is `int` natively and `BigInt` on web, so only the web lane
@@ -430,9 +445,34 @@ written out rather than linked.
   used when no preset is named (`Get-WindowsBuildConfig.ps1`'s `CMakeConfiguration`).
   Presets no longer clobber each other — but `Start-Windows.ps1` must then be
   given the same preset name.
+- **ONNX Runtime is the image's chain build, staged by the build and checked at
+  launch** (owner rule 2026-09-23). `Build-Windows.ps1`'s *Stage Chain ONNX
+  Runtime* step copies `onnxruntime.dll` (+ `DirectML.dll`,
+  `onnxruntime_providers_shared.dll`) from `$env:ONNX_ROOT\bin` beside the exe on
+  every build, whatever `KATAGLYPHIS_RUST_FEATURES` says, after the GStreamer
+  glob (which skips ORT-family DLLs). ANTfrastructure's G6 census
+  (`Test-OrtProvenanceTree` in `WindowsOrtProvenance.Common`) then proves the
+  whole runner against the image's chain ORT, byte for byte, and that every
+  importer finds it beside the exe; the pass is stamped in `ort-chain-stamp.json`.
+  `Start-Windows.ps1` re-runs G6 on the host with the stamped copy as the
+  reference, and refuses a runner whose ORT is missing, unstamped, changed, stray
+  or foreign — Windows resolves `onnxruntime.dll` in the exe dir and then
+  System32, where Windows ML ships its own 1.17. It also refuses an
+  `ORT_DYLIB_PATH` that is not those same bytes, and OxidANT's loader
+  (`ort_runtime.rs`) refuses a non-chain file at run time whoever names it. A
+  runner built before G6 has an older stamp: rebuild it. `runner\Release`, the
+  MSIX copy and `Start-Windows.ps1`'s default, is rebuilt from the first preset
+  on every build (the host copy too), and *MSIX Packaging* re-runs G6 on it before
+  `msix:create`. Never copy an ORT into
+  the runner by hand. The glue is `scripts/windows/modules/WindowsOrtRunner.Common.psm1`,
+  whose Pester suite runs in `dart_on_native_windows.yml`'s `ort-runner-suite` job;
+  every verdict is the hub's, so both scripts stop with the hub commit to move to
+  when the pinned hub predates G6. The Linux bundle's twin is
+  `check-bundle-closure.sh` (the packaged-Linux-artifact bullet above).
 - **Running on an unprovisioned host** (`STATUS_DLL_NOT_FOUND`): stage the
-  image's runtime DLLs into the runner (`C:\runtime\bin` + onnxruntime/DirectML →
-  `runner\bin\`; `C:\runtime\lib\gstreamer-1.0` → `runner\lib\gstreamer-1.0\`).
+  image's runtime DLLs into the runner (`C:\runtime\bin` → `runner\bin\`;
+  `C:\runtime\lib\gstreamer-1.0` → `runner\lib\gstreamer-1.0\`). ONNX Runtime is
+  already beside the exe (bullet above).
   Two extra gotchas: `AccelerANTgine.dll` is built into a `bin\`
   **subdirectory** but the native plugin needs it **next to the exe**, and the
   VC++ redist CRT DLLs are not bundled. A healthy launch is ~130 MB with a real
@@ -638,8 +678,9 @@ traps and MSIX packaging*.
 **The CI lane** ([`dart_on_native_windows.yml`](.github/workflows/dart_on_native_windows.yml))
 is four ANTfrastructure actions and nothing hand-rolled:
 `prepare-windows-container-host`, `run-in-windows-container`,
-`actions/upload-artifact` and `upload-codeql-sarif`. Three consequences, each
-easy to undo by accident:
+`actions/upload-artifact` and `upload-codeql-sarif` (plus the `ort-runner-suite`
+job: a checkout and `run-pester-suite` over `scripts/windows/tests`, no
+container). Three consequences, each easy to undo by accident:
 
 - It prunes `third_party/DocumANTation` from the recursive checkout. Without
   that, the nested `.git/modules/<name>/` chain makes git abort with

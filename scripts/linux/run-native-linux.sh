@@ -119,6 +119,8 @@ require_cmd dart
 gate_reset "code quality (${MATRIX_ARCH})"
 run_gate "flutter checks" run_flutter_common_checks "$STRICT_CHECKS"
 run_gate "cmake-format --check" run_cmake_format_check
+# The bundle gate's own mutation suite (synthetic ELFs, no build needed): when G6 runs, and that it decides.
+run_gate "bundle gate tests" bash scripts/linux/tests/test-check-bundle-closure.sh
 assert_gates
 
 flutter config --enable-linux-desktop

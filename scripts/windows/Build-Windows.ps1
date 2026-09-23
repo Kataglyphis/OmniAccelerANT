@@ -58,7 +58,11 @@ Import-BuildModule @(
     'WindowsUv.Common'          # Initialize-UvVenv + Install-UvRequirements (before its dependents)
     'WindowsFormatting.Common'  # Get-ProjectDartFiles
     'WindowsPaths.Common'       # project-local: this repo's Flutter windows/x64 layout
+    'WindowsOrtRunner.Common'   # project-local: stage the chain ONNX Runtime, stamp the G6 proof
 )
+# G6, the hub's ORT census, proves the staged ONNX Runtime; a hub pin older than its
+# ORT single-source commit lacks the module, and Get-OrtCensusRequirement says so.
+try { Import-BuildModule @('WindowsOrtProvenance.Common') } catch { throw (Get-OrtCensusRequirement -Cause $_.Exception.Message) }
 
 if ($CodeQL) {
     Import-BuildModule 'WindowsCodeQL.Common'
@@ -539,34 +543,21 @@ try {
         }
 
         Invoke-BuildStep -Context $context -StepName "Bundle Media Runtime DLLs$stepSuffix" -Script {
-            # Stage the runtime DLL closure for the Rust webcam/inference path
-            # next to the runner exe so the packaged app runs outside the
-            # container: ONNX Runtime (+DirectML) and GStreamer core DLLs into
-            # the bundle root, GStreamer plugins into exe-relative
-            # gstreamer-1.0\ (the Rust side sets GST_PLUGIN_PATH to that dir).
+            # Stage the GStreamer runtime closure for the Rust webcam path next to
+            # the runner exe: core DLLs into the bundle root, plugins into
+            # exe-relative gstreamer-1.0\ (the Rust side sets GST_PLUGIN_PATH to
+            # that dir). ONNX Runtime is NOT staged here - see the next step.
             if ($env:KATAGLYPHIS_RUST_FEATURES -notmatch "gstreamer") {
                 Write-BuildLog -Context $context -Message "Rust media features disabled; skipping DLL bundling."
                 return
             }
 
-            $ortBin = if ($env:ONNX_ROOT) { Join-Path $env:ONNX_ROOT "bin" } else { "C:\runtime\lib\onnxruntime-source\bin" }
-            if (Test-Path $ortBin) {
-                foreach ($dll in @("onnxruntime.dll", "DirectML.dll", "onnxruntime_providers_shared.dll")) {
-                    $src = Join-Path $ortBin $dll
-                    if (Test-Path $src) {
-                        Copy-Item -Path $src -Destination $currentBuildDirFull -Force
-                    }
-                }
-                Write-BuildLog -Context $context -Message "ONNX Runtime DLLs bundled from $ortBin"
-            } else {
-                Write-BuildLog -Context $context -Message "WARNING: ONNX Runtime bin not found ($ortBin); app will rely on ORT_DYLIB_PATH at runtime."
-            }
-
             $gstBin = if ($env:GSTREAMER_BIN) { $env:GSTREAMER_BIN } else { "C:\runtime\bin" }
             $gstPlugins = Join-Path (Split-Path $gstBin -Parent) "lib\gstreamer-1.0"
             if (Test-Path $gstBin) {
-                # Core + dependency DLLs (glib, gobject, gstreamer-1.0, ...).
-                Copy-Item -Path (Join-Path $gstBin "*.dll") -Destination $currentBuildDirFull -Force
+                # Core + dependency DLLs (glib, gobject, gstreamer-1.0, ...). Never an
+                # ORT-family DLL: only the next step may put one beside the exe.
+                Copy-Item -Path (Join-Path $gstBin "*.dll") -Exclude @('onnxruntime*.dll', 'DirectML.dll') -Destination $currentBuildDirFull -Force
                 Write-BuildLog -Context $context -Message "GStreamer core DLLs bundled from $gstBin"
             } else {
                 Write-BuildLog -Context $context -Message "WARNING: GStreamer bin not found ($gstBin); skipping core DLL bundling."
@@ -593,9 +584,25 @@ try {
                 Write-BuildLog -Context $context -Message "WARNING: GStreamer plugin dir not found ($gstPlugins)."
             }
         }
+
+        # Owner rule 2026-09-23: AccelerANTgine.dll imports onnxruntime.dll and oxidant.dll
+        # loads it, whatever the Rust features - so the chain copy is staged unconditionally, last,
+        # then the whole runner is proved by G6 against the image's chain ORT and stamped.
+        Invoke-BuildStep -Context $context -StepName "Stage Chain ONNX Runtime$stepSuffix" -Critical -Script {
+            Copy-RunnerChainOrt -OnnxRoot "$env:ONNX_ROOT" -RunnerDir $currentBuildDirFull
+            $proof = Invoke-RunnerOrtProof -RunnerDir $currentBuildDirFull
+            Write-BuildLog -Context $context -Message "Chain ONNX Runtime staged from $env:ONNX_ROOT\bin and proved by G6: $(@($proof.Stamp.sha256.Keys) -join ', ')"
+        }
     }
 
     Invoke-BuildStep -Context $context -StepName "MSIX Compatibility Layout" -Script {
+        # msix looks for build\windows\x64\runner\Release — directly under
+        # runner\, not under runner\<preset>\. Nesting it inside the preset
+        # directory is why packaging reported "Build files not found at
+        # ...\runner\Release". With several presets the first one built wins
+        # here; msix packages a single configuration either way.
+        $msixReleaseDir = Resolve-NormalizedPath -Path (Join-Path $buildRoot "windows/x64/runner/Release")
+        $hostReleaseDir = Resolve-NormalizedPath -Path (Join-Path $originalBuildRoot "windows/x64/runner/Release")
         foreach ($currentPreset in $presetsToRun) {
             # CI names no preset; fall back to the default — see AGENTS.md § 5.
             $currentPreset = if ([string]::IsNullOrEmpty($currentPreset)) {
@@ -605,27 +612,24 @@ try {
             }
 
             $msixSourceDir = Resolve-NormalizedPath -Path (Join-Path $buildRoot "windows/x64/runner/$currentPreset")
-            # msix looks for build\windows\x64\runner\Release — directly under
-            # runner\, not under runner\<preset>\. Nesting it inside the preset
-            # directory is why packaging reported "Build files not found at
-            # ...\runner\Release". With several presets the first one built wins
-            # here; msix packages a single configuration either way.
-            $msixReleaseDir = Resolve-NormalizedPath -Path (Join-Path $buildRoot "windows/x64/runner/Release")
+            if ($msixSourceDir -eq $msixReleaseDir -or -not (Test-Path -LiteralPath $msixSourceDir -PathType Container)) { continue }
 
-            if (Test-Path -LiteralPath $msixReleaseDir -PathType Container) {
-                Write-BuildLog -Context $context -Message "MSIX compatibility for $currentPreset already at: $msixReleaseDir"
-            } elseif (Test-Path -LiteralPath $msixSourceDir -PathType Container) {
-                Write-BuildLog -Context $context -Message "Preparing MSIX compatibility for $currentPreset..."
-                New-Item -ItemType Directory -Force -Path $msixReleaseDir | Out-Null
-
-                Get-ChildItem -LiteralPath $msixSourceDir -Force |
-                    Where-Object { $_.Name -ne "Release" } |
-                    ForEach-Object {
-                        Copy-Item -Path $_.FullName -Destination $msixReleaseDir -Recurse -Force
-                    }
-
-                Write-BuildLog -Context $context -Message "MSIX compatibility folder prepared: $msixReleaseDir"
+            # Rebuilt on every run: a kept copy carried an ONNX Runtime this run never proved.
+            # The host copy goes too, because the sync to the host below only adds files.
+            Write-BuildLog -Context $context -Message "Preparing MSIX compatibility for $currentPreset..."
+            foreach ($staleDir in @($msixReleaseDir, $hostReleaseDir)) {
+                if (Test-Path -LiteralPath $staleDir) { Remove-Item -LiteralPath $staleDir -Recurse -Force }
             }
+            New-Item -ItemType Directory -Force -Path $msixReleaseDir | Out-Null
+
+            Get-ChildItem -LiteralPath $msixSourceDir -Force |
+                Where-Object { $_.Name -ne "Release" } |
+                ForEach-Object {
+                    Copy-Item -Path $_.FullName -Destination $msixReleaseDir -Recurse -Force
+                }
+
+            Write-BuildLog -Context $context -Message "MSIX compatibility folder prepared: $msixReleaseDir"
+            break
         }
     }
 
@@ -653,6 +657,8 @@ try {
 
     if (-not $SkipMsixPackaging) {
         Invoke-BuildStep -Context $context -StepName "MSIX Packaging" -Script {
+            # msix packs build\windows\x64\runner\Release: G6 proves that directory, as packed, first.
+            $null = Invoke-RunnerOrtProof -RunnerDir (Resolve-NormalizedPath -Path (Join-Path $workspace "build/windows/x64/runner/Release"))
             Clear-FlutterPluginSymlink -Context $context -WorkspaceDir $workspace
             Push-Location $workspace
             try {

@@ -124,3 +124,25 @@ jobs:
         with:
           workspace: ${{ steps.prep.outputs.workspace }}
           category: windows-clang-rust
+
+  # The mutation suite of the runner's ONNX Runtime glue (WindowsOrtRunner.Common over the hub's G6):
+  # byte fixtures, no image, no build. run-pester-suite fails a path that runs no test at all.
+  ort-runner-suite:
+    name: Runner ONNX Runtime glue (Pester)
+    runs-on: windows-2025
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      # Top-level submodules only: the suite imports G6 from third_party/ANTfrastructure
+      # through scripts/windows/Resolve-BuildModule.ps1, as OxidANT's suite does.
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          submodules: true
+
+      - name: Pester suite (scripts/windows/tests)
+        uses: Kataglyphis/ANTfrastructure/.github/actions/run-pester-suite@main
+        with:
+          path: scripts/windows/tests
+          version: '3.4.0'

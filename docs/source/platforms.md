@@ -136,7 +136,7 @@ Run the app on the host after a build:
 | `lld-link ... mismatch detected for 'RuntimeLibrary'` (Debug preset) | A `/MT` override (root `CMAKE_MSVC_RUNTIME_LIBRARY`, an abseil `/MT` hack, or a C++20 module BMI built `/MT` re-emitting `detect_mismatch` into importers) collides with Flutter's `/MD` | Remove **every** `/MT` override and compile ASAN with `/clang:-shared-libsan` so clang emits dynamic-CRT link directives. All wired up in the upstream module `third_party/ANTfrastructure/cmake/Sanitizers.cmake`, reached via `CMAKE_MODULE_PATH` (the inference core's own copy is retired), plus the no-`/MT` policy in `third_party/AccelerANTgine/third_party/CMakeLists.txt`. Diagnose stray directives with `llvm-readobj --coff-directives <obj>`. |
 | Instrumented app dies instantly `STATUS_ENTRYPOINT_NOT_FOUND` (−1073741511) | The staged `clang_rt.asan_dynamic-x86_64.dll` is LLVM's, but the binary's baked-in thunk imports Microsoft-named allocator forwarders (`__asan_new`, `__asan_delete`, …), or vice-versa | Link **and** stage a matched pair. The Debug preset links Microsoft's thunk+import lib (ANTfrastructure's `cmake/Sanitizers.cmake`, on `CMAKE_MODULE_PATH`, points the link-search at `VC\Tools\MSVC\<ver>\lib\x64`); `Start-Windows.ps1` stages the matching `clang_rt.asan_dynamic-x86_64.dll` from the same MSVC dir. |
 | Instrumented app aborts on startup with `bad-free` / `bad-malloc_usable_size` | LLVM's ASan runtime loads after ucrtbase, so CRT/COM startup allocations are unhooked and abort when freed through interceptors | Use **Microsoft's** ASan runtime (VS BuildTools) — it tracks Windows heap ownership and passes foreign frees through — plus `ASAN_OPTIONS=alloc_dealloc_mismatch=0:check_malloc_usable_size=0`. This is the shipped Debug-preset config; the full app runs clean under it. |
-| App exits with `STATUS_DLL_NOT_FOUND` (−1073741515) on a host without GStreamer/ONNX installs | The native plugin links GStreamer + ONNX Runtime, provided by `C:\runtime` in the container, `C:\Program Files\gstreamer` + `C:\onnxruntime` on a provisioned host | Stage from the image into the runner: `C:\runtime\bin\*.dll` and `C:\runtime\lib\onnxruntime-source\bin\*.dll` (onnxruntime + DirectML) → `runner\...\bin\`; `C:\runtime\lib\gstreamer-1.0\` → `runner\...\lib\gstreamer-1.0\` (GStreamer locates plugins relative to its core DLL). `Start-Windows.ps1` puts `runner\bin` on `PATH`. |
+| App exits with `STATUS_DLL_NOT_FOUND` (−1073741515) on a host without GStreamer/ONNX installs | The native plugin links GStreamer + ONNX Runtime, provided by `C:\runtime` in the container, `C:\Program Files\gstreamer` + `C:\onnxruntime` on a provisioned host | Stage from the image into the runner: `C:\runtime\bin\*.dll` except `onnxruntime*.dll`/`DirectML.dll` → `runner\...\bin\` (ONNX Runtime is already beside the exe: `Build-Windows.ps1` stages the chain copy and `Start-Windows.ps1` refuses any other, AGENTS.md § 4); `C:\runtime\lib\gstreamer-1.0\` → `runner\...\lib\gstreamer-1.0\` (GStreamer locates plugins relative to its core DLL). `Start-Windows.ps1` puts `runner\bin` on `PATH`. |
 | `git init/clone/checkout` fails with `could not write config file` / `unable to write new index file` inside the container | Same `wcifs` rename/create flakiness in layer dirs | Do git surgery outside the layer zone (fresh `C:\` dirs work), or `git archive | tar -x` trees into place; a bind-mounted workspace avoids it entirely. |
 | `docker run --mount` fails: `hcs::CreateComputeSystem ... Die Anforderung wird nicht unterstützt` although the source is plain NTFS | The mount **target** already exists in the image (e.g. baked `C:\workspace`) — refused on skewed hosts | Mount to a path that does not exist in the image (e.g. `target=C:\ws-mnt`) and pass `-w C:\ws-mnt`. |
 | `docker commit` (or `docker start` of a stopped container) fails `hcsshim::ActivateLayer ... (0x20)` | The container was created with `--isolation process`; on this host its writable layer stays locked after stop and cannot be snapshotted | Create any container you intend to **commit** with `--isolation hyperv` (kept-alive + `docker exec` build + stop + commit works — this is why the ANTfrastructure orchestrator uses hyperv for run+commit). `docker export` is **not** a workaround (the daemon refuses to export Windows containers). Reserve `--isolation process` for throwaway runs whose output you extract *live* via `tar` over `docker exec` before stopping. |
@@ -324,7 +324,10 @@ is different than the directory … where it was created"*. ANTfrastructure's
 from the sync-back, so the host tree gets artifacts, not CMake state.) The
 **MSIX Compatibility Layout** step exists because msix looks for
 `build\windows\x64\runner\Release\`, while the build installs to
-`runner\<preset>\`; it copies the preset's output into that flat `Release\`.
+`runner\<preset>\`; it replaces that flat `Release\` with a copy of the first
+preset built, on every run and in the host tree too (a copy kept from an older
+build carried an ONNX Runtime the run never proved), and *MSIX Packaging* runs
+the hub's G6 census over it before `msix:create`.
 Both halves were broken until 2026-09-03 and nobody noticed, because CI passes
 `-SkipMsixPackaging` — packaging is only exercised locally.
 
@@ -334,7 +337,9 @@ Both halves were broken until 2026-09-03 and nobody noticed, because CI passes
 is four ANTfrastructure actions and nothing hand-rolled:
 `prepare-windows-container-host` (long paths, short-path clone, data-root move,
 disk check, GHCR login, pull), `run-in-windows-container`,
-`actions/upload-artifact` and `upload-codeql-sarif`. Three consequences:
+`actions/upload-artifact` and `upload-codeql-sarif`. (A second job,
+`ort-runner-suite`, is a plain checkout plus `run-pester-suite` over
+`scripts/windows/tests`, with no container.) Three consequences:
 
 - It prunes `third_party/DocumANTation` from the recursive checkout.
   This repo's chains are OmniAccelerANT → AccelerANTgine → ANTfrastructure →
