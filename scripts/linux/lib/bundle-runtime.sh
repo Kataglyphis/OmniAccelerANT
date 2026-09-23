@@ -64,6 +64,29 @@ elf_runpath() {
   readelf -d "$1" 2>/dev/null | awk '/\(RUNPATH\)/ {gsub(/[][\n]/,""); print $NF}'
 }
 
+# The chain build's ORT checkout (hub onnxruntime/build/lib/common.sh ORT_SRC_DIR),
+# which ORT embeds via __FILE__. It only picks the source directory: the verdict on
+# what a bundle carries is the hub's G6 census, run by check-bundle-closure.sh.
+ORT_CHAIN_SOURCE_MARKER='/opt/onnxruntime/onnxruntime/core/'
+
+# True when $1 (symlinks followed) was compiled from the chain's ORT checkout.
+is_chain_ort_file() {
+  grep -aqF -e "$ORT_CHAIN_SOURCE_MARKER" -- "$(readlink -f -- "$1")" 2>/dev/null
+}
+
+# The chain-built ONNX Runtime's lib dir, the ONLY place a bundle may take
+# libonnxruntime from (owner rule 2026-09-23; /opt/opencv5 has a copy). Refused
+# (rc 1, reason on stderr) unless its libonnxruntime.so proves to be the chain's.
+chain_ort_lib_dir() {
+  local dir="${ORT_LIB_LOCATION:-/usr/local/lib/onnxruntime-cpu/lib}"
+  if ! is_chain_ort_file "$dir/libonnxruntime.so"; then
+    printf 'Error: %s/libonnxruntime.so is missing or not the chain-built ONNX Runtime (no %s in it)\n' \
+      "$dir" "$ORT_CHAIN_SOURCE_MARKER" >&2
+    return 1
+  fi
+  printf '%s\n' "$dir"
+}
+
 # The GStreamer prefix of whichever tree built the plugin: the image's
 # /opt/gstreamer or a host's distro install. pkg-config is already a build
 # requirement of the plugin (packages/kataglyphis_native_inference/linux),

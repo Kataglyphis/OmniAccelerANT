@@ -92,7 +92,16 @@ queue=()
 copied_count=0
 
 resolve_soname() {
-  local soname="$1" path
+  local soname="$1" path chain
+  # ONNX Runtime comes from the proven chain dir or not at all - never the ld.so cache.
+  if [[ "$soname" == libonnxruntime* ]]; then
+    chain="$(chain_ort_lib_dir)" || return 1
+    if [[ -e "$chain/$soname" ]] && is_chain_ort_file "$chain/$soname"; then
+      printf '%s\n' "$chain/$soname"
+      return 0
+    fi
+    return 1
+  fi
   if [[ -e "$gst_lib_dir/$soname" ]]; then
     printf '%s\n' "$gst_lib_dir/$soname"
     return 0
@@ -189,6 +198,12 @@ needs_sibling_rpath() {
       return 0
     fi
   done < <(elf_needed "$file")
+  # A dlopen-only ORT user too (liboxidant.so without GStreamer): G6 resolves its ORT via RUNPATH,
+  # as a bare dlopen would. Never an ORT copy: G6 proves its bytes, and patchelf would change them.
+  case "$(basename "$file")" in libonnxruntime*) return 1 ;; esac
+  if [[ -e "$bundle_lib/libonnxruntime.so" ]] && grep -aqF -e OrtGetApiBase -- "$file"; then
+    return 0
+  fi
   return 1
 }
 

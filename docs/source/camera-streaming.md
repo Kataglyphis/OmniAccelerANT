@@ -114,7 +114,15 @@ the lane for release builds, before packaging):
   `libdir` — never `ldd`, because the image also carries a distro GStreamer and
   `ldd` may pick that one — plus the pipeline plugins listed in
   `scripts/linux/lib/bundle-runtime.sh`;
-- **ONNX Runtime** for the featured crate, plus the 59 MB detector model at
+- **ONNX Runtime** — the image's chain build and nothing else (owner rule
+  2026-09-23): `libonnxruntime*` resolves only from `ORT_LIB_LOCATION`, else
+  `/usr/local/lib/onnxruntime-cpu/lib`, and only once that directory's
+  `libonnxruntime.so` proves to be the chain build — ORT embeds its source path
+  through `__FILE__`, and the chain's is `/opt/onnxruntime/onnxruntime/core/`; the
+  variable alone proves nothing. Never from the ld.so cache, where
+  `/opt/opencv5/lib` carries a second copy that sorts first. It travels whether
+  or not the Rust features ask for it, because `libAccelerANTgine.so` needs
+  `libonnxruntime.so.1` either way. Plus the 59 MB detector model at
   `data/resources/models/yolov10m.onnx`;
 - **an `$ORIGIN` rpath on every bundled ELF.** RUNPATH is not transitive: a
   dlopen'd plugin cannot reach a sibling through the runner's `$ORIGIN/lib`
@@ -125,15 +133,29 @@ the lane for release builds, before packaging):
 At runtime the plugin's ELF constructor (`runtime_paths.cc`) points
 `GST_PLUGIN_PATH`, `ORT_DYLIB_PATH` and `KATAGLYPHIS_ONNX_MODEL` at those
 siblings — each only when the file exists and the environment does not already
-name one, so a user override always wins.
+name one, so a user override always wins. For ONNX Runtime that override must
+still be a chain build: OxidANT's loader (`ort_runtime.rs`) refuses any file
+without the chain's source path.
 
 `scripts/linux/check-bundle-closure.sh` grades the result headlessly — one
 second, no display, no container-in-container: every DT_NEEDED of the runner and
 of every bundle lib is bundled or in the documented system allowlist, every
-bundled dependency is reachable through an `$ORIGIN`-relative RUNPATH, and the
-pipeline plugins exist. A missing GStreamer lib fails the lane here instead of on
-the first target machine. Both gates run in `run-native-linux.sh` after
-`flutter build linux`.
+bundled dependency is reachable through an `$ORIGIN`-relative RUNPATH, the
+pipeline plugins exist, and ANTfrastructure's G6 census
+(`linux/scripts/06-packaging/check-ort-provenance.sh <bundle>`) finds every ONNX
+Runtime binary in the bundle byte-identical to the image's chain ORT, and every
+importer's ld.so lookup — RUNPATH, `$ORIGIN` expanded — landing on it. A
+dlopen-only user such as `liboxidant.so` gets an `$ORIGIN` RUNPATH from the packer
+for exactly that. The census runs whenever a bundled file is ORT-named or names
+the ORT ABI (`OrtGetApiBase` and G6's other markers), not only when a
+`libonnxruntime*` file is present: an ORT user with nothing beside it, or an ORT
+under another name, is exactly what G6's verdicts exist to refuse. What it does
+not decide is which copy a process loads at run time — `runtime_paths.cc` above
+points `ORT_DYLIB_PATH` at the bundled one. A missing GStreamer lib or a foreign ONNX Runtime
+fails the lane here instead of on the first target machine. Both gates run in `run-native-linux.sh` after
+`flutter build linux`; `scripts/linux/tests/test-check-bundle-closure.sh`, which
+mutation-tests when the census runs and that its verdict decides, runs in the
+same lane's code-quality batch before the build.
 
 The system allowlist is the GTK desktop stack the `.deb`'s `Depends` stand for.
 It deliberately does not include GStreamer, ONNX Runtime or the camera stack —
@@ -313,7 +335,11 @@ too heavy for the board, `scripts/linux/cat-stream/package-producer-bundle.sh`
 exports a container-less aarch64 bundle (producer + pruned GStreamer + the
 image's glibc, ~180 MB) that runs against the host's libcamera with no
 container and no toolchain; and `--no-inference` is the next step up from this
-`gst-launch` bring-up.
+`gst-launch` bring-up. Its ONNX Runtime is the image's chain copy
+(`ORT_LIB_LOCATION`), and the assembling image run ends with ANTfrastructure's
+G6 census over the finished bundle: every ORT binary byte-identical to that
+image's chain ORT, and the producer — given an `$ORIGIN/../lib` RUNPATH, the
+same directory `run.sh` passes to the bundled loader — resolving to it.
 
 **Other VC4/unicam Pis (e.g. Pi 4).** The same host-libcamera swap applies,
 but the Rust producer fits there, and it needs **no board-specific runner**:
@@ -367,7 +393,7 @@ nerdctl run --rm --user 0:0 --network host -v "$HOME/OxidANT":/workspace \
 nerdctl run -d --rm --name x100-producer --user 0:0 --privileged --network host \
   -v /dev:/dev -v "$HOME/OxidANT":/workspace \
   -v kataglyphis-cat-target:/cargo-target \
-  -e ORT_DYLIB_PATH=/opt/opencv5/lib/libonnxruntime.so -e RUST_LOG=info \
+  -e ORT_DYLIB_PATH=/usr/local/lib/onnxruntime-cpu/lib/libonnxruntime.so -e RUST_LOG=info \
   --entrypoint /cargo-target/release/kataglyphis_cat_webrtc "$IMAGE" \
   --v4l2 /dev/video9 --listen-port 8443 --name "Cat Cam"
 ```

@@ -24,7 +24,10 @@ Import-BuildModule @(
 	'WindowsScripts.Shared'  # Add-DirectoriesToPath, Limit-DiagnosticLogs
 	'WindowsTesting.Common'  # Get-AsanRuntimeDll
 	'WindowsPaths.Common'          # project-local: this repo's Flutter windows/x64 layout
+	'WindowsOrtRunner.Common'      # project-local: the runner's stamped chain ONNX Runtime, re-proved by G6
 )
+# G6, the hub's ORT census; a hub pin older than its ORT single-source commit lacks it.
+try { Import-BuildModule @('WindowsOrtProvenance.Common') } catch { throw (Get-OrtCensusRequirement -Cause $_.Exception.Message) }
 
 $repoRoot = (Resolve-Path $WorkspaceDir).Path
 
@@ -78,6 +81,21 @@ if ($null -eq $selectedBuildRoot) {
 	throw "Kein lauffähiger Build gefunden. Geprüfte BuildRoots: $diagnostics. Starte zuerst scripts/windows/Build-Windows.ps1 mit passendem -BuildRootDir (z. B. out)."
 }
 
+# Owner rule 2026-09-23: the exe directory must hold the chain ORT the build proved,
+# because Windows resolves onnxruntime.dll there first and System32's (Windows ML) next.
+# G6 re-runs here against that stamped copy: no host has the image's chain to compare with.
+try {
+	Assert-RunnerOrtStamp -RunnerDir $buildDirReleaseFull
+} catch {
+	$rebuildHint = "Rebuild with scripts/windows/Build-Windows.ps1 inside the family Windows image (AGENTS.md § 5); it stages the chain copy and stamps its G6 proof."
+	if ($Configuration -eq 'Release') {
+		$rebuildHint += " runner\Release, the default -Configuration, is only the MSIX copy of the first preset built: a build before 2026-09-23 left it stale, and each build now replaces it. Or launch the preset itself, e.g. -Configuration x64-ClangCL-Windows-Release."
+	}
+	throw ("$($_.Exception.Message)" + [Environment]::NewLine + $rebuildHint)
+}
+# ORT_DYLIB_PATH overrides that copy for oxidant.dll, so it may only name those same bytes.
+Assert-RunnerOrtOverride -Value "$env:ORT_DYLIB_PATH" -ExeDir (Split-Path $exePath -Parent) -RunnerDir $buildDirReleaseFull
+
 $runnerDataDir = Join-Path $buildDirReleaseFull "data"
 $runnerAotPath = Join-Path $runnerDataDir "app.so"
 
@@ -112,9 +130,9 @@ try {
 	# join-and-prepend did not.
 	$pluginPathEntries = [System.Collections.Generic.List[string]]::new()
 
-	# Host-wide runtimes, only relevant on an unprovisioned dev box.
+	# Host-wide runtimes, only relevant on an unprovisioned dev box. No ONNX Runtime
+	# directory: the chain copy beside the exe is the only one allowed (checked above).
 	$pluginPathEntries.Add("C:\Program Files\gstreamer\1.0\msvc_x86_64\bin")
-	$pluginPathEntries.Add("C:\onnxruntime\lib")
 
 	if (Test-Path -LiteralPath $pluginDir -PathType Container) {
 		Get-ChildItem -LiteralPath $pluginDir -Directory -Recurse -ErrorAction SilentlyContinue |

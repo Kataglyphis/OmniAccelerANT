@@ -49,43 +49,64 @@ apply_cargokit(
 # and it breaks only once the bundle is installed on a machine that has no
 # system copy, which is every tar/deb/flatpak/AppImage target. Bundled only
 # when the features actually ask for it, so a featureless build stays byte-for-
-# byte what it was. Note the image has TWO copies in its cache (/opt/opencv5
-# and onnxruntime-cpu); the explicit path is what keeps this deterministic.
+# byte what it was. Only the image's chain-built copy (owner rule 2026-09-23):
+# NO_DEFAULT_PATH keeps out /opt/opencv5's second copy in the ld.so cache.
 set(oxidant_extra_bundled_libraries "")
 if(CARGOKIT_EXTRA_CARGO_FLAGS MATCHES "onnxruntime")
+  if(DEFINED ENV{ORT_LIB_LOCATION}
+     AND NOT
+         "$ENV{ORT_LIB_LOCATION}"
+         STREQUAL
+         "")
+    set(ORT_CHAIN_LIB_DIR "$ENV{ORT_LIB_LOCATION}")
+  else()
+    set(ORT_CHAIN_LIB_DIR "/usr/local/lib/onnxruntime-cpu/lib")
+  endif()
+  unset(ONNXRUNTIME_LIB CACHE)
   find_library(
     ONNXRUNTIME_LIB
     NAMES onnxruntime
-    HINTS "/usr/local/lib/onnxruntime-cpu/lib"
-    PATH_SUFFIXES lib)
-  if(ONNXRUNTIME_LIB)
-    # Staged as a real file under the UNVERSIONED name, which is the only
-    # combination that works. ort's load-dynamic dlopens the bare soname
-    # "libonnxruntime.so" and the runner's RPATH is $ORIGIN/lib, so the bundle
-    # needs that exact name; but install(FILES) on the distro symlink copies
-    # the LINK, and its target is not in the bundle — measured: a 0-byte
-    # `libonnxruntime.so -> libonnxruntime.so.1.29.0` that dangles on every
-    # target. Bundling the REALPATH instead gets 31 MB under a versioned name
-    # dlopen never asks for. configure_file COPYONLY resolves both at once.
-    get_filename_component(ONNXRUNTIME_REAL "${ONNXRUNTIME_LIB}" REALPATH)
-    # BOTH sonames, as real files. Measured with readelf on the built bundle:
-    # the plugin DT_NEEDEDs the VERSIONED libonnxruntime.so.1, so staging only
-    # the unversioned name left the linked dependency unsatisfied; and ort's
-    # load-dynamic dlopens the BARE name, which needs the unversioned one. A
-    # symlink is not an option — install(FILES) copies the link, whose target
-    # then dangles. So two copies of a 31 MB file, deliberately.
-    foreach(_ort_name libonnxruntime.so libonnxruntime.so.1)
-      set(_ort_staged "${CMAKE_CURRENT_BINARY_DIR}/${_ort_name}")
-      configure_file("${ONNXRUNTIME_REAL}" "${_ort_staged}" COPYONLY)
-      list(APPEND oxidant_extra_bundled_libraries "${_ort_staged}")
-    endforeach()
-    message(STATUS "Bundling ONNX Runtime (both sonames): ${ONNXRUNTIME_REAL}")
-  else()
+    PATHS "${ORT_CHAIN_LIB_DIR}"
+    NO_DEFAULT_PATH)
+  if(NOT ONNXRUNTIME_LIB)
     message(
-      WARNING
-        "KATAGLYPHIS_RUST_FEATURES asks for onnxruntime but libonnxruntime.so was not found. The bundle will start and then fail to load the model at runtime. Set ORT_DYLIB_PATH on the target, or install ONNX Runtime."
+      FATAL_ERROR
+        "KATAGLYPHIS_RUST_FEATURES asks for onnxruntime but the chain-built libonnxruntime.so is not in ${ORT_CHAIN_LIB_DIR}. Build inside the family image; no other ONNX Runtime may be bundled."
     )
   endif()
+  # Staged as a real file under the UNVERSIONED name, which is the only
+  # combination that works. ort's load-dynamic dlopens the bare soname
+  # "libonnxruntime.so" and the runner's RPATH is $ORIGIN/lib, so the bundle
+  # needs that exact name; but install(FILES) on the distro symlink copies
+  # the LINK, and its target is not in the bundle — measured: a 0-byte
+  # `libonnxruntime.so -> libonnxruntime.so.1.29.0` that dangles on every
+  # target. Bundling the REALPATH instead gets 31 MB under a versioned name
+  # dlopen never asks for. configure_file COPYONLY resolves both at once.
+  get_filename_component(ONNXRUNTIME_REAL "${ONNXRUNTIME_LIB}" REALPATH)
+  # ORT embeds its checkout via __FILE__: the chain's is the hub's ORT_SRC_DIR, so a
+  # foreign ORT that ORT_LIB_LOCATION names is refused here, not bundled.
+  file(
+    STRINGS "${ONNXRUNTIME_REAL}" _ort_chain_hit
+    LIMIT_COUNT 1
+    REGEX "/opt/onnxruntime/onnxruntime/core/")
+  if(NOT _ort_chain_hit)
+    message(
+      FATAL_ERROR
+        "${ONNXRUNTIME_REAL} is not the family's chain-built ONNX Runtime (no /opt/onnxruntime/onnxruntime/core/ source path in it). ORT_LIB_LOCATION may only name the image's chain build."
+    )
+  endif()
+  # BOTH sonames, as real files. Measured with readelf on the built bundle:
+  # the plugin DT_NEEDEDs the VERSIONED libonnxruntime.so.1, so staging only
+  # the unversioned name left the linked dependency unsatisfied; and ort's
+  # load-dynamic dlopens the BARE name, which needs the unversioned one. A
+  # symlink is not an option — install(FILES) copies the link, whose target
+  # then dangles. So two copies of a 31 MB file, deliberately.
+  foreach(_ort_name libonnxruntime.so libonnxruntime.so.1)
+    set(_ort_staged "${CMAKE_CURRENT_BINARY_DIR}/${_ort_name}")
+    configure_file("${ONNXRUNTIME_REAL}" "${_ort_staged}" COPYONLY)
+    list(APPEND oxidant_extra_bundled_libraries "${_ort_staged}")
+  endforeach()
+  message(STATUS "Bundling ONNX Runtime (both sonames): ${ONNXRUNTIME_REAL}")
 endif()
 
 # List of absolute paths to libraries that should be bundled with the plugin.
