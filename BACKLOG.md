@@ -23,6 +23,13 @@ here.
       `fix/g6-linux-bundle-oxidant` as of 2026-09-24. If a rebase or squash
       renamed it, find it by that subject; `git -C third_party/ANTfrastructure
       merge-base --is-ancestor <fix> HEAD` proves the new pin has it.
+      - Take the rest of that branch with it, not only the fix. It also holds
+        e2e12f02, `fix(ort-census): an ORT under another name is found by the
+        OrtGetApiBase it defines`: a renamed, unfingerprinted ORT beside the
+        chain copy no longer passes as an importer. 960345ca and 402c6c70 are
+        docs. At e2e12f02, both bundle-gate suites pass in the image (13 of 13,
+        and 17 of 17 with the liboxidant cases), and so does the 2026-09-17
+        release bundle. `OrtRunner.Tests.ps1` passes 6 of 6.
       - The same pin also unblocks the Pi bundle's G6
         (`scripts/linux/cat-stream/package-producer-bundle.sh` proves
         `/bin/kataglyphis_cat_webrtc`, which carries the same string, with this
@@ -43,11 +50,14 @@ here.
       - Blocked on three things. The hub commit must be on the hub's remote
         (the submodule-pins workflow checks reachability). The paused Windows
         build uses this submodule checkout as its closure. And the checkout sits
-        on the sccache line (53b6c1fc), which does not contain the fix:
-        `git merge-tree` shows conflicts with it in CHANGELOG.md,
-        docs/code-quality-tooling.md (the derived mutation count) and
-        docs/scripts/mutations.json (both append at the tail). After that merge,
-        re-run the hub's `test-doc-numbers.sh` and the mutation `--stale-check`.
+        on the sccache line (53b6c1fc), which does not contain the fix.
+        `git merge-tree a7ccc896 e2e12f02 53b6c1fc` shows conflicts with it in
+        three files: CHANGELOG.md, docs/code-quality-tooling.md (the derived
+        mutation count) and docs/scripts/mutations.json (both sides append at
+        the tail). docs/scripts/code-dupes.allow merges clean, but both sides
+        moved budgets in it. After that merge, re-run the hub's
+        `test-doc-numbers.sh`, the mutation `--stale-check` and the code-dupes
+        gate.
 - [b] **OxidANT and AccelerANTgine: end the fake ORT source path in their
       Windows ORT suites with a NUL.** `OxidANT/scripts/windows/tests/OrtPayload.Tests.ps1`
       (lines 32 and 73) and `AccelerANTgine/scripts/windows/tests/OrtBundle.Tests.ps1`
@@ -55,8 +65,9 @@ here.
       `"$chainSrc FileVersion 1.27.0"`. The fixed census finds no fingerprint
       there, so one case in each turns `UNPROVEN` where it expects `STALE`
       (measured on scratch copies: OxidANT 9 of 10, AccelerANTgine 8 of 9).
-      `` "$chainSrc`0OrtGetApiBase" `` passes at either hub, so it can land before
-      their own hub pins move. Blocked here: the edit belongs in those two
+      `` "$chainSrc`0OrtGetApiBase" `` passes at a7ccc896, at 402c6c70 and at
+      e2e12f02 (10 of 10 and 9 of 9), so it can land before their own hub pins
+      move. Blocked here: the edit belongs in those two
       repositories; this repo only moves their gitlinks afterwards.
 - [ ] **The flatpak has no camera access and its runner path was only just
       fixed.** `app_packaging_package_linux_bundle_flatpak` writes
