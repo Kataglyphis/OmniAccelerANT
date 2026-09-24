@@ -153,14 +153,12 @@ importer's ld.so lookup — RUNPATH, `$ORIGIN` expanded — landing on it. A
 dlopen-only user such as `liboxidant.so` gets an `$ORIGIN` RUNPATH from the packer
 for exactly that. `liboxidant.so` also holds the chain directory
 `/opt/onnxruntime/onnxruntime/core/` as a string: OxidANT's loader checks the ORT
-it loads for it. Hub a7ccc896 counted that string as an ORT fingerprint, read the
-text rustc packs before it as a relative build root, and failed the correct bundle
-with `UNPROVEN /lib/liboxidant.so` (run 35928030957, both arches). Hub 537e2093
-counts only whole `__FILE__` source paths, so the file is graded as the importer it
-is; this repo needs its hub pin there or later.
-`test-check-bundle-closure.sh` carries the bytes around that string in the real
-`liboxidant.so` (OxidANT f018bec, the lane's features) and fails 3 of 17
-assertions against the older hub. The census runs whenever a bundled file is ORT-named or names
+it loads for it. That makes it an importer, never an ORT build, but only to a
+census that takes a whole NUL-terminated `__FILE__` source path as the ORT
+fingerprint. A hub whose census still counts the bare directory reads the text
+rustc packs before it as a relative build root and fails the correct bundle with
+`UNPROVEN /lib/liboxidant.so` (run 35928030957, both arches). Where this repo's
+hub pin stands on that: BACKLOG.md. The census runs whenever a bundled file is ORT-named or names
 the ORT ABI (`OrtGetApiBase` and G6's other markers), not only when a
 `libonnxruntime*` file is present: an ORT user with nothing beside it, or an ORT
 under another name, is exactly what G6's verdicts exist to refuse. What it does
