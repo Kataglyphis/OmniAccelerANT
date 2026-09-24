@@ -288,6 +288,22 @@ written out rather than linked.
   user with no ORT beside it fails as well; `scripts/linux/tests/test-check-bundle-closure.sh`
   mutation-tests that in the lane's code-quality batch. Detail:
   `docs/source/camera-streaming.md` § *Relocatable Linux bundles*.
+  With the lane's Rust features, **ORT is already in `bundle/lib` before the
+  packer runs**: `rust_builder/linux/CMakeLists.txt` stages both sonames. The
+  packer then copies nothing for it and logs it as `Kept (already in bundle/lib,
+  not copied)` with its sha256. A `Runtime closure: N file(s) copied` list without
+  ORT is therefore not a missing ORT.
+- **`liboxidant.so` names the chain directory, and the hub pin must be new enough
+  to accept that.** OxidANT's loader keeps `/opt/onnxruntime/onnxruntime/core/`
+  as a string, to check the ORT it loads. Hub a7ccc896 (the pin as of 5cee683)
+  counts that string as an ORT fingerprint, so the native lane's bundle checks
+  fail both arches with `UNPROVEN /lib/liboxidant.so -- an ORT-named binary with
+  no source fingerprint` (run 35928030957), although the bundle is correct. The
+  hub fix, 537e2093 of 2026-09-24, counts only whole `__FILE__` source paths, so
+  the file becomes an importer that G6 resolves to the chain ORT. Move
+  `third_party/ANTfrastructure` to that commit or later once it is on the hub's
+  remote (BACKLOG.md). Do not "fix" it in OxidANT by hiding the string: the
+  classifier was wrong, not the loader.
 
 - **Rust `i64` is `int` natively and `BigInt` on web, so only the web lane
   catches the mismatch.** flutter_rust_bridge maps it to `PlatformInt64`, a
