@@ -4,7 +4,7 @@
 # (owner rule 2026-09-23), proved by the hub's G6 census at build time and re-proved at launch against
 # the stamped copy. The DLLs are byte fixtures; the chain is a TestDrive ONNX_ROOT, G6's reference.
 # NOTE: Pester 3.4.0 dialect, as OxidANT's and AccelerANTgine's suites - no BeforeAll outside
-# Describe, dash-less Should, and no `Should Throw` under pwsh 7. CI: dart_on_native_windows.yml's
+# Describe, dash-less Should, and no `Should Throw` under pwsh 7. CI: windows-x64.yml's
 # ort-runner-suite job. Locally: pwsh -c "Import-Module Pester -RequiredVersion 3.4.0; Invoke-Pester scripts/windows/tests"
 
 Describe 'WindowsOrtRunner.Common' {

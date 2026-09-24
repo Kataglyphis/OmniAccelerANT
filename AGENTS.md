@@ -439,8 +439,11 @@ written out rather than linked.
   was an amd64-only tag until 2026-09-04, so the arm64 matrix row ran x86-64
   binaries (`rustc: 1: ELF: not found`) and nothing in this repo could work
   around it. The tag is a proper OCI index now. Two habits survive the hunt:
-  `fail-fast: false` stays on the matrix, and a `Failed to pull` line in a log
-  is usually GitHub **echoing the retry script's source**, not running it.
+  the architectures stay independent — `fail-fast: false` did that while they
+  were one matrix, and since 2026-09-24 they are two workflows
+  (`linux-x64.yml`, `linux-arm64.yml`), independent by construction — and a
+  `Failed to pull` line in a log is usually GitHub **echoing the retry
+  script's source**, not running it.
   Write-up: [`docs/source/platforms.md`](docs/source/platforms.md)
   § *Image gaps and image-tag history*.
 
@@ -487,7 +490,7 @@ written out rather than linked.
   on every build (the host copy too), and *MSIX Packaging* re-runs G6 on it before
   `msix:create`. Never copy an ORT into
   the runner by hand. The glue is `scripts/windows/modules/WindowsOrtRunner.Common.psm1`,
-  whose Pester suite runs in `dart_on_native_windows.yml`'s `ort-runner-suite` job;
+  whose Pester suite runs in `windows-x64.yml`'s `ort-runner-suite` job;
   every verdict is the hub's, so both scripts stop with the hub commit to move to
   when the pinned hub predates G6. The Linux bundle's twin is
   `check-bundle-closure.sh` (the packaged-Linux-artifact bullet above).
@@ -608,7 +611,7 @@ beside a Linux Android run left `flutter.sdk=C:\ProgramData\...` next to
 sees this: each lane is its own runner with its own clone.
 
 Windows builds run containerized, and **CI runs the exact same script** — the
-workflow [`dart_on_native_windows.yml`](.github/workflows/dart_on_native_windows.yml)
+workflow [`windows-x64.yml`](.github/workflows/windows-x64.yml)
 calls `Build-Windows.ps1` through ANTfrastructure's `run-in-windows-container`
 action, so "works locally" and "works in CI" are the same steps by construction.
 Locally:
@@ -697,7 +700,7 @@ how both halves stayed broken unnoticed until 2026-09-03:
 [`docs/source/platforms.md`](docs/source/platforms.md) § *Windows build-step
 traps and MSIX packaging*.
 
-**The CI lane** ([`dart_on_native_windows.yml`](.github/workflows/dart_on_native_windows.yml))
+**The CI lane** ([`windows-x64.yml`](.github/workflows/windows-x64.yml))
 is four ANTfrastructure actions and nothing hand-rolled:
 `prepare-windows-container-host`, `run-in-windows-container`,
 `actions/upload-artifact` and `upload-codeql-sarif` (plus the `ort-runner-suite`
@@ -761,13 +764,16 @@ with the same arguments as that lane's workflow. `-Lane` selects which:
 
 | `-Lane` | script | workflow |
 | --- | --- | --- |
-| `native` (default) | `ci-container-run-native-linux.sh` | [`dart_on_native_linux.yml`](.github/workflows/dart_on_native_linux.yml) |
-| `android` | `ci-container-run-android.sh` | [`dart_build_android_app.yml`](.github/workflows/dart_build_android_app.yml) |
-| `web` | `ci-container-run-web-linux.sh` | [`dart_on_web_linux.yml`](.github/workflows/dart_on_web_linux.yml) |
+| `native` (default) | `ci-container-run-native-linux.sh` | [`linux-x64.yml`](.github/workflows/linux-x64.yml) / [`linux-arm64.yml`](.github/workflows/linux-arm64.yml), by `-Arch` — both run [`reusable-linux.yml`](.github/workflows/reusable-linux.yml) |
+| `android` | `ci-container-run-android.sh` | [`android.yml`](.github/workflows/android.yml) |
+| `web` | `ci-container-run-web-linux.sh` | [`web.yml`](.github/workflows/web.yml) |
 
 Each entry mirrors its workflow's `extra-args` and `script`, so change the pair
 together. The argument sets are meant to match exactly — the android lane also
-matches in *not* passing `--privileged`.
+matches in *not* passing `--privileged`. The native lane's step lives in
+`reusable-linux.yml`, and its values in the `with:` block of the per-arch
+caller; keep that block flat `key: value` lines, which is what `-CheckParity`
+reads.
 
 ```powershell
 .\scripts\windows\Invoke-LinuxLane.ps1 -SkipDocs                        # native, x64
@@ -783,16 +789,19 @@ The native lane sets `KATAGLYPHIS_RUST_FEATURES=gstreamer,onnxruntime_dynamic`
 before `flutter build linux` — set it to the empty string to opt out — and for a
 release build runs `bundle-runtime-closure.sh`, then the `knt ABI` and
 `runtime closure` gates, between the build and packaging. `Invoke-LinuxLane.ps1
--CheckParity` diffs the *values* it would send against the lane's workflow
-(change driver and workflow together), and it refuses to start while another
-lane's container is up (`-Force` overrides).
+-CheckParity` diffs the *values* it would send — `script` and `extra-args` —
+against the lane's workflow (change driver and workflow together); for
+`native` it grades `-Arch`'s own file, resolving `reusable-linux.yml`'s
+`${{ inputs.* }}` from it. It runs before the engine is looked up, so it needs
+no nerdctl and starts nothing. A real run refuses to start while another lane's
+container is up (`-Force` overrides).
 
 **arm64 locally needs QEMU registered once per VM boot**, and an emulated
 arm64 run produces tar and deb but never flatpak or AppImage: `qemu-user` does
 not carry `unshare(CLONE_NEWUSER)` through for bubblewrap, and cannot load the
-static-PIE `appimagetool`. Neither restriction touches CI, whose arm64 row runs
-on a real `ubuntu-26.04-arm` runner. The `binfmt` registration commands, the
-pull sizes, and both error messages verbatim:
+static-PIE `appimagetool`. Neither restriction touches CI, whose arm64 build
+(`linux-arm64.yml`) runs on a real `ubuntu-26.04-arm` runner. The `binfmt`
+registration commands, the pull sizes, and both error messages verbatim:
 [`docs/source/project-operations.md`](docs/source/project-operations.md)
 § *The Linux lane, locally*.
 
@@ -862,8 +871,9 @@ Linux builds run containerized. **CI does not use the stage script below.** Its
 path is the ANTfrastructure composite action
 `.github/actions/run-in-linux-container@main`, which runs
 `scripts/linux/ci/ci-container-run-native-linux.sh` *inside* the container with
-CLI flags, not env vars
-([`dart_on_native_linux.yml`](.github/workflows/dart_on_native_linux.yml):60,70-78):
+CLI flags, not env vars (the *Run container* step of
+[`reusable-linux.yml`](.github/workflows/reusable-linux.yml), which
+`linux-x64.yml` and `linux-arm64.yml` both call):
 
 ```bash
 bash /workspace/scripts/linux/ci/ci-container-run-native-linux.sh \
@@ -885,9 +895,10 @@ machinery went, and what it was costing every Android run:
 
 The lane scripts take their inputs as CLI flags and exit 2 on a missing
 required one rather than guessing — `--arch`, `--app-name` and (native only)
-`--package-formats`. `--flutter-dir` defaults to `/opt/flutter`. The matrix
-values CI passes are in
-[`dart_on_native_linux.yml`](.github/workflows/dart_on_native_linux.yml).
+`--package-formats`. `--flutter-dir` defaults to `/opt/flutter`. The values
+CI passes are the `with:` blocks of
+[`linux-x64.yml`](.github/workflows/linux-x64.yml) and
+[`linux-arm64.yml`](.github/workflows/linux-arm64.yml).
 
 **`--app-name` derives from `pubspec.yaml`; do not hard-code it again.**
 `resolve_app_name` in `scripts/linux/lib/cli-common.sh` reads the `name:` entry
@@ -908,8 +919,8 @@ that cluster: CodeQL's Java extractor refuses this repo's KGP and kills the
 Gradle build with it — § 4, the built-in-Kotlin bullet. The native lane
 implements none and its driver *refuses* `--run-codeql true` with exit 2 rather
 than reporting success over a scan that never happened. So CI's android lane is
-the plain `flutter build apk` plus the plugin's JVM test, and the native `build`
-job (both matrix rows) is the plain
+the plain `flutter build apk` plus the plugin's JVM test, and the native build
+(both architectures) is the plain
 `flutter clean && flutter pub get && flutter build linux --release`.
 
 The scan is scoped by
@@ -949,8 +960,8 @@ on the stage:
 
 | Lane | `--strict-checks` | A failing format/analyze/test |
 | --- | --- | --- |
-| native Linux ([`dart_on_native_linux.yml`](.github/workflows/dart_on_native_linux.yml)) | `true` | reds the lane |
-| web ([`dart_on_web_linux.yml`](.github/workflows/dart_on_web_linux.yml)) | `true` | reds the lane |
+| native Linux ([`reusable-linux.yml`](.github/workflows/reusable-linux.yml), both architectures) | `true` | reds the lane |
+| web ([`web.yml`](.github/workflows/web.yml)) | `true` | reds the lane |
 | android (`ci-container-run-android.sh`) | not passed | reports and moves on — deliberate |
 
 So "treat a green `checks` run as *was executed*, not as *passed*" is true of

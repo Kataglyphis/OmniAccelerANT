@@ -1,9 +1,14 @@
+# .github/workflows/web.yml
+#
+# Web: the Flutter web build with the Rust wasm, on an x64 runner. One workflow
+# file per platform (owner convention 2026-09-24); web has no arch of its own.
+#
 # This workflow uses actions that are not certified by GitHub.
 # They are provided by a third-party and are governed by
 # separate terms of service, privacy policy, and support
 # documentation.
 
-name: Build + test + run for web
+name: Web · build + test
 
 env:
   LOCAL_ASSETS_FOLDER: "assets"
@@ -27,17 +32,19 @@ on:
 # recompiles the standard library, so two runs of it on one ref is the most
 # expensive way to learn the same thing twice — and the pull_request trigger
 # above is what made that reachable, because every push to a PR branch starts
-# another one. The other three build lanes got their own per-ref groups
-# (native-windows-, native-linux-, android-) with the same
+# another one. The other build lanes got their own per-ref groups
+# (windows-x64-, linux-x64-, linux-arm64-, android-) with the same
 # cancel-in-progress: true; see BACKLOG.md.
 concurrency:
-  group: web-linux-${{ github.ref }}
+  group: web-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   build:
     name: 🚀 Deploy website on push
     runs-on: ubuntu-26.04
+    # Measured 2026-09-24: 11-18 min, image pull and the wasm build included.
+    timeout-minutes: 60
     # No security-events here: this lane passes --run-codeql false and has no
     # SARIF upload step, so the scope granted nothing anything in the job could
     # use.

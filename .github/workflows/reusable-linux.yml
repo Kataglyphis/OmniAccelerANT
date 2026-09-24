@@ -1,0 +1,182 @@
+# .github/workflows/reusable-linux.yml
+#
+# The native Linux build, written once. linux-x64.yml and linux-arm64.yml call
+# it - one workflow file per platform + arch is the family convention (owner
+# decision 2026-09-24) - and hand it everything that was a matrix column before
+# the split. What is here is what both architectures do identically, so the two
+# callers cannot drift into two different lanes.
+#
+# No trigger of its own and no concurrency group: both belong to the caller. A
+# group declared here is evaluated in the caller's run and would queue behind
+# the caller's own group.
+#
+# There is no fail-fast to set any more. The matrix carried `fail-fast: false`
+# so a failing arm64 row could not cancel x64 before it reported (AGENTS.md
+# § 4); two callers are two workflow runs, independent by construction.
+name: Linux · reusable build
+
+on:
+  workflow_call:
+    inputs:
+      runner:
+        description: runs-on label. A pinned image, never a moving *-latest alias.
+        required: true
+        type: string
+      arch:
+        description: ci-container-run-native-linux.sh --arch (x64 | arm64).
+        required: true
+        type: string
+      platform:
+        description: The container's --platform; pairs with arch (linux/amd64 | linux/arm64).
+        required: true
+        type: string
+      build-mode:
+        required: true
+        type: string
+      app-name:
+        description: Explicit on purpose - it keeps CI independent of a host's pwd (AGENTS.md § 5).
+        required: true
+        type: string
+      flutter-dir:
+        required: true
+        type: string
+      package-formats:
+        required: true
+        type: string
+      install-packaging-deps:
+        required: true
+        type: boolean
+      run-docs:
+        description: Build the API docs and, on a push, deploy them over FTP. One architecture carries it.
+        required: true
+        type: boolean
+    # required: false throughout, so a run without secrets (a fork PR, a
+    # Dependabot PR) reaches the same steps with the same empty values it did
+    # when these were read inline, instead of failing at the call.
+    secrets:
+      GHCR_PAT:
+        required: false
+      SERVER:
+        required: false
+      USERNAME:
+        required: false
+      PW:
+        required: false
+
+# Nothing here writes through GITHUB_TOKEN: the ghcr login and the FTP deploy
+# both use repository secrets of their own.
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: build + package (${{ inputs.arch }})
+    runs-on: ${{ inputs.runner }}
+    # Measured 2026-09-24: x64 15-17 min, arm64 10-12 min, image pull included.
+    timeout-minutes: 60
+    # No security-events: the native Linux flow implements no CodeQL scan (see
+    # the --run-codeql note on the container step), so nothing in this job
+    # writes code-scanning alerts. The scope comes back the day CodeQL does.
+    permissions:
+      contents: read
+
+    steps:
+      # Reclaim disk, check out, log in to ghcr and pull the image with retries
+      # — ANTfrastructure's shared prologue, so the retry count and submodule flags
+      # cannot drift between this workflow and its siblings. The pull takes no
+      # --platform, which is only correct for a multi-arch tag — see the arm64
+      # note in AGENTS.md § 4.
+      #
+      # `image:` is DELIBERATELY ABSENT, here and on the run step below. The
+      # family image ref has exactly one owner — IMAGE_REGISTRY_PREFIX +
+      # CI_IMAGE_LINUX_TAG in ANTfrastructure's linux/scripts/01-core/versions.env
+      # — and both composite actions carry that composed ref as the `image`
+      # input default, checked against versions.env by
+      # linux/scripts/verify_ci_image_refs.py. Omitting the input is how this
+      # lane inherits it; a per-caller `container-image` input would be two more
+      # copies that no gate compares to the first.
+      - name: Prepare CI host
+        uses: Kataglyphis/ANTfrastructure/.github/actions/prepare-linux-ci-host@main
+        with:
+          registry-username: ${{ github.actor }}
+          registry-password: ${{ secrets.GHCR_PAT }}
+          fetch-depth: '1'
+          submodules: recursive
+
+      # `-e CI=true` is load-bearing, not decoration. generate-docs.sh ends by
+      # chowning the generated doc/api/ tree from the container's root back to
+      # the uid that owns the bind-mounted workspace, and that block is guarded
+      # by `[[ "${CI:-}" == "true" ]]`. `docker run` inherits nothing from the
+      # runner's environment, so the branch never fired and the workflow paid
+      # for it with a `sudo chown -R` step of its own — the same work written
+      # twice, once in a script and once inline. The script is now the only
+      # copy. --strict-checks is still passed explicitly below, so this does
+      # not silently switch on resolve_strict_checks' CI default.
+      #
+      # scripts/windows/Invoke-LinuxLane.ps1 -CheckParity reads this step's
+      # `extra-args` and `script` and resolves every ${{ inputs.* }} from the
+      # caller's `with:` block, so the local lane is graded against the values
+      # linux-<arch>.yml really passes. Change the driver and this pair together.
+      - name: Run container
+        uses: Kataglyphis/ANTfrastructure/.github/actions/run-in-linux-container@main
+        with:
+          extra-args: --privileged --platform "${{ inputs.platform }}" -e CI=true
+          script: >-
+            bash /workspace/scripts/linux/ci/ci-container-run-native-linux.sh
+            --arch "${{ inputs.arch }}"
+            --build-mode "${{ inputs.build-mode }}"
+            --flutter-dir "${{ inputs.flutter-dir }}"
+            --app-name "${{ inputs.app-name }}"
+            --package-formats "${{ inputs.package-formats }}"
+            --install-packaging-deps "${{ inputs.install-packaging-deps }}"
+            --strict-checks true
+            --run-codeql false
+            --run-docs "${{ inputs.run-docs }}"
+
+      # There is no "Upload CodeQL results SARIF" step here, on purpose. The
+      # native Linux flow implements no CodeQL scan — ci-container-run-native-linux.sh
+      # says so, and now REFUSES --run-codeql true instead of warning and
+      # carrying on — so the step that used to sit here could only ever be
+      # skipped: its hashFiles('codeql-results/*.sarif') guard never matched,
+      # and it carried continue-on-error: true on top of that. A permanently
+      # skipped upload reads like coverage and is none. Wire CodeQL into the
+      # native flow and this step plus `security-events: write` come back
+      # together. The only scan in this repo is the android lane's, and that
+      # is a manual local opt-in, not a CI step (AGENTS.md § 5).
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: ${{ inputs.app-name }}-linux-${{ inputs.arch }}-tar
+          path: out/${{ inputs.app-name }}-linux-${{ inputs.arch }}.tar.gz
+          if-no-files-found: error
+
+      # `error` fails only when NONE of the three globs matches; both runners
+      # build all four formats (measured 2026-09-24: three files per arch).
+      - name: Upload Linux packages
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: ${{ inputs.app-name }}-linux-${{ inputs.arch }}-packages
+          path: |
+            out/*.deb
+            out/*.AppImage
+            out/*.flatpak
+          if-no-files-found: error
+
+      # The hub action, not SamKirkland's directly: it owns the family's FTP
+      # pin, the readable/writable proof on the tree and the refusal to sync an
+      # empty local-dir over a live site - third_party/ANTfrastructure/docs/ftp-deploys.md.
+      # The doc/api/ ownership fixup that used to live here (sudo chown -R plus
+      # chmod -R 755) is gone: generate-docs.sh already chowns the tree to the
+      # uid that owns the workspace, and `-e CI=true` on the container step
+      # above is what makes that branch actually run.
+      # push only: a pull_request from a fork gets no secrets, so this step
+      # could only ever fail there on an empty password.
+      - name: 📂 Sync files to domain
+        if: ${{ inputs.run-docs && github.event_name == 'push' }}
+        uses: Kataglyphis/ANTfrastructure/.github/actions/deploy-over-ftp@main
+        with:
+          server: ${{ secrets.SERVER }}
+          username: ${{ secrets.USERNAME }}
+          password: ${{ secrets.PW }}
+          local-dir: "./doc/api/"

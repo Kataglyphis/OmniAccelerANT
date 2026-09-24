@@ -1,4 +1,9 @@
-name: Build + test + run on Windows with (clang-cl)
+# .github/workflows/windows-x64.yml
+#
+# Windows x64: the clang-cl container build (Build-Windows.ps1, the same script
+# a local run uses) and the runner's ONNX Runtime glue suite. One workflow file
+# per platform + arch (owner convention 2026-09-24).
+name: Windows x64 · build + test
 
 on:
   push:
@@ -10,7 +15,7 @@ on:
 # one branch protection asks for, and leaving Windows container builds stacked
 # is the most expensive way to learn the same thing twice.
 concurrency:
-  group: native-windows-${{ github.ref }}
+  group: windows-x64-${{ github.ref }}
   cancel-in-progress: true
 
 env:
@@ -23,6 +28,10 @@ defaults:
 jobs:
   build-clang:
     runs-on: windows-2025
+    # Measured 2026-09-24: 48-58 min, the ~54 GB image pull included. Three
+    # times the slowest green run, so a cold pull still fits and a hang does not
+    # run to the six-hour account default.
+    timeout-minutes: 180
     permissions:
       contents: read
       security-events: write
@@ -106,6 +115,10 @@ jobs:
           path: |
             ${{ steps.prep.outputs.workspace }}/logs/build-windows-*.log
             ${{ steps.prep.outputs.workspace }}/logs/build-summary-*.json
+          # Build-Windows.ps1 opens its log under logs/ when it starts, so an
+          # empty upload means the script never ran - which must not read as
+          # green.
+          if-no-files-found: error
 
       # NOTE, and it is a real gap rather than a defect introduced here: this
       # step probes <workspace>/codeql-results and today that directory is

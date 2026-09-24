@@ -1,0 +1,53 @@
+# .github/workflows/linux-arm64.yml
+#
+# Linux arm64: the arm64 build, on a real ubuntu-26.04-arm runner - no QEMU, so
+# unlike a local emulated run it produces all four package formats. One
+# workflow file per platform + arch (owner convention 2026-09-24); the build
+# steps live once, in reusable-linux.yml, shared with linux-x64.yml.
+#
+# No lint gates here, on purpose: they are architecture-independent and run in
+# linux-x64.yml, once per push. This build therefore does not wait for them - a
+# job cannot `needs:` a job of another workflow.
+#
+# This workflow uses actions that are not certified by GitHub.
+# They are provided by a third-party and are governed by
+# separate terms of service, privacy policy, and support
+# documentation.
+
+name: Linux arm64 · build + test
+
+on:
+  push:
+    branches: ["main", "develop"]
+  pull_request:
+    branches: ["main", "develop"]
+
+# Per-ref group, like every lane here. Its own group rather than x64's, so a
+# failing or superseded arm64 run can never cancel the x64 verdict.
+concurrency:
+  group: linux-arm64-${{ github.ref }}
+  cancel-in-progress: true
+
+# Top-level, so every job below inherits it and none can be added without one.
+permissions:
+  contents: read
+
+jobs:
+  # What used to be the arm64 matrix row. Same keys as linux-x64.yml's `build`,
+  # which Invoke-LinuxLane.ps1 -CheckParity reads the same way: a flat block of
+  # plain `key: value` lines.
+  build:
+    uses: ./.github/workflows/reusable-linux.yml
+    with:
+      runner: ubuntu-26.04-arm
+      arch: arm64
+      platform: linux/arm64
+      build-mode: release
+      app-name: omni-accelerant
+      flutter-dir: /opt/flutter
+      package-formats: tar,deb,flatpak,appimage
+      install-packaging-deps: true
+      # x64 carries the API docs and their deploy.
+      run-docs: false
+    secrets:
+      GHCR_PAT: ${{ secrets.GHCR_PAT }}
