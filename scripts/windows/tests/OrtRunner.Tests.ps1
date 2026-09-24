@@ -12,6 +12,8 @@ Describe 'WindowsOrtRunner.Common' {
     . (Join-Path $PSScriptRoot '..\Resolve-BuildModule.ps1')
     Import-BuildModule @('WindowsOrtRunner.Common', 'WindowsOrtProvenance.Common')
 
+    # A fake __FILE__ path ends in NUL, as a compiler writes it: G6 takes only a whole NUL-terminated
+    # ORT source path as a fingerprint (hub fix of 2026-09-24), so "$chainSrc text" would be none.
     $chainSrc = 'C:\temp\onnx-src\onnxruntime\core\session\inference_session.cc'
     $foreignSrc = 'C:\__w\1\s\onnxruntime\core\session\inference_session.cc'
 
@@ -29,7 +31,7 @@ Describe 'WindowsOrtRunner.Common' {
     function New-Case([string] $Name) {
         $case = Join-Path $TestDrive $Name
         $bin = Join-Path $case 'onnx\bin'
-        New-FakeDll (Join-Path $bin 'onnxruntime.dll') "$chainSrc OrtGetApiBase"
+        New-FakeDll (Join-Path $bin 'onnxruntime.dll') "$chainSrc`0OrtGetApiBase"
         New-FakeDll (Join-Path $bin 'onnxruntime_providers_shared.dll') 'provider bridge'
         New-FakeDll (Join-Path $bin 'DirectML.dll') 'directml'
         $runner = Join-Path $case 'runner'
@@ -66,7 +68,7 @@ Describe 'WindowsOrtRunner.Common' {
             Copy-RunnerChainOrt -OnnxRoot $c.Root -RunnerDir $c.Runner
             New-FakeDll (Join-Path $c.Runner 'onnxruntime.dll') $foreignSrc
             Get-ThrowText { Invoke-RunnerOrtProof -RunnerDir $c.Runner } | Should Match 'FOREIGN'
-            New-FakeDll (Join-Path $c.Runner 'onnxruntime.dll') "$chainSrc FileVersion 1.27.0"
+            New-FakeDll (Join-Path $c.Runner 'onnxruntime.dll') "$chainSrc`0FileVersion 1.27.0"
             Get-ThrowText { Invoke-RunnerOrtProof -RunnerDir $c.Runner } | Should Match 'STALE'
             Remove-Item -LiteralPath (Join-Path $c.Runner 'onnxruntime.dll')
             Get-ThrowText { Invoke-RunnerOrtProof -RunnerDir $c.Runner } | Should Match 'MISSING'
@@ -112,7 +114,7 @@ Describe 'WindowsOrtRunner.Common' {
             $null = Invoke-RunnerOrtProof -RunnerDir $c.Runner
         }
         $other = Join-Path $TestDrive 'override\sys\onnxruntime.dll'
-        New-FakeDll $other "$chainSrc FileVersion 1.27.0"
+        New-FakeDll $other "$chainSrc`0FileVersion 1.27.0"
         Get-ThrowText { Assert-RunnerOrtOverride -Value $other -ExeDir $c.Runner -RunnerDir $c.Runner } | Should Match 'not the chain ONNX Runtime the build proved'
         Get-ThrowText { Assert-RunnerOrtOverride -Value '' -ExeDir $c.Runner -RunnerDir $c.Runner } | Should Be ''
     }
