@@ -306,9 +306,10 @@ written out rather than linked.
   G6 at build and at launch (there `oxidant.dll` reads as a `STALE` chain-rooted
   ORT). All three run **this
   repo's** hub pin, so the cure is the pin, never OxidANT: the classifier was
-  wrong, not the loader. Where the pin stands: BACKLOG.md. Test fixtures follow
-  the same shape: a fake ORT's source path ends in NUL
-  (`scripts/windows/tests/OrtRunner.Tests.ps1`).
+  wrong, not the loader. The pin has read whole paths only since hub e72a9a37
+  (2026-09-24), and `scripts/linux/tests/test-check-bundle-closure.sh` models the
+  real `liboxidant.so` to keep it that way. Test fixtures follow the same shape:
+  a fake ORT's source path ends in NUL (`scripts/windows/tests/OrtRunner.Tests.ps1`).
 
 - **Rust `i64` is `int` natively and `BigInt` on web, so only the web lane
   catches the mismatch.** flutter_rust_bridge maps it to `PlatformInt64`, a

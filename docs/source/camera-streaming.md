@@ -157,8 +157,10 @@ it loads for it. That makes it an importer, never an ORT build, but only to a
 census that takes a whole NUL-terminated `__FILE__` source path as the ORT
 fingerprint. A hub whose census still counts the bare directory reads the text
 rustc packs before it as a relative build root and fails the correct bundle with
-`UNPROVEN /lib/liboxidant.so` (run 35928030957, both arches). Where this repo's
-hub pin stands on that: BACKLOG.md. The census runs whenever a bundled file is ORT-named or names
+`UNPROVEN /lib/liboxidant.so` (run 35928030957, both arches). This repo's hub
+pin has read whole paths only since e72a9a37 (2026-09-24), and
+`test-check-bundle-closure.sh` carries the bytes around that string in the real
+`liboxidant.so`. The census runs whenever a bundled file is ORT-named or names
 the ORT ABI (`OrtGetApiBase` and G6's other markers), not only when a
 `libonnxruntime*` file is present: an ORT user with nothing beside it, or an ORT
 under another name, is exactly what G6's verdicts exist to refuse. What it does
