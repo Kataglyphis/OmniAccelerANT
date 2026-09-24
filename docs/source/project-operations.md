@@ -44,7 +44,7 @@ it, and why the two helpers use exactly those three exclusions.
 bash scripts/linux/run-lint-gates.sh
 ```
 
-The exact command the `lint` job of `dart_on_native_linux.yml` runs — shellcheck,
+The exact command the `lint` job of `linux-x64.yml` runs — shellcheck,
 actionlint (plus the CI image-reference check) and the gitleaks secret scan, all
 three bootstrapped pinned from ANTfrastructure, all three run even after one fails.
 These used to exist only as `run:` blocks inside the workflow, so a failing merge
@@ -324,9 +324,10 @@ Rust and C++ without a single error:
   the binary is the correct architecture (`ELF aarch64, static-pie linked`);
   qemu-user cannot load static-PIE executables.
 
-CI is unaffected: its arm64 row runs on a real `ubuntu-26.04-arm` runner, so
-neither restriction applies. Locally, treat a failing flatpak/AppImage step on
-arm64 as expected and check the two messages above before investigating.
+CI is unaffected: its arm64 build (`linux-arm64.yml`) runs on a real
+`ubuntu-26.04-arm` runner, so neither restriction applies. Locally, treat a
+failing flatpak/AppImage step on arm64 as expected and check the two messages
+above before investigating.
 
 **`error: fchmod` after `Pruning cache` is not the prune.** That combination cost
 hours. `Pruning cache` is merely flatpak-builder's *last* output line; it exits

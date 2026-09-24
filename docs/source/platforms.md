@@ -274,11 +274,13 @@ the one-line version of each.
   now a proper OCI index (amd64, arm64, riscv64) and the symptom is gone —
   verified by the pulled digest matching the registry's index digest, and by
   both rows failing identically afterwards instead of differently.
-  Two things that survive from that hunt: `fail-fast: false` stays on the
-  matrix, because the failing arm64 row used to cancel x64 before it finished
-  and hid whether the healthy lane was green; and a `Failed to pull` line in a
-  log is usually GitHub **echoing the retry script's source**, not running it —
-  it cost hours of chasing a pull that had in fact succeeded.
+  Two things that survive from that hunt: the architectures stay independent,
+  because the failing arm64 row used to cancel x64 before it finished and hid
+  whether the healthy lane was green — `fail-fast: false` on the matrix did
+  that until 2026-09-24, when the rows became two workflows (`linux-x64.yml`,
+  `linux-arm64.yml`) that cannot cancel each other; and a `Failed to pull`
+  line in a log is usually GitHub **echoing the retry script's source**, not
+  running it — it cost hours of chasing a pull that had in fact succeeded.
 
 ## Windows build-step traps and MSIX packaging
 
@@ -333,7 +335,7 @@ Both halves were broken until 2026-09-03 and nobody noticed, because CI passes
 
 ## The Windows CI lane and the `$GIT_DIR` limit
 
-**The CI lane** ([`dart_on_native_windows.yml`](../../.github/workflows/dart_on_native_windows.yml))
+**The CI lane** ([`windows-x64.yml`](../../.github/workflows/windows-x64.yml))
 is four ANTfrastructure actions and nothing hand-rolled:
 `prepare-windows-container-host` (long paths, short-path clone, data-root move,
 disk check, GHCR login, pull), `run-in-windows-container`,

@@ -127,7 +127,7 @@ thing is still unproven.
       has no protection at all** — `gh api
       repos/Kataglyphis/OmniAccelerANT/branches/{develop,main}/protection`
       returns `404 Branch not protected` for both. That also makes
-      `dart_on_web_linux.yml`'s claim that its job name "is the
+      `web.yml`'s claim that its job name "is the
       required-status-check string on develop's branch protection" stale. Either
       set protection (owner action — deciding what to require is the whole
       point) or stop referencing it.

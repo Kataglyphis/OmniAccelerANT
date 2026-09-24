@@ -22,7 +22,7 @@ param(
 	[string] $PackageFormats = 'tar,deb,flatpak,appimage',
 	[string] $InstallPackagingDeps = 'true',
 	# 'true' because both Linux workflows pass --strict-checks true
-	# (dart_on_native_linux.yml:172, dart_on_web_linux.yml:58) and this driver's
+	# (reusable-linux.yml for both architectures, and web.yml) and this driver's
 	# entire contract is "same image, same script, same arguments as the
 	# workflow". It defaulted to 'false' until 2026-09-16, which meant the local
 	# lane graded LESS than CI: a format or analyze failure warned here and red
@@ -38,8 +38,9 @@ param(
 	[switch] $SkipDocs,
 	[switch] $KeepContainer,
 	# Compare the arguments this driver would send against the lane's workflow
-	# (`script:` + `extra-args`), resolving ${{ matrix.* }} and ${{ env.* }} the
-	# way the workflow would. Reports and exits without running the lane.
+	# (`script:` + `extra-args`), resolving ${{ matrix.* }}, ${{ env.* }} and a
+	# reusable workflow's ${{ inputs.* }} the way the workflow would. Reports and
+	# exits before touching the container engine: no volume, no container.
 	# BACKLOG.md: a checker that diffs flag NAMES would not have caught
 	# -StrictChecks defaulting to 'false' against a workflow passing 'true'.
 	[switch] $CheckParity,
@@ -86,10 +87,11 @@ $ErrorActionPreference = 'Stop'
 
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 
-# Reads a lane workflow's container invocation: the folded `script:` block with
-# its ${{ }} expressions unresolved, and every `env:` block of the file keyed by
-# name. Deliberately not a YAML parser — the three files are controlled here,
-# and a generic parser is a dependency this driver does not carry.
+# Reads a lane workflow's container invocation: the folded `script:` block and
+# the one-line `extra-args:` with their ${{ }} expressions unresolved, and every
+# `env:` block of the file keyed by name. Deliberately not a YAML parser — the
+# files are controlled here, and a generic parser is a dependency this driver
+# does not carry.
 function Get-LaneWorkflowSpec {
 	param([Parameter(Mandatory)][string] $Path)
 
@@ -98,8 +100,13 @@ function Get-LaneWorkflowSpec {
 	$envIndent = -1
 	$scriptIndent = -1
 	$scriptParts = @()
+	$extraArgs = $null
 
 	foreach ($line in $lines) {
+		if ($null -eq $extraArgs -and $line -match '^\s*extra-args:\s*(\S.*?)\s*$') {
+			$extraArgs = $Matches[1]
+			continue
+		}
 		if ($line -match '^(\s*)env:\s*$') {
 			$envIndent = $Matches[1].Length
 			continue
@@ -127,19 +134,78 @@ function Get-LaneWorkflowSpec {
 	if ($scriptIndent -lt 0) {
 		throw "No folded 'script:' block in $Path"
 	}
-	return [pscustomobject]@{ Script = ($scriptParts -join ' '); Env = $envMap }
+	if ($null -eq $extraArgs) {
+		throw "No one-line 'extra-args:' in $Path"
+	}
+	return [pscustomobject]@{ Script = ($scriptParts -join ' '); ExtraArgs = $extraArgs; Env = $envMap }
+}
+
+# A per-arch caller (linux-x64.yml, linux-arm64.yml) holds no container step of
+# its own: one job runs a LOCAL reusable workflow, and its `with:` block is what
+# that workflow's ${{ inputs.* }} resolve to. Returns the callee's repo-relative
+# path and that block keyed by input name, or $null when the file calls no local
+# reusable workflow and so carries its steps itself. Flat `key: value` lines
+# only; blank and comment lines never end the job.
+function Get-LaneCallerInputs {
+	param([Parameter(Mandatory)][string] $Path)
+
+	$lines = @(Get-Content -LiteralPath $Path)
+	$calls = @()
+	for ($i = 0; $i -lt $lines.Count; $i++) {
+		if ($lines[$i] -match '^(\s*)uses:\s*\./(\.github/workflows/[^\s#]+\.ya?ml)\s*$') {
+			$calls += [pscustomobject]@{ Line = $i; Indent = $Matches[1].Length; Callee = $Matches[2] }
+		}
+	}
+	if ($calls.Count -eq 0) { return $null }
+	if ($calls.Count -gt 1) {
+		throw "parity: $Path calls $($calls.Count) local reusable workflows; this reader expects at most one"
+	}
+	$call = $calls[0]
+
+	# Back to the line after the job id, then forward through the job's keys.
+	$first = $call.Line
+	while ($first -gt 0) {
+		$previous = $lines[$first - 1]
+		if ($previous -notmatch '^\s*(#|$)' -and ($previous.Length - $previous.TrimStart().Length) -lt $call.Indent) { break }
+		$first--
+	}
+	$withMap = @{}
+	$inWith = $false
+	for ($i = $first; $i -lt $lines.Count; $i++) {
+		$line = $lines[$i]
+		if ($line -match '^\s*(#|$)') { continue }
+		$indent = $line.Length - $line.TrimStart().Length
+		if ($indent -lt $call.Indent) { break }
+		if ($indent -eq $call.Indent) {
+			$inWith = $line -match '^\s*with:\s*$'
+			continue
+		}
+		if ($inWith -and $line -match '^\s*([A-Za-z_][A-Za-z0-9_-]*):\s*(.+?)\s*$') {
+			$withMap[$Matches[1]] = ($Matches[2] -replace '\s+#.*$', '').Trim('"').Trim("'")
+		}
+	}
+	return [pscustomobject]@{ Callee = $call.Callee; Inputs = $withMap }
 }
 
 # Turns ${{ ... }} into values this run would have. Everything unresolvable
 # throws: a placeholder nobody taught this function about must not compare as
 # an empty string and pass.
 function Resolve-LaneExpression {
-	param([Parameter(Mandatory)][string] $Text, [Parameter(Mandatory)][hashtable] $Values, [Parameter(Mandatory)][hashtable] $EnvMap)
+	param(
+		[Parameter(Mandatory)][string] $Text,
+		[Parameter(Mandatory)][hashtable] $Values,
+		[Parameter(Mandatory)][hashtable] $EnvMap,
+		[hashtable] $CallerInputs = @{}
+	)
 
 	$evaluator = {
 		param($match)
 		$expr = $match.Groups[1].Value.Trim()
-		if ($expr -match "^matrix\.arch\s*==\s*'x64'$") { return $Values['arch_is_x64'] }
+		if ($expr -match '^inputs\.([A-Za-z_][A-Za-z0-9_-]*)$') {
+			$key = $Matches[1]
+			if ($CallerInputs.ContainsKey($key)) { return $CallerInputs[$key] }
+			throw "parity: no resolution for `${{ inputs.$key }} - the caller's with: block passes no '$key'"
+		}
 		if ($expr -match '^matrix\.([A-Za-z_][A-Za-z0-9_]*)$') {
 			$key = $Matches[1]
 			if ($Values.ContainsKey($key)) { return $Values[$key] }
@@ -202,32 +268,7 @@ if (-not $AppName) {
 	$AppName = $nameLine.Matches[0].Groups[1].Value -replace '_', '-'
 }
 
-$engine = (Get-Command 'nerdctl' -ErrorAction SilentlyContinue)?.Source
-if (-not $engine) {
-	$candidate = Join-Path $env:ProgramFiles 'Rancher Desktop\resources\resources\win32\bin\nerdctl.exe'
-	if (Test-Path -LiteralPath $candidate) { $engine = $candidate }
-}
-if (-not $engine) {
-	throw "nerdctl not found. Install Rancher Desktop, or put nerdctl on PATH."
-}
-
-# One lane at a time against this checkout — AGENTS.md § 5. The generated files
-# at the root (android/local.properties, .dart_tool, the ephemeral plugin
-# symlinks) are per-host, and two lanes running together overwrite each other
-# mid-build while the failure names the innocent lane. The Windows build
-# container is in the pattern because the trap spans platforms.
-$laneContainers = & $engine 'ps' '--format' '{{.Names}}' 2>$null
-$busy = @($laneContainers | Where-Object {
-		($_ -like 'kataglyphis-linux-lane-*' -and $_ -ne $ContainerName) -or
-		$_ -eq 'omniaccelerant-agentic-build'
-	})
-if ($busy.Count -gt 0 -and -not $Force) {
-	throw ("Another lane's container is up: $($busy -join ', '). Two lanes on one checkout " +
-		"overwrite each other's generated files (AGENTS.md § 5). Wait for it to exit, " +
-		"or pass -Force when you know it is idle.")
-}
-
-# The workflow matrix pairs arch with platform; keep the pairs in step.
+# The workflows pair arch with platform; keep the pairs in step.
 $platform = if ($Arch -eq 'x64') { 'linux/amd64' } else { 'linux/arm64' }
 
 # Only the android lane implements a CodeQL scan, and since 2026-09-17 it is a
@@ -237,24 +278,11 @@ $platform = if ($Arch -eq 'x64') { 'linux/amd64' } else { 'linux/arm64' }
 $runCodeQLArg = if ($RunCodeQL) { 'true' } else { 'false' }
 $runDocs = if ($SkipDocs) { 'false' } else { ($Arch -eq 'x64').ToString().ToLower() }
 
-# A named volume over each write-heavy path, always via the long --mount form
-# — AGENTS.md § 5.
-$volumeArgs = @()
-foreach ($nativePath in $ContainerNativePaths) {
-	$volumeName = "kataglyphis-lane-$Lane-$Arch" + ($nativePath -replace '[^A-Za-z0-9]+', '-')
-	& $engine 'volume' 'create' $volumeName 2>&1 | Out-Null
-	# Volumes start root-owned; the image runs as uid 1001.
-	& $engine 'run' '--rm' '--user' 'root' `
-		'--mount' "type=volume,source=${volumeName},target=/vol" `
-		'--platform' $platform 'alpine' 'chown' '1001:1001' '/vol' 2>&1 | Out-Null
-	$volumeArgs += @('--mount', "type=volume,source=${volumeName},target=${nativePath}")
-	Write-Host "volume : $volumeName -> $nativePath"
-}
-
 # One entry per lane, mirroring that lane's workflow. Change the pair together:
-#   native  -> .github/workflows/dart_on_native_linux.yml
-#   android -> .github/workflows/dart_build_android_app.yml
-#   web     -> .github/workflows/dart_on_web_linux.yml
+#   native  -> .github/workflows/linux-x64.yml / linux-arm64.yml (by -Arch), whose
+#              build job runs .github/workflows/reusable-linux.yml
+#   android -> .github/workflows/android.yml
+#   web     -> .github/workflows/web.yml
 $laneArgs = switch ($Lane) {
 	'native' {
 		@('bash', '/workspace/scripts/linux/ci/ci-container-run-native-linux.sh',
@@ -292,30 +320,55 @@ $laneArgs = switch ($Lane) {
 	}
 }
 
+# The android workflow does not pass --privileged; the other two do.
+$privilegedArgs = if ($Lane -eq 'android') { @() } else { @('--privileged') }
+
+# Only reusable-linux.yml - the native build, for both architectures - passes
+# `-e CI=true`, so only this lane does.
+# It is what makes generate-docs.sh chown the generated doc/api/ tree back to
+# the workspace owner; without it the workflow needed a `sudo chown -R` step of
+# its own and the same work existed twice. If a local engine cannot honour that
+# chown the lane now fails instead of hiding it - that is a real difference
+# between this machine and the runner, worth seeing rather than papering over.
+$ciEnvArgs = if ($Lane -eq 'native') { @('-e', 'CI=true') } else { @() }
+
 # Parity is about the VALUES the driver sends, not the flag names: the recorded
 # failure was -StrictChecks defaulting to 'false' against workflows passing
 # 'true', which a name-only diff cannot see. BACKLOG.md § duplication and drift.
+# It runs before the engine is looked up, so it needs no nerdctl and creates no
+# volume or container.
 if ($CheckParity) {
+	# The native lane is one workflow per architecture since 2026-09-24, and
+	# both call reusable-linux.yml, which holds the container step. -Arch picks
+	# the caller, and the caller's `with:` block supplies ${{ inputs.* }} - so
+	# this grades against what linux-<arch>.yml really passes, not against this
+	# run's own parameters.
 	$workflowFile = switch ($Lane) {
-		'native' { 'dart_on_native_linux.yml' }
-		'android' { 'dart_build_android_app.yml' }
-		'web' { 'dart_on_web_linux.yml' }
+		'native' { "linux-$Arch.yml" }
+		'android' { 'android.yml' }
+		'web' { 'web.yml' }
 	}
 	$workflowPath = Join-Path $repoRoot ".github/workflows/$workflowFile"
-	$spec = Get-LaneWorkflowSpec -Path $workflowPath
-	# Exactly the values a workflow LOCAL run would have; job-level env comes
-	# from the file, matrix values from this run's parameters.
-	$parityValues = @{
-		arch                   = $Arch
-		build_mode             = $BuildMode
-		flutter_dir            = '/opt/flutter'
-		app_name               = if ($Lane -eq 'android') { "$AppName-apk" } else { $AppName }
-		package_formats        = $PackageFormats
-		install_packaging_deps = $InstallPackagingDeps
-		platform               = $platform
-		arch_is_x64            = if ($Arch -eq 'x64') { 'true' } else { 'false' }
+	$callerInputs = @{}
+	$specPath = $workflowPath
+	$laneCaller = Get-LaneCallerInputs -Path $workflowPath
+	if ($laneCaller) {
+		$callerInputs = $laneCaller.Inputs
+		$specPath = Join-Path $repoRoot $laneCaller.Callee
+		$workflowFile = "$workflowFile -> $(Split-Path -Leaf $laneCaller.Callee)"
 	}
-	$resolvedScript = Resolve-LaneExpression -Text $spec.Script -Values $parityValues -EnvMap $spec.Env
+	$spec = Get-LaneWorkflowSpec -Path $specPath
+	# Exactly the values a workflow LOCAL run would have; job-level env comes
+	# from the file, inputs from the caller, and the android lane's one-row
+	# matrix from this run's parameters.
+	$parityValues = @{
+		arch        = $Arch
+		build_mode  = $BuildMode
+		flutter_dir = '/opt/flutter'
+		app_name    = if ($Lane -eq 'android') { "$AppName-apk" } else { $AppName }
+		platform    = $platform
+	}
+	$resolvedScript = Resolve-LaneExpression -Text $spec.Script -Values $parityValues -EnvMap $spec.Env -CallerInputs $callerInputs
 	$workflowTokens = @($resolvedScript -split '\s+' | Where-Object { $_ })
 	$workflowMap = Get-FlagMap -Tokens $workflowTokens
 	$driverMap = Get-FlagMap -Tokens $laneArgs
@@ -338,6 +391,16 @@ if ($CheckParity) {
 		}
 	}
 
+	# The engine half: `extra-args` against what this driver puts in front of
+	# the image, token by token and in order. -Env stays out - debugging
+	# switches with no CI twin.
+	$resolvedExtra = Resolve-LaneExpression -Text $spec.ExtraArgs -Values $parityValues -EnvMap $spec.Env -CallerInputs $callerInputs
+	$workflowExtra = @($resolvedExtra -split '\s+' | Where-Object { $_ } | ForEach-Object { $_.Trim('"').Trim("'") })
+	$driverExtra = @(@() + $privilegedArgs + @('--platform', $platform) + $ciEnvArgs | Where-Object { $_ })
+	if (($workflowExtra -join ' ') -cne ($driverExtra -join ' ')) {
+		$mismatches += "extra-args: workflow '$($workflowExtra -join ' ')' vs driver '$($driverExtra -join ' ')'"
+	}
+
 	if ($mismatches.Count -gt 0) {
 		Write-Host "parity FAILED ($Lane vs $workflowFile):"
 		$mismatches | ForEach-Object { Write-Host "  - $_" }
@@ -347,16 +410,44 @@ if ($CheckParity) {
 	exit 0
 }
 
-# The android workflow does not pass --privileged; the other two do.
-$privilegedArgs = if ($Lane -eq 'android') { @() } else { @('--privileged') }
+$engine = (Get-Command 'nerdctl' -ErrorAction SilentlyContinue)?.Source
+if (-not $engine) {
+	$candidate = Join-Path $env:ProgramFiles 'Rancher Desktop\resources\resources\win32\bin\nerdctl.exe'
+	if (Test-Path -LiteralPath $candidate) { $engine = $candidate }
+}
+if (-not $engine) {
+	throw "nerdctl not found. Install Rancher Desktop, or put nerdctl on PATH."
+}
 
-# Only dart_on_native_linux.yml passes `-e CI=true`, so only this lane does.
-# It is what makes generate-docs.sh chown the generated doc/api/ tree back to
-# the workspace owner; without it the workflow needed a `sudo chown -R` step of
-# its own and the same work existed twice. If a local engine cannot honour that
-# chown the lane now fails instead of hiding it - that is a real difference
-# between this machine and the runner, worth seeing rather than papering over.
-$ciEnvArgs = if ($Lane -eq 'native') { @('-e', 'CI=true') } else { @() }
+# One lane at a time against this checkout — AGENTS.md § 5. The generated files
+# at the root (android/local.properties, .dart_tool, the ephemeral plugin
+# symlinks) are per-host, and two lanes running together overwrite each other
+# mid-build while the failure names the innocent lane. The Windows build
+# container is in the pattern because the trap spans platforms.
+$laneContainers = & $engine 'ps' '--format' '{{.Names}}' 2>$null
+$busy = @($laneContainers | Where-Object {
+		($_ -like 'kataglyphis-linux-lane-*' -and $_ -ne $ContainerName) -or
+		$_ -eq 'omniaccelerant-agentic-build'
+	})
+if ($busy.Count -gt 0 -and -not $Force) {
+	throw ("Another lane's container is up: $($busy -join ', '). Two lanes on one checkout " +
+		"overwrite each other's generated files (AGENTS.md § 5). Wait for it to exit, " +
+		"or pass -Force when you know it is idle.")
+}
+
+# A named volume over each write-heavy path, always via the long --mount form
+# — AGENTS.md § 5.
+$volumeArgs = @()
+foreach ($nativePath in $ContainerNativePaths) {
+	$volumeName = "kataglyphis-lane-$Lane-$Arch" + ($nativePath -replace '[^A-Za-z0-9]+', '-')
+	& $engine 'volume' 'create' $volumeName 2>&1 | Out-Null
+	# Volumes start root-owned; the image runs as uid 1001.
+	& $engine 'run' '--rm' '--user' 'root' `
+		'--mount' "type=volume,source=${volumeName},target=/vol" `
+		'--platform' $platform 'alpine' 'chown' '1001:1001' '/vol' 2>&1 | Out-Null
+	$volumeArgs += @('--mount', "type=volume,source=${volumeName},target=${nativePath}")
+	Write-Host "volume : $volumeName -> $nativePath"
+}
 
 $engineArgs = @(
 	'run', '--name', $ContainerName
