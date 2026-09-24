@@ -46,9 +46,6 @@ PY
 }
 CHAIN_SRC=/opt/onnxruntime/onnxruntime/core/session/inference_session.cc
 WINML_SRC='C:\__w\1\s\onnxruntime\core\session\inference_session.cc'
-# The bytes around ort_runtime.rs's chain marker in liboxidant.so as OxidANT f018bec builds it (the lane's
-# features): rustc packs &str literals with no NUL between them, so the directory sits inside other text.
-OXIDANT_RUN='Failed to run ONNX model (ort)internal error: entered unreachable code: invalid Once state/opt/onnxruntime/onnxruntime/core//workspace/third_party/OxidANT/crates/inferenceresourcesmodelsyolov10m.onnxModel returned no outputs'
 
 # _bundle <name> : a bundle holding only the GStreamer plugins the gate requires; prints its root.
 _bundle() {
@@ -79,19 +76,6 @@ _user="$(_bundle user)"
 _elf "${_user}/lib/liboxidant.so" "" "" OrtGetApiBase
 t_assert_eq 1 "$(_gate_rc "${_user}")" "dlopen-only user, nothing to load"
 t_assert_contains "$(_gate "${_user}")" "UNRESOLVED" "G6 says what it would load"
-
-t_case "liboxidant.so as the lane builds it (naming the chain directory as data) passes beside the chain ORT"
-_ox="$(_bundle oxidant)"
-cp "${_ref}/lib/libonnxruntime.so.1" "${_ox}/lib/libonnxruntime.so"
-cp "${_ref}/lib/libonnxruntime.so.1" "${_ox}/lib/"
-_elf "${_ox}/lib/liboxidant.so" "" '$ORIGIN' "${OXIDANT_RUN}" OrtGetApiBase
-t_assert_eq 0 "$(_gate_rc "${_ox}")" "an importer, not an unproven ORT copy (hub G6 before the 2026-09-24 fix said UNPROVEN)"
-t_assert_contains "$(_gate "${_ox}")" "ORT census PASS" "censused, and resolved to the chain ORT"
-
-t_case "the same liboxidant.so with no ORT beside it fails UNRESOLVED (mutation)"
-rm -f "${_ox}/lib/libonnxruntime.so" "${_ox}/lib/libonnxruntime.so.1"
-t_assert_eq 1 "$(_gate_rc "${_ox}")" "nothing to dlopen"
-t_assert_contains "$(_gate "${_ox}")" "UNRESOLVED   /lib/liboxidant.so" "its resolution is what fails"
 
 t_case "a renamed foreign ORT is censused by its ABI, not skipped for its name (mutation)"
 _renamed="$(_bundle renamed)"

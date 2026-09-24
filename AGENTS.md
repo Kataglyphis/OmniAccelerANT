@@ -293,17 +293,22 @@ written out rather than linked.
   packer then copies nothing for it and logs it as `Kept (already in bundle/lib,
   not copied)` with its sha256. A `Runtime closure: N file(s) copied` list without
   ORT is therefore not a missing ORT.
-- **`liboxidant.so` names the chain directory, and the hub pin must be new enough
-  to accept that.** OxidANT's loader keeps `/opt/onnxruntime/onnxruntime/core/`
-  as a string, to check the ORT it loads. Hub a7ccc896 (the pin as of 5cee683)
-  counts that string as an ORT fingerprint, so the native lane's bundle checks
-  fail both arches with `UNPROVEN /lib/liboxidant.so -- an ORT-named binary with
-  no source fingerprint` (run 35928030957), although the bundle is correct. The
-  hub fix, 537e2093 of 2026-09-24, counts only whole `__FILE__` source paths, so
-  the file becomes an importer that G6 resolves to the chain ORT. Move
-  `third_party/ANTfrastructure` to that commit or later once it is on the hub's
-  remote (BACKLOG.md). Do not "fix" it in OxidANT by hiding the string: the
-  classifier was wrong, not the loader.
+- **The Rust binaries name the chain ORT's directory, and G6 must read them as
+  importers.** OxidANT's loader (`ort_runtime.rs`) keeps
+  `/opt/onnxruntime/onnxruntime/core/` (Windows: `C:\temp\onnx-src\onnxruntime\core\`)
+  as a string, to check the ORT it loads. So `liboxidant.so`, `oxidant.dll` and
+  the cat producer `kataglyphis_cat_webrtc` carry it, and G6 must take only a
+  whole NUL-terminated `__FILE__` source path as an ORT fingerprint. A hub census
+  that counts the bare directory calls them ORT builds and fails correct output:
+  the native lane's bundle checks (`UNPROVEN /lib/liboxidant.so -- an ORT-named
+  binary with no source fingerprint`, run 35928030957), the Pi bundle's G6 in
+  `scripts/linux/cat-stream/package-producer-bundle.sh`, and the Windows runner's
+  G6 at build and at launch (there `oxidant.dll` reads as a `STALE` chain-rooted
+  ORT). All three run **this
+  repo's** hub pin, so the cure is the pin, never OxidANT: the classifier was
+  wrong, not the loader. Where the pin stands: BACKLOG.md. Test fixtures follow
+  the same shape: a fake ORT's source path ends in NUL
+  (`scripts/windows/tests/OrtRunner.Tests.ps1`).
 
 - **Rust `i64` is `int` natively and `BigInt` on web, so only the web lane
   catches the mismatch.** flutter_rust_bridge maps it to `PlatformInt64`, a

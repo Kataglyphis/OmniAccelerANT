@@ -13,17 +13,51 @@ here.
 
 ## Open — correctness
 
-- [b] **Move `third_party/ANTfrastructure` to hub 537e2093 or later — the native
-      Linux lane is red until then.** Both rows of run 35928030957 failed the
-      bundle checks with `UNPROVEN /lib/liboxidant.so`: hub a7ccc896's G6 counts
-      the chain directory that OxidANT's loader keeps as a string as an ORT
-      fingerprint (AGENTS.md § 4). 537e2093 (branch `fix/g6-linux-bundle-oxidant`)
-      fixes the classifier. `scripts/linux/tests/test-check-bundle-closure.sh`
-      fails 3 of 17 at a7ccc896 and passes 17 of 17 at 537e2093. Blocked on two
-      things: the hub commit must be on its remote (the submodule-pins workflow
-      checks reachability), and the paused Windows build uses this submodule
-      checkout as its closure. Then `git -C third_party/ANTfrastructure fetch`,
-      check out the commit, and commit the gitlink with the fallout fixed.
+- [b] **Move `third_party/ANTfrastructure` to a hub commit that contains the G6
+      fingerprint fix — the native Linux lane is red until then.** The pin,
+      a7ccc896, counts the chain directory that OxidANT's loader keeps as a
+      string as an ORT fingerprint (AGENTS.md § 4): both rows of run 35928030957
+      failed the bundle checks with `UNPROVEN /lib/liboxidant.so`. The fix is the
+      hub commit `fix(ort-census): a consumer naming the chain directory is an
+      importer, not an ORT build` — 537e2093 on branch
+      `fix/g6-linux-bundle-oxidant` as of 2026-09-24. If a rebase or squash
+      renamed it, find it by that subject; `git -C third_party/ANTfrastructure
+      merge-base --is-ancestor <fix> HEAD` proves the new pin has it.
+      - The same pin also unblocks the Pi bundle's G6
+        (`scripts/linux/cat-stream/package-producer-bundle.sh` proves
+        `/bin/kataglyphis_cat_webrtc`, which carries the same string, with this
+        repo's hub, not OxidANT's) and the Windows runner's G6 at build and at
+        launch (`oxidant.dll` reads as a `STALE` chain-rooted ORT there). The
+        Windows one is masked today, not absent: run 35928030211 dies earlier,
+        at `CMake Configure` and then `Rust DLL not found`.
+      - In the same commit, re-land the liboxidant cases of
+        `scripts/linux/tests/test-check-bundle-closure.sh` from a754742
+        (`git show a754742 -- scripts/linux/tests/test-check-bundle-closure.sh
+        | git apply`). They were taken back out because they fail 3 of 17 at
+        a7ccc896, and the lane runs that suite before `flutter build linux`: they
+        cost CI the build, the knt ABI gate and packaging. Measured in the image:
+        17 of 17 at the fix.
+      - `scripts/windows/tests/OrtRunner.Tests.ps1` needs nothing at the bump:
+        its fake ORT paths already end in NUL, and it passes 6 of 6 at either
+        hub.
+      - Blocked on three things. The hub commit must be on the hub's remote
+        (the submodule-pins workflow checks reachability). The paused Windows
+        build uses this submodule checkout as its closure. And the checkout sits
+        on the sccache line (53b6c1fc), which does not contain the fix:
+        `git merge-tree` shows conflicts with it in CHANGELOG.md,
+        docs/code-quality-tooling.md (the derived mutation count) and
+        docs/scripts/mutations.json (both append at the tail). After that merge,
+        re-run the hub's `test-doc-numbers.sh` and the mutation `--stale-check`.
+- [b] **OxidANT and AccelerANTgine: end the fake ORT source path in their
+      Windows ORT suites with a NUL.** `OxidANT/scripts/windows/tests/OrtPayload.Tests.ps1`
+      (lines 32 and 73) and `AccelerANTgine/scripts/windows/tests/OrtBundle.Tests.ps1`
+      (lines 32 and 71) write `"$chainSrc OrtGetApiBase"` and
+      `"$chainSrc FileVersion 1.27.0"`. The fixed census finds no fingerprint
+      there, so one case in each turns `UNPROVEN` where it expects `STALE`
+      (measured on scratch copies: OxidANT 9 of 10, AccelerANTgine 8 of 9).
+      `` "$chainSrc`0OrtGetApiBase" `` passes at either hub, so it can land before
+      their own hub pins move. Blocked here: the edit belongs in those two
+      repositories; this repo only moves their gitlinks afterwards.
 - [ ] **The flatpak has no camera access and its runner path was only just
       fixed.** `app_packaging_package_linux_bundle_flatpak` writes
       `finish-args` with `--device=dri` but no `/dev/video*`, so a sandboxed
