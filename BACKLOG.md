@@ -13,6 +13,17 @@ here.
 
 ## Open — correctness
 
+- [b] **Move `third_party/ANTfrastructure` to hub 537e2093 or later — the native
+      Linux lane is red until then.** Both rows of run 35928030957 failed the
+      bundle checks with `UNPROVEN /lib/liboxidant.so`: hub a7ccc896's G6 counts
+      the chain directory that OxidANT's loader keeps as a string as an ORT
+      fingerprint (AGENTS.md § 4). 537e2093 (branch `fix/g6-linux-bundle-oxidant`)
+      fixes the classifier. `scripts/linux/tests/test-check-bundle-closure.sh`
+      fails 3 of 17 at a7ccc896 and passes 17 of 17 at 537e2093. Blocked on two
+      things: the hub commit must be on its remote (the submodule-pins workflow
+      checks reachability), and the paused Windows build uses this submodule
+      checkout as its closure. Then `git -C third_party/ANTfrastructure fetch`,
+      check out the commit, and commit the gitlink with the fallout fixed.
 - [ ] **The flatpak has no camera access and its runner path was only just
       fixed.** `app_packaging_package_linux_bundle_flatpak` writes
       `finish-args` with `--device=dri` but no `/dev/video*`, so a sandboxed

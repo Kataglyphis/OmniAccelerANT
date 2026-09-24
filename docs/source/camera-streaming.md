@@ -122,7 +122,12 @@ the lane for release builds, before packaging):
   variable alone proves nothing. Never from the ld.so cache, where
   `/opt/opencv5/lib` carries a second copy that sorts first. It travels whether
   or not the Rust features ask for it, because `libAccelerANTgine.so` needs
-  `libonnxruntime.so.1` either way. Plus the 59 MB detector model at
+  `libonnxruntime.so.1` either way. With the lane's features it is already
+  there when the packer starts: `rust_builder/linux/CMakeLists.txt` stages both
+  sonames from the same chain directory during `flutter build linux`. The packer
+  then copies nothing for it and prints `Kept (already in bundle/lib, not
+  copied)` with each file's sha256, so its `N file(s) copied` list never shows
+  ORT in that case. Plus the 59 MB detector model at
   `data/resources/models/yolov10m.onnx`;
 - **an `$ORIGIN` rpath on every bundled ELF.** RUNPATH is not transitive: a
   dlopen'd plugin cannot reach a sibling through the runner's `$ORIGIN/lib`
@@ -146,7 +151,16 @@ pipeline plugins exist, and ANTfrastructure's G6 census
 Runtime binary in the bundle byte-identical to the image's chain ORT, and every
 importer's ld.so lookup — RUNPATH, `$ORIGIN` expanded — landing on it. A
 dlopen-only user such as `liboxidant.so` gets an `$ORIGIN` RUNPATH from the packer
-for exactly that. The census runs whenever a bundled file is ORT-named or names
+for exactly that. `liboxidant.so` also holds the chain directory
+`/opt/onnxruntime/onnxruntime/core/` as a string: OxidANT's loader checks the ORT
+it loads for it. Hub a7ccc896 counted that string as an ORT fingerprint, read the
+text rustc packs before it as a relative build root, and failed the correct bundle
+with `UNPROVEN /lib/liboxidant.so` (run 35928030957, both arches). Hub 537e2093
+counts only whole `__FILE__` source paths, so the file is graded as the importer it
+is; this repo needs its hub pin there or later.
+`test-check-bundle-closure.sh` carries the bytes around that string in the real
+`liboxidant.so` (OxidANT f018bec, the lane's features) and fails 3 of 17
+assertions against the older hub. The census runs whenever a bundled file is ORT-named or names
 the ORT ABI (`OrtGetApiBase` and G6's other markers), not only when a
 `libonnxruntime*` file is present: an ORT user with nothing beside it, or an ORT
 under another name, is exactly what G6's verdicts exist to refuse. What it does

@@ -254,3 +254,9 @@ if [[ "$copied_count" -gt 0 ]]; then
     printf '  %s <- %s\n' "$name" "${bundled[$name]}"
   done
 fi
+# rust_builder's CMake stages ORT when the Rust features ask for it; the walk skips a file already here.
+for file in "$bundle_lib"/libonnxruntime*; do
+  [[ -f "$file" && -z "${bundled[$(basename "$file")]:-}" ]] || continue
+  printf 'Kept (already in bundle/lib, not copied): %s sha256 %s\n' \
+    "$(basename "$file")" "$(sha256sum "$file" | cut -d' ' -f1)"
+done
