@@ -42,7 +42,8 @@ crates/media (gstreamer-rs)     src/webcam_engine.rs            src/api/webcam.r
   `platforms.md`). Without it the pipeline falls back to `ksvideosrc`.
 - **Inference:** `ort` (ONNX Runtime) is loaded via `load-dynamic`
   (`ORT_DYLIB_PATH` → next-to-exe → `C:\runtime\lib\onnxruntime-source\bin`),
-  DirectML execution provider with CPU fallback. Enabled by the crate features
+  refusing any file that is not the image's chain build (AGENTS.md § 4, the
+  ONNX Runtime bullet); DirectML execution provider with CPU fallback. Enabled by the crate features
   `gstreamer,onnxruntime_dynamic,onnxruntime_directml` (set for Windows via the
   `KATAGLYPHIS_RUST_FEATURES` env var, forwarded to cargo by the `rust_builder`
   CMake → Cargokit).
@@ -56,10 +57,11 @@ crates/media (gstreamer-rs)     src/webcam_engine.rs            src/api/webcam.r
 camera (or *Test pattern*), optionally set a model path + score threshold, and
 press **Start**. Bundled GStreamer plugins must include the capture source; the
 build's DLL-bundling step stages `gstmediafoundation.dll`/`gstwinks.dll` +
-GStreamer core DLLs into the runner. To get `mfvideosrc`, build against a
-`windows-media` image whose GStreamer was compiled with
-`-Dgst-plugins-bad:mediafoundation=enabled` (ANTfrastructure
-`windows/scripts/build/Build-GstreamerFromSource.ps1`).
+GStreamer core DLLs into the runner. `mfvideosrc` comes from the image's own
+GStreamer, which ANTfrastructure's
+`windows/scripts/build/Build-GstreamerFromSource.ps1` builds with
+`-Dgst-plugins-bad:mediafoundation=enabled`; it registers only on a Windows
+client host (`platforms.md`, the `mediafoundation` row).
 
 ### Checking the knt ABI
 
@@ -192,13 +194,17 @@ signalling server (`run-signalling-server=true`, plain `ws://`, default port
 ```bash
 cd third_party/OxidANT
 cargo build --release -p kataglyphis_cat_webrtc
-ORT_DYLIB_PATH=/path/to/libonnxruntime.so \
+# The image's chain ONNX Runtime - OxidANT's loader refuses any other (2026-09-23),
+# so this runs in the :latest image, where the path is the loader's fallback too.
+ORT_DYLIB_PATH=/usr/local/lib/onnxruntime-cpu/lib/libonnxruntime.so \
   target/release/kataglyphis_cat_webrtc --v4l2 /dev/video0
 ```
 
-`--test` streams a `videotestsrc` pattern, `--image <file>` loops a still image
-(the default is ANThology's `Thundy.jpg` — defaults resolve relative to the
-crate, so any checkout works). `--score`, `--width/--height/--fps`,
+`--test` streams a `videotestsrc` pattern, `--image <file>` (or
+`$KATAGLYPHIS_CAT_IMAGE`) loops a still image — there is no default picture any
+more (OxidANT deaea88, 2026-09-15; ANThology's `Thundy.jpg` is only named in the
+error hint), and without one of these a live-source flag is required. The model
+default still resolves relative to the crate, so any checkout works. `--score`, `--width/--height/--fps`,
 `--all-classes` and `--name` tune the stream. `--cert/--key` enable WSS on the
 built-in server, but the signaller's rustls rejects self-signed CA certificates
 (`CaUsedAsEndEntity`), so terminate TLS in a proxy instead — `serve.sh` does.
@@ -360,8 +366,10 @@ but the Rust producer fits there, and it needs **no board-specific runner**:
 the Pi 5's runner works as-is — it collects the host libcamera closure, ACLs
 `/dev/{video,media,dma_heap}*` (the dma_heap nodes matter here, or libcamera
 reports `Could not open any dma-buf provider` and registration fails with
-`-12`/ENOMEM) and puts `/opt/gcc-16.2.0/lib64` on `LD_LIBRARY_PATH`, which is
-what the image's ONNX Runtime needs (`GLIBCXX_3.4.36 not found` otherwise).
+`-12`/ENOMEM) and takes the image's loader paths from its own `media-env.sh`,
+which put the source-built GCC's `lib64` (`/opt/gcc-16.2.0/lib64` today) on
+`LD_LIBRARY_PATH` — what the image's ONNX Runtime needs (`GLIBCXX_3.4.36 not
+found` otherwise).
 The Pi 4's camera here is mounted upside down, so:
 
 ```bash

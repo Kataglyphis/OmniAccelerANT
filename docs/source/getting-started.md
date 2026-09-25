@@ -67,8 +67,15 @@ download is checksum-verified, so a tampered, truncated or simply *wrong-version
 asset fails here rather than in a browser. That check is not theoretical: the
 copy that was committed did not match the version the script claimed to fetch.
 
+It also needs `web/pkg/`, the Rust core built for wasm, which is generated and
+gitignored: without it the page loads and then hangs at start-up. Build it as
+[`platforms.md`](platforms.md) § *Web Build (WASM)* shows, then run with the
+COOP/COEP headers that page names:
+
 ```bash
-flutter run -d web-server --profile --web-port 8080 --web-hostname 0.0.0.0
+flutter run -d web-server --profile --web-port 8080 --web-hostname 0.0.0.0 \
+  --web-header=Cross-Origin-Opener-Policy=same-origin \
+  --web-header=Cross-Origin-Embedder-Policy=require-corp
 ```
 
 Open `http://127.0.0.1:8080` in your browser.

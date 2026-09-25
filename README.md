@@ -49,7 +49,7 @@ OmniAccelerANT bundles a Flutter/Dart frontend, a Rust/C++ inference core, and a
 
 | Category | Feature | Win x64 | Linux x64 | Linux ARM64 | Linux RISC-V | Android |
 |----------|---------|:-------:|:---------:|:-----------:|:------------:|:-------:|
-| **Containerization** | 🐳 Builds in ANTfrastructure `:latest` (linux) / `:winamd64` (windows) images; `:winarm64` is the arm64 artifact bundle | ✔️ | ✔️ | ✔️ | ✔️ | ✔️ |
+| **Containerization** | 🐳 Builds in ANTfrastructure `:latest` (linux) / `:winamd64` (windows) images; the hub's `:winarm64` arm64 artifact bundle goes unused — this repo has no Windows arm64 build | ✔️ | ✔️ | ✔️ | ✔️ | ✔️ |
 | **Native Integration** | 🎨 GTK Integration | N/A | ✔️ | ✔️ | ✔️ | N/A |
 | | 🪟 Win32 API | ✔️ | N/A | N/A | N/A | N/A |
 | | 🤖 Android NDK | N/A | N/A | N/A | N/A | ✔️ |
@@ -83,7 +83,7 @@ OmniAccelerANT bundles a Flutter/Dart frontend, a Rust/C++ inference core, and a
 | 🐧 **Linux** | x86-64 | ✔️ | Full GTK support, Docker ready |
 | 🐧 **Linux** | ARM64 | ✔️ | SBC optimized (RPi, OPi support) |
 | 🐧 **Linux** | RISC-V | 🔶 | Emerging architecture support. No CI lane in this repo — the `:latest` image index carries a riscv64 variant, but nothing builds against it here. |
-| 🤖 **Android** | ARM64 | 🔶 | Native camera, NDK integration. The app targets `arm64-v8a` only. The image's Android GStreamer/ONNX/OpenCV prebuilts became `arm64-v8a` on 2026-09-11, so the old `incompatible with aarch64linux` link failure is gone — but the lane has not reached the link step since, because its only matrix row runs CodeQL and CodeQL's Kotlin extractor stops the Gradle build first (AGENTS.md § 4). |
+| 🤖 **Android** | ARM64 | 🔶 | Native camera, NDK integration. The app targets `arm64-v8a` only. The image's Android GStreamer/ONNX/OpenCV prebuilts became `arm64-v8a` on 2026-09-11, so the old `incompatible with aarch64linux` link failure is gone, and since CI stopped running CodeQL (2026-09-17) the lane builds the plain APK — native link and the plugin's JVM test included (AGENTS.md § 4). |
 
 ---
 
@@ -131,9 +131,10 @@ Refer to the detailed docs below for platform-specific requirements, camera stre
    Building the Linux lane locally on a Windows host has host-side
    prerequisites — Rancher Desktop's engine, the drive the repo lives on being
    visible to *containerd's own* mount namespace, and QEMU binfmt registered
-   for an arm64 run. The concrete commands are in
-   [AGENTS.md § 5](AGENTS.md#5-build-run-test), "The Linux lane, locally";
-   the reasoning behind them is ANTfrastructure's, in
+   for an arm64 run. The lane commands are in
+   [AGENTS.md § 5](AGENTS.md#5-build-run-test), "The Linux lane, locally",
+   which links the binfmt and mount fixes; the reasoning behind them is
+   ANTfrastructure's, in
    [`rancher-desktop-linux-containers.md`](third_party/ANTfrastructure/docs/rancher-desktop-linux-containers.md).
    Both prerequisites are lost on a VM restart, and skipping either is silent:
    you get a bind mount that resolves and is empty, or an arm64 container
@@ -147,9 +148,12 @@ publishes them as a WebRTC stream that the Flutter web app's **Stream** page
 consumes. One native Linux host does everything — a Raspberry Pi included:
 
 ```bash
-# 1. the producer (in third_party/OxidANT); USB cameras use --v4l2
+# 1. the producer (in third_party/OxidANT); USB cameras use --v4l2. ONNX Runtime
+#    must be the image's chain build - OxidANT's loader refuses any other copy
+#    (2026-09-23) - so this runs in the :latest image, where that path is the
+#    loader's own fallback too
 cargo build --release -p kataglyphis_cat_webrtc
-ORT_DYLIB_PATH=/path/to/libonnxruntime.so \
+ORT_DYLIB_PATH=/usr/local/lib/onnxruntime-cpu/lib/libonnxruntime.so \
   target/release/kataglyphis_cat_webrtc --v4l2 /dev/video0
 
 # 2. once: the web frontend. web/pkg/ is a generated frb artefact (gitignored),
@@ -179,7 +183,7 @@ producer and inference; a camera mounted upside down is `--rotate 180`. In the
 deployed shape each board runs its own copy of this web build and `serve.sh`,
 so its own camera appears on `https://<board>:8444/` (the per-board recipes are
 in the doc below) — and a board is started with one command, its local
-`~/cat-cam.sh start` (no autostart, by design); `serve.sh --producer-host
+`~/cat-cam.sh start` (autostart is opt-in: only the Zero has a systemd unit); `serve.sh --producer-host
 <board-ip>` is only for looking at another board from the dev host — use its IP
 (nginx resolves the name once at startup) and open that instance's port there
 too. Pipeline details, flags and troubleshooting:
@@ -189,8 +193,10 @@ too. Pipeline details, flags and troubleshooting:
 
 Generate the site into `doc/api`, then serve it. Use the pub-activated
 `dartdoc`, **not** the SDK-bundled `dart doc`: dartdoc 9.0.4 (bundled with
-several Flutter SDKs, including the Windows build image) crashes on any Flutter
-app with a `_stripDocImports` RangeError; ≥ 9.0.9 fixes it.
+several Flutter SDKs, the Windows build image's among them before it moved to
+Flutter 3.47.4) crashes on any Flutter app with a `_stripDocImports` RangeError;
+≥ 9.0.9 fixes it. Both images carry Flutter 3.47.4 now (CI, 2026-09-25), whose
+bundled `dart doc` the Linux lane's `generate-docs.sh` runs without trouble.
 
 `scripts/windows/Build-Windows.ps1` already does this for you as its
 "Generate API Docs" step (skip it with `-SkipDocs`); the commands below are for
@@ -221,11 +227,11 @@ Then open <http://127.0.0.1:8080>.
 | Platform Guides | [docs/source/platforms.md](docs/source/platforms.md) | Container, Windows, Raspberry Pi, and web build instructions — incl. the Windows container troubleshooting table (Dev Drive, pkg-config, rustup/Cargokit, Debug-preset pitfalls). |
 | Agent / contributor guide | [AGENTS.md](AGENTS.md) | Build workflow, container pitfalls, and quality gates for coding agents and new contributors. |
 | Known cleanups | [BACKLOG.md](BACKLOG.md) | Refactors and verification gaps this repo knows about but has not done yet, in the format ANTfrastructure's agentic loop consumes. |
-| Camera Streaming | [docs/source/camera-streaming.md](docs/source/camera-streaming.md) | GStreamer WebRTC pipelines, the Rust cat-detection producer, and the Windows webcam path. |
+| Camera Streaming | [docs/source/camera-streaming.md](docs/source/camera-streaming.md) | GStreamer WebRTC pipelines, the Rust cat-detection producer, and the Rust webcam path (Windows; built for Linux, no frame seen yet). |
 | Upgrade guide | [docs/source/upgrade-guide.md](docs/source/upgrade-guide.md) | How to keep things up-to-date. |
-| Dependency upgrades | [third_party/ANTfrastructure/docs/dependency-updates.md](third_party/ANTfrastructure/docs/dependency-updates.md) | Renovate run as a local CLI. Submodule upgrades go through `bash scripts/linux/renovate-local.sh` (add `--apply` to move the gitlinks), not by hand; it does not cover `pubspec.yaml`. |
+| Dependency upgrades | [third_party/ANTfrastructure/docs/dependency-updates.md](third_party/ANTfrastructure/docs/dependency-updates.md) | Renovate run as a local CLI. Submodule upgrades go through `bash scripts/linux/renovate-local.sh` (add `--apply` to move the gitlinks), not by hand; `--apply` also rewrites the manifests it reported, `pubspec.yaml` included (AGENTS.md § 5). |
 
-Build the full documentation website with `dart pub global run dartdoc` (see the note above — not the SDK-bundled `dart doc`). The generated site in `doc/api` now includes the guides from `docs/source`.
+The site CI publishes — the API docs plus every guide in `docs/source` — comes from `bash scripts/linux/generate-docs.sh` (AGENTS.md § 6), which stages the guides its `DARTDOC_BUILD_GUIDES` array lists.
 
 ## Tests
 

@@ -41,9 +41,10 @@ For WSL2 camera passthrough, ensure the USB device is attached before running th
 Windows builds run inside the `kataglyphis_beschleuniger:winamd64` image from
 [ANTfrastructure](https://github.com/Kataglyphis/ANTfrastructure) — the same
 image CI uses. The container engine on Windows is
-[Stevedore](https://github.com/slonopotamus/stevedore) (`winget install stevedore`); apply the
-post-install fixes from ANTfrastructure's `docs/windows-host-setup.md` (§ A1) and
-always use Stevedore's bundled `docker.exe`, not `nerdctl`:
+[Stevedore](https://github.com/slonopotamus/stevedore) (`winget install stevedore`); bring the
+host up with ANTfrastructure's `docs/windows-host-setup.md` (Phase A), apply the
+post-install fixes in its `docs/windows-stevedore-and-docker.md` (§ Stevedore Setup
+Fixes), and always use Stevedore's bundled `docker.exe`, not `nerdctl`:
 
 ```powershell
 $docker = "$env:ProgramFiles\Stevedore\bin\docker.exe"
@@ -122,7 +123,7 @@ caps, and the `docker build` prohibition are ANTfrastructure's, not this project
 Run the app on the host after a build:
 
 ```powershell
-.\scripts\windows\Start-Windows.ps1                                        # release preset (default)
+.\scripts\windows\Start-Windows.ps1                                        # runner\Release: the MSIX copy of the first preset built
 .\scripts\windows\Start-Windows.ps1 -Configuration x64-ClangCL-Windows-Debug
 ```
 
@@ -130,18 +131,18 @@ Run the app on the host after a build:
 
 | Symptom | Cause | Fix |
 |---------|-------|-----|
-| CMake: `Could NOT find PkgConfig` | The winamd64 image bakes `PKG_CONFIG_PATH` + `.pc` files (`C:\runtime\...`) but ships **no pkg-config binary** | `scoop install pkg-config` inside the container (there is no `pkgconf` manifest). Durable fix belongs in the ANTfrastructure image. |
-| Cargokit: `rustup not found in PATH.` during CMake install | The Flutter plugin `rust_builder` builds its Rust crate via Cargokit, which hard-requires rustup; the image is scoop-Rust-only | In the container: `Invoke-WebRequest https://win.rustup.rs/x86_64 -OutFile C:\rustup-init.exe; C:\rustup-init.exe -y --default-toolchain stable --profile minimal`. A rustup **with** a default toolchain is safe — ANTfrastructure's warning targets toolchain-less rustup shims only. |
+| CMake: `Could NOT find PkgConfig` | The winamd64 image bakes `PKG_CONFIG_PATH` + `.pc` files (`C:\runtime\...`), and older builds of it shipped **no pkg-config binary**. Fixed in the image since: its `Install-ScoopTools.ps1` installs pkg-config (hub `docs/windows-builds.md` § *Toolchain pins and the provenance manifest*) | Pull a current `:winamd64`; a reappearance is an image regression. On an old image, `scoop install pkg-config` inside the container (there is no `pkgconf` manifest). |
+| Cargokit: `rustup not found in PATH.` during CMake install | The Flutter plugin `rust_builder` builds its Rust crate via Cargokit, which hard-requires rustup; older builds of the image were scoop-Rust-only. Fixed in the image since: `Install-RustToolchain.ps1` provisions rustup with a default toolchain (hub `docs/windows-builds.md` § *Rust toolchain*) | Pull a current `:winamd64`. On an old image, in the container: `Invoke-WebRequest https://win.rustup.rs/x86_64 -OutFile C:\rustup-init.exe; C:\rustup-init.exe -y --default-toolchain stable --profile minimal`. A rustup **with** a default toolchain is safe — ANTfrastructure's warning targets toolchain-less rustup shims only. |
 | `PathNotFoundException ... sqlite3.dll.tmp` in `flutter assemble` | Dart's `renameSync`/`copySync` fail (errno 3) in container-layer dirs **and on bind-mounted paths** on this skewed host — the sqlite3 hook downloads fine, then dies on the two-path file op | Junction `.dart_tool` and `build` to fresh **container-local** dirs (`mklink /J`, from inside the container) — Dart ops work there. Hook patching (`renameSync` → direct `openWrite` to the final name) is a fallback if junctions are impossible. |
 | `lld-link ... mismatch detected for 'RuntimeLibrary'` (Debug preset) | A `/MT` override (root `CMAKE_MSVC_RUNTIME_LIBRARY`, an abseil `/MT` hack, or a C++20 module BMI built `/MT` re-emitting `detect_mismatch` into importers) collides with Flutter's `/MD` | Remove **every** `/MT` override and compile ASAN with `/clang:-shared-libsan` so clang emits dynamic-CRT link directives. All wired up in the upstream module `third_party/ANTfrastructure/cmake/Sanitizers.cmake`, reached via `CMAKE_MODULE_PATH` (the inference core's own copy is retired), plus the no-`/MT` policy in `third_party/AccelerANTgine/third_party/CMakeLists.txt`. Diagnose stray directives with `llvm-readobj --coff-directives <obj>`. |
 | Instrumented app dies instantly `STATUS_ENTRYPOINT_NOT_FOUND` (−1073741511) | The staged `clang_rt.asan_dynamic-x86_64.dll` is LLVM's, but the binary's baked-in thunk imports Microsoft-named allocator forwarders (`__asan_new`, `__asan_delete`, …), or vice-versa | Link **and** stage a matched pair. The Debug preset links Microsoft's thunk+import lib (ANTfrastructure's `cmake/Sanitizers.cmake`, on `CMAKE_MODULE_PATH`, points the link-search at `VC\Tools\MSVC\<ver>\lib\x64`); `Start-Windows.ps1` stages the matching `clang_rt.asan_dynamic-x86_64.dll` from the same MSVC dir. |
 | Instrumented app aborts on startup with `bad-free` / `bad-malloc_usable_size` | LLVM's ASan runtime loads after ucrtbase, so CRT/COM startup allocations are unhooked and abort when freed through interceptors | Use **Microsoft's** ASan runtime (VS BuildTools) — it tracks Windows heap ownership and passes foreign frees through — plus `ASAN_OPTIONS=alloc_dealloc_mismatch=0:check_malloc_usable_size=0`. This is the shipped Debug-preset config; the full app runs clean under it. |
-| App exits with `STATUS_DLL_NOT_FOUND` (−1073741515) on a host without GStreamer/ONNX installs | The native plugin links GStreamer + ONNX Runtime, provided by `C:\runtime` in the container, `C:\Program Files\gstreamer` + `C:\onnxruntime` on a provisioned host | Stage from the image into the runner: `C:\runtime\bin\*.dll` except `onnxruntime*.dll`/`DirectML.dll` → `runner\...\bin\` (ONNX Runtime is already beside the exe: `Build-Windows.ps1` stages the chain copy and `Start-Windows.ps1` refuses any other, AGENTS.md § 4); `C:\runtime\lib\gstreamer-1.0\` → `runner\...\lib\gstreamer-1.0\` (GStreamer locates plugins relative to its core DLL). `Start-Windows.ps1` puts `runner\bin` on `PATH`. |
+| App exits with `STATUS_DLL_NOT_FOUND` (−1073741515) on a host without GStreamer/ONNX installs | The native plugin links GStreamer + ONNX Runtime, provided by `C:\runtime` in the container, `C:\Program Files\gstreamer` + `C:\onnxruntime` on a provisioned host | Stage from the image into the runner: `C:\runtime\bin\*.dll` except `onnxruntime*.dll`/`DirectML.dll` → `runner\...\bin\` (ONNX Runtime is already beside the exe: `Build-Windows.ps1` stages the chain copy and `Start-Windows.ps1` refuses any other, AGENTS.md § 4); `C:\runtime\lib\gstreamer-1.0\` → `runner\...\lib\gstreamer-1.0\` (GStreamer locates plugins relative to its core DLL). `Start-Windows.ps1` puts `runner\bin` on `PATH`. With the Rust `gstreamer` feature on (the Windows default) the build's *Bundle Media Runtime DLLs* step already copies `C:\runtime\bin\*.dll` (ORT family excluded) beside the exe and ten capture plugins into `gstreamer-1.0\`. |
 | `git init/clone/checkout` fails with `could not write config file` / `unable to write new index file` inside the container | Same `wcifs` rename/create flakiness in layer dirs | Do git surgery outside the layer zone (fresh `C:\` dirs work), or `git archive | tar -x` trees into place; a bind-mounted workspace avoids it entirely. |
 | `docker run --mount` fails: `hcs::CreateComputeSystem ... Die Anforderung wird nicht unterstützt` although the source is plain NTFS | The mount **target** already exists in the image (e.g. baked `C:\workspace`) — refused on skewed hosts | Mount to a path that does not exist in the image (e.g. `target=C:\ws-mnt`) and pass `-w C:\ws-mnt`. |
 | `docker commit` (or `docker start` of a stopped container) fails `hcsshim::ActivateLayer ... (0x20)` | The container was created with `--isolation process`; on this host its writable layer stays locked after stop and cannot be snapshotted | Create any container you intend to **commit** with `--isolation hyperv` (kept-alive + `docker exec` build + stop + commit works — this is why the ANTfrastructure orchestrator uses hyperv for run+commit). `docker export` is **not** a workaround (the daemon refuses to export Windows containers). Reserve `--isolation process` for throwaway runs whose output you extract *live* via `tar` over `docker exec` before stopping. |
 | `mediafoundation` plugin registers "0 features" / `gst-inspect mfvideosrc` says "no such element"; debug shows `MFStartup` → `0x80004001` (E_NOTIMPL) | The build image's **Server Core** base ships no Media Foundation platform — copying `mfplat.dll`/`mf.dll` doesn't help (the `Server-Media-Foundation` feature is *Removed* with no servicing source; `Install-WindowsFeature` fails `0x800f0916`) | **Not a build defect.** `gstmediafoundation.dll` compiles, links, and loads correctly; it only registers `mfvideosrc` on a **Windows client host** (Win10/11) where MF is present. Verify the webcam source on the host, never in-container (which also has no camera). The Rust capture path auto-falls back `mfvideosrc → ksvideosrc → autovideosrc`, so `ksvideosrc` covers hosts without MF. |
-| CMake configure: `add_subdirectory ... .plugin_symlinks/kataglyphis_native_inference/windows which is not an existing directory` (only this one plugin) | `Fix-FlutterPluginSymlinks` **copies** each plugin dir into `.plugin_symlinks`; for `kataglyphis_native_inference` the recursive copy of its deep `native/AccelerANTgine/third_party/*` tree overruns the 260-char path limit and aborts before `windows\` is copied, leaving a broken junction. Since 2026-09-05 that tree is no longer inside the plugin — the inference core is a sibling submodule at `third_party/AccelerANTgine` and the plugin directory is 97 files — so a copy would no longer overrun; the junction stays regardless, as the cheaper and more robust option | Use a **junction** (`mklink /J`) rather than a copy for container-local workspaces — immune to MAX_PATH (the "copy avoids symlink access-denied" rationale only applies to bind-mounted paths). Clear stale `windows\flutter\ephemeral` + `.dart_tool` first: a broken junction from a prior run makes `flutter build --config-only` crash `PathExistsException` (errno 183, "already exists"). |
+| CMake configure: `add_subdirectory ... .plugin_symlinks/kataglyphis_native_inference/windows which is not an existing directory` (only this one plugin) | `Fix-FlutterPluginSymlinks` (now `Repair-FlutterPluginSymlink`, the old name kept as an alias) used to **copy** each plugin dir into `.plugin_symlinks`; it now makes a junction first and copies only when that does not resolve. For `kataglyphis_native_inference` the recursive copy of its deep `native/AccelerANTgine/third_party/*` tree overruns the 260-char path limit and aborts before `windows\` is copied, leaving a broken junction. Since 2026-09-05 that tree is no longer inside the plugin — the inference core is a sibling submodule at `third_party/AccelerANTgine` and the plugin directory is 97 files — so a copy would no longer overrun; the junction stays regardless, as the cheaper and more robust option | Use a **junction** (`mklink /J`) rather than a copy for container-local workspaces — immune to MAX_PATH (the "copy avoids symlink access-denied" rationale only applies to bind-mounted paths). Clear stale `windows\flutter\ephemeral` + `.dart_tool` first: a broken junction from a prior run makes `flutter build --config-only` crash `PathExistsException` (errno 183, "already exists"). |
 | App window flashes then exits on the host (~6 MB, no window title) | The native C++ plugin can't load its dependency `AccelerANTgine.dll` — the build leaves it in a `bin\` **subdirectory** of the runner, not beside the exe — and the VC++ runtime isn't bundled | Copy `runner\...\bin\AccelerANTgine.dll` next to the exe, and stage the VC++ redist CRT DLLs (`VC\Redist\MSVC\*\x64\*.CRT\*.dll`, or `msvcp140.dll`/`vcruntime140*.dll` from `System32`). A fully-initialized app is ~130 MB with a real window handle. `Start-Windows.ps1` / the MSIX layout should place `AccelerANTgine.dll` beside the exe. |
 
 ### Standard build
@@ -157,7 +158,7 @@ pwsh -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows\Build-Windows.ps
 ### Build with custom workspace
 
 ```powershell
-pwsh -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows\Build-Windows.ps1 -WorkspaceDir "C:GitHubOmniAccelerANT"
+pwsh -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows\Build-Windows.ps1 -WorkspaceDir "C:\GitHub\OmniAccelerANT"
 ```
 
 ### Selected presets, no MSIX
@@ -211,15 +212,14 @@ gst-launch-1.0 \
 
 ## Web Build (WASM)
 
-Enable required Rust targets/components and build web bindings:
+Build the web bindings the way the web lane does (`ci-container-run-web-linux.sh`).
+`build-web` runs wasm-pack with `-Z build-std`, so it needs the **nightly**
+toolchain with `rust-src` and the wasm target, and it writes `web/pkg/`, which is
+generated and gitignored — a build without it loads and then hangs:
 
 ```bash
-rustup component add rust-src
-rustup target add wasm32-unknown-unknown
-
-flutter_rust_bridge_codegen build-web \
-  --wasm-pack-rustflags "-Ctarget-feature=+atomics -Clink-args=--shared-memory -Clink-args=--max-memory=1073741824 -Clink-args=--import-memory -Clink-args=--export=__wasm_init_tls -Clink-args=--export=__tls_size -Clink-args=--export=__tls_align -Clink-args=--export=__tls_base" \
-  --release
+rustup toolchain install nightly --component rust-src --target wasm32-unknown-unknown
+flutter_rust_bridge_codegen build-web --release --rust-root third_party/OxidANT
 ```
 
 Run Flutter web with COOP/COEP headers:
@@ -271,7 +271,8 @@ the one-line version of each.
   binaries on an `ubuntu-26.04-arm` runner:
   `` /usr/local/cargo/bin/rustc: 1: ELF: not found `` plus a corrosion
   `FindRust.cmake` error. Nothing in this repo could work around it. The tag is
-  now a proper OCI index (amd64, arm64, riscv64) and the symptom is gone —
+  now a proper OCI index (amd64, arm64, riscv64), published as `:latest` since
+  the hub's 2026-09-22 rename (`:latest-cross` is retired), and the symptom is gone —
   verified by the pulled digest matching the registry's index digest, and by
   both rows failing identically afterwards instead of differently.
   Two things that survive from that hunt: the architectures stay independent,
@@ -301,20 +302,23 @@ serves Linux containers, and its `docker`/`nerdctl` shims are first on `PATH`,
 so the full path above is load-bearing. **Run it in the container, not on the
 host.** The host's `cmake` is Strawberry Perl's 3.29.2 out of
 `C:\Strawberry\c\bin`, which shadows anything newer and fails
-`cmake_minimum_required(VERSION 3.31.6)` at configure; the image carries 4.4.0.
+`cmake_minimum_required(VERSION 3.31.6)` at configure; the image carries 4.4.3
+(CI log, 2026-09-25).
 
 Two Windows-specific traps these steps carry:
 
-- The format gate formats `lib test integration_test test_driver`, **not `.`**:
-  `dart format .` recurses into `.git`, and the deeply nested vendored submodule
-  gitdir exceeds Windows MAX_PATH, so the listing throws and the gate crashes
-  before formatting anything.
+- The format gate hands `dart format` the tracked file list
+  (`Get-ProjectDartFiles`, 60 files), **not `.`**: `dart format .` recurses into
+  `.git`, and the deeply nested vendored submodule gitdir exceeds Windows
+  MAX_PATH, so the listing throws and the gate crashes before formatting
+  anything.
 - Docs generation does **not** use the SDK-bundled `dart doc`. The dartdoc 9.0.4
-  in the current image crashes on *any* Flutter app — a `_stripDocImports`
+  the image carried at the time crashes on *any* Flutter app — a `_stripDocImports`
   RangeError while precaching the Flutter SDK's own `@docImport` comments
   (reproduced with a bare `flutter create`). The step `pub global activate
-  dartdoc` (≥ 9.0.9, which fixes it) and runs that. This is really an image bug;
-  ANTfrastructure should ship a newer dartdoc.
+  dartdoc` (≥ 9.0.9, which fixes it) and runs that — 9.0.9 in the 2026-09-25 CI
+  run. The image has since moved to Flutter 3.47.4, the same SDK whose bundled
+  `dart doc` the Linux lane's `generate-docs.sh` runs without trouble.
 
 **MSIX packaging.** `msix_config.build_windows` is `false` on purpose: this
 script owns the build, and a second `flutter build windows` driven by msix
@@ -336,12 +340,15 @@ Both halves were broken until 2026-09-03 and nobody noticed, because CI passes
 ## The Windows CI lane and the `$GIT_DIR` limit
 
 **The CI lane** ([`windows-x64.yml`](../../.github/workflows/windows-x64.yml))
-is four ANTfrastructure actions and nothing hand-rolled:
+is three ANTfrastructure actions, one hub script and GitHub's
+`actions/upload-artifact`, nothing hand-rolled:
 `prepare-windows-container-host` (long paths, short-path clone, data-root move,
-disk check, GHCR login, pull), `run-in-windows-container`,
-`actions/upload-artifact` and `upload-codeql-sarif`. (A second job,
-`ort-runner-suite`, is a plain checkout plus `run-pester-suite` over
-`scripts/windows/tests`, with no container.) Three consequences:
+disk check, GHCR login, pull), the hub's `windows/scripts/Invoke-Lint.ps1 -Path
+scripts` (parse gate plus AST traps over this repo's own PowerShell, on the host
+before the image pull), `run-in-windows-container`, `actions/upload-artifact`
+and `upload-codeql-sarif`. (A second job, `ort-runner-suite`, is a plain
+checkout plus `run-pester-suite` over `scripts/windows/tests`, with no
+container.) Three consequences:
 
 - It prunes `third_party/DocumANTation` from the recursive checkout.
   This repo's chains are OmniAccelerANT → AccelerANTgine → ANTfrastructure →
@@ -375,16 +382,17 @@ disk check, GHCR login, pull), `run-in-windows-container`,
   That move shortens the chain further, but **only in a fresh clone**: git names
   `.git/modules/<name>` after the `[submodule "<name>"]` header, and it keeps an
   existing module directory when a submodule is moved in place. So `.gitmodules`
-  here reads `third_party/OxidANT` while this checkout's gitfile still says
-  `gitdir: ../../.git/modules/ExternalLib/Kataglyphis-RustProjectTemplate` — 23
+  here reads `third_party/OxidANT` while the dev box's checkout's gitfile said,
+  on 2026-09-05, `gitdir: ../../.git/modules/ExternalLib/Kataglyphis-RustProjectTemplate` — 23
   characters that CI, which always clones fresh, does not pay. Reproduce with
   `cat third_party/*/.git`. A local checkout is therefore the *worst* case; if it
   resolves, CI does too.
 - `mount-source`/`mount-target` stay unset: the action already defaults to
   `D:\ws` → `C:\ws`, which is where the short-path clone put the tree. Setting
   them to `github.workspace` would mount the submodule-less checkout instead.
-- Artifact paths are therefore **absolute under the short-path clone**
-  (`steps.prep.outputs.workspace`), never relative to `github.workspace`. A
+- Artifact paths — and the lint step's `working-directory` — are therefore
+  **absolute under the short-path clone** (`steps.prep.outputs.workspace`),
+  never relative to `github.workspace`. A
   relative path matches nothing there, and `if-no-files-found: error` would
   report that as a missing build. `upload-codeql-sarif` exists for the same
   reason: `hashFiles()` only sees inside `GITHUB_WORKSPACE`.
@@ -445,12 +453,13 @@ The rules are in AGENTS.md § 4; the measurements that produced them are here.
   link died on every archive with `incompatible with aarch64linux`. The image
   now ships only `arm64-v8a` (`libs/arm64-v8a`, `jni/abi-arm64-v8a`, and an
   aarch64 `libgstreamer-1.0.a` built by NDK r29), so the cause of that message is
-  gone from the image. **Do not read that as "the lane links" — nobody has seen
-  it get there.** The workflow has a single matrix row (x64) and that row runs
-  under CodeQL, which since then has stopped the Gradle build at Kotlin
-  compilation, several steps before the native link (next bullet, and the
-  observed run below). Dropping the java database from the cluster is what
-  should let a run reach the link step and settle it.
+  gone from the image, and the lane links. Until 2026-09-17 the workflow's
+  single matrix row (x64) ran under CodeQL, which stopped the Gradle build at
+  Kotlin compilation, several steps before the native link (next bullet, and
+  the observed run below). Since then CI passes `--run-codeql false` and runs
+  the plain `flutter build apk` — native link and the plugin's JVM test
+  included — green on every completed run from 2026-09-18 on (36154744222 on
+  2026-09-25: a 91.8 MB `app-release.apk`).
   `abiFilters "arm64-v8a"` in the native plugin's
   `android/build.gradle` stays — real phones, not the emulator.
   AGP 9.4.0 + Gradle 9.7.1 builds that against four constraints, all

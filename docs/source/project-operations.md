@@ -15,7 +15,7 @@ Operational guide for contributors and maintainers.
 
 ```bash
 dart analyze
-dart format --output=none --set-exit-if-changed $(git ls-files '*.dart')
+dart format --output=none --set-exit-if-changed $(git ls-files -- '*.dart' ':!:rust_builder/**')
 ```
 
 **Never `dart format .`.** It ignores `analysis_options.yaml` entirely, so the
@@ -28,7 +28,9 @@ SDK on disk on the way.
 
 Both lanes list tracked files instead — `code_quality_find_dart_files` on Linux,
 `Get-ProjectDartFiles` on Windows, the same 60 files — which is what the command
-above reproduces. Keep the tracked-file listing even now that the SDK comes from
+above reproduces (tracked files minus `rust_builder/`, Cargokit's 19; `flutter/`
+is untracked and `third_party/` holds gitlinks, so `git ls-files` lists neither).
+Keep the tracked-file listing even now that the SDK comes from
 `/opt/flutter` in the image: a stray `flutter/` from an older run is git-ignored
 and still on disk, and `third_party/` and `build/` would be walked regardless.
 
@@ -36,7 +38,8 @@ and still on disk, and `third_party/` and `build/` would be walked regardless.
 `analyzer.exclude` list in `analysis_options.yaml`, which already names
 `flutter/**`, `third_party/**` and `rust_builder/**`. `dart format` ignores that
 file entirely — which is the whole reason the file list has to be built outside
-it, and why the two helpers use exactly those three exclusions.
+it, and why the two helpers exclude those three trees (plus build output and
+the old `ExternalLib/`).
 
 ### Lint gates (shell, workflows, secrets)
 
@@ -44,18 +47,25 @@ it, and why the two helpers use exactly those three exclusions.
 bash scripts/linux/run-lint-gates.sh
 ```
 
-The exact command the `lint` job of `linux-x64.yml` runs — shellcheck,
-actionlint (plus the CI image-reference check) and the gitleaks secret scan, all
-three bootstrapped pinned from ANTfrastructure, all three run even after one fails.
-These used to exist only as `run:` blocks inside the workflow, so a failing merge
-gate could not be reproduced locally at all. The gitleaks arm self-tests first: an
-empty tree must scan clean and a planted token must be reported and must make the
-gate exit non-zero, so "found nothing" cannot be confused with "never ran".
+The same gates the `lint` job of `linux-x64.yml` runs: since 2026-09-15 that job
+calls ANTfrastructure's reusable `lint-gates.yml` with `ratchets: true`, and both
+it and this wrapper run the hub's `linux/scripts/run-lint-gates.sh` over this
+tree with `--exclude third_party --ratchets`. The gates are shell lint, workflow
+lint (plus the CI image-reference check), the gitleaks secret scan, Python lint,
+the shared-config drift check and the consumer pin-forwarding check, all
+bootstrapped pinned from ANTfrastructure and all run even after one fails;
+`--ratchets` adds the eight measurement gates (freeze files: the `*.allow` at the
+root) and the doc-links gate over this repo's Markdown. These used to exist only
+as `run:` blocks inside the workflow, so a failing merge gate could not be
+reproduced locally at all. The gitleaks arm self-tests first: an empty tree must
+scan clean and a planted token must be reported and must make the gate exit
+non-zero, so "found nothing" cannot be confused with "never ran".
 
 The shared-config drift check is one of that command's gates, not a separate
-step: `bash scripts/linux/run-lint-gates.sh` runs it. The workflow's `pwsh`
-`Sync-SharedConfig.ps1 -Check` step is the PowerShell twin of the same gate,
-kept so both halves stay exercised and are required to agree.
+step: `bash scripts/linux/run-lint-gates.sh` runs it. The workflow's
+`shared-config` job (`pwsh` `Sync-SharedConfig.ps1 -Check`) is the PowerShell
+twin of the same gate, kept so both halves stay exercised and are required to
+agree.
 
 ### The CMake format gate
 
@@ -66,8 +76,9 @@ errors (exit 2) if handed one rather than letting a stale caller pass silently.
 That is safe for a measured reason, not an optimistic one — the gate's 13 files
 are already clean and the native-Linux lane has passed `--strict-checks true`
 since fc8b65c, so the Android lane can only catch drift that already blocks the
-merge on the other lane. The web lane builds no native CMake code and does not
-run it.
+merge on the other lane. Wrap the call in `run_gate` when you want the batch to
+decide, rather than reaching for a flag. The web lane builds no native CMake
+code and does not run it.
 
 **The CMake format gate covers hand-maintained CMake only — 13 files today.**
 Both lanes build the same list (`run_cmake_format_check` in
@@ -78,7 +89,10 @@ be edited"); `*/generated_plugins.cmake` ("Generated file, do not edit");
 `*/ephemeral/` (rewritten on every `pub get`); `*/.cxx/` (Android Gradle's CMake
 build trees); `*/.plugin_symlinks/` (pub's junction farm);
 `rust_builder/cargokit/` (vendored — its README opens with "copied from
-Cargokit"); `.venv/` (created by the gate's own bootstrap). Do not widen the
+Cargokit"); `.venv/` (created by the gate's own bootstrap). The Linux walk also
+excludes `.pub-cache/`, pub's download cache, which sits in the tree since
+`PUB_CACHE` moved to `<repo>/.pub-cache`; the Windows step lists tracked files
+only, so neither of the last two can reach it. Do not widen the
 gate onto any of those: it would fight the generator or upstream.
 
 `.cmake-format.yaml` at the root is the consumer copy of ANTfrastructure's
@@ -153,7 +167,7 @@ Measured 2026-09-15: **148 MiB across 451 tracked files**, of which roughly
 
 | What | Size | Why it is tracked |
 |------|------|-------------------|
-| `dummy_assets/` | 79.7 MiB, 16 files | Fixture corpus mirroring the shape of `assets/`. 82.9 MiB of it is two PDFs, `documents/thesis/{Master,Bachelor}_Thesis.pdf`. **Nothing references it** — not `pubspec.yaml`'s asset list, not `lib/`, not a test, not a script. It is sample content for trying the document pages against. |
+| `dummy_assets/` | 79.7 MiB, 16 files | Fixture corpus mirroring the shape of `assets/`. 79.1 MiB (82.9 MB) of it is two PDFs, `documents/thesis/{Master,Bachelor}_Thesis.pdf`. **Nothing references it** — not `pubspec.yaml`'s asset list, not `lib/`, not a test, not a script. It is sample content for trying the document pages against. |
 | `assets/fonts/Noto_Sans/` | 47.9 MiB, 76 files | The complete Noto Sans family as shipped by Google Fonts: 2 variable fonts plus all 72 static faces. `pubspec.yaml` declares **4** of them (Regular, Italic, Bold, BoldItalic). The other 72 files are the download, not a requirement. |
 | `assets/videos/funnyandsummy.mp4` | 12.3 MiB | Demo clip. Not in `pubspec.yaml`'s asset list and not referenced from `lib/`. |
 | `assets/icons/kataglyphis_app_icon.png` | 1.9 MiB | Load-bearing: `flutter_launcher_icons` generates every platform icon set from it (`pubspec.yaml` names it five times), so it must stay at source resolution. |
@@ -275,8 +289,10 @@ can report stale GitHub Actions as up to date — DocumANTation's action majors
 were invisible until a token was supplied.
 
 Renovate is a local CLI and only **detects** — `--platform=local` cannot write —
-so the `--apply` half is this repo's own code: git for gitlinks and a located
-line rewrite for the manifests it reported. Managers default to **every manager
+so the `--apply` half is the family's own code, ANTfrastructure's
+`renovate-local.sh` behind this repo's wrapper: git for gitlinks and a located
+line rewrite for the manifests it reported (`pubspec.yaml` included, with its
+lockfile refreshed). Managers default to **every manager
 whose file patterns match this tree** (eight today), so `--managers` narrows the
 run rather than enabling it. `--apply` needs the git that *wrote* the working
 tree; the script sorts that out itself and refuses up front rather than
@@ -373,25 +389,6 @@ actually runs instead of invoking it. Use `Invoke-LinuxLane.ps1` (§ 5), which
 runs the very script CI runs.
 
 **Flutter comes from the image, and this repo does not have an opinion about
-
-Why it went: the lanes were re-running ANTfrastructure's `setup-flutter.sh` at
-*run* time. That script is a build-stage script — its last step strips
-`bin/cache` on purpose — so every Android run re-extracted Flutter over the
-image's copy and then re-downloaded the 227 MB Dart SDK it had just deleted.
-Upstream now returns early when the requested version is already bootstrapped,
-and this repo no longer calls it at all.
-
-That flip is safe for a measured reason, not an optimistic one: the gate's 13 files
-are already clean under this repo's `.cmake-format.yaml`, and the native-Linux lane
-has passed `--strict-checks true` since fc8b65c — so any drift the Android lane now
-catches is drift that already blocks the merge on the other lane. Wrap the call in
-`run_gate` when you want the batch to decide, rather than reaching for a flag.
-
-
-`--flutter-dir` only says *where* to look; it defaults to `/opt/flutter`. There
-is no `--install-flutter` and no `--flutter-version` — see *Flutter comes from
-the image* below.
-
 which version.** It used to: three lanes resolved `FLUTTER_VERSION` and
 `FLUTTER_SDK_SHA256` out of ANTfrastructure's `versions.env`, exported the sha, and
 handed both to an installer. That machinery is gone — `resolve_flutter_pin`,
@@ -403,6 +400,16 @@ registers the workspace `safe.directory`, sets `PUB_CACHE` and prints the
 `flutter --version` this run got. Until 2026-09-15 this repo did the same three
 things itself, in `scripts/linux/lib/container-steps.sh` and in a different
 order per lane.
+
+Why it went: the lanes were re-running ANTfrastructure's `setup-flutter.sh` at
+*run* time. That script is a build-stage script — its last step strips
+`bin/cache` on purpose — so every Android run re-extracted Flutter over the
+image's copy and then re-downloaded the 227 MB Dart SDK it had just deleted.
+Upstream now returns early when the requested version is already bootstrapped,
+and this repo no longer calls it at all.
+
+`--flutter-dir` only says *where* to look; it defaults to `/opt/flutter`. There
+is no `--install-flutter` and no `--flutter-version`.
 
 To change the Flutter version, change the image.
 
@@ -428,11 +435,10 @@ bare host install it first, at the version this repo pins rather than at latest:
 the same number as `FLUTTER_RUST_BRIDGE_VERSION`). Installing latest is how the
 mismatch above happens in the first place.
 
-Then rebuild the project:
-```bash
-# For Windows
-.\scripts\windows\Build-Windows.ps1 -BuildRootDir build
-```
+Then rebuild the project — on Windows in the build container, never on the host
+(the command and why: AGENTS.md § 5). A reused container can keep a stale Dart
+AOT snapshot that still reports the old codegen version; start a fresh one
+(`Build-Windows-Container.ps1 -FreshContainer`, BACKLOG.md).
 
 **Prevention:** Always regenerate bindings after updating `flutter_rust_bridge` version in `pubspec.yaml` or modifying Rust API signatures.
 
