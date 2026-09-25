@@ -59,7 +59,7 @@ jobs:
       # lane inherits it; spelling the tag out again here would be a second
       # copy no gate compares to the first.
       - name: Prepare CI host
-        uses: Kataglyphis/ANTfrastructure/.github/actions/prepare-linux-ci-host@main
+        uses: Kataglyphis/ANTfrastructure/.github/actions/prepare-linux-ci-host@develop
         with:
           registry-username: ${{ github.actor }}
           registry-password: ${{ secrets.GHCR_PAT }}
@@ -67,7 +67,7 @@ jobs:
           submodules: recursive
 
       - name: Run container
-        uses: Kataglyphis/ANTfrastructure/.github/actions/run-in-linux-container@main
+        uses: Kataglyphis/ANTfrastructure/.github/actions/run-in-linux-container@develop
         with:
           extra-args: --platform "${{ matrix.platform }}"
           script: >-

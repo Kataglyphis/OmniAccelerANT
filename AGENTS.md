@@ -111,7 +111,7 @@ Two upstream facts repeated here only because they bite before you reach a doc:
 - Every ANTfrastructure PowerShell module declares `#requires -Version 7.0`, so
   `Build-Windows.ps1` and `Start-Windows.ps1` do too — launch with `pwsh`, never
   `powershell`. Under 5.1 it fails as an opaque `Import-Module` error.
-- Composite actions resolve at `@main`, so a ANTfrastructure change a workflow
+- Composite actions resolve at `@develop`, so a ANTfrastructure change a workflow
   depends on must be pushed **before** the consumer change.
 
 **This repo's glue** (deliberately thin):
@@ -869,7 +869,7 @@ Run the app on the host once artifacts are back:
 
 Linux builds run containerized. **CI does not use the stage script below.** Its
 path is the ANTfrastructure composite action
-`.github/actions/run-in-linux-container@main`, which runs
+`.github/actions/run-in-linux-container@develop`, which runs
 `scripts/linux/ci/ci-container-run-native-linux.sh` *inside* the container with
 CLI flags, not env vars (the *Run container* step of
 [`reusable-linux.yml`](.github/workflows/reusable-linux.yml), which

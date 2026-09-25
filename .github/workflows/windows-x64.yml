@@ -51,7 +51,7 @@ jobs:
       # and once more below would be two copies no gate compares to the first.
       - name: Prepare Windows container host
         id: prep
-        uses: Kataglyphis/ANTfrastructure/.github/actions/prepare-windows-container-host@main
+        uses: Kataglyphis/ANTfrastructure/.github/actions/prepare-windows-container-host@develop
         with:
           registry-password: ${{ secrets.GHCR_PAT }}
           short-path-target: /d/ws
@@ -92,7 +92,7 @@ jobs:
           -Path scripts
 
       - name: Run container
-        uses: Kataglyphis/ANTfrastructure/.github/actions/run-in-windows-container@main
+        uses: Kataglyphis/ANTfrastructure/.github/actions/run-in-windows-container@develop
         with:
           file: C:\ws\scripts\windows\Build-Windows.ps1
           file-args: |
@@ -133,7 +133,7 @@ jobs:
       # on, this lane contributes nothing to Code Scanning.
       - name: Upload CodeQL SARIF
         if: always()
-        uses: Kataglyphis/ANTfrastructure/.github/actions/upload-codeql-sarif@main
+        uses: Kataglyphis/ANTfrastructure/.github/actions/upload-codeql-sarif@develop
         with:
           workspace: ${{ steps.prep.outputs.workspace }}
           category: windows-clang-rust
@@ -155,7 +155,7 @@ jobs:
           submodules: true
 
       - name: Pester suite (scripts/windows/tests)
-        uses: Kataglyphis/ANTfrastructure/.github/actions/run-pester-suite@main
+        uses: Kataglyphis/ANTfrastructure/.github/actions/run-pester-suite@develop
         with:
           path: scripts/windows/tests
           version: '3.4.0'
