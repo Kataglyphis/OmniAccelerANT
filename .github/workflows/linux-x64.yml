@@ -67,7 +67,7 @@ jobs:
   # workflow may not have one (the callee's job owns it), and
   # verify_workflow_conventions.py exempts `uses:` jobs for exactly that reason.
   lint:
-    uses: Kataglyphis/ANTfrastructure/.github/workflows/lint-gates.yml@main
+    uses: Kataglyphis/ANTfrastructure/.github/workflows/lint-gates.yml@develop
     with:
       submodules: recursive
       ratchets: true

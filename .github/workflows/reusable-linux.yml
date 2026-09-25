@@ -96,7 +96,7 @@ jobs:
       # lane inherits it; a per-caller `container-image` input would be two more
       # copies that no gate compares to the first.
       - name: Prepare CI host
-        uses: Kataglyphis/ANTfrastructure/.github/actions/prepare-linux-ci-host@main
+        uses: Kataglyphis/ANTfrastructure/.github/actions/prepare-linux-ci-host@develop
         with:
           registry-username: ${{ github.actor }}
           registry-password: ${{ secrets.GHCR_PAT }}
@@ -118,7 +118,7 @@ jobs:
       # caller's `with:` block, so the local lane is graded against the values
       # linux-<arch>.yml really passes. Change the driver and this pair together.
       - name: Run container
-        uses: Kataglyphis/ANTfrastructure/.github/actions/run-in-linux-container@main
+        uses: Kataglyphis/ANTfrastructure/.github/actions/run-in-linux-container@develop
         with:
           extra-args: --privileged --platform "${{ inputs.platform }}" -e CI=true
           script: >-
@@ -174,7 +174,7 @@ jobs:
       # could only ever fail there on an empty password.
       - name: 📂 Sync files to domain
         if: ${{ inputs.run-docs && github.event_name == 'push' }}
-        uses: Kataglyphis/ANTfrastructure/.github/actions/deploy-over-ftp@main
+        uses: Kataglyphis/ANTfrastructure/.github/actions/deploy-over-ftp@develop
         with:
           server: ${{ secrets.SERVER }}
           username: ${{ secrets.USERNAME }}
