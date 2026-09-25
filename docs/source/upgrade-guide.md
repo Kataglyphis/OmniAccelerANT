@@ -22,7 +22,7 @@ Recommended order:
 2. Run static checks and tests after each upgrade step.
 3. Regenerate docs and verify no broken links/pages.
 
-When upgrading `flutter_rust_bridge` on the Flutter side, also run this in the Rust project:
+When upgrading `flutter_rust_bridge` on the Flutter side, also run this in the Rust project — `third_party/OxidANT`, its own repository: commit there, then move the gitlink here (AGENTS.md § 3):
 
 ```bash
 cargo upgrade --pinned --package flutter_rust_bridge

@@ -3,7 +3,7 @@
 Build and test through the family Windows container. There is no working
 host-native CMake here: the host's cmake is Strawberry Perl's 3.29.2 out of
 `C:\Strawberry\c\bin` and fails `cmake_minimum_required` at configure (AGENTS.md
-§ 4). Run everything else on the host as usual.
+§ 5). Run everything else on the host as usual.
 
 - **Build:**
   `pwsh -ExecutionPolicy Bypass -File scripts\windows\Build-Windows-Container.ps1 -Configurations clangcl-release`
@@ -24,12 +24,13 @@ host-native CMake here: the host's cmake is Strawberry Perl's 3.29.2 out of
   CMake directory) — expect minutes, not seconds. Do not kill a build that is
   still producing output.
 - **Format only the files you touched.** Never `dart format .` (AGENTS.md
-  § 3); the build's own format gate checks the tracked file list.
+  § 4); the build's own format gate checks the tracked file list.
 - **Do not stage build output.** `build/`, `logs/`, `.dart_tool/`, `.venv/`,
   `doc/api/` are gitignored. If `git status` shows them, leave them alone.
 - **Deliberate traps — do not "fix" them:** committed generated code under
   `lib/src/rust/`; the `dbName` string in `lib/src/db/sqlite3_loader_web.dart`;
-  the four agreeing Android SDK pins; and the pieces AGENTS.md § 2 (What ANTfrastructure owns) marks as
+  the Android SDK pins, which live once, in `android/build.gradle.kts`'s
+  `extra` block; and the pieces AGENTS.md § 2 (What ANTfrastructure owns) marks as
   deliberately not reused.
-- **Read `AGENTS.md` before editing build scripts** — § 3 lists the traps that
+- **Read `AGENTS.md` before editing build scripts** — § 4 lists the traps that
   each cost at least one real run.

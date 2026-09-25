@@ -1,8 +1,8 @@
 # Backlog
 
 Follows the protocol ANTfrastructure's agentic loop (`shared/agentic-loop/`)
-consumes, so this file can be handed to it unchanged when the loop is adopted
-here.
+consumes, so the loop this repo adopted on 2026-09-13 (`scripts/agentic-loop/`,
+§ *Agentic loop* below) reads it unchanged.
 
 ## Protocol
 
@@ -34,6 +34,11 @@ here.
       - Blocked on the hub branch reaching the hub's remote (the submodule-pins
         workflow checks reachability), and on the paused Windows build, which
         uses this submodule checkout as its closure.
+      - **Looks done (checked 2026-09-25).** The pin moved on to 3ddfa60b in
+        a2d6842 (2026-09-24) and is 5ee35c8f since c63eb49; f01b7cbf is an
+        ancestor of both (`git -C third_party/ANTfrastructure merge-base
+        --is-ancestor f01b7cbf 5ee35c8f`). The Windows lane at c63eb49 (run
+        36154744287) staged the chain ORT and passed G6.
 - [b] **OxidANT and AccelerANTgine: end the fake ORT source path in their
       Windows ORT suites with a NUL, before their hub pins pass 1b9f492e.**
       `OxidANT/scripts/windows/tests/OrtPayload.Tests.ps1` (lines 32 and 73) and
@@ -46,6 +51,11 @@ here.
       9 of 9), so it can land first. Both still pin hub 57bec177. Blocked here:
       the edit belongs in those two repositories; this repo only moves their
       gitlinks afterwards.
+      **Looks done at the recorded pins (checked 2026-09-25):** OxidANT 23052fc
+      writes `` "$chainSrc`0OrtGetApiBase" `` and `` "$chainSrc`0FileVersion 1.27.0" ``
+      (`OrtPayload.Tests.ps1` lines 34 and 75), AccelerANTgine d009a7f the same
+      (`OrtBundle.Tests.ps1` lines 34 and 73), and they pin hub 948f7031 and
+      5ee35c8f, both past 1b9f492e.
 - [ ] **The flatpak has no camera access and its runner path was only just
       fixed.** `app_packaging_package_linux_bundle_flatpak` writes
       `finish-args` with `--device=dri` but no `/dev/video*`, so a sandboxed
@@ -56,6 +66,12 @@ here.
       `/app/lib`). The device half lives in ANTfrastructure's
       `app-packaging.sh`, so it needs an upstream change (or a
       `KATAGLYPHIS_FLATPAK_EXTRA_FINISH_ARGS`-style knob upstreamed first).
+      **The knob exists now (checked 2026-09-25):** the pinned hub's
+      `app_packaging_flatpak_finish_args_block` appends
+      `KATAGLYPHIS_FLATPAK_FINISH_ARGS` (space-separated) to its four defaults,
+      and its comment names `--device=all` for a camera (flatpak has no
+      `--device=video`). Nothing in this repo sets it yet, so what is left is
+      local.
 
 ## Open — Linux Rust webcam inference (landed 2026-09-16, artifacts closed 2026-09-17)
 
@@ -106,16 +122,21 @@ thing is still unproven.
       already written to no-op when the variable is set, so it can be deleted
       outright once the image exports it — blocked on that. Same shape as the
       six workarounds that were deleted on 2026-09-05.
+      **The blocker looks cleared (checked 2026-09-25):** the pinned hub's
+      `linux/Dockerfile.package` sets `ENV GSTREAMER_ROOT_ANDROID=/opt/android/gstreamer`,
+      and android run 36154744222 prints no line from the function while the
+      APK builds.
 
 ## Open — release and repository state
 
-- [ ] **`main` is 246 commits behind `develop`**, last synced by PR #23. Decide
+- [ ] **`main` is 329 commits behind `develop`** (counted 2026-09-25; 246 when
+      this was written), last synced by PR #23. Decide
       what `main` is for. If it is the release branch, that gap is the finding;
       if nothing reads it, say so in a doc and stop carrying it. Nothing in
       `.github/workflows/` triggers on `main` alone any more, so today it costs
       nothing but confuses every reader.
 - [ ] **`version:` is still `1.1.0+1`**, which is what the annotated tag
-      `1.1.0+1` already names — 246 commits ago. `app-packaging.sh` stamps it
+      `1.1.0+1` already names — 329 commits ago (2026-09-25). `app-packaging.sh` stamps it
       into the `.deb` `Version:`, the AppImage filename and the flatpak
       filename, so every artifact built since is version-indistinguishable from
       that release. `msix_config.msix_version` repeats it by hand at
@@ -126,9 +147,10 @@ thing is still unproven.
       were switched does not guard `develop`. **Verified 2026-09-17: this repo
       has no protection at all** — `gh api
       repos/Kataglyphis/OmniAccelerANT/branches/{develop,main}/protection`
-      returns `404 Branch not protected` for both. That also makes
-      `web.yml`'s claim that its job name "is the
-      required-status-check string on develop's branch protection" stale. Either
+      returns `404 Branch not protected` for both — still true on 2026-09-25.
+      `web.yml` has since stopped claiming its job name "is the
+      required-status-check string on develop's branch protection": its comment
+      now says the name *was* that string and points back here. Either
       set protection (owner action — deciding what to require is the whole
       point) or stop referencing it.
 - [ ] **The Linux artifacts each carry the 59 MB detector model** since
@@ -137,9 +159,13 @@ thing is still unproven.
       `KATAGLYPHIS_BUNDLE_MODEL=0` on the lane drops it for a smaller artifact
       that then needs `KATAGLYPHIS_ONNX_MODEL` at runtime. Decide if the default
       should flip.
-- [ ] Dependabot #43 is blocked for a real reason, recorded as CON5 on
-      ANTfrastructure's backlog: it moves `permission_handler_android` to 14.x,
-      which needs `compileSdk 37` while the image is read-only at android-36.
+- [ ] The `permission_handler_android` 13.0.1 pin (`pubspec_overrides.yaml`)
+      is blocked for a real reason: 14.x needs `compileSdk 37` while the image
+      is read-only at android-36. ANTfrastructure's backlog carries it as CON14
+      now — CON5 added API 37 to the source on 2026-09-18 and was closed, but the
+      image built on 2026-09-22 still lacks it. This row used to name the
+      blocked update "Dependabot #43"; #43 is the `anthology` 1.1.0 → 2.0.0 bump,
+      closed unmerged on 2026-09-16 (CON14 repeats the same number).
       (#40, mockito, is closed — nothing imported it, so the dev dependency was
       dropped rather than bumped on 2026-09-17.)
 
@@ -155,11 +181,15 @@ thing is still unproven.
       (rebuild `winamd64` at the newer Flutter, or pin the Linux side back),
       not a pubspec fix. (The 2026-09-17 Linux resolution is currently
       committed; the mockito-drop diff is the 96 lines of its transitive
-      crates.)
+      crates.) **The SDK half looks aligned (checked 2026-09-25):** both lanes'
+      logs report Flutter 3.47.4 / Dart 3.13.3 (linux-x64 run 36154745124,
+      windows-x64 run 36154744287). Whether the lock still flips is unmeasured.
 - [ ] `flutter pub get` reports packages held back by dependency constraints.
       Re-counted 2026-09-15 in `:latest-cross` (`flutter pub get --dry-run`):
       **20**, not the 45 this row claimed when it was written. Does not block a
       build today; re-count before acting on it, the number moves with the image.
+      The android lane's own `pub get` printed **19** on 2026-09-25 (run
+      36154744222, `:latest`).
 
 ## Open — the web lane's rustup step
 
@@ -201,6 +231,16 @@ thing is still unproven.
       is still exposed. Raise it against ANTfrastructure's image rather than
       adding more here.
 
+      **Status 2026-09-25: the guard no longer skips in CI.** Web run
+      36154744073 found the image's `nightly` without both components, synced
+      the channel and downloaded them (8 s) — every run now pays that. Upstream
+      took the first fix: the hub's `docs/consumer-image-contract.md`
+      § *The web lane toolchain* documents a dated `RUST_NIGHTLY_TOOLCHAIN`
+      (`nightly-2026-06-28` in the pinned `versions.env`) installed with both
+      components, and says a consumer that names the floating channel gets it
+      downloaded per run; FRB's `--wasm-pack-rustup-toolchain` names the pin
+      instead. This lane still names `nightly`.
+
 ## Open — verification gaps
 
 - [ ] **G6 over the real `oxidant.dll` and the Pi producer bundle has not run
@@ -214,6 +254,11 @@ thing is still unproven.
       `/bin/kataglyphis_cat_webrtc`, which carries the Linux string, with this
       repo's hub, and it has not been re-run. Check both after the next Windows
       build and the next Pi bundle.
+      **The Windows half looks done (checked 2026-09-25):** windows-x64 run
+      36154744287 (hub 5ee35c8f, OxidANT 23052fc, which contains f018bec) had the
+      real `oxidant.dll` in the runner when *Stage Chain ONNX Runtime* ran G6,
+      and logged `Chain ONNX Runtime staged … and proved by G6`. Nothing here
+      records a Pi bundle run since.
 - [ ] `scripts/windows/Start-Windows.ps1` now launches (2026-09-17) but the
       window cannot be seen from the agent's shell: it runs in **Session 0**,
       where ANGLE/DXGI surface creation fails (`SwapChain11 … 0x887A0022`,

@@ -90,10 +90,13 @@ reorganisation.
 
 | Topic | Where |
 | --- | --- |
-| The winamd64 image, Stevedore setup, `--isolation process`, the entrypoint vs `docker exec`, `docker commit` needing hyperv, the `wcifs` ENOENT class | `docs/windows-builds.md` |
+| The winamd64 image — what it carries, its entrypoint, running it with `--isolation process` | `docs/windows-builds.md` |
+| Stevedore setup and its post-install fixes | `docs/windows-host-setup.md` (Phase A), `docs/windows-stevedore-and-docker.md` |
+| Isolation policy, and `docker commit` needing hyperv | `docs/windows-build-lanes.md` |
+| An error message from either lane — symptom → cause → fix | `docs/failure-modes.md` |
 | Bind mount vs tar-pipe, **Dev Drive filter setup**, container reuse, measured timings | `docs/windows-container-build-performance.md` |
-| sccache's C++20-module blindness (clean + `SCCACHE_RECACHE=1` after a module-flag change) | `docs/windows-builds.md` |
-| The image's pkg-config and rustup provisioning | `AGENTS.md` + `docs/windows-builds.md` |
+| sccache on a C++20/23 modules build — it stores nothing there | `docs/windows-container-build-performance.md` § *sccache on a C++23 modules build* |
+| The image's pkg-config and rustup provisioning | `docs/windows-builds.md` (§ *Toolchain pins and the provenance manifest*, § *Rust toolchain*) |
 | Wiring this repo to ANTfrastructure — resolver, actions, libraries | `docs/adopting-in-a-new-project.md` |
 | Linux container builds | `docs/linux-build-basics.md` |
 | Running the Linux lane locally on Windows (Rancher Desktop/nerdctl), and **a bind mount that resolves but is empty** — containerd's mount namespace, Windows vs WSL path form | [`docs/rancher-desktop-linux-containers.md` § *An empty mount is not a missing drive*](third_party/ANTfrastructure/docs/rancher-desktop-linux-containers.md#an-empty-mount-is-not-a-missing-drive) |
@@ -101,7 +104,7 @@ reorganisation.
 | appimagetool provisioning — pinned version + SHA256, not the moving `continuous` tag | `linux/scripts/02-toolchain/packaging-deps.sh`, subcommand `appimagetool` |
 | Python venv + `uv` provisioning (installer downloaded to a file and SHA-checkable, never `curl \| sh`) | `linux/scripts/01-core/python_uv.sh` |
 | The Dart gate for Linux lanes — deps, format, analyze, test, `--strict`/`--extra-package` | `linux/scripts/05-frameworks/flutter/flutter_checks.sh` |
-| The CMake gate's machinery — `code_quality_find_cmake_files` + `CODE_QUALITY_CMAKE_EXCLUDE_PATHS` on Linux, `Initialize-UvVenvPython` on Windows | `linux/scripts/lib/code-quality.sh`, `windows/scripts/modules/WindowsFormatting.Common.psm1` |
+| The CMake gate's machinery — `code_quality_find_cmake_files` + `CODE_QUALITY_CMAKE_EXCLUDE_PATHS` on Linux, `Initialize-UvVenv` + `Install-UvRequirements` on Windows | `linux/scripts/lib/code-quality.sh`, `windows/scripts/modules/WindowsUv.Common.psm1` |
 | The canonical `.cmake-format.yaml` this repo's root copy syncs from, and the drift check | `shared/config/README.md` |
 | **Image and tag naming** — one published tag = one manifest over every arch of its variant; `:latest` (linux) / `:winamd64` (windows), variants `:latest-<variant>` (`nvidia`, `rocm`) only for a stack that cannot ship in `:latest`, per-arch tags are internal wrappers; Windows' arm64 output is a bundle, not a `windows/arm64` platform | `third_party/ANTfrastructure/AGENTS.md` § *Image and tag naming* |
 | Dependency upgrades — Renovate as a local CLI, why `--platform=local` only detects, the pinned Node/Renovate bootstrap, why `--apply` refuses a branchless submodule | `docs/dependency-updates.md` |
@@ -126,6 +129,11 @@ Two upstream facts repeated here only because they bite before you reach a doc:
 - `scripts/linux/lib/antfrastructure.sh` — the bash twin: `antfrastructure_source`
   and `antfrastructure_path`, resolved from `${BASH_SOURCE[0]}` so they work from
   any working directory.
+
+  Both are copies of the hub's templates (`shared/windows/templates/`,
+  `shared/linux/templates/`), declared in `.antfrastructure-shared.manifest` and
+  compared with them in `body` mode by the shared-config drift gate, so a change
+  goes into the template upstream, never into the copy alone.
 - `scripts/agentic-loop/` — the adopted planner/executor loop: config, both
   runner wrappers, prompt overlays. Engine `opencode`, executor
   `opencode-go/deepseek-v4.1-flash`. Its Windows build/test driver is
@@ -170,7 +178,7 @@ commits CI builds green. There are four:
 [`third_party/ANTfrastructure`](third_party/ANTfrastructure) (the hub, § 2),
 [`third_party/OxidANT`](third_party/OxidANT) (the Rust core behind
 flutter_rust_bridge), [`third_party/AccelerANTgine`](third_party/AccelerANTgine)
-(the inference core the Windows plugin links) and
+(the inference core the Windows and Linux plugin builds link) and
 [`third_party/ANThology`](third_party/ANThology) (the shared Dart package).
 `git submodule update --checkout --recursive` restores them. If a drifted
 checkout is what you actually want, move the gitlink **and** fix the fallout in
@@ -220,31 +228,36 @@ written out rather than linked.
   `sccache-launcher.sh`, which survives sccache's own fatal errors when a CMake
   `TryCompile` deletes the scratch directory under it.
 
-- **The Android GStreamer SDK is in the image but unannounced.** It sits at
-  `/opt/android/gstreamer` as a flat prefix (`gst-android/ndk-build`,
-  `include/`, `lib/`), yet `GSTREAMER_ROOT_ANDROID` is not in the image ENV, so
-  the native plugin's `CMakeLists.txt` stops the Android lane at configure time
-  with `GSTREAMER_ROOT_ANDROID must be set`. The plugin accepts both the
-  per-ABI and the flat layout, so the path alone is enough.
-  `export_android_gstreamer_env` (`scripts/linux/lib/container-steps.sh`)
-  probes and exports it, and returns untouched when the variable is already
-  set — so it becomes a no-op the moment the image exports it, **which is the
-  real fix.**
+- **The Android GStreamer SDK is in the image, and the image now announces it.**
+  It sits at `/opt/android/gstreamer` as a flat prefix (`gst-android/ndk-build`,
+  `include/`, `lib/`). Without `GSTREAMER_ROOT_ANDROID` the native plugin's
+  `CMakeLists.txt` stops the Android lane at configure time with
+  `GSTREAMER_ROOT_ANDROID must be set`; the plugin accepts both the per-ABI and
+  the flat layout, so the path alone is enough. The image used to ship the SDK
+  without the variable, so `export_android_gstreamer_env`
+  (`scripts/linux/lib/container-steps.sh`) probes and exports it, and returns
+  untouched when the variable is already set. The pinned hub's
+  `linux/Dockerfile.package` now sets `ENV GSTREAMER_ROOT_ANDROID=/opt/android/gstreamer`,
+  and the 2026-09-25 android run (36154744222) prints nothing from the function:
+  it is a no-op in CI, which was **the real fix**. BACKLOG.md tracks deleting it.
 
 - **Every Android SDK component must be pinned to what the image ships.**
   `/opt/android-sdk` is read-only, so any component the Android Gradle Plugin
   asks for and does not find cannot be installed — Gradle stops with
   `The SDK directory is not writable`, one component per run. AGP's defaults
   (build-tools 35.x, NDK 27/28.x, cmake 3.22.1) are all
-  wrong for this image, which carries 36.0.0, 29.0.14206865 and 4.1.2. Four
-  places pin them and must agree: the global `subprojects` override in
-  `android/build.gradle.kts` (which also drags third-party plugins such as
-  permission_handler up from their own `compileSdk 35`), plus `android/app`,
-  the native plugin's `android/`, and `rust_builder/android/`. The override
-  block has to sit **above** the `evaluationDependsOn(":app")` block —
-  that one forces evaluation, and registering `afterEvaluate` afterwards throws
-  `Cannot run Project.afterEvaluate(Action) when the project is already
-  evaluated`. BACKLOG.md tracks collapsing these to one source of truth.
+  wrong for this image, which carries 36.0.0, 29.0.14206865 and 4.1.2. One
+  place pins them (single-sourced 2026-09-17): the `extra` block in
+  `android/build.gradle.kts` (`kataglyphisCompileSdk`, `kataglyphisBuildTools`,
+  `kataglyphisNdk`, `kataglyphisCmake`). Its global `subprojects` override sets
+  compileSdk, build-tools and NDK on every Android module — which also drags
+  third-party plugins such as permission_handler up from their own
+  `compileSdk 35` — so `android/app`, the native plugin's `android/` and
+  `rust_builder/android/` carry no literals of their own; the plugin reads its
+  CMake version from the same block. The override block has to sit **above**
+  the `evaluationDependsOn(":app")` block — that one forces evaluation, and
+  registering `afterEvaluate` afterwards throws `Cannot run
+  Project.afterEvaluate(Action) when the project is already evaluated`.
 
 - **`--gcc-toolchain` is load-bearing here, and ANTfrastructure deleted the helper
   that set it.** `export_clang_gcc_toolchain_env` went away upstream on
@@ -316,8 +329,8 @@ written out rather than linked.
   typedef that resolves per platform, and app code that passes a plain `int`
   compiles everywhere except web:
   `Error: The argument type 'int' can't be assigned to the parameter type
-  'BigInt'` — from `rust_webcam_view.dart`, in a widget whose own doc comment
-  calls it the Windows view. Wrap the value in `PlatformInt64Util.from(...)`,
+  'BigInt'` — from `rust_webcam_view.dart`, a widget for the native path (then
+  Windows only, Windows and Linux now). Wrap the value in `PlatformInt64Util.from(...)`,
   which is the identity on native. It lives in
   `package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart`, not in
   the public `flutter_rust_bridge.dart`, and importing the generated binding
@@ -328,12 +341,17 @@ written out rather than linked.
   build-std=std,panic_abort`, so cargo compiles the standard library itself and
   stops without the component:
   `".../nightly-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/Cargo.lock"
-  does not exist, unable to build with the standard library`. The two `rustup`
-  lines that fix it sat commented out in `ci-container-run-web-linux.sh` — they
-  were disabled back when `RUSTUP_HOME` was root-owned and every `rustup` write
-  failed. That is fixed in the image, so they are live again; both are
-  idempotent and become no-ops once the image ships `rust-src` and the
-  `wasm32-unknown-unknown` target.
+  does not exist, unable to build with the standard library`. The `rustup` step
+  that fixes it sat commented out in `ci-container-run-web-linux.sh` back when
+  `RUSTUP_HOME` was root-owned and every `rustup` write failed. That is fixed in
+  the image, and the step is live again as one `rustup toolchain install nightly
+  --component rust-src --target wasm32-unknown-unknown`, guarded (since
+  2026-09-16) on the two components being absent: on a present nightly the
+  command is not a no-op — it updates the channel, and on the read-only image
+  layer that update dies with `Invalid cross-device link`. The guard does not
+  skip in CI today either: the 2026-09-25 web run (36154744073) found the
+  image's `nightly` without both components and downloaded them. BACKLOG.md,
+  "the web lane's rustup step", has the rest.
 
 - **The web lane installs `flutter_rust_bridge_codegen` only when the image has
   none.** `:latest` ships the binary at `FLUTTER_RUST_BRIDGE_VERSION`,
@@ -368,13 +386,14 @@ written out rather than linked.
   them.** Until 2026-09-11 the image carried `ELF x86-64` GStreamer/ONNX
   Runtime/OpenCV while the app builds `arm64-v8a`, so every archive died with
   `incompatible with aarch64linux`. The image ships only `arm64-v8a` now, so the
-  cause is gone from the image — but **do not read that as "the lane links"**:
-  the workflow has a single matrix row (x64), and since 2026-09-17 that row
-  passes `--run-codeql false` (AGENTS.md § 5), so CI runs the same plain
-  `flutter build apk` the local lane does — Kotlin, the native link and the
-  plugin's JVM test included; before that, the CodeQL build was stopping at
-  Kotlin compilation several steps before the native link. `abiFilters
-  "arm64-v8a"` stays — real phones, not the emulator. AGP 9.4.0 + Gradle 9.7.1
+  cause is gone from the image, and the lane links: the workflow has a single
+  matrix row (x64), and since 2026-09-17 that row passes `--run-codeql false`
+  (AGENTS.md § 5), so CI runs the same plain `flutter build apk` the local lane
+  does — Kotlin, the native link and the plugin's JVM test included. Every
+  completed run since 2026-09-18 is green (36154744222 on 2026-09-25: a 91.8 MB
+  `app-release.apk`, `testDebugUnitTest` passed); before the switch, the CodeQL
+  build was stopping at Kotlin compilation several steps before the native
+  link. `abiFilters "arm64-v8a"` stays — real phones, not the emulator. AGP 9.4.0 + Gradle 9.7.1
   builds that against four constraints, all load-bearing and none of them
   optional:
 
@@ -497,9 +516,14 @@ written out rather than linked.
 - **Running on an unprovisioned host** (`STATUS_DLL_NOT_FOUND`): stage the
   image's runtime DLLs into the runner (`C:\runtime\bin` → `runner\bin\`;
   `C:\runtime\lib\gstreamer-1.0` → `runner\lib\gstreamer-1.0\`). ONNX Runtime is
-  already beside the exe (bullet above).
+  already beside the exe (bullet above). Part of this is automated: whenever
+  `KATAGLYPHIS_RUST_FEATURES` names `gstreamer` (the Windows default), the
+  build's *Bundle Media Runtime DLLs* step copies `C:\runtime\bin\*.dll`
+  (ORT family excluded) beside the exe and ten capture plugins into
+  `gstreamer-1.0\` next to it.
   Two extra gotchas: `AccelerANTgine.dll` is built into a `bin\`
-  **subdirectory** but the native plugin needs it **next to the exe**, and the
+  **subdirectory** but the native plugin needs it **next to the exe** or on
+  `PATH` (`Start-Windows.ps1` prepends `runner\bin` for exactly that), and the
   VC++ redist CRT DLLs are not bundled. A healthy launch is ~130 MB with a real
   window; a ~6 MB process that exits means a missing dependency DLL. Full
   symptom table in [`docs/source/platforms.md`](docs/source/platforms.md).
@@ -514,7 +538,9 @@ written out rather than linked.
 - **Cargokit hard-requires rustup.** The `rust_builder` Flutter plugin builds
   its crate via Cargokit during CMake install, and Cargokit will not use a
   scoop-only Rust. Install rustup **with a default toolchain**; only
-  toolchain-less rustup shims are harmful.
+  toolchain-less rustup shims are harmful. The winamd64 image provisions exactly
+  that now (hub `docs/windows-builds.md` § *Rust toolchain*), so this bites only
+  outside it.
 - **Vendored ANTLR** (pulled in unconditionally by newer FUZZTEST) needs
   `WITH_STATIC_CRT OFF`, `ANTLR_BUILD_CPP_TESTS OFF`, `ANTLR_BUILD_SHARED OFF`,
   `/FIchrono`, and `LICENSE.txt` staged at the build root — its install rule
@@ -640,7 +666,7 @@ supported` on hosts whose Docker/hcsshim is version-skewed from the image —
 `C:\workspace` is a baked image dir. Use a fresh target (`C:\ws-mnt` above; CI
 mounts `D:\ws → C:\ws`). ANTfrastructure owns the why — see § 2.
 
-Four quality/output steps run before the native build (`-CodeQL` short-circuits
+Five quality/output steps run before the native build (`-CodeQL` short-circuits
 before them), each skippable with the paired switch: **Dart format + CMake
 format** (`-SkipFormat`), **Dart analyze + Flutter tests** (`-SkipTests`),
 **API docs generation** (`-SkipDocs`).
@@ -653,9 +679,10 @@ run shows both lines together (`FAILED: MSIX Packaging` … `=== Build Complete 
 **Trust the process exit code and `failedSteps` in `logs/build-summary-*.json`,
 never the log tail.**
 
-Two Windows-specific traps these steps carry: the format gate lists
-`lib test integration_test test_driver` rather than `.` (the recursive walk
-reaches the vendored submodule gitdir and exceeds MAX_PATH), and docs generation
+Two Windows-specific traps these steps carry: the format gate hands `dart
+format` the tracked file list (`Get-ProjectDartFiles`, the 60 files of § 4)
+rather than `.` (the recursive walk reaches the vendored submodule gitdir and
+exceeds MAX_PATH), and docs generation
 runs a `pub global activate dartdoc` (≥ 9.0.9) instead of the SDK-bundled
 `dart doc`, whose 9.0.4 crashes on any Flutter app. Both:
 [`docs/source/platforms.md`](docs/source/platforms.md) § *Windows build-step
@@ -701,8 +728,10 @@ how both halves stayed broken unnoticed until 2026-09-03:
 traps and MSIX packaging*.
 
 **The CI lane** ([`windows-x64.yml`](.github/workflows/windows-x64.yml))
-is four ANTfrastructure actions and nothing hand-rolled:
-`prepare-windows-container-host`, `run-in-windows-container`,
+is three ANTfrastructure actions, one hub script and GitHub's
+`actions/upload-artifact`, nothing hand-rolled: `prepare-windows-container-host`,
+the hub's `windows/scripts/Invoke-Lint.ps1 -Path scripts` (a PowerShell parse
+gate on the host, before the ~54 GB image pull), `run-in-windows-container`,
 `actions/upload-artifact` and `upload-codeql-sarif` (plus the `ort-runner-suite`
 job: a checkout and `run-pester-suite` over `scripts/windows/tests`, no
 container). Three consequences, each easy to undo by accident:
@@ -713,8 +742,9 @@ container). Three consequences, each easy to undo by accident:
   is short enough.
 - `mount-source`/`mount-target` stay unset, because the action already defaults
   to `D:\ws` → `C:\ws`, which is where the short-path clone put the tree.
-- Artifact paths are therefore **absolute under the short-path clone**
-  (`steps.prep.outputs.workspace`), never relative to `github.workspace`.
+- Artifact paths — and the lint step's `working-directory` — are therefore
+  **absolute under the short-path clone** (`steps.prep.outputs.workspace`),
+  never relative to `github.workspace`.
 
 The measurements behind all three — the gitdir-length table, the two directory
 renames that fixed it, and why a local checkout is the worst case — are in
@@ -750,6 +780,12 @@ Swap `flutter test` for `flutter analyze` (~164 s — it analyses the whole
 workspace) or for both. `PUB_CACHE` on a named volume is what makes the second
 run cheap, and it is also the rule from § 5: write-heavy paths stay off the host
 mount.
+
+`scripts/windows/Invoke-DartChecks.ps1` is the same loop as a script
+(`-SkipFormat`, `-SkipAnalyze`, `-SkipTest`, `-Fix`; its pub cache is the
+`omni-dart-checks-pubcache` volume). Its format step covers `lib test
+integration_test test_driver` — 50 of the 60 tracked files the lanes grade, not
+the plugin's ten under `packages/`.
 
 **This is not a substitute for the lane.** It runs the Dart gate and nothing
 else — no `dart format` file listing, no CMake gate, no build, no packaging, and
@@ -862,24 +898,26 @@ remove.
 Run the app on the host once artifacts are back:
 
 ```powershell
-# -Configuration is required: it names the runner\<preset>\ directory to launch.
+# -Configuration names the runner\<preset>\ directory to launch; without it the
+# script launches runner\Release, the MSIX copy of the first preset built (§ 4).
 .\scripts\windows\Start-Windows.ps1 -Configuration x64-ClangCL-Windows-Release
 .\scripts\windows\Start-Windows.ps1 -Configuration x64-ClangCL-Windows-Debug
 ```
 
-Linux builds run containerized. **CI does not use the stage script below.** Its
-path is the ANTfrastructure composite action
-`.github/actions/run-in-linux-container@develop`, which runs
+Linux builds run containerized. CI's path is the ANTfrastructure composite
+action `.github/actions/run-in-linux-container@develop`, which runs
 `scripts/linux/ci/ci-container-run-native-linux.sh` *inside* the container with
 CLI flags, not env vars (the *Run container* step of
 [`reusable-linux.yml`](.github/workflows/reusable-linux.yml), which
-`linux-x64.yml` and `linux-arm64.yml` both call):
+`linux-x64.yml` and `linux-arm64.yml` both call). For x64 it resolves to:
 
 ```bash
 bash /workspace/scripts/linux/ci/ci-container-run-native-linux.sh \
   --arch x64 --build-mode release --flutter-dir /opt/flutter \
   --app-name omni-accelerant \
-  --package-formats tar,deb,flatpak,appimage
+  --package-formats tar,deb,flatpak,appimage \
+  --install-packaging-deps true --strict-checks true \
+  --run-codeql false --run-docs true
 ```
 
 `--flutter-dir` only says *where* to look; it defaults to `/opt/flutter`. There
@@ -894,8 +932,9 @@ machinery went, and what it was costing every Android run:
 § *The Linux lane, locally*.
 
 The lane scripts take their inputs as CLI flags and exit 2 on a missing
-required one rather than guessing — `--arch`, `--app-name` and (native only)
-`--package-formats`. `--flutter-dir` defaults to `/opt/flutter`. The values
+required one rather than guessing — `--arch` in all three, `--app-name` in the
+native and android lanes (the web lane takes none). `--package-formats` defaults
+to `tar` and `--flutter-dir` to `/opt/flutter`. The values
 CI passes are the `with:` blocks of
 [`linux-x64.yml`](.github/workflows/linux-x64.yml) and
 [`linux-arm64.yml`](.github/workflows/linux-arm64.yml).
@@ -903,8 +942,9 @@ CI passes are the `with:` blocks of
 **`--app-name` derives from `pubspec.yaml`; do not hard-code it again.**
 `resolve_app_name` in `scripts/linux/lib/cli-common.sh` reads the `name:` entry
 and swaps `_` for `-`, so `omni_accelerant` yields `omni-accelerant`.
-`run-native-linux.sh`, `run-android.sh` (which appends `-apk`),
-`package-linux.sh` and `Invoke-LinuxLane.ps1` all default through it. Before
+`run-native-linux.sh`, `run-android.sh` (which appends `-apk`) and
+`package-linux.sh` default through it, and `Invoke-LinuxLane.ps1` reads the same
+`name:` line itself. Before
 2026-09-05 the literal sat in all four plus the workflows, seven copies that a
 rename had to find. The workflows still pass the value explicitly, which is
 what keeps CI independent of a host's `pwd`.
@@ -920,8 +960,8 @@ Gradle build with it — § 4, the built-in-Kotlin bullet. The native lane
 implements none and its driver *refuses* `--run-codeql true` with exit 2 rather
 than reporting success over a scan that never happened. So CI's android lane is
 the plain `flutter build apk` plus the plugin's JVM test, and the native build
-(both architectures) is the plain
-`flutter clean && flutter pub get && flutter build linux --release`.
+(both architectures) is the plain `flutter clean && flutter build linux
+--release` (its `pub get` ran in the checks batch before it).
 
 The scan is scoped by
 [`.github/codeql/codeql-config.yml`](.github/codeql/codeql-config.yml) —
@@ -947,7 +987,7 @@ Quality gates — `Build-Windows.ps1` runs these by default (skip with
 `dart format .`: that is the form documented above as crashing on Windows.
 
 ```bash
-dart format --output=none --set-exit-if-changed lib test integration_test test_driver
+dart format --output=none --set-exit-if-changed $(git ls-files -- '*.dart' ':!:rust_builder/**')
 cmake-format -c .cmake-format.yaml --check <the hand-maintained CMake files>
 flutter analyze
 flutter test
@@ -1015,7 +1055,7 @@ cmake-format itself comes from, why there is no root `requirements.txt`, and why
 **Report-first (owner directive 2026-09-11): a run reports. `-Apply` only when the
 owner explicitly asked for it in that turn.**
 
-On this host, run it in the cross container:
+On this host, run it in the family Linux image (`:latest`):
 
 ```powershell
 .\scripts\windows\Invoke-Renovate.ps1                      # what is behind
@@ -1026,8 +1066,9 @@ On this host, run it in the cross container:
 ```
 
 `scripts/linux/renovate-local.sh` remains the language-independent entry point
-(every lane and Linux host calls it); the PowerShell runner only wires it to
-`nerdctl`: it mounts the repo at `/workspace`, adds the `safe.directory`
+(a Linux host calls it directly; nothing in CI does); the PowerShell runner only
+runs it inside the container through `nerdctl`: it mounts the repo at
+`/workspace`, adds the `safe.directory`
 entries the root-owned bind mount needs (`/workspace` and `/workspace/*` for the
 submodule worktrees), and forwards `-Apply`/`-DryRun`/`-Refresh`/
 `-Managers`/`-PrintBin`.
@@ -1051,8 +1092,10 @@ commit and push each submodule, then move the gitlinks in every superproject
 that vendors it.
 
 Renovate is a local CLI and only **detects** — `--platform=local` cannot write
-— so the `--apply` half is this repo's own code, and `--managers` narrows a run
-rather than enabling it. The mechanics, including why `--apply` needs the git
+— so the `--apply` half is the family's own code (ANTfrastructure's
+`renovate-local.sh`, which this repo's wrapper calls): it moves gitlinks and
+rewrites the manifests Renovate reported, `pubspec.yaml` included, and
+`--managers` narrows a run rather than enabling it. The mechanics, including why `--apply` needs the git
 that *wrote* the working tree:
 [`docs/source/project-operations.md`](docs/source/project-operations.md)
 § *Dependency upgrades, in detail*.
