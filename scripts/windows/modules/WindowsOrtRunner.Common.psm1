@@ -1,73 +1,17 @@
 #requires -Version 7.0
 
-# PROJECT-LOCAL glue for the runner bundle: stage the image's chain ONNX Runtime beside the exe and
-# prove it with ANTfrastructure's G6 census (WindowsOrtProvenance.Common), which the caller imports.
-# Owner rule 2026-09-23 (third_party/ANTfrastructure/docs/onnxruntime-single-source.md). Every verdict is G6's;
-# this module adds only the runner stamp, which lets a host without the image re-run G6 against the
-# copy the build proved. NOT covered: which copy a process loads beyond G6's modelled loader order.
+# PROJECT-LOCAL glue for the runner bundle: the stamp of its G6 proof, which lets a host without the
+# image re-run G6 against the copy the build proved. The caller imports ANTfrastructure's G6 census
+# (WindowsOrtProvenance.Common) and its WindowsOrtPayload.Common, which stages the chain ONNX Runtime
+# beside the exe and names the ORT family (this module's own copies until 2026-09-25).
+# Owner rule 2026-09-23 (third_party/ANTfrastructure/docs/onnxruntime-single-source.md). Every verdict is G6's.
+# NOT covered: which copy a process loads beyond G6's modelled loader order.
 
 Set-StrictMode -Version Latest
 
 $script:RunnerOrtFiles = @('onnxruntime.dll', 'onnxruntime_providers_shared.dll', 'DirectML.dll')
-$script:RunnerOrtFamily = @('onnxruntime*.dll', 'DirectML.dll')
 $script:RunnerOrtStampName = 'ort-chain-stamp.json'
 $script:RunnerOrtStampSchema = 'omni-accelerant/ort-runner/2'
-
-function Get-OrtCensusRequirement {
-    <#
-    .SYNOPSIS
-        The error for a hub pin that lacks G6: which hub commit is needed, and where the pin is.
-    #>
-    [CmdletBinding()]
-    [OutputType([string])]
-    param([AllowNull()][object] $Cause = $null)
-
-    $hub = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..\..\third_party\ANTfrastructure'))
-    $at = try { "$(& git -C $hub rev-parse --short HEAD 2>$null)".Trim() } catch { '' }
-    return ("ONNX Runtime proof needs ANTfrastructure's G6 census (windows/scripts/modules/" +
-        "WindowsOrtProvenance.Common.psm1, Test-OrtProvenanceTree), added by the hub's ORT single-source " +
-        "commit of 2026-09-23 (third_party/ANTfrastructure/docs/onnxruntime-single-source.md). third_party/ANTfrastructure is at " +
-        "$(if ($at) { $at } else { 'an unknown commit' }): move the gitlink to that commit or later." +
-        $(if ($Cause) { " ($Cause)" } else { '' }))
-}
-
-function Assert-OrtCensusCommand {
-    foreach ($cmd in 'Test-OrtProvenanceTree', 'Get-OrtChainSourceRoot', 'Test-OrtInstanceName') {
-        if (-not (Get-Command -Name $cmd -ErrorAction SilentlyContinue)) { throw (Get-OrtCensusRequirement -Cause "$cmd is not loaded") }
-    }
-}
-
-function Test-RunnerOrtFamilyName {
-    param([Parameter(Mandatory)][string] $Name)
-    return @($script:RunnerOrtFamily | Where-Object { $Name -like $_ }).Count -gt 0
-}
-
-function Copy-RunnerChainOrt {
-    <#
-    .SYNOPSIS
-        Replaces every ORT-family DLL at the top of RunnerDir with the chain's from OnnxRoot\bin.
-        Provenance is not judged here: Invoke-RunnerOrtProof (G6) does that next.
-    #>
-    [CmdletBinding(SupportsShouldProcess)]
-    param(
-        [Parameter(Mandatory)][AllowEmptyString()][string] $OnnxRoot,
-        [Parameter(Mandatory)][string] $RunnerDir
-    )
-
-    if ([string]::IsNullOrWhiteSpace($OnnxRoot)) {
-        throw "ONNX_ROOT is unset: build inside the family Windows image, whose chain-built ONNX Runtime is the only one allowed beside the exe (without it System32's Windows ML copy wins)."
-    }
-    $bin = Join-Path $OnnxRoot 'bin'
-    if (-not (Test-Path -LiteralPath (Join-Path $bin 'onnxruntime.dll') -PathType Leaf)) {
-        throw "No chain ONNX Runtime at $bin\onnxruntime.dll: ONNX_ROOT must be the image's chain install."
-    }
-    if (-not $PSCmdlet.ShouldProcess($RunnerDir, 'stage chain ONNX Runtime')) { return }
-    Get-ChildItem -LiteralPath $RunnerDir -File | Where-Object { Test-RunnerOrtFamilyName -Name $_.Name } | Remove-Item -Force
-    foreach ($name in $script:RunnerOrtFiles) {
-        $src = Join-Path $bin $name
-        if (Test-Path -LiteralPath $src -PathType Leaf) { Copy-Item -LiteralPath $src -Destination $RunnerDir -Force }
-    }
-}
 
 function Get-RunnerOrtFatal {
     param([Parameter(Mandatory)][object] $Census)
@@ -77,7 +21,7 @@ function Get-RunnerOrtFatal {
 function Get-RunnerOrtFamilyFinding {
     # Every ORT-family file anywhere under RunnerDir must be a stamped name with its stamped bytes.
     param([Parameter(Mandatory)][string] $RunnerDir, [Parameter(Mandatory)][hashtable] $Stamped)
-    foreach ($file in @(Get-ChildItem -LiteralPath $RunnerDir -File -Recurse | Where-Object { Test-RunnerOrtFamilyName -Name $_.Name })) {
+    foreach ($file in @(Get-OrtFamilyFile -Directory $RunnerDir -Recurse)) {
         $hash = (Get-FileHash -LiteralPath $file.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
         if (-not $Stamped.ContainsKey($file.Name)) { "STRAY $($file.FullName) is not a stamped chain file" }
         elseif ($Stamped[$file.Name] -ne $hash) { "CHANGED $($file.FullName) differs from the stamped chain copy" }
@@ -93,7 +37,6 @@ function Invoke-RunnerOrtProof {
     [CmdletBinding()]
     param([Parameter(Mandatory)][string] $RunnerDir)
 
-    Assert-OrtCensusCommand
     if (-not (Test-Path -LiteralPath (Join-Path $RunnerDir 'onnxruntime.dll') -PathType Leaf)) {
         throw "MISSING $RunnerDir\onnxruntime.dll: without it a client host loads System32's Windows ML copy."
     }
@@ -134,7 +77,6 @@ function Assert-RunnerOrtStamp {
     [CmdletBinding()]
     param([Parameter(Mandatory)][string] $RunnerDir)
 
-    Assert-OrtCensusCommand
     $stamped = Read-RunnerOrtStamp -RunnerDir $RunnerDir
     if ($null -eq $stamped) {
         throw "UNSTAMPED $RunnerDir has no $($script:RunnerOrtStampName) of schema $($script:RunnerOrtStampSchema): it was not staged and proved by Build-Windows.ps1."
@@ -186,5 +128,4 @@ function Assert-RunnerOrtOverride {
     }
 }
 
-Export-ModuleMember -Function Get-OrtCensusRequirement, Copy-RunnerChainOrt, Invoke-RunnerOrtProof,
-    Assert-RunnerOrtStamp, Assert-RunnerOrtOverride
+Export-ModuleMember -Function Invoke-RunnerOrtProof, Assert-RunnerOrtStamp, Assert-RunnerOrtOverride

@@ -58,11 +58,13 @@ Import-BuildModule @(
     'WindowsUv.Common'          # Initialize-UvVenv + Install-UvRequirements (before its dependents)
     'WindowsFormatting.Common'  # Get-ProjectDartFiles
     'WindowsPaths.Common'       # project-local: this repo's Flutter windows/x64 layout
-    'WindowsOrtRunner.Common'   # project-local: stage the chain ONNX Runtime, stamp the G6 proof
+    'WindowsOrtRunner.Common'   # project-local: stamp the G6 proof of the runner's chain ONNX Runtime
 )
-# G6, the hub's ORT census, proves the staged ONNX Runtime; a hub pin older than its
-# ORT single-source commit lacks the module, and Get-OrtCensusRequirement says so.
-try { Import-BuildModule @('WindowsOrtProvenance.Common') } catch { throw (Get-OrtCensusRequirement -Cause $_.Exception.Message) }
+# G6, the hub's ORT census, and the hub's staging of the chain ONNX Runtime beside the exe
+# (WindowsOrtPayload.Common, this repo's own code until 2026-09-25). An older hub pin lacks them.
+try { Import-BuildModule @('WindowsOrtProvenance.Common', 'WindowsOrtPayload.Common') } catch {
+    throw "This build needs ANTfrastructure's WindowsOrtProvenance.Common (G6) and WindowsOrtPayload.Common (hub commit ad08bc30 of 2026-09-25, third_party/ANTfrastructure/docs/onnxruntime-single-source.md § The shared Windows glue); move third_party/ANTfrastructure to it or later. ($($_.Exception.Message))"
+}
 
 if ($CodeQL) {
     Import-BuildModule 'WindowsCodeQL.Common'
@@ -589,7 +591,7 @@ try {
         # loads it, whatever the Rust features - so the chain copy is staged unconditionally, last,
         # then the whole runner is proved by G6 against the image's chain ORT and stamped.
         Invoke-BuildStep -Context $context -StepName "Stage Chain ONNX Runtime$stepSuffix" -Critical -Script {
-            Copy-RunnerChainOrt -OnnxRoot "$env:ONNX_ROOT" -RunnerDir $currentBuildDirFull
+            $null = Copy-ChainOrtBeside -OnnxRoot "$env:ONNX_ROOT" -Destination $currentBuildDirFull
             $proof = Invoke-RunnerOrtProof -RunnerDir $currentBuildDirFull
             Write-BuildLog -Context $context -Message "Chain ONNX Runtime staged from $env:ONNX_ROOT\bin and proved by G6: $(@($proof.Stamp.sha256.Keys) -join ', ')"
         }

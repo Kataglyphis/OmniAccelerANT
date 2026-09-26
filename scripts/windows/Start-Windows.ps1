@@ -26,8 +26,10 @@ Import-BuildModule @(
 	'WindowsPaths.Common'          # project-local: this repo's Flutter windows/x64 layout
 	'WindowsOrtRunner.Common'      # project-local: the runner's stamped chain ONNX Runtime, re-proved by G6
 )
-# G6, the hub's ORT census; a hub pin older than its ORT single-source commit lacks it.
-try { Import-BuildModule @('WindowsOrtProvenance.Common') } catch { throw (Get-OrtCensusRequirement -Cause $_.Exception.Message) }
+# G6, the hub's ORT census, and the ORT family's names (WindowsOrtPayload.Common); an older hub pin lacks them.
+try { Import-BuildModule @('WindowsOrtProvenance.Common', 'WindowsOrtPayload.Common') } catch {
+	throw "This build needs ANTfrastructure's WindowsOrtProvenance.Common (G6) and WindowsOrtPayload.Common (hub commit ad08bc30 of 2026-09-25, third_party/ANTfrastructure/docs/onnxruntime-single-source.md § The shared Windows glue); move third_party/ANTfrastructure to it or later. ($($_.Exception.Message))"
+}
 
 $repoRoot = (Resolve-Path $WorkspaceDir).Path
 
