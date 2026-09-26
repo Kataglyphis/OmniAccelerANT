@@ -124,8 +124,8 @@ Two upstream facts repeated here only because they bite before you reach a doc:
   checks ANTfrastructure first, then `scripts/windows/modules/`, which holds only
   genuinely project-specific modules (today: `WindowsPaths.Common`, encoding this
   repo's Flutter `build/windows/x64/{runner,plugins}` layout, and
-  `WindowsOrtRunner.Common`, which stages the chain ONNX Runtime into that runner
-  and stamps the hub's G6 verdict on it — § 4).
+  `WindowsOrtRunner.Common`, which stamps the hub's G6 verdict on the chain ONNX
+  Runtime the hub's `WindowsOrtPayload.Common` stages into that runner — § 4).
 - `scripts/linux/lib/antfrastructure.sh` — the bash twin: `antfrastructure_source`
   and `antfrastructure_path`, resolved from `${BASH_SOURCE[0]}` so they work from
   any working directory.
@@ -508,10 +508,12 @@ written out rather than linked.
   MSIX copy and `Start-Windows.ps1`'s default, is rebuilt from the first preset
   on every build (the host copy too), and *MSIX Packaging* re-runs G6 on it before
   `msix:create`. Never copy an ORT into
-  the runner by hand. The glue is `scripts/windows/modules/WindowsOrtRunner.Common.psm1`,
-  whose Pester suite runs in `windows-x64.yml`'s `ort-runner-suite` job;
-  every verdict is the hub's, so both scripts stop with the hub commit to move to
-  when the pinned hub predates G6. The Linux bundle's twin is
+  the runner by hand. The staging is the hub's `Copy-ChainOrtBeside`
+  (`WindowsOrtPayload.Common`, this repo's own code until 2026-09-25); the stamp
+  is `scripts/windows/modules/WindowsOrtRunner.Common.psm1`, whose Pester suite
+  runs in `windows-x64.yml`'s `ort-runner-suite` job. Every verdict is the hub's,
+  so both scripts stop with the hub commit to move to when the pinned hub
+  predates either module. The Linux bundle's twin is
   `check-bundle-closure.sh` (the packaged-Linux-artifact bullet above).
 - **Running on an unprovisioned host** (`STATUS_DLL_NOT_FOUND`): stage the
   image's runtime DLLs into the runner (`C:\runtime\bin` → `runner\bin\`;
