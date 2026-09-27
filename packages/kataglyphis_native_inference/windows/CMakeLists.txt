@@ -33,7 +33,28 @@ get_filename_component(_KCI_PLUGIN_ROOT "${_KCI_PLUGIN_PLATFORM_DIR}" DIRECTORY)
 get_filename_component(_KCI_PACKAGES "${_KCI_PLUGIN_ROOT}" DIRECTORY)
 get_filename_component(_KCI_REPO_ROOT "${_KCI_PACKAGES}" DIRECTORY)
 set(KCI_DIR "${_KCI_REPO_ROOT}/third_party/AccelerANTgine")
-add_subdirectory(${KCI_DIR} ${CMAKE_CURRENT_BINARY_DIR}/native_build)
+# The Windows arm64 lane (BACKLOG): AccelerANTgine is cross-built in the family image's arm64
+# bundle, whose clang-cl its C++23 modules need, and linked here. The plugin reads it through
+# kataglyphis_c_api.h alone, so its DLL and import lib are all this build takes.
+if(DEFINED ENV{KATAGLYPHIS_ACCELERANTGINE_PREBUILT}
+   AND NOT
+       "$ENV{KATAGLYPHIS_ACCELERANTGINE_PREBUILT}"
+       STREQUAL
+       "")
+  set(_KCI_PREBUILT "$ENV{KATAGLYPHIS_ACCELERANTGINE_PREBUILT}")
+  foreach(_kci_file "bin/AccelerANTgine.dll" "lib/AccelerANTgine.lib")
+    if(NOT EXISTS "${_KCI_PREBUILT}/${_kci_file}")
+      message(FATAL_ERROR "KATAGLYPHIS_ACCELERANTGINE_PREBUILT lacks ${_kci_file}: ${_KCI_PREBUILT}")
+    endif()
+  endforeach()
+  add_library(AccelerANTgine SHARED IMPORTED)
+  set_target_properties(AccelerANTgine PROPERTIES IMPORTED_LOCATION "${_KCI_PREBUILT}/bin/AccelerANTgine.dll"
+                                                  IMPORTED_IMPLIB "${_KCI_PREBUILT}/lib/AccelerANTgine.lib")
+  set(_KCI_BUNDLED "${_KCI_PREBUILT}/bin/AccelerANTgine.dll")
+else()
+  add_subdirectory(${KCI_DIR} ${CMAKE_CURRENT_BINARY_DIR}/native_build)
+  set(_KCI_BUNDLED "")
+endif()
 
 # Define the plugin library target. Its name must not be changed (see comment
 # on PLUGIN_NAME above).
@@ -61,7 +82,7 @@ target_link_libraries(${PLUGIN_NAME} PRIVATE AccelerANTgine)
 # This list could contain prebuilt libraries, or libraries created by an
 # external build triggered from this build file.
 set(kataglyphis_native_inference_bundled_libraries
-    ""
+    "${_KCI_BUNDLED}"
     PARENT_SCOPE)
 
 # === Tests ===

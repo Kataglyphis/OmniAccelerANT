@@ -60,8 +60,26 @@ function(apply_cargokit target manifest_dir lib_name any_symbol_name)
         execute_process(COMMAND chmod +x "${cargokit_cmake_root}/run_build_tool${SCRIPT_EXTENSION}")
     endif()
 
+    # Local patch: CARGOKIT_PREBUILT_DIR names a directory that already holds the
+    # library, cross-built elsewhere, and it is copied instead of running cargo. The
+    # Windows arm64 lane builds oxidant.dll in the family image's arm64 bundle and
+    # the Flutter app natively on windows-11-arm (OmniAccelerANT BACKLOG).
+    if (DEFINED ENV{CARGOKIT_PREBUILT_DIR} AND NOT "$ENV{CARGOKIT_PREBUILT_DIR}" STREQUAL "")
+        set(_cargokit_prebuilt "$ENV{CARGOKIT_PREBUILT_DIR}/${CARGOKIT_LIB_FULL_NAME}")
+        if (NOT EXISTS "${_cargokit_prebuilt}")
+            message(FATAL_ERROR "CARGOKIT_PREBUILT_DIR holds no ${CARGOKIT_LIB_FULL_NAME}: ${_cargokit_prebuilt}")
+        endif()
+        message(STATUS "cargokit: ${CARGOKIT_LIB_FULL_NAME} is prebuilt, copied from ${_cargokit_prebuilt}")
+        add_custom_command(
+            OUTPUT
+            ${OUTPUT_LIB}
+            "${CMAKE_CURRENT_BINARY_DIR}/_phony_"
+            COMMAND ${CMAKE_COMMAND} -E make_directory "${CARGOKIT_OUTPUT_DIR}"
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different "${_cargokit_prebuilt}" "${OUTPUT_LIB}"
+            VERBATIM
+        )
     # Using generators in custom command is only supported in CMake 3.20+
-    if (CMAKE_CONFIGURATION_TYPES AND ${CMAKE_VERSION} VERSION_LESS "3.20.0")
+    elseif (CMAKE_CONFIGURATION_TYPES AND ${CMAKE_VERSION} VERSION_LESS "3.20.0")
         foreach(CONFIG IN LISTS CMAKE_CONFIGURATION_TYPES)
             add_custom_command(
                 OUTPUT

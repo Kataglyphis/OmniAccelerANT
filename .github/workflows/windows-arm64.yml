@@ -1,0 +1,124 @@
+# .github/workflows/windows-arm64.yml
+#
+# Windows arm64: the app, split in two (BACKLOG § Windows arm64). Flutter cannot
+# cross-build windows-arm64 from an x64 host (flutter/flutter#62597), so `natives`
+# cross-builds everything that is not Flutter's in the family image's arm64 bundle
+# (the hub's container lane, Build-WindowsArm64Natives.ps1), and `app` builds the
+# Flutter part natively on windows-11-arm against it, runs it and uploads it. One
+# workflow file per platform + arch (owner convention 2026-09-24).
+name: Windows arm64 · cross build + run
+
+on:
+  push:
+    branches: ["main", "develop"]
+  pull_request:
+    branches: ["main", "develop"]
+
+concurrency:
+  group: windows-arm64-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: pwsh
+
+jobs:
+  natives:
+    name: Cross build (arm64 natives)
+    uses: Kataglyphis/ANTfrastructure/.github/workflows/container-ci-windows.yml@develop
+    with:
+      target-arch: arm64
+      build-script: scripts/windows/Build-WindowsArm64Natives.ps1
+      build-args: |
+        -WorkspaceDir
+        C:\ws
+      # The x64 lane prunes it for the same $GIT_DIR limit (windows-x64.yml).
+      exclude-submodules: |
+        third_party/DocumANTation
+      artifact-name: omni-accelerant-natives-windows-arm64
+      artifact-dir: dist/windows-arm64-natives
+      # AccelerANTgine.exe and .dll, oxidant.dll, the chain ORT and the VC++ runtime at the least.
+      arch-gate-min-inspected: 5
+      timeout-minutes: 240
+    secrets:
+      GHCR_PAT: ${{ secrets.GHCR_PAT }}
+
+  app:
+    name: Flutter app (windows-11-arm)
+    needs: natives
+    runs-on: windows-11-arm
+    timeout-minutes: 90
+    permissions:
+      contents: read
+    env:
+      # Cargokit copies the cross-built oxidant.dll instead of running cargo, and the plugin
+      # links the cross-built AccelerANTgine instead of building it (both local patches).
+      CARGOKIT_PREBUILT_DIR: ${{ github.workspace }}\natives\runtime
+      KATAGLYPHIS_ACCELERANTGINE_PREBUILT: ${{ github.workspace }}\natives\accelerantgine
+      APP_DIR: build\windows\arm64\runner\Release
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+
+      # ANThology is a pub path dependency, AccelerANTgine carries the plugin's C API header,
+      # and the hub pins the Flutter version and carries the arch gate. Nothing else is built here.
+      - name: Submodules the app build reads
+        run: git submodule update --init --depth 1 third_party/ANThology third_party/AccelerANTgine third_party/ANTfrastructure
+
+      - name: Flutter (the image's version)
+        run: |
+          if ($env:PROCESSOR_ARCHITECTURE -ne 'ARM64') { throw "this job must run on arm64, not $env:PROCESSOR_ARCHITECTURE" }
+          $line = Select-String -LiteralPath third_party\ANTfrastructure\linux\scripts\01-core\versions.env -Pattern '^FLUTTER_VERSION=' | Select-Object -First 1
+          if (-not $line) { throw 'versions.env names no FLUTTER_VERSION' }
+          $version = $line.Line.Split('=', 2)[1].Trim()
+          $sdk = Join-Path $env:RUNNER_TEMP 'flutter'
+          git clone --depth 1 --branch $version https://github.com/flutter/flutter.git $sdk
+          if ($LASTEXITCODE) { throw "cloning Flutter $version failed" }
+          Add-Content -LiteralPath $env:GITHUB_PATH -Value (Join-Path $sdk 'bin')
+          & (Join-Path $sdk 'bin\flutter.bat') --version
+          if ($LASTEXITCODE) { throw 'flutter --version failed' }
+
+      - name: Download the arm64 natives
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: omni-accelerant-natives-windows-arm64
+          path: natives
+
+      - name: Build the app
+        run: |
+          flutter config --no-analytics --enable-windows-desktop
+          flutter pub get
+          if ($LASTEXITCODE) { throw 'flutter pub get failed' }
+          flutter build windows --release
+          if ($LASTEXITCODE) { throw 'flutter build windows failed' }
+          if (-not (Test-Path -LiteralPath "$env:APP_DIR\omni_accelerant.exe")) { throw "no omni_accelerant.exe in $env:APP_DIR" }
+
+      # What the app loads beside its exe: oxidant.dll, AccelerANTgine.dll, the chain ORT, the
+      # GStreamer plugins in gstreamer-1.0\ and their closure, as the x64 runner has them.
+      - name: Stage the runtime beside the exe
+        run: Copy-Item -Path natives\runtime\* -Destination $env:APP_DIR -Recurse -Force
+
+      - name: Arch gate (the app's tree, on the device)
+        run: |
+          & third_party\ANTfrastructure\windows\scripts\build\Test-TargetArch.ps1 -Path $env:APP_DIR -Arch arm64 -MinInspected 6 -ImportWalk
+          if ($LASTEXITCODE) { throw "the arch gate failed (exit $LASTEXITCODE)" }
+
+      # A missing DLL ends the process at once (0xC0000135); a healthy start stays up.
+      - name: Launch smoke
+        run: |
+          $exe = Resolve-Path "$env:APP_DIR\omni_accelerant.exe"
+          $p = Start-Process -FilePath $exe -WorkingDirectory (Split-Path $exe) -PassThru
+          Start-Sleep -Seconds 20
+          $p.Refresh()
+          if ($p.HasExited) { throw ("omni_accelerant.exe exited after launch with 0x{0:X8}" -f $p.ExitCode) }
+          "alive after 20 s, working set {0:N0} MB" -f ($p.WorkingSet64 / 1MB)
+          Stop-Process -Id $p.Id -Force
+
+      - name: Upload the app
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: omni-accelerant-windows-arm64
+          path: ${{ env.APP_DIR }}
+          if-no-files-found: error
