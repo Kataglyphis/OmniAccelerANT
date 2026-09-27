@@ -75,24 +75,12 @@ consumes, so the loop this repo adopted on 2026-09-13 (`scripts/agentic-loop/`,
 
 ## Open — Windows arm64
 
-- [ ] **A Windows arm64 app: the hybrid lane** [L, ★★]. Owner decision 2026-09-27.
-      Flutter cannot cross-build `windows-arm64` from an x64 host (flutter/flutter#62597,
-      open), so `windows-arm64.yml` splits the build:
-      - `natives`: the hub's `container-ci-windows.yml` with `target-arch: arm64` runs
-        `scripts/windows/Build-WindowsArm64Natives.ps1` in `:winarm64`. It runs
-        AccelerANTgine's own `Build-Windows.ps1 -TargetArch arm64` and takes its
-        `dist/windows-arm64/bundle` plus `AccelerANTgine.lib`, and it cross-builds
-        `oxidant.dll` with `cargo build --lib --target aarch64-pc-windows-msvc
-        --features gstreamer,onnxruntime_dynamic` (the arm64 ORT has no DirectML EP).
-      - `app`, on `windows-11-arm`: checkout, Flutter, the natives artifact, then
-        `flutter build windows` with `CARGOKIT_PREBUILT_DIR` (Cargokit copies the
-        cross-built `oxidant.dll` instead of running cargo) and
-        `KATAGLYPHIS_ACCELERANTGINE_PREBUILT` (the plugin links the cross-built
-        AccelerANTgine; it reads it through `kataglyphis_c_api.h` alone, so no C++
-        module crosses compilers), the runtime payload beside the exe, a launch smoke
-        and the upload.
-      - The vendored Cargokit gains `windows-arm64` and the prebuilt switch, the plugin's
-        CMake its own. With both variables unset x64 builds exactly as before.
+- [ ] **What the Windows arm64 lane does not prove yet** [M, ★]. The lane is green
+      since 2026-09-27 (run 36322839058): on the windows-11-arm device the app tree
+      passes the hub's import walk (40 files, 0 unresolved) and the app stays up 20 s at
+      150 MB, a real window. No camera frame and no inference have run on arm64 (the
+      runner has no camera), and no arm64 MSIX is built. `windows-arm64.yml` and AGENTS.md
+      § 5 describe the lane.
 
 ## Open — Linux Rust webcam inference (landed 2026-09-16, artifacts closed 2026-09-17)
 
