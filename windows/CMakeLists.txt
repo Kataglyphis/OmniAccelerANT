@@ -50,12 +50,12 @@ add_definitions(-DUNICODE -D_UNICODE)
 # of modifying this function.
 function(APPLY_STANDARD_SETTINGS TARGET)
   target_compile_features(${TARGET} PUBLIC cxx_std_17)
-  target_compile_options(
-    ${TARGET}
-    PRIVATE /W3
-            /wd4100
-            -Wno-cast-function-type-mismatch
-            -Wno-unused-function) # /WX
+  target_compile_options(${TARGET} PRIVATE /W3 /wd4100) # /WX
+  # clang-cl only: MSVC's cl reads -W<n> as a warning level and stops at these with D8021, which
+  # the Windows arm64 app job, built with cl on windows-11-arm, found.
+  if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    target_compile_options(${TARGET} PRIVATE -Wno-cast-function-type-mismatch -Wno-unused-function)
+  endif()
   target_compile_options(${TARGET} PRIVATE /EHsc)
   target_compile_definitions(${TARGET} PRIVATE "_HAS_EXCEPTIONS=0")
   target_compile_definitions(${TARGET} PRIVATE "$<$<CONFIG:Debug>:_DEBUG>")
