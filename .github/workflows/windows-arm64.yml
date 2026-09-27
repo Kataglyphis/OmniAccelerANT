@@ -91,9 +91,23 @@ jobs:
           flutter config --no-analytics --enable-windows-desktop
           flutter pub get
           if ($LASTEXITCODE) { throw 'flutter pub get failed' }
-          flutter build windows --release
-          if ($LASTEXITCODE) { throw 'flutter build windows failed' }
+          # --verbose: without it a failed MSBuild step prints nothing but "Build process failed."
+          flutter build windows --release --verbose *> flutter-build.log
+          $rc = $LASTEXITCODE
+          if ($rc) {
+            Select-String -LiteralPath flutter-build.log -Pattern 'error|CMake Error|fatal' | Select-Object -Last 80 | ForEach-Object Line
+            Get-Content -LiteralPath flutter-build.log -Tail 150
+            throw "flutter build windows failed (exit $rc); the whole log is the flutter-build-log artifact"
+          }
           if (-not (Test-Path -LiteralPath "$env:APP_DIR\omni_accelerant.exe")) { throw "no omni_accelerant.exe in $env:APP_DIR" }
+
+      - name: Upload the build log
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: flutter-build-log-windows-arm64
+          path: flutter-build.log
+          if-no-files-found: ignore
 
       # What the app loads beside its exe: oxidant.dll, AccelerANTgine.dll, the chain ORT, the
       # GStreamer plugins in gstreamer-1.0\ and their closure, as the x64 runner has them.
