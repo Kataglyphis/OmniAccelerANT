@@ -35,21 +35,26 @@ get_filename_component(_KCI_REPO_ROOT "${_KCI_PACKAGES}" DIRECTORY)
 set(KCI_DIR "${_KCI_REPO_ROOT}/third_party/AccelerANTgine")
 # The Windows arm64 lane (BACKLOG): AccelerANTgine is cross-built in the family image's arm64
 # bundle, whose clang-cl its C++23 modules need, and linked here. The plugin reads it through
-# kataglyphis_c_api.h alone, so its DLL and import lib are all this build takes.
+# kataglyphis_c_api.h alone, so its DLL, import lib and C API headers are all this build takes.
+# The headers come with it because KCI_DIR is wrong there: windows-11-arm makes .plugin_symlinks
+# a junction, which REALPATH leaves unresolved.
 if(DEFINED ENV{KATAGLYPHIS_ACCELERANTGINE_PREBUILT}
    AND NOT
        "$ENV{KATAGLYPHIS_ACCELERANTGINE_PREBUILT}"
        STREQUAL
        "")
   set(_KCI_PREBUILT "$ENV{KATAGLYPHIS_ACCELERANTGINE_PREBUILT}")
-  foreach(_kci_file "bin/AccelerANTgine.dll" "lib/AccelerANTgine.lib")
+  foreach(_kci_file "bin/AccelerANTgine.dll" "lib/AccelerANTgine.lib" "include/kataglyphis_c_api.h")
     if(NOT EXISTS "${_KCI_PREBUILT}/${_kci_file}")
       message(FATAL_ERROR "KATAGLYPHIS_ACCELERANTGINE_PREBUILT lacks ${_kci_file}: ${_KCI_PREBUILT}")
     endif()
   endforeach()
   add_library(AccelerANTgine SHARED IMPORTED)
-  set_target_properties(AccelerANTgine PROPERTIES IMPORTED_LOCATION "${_KCI_PREBUILT}/bin/AccelerANTgine.dll"
-                                                  IMPORTED_IMPLIB "${_KCI_PREBUILT}/lib/AccelerANTgine.lib")
+  set_target_properties(
+    AccelerANTgine
+    PROPERTIES IMPORTED_LOCATION "${_KCI_PREBUILT}/bin/AccelerANTgine.dll"
+               IMPORTED_IMPLIB "${_KCI_PREBUILT}/lib/AccelerANTgine.lib"
+               INTERFACE_INCLUDE_DIRECTORIES "${_KCI_PREBUILT}/include")
   set(_KCI_BUNDLED "${_KCI_PREBUILT}/bin/AccelerANTgine.dll")
 else()
   add_subdirectory(${KCI_DIR} ${CMAKE_CURRENT_BINARY_DIR}/native_build)
