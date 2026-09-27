@@ -46,6 +46,12 @@ class Target {
       rust: 'x86_64-pc-windows-msvc',
       flutter: 'windows-x64',
     ),
+    // Local patch: Flutter names the target windows-arm64 on an arm64 host (the
+    // Windows arm64 lane builds the app natively on windows-11-arm).
+    Target(
+      rust: 'aarch64-pc-windows-msvc',
+      flutter: 'windows-arm64',
+    ),
     Target(
       rust: 'x86_64-unknown-linux-gnu',
       flutter: 'linux-x64',

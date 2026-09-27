@@ -755,6 +755,19 @@ and the `$GIT_DIR` limit*.
 
 CI passes `-SkipMsixPackaging`, and `-CodeQL` is off there because of runtimes.
 
+**The Windows arm64 lane is a hybrid** ([`windows-arm64.yml`](.github/workflows/windows-arm64.yml),
+2026-09-27). Flutter cannot cross-build `windows-arm64` from an x64 host
+(flutter/flutter#62597), so the lane has two jobs:
+- `natives` runs `scripts/windows/Build-WindowsArm64Natives.ps1` in the hub's arm64 container
+  lane. It cross-builds AccelerANTgine and `oxidant.dll`, without DirectML, because the arm64
+  ORT has no DirectML EP.
+- `app` builds the Flutter part natively on `windows-11-arm` against those. Two environment
+  switches do it. `CARGOKIT_PREBUILT_DIR` is a local Cargokit patch that copies the DLL and
+  skips cargo. `KATAGLYPHIS_ACCELERANTGINE_PREBUILT` makes the plugin link an imported
+  AccelerANTgine instead of `add_subdirectory`.
+
+With both switches unset, x64 builds exactly as before. BACKLOG § Windows arm64 tracks the lane.
+
 ### The Dart gate in 23 seconds, without a lane
 
 **There is no Flutter or Dart SDK on the Windows dev box** — `flutter` is not on
