@@ -9,7 +9,7 @@
 
 </div>
 
-[![Linux x64 · build + test](https://github.com/Kataglyphis/OmniAccelerANT/actions/workflows/linux-x64.yml/badge.svg)](https://github.com/Kataglyphis/OmniAccelerANT/actions/workflows/linux-x64.yml) [![Linux arm64 · build + test](https://github.com/Kataglyphis/OmniAccelerANT/actions/workflows/linux-arm64.yml/badge.svg)](https://github.com/Kataglyphis/OmniAccelerANT/actions/workflows/linux-arm64.yml) [![Windows x64 · build + test](https://github.com/Kataglyphis/OmniAccelerANT/actions/workflows/windows-x64.yml/badge.svg)](https://github.com/Kataglyphis/OmniAccelerANT/actions/workflows/windows-x64.yml) [![Web · build + test](https://github.com/Kataglyphis/OmniAccelerANT/actions/workflows/web.yml/badge.svg)](https://github.com/Kataglyphis/OmniAccelerANT/actions/workflows/web.yml)  
+[![Linux x64 · build + test](https://github.com/Kataglyphis/OmniAccelerANT/actions/workflows/linux-x64.yml/badge.svg)](https://github.com/Kataglyphis/OmniAccelerANT/actions/workflows/linux-x64.yml) [![Linux arm64 · build + test](https://github.com/Kataglyphis/OmniAccelerANT/actions/workflows/linux-arm64.yml/badge.svg)](https://github.com/Kataglyphis/OmniAccelerANT/actions/workflows/linux-arm64.yml) [![Windows x64 · build + test](https://github.com/Kataglyphis/OmniAccelerANT/actions/workflows/windows-x64.yml/badge.svg)](https://github.com/Kataglyphis/OmniAccelerANT/actions/workflows/windows-x64.yml) [![Windows arm64 · cross build + run](https://github.com/Kataglyphis/OmniAccelerANT/actions/workflows/windows-arm64.yml/badge.svg)](https://github.com/Kataglyphis/OmniAccelerANT/actions/workflows/windows-arm64.yml) [![Web · build + test](https://github.com/Kataglyphis/OmniAccelerANT/actions/workflows/web.yml/badge.svg)](https://github.com/Kataglyphis/OmniAccelerANT/actions/workflows/web.yml)  
  [![Android · build + test](https://github.com/Kataglyphis/OmniAccelerANT/actions/workflows/android.yml/badge.svg)](https://github.com/Kataglyphis/OmniAccelerANT/actions/workflows/android.yml)[![Automatic Dependency Submission](https://github.com/Kataglyphis/OmniAccelerANT/actions/workflows/dependency-graph/auto-submission/badge.svg)](https://github.com/Kataglyphis/OmniAccelerANT/actions/workflows/dependency-graph/auto-submission)
 [![Dependabot Updates](https://github.com/Kataglyphis/OmniAccelerANT/actions/workflows/dependabot/dependabot-updates/badge.svg)](https://github.com/Kataglyphis/OmniAccelerANT/actions/workflows/dependabot/dependabot-updates)
 [![TopLang](https://img.shields.io/github/languages/top/Kataglyphis/OmniAccelerANT)]()
@@ -49,7 +49,7 @@ OmniAccelerANT bundles a Flutter/Dart frontend, a Rust/C++ inference core, and a
 
 | Category | Feature | Win x64 | Linux x64 | Linux ARM64 | Linux RISC-V | Android |
 |----------|---------|:-------:|:---------:|:-----------:|:------------:|:-------:|
-| **Containerization** | 🐳 Builds in ANTfrastructure `:latest` (linux) / `:winamd64` (windows) images; the hub's `:winarm64` arm64 artifact bundle goes unused — this repo has no Windows arm64 build | ✔️ | ✔️ | ✔️ | ✔️ | ✔️ |
+| **Containerization** | 🐳 Builds in ANTfrastructure `:latest` (linux) / `:winamd64` (windows) images; the Windows arm64 app cross-builds its natives in the hub's `:winarm64` bundle and its Flutter part natively on `windows-11-arm` | ✔️ | ✔️ | ✔️ | ✔️ | ✔️ |
 | **Native Integration** | 🎨 GTK Integration | N/A | ✔️ | ✔️ | ✔️ | N/A |
 | | 🪟 Win32 API | ✔️ | N/A | N/A | N/A | N/A |
 | | 🤖 Android NDK | N/A | N/A | N/A | N/A | ✔️ |
@@ -80,6 +80,7 @@ OmniAccelerANT bundles a Flutter/Dart frontend, a Rust/C++ inference core, and a
 | Platform | Architecture | Status | Notes |
 |----------|-------------|:------:|-------|
 | 🪟 **Windows** | x86-64 | ✔️ | Built with clang-cl, Win32 integration |
+| 🪟 **Windows** | ARM64 | 🔶 | Hybrid lane (`windows-arm64.yml`): natives cross-built in `:winarm64`, the Flutter app built natively on `windows-11-arm`. On the device every import resolves and the app starts with a window; no camera frame or inference has run on arm64 yet |
 | 🐧 **Linux** | x86-64 | ✔️ | Full GTK support, Docker ready |
 | 🐧 **Linux** | ARM64 | ✔️ | SBC optimized (RPi, OPi support) |
 | 🐧 **Linux** | RISC-V | 🔶 | Emerging architecture support. No CI lane in this repo — the `:latest` image index carries a riscv64 variant, but nothing builds against it here. |
