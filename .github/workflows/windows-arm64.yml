@@ -14,6 +14,9 @@ on:
   pull_request:
     branches: ["main", "develop"]
 
+permissions:
+  contents: read
+
 concurrency:
   group: windows-arm64-${{ github.ref }}
   cancel-in-progress: true
@@ -48,8 +51,6 @@ jobs:
     needs: natives
     runs-on: windows-11-arm
     timeout-minutes: 90
-    permissions:
-      contents: read
     env:
       # Cargokit copies the cross-built oxidant.dll instead of running cargo, and the plugin
       # links the cross-built AccelerANTgine instead of building it (both local patches).
@@ -107,7 +108,7 @@ jobs:
         with:
           name: flutter-build-log-windows-arm64
           path: flutter-build.log
-          if-no-files-found: ignore
+          if-no-files-found: error
 
       # What the app loads beside its exe: oxidant.dll, AccelerANTgine.dll, the chain ORT, the
       # GStreamer plugins in gstreamer-1.0\ and their closure, as the x64 runner has them.
