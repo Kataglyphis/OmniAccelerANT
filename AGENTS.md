@@ -766,7 +766,17 @@ CI passes `-SkipMsixPackaging`, and `-CodeQL` is off there because of runtimes.
   skips cargo. `KATAGLYPHIS_ACCELERANTGINE_PREBUILT` makes the plugin link an imported
   AccelerANTgine instead of `add_subdirectory`.
 
-With both switches unset, x64 builds exactly as before. BACKLOG § Windows arm64 tracks the lane.
+With both switches unset, x64 builds exactly as before.
+
+The lane is green since run 36322839058. On the device, the app tree passes the hub's import
+walk (40 files, 0 unresolved), and the app stays up 20 s at 150 MB with a real window. Two traps
+surfaced on the way there:
+- Flutter builds with MSVC `cl` on that runner, which rejects clang-cl's `-Wno-…` flags with
+  D8021. `APPLY_STANDARD_SETTINGS` now gives them to clang only.
+- `.plugin_symlinks` is a junction there that `REALPATH` leaves unresolved. That is why the
+  cross-built AccelerANTgine brings its own C API headers.
+
+BACKLOG § Windows arm64 keeps what the lane does not prove yet.
 
 ### The Dart gate in 23 seconds, without a lane
 
