@@ -51,6 +51,12 @@ foreach ($file in 'bin\AccelerANTgine.dll', 'lib\AccelerANTgine.lib') {
     if (-not (Test-Path -LiteralPath (Join-Path $kciBundle $file))) { throw "AccelerANTgine's arm64 bundle lacks $file ($kciBundle)." }
 }
 Copy-Item -LiteralPath $kciBundle -Destination (Join-Path $out 'accelerantgine') -Recurse
+# The C API the plugin compiles against travels with the DLL: on windows-11-arm the plugin's
+# .plugin_symlinks entry is a junction REALPATH does not resolve, so a path into the
+# AccelerANTgine checkout lands in windows\flutter\ephemeral (run 36320616616, C1083).
+$kciInclude = Join-Path $out 'accelerantgine\include'
+$null = New-Item -ItemType Directory -Force -Path $kciInclude
+foreach ($header in 'kataglyphis_c_api.h', 'kataglyphis_export.h') { Copy-Item -LiteralPath (Join-Path $kci "Src\$header") -Destination $kciInclude }
 
 # oxidant.dll, the Flutter bridge. The target tree stays off the bind mount (AGENTS.md § 5), and
 # the pkg-config crate needs the cross opt-in to read the bundle's arm64 .pc files.

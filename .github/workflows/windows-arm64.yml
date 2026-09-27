@@ -63,10 +63,10 @@ jobs:
         with:
           persist-credentials: false
 
-      # ANThology is a pub path dependency, AccelerANTgine carries the plugin's C API header,
-      # and the hub pins the Flutter version and carries the arch gate. Nothing else is built here.
+      # ANThology is a pub path dependency, and the hub pins the Flutter version and carries the
+      # arch gate. AccelerANTgine's C API headers come with the natives artifact.
       - name: Submodules the app build reads
-        run: git submodule update --init --depth 1 third_party/ANThology third_party/AccelerANTgine third_party/ANTfrastructure
+        run: git submodule update --init --depth 1 third_party/ANThology third_party/ANTfrastructure
 
       - name: Flutter (the image's version)
         run: |
