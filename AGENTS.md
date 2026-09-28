@@ -135,7 +135,7 @@ Two upstream facts repeated here only because they bite before you reach a doc:
   compared with them in `body` mode by the shared-config drift gate, so a change
   goes into the template upstream, never into the copy alone.
 - `scripts/agentic-loop/` — the adopted planner/executor loop: config, both
-  runner wrappers, prompt overlays. Engine `opencode`, executor
+  runner wrappers, prompt overlays. Engine `opencode` (**v2 only**), executor
   `opencode-go/deepseek-v4.1-flash`. Its Windows build/test driver is
   `scripts/windows/Build-Windows-Container.ps1`. Rules and commands: § 5.
 - `scripts/linux/cat-stream/serve.sh` — serves the web build over TLS with the
@@ -708,6 +708,19 @@ and always skips docs and MSIX. Tests are `-TestsOnly` — the Dart gates in the
 same container. The config contract and build-matrix semantics are owned by
 [`third_party/ANTfrastructure/docs/windows-agentic-loop.md`](third_party/ANTfrastructure/docs/windows-agentic-loop.md);
 `.opencode/agents/` is generated and gitignored — edit the overlays, never it.
+
+**The engine is opencode v2, on Windows and Linux alike (owner directive
+2026-09-28).** Never install or run opencode v1 for this loop. v2 is the npm
+package `@opencode/cli`. Install it with `curl -fsSL https://opencode.ai/v2/install | bash`
+into `~/.opencode/bin`; on Windows run that from Git Bash with
+`--no-modify-path`, then put `%USERPROFILE%\.opencode\bin` first on the user
+`PATH`. Scoop and GitHub releases still ship 1.x. v2 does not read v1's saved
+login, so run `opencode auth login` once more under v2, then check `opencode
+models` for both model IDs above. The loop passes `--standalone` (both roles)
+and `--auto` (executor). The hub refuses a v1 on `PATH` with a FATAL, but only
+from its `feature/opencode-v2` commits on; the pinned hub does not have them
+yet. Why each flag, and what v1 did instead:
+[`windows-agentic-loop.md` § *opencode v2*](third_party/ANTfrastructure/docs/windows-agentic-loop.md#opencode-v2).
 
 ```powershell
 pwsh -File scripts/agentic-loop/Invoke-AgenticLoop.ps1            # planner + executor

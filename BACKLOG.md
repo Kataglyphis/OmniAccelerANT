@@ -321,6 +321,6 @@ thing is still unproven.
 ## Agentic loop
 
 Adopted 2026-09-13: `scripts/agentic-loop/` (config, runner wrappers, prompt
-overlays); executor model `opencode-go/deepseek-v4.1-flash`. Windows builds go
+overlays); engine opencode **v2**, executor model `opencode-go/deepseek-v4.1-flash`. Windows builds go
 through `scripts/windows/Build-Windows-Container.ps1`. Run commands and rules:
 AGENTS.md § 5.
