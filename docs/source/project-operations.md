@@ -436,9 +436,11 @@ the same number as `FLUTTER_RUST_BRIDGE_VERSION`). Installing latest is how the
 mismatch above happens in the first place.
 
 Then rebuild the project — on Windows in the build container, never on the host
-(the command and why: AGENTS.md § 5). A reused container can keep a stale Dart
-AOT snapshot that still reports the old codegen version; start a fresh one
-(`Build-Windows-Container.ps1 -FreshContainer`, BACKLOG.md).
+(the command and why: AGENTS.md § 5). A reused container once kept a stale Dart
+AOT snapshot that still reported the old codegen version. `Build-Windows.ps1`'s
+*Flutter AOT Freshness* step now catches that and rebuilds the snapshot
+(`scripts/windows/modules/WindowsFlutterAot.Common.psm1`); if it still fails,
+start a fresh container (`Build-Windows-Container.ps1 -FreshContainer`).
 
 **Prevention:** Always regenerate bindings after updating `flutter_rust_bridge` version in `pubspec.yaml` or modifying Rust API signatures.
 

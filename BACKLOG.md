@@ -13,65 +13,15 @@ consumes, so the loop this repo adopted on 2026-09-13 (`scripts/agentic-loop/`,
 
 ## Open — correctness
 
-- [b] **Move `third_party/ANTfrastructure` on to the hub's OrtGetApiBase-definition
-      rule.** The pin, e72a9a37 (moved in c47f599), carries the fingerprint fix as
-      1b9f492e: G6 reads `liboxidant.so` as an importer, and the liboxidant cases of
-      `scripts/linux/tests/test-check-bundle-closure.sh` are back (17 of 17 in the
-      image at e72a9a37). What the pin still lacks is the follow-up. With it, a file
-      that DEFINES `OrtGetApiBase` counts as ORT under any name, so a renamed ORT
-      with no fingerprint no longer passes as an importer beside the chain copy.
-      This repo's packer gives exactly that `$ORIGIN` RUNPATH to such a file.
-      - The hub branch is `fix/g6-ort-definition-rule`: 297c896e (docs), then
-        f01b7cbf `fix(ort-census): an ORT under another name is found by the
-        OrtGetApiBase it defines`. It fast-forwards from develop e72a9a37.
-      - The same change was first made on `fix/g6-linux-bundle-oxidant` (960345ca,
-        e2e12f02). That branch predates the integration, and a merge of it
-        conflicts. Take the develop-based one.
-      - Measured against it: both bundle-gate suites pass in the image, and so
-        does the 2026-09-17 release bundle. `OrtRunner.Tests.ps1` passes 6 of 6,
-        and the NUL-fixed OxidANT and AccelerANTgine suites 10 of 10 and 9 of 9.
-        Nothing in this repo changes at that bump.
-      - Blocked on the hub branch reaching the hub's remote (the submodule-pins
-        workflow checks reachability), and on the paused Windows build, which
-        uses this submodule checkout as its closure.
-      - **Looks done (checked 2026-09-25).** The pin moved on to 3ddfa60b in
-        a2d6842 (2026-09-24) and is 5ee35c8f since c63eb49; f01b7cbf is an
-        ancestor of both (`git -C third_party/ANTfrastructure merge-base
-        --is-ancestor f01b7cbf 5ee35c8f`). The Windows lane at c63eb49 (run
-        36154744287) staged the chain ORT and passed G6.
-- [b] **OxidANT and AccelerANTgine: end the fake ORT source path in their
-      Windows ORT suites with a NUL, before their hub pins pass 1b9f492e.**
-      `OxidANT/scripts/windows/tests/OrtPayload.Tests.ps1` (lines 32 and 73) and
-      `AccelerANTgine/scripts/windows/tests/OrtBundle.Tests.ps1` (lines 32 and
-      71) write `"$chainSrc OrtGetApiBase"` and `"$chainSrc FileVersion 1.27.0"`.
-      The whole-path census finds no fingerprint there, so one case in each
-      turns `UNPROVEN` where it expects `STALE`. Measured on scratch copies:
-      OxidANT 9 of 10, AccelerANTgine 8 of 9. `` "$chainSrc`0OrtGetApiBase" ``
-      passes at a7ccc896, at the fix and with the definition rule (10 of 10 and
-      9 of 9), so it can land first. Both still pin hub 57bec177. Blocked here:
-      the edit belongs in those two repositories; this repo only moves their
-      gitlinks afterwards.
-      **Looks done at the recorded pins (checked 2026-09-25):** OxidANT 23052fc
-      writes `` "$chainSrc`0OrtGetApiBase" `` and `` "$chainSrc`0FileVersion 1.27.0" ``
-      (`OrtPayload.Tests.ps1` lines 34 and 75), AccelerANTgine d009a7f the same
-      (`OrtBundle.Tests.ps1` lines 34 and 73), and they pin hub 948f7031 and
-      5ee35c8f, both past 1b9f492e.
-- [ ] **The flatpak has no camera access and its runner path was only just
-      fixed.** `app_packaging_package_linux_bundle_flatpak` writes
-      `finish-args` with `--device=dri` but no `/dev/video*`, so a sandboxed
-      flatpak install cannot open a webcam even though the GStreamer closure and
-      the model now travel inside it. The runner-rpath half was fixed on
-      2026-09-17 (`$ORIGIN/lib:$ORIGIN/../lib` in `bundle-runtime-closure.sh`,
-      because flatpak installs the binary into `/app/bin` with the libs in
-      `/app/lib`). The device half lives in ANTfrastructure's
-      `app-packaging.sh`, so it needs an upstream change (or a
-      `KATAGLYPHIS_FLATPAK_EXTRA_FINISH_ARGS`-style knob upstreamed first).
-      **The knob exists now (checked 2026-09-25):** the pinned hub's
+- [ ] **The flatpak has no camera access.** The pinned hub's
       `app_packaging_flatpak_finish_args_block` appends
       `KATAGLYPHIS_FLATPAK_FINISH_ARGS` (space-separated) to its four defaults,
-      and its comment names `--device=all` for a camera (flatpak has no
-      `--device=video`). Nothing in this repo sets it yet, so what is left is
-      local.
+      whose only device is `--device=dri`, so a sandboxed install cannot open a
+      webcam even though the GStreamer closure and the model travel inside it.
+      Flatpak has no `--device=video`; the hub's comment names `--device=all`
+      for a camera. Nothing in this repo sets the variable yet. (The runner
+      rpath half was fixed on 2026-09-17: `$ORIGIN/lib:$ORIGIN/../lib` in
+      `bundle-runtime-closure.sh`.)
 
 ## Open — Windows arm64
 
@@ -79,8 +29,8 @@ consumes, so the loop this repo adopted on 2026-09-13 (`scripts/agentic-loop/`,
       since 2026-09-27 (run 36322839058): on the windows-11-arm device the app tree
       passes the hub's import walk (40 files, 0 unresolved) and the app stays up 20 s at
       150 MB, a real window. No camera frame and no inference have run on arm64 (the
-      runner has no camera), and no arm64 MSIX is built. `windows-arm64.yml` and AGENTS.md
-      § 5 describe the lane.
+      runner has no camera), and no arm64 MSIX is built. The lane is described in
+      `windows-arm64.yml` and in AGENTS.md § 5.
 
 ## Open — Linux Rust webcam inference (landed 2026-09-16, artifacts closed 2026-09-17)
 
@@ -94,8 +44,8 @@ thing is still unproven.
       `DISPLAY`. The dev box is Windows with a C920 and `usbipd` installed, so
       the route exists (§ 4) — attach the camera to WSL, run the bundle under
       Xvfb in the image, and grep the log for
-      `[my_texture] first pushed frame`. Needs `xvfb` in the image, or an
-      `apt-get install` as root inside the container.
+      `[my_texture] first pushed frame`. Needs `xvfb` in the image (hub CON20,
+      shipped with CON11), or an `apt-get install` as root inside the container.
 
 ## Open — smaller code leftovers
 
@@ -108,27 +58,17 @@ thing is still unproven.
 ## Open — duplication and drift
 
 - [ ] `run-native-linux.sh` / `run-android.sh` read as host-side scripts but are
-      what the CI lane actually invokes — the naming still misleads.
-      (`scripts/linux/lib/check-linux.sh`, the other half of this entry, was
-      deleted: it was a human entry point sitting in `lib/` with no caller, and
-      the checks it ran are reached through `run-native-linux.sh` and the CI
-      drivers anyway. `package-linux.sh` and `generate-docs.sh` were the last
-      two executables in `lib/` and moved up to `scripts/linux/` on 2026-09-15,
-      so the rule now holds without exception: **`scripts/linux/lib/` holds only
+      what the CI lane actually invokes — the naming still misleads. The rule
+      they sit beside holds without exception: **`scripts/linux/lib/` holds only
       files that are sourced or imported, never a file you invoke.**
-      `dartdoc-guides-local.py`, the one non-`.sh` file that was left there, is
-      gone too: ANTfrastructure upstreamed its three divergences on 2026-09-15
-      and `generate-docs.sh` calls `dartdoc_build_main`.)
-- [b] `export_android_gstreamer_env` (`scripts/linux/lib/container-steps.sh`)
-      only exists because the image ships the Android GStreamer SDK at
-      `/opt/android/gstreamer` without exporting `GSTREAMER_ROOT_ANDROID`. It is
-      already written to no-op when the variable is set, so it can be deleted
-      outright once the image exports it — blocked on that. Same shape as the
-      six workarounds that were deleted on 2026-09-05.
-      **The blocker looks cleared (checked 2026-09-25):** the pinned hub's
-      `linux/Dockerfile.package` sets `ENV GSTREAMER_ROOT_ANDROID=/opt/android/gstreamer`,
-      and android run 36154744222 prints no line from the function while the
-      APK builds.
+- [ ] **Delete `export_android_gstreamer_env`** (`scripts/linux/lib/container-steps.sh`,
+      called from `ci-container-run-android.sh`). It only existed because the image
+      shipped the Android GStreamer SDK without exporting `GSTREAMER_ROOT_ANDROID`.
+      The blocker is cleared: the pinned hub's `linux/Dockerfile.package` sets
+      `ENV GSTREAMER_ROOT_ANDROID=/opt/android/gstreamer`, and android run
+      36154744222 printed no line from the function while the APK built. Remove it
+      together with the bullet that describes it (AGENTS.md § 4), and prove it with
+      the android lane.
 
 ## Open — release and repository state
 
@@ -162,106 +102,33 @@ thing is still unproven.
       `KATAGLYPHIS_BUNDLE_MODEL=0` on the lane drops it for a smaller artifact
       that then needs `KATAGLYPHIS_ONNX_MODEL` at runtime. Decide if the default
       should flip.
-- [ ] The `permission_handler_android` 13.0.1 pin (`pubspec_overrides.yaml`)
-      is blocked for a real reason: 14.x needs `compileSdk 37` while the image
-      is read-only at android-36. ANTfrastructure's backlog carries it as CON14
-      now — CON5 added API 37 to the source on 2026-09-18 and was closed, but the
-      image built on 2026-09-22 still lacks it. This row used to name the
-      blocked update "Dependabot #43"; #43 is the `anthology` 1.1.0 → 2.0.0 bump,
-      closed unmerged on 2026-09-16 (CON14 repeats the same number).
-      (#40, mockito, is closed — nothing imported it, so the dev dependency was
-      dropped rather than bumped on 2026-09-17.)
-
-## Open — hygiene
-
-- [ ] The Linux and Windows images resolve different dependency versions, so
-      `pubspec.lock` flips back and forth: a Linux lane run writes intl 0.20.3
-      and matcher 0.12.20, the next Windows run writes 0.20.2 and 0.12.19. Both
-      are committed states at different times, so whoever runs last "wins" and
-      the diff is pure noise. **Measured 2026-09-17: the images carry different
-      SDKs** — `:latest-cross` is Flutter 3.47.3 / Dart 3.13.3, `winamd64` is
-      Flutter 3.44.8 / Dart 3.12.2 — so this is an image-alignment job
-      (rebuild `winamd64` at the newer Flutter, or pin the Linux side back),
-      not a pubspec fix. (The 2026-09-17 Linux resolution is currently
-      committed; the mockito-drop diff is the 96 lines of its transitive
-      crates.) **The SDK half looks aligned (checked 2026-09-25):** both lanes'
-      logs report Flutter 3.47.4 / Dart 3.13.3 (linux-x64 run 36154745124,
-      windows-x64 run 36154744287). Whether the lock still flips is unmeasured.
-- [ ] `flutter pub get` reports packages held back by dependency constraints.
-      Re-counted 2026-09-15 in `:latest-cross` (`flutter pub get --dry-run`):
-      **20**, not the 45 this row claimed when it was written. Does not block a
-      build today; re-count before acting on it, the number moves with the image.
-      The android lane's own `pub get` printed **19** on 2026-09-25 (run
-      36154744222, `:latest`).
+- [b] The `permission_handler_android` 13.0.1 pin (`pubspec_overrides.yaml`):
+      14.x needs `compileSdk 37` while the image is read-only at android-36.
+      Blocked on the hub's CON14, which ships with its CON11 `:latest` republish;
+      its checklist names dropping this pin.
 
 ## Open — the web lane's rustup step
 
-- [ ] `rustup toolchain install nightly --component rust-src --target
-      wasm32-unknown-unknown` (`ci-container-run-web-linux.sh`) fails in the
-      container as soon as a **newer** nightly exists than the one the image
-      baked:
-
-      ```
-      info: syncing channel updates for nightly-x86_64-unknown-linux-gnu
-      info: latest update on 2026-09-16 for version 1.100.0-nightly (215a8af4b)
-      info: removing previous version of component cargo
-      info: rolling back changes
-      error: could not rename 'component' file from
-        '/usr/local/rustup/toolchains/nightly-x86_64-unknown-linux-gnu/share/zsh/site-functions'
-        to '/usr/local/rustup/tmp/…/bk': Invalid cross-device link (os error 18)
-      ```
-
-      Observed 2026-09-16 on the local lane. The step is documented as
-      "idempotent, and a no-op once the image ships them" (AGENTS.md § 4) — that
-      is true only while the image's nightly *is* the latest nightly. On any
-      later day rustup tries to UPDATE it, and the update renames files out of a
-      read-only overlay layer into `$RUSTUP_HOME/tmp`, which is EXDEV.
-      The Dart gate runs before this step and passed, so the failure is confined
-      to the wasm half.
-
-      **Worked around 2026-09-16** by guarding the step on the components
-      actually being absent, matching the `command -v
-      flutter_rust_bridge_codegen` guard three lines below it. Verified in
-      `:latest-cross`: both `rust-src` and `wasm32-unknown-unknown` report
-      `(installed)`, so the guard skips the install and the lane no longer
-      touches rustup at all.
-
-      That is a workaround, not the fix. **The image is the right place:** it
-      already ships both components, so it should also ensure nothing needs to
-      update them — either by pinning nightly to a dated channel
-      (`nightly-YYYY-MM-DD`) or by putting `RUSTUP_HOME` somewhere writable.
-      Until then, a bare host with no nightly still takes the install path and
-      is still exposed. Raise it against ANTfrastructure's image rather than
-      adding more here.
-
-      **Status 2026-09-25: the guard no longer skips in CI.** Web run
-      36154744073 found the image's `nightly` without both components, synced
-      the channel and downloaded them (8 s) — every run now pays that. Upstream
-      took the first fix: the hub's `docs/consumer-image-contract.md`
-      § *The web lane toolchain* documents a dated `RUST_NIGHTLY_TOOLCHAIN`
-      (`nightly-2026-06-28` in the pinned `versions.env`) installed with both
-      components, and says a consumer that names the floating channel gets it
-      downloaded per run; FRB's `--wasm-pack-rustup-toolchain` names the pin
-      instead. This lane still names `nightly`.
+- [ ] **Name the image's dated nightly instead of the floating `nightly`.**
+      `ci-container-run-web-linux.sh` still runs `rustup toolchain install nightly
+      --component rust-src --target wasm32-unknown-unknown`, guarded on the two
+      components being absent. On the read-only image layer a floating-channel
+      update dies with `Invalid cross-device link (os error 18)` (seen 2026-09-16),
+      and since 2026-09-25 CI takes the install path on every run (web run
+      36154744073 synced the channel and downloaded both, 8 s). The hub's
+      `docs/consumer-image-contract.md` § *The web lane toolchain* documents the
+      fix: the image installs `RUST_NIGHTLY_TOOLCHAIN` (`nightly-2026-06-28` in the
+      pinned `versions.env`) with both components, and FRB's
+      `--wasm-pack-rustup-toolchain` can name it.
 
 ## Open — verification gaps
 
-- [ ] **G6 over the real `oxidant.dll` and the Pi producer bundle has not run
-      since the hub pin moved to e72a9a37.** On Windows, OxidANT f018bec's
-      `oxidant.dll` carries `C:\temp\onnx-src\onnxruntime\core\`, which the
-      old census would have read as a `STALE` ORT. That was never observed: run
-      35928030211 dies earlier, at `CMake Configure` and then `Rust DLL not
-      found`. The only `oxidant.dll` on the dev box predates the marker. The
-      Windows census was proved with synthetic PEs only. On Linux,
-      `scripts/linux/cat-stream/package-producer-bundle.sh` proves
-      `/bin/kataglyphis_cat_webrtc`, which carries the Linux string, with this
-      repo's hub, and it has not been re-run. Check both after the next Windows
-      build and the next Pi bundle.
-      **The Windows half looks done (checked 2026-09-25):** windows-x64 run
-      36154744287 (hub 5ee35c8f, OxidANT 23052fc, which contains f018bec) had the
-      real `oxidant.dll` in the runner when *Stage Chain ONNX Runtime* ran G6,
-      and logged `Chain ONNX Runtime staged … and proved by G6`. Nothing here
-      records a Pi bundle run since.
+- [ ] **G6 over the Pi producer bundle has not run since the hub pin moved past
+      e72a9a37.** `scripts/linux/cat-stream/package-producer-bundle.sh` proves
+      `/bin/kataglyphis_cat_webrtc`, which carries the chain ORT's Linux source
+      path as a string, with this repo's hub. Re-run it with the next Pi bundle.
+      (The Windows half is done: windows-x64 run 36154744287 had the real
+      `oxidant.dll` in the runner when G6 passed.)
 - [ ] `scripts/windows/Start-Windows.ps1` now launches (2026-09-17) but the
       window cannot be seen from the agent's shell: it runs in **Session 0**,
       where ANGLE/DXGI surface creation fails (`SwapChain11 … 0x887A0022`,
@@ -277,19 +144,12 @@ thing is still unproven.
       no scripts at all. Mitigated 2026-09-17 by excluding that path from
       `Build-Windows-Container.ps1`'s inbound stream (the container builds
       into its own `rust_target`); upstream's sync-back still writes them.
-- [ ] **CodeQL's `paths-ignore` filters findings, not extraction.** The scoped
-      config keeps third-party code out of the *analysis*, but a built
-      language's extractor still reads those trees — GitHub's docs say limiting
-      a built scan means limiting the build, and the 2026-09-17 proof run's
-      rust database carries the whole cargo registry (21k files under
-      `usr/local/cargo`, outside the source root). If scan cost matters, the
-      levers are the Rust extractor's manual build mode or moving the Flutter
-      build tree outside the source root; neither is small. Moot for CI, which
-      no longer scans.
-- [b] flatpak and AppImage on arm64 are only ever exercised in CI: locally
-      `qemu-user` cannot carry `unshare(CLONE_NEWUSER)` through for bubblewrap,
-      nor load the static-PIE `appimagetool` — AGENTS.md § 5. Blocked on a real
-      arm64 machine; nothing to change here.
+- [ ] **The Windows lane checks added on 2026-09-28 have not run on a Windows
+      host with an image.** *Flutter AOT Freshness* first runs in the next
+      windows-x64 CI build; the lane guard's `docker top` reading
+      (`Test-WindowsBuildActive`) has only seen fixtures, since the dev box held
+      no Windows image; and the scoped `-CodeQL` run is manual-only. Confirm
+      each the first time it runs.
 
 ## Agentic loop
 
