@@ -59,6 +59,7 @@ Import-BuildModule @(
     'WindowsFormatting.Common'  # Get-ProjectDartFiles
     'WindowsPaths.Common'       # project-local: this repo's Flutter windows/x64 layout
     'WindowsOrtRunner.Common'   # project-local: stamp the G6 proof of the runner's chain ONNX Runtime
+    'WindowsFlutterAot.Common'  # project-local: the installed AOT snapshot matches the current kernel
 )
 # G6, the hub's ORT census, and the hub's staging of the chain ONNX Runtime beside the exe
 # (WindowsOrtPayload.Common, this repo's own code until 2026-09-25). An older hub pin lacks them.
@@ -201,7 +202,13 @@ try {
         $codeQLForwardParameters['SkipBootstrapFlutterBuild'] = $true
 
         Write-BuildLog -Context $context -Message "CodeQL mode: forcing SkipBootstrapFlutterBuild to analyze only non-bootstrap steps."
-        Invoke-BuildCodeQL -Context $context -Workspace $workspace -ForwardParameters $codeQLForwardParameters -BuildScriptPath $MyInvocation.MyCommand.Path
+        # The same scope as the Linux/android scan (AGENTS.md § 5): an unscoped Windows run
+        # indexed every vendored tree on 2026-09-17. The seam is the hub's; an older pin lacks it.
+        $codeQLConfig = Join-Path $workspace '.github\codeql\codeql-config.yml'
+        if (-not (Get-Command Invoke-BuildCodeQL).Parameters.ContainsKey('CodeScanningConfig')) {
+            throw "Invoke-BuildCodeQL has no -CodeScanningConfig in this ANTfrastructure pin; move third_party/ANTfrastructure to hub commit 4dbf68b9 or later rather than scan unscoped."
+        }
+        Invoke-BuildCodeQL -Context $context -Workspace $workspace -ForwardParameters $codeQLForwardParameters -BuildScriptPath $MyInvocation.MyCommand.Path -CodeScanningConfig $codeQLConfig
         exit 0
     }
 
@@ -508,26 +515,43 @@ try {
             }
         }
 
+        $cmakeBuildArgs = @(
+            "--build", $currentCMakeBuildDir,
+            "--target", "install",
+            "--parallel", ([Environment]::ProcessorCount).ToString(),
+            "--verbose",
+            # Ninja debug flags: track down overhead and why targets are rebuilding.
+            "--", "-d", "explain", "-d", "stats"
+        )
+
         Invoke-BuildStep -Context $context -StepName "CMake Build & Install$stepSuffix" -Critical -Script {
-            $processorCount = [Environment]::ProcessorCount
-            
-            $cmakeBuildArgs = @(
-                "--build", $currentCMakeBuildDir,
-                "--target", "install",
-                "--parallel", $processorCount.ToString(),
-                "--verbose"
-            )
-            
-            # --- ADDED NINJA BUILD LOGGING ---
-            # Append Ninja debug flags to track down overhead and why targets are rebuilding
-            $cmakeBuildArgs += "--"
-            $cmakeBuildArgs += "-d"
-            $cmakeBuildArgs += "explain"
-            $cmakeBuildArgs += "-d"
-            $cmakeBuildArgs += "stats"
-            # ---------------------------------
-            
             Invoke-BuildExternal -Context $context -File "cmake" -Parameters $cmakeBuildArgs
+        }
+
+        # The reused container once shipped an AOT snapshot older than the kernel beside it,
+        # and assemble called it up to date (WindowsFlutterAot.Common says how). Grade the
+        # installed data\app.so; when it is stale, drop the AOT outputs and stamps, rebuild
+        # once, and fail rather than hand over an app that dies at RustLib.init.
+        Invoke-BuildStep -Context $context -StepName "Flutter AOT Freshness$stepSuffix" -Critical -Script {
+            $aot = @{
+                DartToolDir = Join-Path $workspace '.dart_tool'
+                AotLibrary  = Join-Path $workspace 'build\windows\app.so'
+            }
+            $runnerData = Join-Path $currentBuildDirFull 'data'
+            $stale = @(Get-FlutterAotStaleness @aot -RunnerDataDir $runnerData)
+            if ($stale.Count -eq 0) {
+                Write-BuildLog -Context $context -Message "AOT snapshot in $runnerData is fresh (or this is a JIT build)."
+                return
+            }
+            $stale | ForEach-Object { Write-BuildLogWarning -Context $context -Message "Stale AOT: $_" }
+            $removed = @(Reset-FlutterAotOutput @aot)
+            Write-BuildLog -Context $context -Message "Removed $($removed.Count) AOT output(s)/stamp(s); rebuilding: $($removed -join ', ')"
+            Invoke-BuildExternal -Context $context -File "cmake" -Parameters $cmakeBuildArgs
+            $still = @(Get-FlutterAotStaleness @aot -RunnerDataDir $runnerData)
+            if ($still.Count -gt 0) {
+                throw "The AOT snapshot is still stale after a forced rebuild: $($still -join '; '). Rerun with -FreshContainer."
+            }
+            Write-BuildLog -Context $context -Message "AOT snapshot rebuilt from the current kernel."
         }
 
         Invoke-BuildStep -Context $context -StepName "Copy Rust DLL$stepSuffix" -Script {

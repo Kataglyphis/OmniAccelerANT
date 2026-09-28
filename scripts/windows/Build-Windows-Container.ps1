@@ -37,6 +37,10 @@
   Discard the reusable build container first.
 .PARAMETER Image
   Image override; defaults to the family Windows CI image.
+.PARAMETER Force
+  Build even though a Linux lane's container is running. The inbound transfer
+  would read a tree that lane is rewriting (pubspec.lock,
+  .flutter-plugins-dependencies, android/local.properties): AGENTS.md § 5.
 #>
 [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseDeclaredVarsMoreThanAssignments', 'containerResult',
     Justification = 'Assigned inside a ForEach-Object scriptblock and read after the pipeline; PSSA cannot see that.')]
@@ -50,7 +54,8 @@ param(
     [string]$Image = '',
     [switch]$CodeQL,
     [switch]$CodeQLDownload,
-    [switch]$CleanCodeQLDb
+    [switch]$CleanCodeQLDb,
+    [switch]$Force
 )
 
 Set-StrictMode -Version Latest
@@ -71,6 +76,16 @@ if (-not (Test-Path -LiteralPath $imageModule -PathType Leaf)) {
     throw "Required module not found: $imageModule (run: git submodule update --init --recursive third_party/ANTfrastructure)"
 }
 Import-Module $imageModule -Force
+
+$guardModule = Join-Path $PSScriptRoot 'modules\WindowsLaneGuard.Common.psm1'
+Import-Module $guardModule -Force
+
+# One lane at a time against this checkout (AGENTS.md § 5): the other half of
+# Invoke-LinuxLane.ps1's guard, which refuses while this build runs.
+$linuxLanes = @(Get-RunningLinuxLane)
+if ($linuxLanes.Count -gt 0 -and -not $Force) {
+    throw (Get-LaneConflictMessage -Busy $linuxLanes)
+}
 
 if ([string]::IsNullOrWhiteSpace($Image)) { $Image = Get-CiImageReference -Windows }
 $docker = Resolve-DockerExe
