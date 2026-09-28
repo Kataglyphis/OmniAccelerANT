@@ -410,29 +410,21 @@ if ($CheckParity) {
 	exit 0
 }
 
-$engine = (Get-Command 'nerdctl' -ErrorAction SilentlyContinue)?.Source
-if (-not $engine) {
-	$candidate = Join-Path $env:ProgramFiles 'Rancher Desktop\resources\resources\win32\bin\nerdctl.exe'
-	if (Test-Path -LiteralPath $candidate) { $engine = $candidate }
-}
+. (Join-Path $PSScriptRoot 'Resolve-BuildModule.ps1')
+Import-BuildModule 'WindowsLaneGuard.Common'
+
+$engine = Resolve-NerdctlExe
 if (-not $engine) {
 	throw "nerdctl not found. Install Rancher Desktop, or put nerdctl on PATH."
 }
 
-# One lane at a time against this checkout — AGENTS.md § 5. The generated files
-# at the root (android/local.properties, .dart_tool, the ephemeral plugin
-# symlinks) are per-host, and two lanes running together overwrite each other
-# mid-build while the failure names the innocent lane. The Windows build
-# container is in the pattern because the trap spans platforms.
-$laneContainers = & $engine 'ps' '--format' '{{.Names}}' 2>$null
-$busy = @($laneContainers | Where-Object {
-		($_ -like 'kataglyphis-linux-lane-*' -and $_ -ne $ContainerName) -or
-		$_ -eq 'omniaccelerant-agentic-build'
-	})
+# One lane at a time against this checkout — AGENTS.md § 5, WindowsLaneGuard.Common.
+# The Windows build is Stevedore's container, not nerdctl's: asking nerdctl for it,
+# as this check did until 2026-09-28, could never find it.
+$busy = @(Get-RunningLinuxLane -Self $ContainerName -Nerdctl $engine)
+if (Test-WindowsBuildActive) { $busy += 'omniaccelerant-agentic-build (a Windows build)' }
 if ($busy.Count -gt 0 -and -not $Force) {
-	throw ("Another lane's container is up: $($busy -join ', '). Two lanes on one checkout " +
-		"overwrite each other's generated files (AGENTS.md § 5). Wait for it to exit, " +
-		"or pass -Force when you know it is idle.")
+	throw (Get-LaneConflictMessage -Busy $busy)
 }
 
 # A named volume over each write-heavy path, always via the long --mount form

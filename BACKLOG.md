@@ -119,12 +119,6 @@ thing is still unproven.
       `dartdoc-guides-local.py`, the one non-`.sh` file that was left there, is
       gone too: ANTfrastructure upstreamed its three divergences on 2026-09-15
       and `generate-docs.sh` calls `dartdoc_build_main`.)
-- [ ] **The lane guard is one-sided.** `Invoke-LinuxLane.ps1` refuses to start
-      while another lane's container (`kataglyphis-linux-lane-*`) or the Windows
-      build container (`omniaccelerant-agentic-build`) is up, but
-      `Build-Windows.ps1` / `Build-Windows-Container.ps1` have no reciprocal
-      check — starting a Windows build under a running Linux lane still
-      clobbers the shared generated files.
 - [b] `export_android_gstreamer_env` (`scripts/linux/lib/container-steps.sh`)
       only exists because the image ships the Android GStreamer SDK at
       `/opt/android/gstreamer` without exporting `GSTREAMER_ROOT_ANDROID`. It is
@@ -274,15 +268,6 @@ thing is still unproven.
       `EGL Error: Context Lost`) and there is no desktop. The engine, the Rust
       bridge and the frb version check all pass there — the residual is "no
       interactive desktop", not an app defect. Confirm on the console session.
-- [ ] **The reusable Windows build container can carry a stale Dart AOT.**
-      Symptom: the app dies at `RustLib.init` with `Bad state: oxidant's
-      codegen version (2.12.0) should be the same as runtime version (2.13.0)`
-      while `lib/src/rust/frb_generated.dart` reads 2.13.0 — `data/app.so` was
-      a snapshot from before the bindings were regenerated, and Flutter's
-      assemble reported it up to date even with a fresh `app.dill`. Remedy
-      used: `-FreshContainer`. A durable fix would compare `data/app.so`
-      against the kernel stamp in `Build-Windows.ps1` and force the AOT
-      target when it is older.
 - [ ] **The Windows container's sync-back plants unusable reparse points in
       the host tree.** Robocopy of the container's cargo cache into
       `third_party/OxidANT/target` writes Linux-style links as Windows reparse
@@ -292,18 +277,6 @@ thing is still unproven.
       no scripts at all. Mitigated 2026-09-17 by excluding that path from
       `Build-Windows-Container.ps1`'s inbound stream (the container builds
       into its own `rust_target`); upstream's sync-back still writes them.
-- [ ] **The Windows `-CodeQL` path is unscoped until upstream grows a config
-      seam.** Exercised 2026-09-17 (the driver now forwards
-      `-CodeQL`/`-CodeQLDownload`): the Rust extractor indexed every manifest
-      under the source root — 187 of them, including corrosion's own test
-      crates under `build/.../_deps` — and the C++ extractor followed the build
-      into every vendored library. The run was aborted.
-      `WindowsCodeQL.Common.psm1` builds its `database create`/`analyze` args
-      with no way to pass `--codescanning-config`, so a scoped Windows run
-      needs that parameter upstreamed (preferred) or a repo-local fork of
-      `Invoke-BuildCodeQL`. The Linux/android scan is scoped by
-      `.github/codeql/codeql-config.yml`. CI runs no CodeQL at all since
-      2026-09-17 (owner directive) — this path is manual-only.
 - [ ] **CodeQL's `paths-ignore` filters findings, not extraction.** The scoped
       config keeps third-party code out of the *analysis*, but a built
       language's extractor still reads those trees — GitHub's docs say limiting

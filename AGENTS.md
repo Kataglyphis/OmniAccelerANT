@@ -866,8 +866,12 @@ release build runs `bundle-runtime-closure.sh`, then the `knt ABI` and
 against the lane's workflow (change driver and workflow together); for
 `native` it grades `-Arch`'s own file, resolving `reusable-linux.yml`'s
 `${{ inputs.* }}` from it. It runs before the engine is looked up, so it needs
-no nerdctl and starts nothing. A real run refuses to start while another lane's
-container is up (`-Force` overrides).
+no nerdctl and starts nothing. A real run refuses to start while another Linux
+lane's container is up or a Windows build is running, and
+`Build-Windows-Container.ps1` refuses while a Linux lane is up (`-Force`
+overrides both; `scripts/windows/modules/WindowsLaneGuard.Common.psm1`). The two
+lanes sit on two engines: the Windows build container is Stevedore's, idles on
+`ping` between builds, and counts as busy only while a `pwsh` runs in it.
 
 **arm64 locally needs QEMU registered once per VM boot**, and an emulated
 arm64 run produces tar and deb but never flatpak or AppImage: `qemu-user` does
@@ -1010,9 +1014,11 @@ language's extractor still sees those files, and the Rust extractor indexes the
 cargo registry under `usr/local/cargo` (21k files on the 2026-09-17 run), which
 no source-root-relative path filter can reach. What it buys is the outcome:
 that run produced 10 Rust findings, all under `third_party/OxidANT`, and none
-from an ignored path. The Windows `-CodeQL` path has no config seam in
-upstream's `WindowsCodeQL.Common.psm1` and indexed vendored code when exercised
-on 2026-09-17 — do not rerun it unscoped.
+from an ignored path. The Windows `-CodeQL` path passes the same file since
+2026-09-28, through the hub's `Invoke-BuildCodeQL -CodeScanningConfig` (hub
+4dbf68b9); `Build-Windows.ps1` stops rather than scan unscoped on an older pin,
+because the unscoped run of 2026-09-17 indexed every vendored tree. A reused
+`codeql-db-cluster` keeps the scope it was created with: pass `-CleanCodeQLDb`.
 
 `FLUTTER_DIR` defaults to `/opt/flutter` — the image's SDK, shared by every
 lane and never written to. It used to default inside the workspace, which made
