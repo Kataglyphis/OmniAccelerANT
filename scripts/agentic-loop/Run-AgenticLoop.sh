@@ -14,7 +14,7 @@ set -euo pipefail
 #
 # Engines (config .engine, or --engine / AGENTIC_ENGINE):
 #   claude   — Claude Code CLI; models come from the config
-#   opencode — OpenCode CLI; models come from the config
+#   opencode — OpenCode v2 CLI (v1 is refused); models come from the config
 #
 # Usage:
 #   ./scripts/agentic-loop/Run-AgenticLoop.sh [options]

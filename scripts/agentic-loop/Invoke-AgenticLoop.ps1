@@ -13,7 +13,7 @@
 
   Engines are selected by the config's .engine key (or -Engine /
   $env:AGENTIC_ENGINE); models are configured per engine in the config.
-.PARAMETER Engine  Engine override: claude | opencode (default: config .engine).
+.PARAMETER Engine  Engine override: claude | opencode (v2 CLI; default: config .engine).
 .PARAMETER DryRun  Print actions without executing.
 .PARAMETER MaxIterations  Override max iterations (0 = unlimited).
 .PARAMETER PlannerOnly  Run planner once and exit.
