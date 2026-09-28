@@ -462,7 +462,7 @@ The rules are in AGENTS.md § 4; the measurements that produced them are here.
   2026-09-25: a 91.8 MB `app-release.apk`).
   `abiFilters "arm64-v8a"` in the native plugin's
   `android/build.gradle` stays — real phones, not the emulator.
-  AGP 9.4.0 + Gradle 9.7.1 builds that against four constraints, all
+  AGP 9.4.1 + Gradle 9.8.0 builds that against four constraints, all
   load-bearing:
 
   - **Built-in Kotlin, with a declared KGP for the version check — and CodeQL

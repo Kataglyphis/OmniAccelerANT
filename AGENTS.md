@@ -393,7 +393,7 @@ written out rather than linked.
   completed run since 2026-09-18 is green (36154744222 on 2026-09-25: a 91.8 MB
   `app-release.apk`, `testDebugUnitTest` passed); before the switch, the CodeQL
   build was stopping at Kotlin compilation several steps before the native
-  link. `abiFilters "arm64-v8a"` stays — real phones, not the emulator. AGP 9.4.0 + Gradle 9.7.1
+  link. `abiFilters "arm64-v8a"` stays — real phones, not the emulator. AGP 9.4.1 + Gradle 9.8.0
   builds that against four constraints, all load-bearing and none of them
   optional:
 
