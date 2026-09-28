@@ -1,7 +1,7 @@
 #requires -Version 7.0
 
 # PROJECT-SPECIFIC: a guard for one failure of this repo's reused Windows build container
-# (BACKLOG § Open — verification gaps, 2026-09-28). The app died at RustLib.init with
+# (fixed 2026-09-28; it was a BACKLOG item). The app died at RustLib.init with
 # "oxidant's codegen version (2.12.0) should be the same as runtime version (2.13.0)" while
 # lib/src/rust/frb_generated.dart read 2.13.0: the runner's data\app.so was an AOT snapshot
 # from before the bindings were regenerated, and flutter assemble reported the AOT target up
