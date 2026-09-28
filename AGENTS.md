@@ -717,9 +717,8 @@ into `~/.opencode/bin`; on Windows run that from Git Bash with
 `PATH`. Scoop and GitHub releases still ship 1.x. v2 does not read v1's saved
 login, so run `opencode auth login` once more under v2, then check `opencode
 models` for both model IDs above. The loop passes `--standalone` (both roles)
-and `--auto` (executor). The hub refuses a v1 on `PATH` with a FATAL, but only
-from its `feature/opencode-v2` commits on; the pinned hub does not have them
-yet. Why each flag, and what v1 did instead:
+and `--auto` (executor), and the pinned hub refuses a v1 on `PATH` with a
+FATAL. Why each flag, and what v1 did instead:
 [`windows-agentic-loop.md` § *opencode v2*](third_party/ANTfrastructure/docs/windows-agentic-loop.md#opencode-v2).
 
 ```powershell
