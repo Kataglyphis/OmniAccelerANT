@@ -16,6 +16,7 @@ on:
     branches: ["main", "develop"]
   pull_request:
     branches: ["main", "develop"]
+  workflow_dispatch:
 
 # Per-ref group, like the web lane. The APK build is minutes, not seconds, and
 # this lane no longer runs CodeQL (owner directive 2026-09-17): the scan is

@@ -18,6 +18,7 @@ on:
     branches: ["main", "develop"]
   pull_request:
     branches: ["main", "develop"]
+  workflow_dispatch:
 
 # Per-ref group, like every lane here. A superseded run's verdict can never be
 # the one branch protection asks for, and the build is QEMU-free but still tens

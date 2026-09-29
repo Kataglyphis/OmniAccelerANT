@@ -27,6 +27,7 @@ on:
     branches: ["main", "develop"]
   pull_request:
     branches: ["main", "develop"]
+  workflow_dispatch:
 
 # Same shape as submodule-pins.yml. This lane builds the Rust wasm and
 # recompiles the standard library, so two runs of it on one ref is the most
