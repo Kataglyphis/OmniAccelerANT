@@ -51,8 +51,8 @@ add_definitions(-DUNICODE -D_UNICODE)
 function(APPLY_STANDARD_SETTINGS TARGET)
   target_compile_features(${TARGET} PUBLIC cxx_std_17)
   target_compile_options(${TARGET} PRIVATE /W3 /wd4100) # /WX
-  # clang-cl only: MSVC's cl reads -W<n> as a warning level and stops at these with D8021, which
-  # the Windows arm64 app job, built with cl on windows-11-arm, found.
+  # clang-cl only: MSVC's cl reads -W<n> as a warning level and stops at these with D8021. Every
+  # lane builds with clang-cl; the guard is for the MSVC presets.
   if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     target_compile_options(${TARGET} PRIVATE -Wno-cast-function-type-mismatch -Wno-unused-function)
   endif()

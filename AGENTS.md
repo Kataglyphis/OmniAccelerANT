@@ -776,18 +776,30 @@ CI passes `-SkipMsixPackaging`, and `-CodeQL` is off there because of runtimes.
 - `natives` runs `scripts/windows/Build-WindowsArm64Natives.ps1` in the hub's arm64 container
   lane. It cross-builds AccelerANTgine and `oxidant.dll`, without DirectML, because the arm64
   ORT has no DirectML EP.
-- `app` builds the Flutter part natively on `windows-11-arm` against those. Two environment
+- `app` builds the Flutter part natively on `windows-11-arm` against those, with clang-cl like
+  every other Windows build here: `scripts/windows/Build-WindowsArm64App.ps1`. Two environment
   switches do it. `CARGOKIT_PREBUILT_DIR` is a local Cargokit patch that copies the DLL and
   skips cargo. `KATAGLYPHIS_ACCELERANTGINE_PREBUILT` makes the plugin link an imported
   AccelerANTgine instead of `add_subdirectory`.
 
 With both switches unset, x64 builds exactly as before.
 
-The lane is green since run 36322839058. On the device, the app tree passes the hub's import
-walk (40 files, 0 unresolved), and the app stays up 20 s at 150 MB with a real window. Two traps
-surfaced on the way there:
-- Flutter builds with MSVC `cl` on that runner, which rejects clang-cl's `-Wno-…` flags with
-  D8021. `APPLY_STANDARD_SETTINGS` now gives them to clang only.
+The lane went green in run 36322839058 and has built with clang-cl since test run 36622834879
+(2026-09-29). On the device, the app tree passes the hub's import walk (40 files, 0
+unresolved), and the app stays up 20 s at 147 MB with a real window. Two traps surfaced on the
+way there:
+- **Never a plain `flutter build windows` there.** Flutter hands CMake the Visual Studio
+  generator without a toolset, so MSVC's `cl` compiled the whole app. First it stopped at
+  clang-cl's `-Wno-…` flags (D8021). Then, once the runner moved to VS 2026
+  (`windows-11-vs2026-arm64`, MSVC 14.51, 2026-09-29), it stopped at permission_handler_windows'
+  `/await` (STL1011). The script builds the way x64 does:
+  - Flutter's `--config-only` runs under the ClangCL toolset, through a toolchain file in
+    `CMAKE_TOOLCHAIN_FILE`.
+  - Then Ninja and VS's own clang-cl build the app.
+  - It fails when either build tree recorded any other compiler.
+
+  `APPLY_STANDARD_SETTINGS` still gives the `-Wno-…` flags to clang only; that guard is for the
+  MSVC presets.
 - `.plugin_symlinks` is a junction there that `REALPATH` leaves unresolved. That is why the
   cross-built AccelerANTgine brings its own C API headers.
 
