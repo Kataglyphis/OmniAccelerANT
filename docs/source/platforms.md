@@ -422,8 +422,8 @@ rejected; both would be regressions here, so do not "fix" their absence:
 
 The rules are in AGENTS.md § 4; the measurements that produced them are here.
 
-- **`--gcc-toolchain` is load-bearing here, and ANTfrastructure deleted the helper
-  that set it.** `export_clang_gcc_toolchain_env` went away upstream on
+- **`--gcc-toolchain` was load-bearing here until 2026-09-29, and ANTfrastructure
+  deleted the helper that set it.** `export_clang_gcc_toolchain_env` went away upstream on
   2026-09-05 (`e2c63f7b`), documented as dead: *"had no caller in the build […]
   nothing in the tree sets a bare `CC=clang`"*. Both statements are true of
   ANTfrastructure and false of this repo — `export_toolchain_env` set exactly that
@@ -446,6 +446,14 @@ The rules are in AGENTS.md § 4; the measurements that produced them are here.
 
   The wider lesson for every ANTfrastructure bump: upstream reasons about its own
   tree when it removes something. "No caller" means no caller *there*.
+
+  **Retired 2026-09-29.** `:latest` since then ships `<native-triple>-clang{,++}.cfg`
+  beside the compiler (hub CON16), so a bare `clang++` selects
+  `/opt/gcc-16.2.0` by itself. `export_toolchain_env` stopped injecting
+  `--gcc-toolchain`, `-L` and `-rpath` and now checks the selection instead
+  (`[Info] CC=clang CXX=clang++, selecting /opt/gcc-16.2.0/lib/gcc/x86_64-pc-linux-gnu/16.2.0`).
+  The local native lane then built the bundle and passed the knt ABI and runtime
+  closure gates without the rpath the flags used to add.
 
 - **The Android prebuilts are aarch64 now, and the lane's toolchain moved with
   them.** Until 2026-09-11 the image carried `ELF x86-64` GStreamer/ONNX
@@ -501,7 +509,7 @@ The rules are in AGENTS.md § 4; the measurements that produced them are here.
     are gone in Gradle 9; `rust_builder/cargokit/gradle/plugin.gradle` injects
     `ExecOperations` and reads `project.layout.buildDirectory`. Upstream Cargokit
     still has the old calls, so keep this patch when bumping the vendored copy.
-  - **`permission_handler_android` is pinned to 13.0.1** in
-    `pubspec_overrides.yaml`. The 14.x that permission_handler 13.0.2 resolves
-    needs `compileSdk 37`; the image ships android-36 and its SDK is read-only.
-    Drop the pin when the image carries 37.
+  - **`compileSdk` moved to 37 on 2026-09-29, and the `permission_handler_android`
+    13.0.1 pin went with it.** The 14.x that permission_handler 13.0.2 resolves
+    needs `compileSdk 37`; the image shipped android-36 only, from a stale SDK
+    cache (hub CON14), until `:latest` of 2026-09-29.

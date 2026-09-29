@@ -246,7 +246,7 @@ written out rather than linked.
   asks for and does not find cannot be installed — Gradle stops with
   `The SDK directory is not writable`, one component per run. AGP's defaults
   (build-tools 35.x, NDK 27/28.x, cmake 3.22.1) are all
-  wrong for this image, which carries 36.0.0, 29.0.14206865 and 4.1.2. One
+  wrong for this image, which carries 37.0.0 (and 36.0.0), 29.0.14206865 and 4.1.2. One
   place pins them (single-sourced 2026-09-17): the `extra` block in
   `android/build.gradle.kts` (`kataglyphisCompileSdk`, `kataglyphisBuildTools`,
   `kataglyphisNdk`, `kataglyphisCmake`). Its global `subprojects` override sets
@@ -259,17 +259,15 @@ written out rather than linked.
   registering `afterEvaluate` afterwards throws `Cannot run
   Project.afterEvaluate(Action) when the project is already evaluated`.
 
-- **`--gcc-toolchain` is load-bearing here, and ANTfrastructure deleted the helper
-  that set it.** `export_clang_gcc_toolchain_env` went away upstream on
-  2026-09-05 as dead code — true of ANTfrastructure, false of this repo, whose
-  `export_toolchain_env` set exactly the bare `CC=clang` that needs it. Without
-  the flag clang resolves libstdc++ against the system copy instead of the
-  source-built GCC 16.2.0 and the link dies; with it the bundle and all four
-  packages build. `export_toolchain_env` restores the flags through
-  `gcc_toolchain_prefix()` — do not hard-code `/opt/gcc-16.2.0`. Upstream names
-  `/usr/local/bin/clang-<arch>` as the replacement and `:latest` ships
-  none of them, so that branch is preferred and never taken. The two-run
-  comparison, and the wider lesson for every hub bump, are in
+- **The image's clang selects its own GCC; nothing here injects `--gcc-toolchain`
+  any more.** Since `:latest` of 2026-09-29 (hub CON16) a bare `clang`/`clang++`
+  reads `<native-triple>-clang{,++}.cfg` beside it, which names the source-built
+  GCC 16.2.0. Before that it picked the distro GCC and the link died, which is
+  why `export_toolchain_env` injected the flag for months. It now only sets
+  `CC=clang CXX=clang++` and **refuses** a clang that selects anything but
+  `gcc_toolchain_resolve_prefix()`'s GCC: an image older than CON16 fails there,
+  loudly, instead of at the link. Do not put the flag back to "fix" that; pull
+  the image. History and measurements:
   [`docs/source/platforms.md`](docs/source/platforms.md)
   § *Android and cross-toolchain constraints*.
 
@@ -420,10 +418,15 @@ written out rather than linked.
     are gone in Gradle 9; `rust_builder/cargokit/gradle/plugin.gradle` injects
     `ExecOperations` and reads `project.layout.buildDirectory`. Upstream Cargokit
     still has the old calls, so keep this patch when bumping the vendored copy.
-  - **`permission_handler_android` is pinned to 13.0.1** in
-    `pubspec_overrides.yaml`. The 14.x that permission_handler 13.0.2 resolves
-    needs `compileSdk 37`; the image ships android-36 and its SDK is read-only.
-    Drop the pin when the image carries 37.
+    The same file keeps a second one: from API 37 AGP reports the compile SDK
+    as `android-37.0`, and upstream's `substring(8) as int` dies on it with
+    `For input string: "37.0"` while configuring `:oxidant`; the patch keeps
+    the major version only.
+  - **`compileSdk` is 37** (`kataglyphisCompileSdk`, build-tools 37.0.0). The
+    `permission_handler_android` 14.x that permission_handler 13.0.2 resolves
+    needs it, and the global override would otherwise pull that plugin back to
+    36. The image carries android-37 since `:latest` of 2026-09-29 (hub CON14);
+    until then a 13.0.1 pin in `pubspec_overrides.yaml` stood in for it.
 
 - **The Rust manifest path must be counted from the *resolved* plugin dir.**
   Cargokit builds `CARGOKIT_MANIFEST_DIR` by string-joining

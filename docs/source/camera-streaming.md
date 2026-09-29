@@ -333,7 +333,10 @@ producer's equivalent).
 
 Two traps bite anyone wiring this by hand: the image's `entrypoint.sh` sources
 `libcamera-env.sh`, which re-prepends `/opt/libcamera/lib` and silently
-overrides the `LD_LIBRARY_PATH` above — hence `--entrypoint bash`; and
+overrides the `LD_LIBRARY_PATH` above — hence `--entrypoint bash` (`:latest`
+since 2026-09-29 appends its libcamera *after* a caller's path instead, hub CON23,
+so the bypass should no longer be needed; it stays here until a board has run
+the recipe without it); and
 `webrtcsink`'s `meta` must be a space-free structure in gst-launch
 (`meta="meta,name=Zero-Cat-Cam"`; a space fails to parse). For its own
 homepage, install nginx on the board (`sudo apt install nginx`; it lands in
