@@ -44,8 +44,8 @@ thing is still unproven.
       `DISPLAY`. The dev box is Windows with a C920 and `usbipd` installed, so
       the route exists (§ 4) — attach the camera to WSL, run the bundle under
       Xvfb in the image, and grep the log for
-      `[my_texture] first pushed frame`. Needs `xvfb` in the image (hub CON20,
-      shipped with CON11), or an `apt-get install` as root inside the container.
+      `[my_texture] first pushed frame`. `xvfb-run` is in the image since
+      `:latest` of 2026-09-29 (hub CON20, checked in the published amd64 child).
 
 ## Open — smaller code leftovers
 
@@ -102,10 +102,6 @@ thing is still unproven.
       `KATAGLYPHIS_BUNDLE_MODEL=0` on the lane drops it for a smaller artifact
       that then needs `KATAGLYPHIS_ONNX_MODEL` at runtime. Decide if the default
       should flip.
-- [b] The `permission_handler_android` 13.0.1 pin (`pubspec_overrides.yaml`):
-      14.x needs `compileSdk 37` while the image is read-only at android-36.
-      Blocked on the hub's CON14, which ships with its CON11 `:latest` republish;
-      its checklist names dropping this pin.
 
 ## Open — the web lane's rustup step
 

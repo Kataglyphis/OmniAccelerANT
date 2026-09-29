@@ -9,8 +9,8 @@ allprojects {
 // (/opt/android-sdk is read-only, so anything else makes Gradle try to install
 // and fail). Modules read these instead of repeating literals, and the
 // subprojects override below covers third-party plugins - AGENTS.md § 4.
-extra["kataglyphisCompileSdk"] = 36
-extra["kataglyphisBuildTools"] = "36.0.0"
+extra["kataglyphisCompileSdk"] = 37
+extra["kataglyphisBuildTools"] = "37.0.0"
 extra["kataglyphisNdk"] = "29.0.14206865"
 extra["kataglyphisCmake"] = "4.1.2"
 
