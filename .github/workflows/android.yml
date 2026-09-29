@@ -46,6 +46,8 @@ jobs:
     # SARIF here any more.
     permissions:
       contents: read
+      # compiler-cache-save deletes this key's older cache entries.
+      actions: write
 
     steps:
       # ANTfrastructure's shared prologue: reclaim disk, check out, log in to ghcr,

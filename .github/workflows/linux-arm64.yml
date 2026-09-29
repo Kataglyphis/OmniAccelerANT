@@ -38,6 +38,10 @@ jobs:
   # which Invoke-LinuxLane.ps1 -CheckParity reads the same way: a flat block of
   # plain `key: value` lines.
   build:
+    permissions:
+      contents: read
+      # reusable-linux.yml's compiler-cache-save deletes its key's older entries.
+      actions: write
     uses: ./.github/workflows/reusable-linux.yml
     with:
       runner: ubuntu-26.04-arm

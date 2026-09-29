@@ -79,6 +79,8 @@ jobs:
     # writes code-scanning alerts. The scope comes back the day CodeQL does.
     permissions:
       contents: read
+      # compiler-cache-save deletes this key's older cache entries.
+      actions: write
 
     steps:
       # Reclaim disk, check out, log in to ghcr and pull the image with retries
