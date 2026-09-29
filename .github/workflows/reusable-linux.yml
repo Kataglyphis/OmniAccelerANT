@@ -103,6 +103,16 @@ jobs:
           fetch-depth: '1'
           submodules: recursive
 
+      # The lane's sccache (Rust through RUSTC_WRAPPER, C++ through the CMake
+      # launcher) outlives the container. Only pushes save.
+      - name: Restore compiler cache
+        id: cc
+        uses: Kataglyphis/ANTfrastructure/.github/actions/compiler-cache-restore@develop
+        with:
+          key: ${{ inputs.arch }}-native
+          mounts: 'sccache:/var/cache/sccache'
+          env: 'SCCACHE_CACHE_SIZE=1500M'
+
       # `-e CI=true` is load-bearing, not decoration. generate-docs.sh ends by
       # chowning the generated doc/api/ tree from the container's root back to
       # the uid that owns the bind-mounted workspace, and that block is guarded
@@ -120,7 +130,7 @@ jobs:
       - name: Run container
         uses: Kataglyphis/ANTfrastructure/.github/actions/run-in-linux-container@develop
         with:
-          extra-args: --privileged --platform "${{ inputs.platform }}" -e CI=true
+          extra-args: --privileged --platform "${{ inputs.platform }}" -e CI=true ${{ steps.cc.outputs.docker-args }}
           script: >-
             bash /workspace/scripts/linux/ci/ci-container-run-native-linux.sh
             --arch "${{ inputs.arch }}"
@@ -132,6 +142,12 @@ jobs:
             --strict-checks true
             --run-codeql false
             --run-docs "${{ inputs.run-docs }}"
+
+      - name: Save compiler cache
+        if: always() && steps.cc.outputs.path != ''
+        uses: Kataglyphis/ANTfrastructure/.github/actions/compiler-cache-save@develop
+        with:
+          key: ${{ inputs.arch }}-native
 
       # There is no "Upload CodeQL results SARIF" step here, on purpose. The
       # native Linux flow implements no CodeQL scan — ci-container-run-native-linux.sh

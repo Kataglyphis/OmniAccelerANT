@@ -66,10 +66,20 @@ jobs:
           fetch-depth: '1'
           submodules: recursive
 
+      # The lane's sccache (cargokit's Rust builds) outlives the container.
+      # Only pushes save.
+      - name: Restore compiler cache
+        id: cc
+        uses: Kataglyphis/ANTfrastructure/.github/actions/compiler-cache-restore@develop
+        with:
+          key: ${{ matrix.arch }}-android
+          mounts: 'sccache:/var/cache/sccache'
+          env: 'SCCACHE_CACHE_SIZE=1000M'
+
       - name: Run container
         uses: Kataglyphis/ANTfrastructure/.github/actions/run-in-linux-container@develop
         with:
-          extra-args: --platform "${{ matrix.platform }}"
+          extra-args: --platform "${{ matrix.platform }}" ${{ steps.cc.outputs.docker-args }}
           script: >-
             bash /workspace/scripts/linux/ci/ci-container-run-android.sh
             --arch "${{ matrix.arch }}"
@@ -77,6 +87,12 @@ jobs:
             --flutter-dir "${{ matrix.flutter_dir }}"
             --app-name "${{ matrix.app_name }}"
             --run-codeql false
+
+      - name: Save compiler cache
+        if: always() && steps.cc.outputs.path != ''
+        uses: Kataglyphis/ANTfrastructure/.github/actions/compiler-cache-save@develop
+        with:
+          key: ${{ matrix.arch }}-android
 
       - name: Upload artifact
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a

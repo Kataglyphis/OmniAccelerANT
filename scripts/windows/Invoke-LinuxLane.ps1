@@ -216,6 +216,9 @@ function Resolve-LaneExpression {
 			if ($EnvMap.ContainsKey($key)) { return $EnvMap[$key] }
 			throw "parity: no resolution for `${{ env.$key }}"
 		}
+		# The one CI-only difference: the hub's compiler-cache-restore mounts the
+		# persisted sccache dir. It changes where the cache lives, not what builds.
+		if ($expr -eq 'steps.cc.outputs.docker-args') { return '' }
 		throw "parity: unresolvable expression `${{ $expr }}"
 	}
 	return [regex]::Replace($Text, '\$\{\{\s*([^}]+?)\s*\}\}', $evaluator)

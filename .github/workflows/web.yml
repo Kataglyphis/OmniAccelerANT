@@ -75,16 +75,32 @@ jobs:
           fetch-depth: '0'
           submodules: recursive
 
+      # The lane's sccache (the wasm Rust build) outlives the container. Only
+      # pushes save.
+      - name: Restore compiler cache
+        id: cc
+        uses: Kataglyphis/ANTfrastructure/.github/actions/compiler-cache-restore@develop
+        with:
+          key: x64-web
+          mounts: 'sccache:/var/cache/sccache'
+          env: 'SCCACHE_CACHE_SIZE=1000M'
+
       - name: Run container
         uses: Kataglyphis/ANTfrastructure/.github/actions/run-in-linux-container@develop
         with:
-          extra-args: --privileged --platform "linux/amd64"
+          extra-args: --privileged --platform "linux/amd64" ${{ steps.cc.outputs.docker-args }}
           script: >-
             bash /workspace/scripts/linux/ci/ci-container-run-web-linux.sh
             --arch "x64"
             --flutter-dir "${{ env.FLUTTER_DIR }}"
             --strict-checks true
             --run-codeql false
+
+      - name: Save compiler cache
+        if: always() && steps.cc.outputs.path != ''
+        uses: Kataglyphis/ANTfrastructure/.github/actions/compiler-cache-save@develop
+        with:
+          key: x64-web
 
       - name: Upload Web App Files for Deployment
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
