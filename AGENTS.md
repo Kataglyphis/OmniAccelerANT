@@ -95,7 +95,7 @@ reorganisation.
 | Isolation policy, and `docker commit` needing hyperv | `docs/windows-build-lanes.md` |
 | An error message from either lane — symptom → cause → fix | `docs/failure-modes.md` |
 | Bind mount vs tar-pipe, **Dev Drive filter setup**, container reuse, measured timings | `docs/windows-container-build-performance.md` |
-| sccache on a C++20/23 modules build — it stores nothing there | `docs/windows-container-build-performance.md` § *sccache on a C++23 modules build* |
+| sccache on a C++20/23 modules build — the released one serves stale importers on clang-cl until mozilla/sccache#2876 ships | `docs/windows-container-build-performance.md` § *sccache on a C++23 modules build* |
 | The image's pkg-config and rustup provisioning | `docs/windows-builds.md` (§ *Toolchain pins and the provenance manifest*, § *Rust toolchain*) |
 | Wiring this repo to ANTfrastructure — resolver, actions, libraries | `docs/adopting-in-a-new-project.md` |
 | Linux container builds | `docs/linux-build-basics.md` |
