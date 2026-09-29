@@ -21,6 +21,7 @@ on:
     branches: ["main", "develop"]
   pull_request:
     branches: ["main", "develop"]
+  workflow_dispatch:
 
 # Per-ref group, like every lane here. Its own group rather than x64's, so a
 # failing or superseded arm64 run can never cancel the x64 verdict.
