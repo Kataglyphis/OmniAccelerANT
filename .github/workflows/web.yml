@@ -79,7 +79,7 @@ jobs:
           submodules: recursive
 
       # The lane's sccache (the wasm Rust build) outlives the container. Only
-      # pushes save.
+      # pushes to develop save.
       - name: Restore compiler cache
         id: cc
         uses: Kataglyphis/ANTfrastructure/.github/actions/compiler-cache-restore@develop

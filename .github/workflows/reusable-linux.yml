@@ -106,7 +106,7 @@ jobs:
           submodules: recursive
 
       # The lane's sccache (Rust through RUSTC_WRAPPER, C++ through the CMake
-      # launcher) outlives the container. Only pushes save.
+      # launcher) outlives the container. Only pushes to develop save.
       - name: Restore compiler cache
         id: cc
         uses: Kataglyphis/ANTfrastructure/.github/actions/compiler-cache-restore@develop
