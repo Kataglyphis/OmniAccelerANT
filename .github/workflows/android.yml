@@ -70,7 +70,7 @@ jobs:
           submodules: recursive
 
       # The lane's sccache (cargokit's Rust builds) outlives the container.
-      # Only pushes save.
+      # Only pushes to develop save.
       - name: Restore compiler cache
         id: cc
         uses: Kataglyphis/ANTfrastructure/.github/actions/compiler-cache-restore@develop
