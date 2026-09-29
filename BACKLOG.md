@@ -25,10 +25,12 @@ consumes, so the loop this repo adopted on 2026-09-13 (`scripts/agentic-loop/`,
 
 ## Open — Windows arm64
 
-- [ ] **What the Windows arm64 lane does not prove yet** [M, ★]. The lane is green
-      since 2026-09-27 (run 36322839058): on the windows-11-arm device the app tree
-      passes the hub's import walk (40 files, 0 unresolved) and the app stays up 20 s at
-      150 MB, a real window. No camera frame and no inference have run on arm64 (the
+- [ ] **What the Windows arm64 lane does not prove yet** [M, ★]. The lane went green
+      on 2026-09-27 (run 36322839058). It went red on 2026-09-29, when windows-11-arm
+      moved to VS 2026 and MSVC's `cl` stopped at STL1011. Since then the app builds with
+      clang-cl (test run 36622834879). On the windows-11-arm device the app tree passes
+      the hub's import walk (40 files, 0 unresolved), and the app stays up 20 s at 147 MB
+      with a real window. No camera frame and no inference have run on arm64 (the
       runner has no camera), and no arm64 MSIX is built. The lane is described in
       `windows-arm64.yml` and in AGENTS.md § 5.
 

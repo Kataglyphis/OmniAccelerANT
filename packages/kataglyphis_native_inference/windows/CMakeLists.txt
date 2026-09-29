@@ -43,7 +43,9 @@ if(DEFINED ENV{KATAGLYPHIS_ACCELERANTGINE_PREBUILT}
        "$ENV{KATAGLYPHIS_ACCELERANTGINE_PREBUILT}"
        STREQUAL
        "")
-  set(_KCI_PREBUILT "$ENV{KATAGLYPHIS_ACCELERANTGINE_PREBUILT}")
+  # A CMake path, not the variable's backslashes: install() re-parses the DLL path, where "\a" is an
+  # escape (run 36622017682).
+  file(TO_CMAKE_PATH "$ENV{KATAGLYPHIS_ACCELERANTGINE_PREBUILT}" _KCI_PREBUILT)
   foreach(_kci_file "bin/AccelerANTgine.dll" "lib/AccelerANTgine.lib" "include/kataglyphis_c_api.h")
     if(NOT EXISTS "${_KCI_PREBUILT}/${_kci_file}")
       message(FATAL_ERROR "KATAGLYPHIS_ACCELERANTGINE_PREBUILT lacks ${_kci_file}: ${_KCI_PREBUILT}")
