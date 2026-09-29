@@ -115,6 +115,10 @@ jobs:
     # The gates above are cheap and architecture-independent: no point paying
     # for a container pull to learn a shell script has a typo.
     needs: [lint, shared-config]
+    permissions:
+      contents: read
+      # reusable-linux.yml's compiler-cache-save deletes its key's older entries.
+      actions: write
     uses: ./.github/workflows/reusable-linux.yml
     with:
       runner: ubuntu-26.04

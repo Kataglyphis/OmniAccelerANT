@@ -51,6 +51,8 @@ jobs:
     # use.
     permissions:
       contents: read
+      # compiler-cache-save deletes this key's older cache entries.
+      actions: write
 
     env:
       FLUTTER_DIR: /opt/flutter
