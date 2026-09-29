@@ -35,6 +35,10 @@ get_filename_component(_KCI_PLUGIN_ROOT "${_KCI_PLUGIN_PLATFORM_DIR}" DIRECTORY)
 get_filename_component(_KCI_PACKAGES "${_KCI_PLUGIN_ROOT}" DIRECTORY)
 get_filename_component(_KCI_REPO_ROOT "${_KCI_PACKAGES}" DIRECTORY)
 set(KCI_DIR "${_KCI_REPO_ROOT}/third_party/AccelerANTgine")
+# AccelerANTgine's Cache.cmake unsets CMAKE_<LANG>_COMPILER_LAUNCHER when its
+# preset variable COMPILER_CACHE is empty, which it always is here. That dropped
+# the lane's sccache launcher for AccelerANTgine and every target after it.
+set(myproject_ENABLE_CACHE OFF)
 add_subdirectory(${KCI_DIR} ${CMAKE_CURRENT_BINARY_DIR}/native_build)
 
 # Define the plugin library target. Its name must not be changed (see comment

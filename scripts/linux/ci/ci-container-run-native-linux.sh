@@ -147,3 +147,6 @@ app_packaging_run_command_with_runtime "$PACKAGE_FORMATS" \
     --package-formats "$PACKAGE_FORMATS" \
     --strict-checks "$STRICT_CHECKS" \
     --run-docs "$RUN_DOCS"
+
+# What the persisted cache bought this run (reusable-linux.yml restores it).
+dump_compiler_cache_stats || true
