@@ -213,6 +213,14 @@ happen in their own repositories.
 Everything here is false or meaningless in another repo — that is why it is
 written out rather than linked.
 
+- **Two scripts print a fixed line range of their own header as `--help`.**
+  `scripts/linux/cat-stream/package-producer-bundle.sh` (`sed -n '2,24p'`) and
+  `scripts/agentic-loop/Run-AgenticLoop.sh` (`head -30 | tail -28`): edit the
+  header and the range together.
+- **The two bootstrap copies are body-mode assets.** Below their header,
+  `scripts/linux/lib/antfrastructure.sh` and `scripts/windows/Resolve-BuildModule.ps1`
+  must equal the hub templates byte for byte (`sync-shared-config.sh --check`).
+  Re-copy them from the templates after an upstream change; never edit them here.
 - **Six image gaps this repo used to work around are fixed in the image
   (2026-09-05); do not reintroduce the workarounds.** They were: a root-owned
   `.dart_tool` inside a read-only overlay layer, a populated `/opt/android-sdk`
