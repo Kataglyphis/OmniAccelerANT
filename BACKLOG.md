@@ -34,6 +34,24 @@ consumes, so the loop this repo adopted on 2026-09-13 (`scripts/agentic-loop/`,
       runner has no camera), and no arm64 MSIX is built. The lane is described in
       `windows-arm64.yml` and in AGENTS.md § 5.
 
+- [ ] **The Windows arm64 lane runs tests, not only a launch** [M, ★★]. Owner request
+      2026-09-30; the family-wide plan is the hub's CON43. Today `windows-arm64.yml`'s app
+      job builds the app natively on `windows-11-arm` with the image's Flutter and then only
+      launches it for 20 s, so arm64 has no test verdict. This repo's own workflow (not the
+      hub's `container-ci-windows.yml`), so the steps are here:
+      1. `flutter test` in the app job, on the arm64 runner where Flutter already is — the
+         Dart VM and the plugin's FFI loads are arm64 there, unlike the x64 lanes.
+      2. The plugin's C ABI (`knt_push_frame`/`knt_api_version`) checked against the arm64
+         build, the Windows twin of `scripts/linux/check-knt-abi.sh`.
+      3. An integration test that drives the app (`integration_test/`, `flutter test -d
+         windows`) if one runs headless on the runner; if the runner cannot host it,
+         record why.
+      4. Gate each with its pass/fail count in the job log; rename the lane to
+         `Windows arm64 · cross build + test` only when they gate (AGENTS.md § 5 and
+         `docs/ci-build-triggers.md` move with it).
+      Proof: a green run with a non-zero test count, and a red one when a test is broken on
+      purpose.
+
 ## Open — Linux Rust webcam inference (landed 2026-09-16, artifacts closed 2026-09-17)
 
 The lane builds the crate with `gstreamer,onnxruntime_dynamic`, the packaged
