@@ -15,7 +15,8 @@ Describe 'WindowsFlutterAot.Common' {
 
     # A release build as assemble leaves it: kernel, then its AOT, then the two copies.
     function New-Case([string] $Name) {
-        $root = Join-Path $TestDrive $Name
+        # Long form: the runner's TEMP is 8.3 (RUNNER~1), and the module returns Get-Item's long paths.
+        $root = Join-Path (Get-Item -LiteralPath $TestDrive).FullName $Name
         $t0 = [datetime]::new(2026, 9, 28, 12, 0, 0, [DateTimeKind]::Utc)
         $hash = Join-Path $root '.dart_tool\flutter_build\1142b07edff49bef8d41ef14b1204cb5'
         Set-Fixture (Join-Path $hash 'app.dill') 'kernel v2' $t0
