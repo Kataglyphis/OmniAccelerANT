@@ -1,15 +1,4 @@
-# .github/workflows/linux-x64.yml
-#
-# Linux x64: the architecture-independent lint gates, their PowerShell twin, and
-# the x64 build. One workflow file per platform + arch (owner convention
-# 2026-09-24); linux-arm64.yml is the other half. The build steps themselves
-# live once, in reusable-linux.yml, and this file hands them what used to be the
-# x64 matrix row.
-#
-# This workflow uses actions that are not certified by GitHub.
-# They are provided by a third-party and are governed by
-# separate terms of service, privacy policy, and support
-# documentation.
+# The architecture-independent lint gates (for both arches) and the x64 build; the steps live in reusable-linux.yml.
 
 name: Linux x64 · build + test
 
@@ -20,81 +9,31 @@ on:
     branches: ["main", "develop"]
   workflow_dispatch:
 
-# Per-ref group, like every lane here. A superseded run's verdict can never be
-# the one branch protection asks for, and the build is QEMU-free but still tens
-# of minutes. linux-arm64.yml has its own group, so neither architecture
-# cancels the other.
+# Its own group, so neither architecture cancels the other.
 concurrency:
   group: linux-x64-${{ github.ref }}
   cancel-in-progress: true
 
-# Top-level, so every job below inherits it and none can be added without one.
-# reusable-linux.yml restates it on its own job, next to the note saying why it
-# has no security-events scope. Nothing here writes through GITHUB_TOKEN: the
-# ghcr login and the FTP deploy both use repository secrets of their own.
+# Read-only: the ghcr login and the FTP deploy use their own secrets, not GITHUB_TOKEN.
 permissions:
   contents: read
 
 jobs:
-  # ---------------------------------------------------------------------------
-  # Two host-side gate jobs on the GITHUB-HOSTED runner, deliberately NOT inside
-  # the container and NOT steps of the build:
-  #
-  #   * once, not twice. Every one of these gates is architecture-independent,
-  #     so they live in THIS file and linux-arm64.yml carries none: in both, each
-  #     push would grade the same tree twice and tie a lint verdict to whichever
-  #     architecture happened to fail first. The price of the per-arch split is
-  #     that the arm64 build no longer waits for them - a job cannot `needs:` a
-  #     job of another workflow.
-  #   * no image pull. Nothing here needs the ~GB cross image, so these report
-  #     in about two minutes instead of after the pull.
-  #
-  # THE BASH HALF IS ANTfrastructure'S LANE, called with `uses:` since
-  # 2026-09-15. It was checkout + setup-uv + `bash scripts/linux/run-lint-gates.sh`
-  # here, a near-copy of a job seven consumers carried. The wrapper script stays
-  # and is still the one command to run before pushing; the two now have to
-  # agree, and only the wrapper is reachable from a dev box.
-  #
-  # Two inputs are passed rather than defaulted:
-  #
-  #   * submodules: recursive matches the callee's own default and is restated
-  #     because it is load-bearing HERE: the secret scan reads the whole tree,
-  #     and a half-checked-out submodule would change what it sees between runs.
-  #   * ratchets: true, because the freeze files are seeded and committed. Left
-  #     off, CI would grade LESS than the dev box does - six gates where
-  #     `bash scripts/linux/run-lint-gates.sh --ratchets` runs seven.
-  #
-  # `lint` and `build` carry no timeout-minutes: a job that calls a reusable
-  # workflow may not have one (the callee's job owns it), and
-  # verify_workflow_conventions.py exempts `uses:` jobs for exactly that reason.
+  # Arch-independent, so graded once and on the bare runner; ratchets: true must match the wrapper's --ratchets.
   lint:
     uses: Kataglyphis/ANTfrastructure/.github/workflows/lint-gates.yml@develop
     with:
+      # Restated: the secret scan reads the whole tree, submodules included.
       submodules: recursive
       ratchets: true
 
-  # The PowerShell TWIN of the bash `shared-config drift` gate the lane above
-  # runs, kept as a job of its own because the reusable lane has no pwsh step
-  # and none of the hub's ten Linux images ship pwsh - a step inside the
-  # container could only ever die on "pwsh: not found". Both halves are
-  # exercised and are required to agree.
-  #
-  # The asset set comes from .antfrastructure-shared.manifest, three rows:
-  # cmake-format, antfrastructure-sh, resolve-build-module. There is no -Ignore
-  # here and there must not be: the four names it used to carry (.clang-format,
-  # .clang-tidy, gcovr.cfg, .pre-commit-config.yaml) were never TAKEN by this
-  # repo in the first place - a Flutter app with no hand-written CMakeLists.txt,
-  # no C++ and no Dart pre-commit hooks - so they are absent, not drifted, and
-  # ignoring them only hid whether the three real assets still matched.
-  # Sync-SharedConfig.ps1 refuses -Ignore while the manifest exists, which is
-  # why the step was silently red until 2026-09-14.
+  # PowerShell twin of the drift gate; its own job because no hub Linux image ships pwsh, and no -Ignore while the manifest exists.
   shared-config:
     name: shared tool config matches ANTfrastructure (PowerShell twin)
     runs-on: ubuntu-26.04
     timeout-minutes: 10
     steps:
-      # Top-level only: the three assets this compares all live in
-      # third_party/ANTfrastructure, and nothing here reads the whole tree.
+      # Top-level submodules suffice: every compared asset lives in third_party/ANTfrastructure.
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
@@ -107,13 +46,9 @@ jobs:
           -RepoRoot .
           -Check
 
-  # What used to be the x64 matrix row. linux-arm64.yml passes the same keys;
-  # scripts/windows/Invoke-LinuxLane.ps1 -CheckParity reads this `with:` block
-  # to resolve reusable-linux.yml's ${{ inputs.* }}, so keep it a flat block of
-  # plain `key: value` lines.
+  # Keep `with:` a flat block of plain `key: value` lines: Invoke-LinuxLane.ps1 -CheckParity parses it.
   build:
-    # The gates above are cheap and architecture-independent: no point paying
-    # for a container pull to learn a shell script has a typo.
+    # No container pull to learn a shell script has a typo.
     needs: [lint, shared-config]
     permissions:
       contents: read

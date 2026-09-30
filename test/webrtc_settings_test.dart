@@ -1,15 +1,4 @@
-// Unit tests for assets/settings/webrtc_settings.json's parser.
-//
-// Two reasons this one earns its place:
-//   1. The settings load in `main()` BEFORE the first frame, so a malformed or
-//      renamed key is not a degraded page — it is a blank one. The failure has
-//      no UI to report itself through.
-//   2. `stunServers`/`turnServers`/`reconnectionTimeoutMs` were parsed and
-//      validated here while nothing consumed them, for long enough that nobody
-//      noticed. Tests over the parser are what make "is this field wired up?" a
-//      question with an answer.
-//
-// Everything here is pure: no binding, no rootBundle, no platform channel.
+// The settings load before the first frame, so a malformed key means a blank page with no UI to say why.
 
 import 'dart:convert';
 
@@ -17,8 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:omni_accelerant/settings/webrtc_settings.dart';
 
-/// The committed asset, inline, so a change to it has to be a deliberate edit
-/// here too rather than a silent drift.
+/// The committed asset, inline, so changing it takes a deliberate edit here too.
 const String _validJson = '''
 {
   "signalingServerUrl": "/webrtc-ws",
@@ -76,11 +64,7 @@ void main() {
 
   group('signalingServerUrl resolution', () {
     test('a host-relative value is left alone off the web', () {
-      // _resolveSignalingServerUrl only rewrites when kIsWeb, and kIsWeb is a
-      // compile-time false in the VM. So this asserts the NATIVE half of the
-      // contract: native never consumes the value and must not mangle it.
-      // The web half (=> wss://<page-host>/webrtc-ws) cannot be reached from
-      // `flutter test` and is only exercised by the web lane's build.
+      // kIsWeb is false in the VM, so only the native half is testable here.
       final WebRTCSettings settings = WebRTCSettings.fromJsonFile(_validMap());
       expect(settings.signalingServerUrl, '/webrtc-ws');
     });
@@ -161,8 +145,7 @@ void main() {
 
   group('ICE server lists', () {
     test('an absent list is empty rather than an error', () {
-      // _parseStringList returns [] for null on purpose: a deployment with no
-      // TURN server is normal, and an empty iceServers list is valid.
+      // A deployment without a TURN server is normal.
       final Map<String, dynamic> map = _validMap()..remove('turnServers');
       expect(WebRTCSettings.fromJsonFile(map).turnServers, isEmpty);
     });

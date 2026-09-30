@@ -1,6 +1,3 @@
-# “additional-docs” tells Dartdoc: “Here are extra markdown files to render
-#  as top-level pages in the generated doc site.” Each entry is a path
-#  (relative to the project root).
 dartdoc:
   ignore:
     - ambiguous-reexport

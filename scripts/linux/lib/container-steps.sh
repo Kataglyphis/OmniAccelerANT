@@ -6,10 +6,7 @@ source "${_container_steps_dir}/antfrastructure.sh"
 
 antfrastructure_source linux/scripts/01-core/platform.sh
 antfrastructure_source linux/scripts/01-core/logging.sh
-# gate_reset / run_gate / gate_skip / assert_gates. Sourced HERE rather than in
-# each driver because every driver that runs a check already sources this file,
-# and the batch itself is built by the driver - never by a helper below, which
-# would silently reset a batch its caller had opened.
+# Sourced here for every checking driver; only drivers open a batch, never a helper below.
 antfrastructure_source linux/scripts/01-core/gates.sh
 # flutter_lane_prepare_env / flutter_build_web - see the block below.
 antfrastructure_source linux/scripts/05-frameworks/flutter/lane-prologue.sh
@@ -20,45 +17,7 @@ maybe_truthy() {
   is_truthy "${value,,}" || [[ "${value,,}" == "y" ]]
 }
 
-# run_check_cmd IS GONE (2026-09-09). It was:
-#
-#   if maybe_truthy "$strict_mode"; then "$@"; else "$@" || true; fi
-#
-# and the second arm did not "report and move on" - it destroyed the result.
-# No name, no exit status, no record: a caller could not tell a pass from a
-# failure afterwards, and neither could CI, whose only input is the exit code.
-# fc8b65c had already found the one gate it covered ("ran, printed, and could
-# never fail CI") and worked around it by flipping the workflow flags; this
-# removes the mechanism instead. Its two call sites went two different ways,
-# because they were never the same kind of thing:
-#
-#   * `flutter config --enable-android` is a STEP, not a check. It is now a bare
-#     call, like `flutter config --enable-web` in ci-container-run-web-linux.sh
-#     and `flutter config --enable-android` in run-android.sh, which were never
-#     wrapped. A config command that fails and is ignored just moves the failure
-#     into the build that follows it.
-#   * the cmake-format check is a GATE, and now runs as one - see
-#     run_cmake_format_check below and the run_gate batches in its two callers.
-
-# THE FLUTTER LANE PROLOGUE IS NOT THIS REPO'S ANY MORE (2026-09-15).
-# git_safe_dirs, source_bashrc_and_add_flutter_to_path and
-# assert_flutter_available stood here; ANTfrastructure owns the routine as
-# flutter_lane_prepare_env, sourced above, which RETURNS rather than exits.
-# Two of their behaviours went with them and neither is a loss, both measured
-# against the pinned image: the `--global` safe.directory for the SDK is a
-# no-op (setup-package-image.sh:556 registers it at --system level) and
-# sourcing ~/.bashrc to find flutter is one too (Dockerfile.package:268 puts
-# /opt/flutter/bin on PATH for every shell). One behaviour is new: PUB_CACHE
-# defaults to <repo>/.pub-cache, gitignored at .gitignore:47. AGENTS.md § 5.
-
-# Lists tracked files rather than walking the tree — AGENTS.md § 4.
-#
-# The driver resolution is a statement of its own, not a substitution inside the
-# command line: this function is called from inside run_gate, i.e. from a `||`
-# list, where `set -e` does NOT abort. A failing antfrastructure_path there left an
-# EMPTY first argument behind and ran `bash "" --strict false`, so a missing
-# upstream file reported as bash's own "No such file or directory" instead of
-# the path-and-fix message antfrastructure_path prints.
+# Tracked files only (AGENTS.md § 4); the driver resolves on its own line, as set -e is off inside run_gate.
 run_flutter_common_checks() {
   local strict_mode="${1:-0}" strict_flag checks
   shift || true
@@ -80,40 +39,7 @@ _cmake_format_install_requirements() {
   uv_pip_install_requirements .venv "$requirements"
 }
 
-# cmake-format from PATH if the image ships it, else a uv venv fed by
-# ANTfrastructure's pinned bootstrap set — same provisioning the Windows step
-# uses. This repo carries no root requirements.txt: the pins (cmake-format
-# plus the pyyaml it cannot read .cmake-format.yaml without) live upstream in
-# linux/scripts/cmake-format.requirements.txt, so both platforms and every
-# consumer repo install the same versions. docs/source/project-operations.md.
-#
-# The bootstrap itself is upstream's code_quality_ensure_cmake_format, not a
-# local copy of it. The two knobs below are FUNCTION names, exactly as
-# ANTfrastructure's own preflight.sh sets them. What the hand-rolled version this
-# replaces did NOT do, and what adopting buys: a `.venv` created on the other
-# platform (Scripts/python.exe in this bind-mounted tree, or bin/python on the
-# Windows host) was reused by an `[[ ! -d .venv ]]` guard and then died inside
-# uv with "Exec format error"; upstream probes the interpreter and recreates
-# it. It also finds Scripts/activate as well as bin/activate.
-
-# CMake format gate for the hand-maintained native build files. Enumeration and
-# exclude-glob handling come from ANTfrastructure's code-quality.sh; the globs keep
-# the gate off generated trees (Flutter's flutter/CMakeLists.txt +
-# generated_plugins.cmake + ephemeral, Android's .cxx) and vendored Cargokit —
-# the gate must never fight the generator. Windows twin: the "CMake Format
-# Verification" step in scripts/windows/Build-Windows.ps1. AGENTS.md § 5.
-#
-# NO STRICTNESS SWITCH ANY MORE, and this is a behaviour change: the check used
-# to run through run_check_cmd, so a non-strict caller (the Android lane, and
-# any local `run-native-linux.sh` without --strict-checks) ran it and threw the
-# verdict away. What survives of that switch is what it was actually for: the
-# Dart checks still take --strict, because that flag belongs to upstream's
-# flutter_checks.sh and MEANS something there.
-# Measured before flipping, the same way fc8b65c measured it: the gate's 13
-# files are clean under this repo's .cmake-format.yaml, and the native-Linux
-# lane has passed --strict-checks true since fc8b65c - so any drift this now
-# catches on the Android lane is drift that already blocks the merge on the
-# native lane. AGENTS.md § "The Linux checks stage" now says the same.
+# No strictness switch: wrap it in run_gate. See docs/source/project-operations.md § The CMake format gate
 run_cmake_format_check() {
   if [ "$#" -gt 0 ]; then
     echo "Error: run_cmake_format_check takes no arguments (got: $*)." >&2
@@ -126,20 +52,7 @@ run_cmake_format_check() {
   CODE_QUALITY_VENV_DIR="${PWD}/.venv"
   CODE_QUALITY_UV_VENV_CREATE_SCRIPT=_cmake_format_venv_create
   CODE_QUALITY_UV_INSTALL_REQUIREMENTS_SCRIPT=_cmake_format_install_requirements
-  # Bare call, and no `|| return 1`: upstream's bootstrap has no non-zero RETURN
-  # path to guard. Every failure inside it is err() (01-core/logging.sh), which
-  # is `exit 1` - so the guard that used to stand here was unreachable, and the
-  # fall-through to the .cmake-format.yaml check that its comment described
-  # could not happen.
-  #
-  # That exit is only a RECORDED gate failure, rather than a dead driver, if
-  # run_gate runs its command in a subshell. That is a REQUIREMENT this file
-  # places on ANTfrastructure, not something the pin necessarily satisfies: it was
-  # added upstream on 2026-09-09 and reaches this repo only when the gitlink is
-  # bumped. Under an older pin the batch still exits non-zero (no false green),
-  # but it dies here and every finding already recorded is lost, so one push
-  # names one failure instead of all of them.
-  # third_party/ANTfrastructure/docs/shared-script-libraries.md#gate-aggregation-01-coregatessh
+  # Bare call: its failures exit via err(), and only run_gate's subshell turns that into a recorded failure.
   code_quality_ensure_cmake_format
 
   if [[ ! -f .cmake-format.yaml ]]; then
@@ -153,9 +66,7 @@ run_cmake_format_check() {
   local CODE_QUALITY_CMAKE_EXCLUDE_PATHS=(
     './third_party/*'           # submodules: vendored, formatted by their own repos
     '*/build/*'                 # build output at ANY depth: the root Flutter/cargokit tree
-                                # AND e.g. packages/*/example/build from a local example
-                                # build (find walks the working tree, not git ls-files -
-                                # no hand-maintained CMake lives under a build/ dir)
+                                # and example builds too, since find walks the working tree
     '*/ephemeral/*'             # Flutter tool rewrites these on every pub get
     '*/.plugin_symlinks/*'      # pub's junction farm into packages/
     '*/.cxx/*'                  # Android Gradle CMake build trees (compiler probes etc.)
@@ -164,8 +75,7 @@ run_cmake_format_check() {
     './rust_builder/cargokit/*' # vendored Cargokit (rust_builder/cargokit/README)
     './.venv/*'                 # the venv this very gate bootstraps
     './.pub-cache/*'            # pub's download cache. fe93f5a moved PUB_CACHE to
-                                # <repo>/.pub-cache and run-native-linux.sh:120 runs
-                                # `pub get` first, so dependency CMake now lands in-tree.
+                                # <repo>/.pub-cache, so dependency CMake lands in-tree.
   )
   local -a cmake_files
   mapfile -t cmake_files < <(code_quality_find_cmake_files | sort)
@@ -175,11 +85,7 @@ run_cmake_format_check() {
   fi
 
   echo "[Info] cmake-format --check on ${#cmake_files[@]} CMake files."
-  # Upstream's runner, not a bare `cmake-format` line: it is the same one that
-  # grades ANTfrastructure's own tree, and it is what makes the -c flag conditional
-  # on the config actually existing instead of passing a path that may not.
-  # Its exit status is this function's exit status - the caller's run_gate is
-  # what records it, and that caller's assert_gates is what raises it.
+  # Upstream's runner passes -c only when the config exists; the caller's run_gate records the status.
   code_quality_run_cmake_format --check "${cmake_files[@]}"
 }
 
@@ -207,11 +113,7 @@ export_android_gstreamer_env() {
   return 0
 }
 
-# Selects clang. The image's clang reads <triple>-clang{,++}.cfg beside it,
-# which carries --gcc-toolchain for the source-built GCC (hub CON16, in
-# `:latest` since 2026-09-29), so nothing is injected here. What stays is the
-# check: an older image's bare clang picks the distro GCC and the link fails
-# much later on std::format symbols — AGENTS.md § 4.
+# The image's clang cfg selects the source-built GCC; verified, as an older image links the distro one (AGENTS.md § 4).
 export_toolchain_env() {
   export CC=clang CXX=clang++
   antfrastructure_source linux/scripts/01-core/cross-gcc.sh || return 1

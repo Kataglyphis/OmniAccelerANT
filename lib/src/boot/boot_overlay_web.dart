@@ -10,9 +10,7 @@ void dismissBootOverlayImpl() {
 }
 
 void showBootFailureImpl(Object error, StackTrace stackTrace) {
-  // Keep the gradient: it is the only thing on screen that still looks
-  // deliberate. Replace the spinner in place so the visitor is not left reading
-  // "You will be there soon ..." under a failure that will never resolve.
+  // Replace the spinner but keep the gradient.
   final web.Element? loading = web.document.querySelector(_loadingSelector);
   if (loading == null) return;
 
@@ -34,10 +32,7 @@ void showBootFailureImpl(Object error, StackTrace stackTrace) {
     ..style.margin = '0 0 0.75rem 0'
     ..style.fontSize = '1.25rem';
 
-  // The overwhelmingly likely cause, and the one a visitor cannot diagnose:
-  // the app boots by loading the Rust core's wasm from pkg/oxidant.js, and a
-  // build published without web/pkg/ (it is generated and gitignored) fails
-  // exactly here. Naming it turns a blank page into a bug report.
+  // The likeliest cause: a build published without the generated, gitignored web/pkg/.
   final web.HTMLParagraphElement hint = web.HTMLParagraphElement()
     ..textContent =
         'The WebAssembly core did not load. If you are serving this build '
@@ -47,8 +42,7 @@ void showBootFailureImpl(Object error, StackTrace stackTrace) {
     ..style.margin = '0 0 0.75rem 0'
     ..style.fontSize = '0.95rem';
 
-  // package:web exposes no unnamed constructor for <pre>; createElement is the
-  // supported route.
+  // package:web has no constructor for <pre>.
   final web.HTMLPreElement detail =
       web.document.createElement('pre') as web.HTMLPreElement
         ..textContent = '$error'

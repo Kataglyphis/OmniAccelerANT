@@ -2,8 +2,7 @@
 
 <#
 .SYNOPSIS
-Runs the Linux CI lane locally, in the same image and with the same script and
-arguments the workflow uses. See AGENTS.md § 5.
+Runs a Linux CI lane locally with the workflow's image, script and arguments (AGENTS.md § 5).
 #>
 
 param(
@@ -11,68 +10,25 @@ param(
 	[string] $Lane = 'native',
 	[ValidateSet('x64', 'arm64')]
 	[string] $Arch = 'x64',
-	# Empty resolves from ANTfrastructure's versions.env below. That file is the
-	# single source of truth for the family image ref and the workflows reach it
-	# through the composite actions' `image` input defaults; a literal here would
-	# be a fourth copy that nothing compares to the other three.
+	# Empty resolves from the hub's versions.env, the image ref's one owner.
 	[string] $Image = '',
 	[string] $BuildMode = 'release',
 	# Empty resolves from pubspec.yaml below — AGENTS.md § 5.
 	[string] $AppName = '',
 	[string] $PackageFormats = 'tar,deb,flatpak,appimage',
 	[string] $InstallPackagingDeps = 'true',
-	# 'true' because both Linux workflows pass --strict-checks true
-	# (reusable-linux.yml for both architectures, and web.yml) and this driver's
-	# entire contract is "same image, same script, same arguments as the
-	# workflow". It defaulted to 'false' until 2026-09-16, which meant the local
-	# lane graded LESS than CI: a format or analyze failure warned here and red
-	# there, so the one run that was supposed to catch it was the one that could
-	# not. Note this is not the same switch as the android lane's non-strict
-	# checks (ci-container-run-android.sh), which are deliberate.
+	# 'true', as both Linux workflows pass: the local lane must not grade less than CI.
 	[string] $StrictChecks = 'true',
-	# CodeQL is OFF by default since 2026-09-17 (owner directive): the android
-	# scan is budgeted in hours and no longer runs in CI, so the driver and the
-	# workflow both send --run-codeql false. This switch is the local opt-in for
-	# a manual, scoped run — it deliberately makes -CheckParity differ.
+	# Local opt-in for a manual android scan; CI sends --run-codeql false, so -CheckParity then differs.
 	[switch] $RunCodeQL,
 	[switch] $SkipDocs,
 	[switch] $KeepContainer,
-	# Compare the arguments this driver would send against the lane's workflow
-	# (`script:` + `extra-args`), resolving ${{ matrix.* }}, ${{ env.* }} and a
-	# reusable workflow's ${{ inputs.* }} the way the workflow would. Reports and
-	# exits before touching the container engine: no volume, no container.
-	# BACKLOG.md: a checker that diffs flag NAMES would not have caught
-	# -StrictChecks defaulting to 'false' against a workflow passing 'true'.
+	# Compare argument VALUES with the lane's workflow, then exit before any container work.
 	[switch] $CheckParity,
-	# Run even though another lane's container is up. The generated files at the
-	# checkout root are per-host, so two lanes on one tree overwrite each other
-	# and the failure names the innocent lane — AGENTS.md § 5.
+	# Run although another lane's container is up; two lanes on one tree overwrite each other (AGENTS.md § 5).
 	[switch] $Force,
 	[string] $ContainerName = "kataglyphis-linux-lane-$Lane-$Arch",
-	# AGENTS.md § 5.
-	#
-	# '/workspace/.pub-cache' joined this list on 2026-09-16. PUB_CACHE defaults
-	# to <repo>/.pub-cache (ANTfrastructure's lane-prologue.sh:63), which on this
-	# box is a bind-mounted Windows drive — and pub installs a package by
-	# renaming it out of .pub-cache/_temp, which is exactly the operation a
-	# Windows bind mount cannot do for the container uid:
-	#   Rename failed, path = '/workspace/.pub-cache/_temp/dirXXXXXX'
-	#   (OS Error: Permission denied, errno = 13)
-	# The trap is that it only fires when pub actually DOWNLOADS something. With
-	# a warm cache the lane resolves from disk, renames nothing and passes — so
-	# this sat undetected until a pubspec.yaml edit changed the resolution. In
-	# other words the local lane was green precisely as long as you did not touch
-	# dependencies, which is when you most want it. CI is unaffected: there the
-	# workspace is a real Linux filesystem.
-	# '/workspace/third_party/OxidANT/target' joined for the same reason on the
-	# same day, found by the web lane: cargo builds an rlib by writing a
-	# temp-archive directory and then REMOVING it, and the bind mount refuses the
-	# remove for the container uid:
-	#   error: failed to build archive at '.../libwasm_bindgen_macro_support-*.rlib':
-	#   failed to remove temporary directory: Permission denied (os error 13)
-	#   at path '.../out/.tmpXXXXXX.temp-archive'
-	# The web lane hits it hardest because `-Z build-std` recompiles the standard
-	# library, so it is doing archive work for hundreds of crates.
+	# Named volumes where a Windows bind mount refuses the container uid's renames and removes (AGENTS.md § 5).
 	[string[]] $ContainerNativePaths = @(
 		'/workspace/build',
 		'/workspace/.pub-cache',
@@ -87,11 +43,7 @@ $ErrorActionPreference = 'Stop'
 
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 
-# Reads a lane workflow's container invocation: the folded `script:` block and
-# the one-line `extra-args:` with their ${{ }} expressions unresolved, and every
-# `env:` block of the file keyed by name. Deliberately not a YAML parser — the
-# files are controlled here, and a generic parser is a dependency this driver
-# does not carry.
+# Reads the folded script:, the one-line extra-args: and every env: block, unresolved; deliberately no YAML parser.
 function Get-LaneWorkflowSpec {
 	param([Parameter(Mandatory)][string] $Path)
 
@@ -140,12 +92,7 @@ function Get-LaneWorkflowSpec {
 	return [pscustomobject]@{ Script = ($scriptParts -join ' '); ExtraArgs = $extraArgs; Env = $envMap }
 }
 
-# A per-arch caller (linux-x64.yml, linux-arm64.yml) holds no container step of
-# its own: one job runs a LOCAL reusable workflow, and its `with:` block is what
-# that workflow's ${{ inputs.* }} resolve to. Returns the callee's repo-relative
-# path and that block keyed by input name, or $null when the file calls no local
-# reusable workflow and so carries its steps itself. Flat `key: value` lines
-# only; blank and comment lines never end the job.
+# The local reusable workflow a per-arch caller runs and its with: inputs, or $null; flat key: value lines only.
 function Get-LaneCallerInputs {
 	param([Parameter(Mandatory)][string] $Path)
 
@@ -187,9 +134,7 @@ function Get-LaneCallerInputs {
 	return [pscustomobject]@{ Callee = $call.Callee; Inputs = $withMap }
 }
 
-# Turns ${{ ... }} into values this run would have. Everything unresolvable
-# throws: a placeholder nobody taught this function about must not compare as
-# an empty string and pass.
+# Resolves ${{ }}; anything unknown throws rather than comparing as an empty string.
 function Resolve-LaneExpression {
 	param(
 		[Parameter(Mandatory)][string] $Text,
@@ -216,8 +161,7 @@ function Resolve-LaneExpression {
 			if ($EnvMap.ContainsKey($key)) { return $EnvMap[$key] }
 			throw "parity: no resolution for `${{ env.$key }}"
 		}
-		# The one CI-only difference: the hub's compiler-cache-restore mounts the
-		# persisted sccache dir. It changes where the cache lives, not what builds.
+		# CI-only: the sccache mount changes where the cache lives, not what builds.
 		if ($expr -eq 'steps.cc.outputs.docker-args') { return '' }
 		throw "parity: unresolvable expression `${{ $expr }}"
 	}
@@ -240,27 +184,14 @@ function Get-FlagMap {
 }
 
 if (-not $Image) {
-	# The family image reference is composed UPSTREAM, by
-	# WindowsContainerImage.Common's Get-CiImageReference, whose Linux twin is
-	# linux/scripts/ci-image-ref.sh and which ANTfrastructure's own
-	# test-ci-image-ref.sh asserts composes the same string as
-	# verify_ci_image_refs.py. What stood here was a third hand-rolled read of
-	# versions.env, and a subtly weaker one: its `(.+)$` kept surrounding
-	# quotes, which the upstream parser strips on purpose because a quoted value
-	# once propagated as data into CMake.
-	#
-	# Resolve-BuildModule looks the module up in third_party/ANTfrastructure first,
-	# so this is the same copy Build-Windows.ps1 builds against.
+	# Composed upstream by Get-CiImageReference, never a local read of versions.env.
 	. (Join-Path $PSScriptRoot 'Resolve-BuildModule.ps1')
 	Import-BuildModule 'WindowsContainerImage.Common'
 	if (-not (Get-Command -Name 'Get-CiImageReference' -ErrorAction SilentlyContinue)) {
 		throw ("WindowsContainerImage.Common was imported but exports no Get-CiImageReference. " +
 			"The pinned ANTfrastructure predates it - bump third_party/ANTfrastructure, or pass -Image explicitly.")
 	}
-	# No arguments: the function resolves versions.env from its OWN location, so
-	# the answer always comes out of the ANTfrastructure this repo actually pins.
-	# A missing key throws there, naming the file - never an empty image ref,
-	# which `nerdctl run` would read as "the next argument is the image".
+	# It reads the pinned hub's versions.env and throws on a missing key, never returning an empty ref.
 	$Image = Get-CiImageReference
 }
 
@@ -274,18 +205,11 @@ if (-not $AppName) {
 # The workflows pair arch with platform; keep the pairs in step.
 $platform = if ($Arch -eq 'x64') { 'linux/amd64' } else { 'linux/arm64' }
 
-# Only the android lane implements a CodeQL scan, and since 2026-09-17 it is a
-# manual opt-in: the workflow passes false, so the driver's default matches it
-# (AGENTS.md § 5). -RunCodeQL is the local deviation. The local's name must not
-# collide with the switch: PowerShell variable names are case-insensitive.
+# Named apart from the switch: PowerShell variable names are case-insensitive.
 $runCodeQLArg = if ($RunCodeQL) { 'true' } else { 'false' }
 $runDocs = if ($SkipDocs) { 'false' } else { ($Arch -eq 'x64').ToString().ToLower() }
 
-# One entry per lane, mirroring that lane's workflow. Change the pair together:
-#   native  -> .github/workflows/linux-x64.yml / linux-arm64.yml (by -Arch), whose
-#              build job runs .github/workflows/reusable-linux.yml
-#   android -> .github/workflows/android.yml
-#   web     -> .github/workflows/web.yml
+# Mirrors each lane's workflow (native: linux-<arch>.yml -> reusable-linux.yml); change both together.
 $laneArgs = switch ($Lane) {
 	'native' {
 		@('bash', '/workspace/scripts/linux/ci/ci-container-run-native-linux.sh',
@@ -300,8 +224,7 @@ $laneArgs = switch ($Lane) {
 			'--run-docs', $runDocs)
 	}
 	'android' {
-		# -apk, like the workflow and run-android.sh: the name is a path, and
-		# without it this lane overwrites the native lane's out/ — AGENTS.md § 5.
+		# -apk, as in the workflow: the name is a path, and this lane would overwrite the native out/.
 		@('bash', '/workspace/scripts/linux/ci/ci-container-run-android.sh',
 			'--arch', $Arch,
 			'--build-mode', $BuildMode,
@@ -310,11 +233,7 @@ $laneArgs = switch ($Lane) {
 			'--run-codeql', $runCodeQLArg)
 	}
 	'web' {
-		# $Arch, not a literal: the workflow only has an x64 row today, but the
-		# driver still selects the container --platform from -Arch, so a literal
-		# here built an x64 app inside an arm64 container and said nothing.
-		# The lane script validates the value, so a bad one exits 2 rather than
-		# guessing.
+		# $Arch, not a literal: the container --platform follows -Arch too.
 		@('bash', '/workspace/scripts/linux/ci/ci-container-run-web-linux.sh',
 			'--arch', $Arch,
 			'--flutter-dir', '/opt/flutter',
@@ -326,26 +245,12 @@ $laneArgs = switch ($Lane) {
 # The android workflow does not pass --privileged; the other two do.
 $privilegedArgs = if ($Lane -eq 'android') { @() } else { @('--privileged') }
 
-# Only reusable-linux.yml - the native build, for both architectures - passes
-# `-e CI=true`, so only this lane does.
-# It is what makes generate-docs.sh chown the generated doc/api/ tree back to
-# the workspace owner; without it the workflow needed a `sudo chown -R` step of
-# its own and the same work existed twice. If a local engine cannot honour that
-# chown the lane now fails instead of hiding it - that is a real difference
-# between this machine and the runner, worth seeing rather than papering over.
+# Only reusable-linux.yml passes -e CI=true, which lets generate-docs.sh chown doc/api/ back.
 $ciEnvArgs = if ($Lane -eq 'native') { @('-e', 'CI=true') } else { @() }
 
-# Parity is about the VALUES the driver sends, not the flag names: the recorded
-# failure was -StrictChecks defaulting to 'false' against workflows passing
-# 'true', which a name-only diff cannot see. BACKLOG.md § duplication and drift.
-# It runs before the engine is looked up, so it needs no nerdctl and creates no
-# volume or container.
+# Compares VALUES, not flag names, and needs no engine: no nerdctl, volume or container.
 if ($CheckParity) {
-	# The native lane is one workflow per architecture since 2026-09-24, and
-	# both call reusable-linux.yml, which holds the container step. -Arch picks
-	# the caller, and the caller's `with:` block supplies ${{ inputs.* }} - so
-	# this grades against what linux-<arch>.yml really passes, not against this
-	# run's own parameters.
+	# -Arch picks linux-<arch>.yml, whose with: block supplies reusable-linux.yml's inputs.
 	$workflowFile = switch ($Lane) {
 		'native' { "linux-$Arch.yml" }
 		'android' { 'android.yml' }
@@ -361,9 +266,7 @@ if ($CheckParity) {
 		$workflowFile = "$workflowFile -> $(Split-Path -Leaf $laneCaller.Callee)"
 	}
 	$spec = Get-LaneWorkflowSpec -Path $specPath
-	# Exactly the values a workflow LOCAL run would have; job-level env comes
-	# from the file, inputs from the caller, and the android lane's one-row
-	# matrix from this run's parameters.
+	# The android lane's one-row matrix, from this run's parameters.
 	$parityValues = @{
 		arch        = $Arch
 		build_mode  = $BuildMode
@@ -394,9 +297,7 @@ if ($CheckParity) {
 		}
 	}
 
-	# The engine half: `extra-args` against what this driver puts in front of
-	# the image, token by token and in order. -Env stays out - debugging
-	# switches with no CI twin.
+	# extra-args token by token, in order; -Env stays out, having no CI twin.
 	$resolvedExtra = Resolve-LaneExpression -Text $spec.ExtraArgs -Values $parityValues -EnvMap $spec.Env -CallerInputs $callerInputs
 	$workflowExtra = @($resolvedExtra -split '\s+' | Where-Object { $_ } | ForEach-Object { $_.Trim('"').Trim("'") })
 	$driverExtra = @(@() + $privilegedArgs + @('--platform', $platform) + $ciEnvArgs | Where-Object { $_ })
@@ -421,17 +322,14 @@ if (-not $engine) {
 	throw "nerdctl not found. Install Rancher Desktop, or put nerdctl on PATH."
 }
 
-# One lane at a time against this checkout — AGENTS.md § 5, WindowsLaneGuard.Common.
-# The Windows build is Stevedore's container, not nerdctl's: asking nerdctl for it,
-# as this check did until 2026-09-28, could never find it.
+# One lane at a time per checkout (AGENTS.md § 5); nerdctl cannot see the Windows build's Stevedore container.
 $busy = @(Get-RunningLinuxLane -Self $ContainerName -Nerdctl $engine)
 if (Test-WindowsBuildActive) { $busy += 'omniaccelerant-agentic-build (a Windows build)' }
 if ($busy.Count -gt 0 -and -not $Force) {
 	throw (Get-LaneConflictMessage -Busy $busy)
 }
 
-# A named volume over each write-heavy path, always via the long --mount form
-# — AGENTS.md § 5.
+# A named volume per write-heavy path, always via the long --mount form (AGENTS.md § 5).
 $volumeArgs = @()
 foreach ($nativePath in $ContainerNativePaths) {
 	$volumeName = "kataglyphis-lane-$Lane-$Arch" + ($nativePath -replace '[^A-Za-z0-9]+', '-')
@@ -459,14 +357,7 @@ Write-Host "engine : $engine"
 Write-Host "command: $($engineArgs -join ' ')"
 Write-Host ''
 
-# Pre-clean, because containerd owns the container and the nerdctl client does
-# not. Ctrl-C or a killed shell leaves it Up, and the NEXT run then dies on
-#   name-store error / name "<name>" is already used by ID "<64 hex>"
-# while the plain `container remove` below ALSO fails on it
-#   ("is in running status. unpause/stop container first or force removal"),
-# so the lane stays wedged until someone runs `nerdctl rm -f` by hand.
-# `remove --force` exits 0 both on a running leftover and on no container at
-# all, which is what makes it safe to run unconditionally.
+# An interrupted run leaves the container Up and wedges the next; remove --force is safe with none too.
 & $engine 'container' 'remove' '--force' $ContainerName 2>&1 | Out-Null
 
 $laneExitCode = 1
@@ -476,9 +367,7 @@ try {
 	$laneExitCode = $LASTEXITCODE
 }
 finally {
-	# In a finally so an interrupt cleans up too. -KeepContainer still wins, and
-	# nothing here may touch $laneExitCode — the caller's verdict is the lane's,
-	# not the cleanup's.
+	# In finally so an interrupt cleans up too; never touch $laneExitCode here.
 	if (-not $KeepContainer) {
 		& $engine 'container' 'remove' '--force' $ContainerName 2>&1 | Out-Null
 	}

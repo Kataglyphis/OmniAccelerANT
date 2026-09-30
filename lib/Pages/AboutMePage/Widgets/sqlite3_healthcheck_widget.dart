@@ -2,10 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:omni_accelerant/l10n/app_localizations.dart';
 import 'package:omni_accelerant/src/db/sqlite3_healthcheck.dart';
 
-/// Widget that displays SQLite3 database health status.
-///
-/// Performs a health check on app initialization and provides
-/// a button to manually re-run the check.
+/// SQLite3 health status, checked on init and re-runnable by button.
 class Sqlite3HealthcheckWidget extends StatefulWidget {
   const Sqlite3HealthcheckWidget({super.key});
 

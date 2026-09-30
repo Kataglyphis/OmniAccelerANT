@@ -5,13 +5,7 @@
 #include "include/kataglyphis_native_inference/kataglyphis_native_inference_plugin.h"
 #include "kataglyphis_native_inference_plugin_private.h"
 
-// This demonstrates a simple unit test of the C portion of this plugin's
-// implementation.
-//
-// Once you have built the plugin's example app, you can run these tests
-// from the command line. For instance, for a plugin called my_plugin
-// built for x64 debug, run:
-// $ build/linux/x64/debug/plugins/my_plugin/my_plugin_test
+// Built with the example app; run build/linux/x64/debug/plugins/<plugin>/<plugin>_test.
 
 namespace kataglyphis_native_inference {
 namespace test {

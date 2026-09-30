@@ -5,9 +5,7 @@ set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Resolve GStreamer Android SDK root.
-# Prefer an explicitly provided CMake variable (-DGSTREAMER_ROOT_ANDROID=...),
-# otherwise fall back to the environment variable.
+# GStreamer Android SDK root: -DGSTREAMER_ROOT_ANDROID wins over the environment.
 if(NOT GSTREAMER_ROOT_ANDROID)
   if(DEFINED ENV{GSTREAMER_ROOT_ANDROID})
     set(GSTREAMER_ROOT_ANDROID "$ENV{GSTREAMER_ROOT_ANDROID}")
@@ -29,9 +27,7 @@ elseif(CMAKE_ANDROID_ARCH_ABI STREQUAL "armeabi-v7a")
   set(_GSTREAMER_ALT_ABI "armv7")
 endif()
 
-# The Android GStreamer SDK may be installed either as:
-#   - per-ABI subdirectories under GSTREAMER_ROOT_ANDROID (preferred), or
-#   - a single flat prefix (include/, lib/, ...).
+# The SDK comes either as per-ABI subdirectories (preferred) or as one flat prefix.
 set(GStreamer_ROOT_DIR "${GSTREAMER_ROOT_ANDROID}")
 if(EXISTS "${GSTREAMER_ROOT_ANDROID}/${_GSTREAMER_ALT_ABI}/lib")
   set(GStreamer_ROOT_DIR "${GSTREAMER_ROOT_ANDROID}/${_GSTREAMER_ALT_ABI}")
@@ -39,8 +35,7 @@ elseif(EXISTS "${GSTREAMER_ROOT_ANDROID}/${CMAKE_ANDROID_ARCH_ABI}/lib")
   set(GStreamer_ROOT_DIR "${GSTREAMER_ROOT_ANDROID}/${CMAKE_ANDROID_ARCH_ABI}")
 endif()
 
-# Prefer static libs when the SDK provides them; otherwise fall back to shared.
-# (The official Android "universal" packages often ship shared .so libs.)
+# Static when the SDK has them; the official "universal" packages often ship only .so.
 if(NOT DEFINED GStreamer_USE_STATIC_LIBS)
   if(EXISTS "${GStreamer_ROOT_DIR}/lib/libgstreamer-1.0.a" OR EXISTS "${GStreamer_ROOT_DIR}/libgstreamer-1.0.a")
     set(GStreamer_USE_STATIC_LIBS ON)
@@ -169,9 +164,7 @@ find_library(
   HINTS ${_GST_PLUGIN_DIR_HINTS}
   NO_DEFAULT_PATH NO_CMAKE_FIND_ROOT_PATH)
 
-# Android media plugin.
-# In the GStreamer SDK this typically follows the pattern libgst<plugin>.a/.so,
-# i.e. libgstandroidmedia.* (NOT libgstandroidmedia.*).
+# Android media plugin (libgstandroidmedia.*).
 find_library(
   GST_ANDROIDMEDIA_LIB
   NAMES gstandroidmedia gstandroidmedia-1.0
@@ -419,9 +412,7 @@ target_link_libraries(
 
 # Keep plugin register symbols alive
 set(_PLUGIN_SYMBOLS
-    # Keep JNI_OnLoad from libgstreamer-1.0.a alive - this registers the native method
-    # for org.freedesktop.gstreamer.GStreamer.nativeInit() which sets up the application
-    # context and class loader needed by the androidmedia plugin.
+    # JNI_OnLoad registers GStreamer.nativeInit(), which gives androidmedia its context and class loader.
     -Wl,-u,JNI_OnLoad)
 
 if(GST_COREELEMENTS_LIB)

@@ -34,8 +34,7 @@ TEST(KataglyphisNativeInferencePlugin, GetPlatformVersion) {
           },
           nullptr, nullptr));
 
-  // Since the exact string varies by host, just ensure that it's a string
-  // with the expected format.
+  // The exact string varies by host.
   EXPECT_TRUE(result_string.rfind("Windows ", 0) == 0);
 }
 

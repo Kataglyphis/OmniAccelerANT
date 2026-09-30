@@ -1,13 +1,9 @@
 #!/usr/bin/env bash
 
-# /opt is not writable for the unprivileged container user. Installing there
-# left every codeql call as "No such file or directory" — and since
-# `database create` wraps the build, the app was never built either.
+# /tmp, not /opt: the unprivileged container user cannot write /opt.
 : "${CODEQL_INSTALL_DIR:=/tmp/codeql-cli}"
 CODEQL="${CODEQL_INSTALL_DIR}/codeql/codeql"
-# Scopes the scan to this product's code: build output and vendored libraries
-# are filtered out of the analysis. Why, and what it does NOT do (extraction):
-# .github/codeql/codeql-config.yml.
+# Scopes findings to this product's code; see .github/codeql/codeql-config.yml.
 : "${CODEQL_CONFIG:=/workspace/.github/codeql/codeql-config.yml}"
 
 codeql_install_cli() {
@@ -70,9 +66,7 @@ codeql_create_db_cluster() {
     --command="$build_script_path"
 }
 
-# The paths-ignore filters travel inside the database (stored by
-# --codescanning-config at create time) and are applied here; the explicit suite
-# stays because `database analyze` has no --codescanning-config flag of its own.
+# paths-ignore travels inside the database; the suite is explicit as analyze has no --codescanning-config.
 codeql_analyze_cpp() {
   mkdir -p /workspace/codeql-results
   "$CODEQL" database analyze /tmp/codeql-db-cluster/cpp \
@@ -89,11 +83,7 @@ codeql_analyze_rust() {
     codeql/rust-queries:codeql-suites/rust-security-and-quality.qls
 }
 
-# Kotlin is covered by the Java extractor, hence java-queries.
-# CALLERLESS ON PURPOSE since 2026-09-15: codeql-android.sh no longer builds a
-# java database, because the extractor's Kotlin plugin refuses this repo's KGP
-# and kills the build with it. Kept so restoring the scan is one line in
-# codeql-android.sh, not a rewrite -- see the comment there.
+# Kotlin goes through the Java extractor; callerless on purpose, so restoring the scan is one line in codeql-android.sh.
 codeql_analyze_java() {
   mkdir -p /workspace/codeql-results
   "$CODEQL" database analyze /tmp/codeql-db-cluster/java \

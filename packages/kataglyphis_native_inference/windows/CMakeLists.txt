@@ -1,19 +1,13 @@
-# The Flutter tooling requires that developers have a version of Visual Studio
-# installed that includes CMake 3.14 or later. You should not increase this
-# version, as doing so will cause the plugin to fail to compile for some
-# customers of the plugin.
 cmake_minimum_required(VERSION 3.31.6)
 
 # Project-level configuration.
 set(PROJECT_NAME "kataglyphis_native_inference")
 project(${PROJECT_NAME} LANGUAGES CXX)
 
-# Explicitly opt in to modern CMake behaviors to avoid warnings with recent
-# versions of CMake.
+# Opt in to modern behavior to avoid warnings from recent CMake.
 cmake_policy(VERSION 3.14...3.25)
 
-# This value is used when generating builds using this plugin, so it must
-# not be changed
+# Builds that use this plugin are generated against this name; never change it.
 set(PLUGIN_NAME "kataglyphis_native_inference_plugin")
 
 # Any new source files that you add to the plugin should be added here.
@@ -26,25 +20,19 @@ list(
   "kataglyphis_texture.h")
 
 set(RUST_FEATURES "TRUE")
-# Resolve first, then walk up: a ".." inside the REALPATH argument is collapsed
-# lexically and lands in .plugin_symlinks — AGENTS.md section 3.
+# Resolve, then walk up: a ".." inside REALPATH collapses lexically into .plugin_symlinks (AGENTS.md section 3).
 get_filename_component(_KCI_PLUGIN_PLATFORM_DIR "${CMAKE_CURRENT_SOURCE_DIR}" REALPATH)
 get_filename_component(_KCI_PLUGIN_ROOT "${_KCI_PLUGIN_PLATFORM_DIR}" DIRECTORY)
 get_filename_component(_KCI_PACKAGES "${_KCI_PLUGIN_ROOT}" DIRECTORY)
 get_filename_component(_KCI_REPO_ROOT "${_KCI_PACKAGES}" DIRECTORY)
 set(KCI_DIR "${_KCI_REPO_ROOT}/third_party/AccelerANTgine")
-# The Windows arm64 lane (BACKLOG): AccelerANTgine is cross-built in the family image's arm64
-# bundle, whose clang-cl its C++23 modules need, and linked here. The plugin reads it through
-# kataglyphis_c_api.h alone, so its DLL, import lib and C API headers are all this build takes.
-# The headers come with it because KCI_DIR is wrong there: windows-11-arm makes .plugin_symlinks
-# a junction, which REALPATH leaves unresolved.
+# Windows arm64 links a cross-built AccelerANTgine with its own C API headers (AGENTS.md § 5, the arm64 lane).
 if(DEFINED ENV{KATAGLYPHIS_ACCELERANTGINE_PREBUILT}
    AND NOT
        "$ENV{KATAGLYPHIS_ACCELERANTGINE_PREBUILT}"
        STREQUAL
        "")
-  # A CMake path, not the variable's backslashes: install() re-parses the DLL path, where "\a" is an
-  # escape (run 36622017682).
+  # A CMake path: install() re-parses the DLL path, where a backslash sequence like "\a" is an escape.
   file(TO_CMAKE_PATH "$ENV{KATAGLYPHIS_ACCELERANTGINE_PREBUILT}" _KCI_PREBUILT)
   foreach(_kci_file "bin/AccelerANTgine.dll" "lib/AccelerANTgine.lib" "include/kataglyphis_c_api.h")
     if(NOT EXISTS "${_KCI_PREBUILT}/${_kci_file}")
@@ -63,41 +51,29 @@ else()
   set(_KCI_BUNDLED "")
 endif()
 
-# Define the plugin library target. Its name must not be changed (see comment
-# on PLUGIN_NAME above).
+# Named PLUGIN_NAME, which must not change.
 add_library(${PLUGIN_NAME} SHARED "include/kataglyphis_native_inference/kataglyphis_native_inference_plugin_c_api.h"
                                   "kataglyphis_native_inference_plugin_c_api.cpp" ${PLUGIN_SOURCES})
 
-# Apply a standard set of build settings that are configured in the
-# application-level CMakeLists.txt. This can be removed for plugins that want
-# full control over build settings.
+# Build settings from the application-level CMakeLists.txt.
 apply_standard_settings(${PLUGIN_NAME})
 
-# Symbols are hidden by default to reduce the chance of accidental conflicts
-# between plugins. This should not be removed; any symbols that should be
-# exported should be explicitly exported with the FLUTTER_PLUGIN_EXPORT macro.
+# Hidden by default against cross-plugin symbol clashes; export with FLUTTER_PLUGIN_EXPORT.
 set_target_properties(${PLUGIN_NAME} PROPERTIES CXX_VISIBILITY_PRESET hidden)
 target_compile_definitions(${PLUGIN_NAME} PRIVATE FLUTTER_PLUGIN_IMPL)
 
-# Source include directories and library dependencies. Add any plugin-specific
-# dependencies here.
 target_include_directories(${PLUGIN_NAME} INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/include")
 target_include_directories(${PLUGIN_NAME} PRIVATE "${KCI_DIR}/Src")
 target_link_libraries(${PLUGIN_NAME} PRIVATE flutter flutter_wrapper_plugin)
 target_link_libraries(${PLUGIN_NAME} PRIVATE AccelerANTgine)
-# List of absolute paths to libraries that should be bundled with the plugin.
-# This list could contain prebuilt libraries, or libraries created by an
-# external build triggered from this build file.
+# Absolute paths of the libraries bundled with the plugin.
 set(kataglyphis_native_inference_bundled_libraries
     "${_KCI_BUNDLED}"
     PARENT_SCOPE)
 
-# === Tests ===
-# These unit tests can be run from a terminal after building the example, or
-# from Visual Studio after opening the generated solution file.
+# Tests
 
-# Only enable test builds when building the example (which sets this variable)
-# so that plugin clients aren't building the tests.
+# Only the example sets this, so plugin clients never build the tests.
 if(${include_${PROJECT_NAME}_tests})
   set(TEST_RUNNER "${PROJECT_NAME}_test")
   enable_testing()
@@ -116,8 +92,7 @@ if(${include_${PROJECT_NAME}_tests})
       CACHE BOOL "Disable installation of googletest" FORCE)
   FetchContent_MakeAvailable(googletest)
 
-  # The plugin's C API is not very useful for unit testing, so build the sources
-  # directly into the test binary rather than using the DLL.
+  # The C API is too narrow to unit-test, so compile the sources into the test binary.
   add_executable(${TEST_RUNNER} test/kataglyphis_native_inference_plugin_test.cpp ${PLUGIN_SOURCES})
   apply_standard_settings(${TEST_RUNNER})
   target_include_directories(${TEST_RUNNER} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")

@@ -16,27 +16,7 @@ import 'package:anthology/Routing/router_creater.dart';
 import 'package:anthology/app_attributes.dart';
 import 'package:anthology/Pages/stateful_branch_info_provider.dart';
 
-/// Routes configuration for the OmniAccelerANT application.
-///
-/// This class extends [RoutesCreator] to provide all application routes,
-/// organized into logical groups:
-///
-/// - **Navigation Bar Pages**: Stream, Landing, About Me
-/// - **Footer Pages**: Imprint, Contact, Privacy, etc.
-/// - **Blog Pages**: Dynamically loaded from blog configuration
-/// - **Data Pages**: Block overview and media critics
-/// - **Error Pages**: 404 and other error states
-///
-/// Each route is paired with a [StatefulBranchInfoProvider] that supplies
-/// routing metadata like the URL path segment.
-///
-/// Example usage:
-/// ```dart
-/// final routesCreator = JotrockenMitLockenRoutes(
-///   blogDependentAppAttributes: blogAttributes,
-/// );
-/// final router = routesCreator.getRouterConfig(appAttributes, ...);
-/// ```
+/// All OmniAccelerANT routes, each paired with its [StatefulBranchInfoProvider].
 class JotrockenMitLockenRoutes extends RoutesCreator {
   OmniBlogDependentAppAttributes blogDependentAppAttributes;
 

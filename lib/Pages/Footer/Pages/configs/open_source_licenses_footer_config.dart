@@ -5,9 +5,6 @@ import 'package:anthology/l10n/anthology_localizations.dart';
 class OpenSourceLicensesFooterConfig extends FooterPageConfig {
   @override
   String getHeading(BuildContext context) {
-    // Was a hand-rolled localeOf(context) ternary, i.e. a second private copy of
-    // a string the shared catalogue already owns - and one that would have
-    // served English to any third locale this app grows into.
     return AnthologyLocalizations.of(context)!.openSourceLicenses;
   }
 

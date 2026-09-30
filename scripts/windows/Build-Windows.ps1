@@ -1,9 +1,6 @@
 #requires -Version 7.0
 
-# Every ANTfrastructure build module declares `#requires -Version 7.0`, so this
-# script must be launched with `pwsh`, never Windows PowerShell 5.1's
-# `powershell` — otherwise the failure surfaces as an opaque Import-Module
-# error deep in the preamble instead of here.
+# Launch with pwsh: under 5.1 the hub modules' #requires fails as an opaque Import-Module error.
 
 [CmdletBinding()]
 param(
@@ -40,14 +37,10 @@ if (-not (Test-Path -LiteralPath $buildConfigPath -PathType Leaf)) {
 . $buildConfigPath
 $windowsBuildConfig = Get-KataglyphisWindowsBuildConfig
 
-# One bootstrap, one import list. Resolve-BuildModule looks every name up in
-# third_party/ANTfrastructure first and only then in
-# scripts/windows/modules/, so a module that moves upstream is picked up here
-# without touching this script.
+# Resolve-BuildModule prefers third_party/ANTfrastructure over scripts/windows/modules/.
 . (Join-Path $PSScriptRoot 'Resolve-BuildModule.ps1')
 
-# Dependency order matters (see Import-BuildModule): Shared, then Build, then
-# everything that builds on them.
+# Dependency order matters: Shared, then Build, then everything built on them.
 Import-BuildModule @(
     'WindowsScripts.Shared'     # Resolve-WorkspacePath/-NormalizedPath, sccache + log-retention helpers
     'WindowsBuild.Common'       # build context/log/step primitives, cache env, plugin assertions
@@ -61,8 +54,7 @@ Import-BuildModule @(
     'WindowsOrtRunner.Common'   # project-local: stamp the G6 proof of the runner's chain ONNX Runtime
     'WindowsFlutterAot.Common'  # project-local: the installed AOT snapshot matches the current kernel
 )
-# G6, the hub's ORT census, and the hub's staging of the chain ONNX Runtime beside the exe
-# (WindowsOrtPayload.Common, this repo's own code until 2026-09-25). An older hub pin lacks them.
+# G6 and the hub's chain-ORT staging beside the exe; an older hub pin lacks them.
 try { Import-BuildModule @('WindowsOrtProvenance.Common', 'WindowsOrtPayload.Common') } catch {
     throw "This build needs ANTfrastructure's WindowsOrtProvenance.Common (G6) and WindowsOrtPayload.Common (hub commit ad08bc30 of 2026-09-25, third_party/ANTfrastructure/docs/onnxruntime-single-source.md § The shared Windows glue); move third_party/ANTfrastructure to it or later. ($($_.Exception.Message))"
 }
@@ -107,9 +99,7 @@ if ($buildRootCandidates.Count -eq 0) {
     throw "Build root directory is not configured. Set BuildRootDir in Get-WindowsBuildConfig.ps1 or pass -BuildRootDir."
 }
 
-# Persistent caching configurations for Docker volume mount
-# To avoid massive I/O penalties and SQLite locking issues in Docker bind mounts,
-# we place all cache directories in the container's fast local storage.
+# Caches live in container-local storage: bind mounts cost heavy I/O and break SQLite locking.
 $fastLocalCache = Initialize-BuildCacheEnvironment -Context $context
 
 $originalBuildRoot = $buildRootCandidates[0]
@@ -202,8 +192,7 @@ try {
         $codeQLForwardParameters['SkipBootstrapFlutterBuild'] = $true
 
         Write-BuildLog -Context $context -Message "CodeQL mode: forcing SkipBootstrapFlutterBuild to analyze only non-bootstrap steps."
-        # The same scope as the Linux/android scan (AGENTS.md § 5): an unscoped Windows run
-        # indexed every vendored tree on 2026-09-17. The seam is the hub's; an older pin lacks it.
+        # Scoped like the android scan (AGENTS.md § 5); an older hub pin lacks the parameter.
         $codeQLConfig = Join-Path $workspace '.github\codeql\codeql-config.yml'
         if (-not (Get-Command Invoke-BuildCodeQL).Parameters.ContainsKey('CodeScanningConfig')) {
             throw "Invoke-BuildCodeQL has no -CodeScanningConfig in this ANTfrastructure pin; move third_party/ANTfrastructure to hub commit 4dbf68b9 or later rather than scan unscoped."
@@ -217,24 +206,14 @@ try {
     }
 
     Invoke-BuildStep -Context $context -StepName "Media Runtime Preflight" -Script {
-        # Windows-only Rust features (webcam capture via GStreamer + runtime-
-        # loaded ONNX Runtime). rust_builder/windows/CMakeLists.txt reads this
-        # at configure time and forwards it to cargo via Cargokit. Set the env
-        # var to "" explicitly to build feature-less.
+        # Read at configure time by rust_builder/windows/CMakeLists.txt; "" builds featureless.
         if ($null -eq (Get-Item -Path "Env:KATAGLYPHIS_RUST_FEATURES" -ErrorAction SilentlyContinue)) {
             $env:KATAGLYPHIS_RUST_FEATURES = "gstreamer,onnxruntime_dynamic,onnxruntime_directml"
         }
         Write-BuildLog -Context $context -Message "Rust features: '$($env:KATAGLYPHIS_RUST_FEATURES)'"
 
         if ($env:KATAGLYPHIS_RUST_FEATURES -match "gstreamer") {
-            # gstreamer-sys and friends resolve the GStreamer dev files through
-            # pkg-config at cargo build time — fail fast here instead of deep
-            # inside Ninja. ANTfrastructure's gate checks ALL THREE modules the
-            # crate binds (gstreamer / gstreamer-app / gstreamer-video, see
-            # crates/media/Cargo.toml), reports the resolved versions and prints
-            # PKG_CONFIG_PATH on failure; the old probe only tried
-            # gstreamer-1.0, so a missing gstreamer-app-1.0 .pc got through and
-            # surfaced minutes later as a cargo build error.
+            # All three modules the crate binds, now rather than minutes later inside cargo.
             Assert-PkgConfigModule `
                 -Module @('gstreamer-1.0', 'gstreamer-app-1.0', 'gstreamer-video-1.0') `
                 -Context "the Rust 'gstreamer' feature (webcam capture). Set KATAGLYPHIS_RUST_FEATURES='' to build without it"
@@ -254,16 +233,7 @@ try {
         Write-BuildLog -Context $context -Message "Skipping Flutter dependency steps (SkipFlutterBuild set)."
     }
 
-    # The three quality gates AGENTS.md documents, driven straight through
-    # ANTfrastructure's Invoke-BuildExternal (which logs the command line and fails
-    # the step on a non-zero exit).
-    #
-    # These used to call Invoke-DartFormatVerification / Invoke-DartAnalysis /
-    # Invoke-FlutterTests, which exist in NO module on either side — every build
-    # since recorded all three steps as "The term ... is not recognized"
-    # (logs/build-summary-*.json), so format, analyze and test have not actually
-    # gated anything. They are Flutter-specific, so they belong here rather than
-    # upstream in ANTfrastructure.
+    # Flutter-specific gates stay here; Invoke-BuildExternal fails the step on a non-zero exit.
     if (-not $SkipFormat) {
         Invoke-BuildStep -Context $context -StepName "Dart Format Verification" -Script {
             Push-Location $workspace
@@ -276,12 +246,7 @@ try {
             }
         }
 
-        # cmake-format gate on the hand-maintained CMake, same covered set as
-        # run_cmake_format_check (scripts/linux/lib/container-steps.sh): the
-        # exclusions keep Flutter-generated and vendored Cargokit files out, so
-        # the gate never fights the generator. Upstream Get-ProjectCmakeFiles is
-        # NOT used: it knows nothing of flutter/CMakeLists.txt,
-        # generated_plugins.cmake, ephemeral/ or .cxx/ and would rewrite them.
+        # Same set as run_cmake_format_check; upstream Get-ProjectCmakeFiles would reach generated files.
         Invoke-BuildStep -Context $context -StepName "CMake Format Verification" -Script {
             Push-Location $workspace
             try {
@@ -301,14 +266,7 @@ try {
                     throw ".cmake-format.yaml is missing at the repo root; without it cmake-format silently uses built-in defaults. Restore the consumer copy with ANTfrastructure shared/config/Sync-SharedConfig.ps1 -Write (AGENTS.md paragraph 5)."
                 }
 
-                # Initialize-UvVenvPython is NOT used: it hard-codes
-                # <workspace>/requirements.txt and this repo carries no root
-                # requirements file. Given none it logs "skipping dependency
-                # sync" and returns an EMPTY venv, so the throw below would be
-                # the first sign anything went wrong. Drive the same upstream
-                # primitives directly against ANTfrastructure's pinned bootstrap
-                # set instead — the identical file run_cmake_format_check feeds
-                # uv on Linux (scripts/linux/lib/container-steps.sh).
+                # Not Initialize-UvVenvPython: without a root requirements.txt it returns an empty venv.
                 if (-not (Get-Command 'uv' -ErrorAction SilentlyContinue)) {
                     throw 'uv not found on PATH. Install Astral uv before running formatting steps.'
                 }
@@ -402,11 +360,7 @@ try {
         }
 
         Invoke-BuildStep -Context $context -StepName "Reset CMake Build Directory" -Script {
-            # Remove-BuildRootSafe (WindowsCMake.Common) instead of a bare
-            # Remove-Item: inside a Windows container the wcifs filter
-            # intermittently refuses a delete, and upstream's helper degrades to
-            # an in-place configure with a warning rather than aborting a build
-            # that would have succeeded.
+            # Not Remove-Item: wcifs refuses deletes at random, and this degrades to an in-place configure.
             Remove-BuildRootSafe -Context $context -Path $cmakeBuildDir -Label "CMake build directory"
             New-Item -ItemType Directory -Force -Path $cmakeBuildDir | Out-Null
         }
@@ -478,26 +432,20 @@ try {
             }
 
             if (-not $isReleasePreset) {
-                # Fix CRT Linker Errors (_CrtDbgReport missing) when building Flutter plugins in Debug with clang-cl
-                # Flutter requires MultiThreadedDLL (/MD) but clang-cl + STL + _DEBUG expects Debug CRT (/MDd).
+                # Flutter needs /MD, but clang-cl's STL under _DEBUG wants /MDd (_CrtDbgReport missing).
                 $cmakeArgs += "-DCMAKE_CXX_FLAGS_DEBUG=/MD /Zi /Ob0 /Od /RTC1 /U_DEBUG /DNDEBUG /D_ITERATOR_DEBUG_LEVEL=0"
                 $cmakeArgs += "-DCMAKE_C_FLAGS_DEBUG=/MD /Zi /Ob0 /Od /RTC1 /U_DEBUG /DNDEBUG /D_ITERATOR_DEBUG_LEVEL=0"
             }
 
-            # --- ADDED CMAKE PROFILING LOGGING ---
             Write-BuildLog -Context $context -Message "Enabling CMake Configuration Profiling and Clang -ftime-trace..."
             $cmakeArgs += "--profiling-output=$currentCMakeBuildDir\cmake_configure_profile.json"
             $cmakeArgs += "--profiling-format=google-trace"
             $cmakeArgs += "-DKATAGLYPHIS_ENABLE_TIME_TRACE=ON"
-            # -------------------------------------
 
             Invoke-BuildExternal -Context $context -File "cmake" -Parameters $cmakeArgs
         }
 
-        # NOTE: the Rust crate is built exactly once — by Cargokit inside the
-        # CMake build below (rust_builder plugin). The former standalone
-        # "Rust Crate Build" cargo step duplicated that work; the DLL is now
-        # harvested from the installed runner bundle after the CMake step.
+        # Cargokit builds the Rust crate once, inside the CMake build; its DLL is taken from the installed bundle.
 
         Invoke-BuildStep -Context $context -StepName "Native Assets Directory Fix$stepSuffix" -Script {
             if (Test-Path $currentNativeAssetsDir) {
@@ -528,10 +476,7 @@ try {
             Invoke-BuildExternal -Context $context -File "cmake" -Parameters $cmakeBuildArgs
         }
 
-        # The reused container once shipped an AOT snapshot older than the kernel beside it,
-        # and assemble called it up to date (WindowsFlutterAot.Common says how). Grade the
-        # installed data\app.so; when it is stale, drop the AOT outputs and stamps, rebuild
-        # once, and fail rather than hand over an app that dies at RustLib.init.
+        # assemble can call a stale AOT snapshot up to date (WindowsFlutterAot.Common): rebuild once, then fail.
         Invoke-BuildStep -Context $context -StepName "Flutter AOT Freshness$stepSuffix" -Critical -Script {
             $aot = @{
                 DartToolDir = Join-Path $workspace '.dart_tool'
@@ -555,8 +500,7 @@ try {
         }
 
         Invoke-BuildStep -Context $context -StepName "Copy Rust DLL$stepSuffix" -Script {
-            # Cargokit installed the crate's DLL into the runner bundle; mirror it
-            # into the plugins layout that Start-Windows.ps1 expects.
+            # Mirrored into the plugins layout Start-Windows.ps1 expects.
             $bundleDll = Join-Path $currentBuildDirFull $RustDllName
             if (-not (Test-Path $bundleDll)) {
                 throw "Rust DLL not found in installed bundle: $bundleDll"
@@ -569,10 +513,7 @@ try {
         }
 
         Invoke-BuildStep -Context $context -StepName "Bundle Media Runtime DLLs$stepSuffix" -Script {
-            # Stage the GStreamer runtime closure for the Rust webcam path next to
-            # the runner exe: core DLLs into the bundle root, plugins into
-            # exe-relative gstreamer-1.0\ (the Rust side sets GST_PLUGIN_PATH to
-            # that dir). ONNX Runtime is NOT staged here - see the next step.
+            # Plugins go to gstreamer-1.0\, the Rust side's GST_PLUGIN_PATH; ONNX Runtime is the next step's.
             if ($env:KATAGLYPHIS_RUST_FEATURES -notmatch "gstreamer") {
                 Write-BuildLog -Context $context -Message "Rust media features disabled; skipping DLL bundling."
                 return
@@ -581,8 +522,7 @@ try {
             $gstBin = if ($env:GSTREAMER_BIN) { $env:GSTREAMER_BIN } else { "C:\runtime\bin" }
             $gstPlugins = Join-Path (Split-Path $gstBin -Parent) "lib\gstreamer-1.0"
             if (Test-Path $gstBin) {
-                # Core + dependency DLLs (glib, gobject, gstreamer-1.0, ...). Never an
-                # ORT-family DLL: only the next step may put one beside the exe.
+                # Never an ORT-family DLL: only the next step may put one beside the exe.
                 Copy-Item -Path (Join-Path $gstBin "*.dll") -Exclude @('onnxruntime*.dll', 'DirectML.dll') -Destination $currentBuildDirFull -Force
                 Write-BuildLog -Context $context -Message "GStreamer core DLLs bundled from $gstBin"
             } else {
@@ -591,8 +531,7 @@ try {
             if (Test-Path $gstPlugins) {
                 $pluginDest = Join-Path $currentBuildDirFull "gstreamer-1.0"
                 New-Item -ItemType Directory -Force -Path $pluginDest | Out-Null
-                # Subset needed by the capture pipeline (webcam/test source,
-                # convert/scale, appsink) plus device providers for enumeration.
+                # The capture pipeline's plugins plus the device providers for enumeration.
                 $wanted = @(
                     "gstcoreelements.dll", "gstapp.dll", "gsttypefindfunctions.dll",
                     "gstvideoconvertscale.dll", "gstvideofilter.dll", "gstvideorate.dll",
@@ -611,9 +550,7 @@ try {
             }
         }
 
-        # Owner rule 2026-09-23: AccelerANTgine.dll imports onnxruntime.dll and oxidant.dll
-        # loads it, whatever the Rust features - so the chain copy is staged unconditionally, last,
-        # then the whole runner is proved by G6 against the image's chain ORT and stamped.
+        # Unconditional and last: AccelerANTgine.dll imports onnxruntime.dll whatever the features; G6 then proves it.
         Invoke-BuildStep -Context $context -StepName "Stage Chain ONNX Runtime$stepSuffix" -Critical -Script {
             $null = Copy-ChainOrtBeside -OnnxRoot "$env:ONNX_ROOT" -Destination $currentBuildDirFull
             $proof = Invoke-RunnerOrtProof -RunnerDir $currentBuildDirFull
@@ -622,11 +559,7 @@ try {
     }
 
     Invoke-BuildStep -Context $context -StepName "MSIX Compatibility Layout" -Script {
-        # msix looks for build\windows\x64\runner\Release — directly under
-        # runner\, not under runner\<preset>\. Nesting it inside the preset
-        # directory is why packaging reported "Build files not found at
-        # ...\runner\Release". With several presets the first one built wins
-        # here; msix packages a single configuration either way.
+        # msix wants runner\Release itself, not runner\<preset>\; with several presets the first built wins.
         $msixReleaseDir = Resolve-NormalizedPath -Path (Join-Path $buildRoot "windows/x64/runner/Release")
         $hostReleaseDir = Resolve-NormalizedPath -Path (Join-Path $originalBuildRoot "windows/x64/runner/Release")
         foreach ($currentPreset in $presetsToRun) {
@@ -640,8 +573,7 @@ try {
             $msixSourceDir = Resolve-NormalizedPath -Path (Join-Path $buildRoot "windows/x64/runner/$currentPreset")
             if ($msixSourceDir -eq $msixReleaseDir -or -not (Test-Path -LiteralPath $msixSourceDir -PathType Container)) { continue }
 
-            # Rebuilt on every run: a kept copy carried an ONNX Runtime this run never proved.
-            # The host copy goes too, because the sync to the host below only adds files.
+            # Rebuilt every run, host copy too (the host sync only adds): a kept copy holds an unproved ORT.
             Write-BuildLog -Context $context -Message "Preparing MSIX compatibility for $currentPreset..."
             foreach ($staleDir in @($msixReleaseDir, $hostReleaseDir)) {
                 if (Test-Path -LiteralPath $staleDir) { Remove-Item -LiteralPath $staleDir -Recurse -Force }
@@ -671,9 +603,7 @@ try {
     }
 
     Show-SccacheStats -Context $context
-    # Same numbers again on STDERR: BuildKit clips a step's stdout at 2 MiB, and
-    # this build produces far more than that, so the hit-rate would otherwise be
-    # gone from exactly the CI logs where caching needs to be measured.
+    # Again on stderr: BuildKit clips a step's stdout at 2 MiB, which would drop the hit rate from CI logs.
     Write-SccacheStatsToStderr
 
     Invoke-BuildStep -Context $context -StepName "Sync Artifacts to Host Workspace" -Script {
@@ -698,11 +628,7 @@ try {
     }
 
     Invoke-BuildStep -Context $context -StepName "Delivery Check" -Script {
-        # A green build is not proof of delivery. Assert the runner exe that each
-        # built preset was supposed to produce actually exists, so an empty or
-        # silently-failed build cannot exit 0 (adopting-in-a-new-project.md § 2;
-        # the OxidANT Build-Windows.ps1 keeps the same gate on its MSIX).
-        # Asserts both the scratch and the host-synced tree — see AGENTS.md § 5.
+        # A green build is not delivery: each preset's runner exe must exist in both trees (AGENTS.md § 5).
         $missingArtifacts = @()
         foreach ($currentPreset in $presetsToRun) {
             $effectivePreset = if ([string]::IsNullOrEmpty($currentPreset)) {
@@ -765,9 +691,7 @@ try {
             $flutterLogs | Move-Item -Destination $logDirPath -Force
         }
 
-        # Bounded log growth, ANTfrastructure's retention policy: keep plenty (the
-        # incident is always in the newest ones) and only trim the tail. Runs
-        # last so this build's own log is among the newest kept.
+        # The hub's retention policy; last, so this build's own log is among those kept.
         Limit-DiagnosticLogs -Directory $logDirPath -Keep 60
     } catch {
         Write-BuildLogWarning -Context $context -Message "Failed to copy JSON summary to LogDir: $($_.Exception.Message)"

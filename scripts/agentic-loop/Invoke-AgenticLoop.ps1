@@ -1,18 +1,10 @@
 #requires -Version 7.0
 <#
 .SYNOPSIS
-  TEMPLATE - copy to <your-repo>/scripts/agentic-loop/Invoke-AgenticLoop.ps1.
-
-  Agentic loop: planner adds tasks to BACKLOG.md, executor drains the queue.
-  Uses the WindowsAgenticLoop.Common module from ANTfrastructure, so
-  this wrapper stays thin: it resolves the module, loads the config, and calls
-  Invoke-AgenticLoop. Build configurations come from the config's buildMatrix
-  and the planner/executor task prompts default to ANTfrastructure's
-  shared/agentic-loop/prompts/*.md - do NOT hard-code prompt text here, that
-  is how the two platforms drifted apart once already.
-
-  Engines are selected by the config's .engine key (or -Engine /
-  $env:AGENTIC_ENGINE); models are configured per engine in the config.
+  Agentic loop via the hub's WindowsAgenticLoop.Common: the planner fills BACKLOG.md, the executor drains it.
+.DESCRIPTION
+  Prompts default to the hub's shared/agentic-loop/prompts/*.md; never hard-code prompt text here.
+  The engine comes from the config's .engine key, -Engine or $env:AGENTIC_ENGINE.
 .PARAMETER Engine  Engine override: claude | opencode (v2 CLI; default: config .engine).
 .PARAMETER DryRun  Print actions without executing.
 .PARAMETER MaxIterations  Override max iterations (0 = unlimited).
@@ -43,9 +35,7 @@ if (-not $config) { Write-Host "FATAL: Invalid JSON" -ForegroundColor Red; exit 
 
 Initialize-AgenticLoop -ConfigPath $configPath -RepoRoot $repoRoot -DryRun:$DryRun
 
-# Build configs and planner/executor task prompts come from the module:
-# configs from the config's buildMatrix (legacy buildConfigurations fallback),
-# prompts from ANTfrastructure's shared/agentic-loop/prompts/*.md defaults.
+# The module supplies the build configs (the config's buildMatrix) and the default prompts.
 try {
     Invoke-AgenticLoop -Config $config -Engine $Engine -RepoRoot $repoRoot `
         -MaxIterations:$MaxIterations -SkipBuild:$SkipBuild -SkipTests:$SkipTests `

@@ -1,18 +1,6 @@
 #requires -Version 7.0
 
-# PROJECT-SPECIFIC: a guard for one failure of this repo's reused Windows build container
-# (fixed 2026-09-28; it was a BACKLOG item). The app died at RustLib.init with
-# "oxidant's codegen version (2.12.0) should be the same as runtime version (2.13.0)" while
-# lib/src/rust/frb_generated.dart read 2.13.0: the runner's data\app.so was an AOT snapshot
-# from before the bindings were regenerated, and flutter assemble reported the AOT target up
-# to date although it had just written a fresh app.dill. -FreshContainer was the only remedy.
-#
-# Flutter's Windows release build keeps three copies of the AOT library:
-#   .dart_tool\flutter_build\<hash>\app.so   assemble's output, beside the app.dill it compiles
-#   build\windows\app.so                     windows_aot_bundle's copy (CMake's AOT_LIBRARY)
-#   <runner>\data\app.so                     what CMake installs and the exe loads
-# Fresh means: the assemble output is not older than its kernel, and the other two copies are
-# the same bytes. A Debug runner has no data\app.so (JIT) and is not graded.
+# assemble can call a stale AOT target up to date: fresh means its app.so is not older than app.dill and both copies match.
 
 Set-StrictMode -Version Latest
 
@@ -31,8 +19,7 @@ function Get-FlutterAotBuildDir {
 }
 
 function Get-FlutterAotStaleness {
-    # Every reason the installed AOT snapshot cannot be trusted; empty when it is fresh or
-    # when the runner carries none (Debug).
+    # Every reason the installed snapshot cannot be trusted; empty when fresh or absent (Debug).
     param(
         [Parameter(Mandatory)][string] $DartToolDir,
         [Parameter(Mandatory)][string] $RunnerDataDir,
@@ -72,8 +59,7 @@ function Get-FlutterAotStaleness {
 }
 
 function Reset-FlutterAotOutput {
-    # Removes the AOT outputs and the stamps that let assemble skip the AOT targets, so the
-    # next build recompiles app.so from the current kernel. Returns what it removed.
+    # Removes the AOT outputs and the stamps that let assemble skip them; returns what it removed.
     param(
         [Parameter(Mandatory)][string] $DartToolDir,
         [string] $AotLibrary = ''

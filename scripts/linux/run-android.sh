@@ -83,8 +83,7 @@ cd "$REPO_ROOT"
 require_cmd flutter
 require_cmd dart
 
-# ANTfrastructure's gate: pub get + format + analyze + test, non-strict. Its format
-# step lists tracked files instead of walking $PWD/flutter — AGENTS.md § 2.
+# The hub's pub get + format + analyze + test, non-strict; it formats tracked files only (AGENTS.md § 2).
 bash "$(antfrastructure_path linux/scripts/05-frameworks/flutter/flutter_checks.sh)" --strict false
 
 flutter config --enable-android
@@ -93,13 +92,7 @@ flutter clean
 flutter pub get
 flutter build apk --"$BUILD_MODE"
 
-# The plugin's JVM test, which no lane ran until 2026-09-17. Fatal on purpose:
-# the android lane's Dart checks are non-strict only because they were inherited
-# that way, and this step is what proved the test source set even compiled — its
-# dependencies block sat inside android{} and resolved to nothing, and Gradle 9
-# needs the JUnit launcher declared explicitly. Both fixes live in
-# packages/kataglyphis_native_inference/android/build.gradle. The wrapper and
-# daemon are warm from the apk build above, so this is configuration cost only.
+# The plugin's JVM test, fatal on purpose; Gradle is warm from the apk build, so it costs little.
 (cd android && ./gradlew :kataglyphis_native_inference:testDebugUnitTest --console=plain)
 
 if [[ "$BUILD_MODE" == "release" ]]; then

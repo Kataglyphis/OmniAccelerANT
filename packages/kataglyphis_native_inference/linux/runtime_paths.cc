@@ -1,13 +1,4 @@
-// Relocatable-bundle runtime paths. The packaged app keeps GStreamer, ONNX
-// Runtime and the detector model inside its own tree, so the absolute
-// build-image paths baked into these ELFs must not be required at runtime.
-//
-// Why an ELF constructor: GStreamer reads GST_PLUGIN_PATH when its registry
-// loads, ort reads ORT_DYLIB_PATH when it dlopens, and KATAGLYPHIS_ONNX_MODEL
-// when the engine initialises - all after this library is loaded, none before.
-// Each variable is only set when the sibling exists and the environment does
-// not already name one, so a user override always wins.
-// Rationale: docs/source/camera-streaming.md.
+// ELF constructor: every reader of these variables runs after load. See docs/source/camera-streaming.md § Relocatable Linux bundles
 
 #include <dlfcn.h>
 #include <sys/stat.h>
@@ -29,8 +20,7 @@ void set_if_present(const char* name, const std::string& value) {
   ::setenv(name, value.c_str(), 1);
 }
 
-// The directory this shared object was loaded from; empty when dladdr cannot
-// say (a bare-name load), in which case nothing below can be trusted.
+// This shared object's directory; empty (trust nothing) when dladdr cannot say.
 std::string module_directory() {
   Dl_info info{};
   if (::dladdr(reinterpret_cast<void*>(&module_directory), &info) == 0 ||

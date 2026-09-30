@@ -1,14 +1,4 @@
-// Unit tests for the GStreamer pipeline strings the Stream page hands to the
-// native plugin.
-//
-// These are worth pinning because the strings are the API boundary between Dart
-// and GStreamer: a typo in one of them is not a compile error, not an analyzer
-// warning and not visible in a widget test — it surfaces as a live pipeline that
-// fails to reach PLAYING on a machine with a camera attached, which is the one
-// configuration CI does not have.
-//
-// GStreamerPipelineBuilder is pure and takes no BuildContext, so all of this
-// runs in the VM with no binding, no platform channel and no device.
+// Pins the pipeline strings: a typo there only fails on a machine with a camera, which CI lacks.
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -33,9 +23,7 @@ void main() {
 
   group('sink selection', () {
     test('desktop terminates in the appsink the plugin looks up by name', () {
-      // my_texture.cc does gst_bin_get_by_name(pipeline, "sink") and fails the
-      // whole setPipeline call when that returns nothing, so the name is a
-      // contract and not a label.
+      // my_texture.cc looks the appsink up by the name "sink" and fails setPipeline without it.
       for (final String source in <String>[
         'videotestsrc',
         'v4l2src',
@@ -59,9 +47,7 @@ void main() {
   });
 
   group('v4l2src — the Linux default', () {
-    // _pickDefaultSource() returns 'v4l2src' on Linux and initState plays it
-    // immediately, so this exact string is what a Linux desktop run negotiates
-    // on page open.
+    // The exact string a Linux desktop negotiates on page open.
     final String pipeline = desktop.build('v4l2src');
 
     test('opens /dev/video0', () {
@@ -74,9 +60,7 @@ void main() {
     });
 
     test('converts to RGBA, which is the only format the appsink accepts', () {
-      // my_texture_set_pipeline pins the appsink caps to video/x-raw,
-      // format=RGBA. A pipeline that negotiates anything else prerolls and then
-      // never delivers a sample.
+      // Any other format prerolls against the RGBA-pinned appsink and never delivers a sample.
       expect(pipeline, contains('format=RGBA'));
     });
 
@@ -95,9 +79,7 @@ void main() {
     });
 
     test('an unknown source falls back to the ball pattern', () {
-      // Documented behaviour of the `_ =>` arm: an unrecognised source must
-      // still produce a playable pipeline rather than an empty string, because
-      // the result goes straight to gst_parse_launch.
+      // The result goes straight to gst_parse_launch, so it must stay playable.
       expect(
         desktop.build('no-such-source'),
         equals(desktop.build('videotestsrc')),
@@ -105,8 +87,7 @@ void main() {
     });
 
     test('android test patterns skip the camera conversion chain', () {
-      // videotestsrc produces system-memory frames; forcing the camera chain's
-      // AHardwareBuffer caps on them breaks preroll.
+      // System-memory frames break preroll under the camera chain's caps.
       final String pattern = android.build('videotestsrc');
       expect(pattern, contains('glupload'));
       expect(pattern, isNot(contains('videoconvert')));
@@ -161,13 +142,7 @@ void main() {
   });
 }
 
-// ---------------------------------------------------------------------------
 // Source fallback policy
-// ---------------------------------------------------------------------------
-//
-// These pin the chain itself rather than any one pipeline string. The Linux row
-// is the reason the policy exists: before 2026-09-16 only Android retried, so a
-// Linux machine with no /dev/video0 showed a dead texture and nothing else.
 
 void _fallbackPolicyTests() {
   group('source fallback chains', () {
@@ -219,8 +194,7 @@ void _fallbackPolicyTests() {
     });
 
     test('returns null for a source outside the chain', () {
-      // A hand-picked source must fail with its own error rather than silently
-      // restarting the platform chain from the middle.
+      // A hand-picked source keeps its own error instead of restarting the chain.
       expect(nextSourceAfter('pattern-snow', chain), isNull);
     });
 

@@ -1,12 +1,5 @@
 #!/usr/bin/env bash
-# Grades the runtime closure of a built bundle, headlessly: every DT_NEEDED is
-# bundled or in the system allowlist (lib/bundle-runtime.sh), every lib with a
-# bundled sibling has an $ORIGIN RUNPATH to it (RUNPATH is not transitive), the
-# GStreamer plugins are present (nothing DT_NEEDs them), and ANTfrastructure's G6
-# census proves every ONNX Runtime binary and user in it.
-# Usage: scripts/linux/check-bundle-closure.sh [--arch x64|arm64]
-#            [--build-mode MODE] [--bundle-dir DIR] [--ort-reference DIR]
-# Detail: docs/source/camera-streaming.md § Relocatable Linux bundles.
+# Grades a built bundle's runtime closure headlessly. See docs/source/camera-streaming.md § Relocatable Linux bundles
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -120,8 +113,7 @@ for file in "$plugin_dir"/*.so; do
   check_one_elf "$file" plugin
 done
 
-# Owner rule 2026-09-23: the bundle's only ORT is the image's chain build (the hub's G6 decides).
-# It runs on an ORT-named file or any file naming G6's ORT ABI, so a user with no ORT beside it fails.
+# Only the chain-built ORT may ship; G6 runs whenever any file names the ORT ABI, so an ORT-less user fails.
 ort_census_args=()
 if [[ -n "$ORT_REFERENCE" ]]; then
   ort_census_args=(--reference "$ORT_REFERENCE")

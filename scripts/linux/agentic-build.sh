@@ -1,16 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Agentic-loop build adapter (Linux): maps the loop's
-# `--preset <name> --build-dir <dir>` contract onto this repo's native Linux
-# lane, scripts/linux/run-native-linux.sh. The loop's bash library hard-codes
-# that argument shape (third_party/ANTfrastructure/linux/scripts/lib/agentic-loop.sh).
-#
-# NOT yet exercised end-to-end: the loop has only been run on Windows so far;
-# on Linux it also needs the opencode v2 CLI on the host (AGENTS.md § 5).
-# The lane's own gates run inside this call; packaging stays off because a loop
-# build only needs build success. --build-dir is accepted for contract parity
-# and ignored - the lane owns its build directory.
+# Maps the agentic loop's hard-coded `--preset --build-dir` onto run-native-linux.sh; the lane owns its build dir.
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"

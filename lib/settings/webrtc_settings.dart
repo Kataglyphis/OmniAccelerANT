@@ -1,26 +1,9 @@
-/// WebRTC and video streaming configuration settings.
-///
-/// This library provides configuration classes for WebRTC signaling,
-/// video encoding, and platform-specific texture rendering settings.
-/// Settings are typically loaded from `assets/settings/webrtc_settings.json`.
+/// WebRTC and video settings, parsed from `assets/settings/webrtc_settings.json`.
 library;
 
 import 'package:flutter/foundation.dart' show kIsWeb;
 
-/// Video encoding configuration settings for WebRTC streams.
-///
-/// These settings control the default resolution, framerate, and bitrate
-/// for outgoing video streams.
-///
-/// Example JSON:
-/// ```json
-/// {
-///   "defaultWidth": 1280,
-///   "defaultHeight": 720,
-///   "defaultFramerate": 30,
-///   "defaultBitrateKbps": 2000
-/// }
-/// ```
+/// Default resolution, framerate and bitrate of outgoing WebRTC video.
 class VideoSettings {
   /// Creates video settings with the specified parameters.
   VideoSettings({
@@ -30,9 +13,7 @@ class VideoSettings {
     required this.defaultBitrateKbps,
   });
 
-  /// Creates video settings from a JSON map.
-  ///
-  /// Throws [TypeError] if required fields are missing or have wrong types.
+  /// Parses [json]; throws [FormatException] on a missing or mistyped field.
   VideoSettings.fromJsonFile(Map<String, dynamic> json)
     : defaultWidth = _requireInt(json, 'defaultWidth'),
       defaultHeight = _requireInt(json, 'defaultHeight'),
@@ -52,25 +33,12 @@ class VideoSettings {
   final int defaultBitrateKbps;
 }
 
-/// Native texture rendering configuration settings.
-///
-/// These settings control the resolution of the native texture
-/// used for video rendering on desktop and mobile platforms.
-///
-/// Example JSON:
-/// ```json
-/// {
-///   "width": 640,
-///   "height": 480
-/// }
-/// ```
+/// Resolution of the native video texture on desktop and mobile.
 class TextureSettings {
   /// Creates texture settings with the specified dimensions.
   TextureSettings({required this.width, required this.height});
 
-  /// Creates texture settings from a JSON map.
-  ///
-  /// Throws [TypeError] if required fields are missing or have wrong types.
+  /// Parses [json]; throws [FormatException] on a missing or mistyped field.
   TextureSettings.fromJsonFile(Map<String, dynamic> json)
     : width = _requireInt(json, 'width'),
       height = _requireInt(json, 'height');
@@ -82,19 +50,7 @@ class TextureSettings {
   final int height;
 }
 
-/// Android-specific video configuration settings.
-///
-/// Android devices often have different performance characteristics
-/// and may require lower resolutions for smooth rendering.
-///
-/// Example JSON:
-/// ```json
-/// {
-///   "width": 320,
-///   "height": 240,
-///   "fps": 15
-/// }
-/// ```
+/// Android video settings, separate because devices often need a lower resolution.
 class AndroidSettings {
   /// Creates Android settings with the specified parameters.
   AndroidSettings({
@@ -103,9 +59,7 @@ class AndroidSettings {
     required this.fps,
   });
 
-  /// Creates Android settings from a JSON map.
-  ///
-  /// Throws [TypeError] if required fields are missing or have wrong types.
+  /// Parses [json]; throws [FormatException] on a missing or mistyped field.
   AndroidSettings.fromJsonFile(Map<String, dynamic> json)
     : width = _requireInt(json, 'width'),
       height = _requireInt(json, 'height'),
@@ -121,32 +75,7 @@ class AndroidSettings {
   final int fps;
 }
 
-/// WebRTC configuration settings loaded from webrtc_settings.json.
-///
-/// This class contains all configuration needed for WebRTC signaling,
-/// ICE server configuration, and platform-specific video settings.
-///
-/// Example JSON:
-/// ```json
-/// {
-///   "signalingServerUrl": "wss://example.com:8443",
-///   "reconnectionTimeoutMs": 5000,
-///   "stunServers": ["stun:stun.l.google.com:19302"],
-///   "turnServers": [],
-///   "video": { ... },
-///   "texture": { ... },
-///   "android": { ... }
-/// }
-/// ```
-///
-/// `signalingServerUrl` may also be host-relative (`/webrtc-ws`): the web
-/// client then connects to the page's own origin, which makes one build work
-/// on localhost, a LAN IP and a Raspberry Pi alike.
-///
-/// See also:
-/// - [VideoSettings] for video encoding configuration
-/// - [TextureSettings] for native texture rendering configuration
-/// - [AndroidSettings] for Android-specific settings
+/// Signalling, ICE servers and per-platform video settings from `webrtc_settings.json`.
 class WebRTCSettings {
   /// Creates WebRTC settings with all required parameters.
   WebRTCSettings({
@@ -159,9 +88,7 @@ class WebRTCSettings {
     required this.android,
   });
 
-  /// Creates WebRTC settings from a JSON map.
-  ///
-  /// Throws [FormatException] if required fields are missing or have wrong types.
+  /// Parses [json]; throws [FormatException] on a missing or mistyped field.
   WebRTCSettings.fromJsonFile(Map<String, dynamic> json)
     : signalingServerUrl = _resolveSignalingServerUrl(
         _requireString(json, 'signalingServerUrl'),
@@ -173,25 +100,16 @@ class WebRTCSettings {
       texture = TextureSettings.fromJsonFile(_requireMap(json, 'texture')),
       android = AndroidSettings.fromJsonFile(_requireMap(json, 'android'));
 
-  /// The WebSocket URL for the signaling server.
-  ///
-  /// Should use `wss://` for secure connections in production. A host-relative
-  /// value (starting with `/`) is resolved against the page's origin on the
-  /// web; native platforms keep the configured string unchanged.
+  /// Signalling WebSocket URL; a host-relative `/path` resolves against the page's origin on the web.
   final String signalingServerUrl;
 
   /// Timeout in milliseconds before attempting to reconnect.
   final int reconnectionTimeoutMs;
 
-  /// List of STUN server URLs for ICE candidate gathering.
-  ///
-  /// Example: `["stun:stun.l.google.com:19302"]`
+  /// STUN server URLs for ICE candidate gathering.
   final List<String> stunServers;
 
-  /// List of TURN server URLs for relay when direct connection fails.
-  ///
-  /// TURN servers require authentication credentials which should be
-  /// configured separately.
+  /// TURN relay URLs; their credentials are configured separately.
   final List<String> turnServers;
 
   /// Video encoding settings for outgoing streams.
@@ -204,9 +122,7 @@ class WebRTCSettings {
   final AndroidSettings android;
 }
 
-// ============================================================================
 // JSON Parsing Helpers
-// ============================================================================
 
 /// Safely extracts a required string field from JSON.
 String _requireString(Map<String, dynamic> json, String key) {
@@ -262,13 +178,7 @@ List<String> _parseStringList(Map<String, dynamic> json, String key) {
   return value.map((e) => e.toString()).toList();
 }
 
-/// Resolves a host-relative signaling URL against the page it was served from.
-///
-/// On the web a value such as `/webrtc-ws` is served by the same reverse proxy
-/// that serves the app, so no hostname or port is baked into the build. An
-/// absolute URL (one with a scheme, e.g. `wss://host:8443`) passes through
-/// untouched, as does everything on native platforms — only the web client
-/// consumes this value.
+/// Resolves a host-relative URL against the serving page on the web, so no host is baked into the build.
 String _resolveSignalingServerUrl(String configured) {
   if (!kIsWeb || !configured.startsWith('/')) {
     return configured;

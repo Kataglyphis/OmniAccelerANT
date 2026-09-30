@@ -145,6 +145,17 @@ Run the app on the host after a build:
 | CMake configure: `add_subdirectory ... .plugin_symlinks/kataglyphis_native_inference/windows which is not an existing directory` (only this one plugin) | `Fix-FlutterPluginSymlinks` (now `Repair-FlutterPluginSymlink`, the old name kept as an alias) used to **copy** each plugin dir into `.plugin_symlinks`; it now makes a junction first and copies only when that does not resolve. For `kataglyphis_native_inference` the recursive copy of its deep `native/AccelerANTgine/third_party/*` tree overruns the 260-char path limit and aborts before `windows\` is copied, leaving a broken junction. Since 2026-09-05 that tree is no longer inside the plugin — the inference core is a sibling submodule at `third_party/AccelerANTgine` and the plugin directory is 97 files — so a copy would no longer overrun; the junction stays regardless, as the cheaper and more robust option | Use a **junction** (`mklink /J`) rather than a copy for container-local workspaces — immune to MAX_PATH (the "copy avoids symlink access-denied" rationale only applies to bind-mounted paths). Clear stale `windows\flutter\ephemeral` + `.dart_tool` first: a broken junction from a prior run makes `flutter build --config-only` crash `PathExistsException` (errno 183, "already exists"). |
 | App window flashes then exits on the host (~6 MB, no window title) | The native C++ plugin can't load its dependency `AccelerANTgine.dll` — the build leaves it in a `bin\` **subdirectory** of the runner, not beside the exe — and the VC++ runtime isn't bundled | Copy `runner\...\bin\AccelerANTgine.dll` next to the exe, and stage the VC++ redist CRT DLLs (`VC\Redist\MSVC\*\x64\*.CRT\*.dll`, or `msvcp140.dll`/`vcruntime140*.dll` from `System32`). A fully-initialized app is ~130 MB with a real window handle. `Start-Windows.ps1` / the MSIX layout should place `AccelerANTgine.dll` beside the exe. |
 
+### Tar-pipe inbound exclusions
+
+`Build-Windows-Container.ps1` streams the checkout into the reused container with bsdtar, and bsdtar
+aborts the **whole** archive on any entry it cannot stat: the host's Flutter plugin junctions under
+`ephemeral/` and the Linux symlinks the cargo-cache sync-back leaves in `third_party/OxidANT/target` are
+both such entries, so both stay excluded (the container regenerates the first and builds into its own
+`CARGO_TARGET_DIR` instead of the second). The patterns match whole path components, so a prefix glob
+like `out*` also drops unrelated directories such as nlohmann's `detail/output/`. Of `.git` only
+`modules/` and the object store are left out: the CMake format gate's `git ls-files` needs HEAD, the
+index and refs, never an object.
+
 ### Standard build
 
 ```powershell

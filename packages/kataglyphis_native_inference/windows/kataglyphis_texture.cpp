@@ -66,8 +66,7 @@ const FlutterDesktopPixelBuffer* KataglyphisTexture::CopyPixelBufferCallback(
     present_width_ = width_;
     present_height_ = height_;
   }
-  // Copy so the returned pointer stays stable after the lock is released,
-  // even if PushFrame overwrites (or resizes) the write buffer meanwhile.
+  // A copy, so the returned pointer survives PushFrame rewriting buffer_ once the lock drops.
   std::memcpy(present_buffer_.get(), buffer_.get(), size);
   pixel_buffer_.buffer = present_buffer_.get();
   pixel_buffer_.width = present_width_;
@@ -148,8 +147,7 @@ int32_t knt_push_frame(int64_t texture_id, const uint8_t* rgba, uint32_t width,
   if (!rgba || width == 0 || height == 0) {
     return -1;
   }
-  // Held across PushFrame so the texture cannot be destroyed mid-copy;
-  // contention is only with create/destroy, never frame-vs-frame.
+  // Held across PushFrame so the texture cannot be destroyed mid-copy.
   std::lock_guard<std::mutex> lock(g_push_targets_mutex);
   auto it = PushTargets().find(texture_id);
   if (it == PushTargets().end()) {

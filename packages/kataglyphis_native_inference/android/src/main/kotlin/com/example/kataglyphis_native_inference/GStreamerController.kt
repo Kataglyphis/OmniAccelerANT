@@ -79,9 +79,7 @@ internal class GStreamerController(
         if (nativeInitialized) return
         GStreamerNative.ensureLoaded()
         
-        // Initialize GStreamer via the Java helper class first.
-        // This sets up the application context and class loader required by
-        // the androidmedia plugin to access Android camera APIs.
+        // First: it gives androidmedia the context and class loader for the camera APIs.
         try {
             org.freedesktop.gstreamer.GStreamer.init(context.applicationContext)
             Log.i(TAG, "GStreamer.init() completed successfully")

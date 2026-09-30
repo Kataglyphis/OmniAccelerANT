@@ -10,8 +10,6 @@ flutter/
 x64/
 x86/
 
-# Visual Studio cache files
-# files ending in .cache can be ignored
+# Visual Studio cache files, but not directories ending in .cache
 *.[Cc]ache
-# but keep track of directories ending in .cache
 !*.[Cc]ache/

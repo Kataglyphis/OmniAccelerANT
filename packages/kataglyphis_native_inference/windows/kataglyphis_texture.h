@@ -14,9 +14,7 @@
 
 namespace kataglyphis_native_inference {
 
-// A CPU pixel-buffer texture fed from outside (Rust pushes RGBA frames via the
-// exported `knt_push_frame` C ABI; see bottom of this header). The old
-// pipeline-string methods remain as no-ops for method-channel compatibility.
+/// CPU pixel-buffer texture fed by `knt_push_frame`; the pipeline methods are no-ops kept for the method channel.
 class KataglyphisTexture {
  public:
   KataglyphisTexture(uint32_t width, uint32_t height, uint8_t r, uint8_t g,
@@ -29,8 +27,7 @@ class KataglyphisTexture {
   void Stop();
   void SetColor(uint8_t r, uint8_t g, uint8_t b);
 
-  // Copies one tightly packed RGBA frame into the texture and marks it
-  // available. Thread-safe; callable from any thread (Rust worker).
+  /// Copies one packed RGBA frame in and marks it available; callable from any thread.
   bool PushFrame(const uint8_t* rgba, uint32_t width, uint32_t height);
 
   int64_t texture_id() const { return texture_id_; }
@@ -53,8 +50,7 @@ class KataglyphisTexture {
   std::unique_ptr<uint8_t[]> present_buffer_;
   FlutterDesktopPixelBuffer pixel_buffer_ = {};
 
-  // Guards buffer_/width_/height_ between PushFrame (any thread) and the
-  // raster-thread pixel-buffer callback.
+  // Guards buffer_/width_/height_ between PushFrame and the raster-thread callback.
   std::mutex frame_mutex_;
 
   flutter::TextureRegistrar* texture_registrar_;
@@ -63,16 +59,13 @@ class KataglyphisTexture {
                                                            size_t height);
 };
 
-// Global id → texture registry backing the C ABI. The plugin registers a
-// texture after RegisterTexture assigns its id and unregisters it before
-// destruction.
+/// Id-to-texture registry behind the C ABI; register after RegisterTexture, unregister before destruction.
 void RegisterPushTarget(int64_t texture_id, KataglyphisTexture* texture);
 void UnregisterPushTarget(int64_t texture_id);
 
 }  // namespace kataglyphis_native_inference
 
-// C ABI consumed by the Rust webcam engine (resolved with GetProcAddress /
-// libloading against this plugin DLL — keep names and signatures stable).
+// Resolved by name from Rust via libloading: keep names and signatures stable.
 extern "C" {
 
 // Returns 0 on success, negative on error (unknown texture, bad args).

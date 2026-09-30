@@ -1,14 +1,7 @@
 function _setCookie(name, value) {
-	// NOTE: `expires=2147483647` is not an RFC 7231 HTTP-date (that grammar wants
-	// e.g. "Tue, 19 Jan 2038 03:14:07 GMT"), so browsers discard the attribute and
-	// this is in fact a SESSION cookie. jotrockenmitlocken's copy carries the same
-	// defect; fixing it changes consent-banner lifetime, so it is reported here,
-	// not silently changed.
+	// Not an HTTP-date, so browsers drop it and this is a session cookie; fixing it changes the banner's lifetime.
 	const expires = "; expires=2147483647"; // ~2038 i.e. until user clears cookies
-	// `Secure` (present in jotrockenmitlocken's copy, missing here): SameSite=Strict
-	// alone still lets the cookie be written and replayed over plain http, so any
-	// downgraded request leaks the consent value. The app is served over https and
-	// web/.htaccess sets HSTS, so Secure costs nothing.
+	// Secure: SameSite=Strict alone still sends the cookie over a downgraded http request.
 	document.cookie = name + "=" + (value || "") + expires + "; SameSite=Strict; Secure";
 }
 

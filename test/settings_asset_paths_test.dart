@@ -1,37 +1,11 @@
-// Asserts that every asset path the shipped settings JSON declares actually
-// exists on disk, and that everything under assets/documents/ is reachable
-// through pubspec.yaml's asset list.
-//
-// Two distinct failures hide here, and only the first is obvious:
-//   1. the file is not on disk — the page renders a failed markdown load;
-//   2. the file IS on disk but is not bundled, because pubspec.yaml's
-//      `assets/documents/` entry is NON-RECURSIVE: Flutter bundles the files
-//      directly in a listed directory, not its subdirectories. So restoring a
-//      missing document is two steps, and doing only the first looks identical
-//      to doing nothing.
-// This test separates them, using dart:io rather than rootBundle so it can tell
-// "absent" from "present but unbundled" at all.
-//
-// It is a RATCHET, like the *.allow files at the repo root: `_knownMissing`
-// records what is broken TODAY so the suite is green, and the test fails if
-// anything NEW breaks or if a known-missing entry is quietly resurrected in the
-// settings without being restored on disk. Shrink the set; never grow it.
+// Declared assets must exist AND be bundled: pubspec's `assets/documents/` entry is not recursive.
 
 import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
-/// Document trees referenced by the settings but absent from the repo.
-///
-/// Recorded 2026-09-16. `books/` and `games/` hold the markdown for the
-/// /books/* and /games/* routes; equivalents exist under `dummy_assets/`, so
-/// restoring them is a content decision, not a recovery problem. Until then
-/// those routes render a failed load.
-///
-/// `cv/` is deliberately NOT here: the owner decided on 2026-09-16 not to ship
-/// the CV PDFs, and the five `docsDesc` blocks that pointed at them were
-/// removed rather than allow-listed. That is the shape a resolved entry takes.
+/// Document trees the settings reference but the repo lacks; a ratchet, so shrink it, never grow it.
 const Set<String> _knownMissing = <String>{
   'assets/documents/books/',
   'assets/documents/games/',
@@ -50,8 +24,7 @@ Directory _repoRoot() {
 bool _isKnownMissing(String path) =>
     _knownMissing.any((String prefix) => path.startsWith(prefix));
 
-/// Every `filePath`, `fileBaseDir` and `docsDesc[].baseDir`+`title` in a
-/// settings file, as repo-relative paths.
+/// Every `filePath` and `docsDesc[].baseDir`+`title` in a settings file, repo-relative.
 List<String> _assetPathsIn(Object? node) {
   final List<String> found = <String>[];
 
@@ -129,8 +102,7 @@ void main() {
 
   group('the ratchet stays honest', () {
     test('nothing in _knownMissing has quietly appeared', () {
-      // If a tree comes back, the allowance must go — otherwise the set stops
-      // describing reality and the next reader trusts it.
+      // A tree that comes back must leave the allowance.
       final List<String> resurrected = _knownMissing
           .where((String dir) => Directory('${root.path}/$dir').existsSync())
           .toList();
@@ -146,9 +118,7 @@ void main() {
 
   group('present documents are actually bundled', () {
     test('pubspec.yaml lists every assets/documents subdirectory', () {
-      // The non-recursive trap. A directory that exists but is not listed ships
-      // nothing, and rootBundle then fails at runtime exactly as if the file
-      // were missing.
+      // An unlisted directory ships nothing, and rootBundle fails as if the file were missing.
       final String pubspec = File(
         '${root.path}/pubspec.yaml',
       ).readAsStringSync();

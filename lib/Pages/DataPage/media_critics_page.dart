@@ -4,10 +4,7 @@ import 'package:anthology/app_attributes.dart';
 import 'package:anthology/Pages/markdown_content_page.dart';
 import 'package:anthology/my_two_cents_config.dart';
 
-/// A page that displays media critique/review content with markdown rendering.
-///
-/// This widget uses [MarkdownContentPage] to render the review markdown
-/// and display associated appendix documents in a file table.
+/// A media review rendered by [MarkdownContentPage], with its appendix files.
 class MediaCriticsPage extends StatelessWidget {
   /// The application-wide attributes for theming and layout.
   final AppAttributes appAttributes;

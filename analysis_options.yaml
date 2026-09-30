@@ -1,27 +1,11 @@
-# This file configures the analyzer, which statically analyzes Dart code to
-# check for errors, warnings, and lints.
-#
-# The issues identified by the analyzer are surfaced in the UI of Dart-enabled
-# IDEs (https://dart.dev/tools#ides-and-editors). The analyzer can also be
-# invoked from the command line by running `flutter analyze`.
-#
-# The shared family policy (the flutter_lints include, the per-platform
-# excludes and the linter section) lives in ANTfrastructure and is pulled in BY
-# REFERENCE below — Dart's native relative include, resolved from this file.
-# Deliberately not Sync-SharedConfig.ps1: that copies verbatim and would erase
-# this repo's extra excludes. The analyzer merges an included file with this
-# one and unions `analyzer.exclude`, so everything below is ADDITIVE to the
-# shared list (build/**, android/**, ios/**, web/**, windows/**, macos/**,
-# linux/**). Only the Omni-specific deltas belong here.
+# Included by reference, not synced: the analyzer unions `analyzer.exclude`, so the excludes below only add to the shared list.
 include: third_party/ANTfrastructure/shared/config/analysis_options.yaml
 
 analyzer:
   exclude:
-    # The lanes check the Flutter SDK out INTO the workspace (see .gitignore
-    # /flutter/); analysing it would lint the SDK, not this app.
+    # The lanes check the Flutter SDK out into the workspace.
     - "flutter/**"
     - "third_party/**"
-    # A plugin example is a standalone app with its own pubspec; resolving it
-    # from this workspace is a category error.
+    # A standalone app with its own pubspec.
     - "packages/*/example/**"
     - "rust_builder/**"

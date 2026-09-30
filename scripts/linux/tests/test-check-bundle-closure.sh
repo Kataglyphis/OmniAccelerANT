@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
-# check-bundle-closure.sh over synthetic bundles: when it hands a bundle to the hub's G6 ONNX Runtime
-# census, and that the census verdict decides. Needs python3 and readelf; run-native-linux.sh runs it.
+# check-bundle-closure.sh on synthetic bundles: when it runs the G6 ORT census, and that G6 decides.
 set -u
 TESTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=scripts/linux/lib/antfrastructure.sh
@@ -46,8 +45,7 @@ PY
 }
 CHAIN_SRC=/opt/onnxruntime/onnxruntime/core/session/inference_session.cc
 WINML_SRC='C:\__w\1\s\onnxruntime\core\session\inference_session.cc'
-# The bytes around ort_runtime.rs's chain marker in liboxidant.so as OxidANT f018bec builds it (the lane's
-# features): rustc packs &str literals with no NUL between them, so the directory sits inside other text.
+# Real liboxidant.so bytes: rustc packs &str literals without NULs, so the marker sits inside other text.
 OXIDANT_RUN='Failed to run ONNX model (ort)internal error: entered unreachable code: invalid Once state/opt/onnxruntime/onnxruntime/core//workspace/third_party/OxidANT/crates/inferenceresourcesmodelsyolov10m.onnxModel returned no outputs'
 
 # _bundle <name> : a bundle holding only the GStreamer plugins the gate requires; prints its root.
