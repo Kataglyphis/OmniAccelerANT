@@ -1,10 +1,6 @@
 #requires -Version 7.0
 
-# PROJECT-SPECIFIC by design — one of the few modules that stays local instead
-# of moving into ANTfrastructure (see Resolve-BuildModule.ps1): it
-# encodes this repo's Flutter output layout, `build/windows/x64/{runner,plugins}`
-# with a per-preset subdirectory, which no other consumer shares. Anything here
-# that stops being Flutter-layout-specific belongs upstream instead.
+# Local on purpose: this repo's per-preset build/windows/x64/{runner,plugins} layout; anything generic belongs upstream.
 
 Set-StrictMode -Version Latest
 
@@ -80,8 +76,7 @@ function Resolve-KataglyphisWindowsLayout {
         throw "RustDllName is missing in Windows build config."
     }
 
-    # An explicitly passed -Configuration wins (per-preset install layout);
-    # the config file's CMakeConfiguration is only the fallback default.
+    # An explicit -Configuration wins; the config file's CMakeConfiguration is only the fallback.
     $cmakeConfig = if (-not [string]::IsNullOrWhiteSpace($Configuration)) {
         $Configuration
     } elseif ($WindowsBuildConfig.ContainsKey('CMakeConfiguration') -and -not [string]::IsNullOrWhiteSpace($WindowsBuildConfig.CMakeConfiguration)) {

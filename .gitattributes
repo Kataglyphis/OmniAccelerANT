@@ -3,35 +3,16 @@
 # Workflows run under `shell: pwsh`; CRLF breaks multi-line run: blocks.
 .github/**/*.yml text eol=lf
 .github/**/*.yaml text eol=lf
-# The CMake format gate enforces line_ending: unix (.cmake-format.yaml), so a
-# core.autocrlf=true checkout must never flip these to CRLF — cmake-format
-# --check fails on every CRLF file. Same move as ANTfrastructure's .gitattributes
-# freezing *.cmake (its backlog #55).
+# cmake-format --check (line_ending: unix) fails on every CRLF file.
 CMakeLists.txt text eol=lf
 *.cmake text eol=lf
 
-# Windows-only scripts stay CRLF-friendly; they never run under bash. Without a
-# rule the 6 first-party .ps1/.psm1 files (all under scripts/) checked out in a
-# mixed w/lf + w/crlf split (`git ls-files --eol '*.ps1' '*.psm1'`), because
-# nothing pinned them and each client's core.autocrlf decided per file. The
-# glob also catches a 7th match,
-# rust_builder/cargokit/cmake/resolve_symlinks.ps1 - vendored Cargokit, which
-# every lint gate here exempts (the PowerShell step scans `-Path scripts`).
-# Pinning its line endings too is harmless: this is a checkout attribute, not a
-# gate. Same convention as
-# BeschleunigerBallett, OrchestrANT and jotrockenmitlocken. (ANTfrastructure uses
-# `-text` instead, but only because its scripts are COPY'd into Docker images
-# where the byte content is a layer-cache key; Omni ships no Dockerfile.)
+# Pinned, or each client's core.autocrlf picks the line endings per file.
 *.ps1   text eol=crlf
 *.psm1  text eol=crlf
 *.psd1  text eol=crlf
 
-# The ratchet freeze files, pinned LF for the same reason ANTfrastructure pins
-# its own (.gitattributes:75): the gates that read them run in the Linux CI
-# image, and on this host they run over a bind mount of a Windows checkout. A
-# CRLF checkout would hand them keys with a trailing carriage return while Linux
-# CI, where core.autocrlf is off, stays green - the exact split the family's
-# eol=lf rules exist to prevent.
+# The ratchet gates read these over a bind mount; CRLF would put a carriage return in every key.
 *.allow text eol=lf
 
 # exclude vendored trees from language analysis

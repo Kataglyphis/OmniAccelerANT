@@ -11,9 +11,7 @@
 
 #include <thread>
 
-// The GStreamer Android SDK provides JNI helpers (libgstandroidmedia) that need the JavaVM
-// to be set before plugins like androidmedia can initialize/register correctly.
-// The SDK doesn't always ship public headers for these helpers; declare what we use.
+// Undeclared in the SDK's headers; androidmedia needs the JavaVM set before it registers.
 extern "C" {
 #ifdef GST_ANDROIDMEDIA_AVAILABLE
 void gst_amc_jni_set_java_vm(JavaVM *java_vm);
@@ -21,8 +19,7 @@ void gst_amc_jni_initialize(void);
 #endif
 }
 
-// Register the static plugins we link in.
-// Wrap in extern "C" so the symbols keep C linkage and match the plugin archives.
+// C linkage, to match the static plugin archives' register symbols.
 extern "C" {
 GST_PLUGIN_STATIC_DECLARE(coreelements);  // Contains videoconvert, videoscale, appsink, appsrc
 GST_PLUGIN_STATIC_DECLARE(app);
@@ -39,9 +36,7 @@ GST_PLUGIN_STATIC_DECLARE(videoconvertscale);
 #endif
 #ifdef GST_AHC_AVAILABLE
 GST_PLUGIN_STATIC_DECLARE(ahc);           // Android Camera NDK (Camera2) - modern camera source
-// Some GStreamer Android SDK builds ship the Camera2 NDK source under the plugin name "ndk".
-// Our CMake already keeps `gst_plugin_ndk_register` alive, but we must also declare/register it
-// here to make elements like `ahc2src`/`ahcsrc` available at runtime.
+// Some SDKs ship the Camera2 source as plugin "ndk"; without registering it ahcsrc is missing at runtime.
 GST_PLUGIN_STATIC_DECLARE(ndk);
 #endif
 GST_PLUGIN_STATIC_DECLARE(opengl);
@@ -73,8 +68,7 @@ struct GstContextState {
     ANativeWindow *window = nullptr;
     bool initialized = false;
 
-    // Some Android camera sources rely on a running GLib main loop.
-    // We start one once per process and keep it running.
+    // Some camera sources need a running GLib main loop: one per process, never stopped.
     GMainContext *main_context = nullptr;
     GMainLoop *main_loop = nullptr;
     bool main_loop_started = false;
@@ -233,8 +227,7 @@ void ensure_gst_init_unlocked() {
                         "Compile flags: androidmedia=%s ahc=%s",
                         kFlagAndroidMedia, kFlagAhc);
 
-    // Start a GLib main loop in the background. This is frequently required for Android
-    // camera sources (Camera1/Camera2) to post callbacks and state changes.
+    // Camera1/Camera2 sources post callbacks and state changes through this loop.
     if (!g_state.main_loop_started) {
         g_state.main_context = g_main_context_new();
         g_state.main_loop = g_main_loop_new(g_state.main_context, FALSE);
@@ -250,10 +243,7 @@ void ensure_gst_init_unlocked() {
     }
 
 #ifdef GST_ANDROIDMEDIA_AVAILABLE
-    // Initialize GStreamer Android JNI subsystem BEFORE registering androidmedia plugin.
-    // This ensures gst_amc_jni_get_env() works during plugin registration and that
-    // Java classes (Camera, MediaCodec, etc.) can be loaded via the application class loader.
-    // NOTE: gst_amc_jni_set_java_vm() must have been called before this point (in init()).
+    // Before registering androidmedia, so its Java classes load; needs init()'s gst_amc_jni_set_java_vm() first.
     if (g_jni_vm_set) {
         gst_amc_jni_initialize();
         __android_log_print(ANDROID_LOG_INFO, kTag, "gst_amc_jni_initialize called");
@@ -377,8 +367,7 @@ std::string diagnose_gstreamer_unlocked() {
 }
 
 bool ensure_first_element_exists_unlocked(const std::string &pipelineDesc) {
-    // We only inspect the first element name (up to first whitespace or '!'),
-    // which matches how the app builds pipelines.
+    // Only the first element: the app's pipelines always start with their source.
     std::string first = pipelineDesc;
     const size_t bang = first.find('!');
     if (bang != std::string::npos) first = first.substr(0, bang);
@@ -542,10 +531,7 @@ Java_com_example_kataglyphis_1native_1inference_GStreamerNative_init(
     std::lock_guard<std::mutex> lock(g_mutex);
 
 #ifdef GST_ANDROIDMEDIA_AVAILABLE
-    // Ensure GStreamer Android JNI helpers can attach threads and access Java APIs.
-    // gst_amc_jni_set_java_vm MUST be called before gst_amc_jni_initialize() 
-    // (which is called in ensure_gst_init_unlocked) so that the androidmedia
-    // plugin can access Java classes (Camera, MediaCodec, etc.).
+    // Must precede gst_amc_jni_initialize() in ensure_gst_init_unlocked, or androidmedia cannot load Java classes.
     if (!g_jni_vm_set) {
         JavaVM *vm = nullptr;
         if (env && env->GetJavaVM(&vm) == JNI_OK && vm) {
@@ -639,8 +625,7 @@ Java_com_example_kataglyphis_1native_1inference_GStreamerNative_setPipeline(
         return JNI_FALSE;
     }
 
-    // Check if we have either a video overlay sink (glimagesink) or an app sink (appsink)
-    // For Flutter textures with appsink, we don't need to bind a window overlay
+    // Only a glimagesink needs the window bound; an appsink feeds a Flutter texture.
     GstElement *overlay = nullptr;
     GstIterator *it = gst_bin_iterate_elements(GST_BIN(pipeline));
     GValue item = G_VALUE_INIT;

@@ -1,20 +1,13 @@
 #requires -Version 7.0
 
-# WindowsOrtRunner.Common: the runner carries the image's chain-built ONNX Runtime and nothing else
-# (owner rule 2026-09-23), staged by the hub's WindowsOrtPayload.Common, proved by its G6 census at build
-# time and re-proved at launch against the stamped copy. The DLLs are byte fixtures behind an amd64 PE
-# header, which the hub's staging checks; the chain is a TestDrive ONNX_ROOT, G6's reference.
-# NOTE: Pester 3.4.0 dialect, as OxidANT's and AccelerANTgine's suites - no BeforeAll outside
-# Describe, dash-less Should, and no `Should Throw` under pwsh 7. CI: windows-x64.yml's
-# ort-runner-suite job. Locally: pwsh -c "Import-Module Pester -RequiredVersion 3.4.0; Invoke-Pester scripts/windows/tests"
+# Pester 3.4.0 dialect: no BeforeAll outside Describe, dash-less Should, no `Should Throw` under pwsh 7.
 
 Describe 'WindowsOrtRunner.Common' {
 
     . (Join-Path $PSScriptRoot '..\Resolve-BuildModule.ps1')
     Import-BuildModule @('WindowsOrtRunner.Common', 'WindowsOrtProvenance.Common', 'WindowsOrtPayload.Common')
 
-    # A fake __FILE__ path ends in NUL, as a compiler writes it: G6 takes only a whole NUL-terminated
-    # ORT source path as a fingerprint (hub fix of 2026-09-24), so "$chainSrc text" would be none.
+    # NUL-terminated like a compiler's __FILE__: G6 takes only a whole terminated path as a fingerprint.
     $chainSrc = 'C:\temp\onnx-src\onnxruntime\core\session\inference_session.cc'
     $foreignSrc = 'C:\__w\1\s\onnxruntime\core\session\inference_session.cc'
 

@@ -4,14 +4,7 @@ WasmSqlite3? _sqlite;
 IndexedDbFileSystem? _fileSystem;
 bool _vfsRegistered = false;
 
-/// Loads the SQLite3 WASM implementation for web platforms.
-///
-/// This function:
-/// 1. Loads the sqlite3.wasm file from the web root
-/// 2. Initializes an IndexedDB-backed virtual file system
-/// 3. Registers the VFS for persistent storage
-///
-/// Throws [StateError] if WASM loading fails or IndexedDB is unavailable.
+/// Loads sqlite3.wasm with an IndexedDB-backed VFS; throws [StateError] if either is unavailable.
 Future<CommonSqlite3> loadSqlite3Impl() async {
   try {
     _sqlite ??= await WasmSqlite3.loadFromUrl(Uri.parse('sqlite3.wasm'));

@@ -1,20 +1,5 @@
 #!/usr/bin/env bash
-# Copied from ANTfrastructure `shared/linux/templates/antfrastructure.sh` — do
-# not hand-edit the body; sync from upstream instead. This is the one
-# build-tooling file that cannot be sourced out of the submodule, because it is
-# what *finds* the submodule.
-#
-# This copy sits at the registry default path with the template's own
-# KATAGLYPHIS_REPO_ROOT_RELATIVE value, so this header is the ONLY delta: the
-# shared-config drift gate compares the file from its first line of code down
-# (`antfrastructure-sh` is a body-mode row in
-# third_party/ANTfrastructure/shared/config/shared-assets.manifest), which is
-# why editing a sentence inside the body turns the gate DRIFTED.
-#
-# Entry points: antfrastructure_path / antfrastructure_source / antfrastructure_exec.
-# See ANTfrastructure shared/linux/templates/README.md.
-# Load guard: sourcing twice is free and common (a driver and its wrapper both
-# want the helpers).
+# Body-mode copy of the hub's shared/linux/templates/antfrastructure.sh: sync the body from upstream, never hand-edit it.
 [ -n "${_KATAGLYPHIS_ANTFRASTRUCTURE_SH_LOADED:-}" ] && return 0
 _KATAGLYPHIS_ANTFRASTRUCTURE_SH_LOADED=1
 

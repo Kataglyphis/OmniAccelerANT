@@ -1,11 +1,4 @@
-# .github/workflows/windows-arm64.yml
-#
-# Windows arm64: the app, split in two (BACKLOG § Windows arm64). Flutter cannot
-# cross-build windows-arm64 from an x64 host (flutter/flutter#62597), so `natives`
-# cross-builds everything that is not Flutter's in the family image's arm64 bundle
-# (the hub's container lane, Build-WindowsArm64Natives.ps1), and `app` builds the
-# Flutter part natively on windows-11-arm against it, runs it and uploads it. One
-# workflow file per platform + arch (owner convention 2026-09-24).
+# Flutter cannot cross-build windows-arm64 (flutter/flutter#62597): natives cross-build in the image, the app on windows-11-arm.
 name: Windows arm64 · cross build + run
 
 on:
@@ -52,8 +45,7 @@ jobs:
     runs-on: windows-11-arm
     timeout-minutes: 90
     env:
-      # Cargokit copies the cross-built oxidant.dll instead of running cargo, and the plugin
-      # links the cross-built AccelerANTgine instead of building it (both local patches).
+      # Local patches: Cargokit copies the cross-built oxidant.dll, the plugin links the cross-built AccelerANTgine.
       CARGOKIT_PREBUILT_DIR: ${{ github.workspace }}\natives\runtime
       KATAGLYPHIS_ACCELERANTGINE_PREBUILT: ${{ github.workspace }}\natives\accelerantgine
       APP_DIR: build\windows\arm64\runner\Release
@@ -63,8 +55,7 @@ jobs:
         with:
           persist-credentials: false
 
-      # ANThology is a pub path dependency, and the hub pins the Flutter version and carries the
-      # arch gate. AccelerANTgine's C API headers come with the natives artifact.
+      # ANThology is a pub path dependency; the hub pins Flutter and carries the arch gate.
       - name: Submodules the app build reads
         run: git submodule update --init --depth 1 third_party/ANThology third_party/ANTfrastructure
 
@@ -87,8 +78,7 @@ jobs:
           name: omni-accelerant-natives-windows-arm64
           path: natives
 
-      # Ninja + clang-cl, like the x64 lane. A plain `flutter build windows` compiles with MSVC's
-      # cl (the Visual Studio generator, no toolset), which the script refuses.
+      # Not a plain `flutter build windows`: that compiles with MSVC's cl, which the script refuses.
       - name: Build the app
         run: |
           pwsh -NoProfile -File scripts\windows\Build-WindowsArm64App.ps1 *>&1 | Tee-Object -FilePath flutter-build.log
@@ -103,8 +93,6 @@ jobs:
           path: flutter-build.log
           if-no-files-found: error
 
-      # What the app loads beside its exe: oxidant.dll, AccelerANTgine.dll, the chain ORT, the
-      # GStreamer plugins in gstreamer-1.0\ and their closure, as the x64 runner has them.
       - name: Stage the runtime beside the exe
         run: Copy-Item -Path natives\runtime\* -Destination $env:APP_DIR -Recurse -Force
 

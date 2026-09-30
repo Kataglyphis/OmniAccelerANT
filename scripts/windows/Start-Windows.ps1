@@ -83,9 +83,7 @@ if ($null -eq $selectedBuildRoot) {
 	throw "Kein lauffähiger Build gefunden. Geprüfte BuildRoots: $diagnostics. Starte zuerst scripts/windows/Build-Windows.ps1 mit passendem -BuildRootDir (z. B. out)."
 }
 
-# Owner rule 2026-09-23: the exe directory must hold the chain ORT the build proved,
-# because Windows resolves onnxruntime.dll there first and System32's (Windows ML) next.
-# G6 re-runs here against that stamped copy: no host has the image's chain to compare with.
+# Windows resolves onnxruntime.dll beside the exe before System32's, so G6 re-proves the stamped chain copy.
 try {
 	Assert-RunnerOrtStamp -RunnerDir $buildDirReleaseFull
 } catch {
@@ -126,14 +124,10 @@ $originalPath = $env:PATH
 $psNativePreferenceAvailable = $null -ne (Get-Variable -Name PSNativeCommandUseErrorActionPreference -Scope Global -ErrorAction SilentlyContinue)
 $originalPsNativePreference = $null
 try {
-	# Lowest search priority first: Add-DirectoriesToPath prepends one entry at a
-	# time, so the LAST directory handed to it ends up first on PATH. It also
-	# skips non-existent directories and de-duplicates, which the manual
-	# join-and-prepend did not.
+	# Lowest priority first: Add-DirectoriesToPath prepends one at a time, so the last entry wins.
 	$pluginPathEntries = [System.Collections.Generic.List[string]]::new()
 
-	# Host-wide runtimes, only relevant on an unprovisioned dev box. No ONNX Runtime
-	# directory: the chain copy beside the exe is the only one allowed (checked above).
+	# Host GStreamer for an unprovisioned dev box; no ORT dir, the chain copy beside the exe is the only one allowed.
 	$pluginPathEntries.Add("C:\Program Files\gstreamer\1.0\msvc_x86_64\bin")
 
 	if (Test-Path -LiteralPath $pluginDir -PathType Container) {
@@ -146,25 +140,12 @@ try {
 	$pluginPathEntries.Add((Split-Path $pluginDll -Parent))
 	$pluginPathEntries.Add((Join-Path $buildDirReleaseFull "bin"))
 
-	# AddressSanitizer (clang-cl Debug preset): the instrumented plugin imports
-	# clang_rt.asan_dynamic-x86_64.dll. It MUST be Microsoft's runtime (shipped
-	# with Visual Studio), not LLVM's -- LLVM's aborts the full Flutter app with
-	# an unsuppressible bad-free on allocations that COM/the CRT make before the
-	# ASan runtime is initialized. Stage Microsoft's DLL next to the exe (and in
-	# bin\) and relax the two mixed-instrumentation interceptor checks.
+	# The Debug preset's ASan runtime must be Microsoft's: LLVM's aborts on pre-init COM/CRT frees (AGENTS.md § 4).
 	$asanDllName = "clang_rt.asan_dynamic-x86_64.dll"
 	$needsAsan = ($Configuration -match "Debug") -or `
 		(Test-Path -LiteralPath (Join-Path $buildDirReleaseFull $asanDllName) -PathType Leaf)
 	if ($needsAsan) {
-		# ANTfrastructure's Get-AsanRuntimeDll (WindowsTesting.Common) rather than a
-		# glob over "Program Files*\Microsoft Visual Studio\*\BuildTools\...":
-		# that glob only ever matched the BuildTools SKU, so a
-		# Community/Professional/Enterprise install silently found nothing. The
-		# shared helper resolves through vswhere (all SKUs), retries the
-		# cold-boot race, falls back to filesystem discovery, and returns the
-		# NEWEST toolset first. -RuntimeFlavor Msvc is load-bearing, not a
-		# default: LLVM's runtime aborts this app -- see the ASAN note in
-		# AGENTS.md.
+		# vswhere-based, so every Visual Studio SKU is found; -RuntimeFlavor Msvc is load-bearing.
 		$msAsan = Get-AsanRuntimeDll -RuntimeFlavor Msvc
 		if ($null -ne $msAsan) {
 			foreach ($dest in @($buildDirReleaseFull, (Join-Path $buildDirReleaseFull "bin"))) {

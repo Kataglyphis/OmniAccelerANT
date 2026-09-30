@@ -7,13 +7,7 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
 import 'package:omni_accelerant/src/rust/api/webcam.dart';
 
-/// Webcam live-inference view, fully driven by Rust (Windows and Linux).
-///
-/// The Rust engine owns the GStreamer capture pipeline and ONNX inference;
-/// video frames go straight from Rust into the native plugin's Flutter
-/// texture (`knt_push_frame` C ABI) and never cross the Dart bridge. Only
-/// detection metadata arrives here (as a stream) and is painted as an
-/// overlay on top of the [Texture].
+/// Rust-driven webcam inference view; frames reach the [Texture] natively, only detections cross the bridge.
 class RustWebcamView extends StatefulWidget {
   /// Capture/texture size.
   final int width;

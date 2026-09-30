@@ -1,9 +1,6 @@
 #requires -Version 7.0
 
-# WindowsLaneGuard.Common: one lane at a time against this checkout (AGENTS.md § 5), asked by
-# both drivers. The pure halves are held here; the engine calls are thin wrappers around them.
-# NOTE: Pester 3.4.0 dialect, as OrtRunner.Tests.ps1. CI: windows-x64.yml's ort-runner-suite
-# job runs every suite in this directory.
+# Tests the pure halves; the engine calls only wrap them. Pester 3.4.0 dialect, as OrtRunner.Tests.ps1.
 
 Describe 'WindowsLaneGuard.Common' {
 

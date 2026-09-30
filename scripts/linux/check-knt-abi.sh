@@ -1,12 +1,5 @@
 #!/usr/bin/env bash
-# Verifies the knt_* C ABI the Rust webcam engine depends on, headlessly.
-#
-# That ABI is resolved BY NAME at runtime with libloading, so a rename or a
-# dropped export is not a compile error on either side: the app builds and then
-# silently never shows a frame. This dlopens the plugin the way Rust does.
-#
-#   scripts/linux/check-knt-abi.sh [--arch x64|arm64] [--build-mode MODE] [--bundle-lib DIR]
-# Rationale and limits: docs/source/camera-streaming.md § Checking the knt ABI
+# dlopens the plugin the way Rust does, since a renamed export fails nowhere else. See docs/source/camera-streaming.md § Checking the knt ABI
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -52,12 +45,7 @@ plugin="${bundle_lib}/libkataglyphis_native_inference_plugin.so"
 work="$(mktemp -d)"
 trap 'rm -rf "${work}"' EXIT
 
-# The expected contract, copied from the Windows header so the two cannot
-# drift silently:
-#   int32_t knt_api_version(void)                     -> 1
-#   int32_t knt_push_frame(int64_t, const uint8_t*,
-#                          uint32_t, uint32_t)
-#     0 ok | -1 bad arguments | -2 unknown texture id | -3 copy failed
+# Mirrors windows/kataglyphis_texture.h: knt_api_version() is 1; knt_push_frame returns 0, -1, -2 or -3.
 cat > "${work}/check.c" <<'EOF'
 #include <dlfcn.h>
 #include <stdint.h>

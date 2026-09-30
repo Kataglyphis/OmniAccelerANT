@@ -5,29 +5,16 @@
 .SYNOPSIS
     The native half of the Windows arm64 app, cross-built in the family image's arm64 bundle.
 .DESCRIPTION
-    Flutter cannot cross-build windows-arm64 from an x64 host (flutter/flutter#62597), so
-    windows-arm64.yml splits the app (BACKLOG § Windows arm64): this script builds everything
-    that is not Flutter's, here, and the app job on windows-11-arm builds the Flutter part
-    natively against it. The product, under -OutDir:
-
-      accelerantgine\  AccelerANTgine's own arm64 install tree: bin\ (its DLL and closure) and
-                       lib\AccelerANTgine.lib. KATAGLYPHIS_ACCELERANTGINE_PREBUILT points here.
-      runtime\         what the app loads beside its exe: oxidant.dll (CARGOKIT_PREBUILT_DIR
-                       points here), AccelerANTgine.dll, the chain ONNX Runtime, the GStreamer
-                       plugins in gstreamer-1.0\ (the x64 runner's layout) and the transitive DLL
-                       closure of all of them, the VC++ runtime included.
-
-    The hub's arch gate grades the whole product, and the app job runs it on a real device.
+    Under -OutDir: accelerantgine\ (for KATAGLYPHIS_ACCELERANTGINE_PREBUILT) and runtime\, everything the exe
+    loads beside it (for CARGOKIT_PREBUILT_DIR). Flutter cannot cross-build windows-arm64 (flutter/flutter#62597).
 #>
 [CmdletBinding()]
 param(
     [string]$WorkspaceDir = 'C:\ws',
     [string]$OutDir = 'dist\windows-arm64-natives',
-    # The x64 lane's features without onnxruntime_directml: the arm64 ONNX Runtime has no
-    # DirectML EP.
+    # The x64 features minus onnxruntime_directml: the arm64 ONNX Runtime has no DirectML EP.
     [string]$RustFeatures = 'gstreamer,onnxruntime_dynamic',
-    # The x64 runner's capture subset (Build-Windows.ps1, Bundle Media Runtime DLLs). Unlike
-    # there, a plugin this image lacks fails the build instead of shrinking the set.
+    # The x64 runner's capture subset; unlike there, a missing plugin fails the build.
     [string[]]$GStreamerPlugins = @('gstcoreelements', 'gstapp', 'gsttypefindfunctions', 'gstvideoconvertscale',
         'gstvideofilter', 'gstvideorate', 'gstvideotestsrc', 'gstautodetect', 'gstwinks', 'gstmediafoundation')
 )
@@ -51,15 +38,12 @@ foreach ($file in 'bin\AccelerANTgine.dll', 'lib\AccelerANTgine.lib') {
     if (-not (Test-Path -LiteralPath (Join-Path $kciBundle $file))) { throw "AccelerANTgine's arm64 bundle lacks $file ($kciBundle)." }
 }
 Copy-Item -LiteralPath $kciBundle -Destination (Join-Path $out 'accelerantgine') -Recurse
-# The C API the plugin compiles against travels with the DLL: on windows-11-arm the plugin's
-# .plugin_symlinks entry is a junction REALPATH does not resolve, so a path into the
-# AccelerANTgine checkout lands in windows\flutter\ephemeral (run 36320616616, C1083).
+# The C API headers travel with the DLL: on windows-11-arm REALPATH leaves the plugin junction unresolved.
 $kciInclude = Join-Path $out 'accelerantgine\include'
 $null = New-Item -ItemType Directory -Force -Path $kciInclude
 foreach ($header in 'kataglyphis_c_api.h', 'kataglyphis_export.h') { Copy-Item -LiteralPath (Join-Path $kci "Src\$header") -Destination $kciInclude }
 
-# oxidant.dll, the Flutter bridge. The target tree stays off the bind mount (AGENTS.md § 5), and
-# the pkg-config crate needs the cross opt-in to read the bundle's arm64 .pc files.
+# Target tree off the bind mount (AGENTS.md § 5); the cross opt-in lets pkg-config read arm64 .pc files.
 $env:PKG_CONFIG_ALLOW_CROSS = '1'
 $cargoTarget = Join-Path $env:TEMP 'omni-arm64-cargo'
 & cargo build --manifest-path (Join-Path $WorkspaceDir 'third_party\OxidANT\Cargo.toml') --release --lib `
@@ -67,8 +51,7 @@ $cargoTarget = Join-Path $env:TEMP 'omni-arm64-cargo'
 if ($LASTEXITCODE) { throw "cargo build of oxidant.dll for aarch64-pc-windows-msvc failed (exit $LASTEXITCODE)." }
 Copy-Item -LiteralPath (Join-Path $cargoTarget 'aarch64-pc-windows-msvc\release\oxidant.dll') -Destination $runtime
 
-# The seeds of the runtime closure. ORT is loaded by name (ort's load-dynamic) and the plugins
-# by the webcam engine, so neither is in an import table: they are copied, not found.
+# ORT and the plugins are loaded by name, never imported, so they seed the closure by copy.
 Copy-Item -LiteralPath (Join-Path $kciBundle 'bin\AccelerANTgine.dll') -Destination $runtime
 $ortDll = Join-Path "$env:ONNX_ROOT" 'bin\onnxruntime.dll'
 if (-not (Test-Path -LiteralPath $ortDll)) { throw "No chain ONNX Runtime at $ortDll (ONNX_ROOT='$env:ONNX_ROOT')." }

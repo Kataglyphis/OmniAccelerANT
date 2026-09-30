@@ -12,14 +12,7 @@ import 'package:anthology/app_attributes.dart';
 import 'package:anthology/constants.dart';
 import 'package:anthology/user_settings.dart';
 
-/// About Me page displaying personal information, skills, and technical demos.
-///
-/// This page showcases:
-/// - Personal information and social media links
-/// - Skills table loaded from localized JSON
-/// - Rust FFI integration demo
-/// - SQLite health check widget
-/// - Native plugin integration (non-web platforms only)
+/// About Me page: personal info, skills, and the Rust, SQLite and native-plugin demos.
 class AboutMePage extends StatefulWidget {
   /// The application-wide attributes for theming and layout.
   final AppAttributes appAttributes;

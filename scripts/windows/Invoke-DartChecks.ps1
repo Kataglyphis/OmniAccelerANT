@@ -5,32 +5,21 @@
 Runs ONLY the Dart gate (format, analyze, test) in the lane's container image.
 
 .DESCRIPTION
-There is no Flutter or Dart SDK on this host, which makes it look as though the
-smallest unit of feedback is a whole container lane. It is not: the image
-carries the SDK at /opt/flutter, and running just the Dart gate against a
-bind-mounted checkout costs ~23 s warm (measured 2026-09-16; ~214 s the first
-time, which is `flutter pub get` populating the cache volume).
-
-This is NOT a substitute for Invoke-LinuxLane.ps1. It runs the Dart gate and
-nothing else: no CMake gate, no native build, no packaging, no Rust, no wasm.
-Use it to iterate; use the lane to believe the result. See AGENTS.md § 5.
+Uses the image's /opt/flutter SDK (~23 s warm) to iterate; only Invoke-LinuxLane.ps1 is the real verdict.
+No CMake gate, native build, packaging, Rust or wasm here. See AGENTS.md § 5.
 
 .PARAMETER Fix
-Rewrite files with `dart format` instead of failing on unformatted ones. Without
-it the format step is the gate's own form (--set-exit-if-changed).
+Format in place instead of failing on unformatted files.
 
 .PARAMETER SkipFormat
 Skip the format step.
 
 .PARAMETER SkipAnalyze
-Skip `flutter analyze`. It is the slow one (~165 s — it analyses the whole
-workspace), so skipping it makes a test-only loop noticeably faster.
+Skip `flutter analyze`, the slow step (~165 s).
 
 .PARAMETER SkipTest
 Skip `flutter test`.
 
-.EXAMPLE
-.\scripts\windows\Invoke-DartChecks.ps1
 .EXAMPLE
 .\scripts\windows\Invoke-DartChecks.ps1 -SkipAnalyze          # fastest test loop
 .EXAMPLE
@@ -42,13 +31,10 @@ param(
 	[switch] $SkipFormat,
 	[switch] $SkipAnalyze,
 	[switch] $SkipTest,
-	# Empty resolves from ANTfrastructure's versions.env, exactly as
-	# Invoke-LinuxLane.ps1 does — one owner for the image ref.
+	# Empty resolves from the hub's versions.env, the image ref's one owner.
 	[string] $Image = '',
 	[string] $Platform = 'linux/amd64',
-	# Named volume for PUB_CACHE. It must not live on the bind-mounted Windows
-	# drive: pub installs a package by renaming it out of .pub-cache/_temp, and
-	# that mount cannot do the rename — AGENTS.md § 5.
+	# A named volume: the bind mount cannot do pub's rename out of .pub-cache/_temp (AGENTS.md § 5).
 	[string] $PubCacheVolume = 'omni-dart-checks-pubcache'
 )
 
@@ -66,18 +52,14 @@ if (-not $engine) {
 }
 
 if (-not $Image) {
-	# Get-CiImageReference, exactly as Invoke-LinuxLane.ps1 does it — see the
-	# longer note there. A hand-rolled versions.env read stood here first and
-	# was the fourth copy of a parse the hub owns and tests
-	# (test-ci-image-ref.sh asserts it agrees with verify_ci_image_refs.py).
+	# Composed upstream by Get-CiImageReference, as in Invoke-LinuxLane.ps1.
 	. (Join-Path $PSScriptRoot 'Resolve-BuildModule.ps1')
 	Import-BuildModule 'WindowsContainerImage.Common'
 	if (-not (Get-Command -Name 'Get-CiImageReference' -ErrorAction SilentlyContinue)) {
 		throw ("WindowsContainerImage.Common was imported but exports no Get-CiImageReference. " +
 			"The pinned ANTfrastructure predates it - bump third_party/ANTfrastructure, or pass -Image explicitly.")
 	}
-	# No arguments: it resolves versions.env from its own location, so the answer
-	# comes out of the ANTfrastructure this repo actually pins.
+	# It reads the pinned hub's versions.env.
 	$Image = Get-CiImageReference
 }
 
@@ -90,8 +72,7 @@ if (-not $Image) {
 $formatCmd = if ($Fix) {
 	'dart format lib test integration_test test_driver'
 } else {
-	# The gate's own form. NOT `dart format .`, which ignores
-	# analysis_options.yaml and would rewrite third_party/ — AGENTS.md § 4.
+	# Not `dart format .`: it ignores analysis_options.yaml and rewrites third_party/ (AGENTS.md § 4).
 	'dart format --output=none --set-exit-if-changed lib test integration_test test_driver'
 }
 
@@ -101,8 +82,7 @@ if (-not $SkipAnalyze) { $steps += "echo '=== analyze ==='; flutter analyze" }
 if (-not $SkipTest) { $steps += "echo '=== test ==='; flutter test" }
 if ($steps.Count -eq 0) { throw 'Nothing to do: every step was skipped.' }
 
-# `set -e` so the first failing step is the exit code, and safe.directory
-# because the checkout is owned by the host user, not uid 1001.
+# set -e makes the first failing step the exit code; safe.directory, as the host user owns the checkout.
 $script = @(
 	'set -e'
 	'export PATH=/opt/flutter/bin:$PATH'

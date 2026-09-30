@@ -109,13 +109,7 @@ cd "$REPO_ROOT"
 require_cmd flutter
 require_cmd dart
 
-# Run code quality checks as ONE gate batch (ANTfrastructure 01-core/gates.sh,
-# reached through container-steps.sh). Both gates run even when the first one
-# fails, and the verdict is raised once, by assert_gates, before the build
-# starts. Before this, a Dart failure aborted the run under `set -e` and the
-# CMake gate's verdict was never learned at all — one round trip per finding.
-# --strict-checks still governs the Dart half, because that flag is upstream's
-# flutter_checks.sh flag; the CMake gate no longer has an advisory mode.
+# One batch: every gate runs and assert_gates fails once; --strict-checks governs only the Dart half.
 gate_reset "code quality (${MATRIX_ARCH})"
 run_gate "flutter checks" run_flutter_common_checks "$STRICT_CHECKS"
 run_gate "cmake-format --check" run_cmake_format_check
@@ -125,10 +119,7 @@ assert_gates
 
 flutter config --enable-linux-desktop
 
-# Rust features for the crate cargokit builds at CMake install time. The Linux
-# product is the Rust webcam path, so the lane sets them the way
-# Build-Windows.ps1 does; set KATAGLYPHIS_RUST_FEATURES="" explicitly to build
-# featureless. Distinct from Windows: DirectML is a Windows-only provider.
+# The Rust webcam path by default; KATAGLYPHIS_RUST_FEATURES="" builds featureless (no DirectML off Windows).
 if [[ -z "${KATAGLYPHIS_RUST_FEATURES+x}" ]]; then
   export KATAGLYPHIS_RUST_FEATURES="gstreamer,onnxruntime_dynamic"
 fi
@@ -138,10 +129,7 @@ echo "Rust features: '${KATAGLYPHIS_RUST_FEATURES}'"
 flutter clean
 flutter build linux --"$BUILD_MODE"
 
-# Packaging carries the bundle as-is, so the runtime closure and the two
-# headless bundle gates run before package-linux.sh ever sees it. Release-only:
-# a debug bundle is not a shipping artifact. Why the closure exists:
-# docs/source/camera-streaming.md.
+# Release-only closure and gates before packaging. See docs/source/camera-streaming.md § Relocatable Linux bundles
 if [[ "$BUILD_MODE" == "release" ]]; then
   bash scripts/linux/bundle-runtime-closure.sh --arch "$MATRIX_ARCH" --build-mode "$BUILD_MODE"
 

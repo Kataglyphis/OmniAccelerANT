@@ -5,13 +5,8 @@
 .SYNOPSIS
     The Flutter half of the Windows arm64 app, built natively on windows-11-arm with clang-cl.
 .DESCRIPTION
-    windows-arm64.yml's app job runs this against the natives Build-WindowsArm64Natives.ps1
-    cross-built (CARGOKIT_PREBUILT_DIR, KATAGLYPHIS_ACCELERANTGINE_PREBUILT). It builds the way
-    the x64 lane's Build-Windows.ps1 does, not the way `flutter build windows` does: that hands
-    CMake the Visual Studio generator without a toolset, so MSVC's cl compiled the whole app, and
-    cl 14.51 stops at permission_handler_windows' /await with STL1011. Here Flutter only writes
-    its generated files (--config-only, under the ClangCL toolset), and Ninja builds with
-    clang-cl. The script fails when CMake picked any other compiler, in either build tree.
+    Builds like Build-Windows.ps1, never like `flutter build windows`, whose VS generator compiles with MSVC's cl.
+    Fails when CMake picked any other compiler in either build tree (AGENTS.md § 5, the arm64 lane).
 #>
 [CmdletBinding()]
 param(
@@ -32,8 +27,7 @@ function Invoke-Checked {
     if ($LASTEXITCODE) { throw "$File $($Arguments -join ' ') failed (exit $LASTEXITCODE)." }
 }
 
-# CMake records each language's compiler under CMakeFiles\<version>\. Only clang-cl, Clang with
-# the MSVC front end, passes.
+# Only clang-cl (Clang with the MSVC front end) passes, as recorded under CMakeFiles\<version>\.
 function Assert-ClangClOnly {
     param([Parameter(Mandatory)][string]$BuildDir)
     $files = @(Get-ChildItem -Path (Join-Path $BuildDir 'CMakeFiles\*\*') -File -ErrorAction SilentlyContinue |
@@ -56,10 +50,7 @@ Push-Location -LiteralPath $workspace
 try {
     Invoke-Checked flutter @('config', '--no-analytics', '--enable-windows-desktop')
     Invoke-Checked flutter @('pub', 'get')
-    # Writes windows\flutter\ephemeral, which the CMake build reads. It also configures Flutter's
-    # own build\windows\arm64 for the Visual Studio generator, which compiles nothing but CMake's
-    # compiler probe. A toolchain file gives that generator the ClangCL toolset, so not even the
-    # probe runs cl (CMake reads CMAKE_TOOLCHAIN_FILE from the environment, and Flutter passes no -T).
+    # --config-only also configures a VS-generator tree; this toolchain file keeps even its probe off cl.
     $toolsetFile = Join-Path $workspace 'build\windows\clangcl-vs-toolset.cmake'
     $null = New-Item -ItemType Directory -Force -Path (Split-Path $toolsetFile)
     Set-Content -LiteralPath $toolsetFile -Value 'set(CMAKE_GENERATOR_TOOLSET "ClangCL")'
@@ -84,12 +75,10 @@ try {
     if (-not $clangCl) { throw "No clang-cl at any of: $($candidates -join ', ')." }
     Invoke-Checked $clangCl @('--version')
 
-    # install() copies it; `flutter build windows` creates it, a bare CMake build does not
-    # (Build-Windows.ps1's Native Assets Directory Fix).
+    # install() copies it, and only `flutter build windows` would create it.
     $null = New-Item -ItemType Directory -Force -Path (Join-Path $workspace 'build\native_assets\windows')
 
-    # Forward slashes: cmake_install.cmake quotes the prefix, and a backslash there is an escape
-    # (`Syntax error in cmake code` at install time, run 36620857491).
+    # Forward slashes: cmake_install.cmake quotes the prefix, where a backslash is an escape.
     $clangClCMake = $clangCl -replace '\\', '/'
     $installPrefix = (Join-Path $workspace $InstallDir) -replace '\\', '/'
     Invoke-Checked cmake @('-S', 'windows', '-B', $BuildDir, '-G', 'Ninja',

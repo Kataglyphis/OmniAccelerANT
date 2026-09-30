@@ -1,17 +1,4 @@
-// Guards two cross-file pins that are documented and otherwise unenforced.
-//
-// Both share a failure shape: they cannot go wrong at compile time, they cannot
-// go wrong in `flutter analyze`, and they only surface in a browser — which in
-// this repo means the web lane or a visitor, not the developer who moved the
-// pin. AGENTS.md § 4 records the frb one costing "an empty `Uncaught` before
-// pkg/oxidant.js loaded", and project-operations.md's write-up of it ends with
-// "**Prevention:** Always regenerate bindings" — a human rule that has already
-// failed once. This is that rule, executable.
-//
-// Pure dart:io, no rootBundle and no Flutter binding, so it runs anywhere
-// `flutter test` runs. Paths resolve from the test's own location rather than
-// the CWD, because the container runs it from /workspace and a developer may
-// not.
+// Cross-file pins that only fail in a browser; paths resolve from the test, not the CWD.
 
 import 'dart:io';
 
@@ -55,8 +42,7 @@ String _extract(String relative, RegExp pattern, String what) {
 
 void main() {
   group('flutter_rust_bridge version pins agree', () {
-    // The Rust side is the source of truth: it is an exact `=` pin, and the
-    // generated Dart is written by the codegen that matches it.
+    // The Rust side's exact `=` pin is the source of truth.
     late final String rustPin = _extract(
       'third_party/OxidANT/Cargo.toml',
       RegExp(r'^flutter_rust_bridge\s*=\s*"=([\d.]+)"', multiLine: true),
@@ -102,8 +88,7 @@ void main() {
         pinned[0],
         reason: 'major mismatch: pubspec ^$constraint vs Rust $rustPin',
       );
-      // A caret floor BELOW the Rust pin resolves to the right version today
-      // only by luck of what else is in the lock. It must be at least the pin.
+      // A floor below the pin resolves correctly only by luck of the lock.
       expect(
         floor[1],
         greaterThanOrEqualTo(pinned[1]),
@@ -118,9 +103,7 @@ void main() {
 
   group('committed web binaries match their upstream pin', () {
     test('web/sqlite3.wasm is the build ANTfrastructure records', () {
-      // web/sqlite3.wasm is committed (0.7 MB) rather than fetched at build
-      // time, so nothing re-verifies it. Upstream pins the release it came
-      // from, which makes drift checkable for free.
+      // Committed rather than fetched, so nothing else re-verifies it.
       final String expected = _extract(
         'third_party/ANTfrastructure/linux/scripts/01-core/versions.env',
         RegExp(r'^SQLITE3_WASM_SHA256=([0-9a-f]{64})', multiLine: true),

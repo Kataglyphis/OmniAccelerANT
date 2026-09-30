@@ -1,13 +1,5 @@
 #!/usr/bin/env bash
-# Makes the built Flutter bundle relocatable: GStreamer, the runtime-loaded ONNX
-# Runtime and the detector model travel inside it, and every bundled ELF gets an
-# $ORIGIN rpath. RUNPATH is not transitive, so a dlopen'd plugin cannot reach a
-# sibling through the runner's $ORIGIN/lib - each lib needs its own $ORIGIN.
-# The closure resolves from DT_NEEDED against pkg-config, never from ldd.
-#
-# Usage: scripts/linux/bundle-runtime-closure.sh [--arch x64|arm64]
-#            [--build-mode MODE] [--bundle-dir DIR] [--no-model]
-# Detail: docs/source/camera-streaming.md § Relocatable Linux bundles.
+# Makes the Flutter bundle relocatable. See docs/source/camera-streaming.md § Relocatable Linux bundles
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -21,8 +13,7 @@ BUILD_MODE="release"
 BUNDLE_DIR=""
 WITH_MODEL=1
 
-# The model is 59 MB in every artifact; `KATAGLYPHIS_BUNDLE_MODEL=0` drops it
-# and leaves the UI to demand KATAGLYPHIS_ONNX_MODEL at runtime. --no-model wins.
+# KATAGLYPHIS_BUNDLE_MODEL=0 drops the 59 MB model (the UI then needs KATAGLYPHIS_ONNX_MODEL); --no-model wins.
 case "${KATAGLYPHIS_BUNDLE_MODEL:-1}" in
   0|false|no|off) WITH_MODEL=0 ;;
 esac
@@ -81,8 +72,7 @@ fi
 require_cmd readelf
 require_cmd patchelf
 
-# Which plugin libraries the app's pipelines can ask for - GST_BUNDLED_PLUGIN_NAMES
-# in lib/bundle-runtime.sh, shared with the closure gate.
+# The plugin list is GST_BUNDLED_PLUGIN_NAMES in lib/bundle-runtime.sh, shared with the closure gate.
 
 mkdir -p "$bundle_lib/gstreamer-1.0"
 
@@ -114,9 +104,7 @@ resolve_soname() {
   return 1
 }
 
-# Walk the DT_NEEDED graph of everything already in the bundle. Non-system
-# dependencies are copied in as real files under the name the loader asks for,
-# so no soname symlink is ever needed; each copy joins the queue in turn.
+# Non-system DT_NEEDED entries are copied as real files under their soname, so no symlink is needed.
 walk_queue() {
   local file soname src
   while ((${#queue[@]})); do
@@ -151,9 +139,7 @@ for file in "$bundle_lib"/* "$bundle_lib"/gstreamer-1.0/* "$BUNDLE_DIR"/*; do
 done
 walk_queue
 
-# Plugin libraries are runtime-loaded, never DT_NEEDED, so the walk above
-# cannot reach them; they are copied by the fixed list and their own closure
-# is walked immediately after.
+# Plugins are dlopen'd, never DT_NEEDED, so they come from the fixed list and their closure is walked after.
 for plugin in "${GST_BUNDLED_PLUGIN_NAMES[@]}"; do
   src="$gst_plugins_dir/libgst${plugin}.so"
   dest="$bundle_lib/gstreamer-1.0/libgst${plugin}.so"
@@ -170,8 +156,7 @@ for plugin in "${GST_BUNDLED_PLUGIN_NAMES[@]}"; do
   walk_queue
 done
 
-# Prepend $ORIGIN, keep whatever rpath is there: in the image the old entries
-# still resolve (libstdc++ from /opt/gcc), on a target they are dead strings.
+# Prepend $ORIGIN, keep the old entries: dead on a target, they still resolve in the image.
 patch_origin_rpath() {
   local file="$1" origin="$2" old
   old="$(elf_runpath "$file")"
@@ -185,11 +170,7 @@ patch_origin_rpath() {
   fi
 }
 
-# Every bundle lib that needs a sibling gets an $ORIGIN rpath: RUNPATH is not
-# transitive, so a lib that is present but unreachable is the exact failure the
-# closure gate rejects. This covers the copies above, the app-owned ELFs the
-# Flutter build produced (whose RUNPATHs name build-image paths) and Flutter's
-# own plugin libs (url_launcher reached libflutter_linux_gtk.so no other way).
+# RUNPATH is not transitive, so every lib that needs a sibling gets its own $ORIGIN.
 needs_sibling_rpath() {
   local file="$1" soname
   while IFS= read -r soname; do
@@ -198,8 +179,7 @@ needs_sibling_rpath() {
       return 0
     fi
   done < <(elf_needed "$file")
-  # A dlopen-only ORT user too (liboxidant.so without GStreamer): G6 resolves its ORT via RUNPATH,
-  # as a bare dlopen would. Never an ORT copy: G6 proves its bytes, and patchelf would change them.
+  # dlopen-only ORT users need it too; never an ORT copy, whose bytes G6 proves.
   case "$(basename "$file")" in libonnxruntime*) return 1 ;; esac
   if [[ -e "$bundle_lib/libonnxruntime.so" ]] && grep -aqF -e OrtGetApiBase -- "$file"; then
     return 0
@@ -214,10 +194,7 @@ for file in "$bundle_lib"/*.so*; do
   fi
 done
 
-# The runner sits at the bundle root for tar/deb/AppImage, but flatpak installs
-# the binary into /app/bin with the libs in /app/lib (AGENTS.md § 5, flatpak
-# RUNPATH). ".." resolves both layouts; the entry order keeps Flutter's own
-# $ORIGIN/lib first everywhere it is correct.
+# flatpak puts the runner in /app/bin and the libs in /app/lib, hence $ORIGIN/../lib (AGENTS.md § 5).
 for file in "$BUNDLE_DIR"/*; do
   [[ -f "$file" && -x "$file" ]] || continue
   if readelf -h "$file" >/dev/null 2>&1 && ! runpath_has_token "$file" '$ORIGIN/../lib'; then
@@ -225,8 +202,7 @@ for file in "$BUNDLE_DIR"/*; do
   fi
 done
 
-# GStreamer's plugin loader dlopens these from GST_PLUGIN_PATH; their GStreamer
-# and system deps sit one directory up.
+# Loaded from GST_PLUGIN_PATH; their dependencies sit one directory up.
 for file in "$bundle_lib"/gstreamer-1.0/*.so; do
   [[ -f "$file" ]] || continue
   patch_origin_rpath "$file" '$ORIGIN/..'

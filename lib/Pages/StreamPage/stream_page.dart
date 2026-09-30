@@ -8,16 +8,13 @@ import 'package:omni_accelerant/settings/webrtc_settings.dart';
 import 'package:omni_accelerant/src/rust/api/webcam.dart';
 import 'package:permission_handler/permission_handler.dart';
 
-// Web imports (only loaded on web)
-// conditional import: stub for non-web, web impl for web
+// Stub on native, the WebRTC view on web.
 import 'package:omni_accelerant/Pages/StreamPage/webrtc_view_stub.dart'
     if (dart.library.js_interop) 'package:omni_accelerant/Pages/StreamPage/webrtc_view.dart'
     as webrtc_import;
 import 'package:omni_accelerant/Pages/StreamPage/rust_webcam_view.dart';
 
-// ============================================================================
 // Constants
-// ============================================================================
 
 /// Default framerate for non-Android platforms (frames per second).
 const int kDefaultFramerate = 30;
@@ -43,15 +40,9 @@ const double kOverlayAlpha = 0.1;
 /// Pixel format used for video conversion (RGBA for cross-platform compatibility).
 const String kPixelFormat = 'RGBA';
 
-// ============================================================================
 // Pipeline Builder
-// ============================================================================
 
-/// Builds GStreamer pipeline strings for different video sources and platforms.
-///
-/// This class encapsulates all pipeline construction logic, making it easier
-/// to test and maintain. Each method corresponds to a specific video source
-/// or platform combination.
+/// Builds GStreamer pipeline strings per video source and platform.
 class GStreamerPipelineBuilder {
   /// Creates a pipeline builder with the specified dimensions and framerate.
   const GStreamerPipelineBuilder({
@@ -78,34 +69,18 @@ class GStreamerPipelineBuilder {
       ? 'glimagesink name=overlay qos=true sync=false max-lateness=20000000'
       : 'appsink name=sink emit-signals=true sync=false';
 
-  /// Android conversion chain for camera-like sources.
-  ///
-  /// Does NOT force AHardwareBuffer/NV12 - different sources/devices negotiate
-  /// different memory types and formats. Converts to RGBA for the sink.
+  /// Android camera chain; forces no AHardwareBuffer/NV12, since devices negotiate different memory types.
   String get _androidGlConvertCamera =>
       'video/x-raw,width=$width,height=$height,framerate=$fps/1 '
       '! videoconvert ! video/x-raw,format=RGBA,width=$width,height=$height '
       '! glupload ! glcolorconvert';
 
-  /// Android conversion chain for videotestsrc.
-  ///
-  /// videotestsrc produces system-memory frames; forcing AHardwareBuffer caps
-  /// breaks preroll.
+  /// Android videotestsrc chain; its system-memory frames break preroll under AHardwareBuffer caps.
   String get _androidGlConvertTest =>
       'video/x-raw,width=$width,height=$height,framerate=$fps/1 '
       '! glupload ! glcolorconvert';
 
-  /// Builds a pipeline string for the given video source.
-  ///
-  /// Supported sources:
-  /// - 'videotestsrc': Test pattern (ball)
-  /// - 'ahcsrc': Android Camera2 NDK
-  /// - 'autovideosrc': Generic autodetect
-  /// - 'v4l2src': Linux V4L2 camera
-  /// - 'ksvideosrc': Windows camera
-  /// - 'avfvideosrc': macOS camera
-  /// - 'pattern-smpte': SMPTE test pattern
-  /// - 'pattern-snow': Snow/noise test pattern
+  /// The pipeline string for [source]; an unknown source gets the ball test pattern.
   String build(String source) {
     return switch (source) {
       'videotestsrc' => _buildTestPattern('ball'),
@@ -162,21 +137,9 @@ class GStreamerPipelineBuilder {
   }
 }
 
-// ============================================================================
 // Source fallback policy
-// ============================================================================
 
-/// The ordered video sources to try on each platform, best first.
-///
-/// Android had a fallback chain from the start; Linux did not, and Linux is the
-/// platform where the first choice most often fails — `v4l2src device=/dev/video0`
-/// is wrong on any machine with no webcam, a webcam on `video1`, or a webcam
-/// that cannot produce MJPEG at the requested geometry. Before this list the
-/// page just showed a dead texture in all three cases.
-///
-/// Every chain ends in `videotestsrc`, which needs no hardware: reaching the
-/// last entry means "the app works, your camera does not", and that is a far
-/// more useful thing to put on screen than a blank rectangle.
+/// Video sources per platform, best first; each ends in hardware-free `videotestsrc` rather than a dead texture.
 const Map<TargetPlatform, List<String>> kSourceCandidates =
     <TargetPlatform, List<String>>{
       TargetPlatform.android: <String>[
@@ -193,29 +156,16 @@ const Map<TargetPlatform, List<String>> kSourceCandidates =
 List<String> sourceCandidatesFor(TargetPlatform platform) =>
     kSourceCandidates[platform] ?? const <String>['videotestsrc'];
 
-/// The next source to try after [failed], or `null` when the chain is exhausted.
-///
-/// Returns `null` for a source that is not in the chain at all, so a pipeline
-/// the user picked by hand fails with its own error instead of silently
-/// restarting the platform chain from somewhere in the middle.
+/// The source after [failed]; `null` when exhausted or off-chain, so a hand-picked pipeline keeps its own error.
 String? nextSourceAfter(String failed, List<String> candidates) {
   final int index = candidates.indexOf(failed);
   if (index == -1 || index + 1 >= candidates.length) return null;
   return candidates[index + 1];
 }
 
-// ============================================================================
 // StreamPage Widget
-// ============================================================================
 
-/// A page that displays video streams from various sources.
-///
-/// Supports multiple platforms:
-/// - **Web**: Uses WebRTC for streaming
-/// - **Desktop** (Windows, Linux, macOS): Uses native GStreamer textures
-/// - **Android**: Uses GStreamer with camera fallback to WebRTC
-///
-/// Video sources are configurable and include camera inputs and test patterns.
+/// Video stream page: WebRTC on web, native GStreamer textures on desktop and Android.
 class StreamPage extends StatefulWidget {
   /// The application-wide attributes for theming and layout.
   final AppAttributes appAttributes;
@@ -270,14 +220,7 @@ class StreamPageState extends State<StreamPage> {
   bool get _isWindows => defaultTargetPlatform == TargetPlatform.windows;
   bool get _isLinux => defaultTargetPlatform == TargetPlatform.linux;
 
-  /// Whether the Rust core in THIS build can drive the webcam.
-  ///
-  /// Windows always ships the features. Linux ships them only when the build
-  /// was configured with `KATAGLYPHIS_RUST_FEATURES` (see
-  /// `rust_builder/linux/CMakeLists.txt`), which a plain `flutter build linux`
-  /// does not set — so the answer has to come from the binary at runtime, not
-  /// from the platform. When it is false Linux keeps the C++ GStreamer
-  /// MethodChannel view it has always had.
+  /// Whether this build's Rust core drives the webcam; on Linux only a runtime probe can tell.
   bool get _useRustWebcam => _isWindows || (_isLinux && _rustWebcamAvailable);
 
   bool _rustWebcamAvailable = false;
@@ -302,13 +245,7 @@ class StreamPageState extends State<StreamPage> {
     textureId = _initNativeIfNeeded();
   }
 
-  /// Asks the Rust core whether it was built with the webcam features.
-  ///
-  /// `listCameras()` is the cheapest honest probe: it is `#[frb(sync)]`, and a
-  /// featureless build makes it throw ("webcam capture is disabled") rather
-  /// than return an empty list — so an exception means "not compiled in", not
-  /// "no cameras". An empty list from a features-ON build is a real answer and
-  /// still counts as available; the Rust view has its own test-pattern source.
+  /// Probes the webcam features: a featureless build's `listCameras()` throws, an empty list still counts.
   bool _probeRustWebcam() {
     try {
       listCameras();
@@ -325,8 +262,7 @@ class StreamPageState extends State<StreamPage> {
   String _pickDefaultSource() => _sourceCandidates.first;
 
   Future<int?> _initNativeIfNeeded() async {
-    // The Rust-driven webcam view creates the plugin's (single) texture itself,
-    // so creating it here too would race it.
+    // The Rust view creates the plugin's single texture itself; a second create would race it.
     if (kIsWeb || _useRustWebcam || !(_isLinux || _isMacOS || _isAndroid)) {
       return null;
     }
@@ -393,9 +329,6 @@ class StreamPageState extends State<StreamPage> {
         await channel.invokeMethod('stop');
       }
 
-      // One call shape: the map form that stood behind `if (_isWindows)` was
-      // unreachable there — _useRustWebcam is unconditionally true on Windows,
-      // so this MethodChannel path is only ever taken elsewhere.
       await channel.invokeMethod('setPipeline', pipelineString);
       await channel.invokeMethod('play');
 
@@ -410,11 +343,7 @@ class StreamPageState extends State<StreamPage> {
       final message = e.message ?? '';
       final bool missingElement =
           message.contains('no element') || message.contains('not found');
-      // Was `_isAndroid &&` until 2026-09-16. Nothing about the retry is
-      // Android-specific: a missing element or a failed state change means the
-      // same thing everywhere, and Linux is where the first choice fails most
-      // often. The Linux plugin now reports the real bus error, so `e.message`
-      // here names the actual cause on the way past.
+      // Any platform: a missing element or failed state change means the same everywhere.
       final bool shouldRetry =
           source != null && (missingElement || e.code == 'command_failed');
 
@@ -443,9 +372,7 @@ class StreamPageState extends State<StreamPage> {
 
       if (!mounted) return;
       setState(() {
-        // Reaching the end of the chain and reporting the first source's error
-        // would be misleading, so say what was tried. `e.message` is the last
-        // failure, which on Linux is now the real GStreamer bus error.
+        // Name every source tried; `e.message` is only the last failure.
         _errorMessage = shouldRetry
             ? 'No video source worked (tried: ${_sourceCandidates.join(', ')}). '
                   'Last error: ${e.message}'
@@ -514,8 +441,7 @@ class StreamPageState extends State<StreamPage> {
       return _buildWebView();
     }
 
-    // Windows always, Linux when the Rust features were compiled in:
-    // Rust-owned webcam capture + ONNX inference.
+    // Windows always, Linux when the Rust features were compiled in.
     if (_useRustWebcam) {
       return _buildRustWebcamPage();
     }

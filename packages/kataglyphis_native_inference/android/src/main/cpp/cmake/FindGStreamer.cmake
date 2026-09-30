@@ -1,14 +1,4 @@
-# FindGStreamer.cmake - Find GStreamer for Android
-#
-# This module defines:
-#   GSTREAMER_FOUND        - True if GStreamer was found
-#   GSTREAMER_INCLUDE_DIRS - Include directories for GStreamer
-#   GSTREAMER_LIBRARIES    - Libraries to link against
-#   GSTREAMER_VERSION      - GStreamer version string
-#
-# Expected variables:
-#   GStreamer_ROOT_DIR     - Root directory of GStreamer Android SDK (per-ABI)
-#   GStreamer_USE_STATIC_LIBS - Whether to use static libraries
+# Finds GStreamer for Android under GStreamer_ROOT_DIR; sets GSTREAMER_FOUND/_INCLUDE_DIRS/_LIBRARIES/_VERSION.
 
 if(NOT DEFINED GStreamer_ROOT_DIR)
   message(FATAL_ERROR "GStreamer_ROOT_DIR must be set to the GStreamer Android SDK root (per-ABI)")
@@ -16,10 +6,7 @@ endif()
 
 message(STATUS "FindGStreamer: Using GStreamer_ROOT_DIR=${GStreamer_ROOT_DIR}")
 
-# The Android GStreamer SDK can be laid out in (at least) two ways:
-#  - "classic" prefix: include/ + lib/ under GStreamer_ROOT_DIR
-#  - "flat" prefix (as in our GHCR image): headers and .a/.so live directly under GStreamer_ROOT_DIR
-#    with directories like gstreamer-1.0/, glib-2.0/, pkgconfig/ at the top.
+# Two SDK layouts: include/ + lib/, or flat (the GHCR image) with everything at the root.
 
 set(_GSTREAMER_INCLUDE_HINTS ${GStreamer_ROOT_DIR}/include ${GStreamer_ROOT_DIR})
 

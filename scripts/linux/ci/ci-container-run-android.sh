@@ -91,22 +91,10 @@ STRICT_CHECKS="0"
 REPO_ROOT="$(resolve_repo_root /workspace)"
 cd "$REPO_ROOT"
 
-# PATH, the workspace safe.directory, PUB_CACHE and the `flutter --version`
-# measurement, in one upstream call - lib/container-steps.sh says what the
-# three local functions this replaces did that the image already does.
+# PATH, safe.directory, PUB_CACHE and `flutter --version` in one upstream call.
 flutter_lane_prepare_env "$FLUTTER_DIR" || exit 2
 
-# Container-only preparation. None of this exists on a developer machine, which
-# is why it lives here and is NOT pushed down into run-android.sh.
-#
-# A one-gate batch and not a bare call: assert_gates is what turns a recorded
-# failure back into an exit code, and it is also what refuses to report green
-# over an empty batch, so a future second container-only check joins this list
-# instead of growing another accumulator. The lane's OTHER check,
-# run_flutter_common_checks, cannot join it: it runs only in the CodeQL branch
-# below, and in the other branch run-android.sh runs its own copy.
-# This gate no longer honours STRICT_CHECKS — it used to run here and discard
-# its verdict; see run_cmake_format_check in lib/container-steps.sh.
+# Container-only preparation, kept out of run-android.sh; a batch so assert_gates turns a failure into the exit code.
 gate_reset "code quality"
 run_gate "cmake-format --check" run_cmake_format_check
 assert_gates
@@ -115,25 +103,11 @@ export_android_gstreamer_env
 export_toolchain_env "$MATRIX_ARCH"
 
 if maybe_truthy "$RUN_CODEQL"; then
-  # CodeQL performs the APK build ITSELF: codeql_write_build_script wraps
-  # `flutter build apk --<mode>` and codeql_create_db_cluster runs it as the
-  # database's build command. run-android.sh's build cannot be reused inside
-  # that, so the checks it would have run are run explicitly here instead --
-  # run_flutter_common_checks is the same flutter_checks.sh --strict false call
-  # that run-android.sh makes.
+  # CodeQL drives the APK build itself, so run-android.sh's checks run here instead.
   run_flutter_common_checks "$STRICT_CHECKS"
-  # Bare, like run-android.sh:90 and the web lane's `flutter config
-  # --enable-web`: this is a configuration step, not a check. It used to run
-  # through run_check_cmd, which in this lane (STRICT_CHECKS is pinned to 0
-  # above) meant `flutter config --enable-android || true` — a failure here was
-  # discarded and resurfaced as an unexplained failure in the APK build that
-  # CodeQL drives below.
   flutter config --enable-android
 
-  # No fallback build. This used to catch a CodeQL failure, print a warning and
-  # build a plain APK, so the only real security scan in this repository could
-  # fail end to end while the lane stayed green and shipped an artifact. Under
-  # `set -e` the failure now ends the run, which is the gate working.
+  # No fallback build: a failed scan must fail the lane, not ship a plain APK.
   run_codeql_android "$FLUTTER_DIR" "$BUILD_MODE"
 
   if [[ "$BUILD_MODE" == "release" ]]; then
@@ -142,11 +116,7 @@ if maybe_truthy "$RUN_CODEQL"; then
     echo "Info: packaging skipped because --build-mode is '$BUILD_MODE' (packaging is release-only)."
   fi
 else
-  # Delegate to the entry point the owner runs by hand -- checks, config,
-  # clean/pub get/build apk and packaging all live there. This is the same
-  # shape ci-container-run-native-linux.sh uses for run-native-linux.sh, and it
-  # is what keeps the CI path and the local path from drifting: the build body
-  # used to be copied into this file and the two copies had already diverged.
+  # The same entry point a developer runs, so the CI and local paths cannot drift.
   bash "$REPO_ROOT/scripts/linux/run-android.sh" \
     --arch "$MATRIX_ARCH" \
     --build-mode "$BUILD_MODE" \

@@ -1,10 +1,6 @@
 #requires -Version 7.0
 
-# WindowsFlutterAot.Common: the runner's data\app.so must be compiled from the current kernel.
-# The reused Windows build container once shipped an older snapshot while assemble reported the
-# AOT target up to date, and the app died at RustLib.init on an frb version mismatch. The files
-# are byte fixtures in the layout flutter assemble writes (.dart_tool\flutter_build\<hash>\).
-# NOTE: Pester 3.4.0 dialect, as OrtRunner.Tests.ps1. CI: windows-x64.yml's ort-runner-suite job.
+# Byte fixtures in flutter assemble's layout; Pester 3.4.0 dialect, as OrtRunner.Tests.ps1.
 
 Describe 'WindowsFlutterAot.Common' {
 

@@ -1,8 +1,4 @@
-# .github/workflows/windows-x64.yml
-#
-# Windows x64: the clang-cl container build (Build-Windows.ps1, the same script
-# a local run uses) and the runner's ONNX Runtime glue suite. One workflow file
-# per platform + arch (owner convention 2026-09-24).
+# The clang-cl container build (the same Build-Windows.ps1 a local run uses) and the runner's ORT glue suite.
 name: Windows x64 · build + test
 
 on:
@@ -11,9 +7,7 @@ on:
   pull_request:
     branches: ["main", "develop"]
 
-# Per-ref group, like the web lane. A superseded run's verdict can never be the
-# one branch protection asks for, and leaving Windows container builds stacked
-# is the most expensive way to learn the same thing twice.
+# Stacked Windows container builds are the most expensive way to learn the same thing twice.
 concurrency:
   group: windows-x64-${{ github.ref }}
   cancel-in-progress: true
@@ -28,9 +22,7 @@ defaults:
 jobs:
   build-clang:
     runs-on: windows-2025
-    # Measured 2026-09-24: 48-58 min, the ~54 GB image pull included. Three
-    # times the slowest green run, so a cold pull still fits and a hang does not
-    # run to the six-hour account default.
+    # Three times the slowest green run (~58 min with the ~54 GB pull), so a hang never reaches the 6 h default.
     timeout-minutes: 180
     permissions:
       contents: read
@@ -38,17 +30,7 @@ jobs:
 
     steps:
 
-      # Why DocumANTation is pruned and why the mount inputs stay unset:
-      # AGENTS.md § 5, "The CI lane".
-      #
-      # `image:` is DELIBERATELY ABSENT, here and on the run step below. The
-      # family image ref has exactly one owner - IMAGE_REGISTRY_PREFIX +
-      # CI_IMAGE_WINDOWS_TAG in ANTfrastructure's
-      # linux/scripts/01-core/versions.env - and both composite actions carry
-      # that composed ref as the `image` input default, checked against
-      # versions.env by linux/scripts/verify_ci_image_refs.py. Omitting the
-      # input is how this lane inherits it; writing :winamd64 out again here
-      # and once more below would be two copies no gate compares to the first.
+      # DocumANTation pruning and unset mounts: AGENTS.md § 5, "The CI lane"; no `image:`, the actions default it.
       - name: Prepare Windows container host
         id: prep
         uses: Kataglyphis/ANTfrastructure/.github/actions/prepare-windows-container-host@develop
@@ -58,33 +40,7 @@ jobs:
           exclude-submodules: |
             third_party/DocumANTation
 
-      # PowerShell parse gate, on the HOST, before the container build starts.
-      # Build-Windows.ps1 is 723 lines and runs INSIDE the container, so a bare
-      # syntax error in it is currently discovered only once docker has pulled
-      # ~54 GB and reached that RUN. Invoke-Lint.ps1's first pass is
-      # [Parser]::ParseFile over every script plus the AST traps
-      # (comma-attribute quoting, [switch] shadowing, glued parameter tokens);
-      # PSScriptAnalyzer runs as its advisory second pass, which is the script's
-      # own default - `-FailOnAnalyzer` is a separate, deliberate decision and is
-      # not being smuggled in here.
-      #
-      # working-directory is ABSOLUTELY LOAD-BEARING. `short-path-target: /d/ws`
-      # above means prepare-windows-container-host's own actions/checkout takes
-      # NO submodules; the complete tree - third_party/ANTfrastructure, and so this
-      # very script - exists only under the short-path clone the action reports
-      # as steps.prep.outputs.workspace (D:\ws). Run this from the default
-      # ${{ github.workspace }} instead and `pwsh -File` cannot even find
-      # Invoke-Lint.ps1; wire it against a tree that DOES have the hub but not
-      # this repo's scripts and it reports green over nothing. Same rule as the
-      # artifact paths below.
-      #
-      # -Path scripts is this repo's OWN PowerShell (scripts/windows/*.ps1,
-      # scripts/windows/modules/*.psm1, scripts/agentic-loop/*.ps1) and
-      # deliberately excludes rust_builder/cargokit/cmake/resolve_symlinks.ps1,
-      # vendored upstream code AGENTS.md § 5 already exempts from the CMake
-      # format gate for the same reason. The PSScriptAnalyzer ruleset is NOT
-      # copied here: Invoke-Lint.ps1 resolves it against its own $PSScriptRoot,
-      # so the hub hands it over by reference.
+      # On the host, before the ~54 GB pull; only the short-path clone has submodules, hence working-directory.
       - name: Lint PowerShell (parse + AST traps)
         working-directory: ${{ steps.prep.outputs.workspace }}
         run: >-
@@ -115,22 +71,10 @@ jobs:
           path: |
             ${{ steps.prep.outputs.workspace }}/logs/build-windows-*.log
             ${{ steps.prep.outputs.workspace }}/logs/build-summary-*.json
-          # Build-Windows.ps1 opens its log under logs/ when it starts, so an
-          # empty upload means the script never ran - which must not read as
-          # green.
+          # The script opens its log at start, so an empty upload means it never ran.
           if-no-files-found: error
 
-      # NOTE, and it is a real gap rather than a defect introduced here: this
-      # step probes <workspace>/codeql-results and today that directory is
-      # never written. Build-Windows.ps1 runs Invoke-BuildCodeQL only under
-      # `if ($CodeQL)`, and the file-args above pass only -SkipMsixPackaging,
-      # so the probe reports found=false and the upload silently no-ops on
-      # every run. Unlike the native Linux lane - where the flow has no CodeQL
-      # implementation at all and the dead step was therefore deleted - the
-      # capability EXISTS here and only needs `-CodeQL` added to file-args.
-      # That is a cost decision about the Windows lane's runtime, so it is left
-      # to the owner rather than switched on from here. Until it is switched
-      # on, this lane contributes nothing to Code Scanning.
+      # No-op until file-args pass -CodeQL: only that writes codeql-results/.
       - name: Upload CodeQL SARIF
         if: always()
         uses: Kataglyphis/ANTfrastructure/.github/actions/upload-codeql-sarif@develop
@@ -138,8 +82,7 @@ jobs:
           workspace: ${{ steps.prep.outputs.workspace }}
           category: windows-clang-rust
 
-  # The mutation suite of the runner's ONNX Runtime glue (WindowsOrtRunner.Common over the hub's G6):
-  # byte fixtures, no image, no build. run-pester-suite fails a path that runs no test at all.
+  # Byte fixtures, no image, no build; run-pester-suite fails a path that runs no test at all.
   ort-runner-suite:
     name: Runner ONNX Runtime glue (Pester)
     runs-on: windows-2025
@@ -147,8 +90,7 @@ jobs:
     permissions:
       contents: read
     steps:
-      # Top-level submodules only: the suite imports G6 from third_party/ANTfrastructure
-      # through scripts/windows/Resolve-BuildModule.ps1, as OxidANT's suite does.
+      # Top-level submodules suffice: the suite imports G6 from the hub via Resolve-BuildModule.ps1.
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:

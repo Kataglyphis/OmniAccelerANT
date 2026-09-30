@@ -18,8 +18,7 @@ $ErrorActionPreference = 'Stop'
 
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 
-# Dot-sourced unconditionally: BOTH module imports below need it, and one of
-# them is not inside the -Image guard.
+# Dot-sourced unconditionally: one of the two imports below sits outside the -Image guard.
 . (Join-Path $PSScriptRoot 'Resolve-BuildModule.ps1')
 
 if (-not $Image) {
@@ -46,14 +45,7 @@ if ($Refresh) { $renovateArgs += '--refresh' }
 if ($PrintBin) { $renovateArgs += '--print-bin' }
 if ($Managers) { $renovateArgs += @('--managers', $Managers) }
 
-# -Recurse is ANTfrastructure's renovate-fleet.sh in --vendored mode, not a local
-# walker any more. This repo carried one (scripts/linux/renovate-submodules.sh,
-# 135 lines) because the fleet driver refused to write inside a vendored
-# checkout; --vendored/--in-place is the opt-in for exactly the two cases that
-# refusal was never about, and this container is the second of them - it mounts
-# ONE superproject, so every repo the run can reach is vendored and the default
-# order is empty. third_party/ANTfrastructure/docs/dependency-updates.md
-# #-vendored-the-two-cases-where-writing-in-place-is-right
+# -Recurse runs the hub's fleet driver with --vendored: this one-superproject mount makes every repo vendored.
 if ($Recurse) {
 	$entry = 'third_party/ANTfrastructure/linux/scripts/renovate-fleet.sh'
 	$renovateArgs += '--vendored'
@@ -61,18 +53,10 @@ if ($Recurse) {
 	$entry = 'scripts/linux/renovate-local.sh'
 }
 
-# Embedded in the command rather than passed after a `bash -c ... --`: the
-# shared driver runs one bash string and forwards no trailing argv. Single
-# quoted, with the POSIX '\'' escape, so a --managers value cannot reach the
-# shell as syntax.
+# Embedded, as the driver forwards no trailing argv; POSIX-quoted so a --managers value never parses as syntax.
 $quotedArgs = ($renovateArgs | ForEach-Object { "'" + ($_ -replace "'", "'\''") + "'" }) -join ' '
 
-# NO url.insteadOf REWRITE ANY MORE. It stood here while the vendored
-# checkouts' own .gitmodules still carried ssh remotes, which a container with
-# no ssh key cannot resolve. As of 2026-09-15 every .gitmodules this recursion
-# reaches is https: third_party/AccelerANTgine (7 entries, including nanobind),
-# third_party/OxidANT (1), third_party/ANTfrastructure (1, DocumANTation) and
-# this repo's own 4. Re-check before reinstating it, do not assume.
+# No url.insteadOf rewrite: every .gitmodules this recursion reaches uses https, and the container has no ssh key.
 $inner = @'
 set -e
 git config --global --add safe.directory '/workspace'
@@ -102,14 +86,7 @@ if ($ghCmd) {
 	}
 }
 
-# THE CONTAINER INVOCATION IS NOT THIS REPO'S. A hand-typed `run --name
-# --platform -v --mount -w --env-file` line stood here, one of a family of such
-# lines across the consumers that had each drifted. ANTfrastructure's
-# WindowsBuildSweep.Common owns it as Invoke-InLinuxContainerBuild, which grew
-# -Engine/-Platform/-Name/-KeepContainer/-NamedVolumes/-EnvFile for exactly this
-# caller; it also creates and chowns the cache volume (a fresh one is
-# root-owned and the image runs as uid 1001), which was a second copy here.
-# -DockerExe wins over -Engine and keeps the resolved Rancher Desktop path.
+# The hub's Invoke-InLinuxContainerBuild owns the run and the cache volume's chown; -DockerExe wins over -Engine.
 Import-BuildModule 'WindowsBuildSweep.Common'
 if (-not (Get-Command -Name 'Invoke-InLinuxContainerBuild' -ErrorAction SilentlyContinue)) {
 	throw ("WindowsBuildSweep.Common was imported but exports no Invoke-InLinuxContainerBuild. " +

@@ -23,10 +23,7 @@ import 'package:omni_accelerant/settings/webrtc_settings.dart';
 import 'package:omni_accelerant/src/boot/boot_overlay.dart';
 import 'package:omni_accelerant/src/rust/frb_generated.dart';
 
-/// Everything this app reads off disk before its first frame.
-///
-/// The fifth slot is what makes it OmniAccelerANT's own type rather than the
-/// shell's: [WebRTCSettings] exists only in this app.
+/// Everything read off disk before the first frame; [WebRTCSettings] makes it Omni's own type.
 typedef OmniBootstrapData = (
   AppSettings,
   UserSettings,
@@ -43,12 +40,8 @@ const String twoCentsSettingsFilePath =
     "assets/settings/my_two_cents_settings.json";
 const String webrtcSettingsFilePath = "assets/settings/webrtc_settings.json";
 
-/// Loads all application settings in parallel for improved startup performance.
-///
-/// Returns a tuple of (AppSettings, UserSettings, BlogConfigs, TwoCentsConfigs,
-/// WebRTCSettings). Throws [FormatException] if any JSON file is malformed.
+/// Loads all settings files in parallel; throws [FormatException] on malformed JSON.
 Future<OmniBootstrapData> loadAppSettings() async {
-  // Load all JSON files in parallel for better performance
   final results = await Future.wait([
     rootBundle.loadString(userSettingsFilePath),
     rootBundle.loadString(appSettingsFilePath),
@@ -86,13 +79,7 @@ Future<OmniBootstrapData> loadAppSettings() async {
 }
 
 Future<void> main() async {
-  // Anything that stops RustLib.init() stops runApp, leaving web/index.html's
-  // spinner up forever with the cause only in the console. The TIMEOUT is the
-  // load-bearing half: the likeliest web failure, a build published without
-  // web/pkg/, does not throw at all — frb's loader awaits a <script>'s
-  // onLoad, a 404 fires `error` instead, and the await never completes. So a
-  // catch alone would still hang. See AGENTS.md § 4 for the sibling
-  // frb-version-mismatch failure, which does throw.
+  // The timeout matters: without web/pkg/ frb's loader never completes, so a bare catch would hang on the spinner.
   try {
     await RustLib.init().timeout(const Duration(seconds: 20));
   } catch (error, stackTrace) {
@@ -103,14 +90,7 @@ Future<void> main() async {
   runApp(const App());
 }
 
-/// OmniAccelerANT's half of the shared shell.
-///
-/// Everything that used to live here - the animation controller, the width
-/// breakpoints, the four `handle*` callbacks, the theme pair and the
-/// `FutureBuilder -> MaterialApp.router` tail - now lives once in
-/// [KataglyphisAppShell]. What is left is genuinely this app's: its settings
-/// loader, its generated `AppLocalizations`, its screen configurations and the
-/// [OmniBlogDependentAppAttributes] that carries the WebRTC settings.
+/// OmniAccelerANT's binding of the shared [KataglyphisAppShell].
 class App extends StatelessWidget {
   const App({super.key});
 

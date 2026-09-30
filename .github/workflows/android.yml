@@ -1,13 +1,4 @@
-# .github/workflows/android.yml
-#
-# Android: the arm64-v8a APK, cross-built in the Linux image on an x64 runner,
-# plus the native plugin's JVM test. One workflow file per platform (owner
-# convention 2026-09-24).
-#
-# This workflow uses actions that are not certified by GitHub.
-# They are provided by a third-party and are governed by
-# separate terms of service, privacy policy, and support
-# documentation.
+# The arm64-v8a APK, cross-built in the Linux image on an x64 runner, plus the plugin's JVM test.
 
 name: Android · build + test
 
@@ -18,11 +9,7 @@ on:
     branches: ["main", "develop"]
   workflow_dispatch:
 
-# Per-ref group, like the web lane. The APK build is minutes, not seconds, and
-# this lane no longer runs CodeQL (owner directive 2026-09-17): the scan is
-# budgeted in hours and is a manual/local run now - see the --run-codeql false
-# below and AGENTS.md § 5. A superseded run's verdict can never be the one that
-# matters, so leaving it queued behind a new commit is pure cost.
+# A superseded run's verdict never matters, and the APK build takes minutes.
 concurrency:
   group: android-${{ github.ref }}
   cancel-in-progress: true
@@ -40,27 +27,16 @@ jobs:
             flutter_dir: /opt/flutter
 
     runs-on: ${{ matrix.runs_on }}
-    # Measured 2026-09-23/24: 12-25 min, image pull and Gradle included.
+    # A run takes 12-25 min, image pull and Gradle included.
     timeout-minutes: 60
-    # No security-events: the CodeQL scan is off in CI, so nothing uploads
-    # SARIF here any more.
+    # No security-events: CodeQL is off in CI, so nothing uploads SARIF.
     permissions:
       contents: read
       # compiler-cache-save deletes this key's older cache entries.
       actions: write
 
     steps:
-      # ANTfrastructure's shared prologue: reclaim disk, check out, log in to ghcr,
-      # pull with retries.
-      #
-      # `image:` is DELIBERATELY ABSENT, here and on the run step below. The
-      # family image ref has exactly one owner - IMAGE_REGISTRY_PREFIX +
-      # CI_IMAGE_LINUX_TAG in ANTfrastructure's linux/scripts/01-core/versions.env
-      # - and both composite actions carry that composed ref as the `image`
-      # input default, checked against versions.env by
-      # linux/scripts/verify_ci_image_refs.py. Omitting the input is how this
-      # lane inherits it; spelling the tag out again here would be a second
-      # copy no gate compares to the first.
+      # No `image:` here or below: the actions default it from the hub's versions.env, its one owner.
       - name: Prepare CI host
         uses: Kataglyphis/ANTfrastructure/.github/actions/prepare-linux-ci-host@develop
         with:
@@ -69,8 +45,7 @@ jobs:
           fetch-depth: '1'
           submodules: recursive
 
-      # The lane's sccache (cargokit's Rust builds) outlives the container.
-      # Only pushes to develop save.
+      # sccache for cargokit's Rust builds outlives the container; only pushes to develop save.
       - name: Restore compiler cache
         id: cc
         uses: Kataglyphis/ANTfrastructure/.github/actions/compiler-cache-restore@develop

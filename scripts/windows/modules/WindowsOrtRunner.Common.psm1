@@ -1,11 +1,6 @@
 #requires -Version 7.0
 
-# PROJECT-LOCAL glue for the runner bundle: the stamp of its G6 proof, which lets a host without the
-# image re-run G6 against the copy the build proved. The caller imports ANTfrastructure's G6 census
-# (WindowsOrtProvenance.Common) and its WindowsOrtPayload.Common, which stages the chain ONNX Runtime
-# beside the exe and names the ORT family (this module's own copies until 2026-09-25).
-# Owner rule 2026-09-23 (third_party/ANTfrastructure/docs/onnxruntime-single-source.md). Every verdict is G6's.
-# NOT covered: which copy a process loads beyond G6's modelled loader order.
+# Stamps the runner's G6 proof so a host without the image can re-prove that copy; every verdict is G6's.
 
 Set-StrictMode -Version Latest
 
@@ -31,8 +26,7 @@ function Get-RunnerOrtFamilyFinding {
 function Invoke-RunnerOrtProof {
     <#
     .SYNOPSIS
-        In the image: G6 over RunnerDir against the image's chain ORT, then the stamp that
-        Assert-RunnerOrtStamp re-proves on a host. Throws on any fatal G6 finding.
+        In the image: G6 over RunnerDir, then the stamp Assert-RunnerOrtStamp re-proves on a host; throws on a fatal finding.
     #>
     [CmdletBinding()]
     param([Parameter(Mandatory)][string] $RunnerDir)
@@ -71,8 +65,7 @@ function Read-RunnerOrtStamp {
 function Assert-RunnerOrtStamp {
     <#
     .SYNOPSIS
-        On a host without the image: the runner still holds exactly the ORT the build proved, and G6,
-        run against that stamped copy, finds no foreign ORT and no importer falling through to System32.
+        On a host: the runner holds exactly the stamped ORT, and G6 against that copy finds nothing foreign.
     #>
     [CmdletBinding()]
     param([Parameter(Mandatory)][string] $RunnerDir)

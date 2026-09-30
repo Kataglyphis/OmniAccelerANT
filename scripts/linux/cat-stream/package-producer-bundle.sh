@@ -24,12 +24,7 @@ set -euo pipefail
 script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 repo_root="$(cd -- "${script_dir}/../../.." && pwd)"
 
-# The image ref is ANTfrastructure's, never spelled out here: versions.env is
-# the fleet's one owner of both tags, a spelled-out copy freezes at the tag it
-# was written on, and the hub's verify_ci_image_refs.py check D fails any
-# tracked *.sh that carries one. Resolved in two assignments, never one: a
-# command substitution that dies inside a larger expansion is swallowed by
-# `set -e`. Same block as OxidANT's run-producer-pi.sh, its Pi 5 sibling.
+# The image ref comes only from the hub; two assignments, since set -e misses a substitution failing mid-expansion.
 # shellcheck source=scripts/linux/lib/antfrastructure.sh
 source "${script_dir}/../lib/antfrastructure.sh"
 _ci_image_ref_sh="$(antfrastructure_path linux/scripts/ci-image-ref.sh)"

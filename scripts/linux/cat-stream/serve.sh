@@ -1,26 +1,5 @@
 #!/usr/bin/env bash
-# Serves the release web build over HTTPS with the COOP/COEP headers the
-# Stream page needs, and proxies /webrtc-ws to the kataglyphis_cat_webrtc
-# producer's plain-WebSocket signalling server.
-#
-# Why a proxy terminates the TLS: the Stream page needs cross-origin isolation
-# for its SharedArrayBuffer, which browsers grant only on HTTPS (or localhost);
-# and the GStreamer signalling server's rustls refuses a self-signed
-# certificate used as an end-entity ("CaUsedAsEndEntity"). Doing TLS here
-# solves both and keeps the producer on plain WS.
-#
-# Usage:
-#   scripts/linux/cat-stream/serve.sh [--port 8444] [--producer-host 127.0.0.1]
-#                                     [--producer-port 8443]
-#                                     [--web-root build/web]
-#                                     [--state-dir build/cat-stream]
-#
-# The producer has to listen on --producer-host:--producer-port (its
-# --listen-port) and the web build's signalingServerUrl has to be
-# /webrtc-ws (the default) or an absolute wss:// URL pointing at this
-# server. Use --producer-host to front a producer on another board (e.g. a
-# Pi Zero 2 W or a RISC-V SoC) without deploying the web build there; give
-# each concurrent instance its own --state-dir (config, pid, TLS, logs).
+# HTTPS + COOP/COEP front proxying /webrtc-ws. See docs/source/camera-streaming.md § Cat detection stream (Rust, native)
 set -euo pipefail
 
 script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
@@ -56,8 +35,7 @@ command -v nginx >/dev/null 2>&1 || {
   exit 1
 }
 
-# nginx resolves a relative -c against the -p prefix, which would double the
-# path; make the state dir absolute up front.
+# Absolute: nginx resolves a relative -c against -p and would double the path.
 mkdir -p "${state_dir}"
 state_dir="$(cd -- "${state_dir}" && pwd)"
 
@@ -66,15 +44,7 @@ mkdir -p "${tls_dir}" \
   "${state_dir}/client_body" "${state_dir}/proxy" "${state_dir}/fastcgi" \
   "${state_dir}/uwsgi" "${state_dir}/scgi"
 
-# A certificate with only a CN and no subjectAltName is rejected outright by
-# every current browser (Chrome dropped the CN fallback in 58), which is the
-# difference between "click through the warning once" and "this page cannot be
-# reached" — and on a phone the click-through is the whole bring-up path. So the
-# cert carries a SAN covering every name this server can plausibly be reached
-# by: localhost, the loopback literals, the host's name and its LAN addresses.
-# An existing CN-only cert is regenerated rather than kept, because the guard
-# below is a cache and a cached broken cert is indistinguishable from a broken
-# server.
+# Browsers reject a CN-only cert outright, so the SAN names every reachable address and a cached CN-only cert is redone.
 cert_has_san() {
   [ -f "${tls_dir}/cert.pem" ] || return 1
   openssl x509 -in "${tls_dir}/cert.pem" -noout -ext subjectAltName \
@@ -92,9 +62,7 @@ if ! cert_has_san; then
     printf 'generating a self-signed certificate in %s\n' "${tls_dir}" >&2
   fi
 
-  # `hostname -I` is Linux-only and prints every global address, space
-  # separated; it is absent on some minimal images, hence the `|| true` and the
-  # unconditional loopback entries. Duplicates in a SAN list are harmless.
+  # `hostname -I` is missing on some minimal images, hence `|| true` and the fixed loopback entries.
   san="DNS:localhost,DNS:$(hostname 2>/dev/null || echo cat-stream),IP:127.0.0.1,IP:::1"
   for addr in $(hostname -I 2>/dev/null || true); do
     case "${addr}" in
@@ -103,9 +71,7 @@ if ! cert_has_san; then
     esac
   done
 
-  # -addext needs openssl 1.1.1 (bullseye ships it). The fallback keeps a very
-  # old host working rather than failing the whole demo over a warning-level
-  # nicety.
+  # -addext needs openssl 1.1.1; the fallback keeps an older host working without a SAN.
   openssl req -x509 -newkey rsa:2048 -sha256 -days 825 -nodes \
     -keyout "${tls_dir}/key.pem" -out "${tls_dir}/cert.pem" \
     -subj "/CN=cat-stream" -addext "subjectAltName=${san}" >/dev/null 2>&1 ||

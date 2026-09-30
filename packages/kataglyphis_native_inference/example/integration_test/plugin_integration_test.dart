@@ -1,10 +1,4 @@
-// This is a basic Flutter integration test.
-//
-// Since integration tests run in a full Flutter application, they can interact
-// with the host side of a plugin implementation, unlike Dart unit tests.
-//
-// For more information about Flutter integration tests, please see
-// https://flutter.dev/to/integration-testing
+// An integration test, since only a full app reaches the plugin's host side.
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
@@ -17,8 +11,7 @@ void main() {
   testWidgets('getPlatformVersion test', (WidgetTester tester) async {
     final KataglyphisNativeInference plugin = KataglyphisNativeInference();
     final String? version = await plugin.getPlatformVersion();
-    // The version string depends on the host platform running the test, so
-    // just assert that some non-empty string is returned.
+    // The string depends on the host, so only non-emptiness is asserted.
     expect(version?.isNotEmpty, true);
   });
 }

@@ -1,57 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Dependency upgrades for this repo, driven by Renovate run as a LOCAL CLI.
-#
-#   bash scripts/linux/renovate-local.sh                    # report what is behind
-#   bash scripts/linux/renovate-local.sh --apply --dry-run  # show the plan
-#   bash scripts/linux/renovate-local.sh --apply            # move the gitlinks
-#   bash scripts/linux/renovate-local.sh --managers <csv>   # default: git-submodules
-#   bash scripts/linux/renovate-local.sh --print-bin        # resolved renovate.js
-#
-# THIS IS A WRAPPER. The tool itself — the pinned Node/Renovate bootstrap, the
-# JSON report parse and the git half of --apply — lives upstream in
-# ANTfrastructure's linux/scripts/renovate-local.sh. This file exists so the family
-# tool has a local entry point here, next to run-lint-gates.sh, rather than
-# being a path into third_party/ that everyone retypes. It is NOT a gate:
-# nothing in .github/workflows/ runs it and it blocks no commit.
-#
-# WHAT IT COVERS. Owner directive 2026-09-09: SUBMODULE upgrades go through this
-# rather than by hand. It is not a rule for every dependency this repo has —
-# --apply moves gitlinks and nothing else, so pubspec.yaml is still yours to
-# edit. Widening --managers buys a REPORT for the other managers, never an
-# apply.
-#
-# THE ONE THING TO KNOW: `--platform=local` CANNOT WRITE. Renovate forces dryRun
-# there, so it DETECTS and nothing else; the upstream script owns both halves —
-# Renovate decides what is behind, git applies it. A run that leaves the tree
-# byte-identical is the report mode working, not a broken script.
-#
-# WHY THE DEFAULT SCOPE IS WORTH LEAVING ALONE. Upstream defaults to
-# `--managers git-submodules`, which answers in about four seconds. An unscoped run
-# walks every manager it can detect in this tree and takes minutes, and it reports
-# dependencies --apply cannot move (pubspec.yaml is pub's). Widen --managers
-# deliberately, one manager at a time.
-#
-# WHAT --apply WILL DO IN THIS REPO: all four gitlinks — ANThology, ANTfrastructure,
-# OxidANT, AccelerANTgine — declare a `branch =` in .gitmodules, so all four are
-# eligible and none are refused. That entry is what makes them eligible: upstream
-# passes EXPLICIT paths and never a bare `git submodule update --remote`, which
-# walks a branchless submodule to the remote's DEFAULT branch. Nothing is staged
-# or committed; review `git submodule summary` and stage what you meant.
-#
-# ON THIS HOST, RUN IT FROM WSL. The bootstrap wants Node major 24 —
-# RENOVATE_NODE_VERSION in the hub's linux/scripts/01-core/versions.env, a
-# SEPARATE pin from the canonical NODE_VERSION because Renovate declares
-# engines.node "^24.11.0" — and there is no node on the Windows side at all.
-# The report half is read-only and safe from anywhere. --apply additionally
-# needs the git that WROTE the working tree, and upstream handles that for you:
-# a Windows checkout read by the WSL git shows every text file as modified, so
-# it switches to git.exe when WSL can reach it and refuses up front when it
-# cannot, instead of half-applying.
-#
-# Rationale, the pins and the GitHub-token variant — the hub owns all of it:
-# third_party/ANTfrastructure/docs/dependency-updates.md
+# Wraps the hub's Renovate CLI runner. See docs/source/project-operations.md § Dependency upgrades, in detail
 
 _renovate_local_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=scripts/linux/lib/antfrastructure.sh
@@ -73,8 +23,7 @@ wrapper runs from the repo root, so a relative one resolves against that.
 EOF
 }
 
-# --help ANYWHERE, like the sibling wrappers' parse loops — but only SCANNED,
-# never consumed: everything else is forwarded to upstream untouched.
+# --help is only scanned, never consumed: everything else goes to upstream untouched.
 for _arg in "$@"; do
   case "${_arg}" in
     -h|--help)
@@ -92,9 +41,7 @@ if ! antfrastructure_path linux/scripts/renovate-local.sh >/dev/null; then
   exit 1
 fi
 
-# No root is passed: upstream defaults its target to $PWD, and pinning the cwd
-# here means a run from a subdirectory still grades this repo instead of it. An
-# explicit root given by the caller is forwarded below and still wins.
+# Upstream targets $PWD, so a run from a subdirectory still grades this repo; an explicit root still wins.
 cd "$KATAGLYPHIS_REPO_ROOT"
 
 antfrastructure_exec linux/scripts/renovate-local.sh "$@"

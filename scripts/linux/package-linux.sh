@@ -1,28 +1,18 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Packt das gebaute Linux-Bundle in verschiedene Formate.
-# Unterstützte Formate: tar, deb, flatpak, appimage
+# Packages the built Linux bundle as tar, deb, flatpak and/or AppImage.
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# This driver sits in scripts/linux/ because it is an executable, not a
-# library; lib/ holds only sourced files. Hence the lib/ prefix below.
 # shellcheck source=scripts/linux/lib/cli-common.sh
 source "$SCRIPT_DIR/lib/cli-common.sh"
 # shellcheck source=scripts/linux/lib/packaging-common.sh
 source "$SCRIPT_DIR/lib/packaging-common.sh"
 
-# gate_reset / run_gate / gate_skip / assert_gates — the fleet's "run every
-# gate, then fail once" accumulator. packaging-common.sh has already sourced
-# antfrastructure.sh, which is what finds the submodule.
+# The fleet's run-every-gate-then-fail-once accumulator; packaging-common.sh already sourced antfrastructure.sh.
 antfrastructure_source linux/scripts/01-core/gates.sh
 
-# gate_skip is NEWER than the rest of that file (2026-09-09), and this driver is
-# what it was added for: a packaging format whose tool is absent is neither a
-# pass nor a failure, and gates.sh had only two buckets. Probed here rather than
-# discovered at the first missing tool, where a pin that predates it would read
-# as "gate_skip: command not found" from inside the loop — and, before this
-# check existed, only after some formats had already been built.
+# Probed up front: an older pin would otherwise fail mid-loop with "gate_skip: command not found".
 if ! declare -F gate_skip >/dev/null; then
 	echo "Error: the pinned ANTfrastructure's linux/scripts/01-core/gates.sh has no gate_skip." >&2
 	echo "       This driver needs its third bucket: 'the tool for this format is not" >&2
@@ -108,17 +98,11 @@ fi
 
 IFS=',' read -r -a selected_formats <<< "$FORMATS"
 
-# ONE accumulator, and it is upstream's. What stood here was a fourth private
-# copy of it — failures/skipped/created arrays wrapped around four case arms
-# that differed only in which package_linux_bundle_* they called — and the
-# header of ANTfrastructure's linux/scripts/01-core/gates.sh names that
-# reinvention as the thing it exists to end.
 gate_reset "packaging ${APP_NAME} (${MATRIX_ARCH})"
 
 for raw_format in "${selected_formats[@]}"; do
 	format="$(echo "$raw_format" | xargs | tr '[:upper:]' '[:lower:]')"
 
-	# The whole of what the four arms used to differ by.
 	case "$format" in
 		tar) packager=app_packaging_package_linux_bundle_tar ;;
 		deb) packager=app_packaging_package_linux_bundle_deb ;;
@@ -126,9 +110,7 @@ for raw_format in "${selected_formats[@]}"; do
 		appimage) packager=app_packaging_package_linux_bundle_appimage ;;
 		"") continue ;;
 		*)
-			# Still fatal on the spot, and deliberately not a skipped gate: a
-			# format nobody implements is a typo in the caller's --formats, not
-			# a missing tool on this machine.
+			# Fatal, not a skipped gate: an unknown format is the caller's typo, not a missing tool.
 			echo "Error: unsupported format '$format'" >&2
 			echo "Supported formats: tar, deb, flatpak, appimage" >&2
 			exit 2
@@ -143,22 +125,7 @@ for raw_format in "${selected_formats[@]}"; do
 	run_gate "$format" "$packager" "$MATRIX_ARCH" "$APP_NAME"
 done
 
-# The verdict, once. Every branch of the tail this replaces is now upstream's:
-#
-#   * "Info: created package format(s)" is the batch's passing gates — run_gate
-#     prints `== tar: ok ==` as each one lands and assert_gates counts them.
-#   * "packaging failed for format(s)" is assert_gates naming every failure,
-#     and it still names ALL of them: run_gate records rather than aborts, so a
-#     broken deb no longer hides whether appimage would have worked.
-#   * --strict is the DEFAULT upstream: assert_gates reds a skip unless it is
-#     handed --tolerate-skips, so tolerance is the thing you have to ask for
-#     and the thing that greps. Without --strict this driver asks for it,
-#     because a format whose tool is absent on a dev box is not a defect in
-#     the tree; in CI, where --strict is passed, it is.
-#   * "no package artifacts were created" is assert_gates refusing to report
-#     green over a batch in which nothing ran. That case is reached when every
-#     requested format was skipped, and --tolerate-skips does NOT cover it: a
-#     run that produced no artifact has nothing to ship, strict or not.
+# Without --strict a missing tool is tolerated (no defect on a dev box); a run with no artifact fails either way.
 if [[ "$STRICT_MODE" -eq 1 ]]; then
 	assert_gates
 else

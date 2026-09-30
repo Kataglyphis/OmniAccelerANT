@@ -11,14 +11,10 @@ abstract class KataglyphisNativeInferencePlatform extends PlatformInterface {
   static KataglyphisNativeInferencePlatform _instance =
       MethodChannelKataglyphisNativeInference();
 
-  /// The default instance of [KataglyphisNativeInferencePlatform] to use.
-  ///
-  /// Defaults to [MethodChannelKataglyphisNativeInference].
+  /// The instance in use; defaults to [MethodChannelKataglyphisNativeInference].
   static KataglyphisNativeInferencePlatform get instance => _instance;
 
-  /// Platform-specific implementations should set this with their own
-  /// platform-specific class that extends [KataglyphisNativeInferencePlatform] when
-  /// they register themselves.
+  /// Set by a platform implementation to its own subclass when it registers.
   static set instance(KataglyphisNativeInferencePlatform instance) {
     PlatformInterface.verifyToken(instance, _token);
     _instance = instance;

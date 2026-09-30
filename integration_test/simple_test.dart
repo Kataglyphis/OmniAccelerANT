@@ -3,10 +3,7 @@ import 'package:integration_test/integration_test.dart';
 import 'package:omni_accelerant/main.dart';
 import 'package:omni_accelerant/src/rust/frb_generated.dart';
 
-/// Integration tests for the OmniAccelerANT application.
-///
-/// These tests verify that the app can properly initialize and interact
-/// with native Rust code through Flutter Rust Bridge.
+/// The app initializes and mounts with the Rust bridge loaded.
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 

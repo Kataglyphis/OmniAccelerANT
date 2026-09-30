@@ -6,9 +6,7 @@ import 'sqlite3_loader.dart';
 Future<String> runSqliteHealthcheck() async {
   final CommonSqlite3 sqlite = await loadSqlite3();
 
-  // On the web, this path is backed by IndexedDB (after VFS registration).
-  // On native platforms, we use an in-memory db for the smoke test to avoid
-  // having to pick a platform-specific writable directory.
+  // IndexedDB-backed on the web; in-memory natively, so no writable directory must be picked.
   final CommonDatabase db = kIsWeb
       ? sqlite.open('/kataglyphis.db')
       : sqlite.openInMemory();

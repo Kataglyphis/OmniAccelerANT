@@ -1,29 +1,6 @@
 #requires -Version 7.0
 
-# Copied verbatim from ANTfrastructure
-# `shared/windows/templates/Resolve-BuildModule.ps1` — do not hand-edit; sync
-# from upstream instead. This is the one build-tooling file that cannot be
-# imported out of the submodule, because it is what *finds* the submodule: it
-# runs before anything upstream is importable.
-#
-# Contract (third_party/ANTfrastructure/docs/adopting-in-a-new-project.md § 1):
-#
-#   1. third_party/ANTfrastructure/windows/scripts/modules/<Name>.psm1
-#   2. <this script's directory>/modules/<Name>.psm1   (project-specific fallback)
-#   3. throw, naming BOTH probed paths
-#
-# That preference order is the whole point: put a module upstream and it wins
-# automatically, so this repo never silently keeps building against a stale
-# vendored copy. Keep ONLY genuinely project-specific modules in the local
-# fallback directory.
-#
-# WATCHED since 2026-09-09: this copy is registry row `resolve-build-module`
-# (body mode) in ANTfrastructure `shared/config/shared-assets.manifest`, and this
-# repo declares it in `.antfrastructure-shared.manifest` at its root. Everything
-# from `Set-StrictMode` down is compared against the canonical template; only
-# this header prose and the VALUE of $script:RepoRootRelativeToHere are local.
-# Check it with:
-#   bash third_party/ANTfrastructure/shared/config/sync-shared-config.sh --repo-root . --check
+# Body-mode copy of the hub's shared/windows/templates/Resolve-BuildModule.ps1: sync from Set-StrictMode down, never hand-edit.
 
 Set-StrictMode -Version Latest
 

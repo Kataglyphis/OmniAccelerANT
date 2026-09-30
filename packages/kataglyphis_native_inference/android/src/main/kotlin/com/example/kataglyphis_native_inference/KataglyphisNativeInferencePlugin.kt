@@ -147,15 +147,7 @@ class KataglyphisNativeInferencePlugin :
             .onFailure { throwable ->
                 Log.e("KataglyphisGStreamer", "$command failed", throwable)
 
-                // Same shape as handleSetPipeline above, and for the same
-                // reason. The throwable's message is a constant from
-                // GStreamerController ("play failed"), while the useful half —
-                // the bus error the native side drained into g_last_error — is
-                // only reachable through getLastError(). Reporting the
-                // throwable alone put "Pipeline error: play failed" on screen
-                // and left the cause in logcat. The code stays
-                // "command_failed": stream_page.dart keys its source-fallback
-                // chain on exactly that string.
+                // The bus error lives only in getLastError(); stream_page.dart's fallback keys on "command_failed".
                 val nativeDetails = runCatching { GStreamerNative.getLastError() }.getOrNull()
                 val details = listOfNotNull(throwable.message, nativeDetails)
                     .joinToString("\n")

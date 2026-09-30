@@ -31,8 +31,7 @@ class KataglyphisNativeInferencePlugin : public flutter::Plugin {
  private:
   flutter::TextureRegistrar* texture_registrar_;
   KataglyphisTexture* texture_;
-  // Owns the variant registered with Flutter; the engine keeps the pointer
-  // for the texture's lifetime, so it must not be a stack temporary.
+  // Owned here: the engine keeps this pointer for the texture's lifetime.
   std::unique_ptr<flutter::TextureVariant> texture_variant_;
 };
 

@@ -97,7 +97,6 @@ fi
 
 STRICT_CHECKS="$(resolve_strict_checks "$STRICT_CHECKS")"
 
-# Dynamische Wahl des Arbeitsverzeichnisses: /workspace (CI) oder lokal
 REPO_ROOT="$(resolve_repo_root /workspace)"
 if [[ "$REPO_ROOT" != "/workspace" ]]; then
   echo "[Info] /workspace nicht gefunden, benutze stattdessen $REPO_ROOT als Arbeitsverzeichnis."
@@ -107,12 +106,7 @@ cd "$REPO_ROOT"
 # See lib/container-steps.sh for what this replaces.
 flutter_lane_prepare_env "$FLUTTER_DIR" || exit 2
 
-# CodeQL is NOT implemented in the native Linux flow. This used to print a
-# warning and carry on, which meant the workflow could ask for a scan, get
-# none, and still report success -- and the lane's SARIF upload step then found
-# nothing to upload and skipped, silently. Refusing the flag is the only
-# honest answer until run_codeql_native exists: the caller finds out at the
-# point it asked, not by noticing an empty results directory.
+# Refused, not warned: the native flow has no CodeQL scan, and a silent skip would read as success.
 if maybe_truthy "$RUN_CODEQL"; then
   echo "Error: --run-codeql true was requested, but the native Linux flow implements no CodeQL scan." >&2
   echo "       Pass --run-codeql false, or implement it (see scripts/linux/codeql/codeql-android.sh" >&2
@@ -120,13 +114,7 @@ if maybe_truthy "$RUN_CODEQL"; then
   exit 2
 fi
 
-# Gated on flatpak being ASKED FOR, not just on the flag. The only thing this
-# adds for a tar/deb/appimage run is a `flatpak --user install` of Platform+Sdk,
-# the two largest refs of a set upstream measures at ~1.9 GB per run per arch.
-# dpkg-deb ships in the image and the AppImage packager provisions appimagetool
-# itself, so `--package-formats tar` was paying that for nothing. The predicate
-# is upstream's own, already used by app_packaging_run_command_with_runtime below.
-# Detail: docs/source/project-operations.md § The Linux lane, locally.
+# Only a requested flatpak needs the ~1.9 GB flathub runtimes. See docs/source/project-operations.md § The Linux lane, locally
 if ! app_packaging_formats_include_flatpak "$PACKAGE_FORMATS"; then
   echo "[Info] No flatpak in --package-formats '${PACKAGE_FORMATS}'; skipping the flathub runtime install."
 elif maybe_truthy "$INSTALL_PACKAGING_DEPS"; then
@@ -137,7 +125,7 @@ fi
 setup_compiler_cache
 export_toolchain_env "$MATRIX_ARCH"
 
-# Check + Build + Packaging (delegiert an run-native-linux.sh)
+# Checks, build and packaging live in run-native-linux.sh.
 app_packaging_run_command_with_runtime "$PACKAGE_FORMATS" \
   bash scripts/linux/run-native-linux.sh \
     --arch "$MATRIX_ARCH" \

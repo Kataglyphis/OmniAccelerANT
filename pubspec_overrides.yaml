@@ -1,7 +1,4 @@
-# TEMPORARY: build permission_handler_windows from the fork that carries the
-# clang-cl fix (Baseflow PR #1518) instead of the pub.dev release.
-# Remove this file once permission_handler_windows 0.2.3 is published, and drop
-# Update-PermissionHandlerWindows from the Windows build script with it.
+# Works around Baseflow/flutter-permission-handler#1518 (clang-cl); drop with Update-PermissionHandlerWindows once 0.2.3 ships.
 dependency_overrides:
   permission_handler_windows:
     git:

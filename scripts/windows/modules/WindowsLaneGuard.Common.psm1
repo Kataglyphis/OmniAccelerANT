@@ -1,16 +1,6 @@
 #requires -Version 7.0
 
-# PROJECT-SPECIFIC: one lane at a time against this checkout (AGENTS.md § 5). The generated
-# files at the root (android/local.properties, .dart_tool, pubspec.lock, the ephemeral plugin
-# symlinks) are per-host, and two lanes running together overwrite each other mid-build while
-# the failure names the innocent lane. Both drivers ask here, so the guard is two-sided:
-#   Invoke-LinuxLane.ps1           refuses while another Linux lane or a Windows build runs
-#   Build-Windows-Container.ps1    refuses while a Linux lane runs
-#
-# The two lanes live on two engines. Linux lanes are Rancher Desktop containers
-# (nerdctl, named kataglyphis-linux-lane-*); the Windows build is Stevedore's docker.exe, whose
-# reusable container idles on `ping` between builds (WindowsContainerBuild.Reuse), so "it is
-# up" is not "it is building": a build is a pwsh process inside it.
+# One lane at a time per checkout (AGENTS.md § 5), asked by both drivers across nerdctl and Stevedore.
 
 Set-StrictMode -Version Latest
 
@@ -36,15 +26,13 @@ function Select-LinuxLaneConflict {
 }
 
 function Test-ActiveBuildProcess {
-    # Whether a `docker top` listing shows a build: any pwsh process. The idle reusable
-    # container runs cmd.exe and PING.EXE only. Pure: the caller passes the lines.
+    # A build is any pwsh process: the idle reusable container runs only cmd.exe and PING.EXE.
     param([AllowEmptyCollection()][string[]] $ProcessLines = @())
     return [bool](@($ProcessLines | Where-Object { $_ -match '(?i)(^|[\s\\/])pwsh(\.exe)?(\s|$)' }).Count)
 }
 
 function Get-RunningLinuxLane {
-    # Running Linux lane containers other than -Self; empty when nerdctl is missing or its
-    # VM is down, since then no Linux lane can be running.
+    # Empty when nerdctl is missing or its VM is down: then no Linux lane can be running.
     param([string] $Self = '', [string] $Nerdctl = '')
     if (-not $Nerdctl) { $Nerdctl = Resolve-NerdctlExe }
     if (-not $Nerdctl) { return @() }
@@ -54,9 +42,7 @@ function Get-RunningLinuxLane {
 }
 
 function Test-WindowsBuildActive {
-    # Whether the reusable Windows build container is running a build. Stevedore absent or the
-    # container not running: no. Running but its process list unreadable: yes, because a guard
-    # that cannot see must not wave a lane through (-Force exists for that).
+    # An unreadable process list counts as building: a guard that cannot see must not wave a lane through.
     param([string] $DockerExe = '', [string] $Name = $script:WindowsBuildContainer)
     if (-not $DockerExe) {
         $DockerExe = @(

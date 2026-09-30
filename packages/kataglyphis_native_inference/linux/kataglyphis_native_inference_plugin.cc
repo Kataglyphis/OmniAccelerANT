@@ -112,9 +112,7 @@ static FlMethodResponse* handle_play(KataglyphisNativeInferencePlugin* self,
     g_autofree gchar* error_msg = g_strdup_printf(
         "Failed to play pipeline: %s", error ? error->message : "Unknown error");
     if (error) g_error_free(error);
-    // Same code/shape as handle_set_pipeline above, because stream_page.dart
-    // renders both through one `on PlatformException` arm as
-    // 'Pipeline error: ${e.message}'.
+    // Same code as handle_set_pipeline: stream_page.dart renders both through one arm.
     return FL_METHOD_RESPONSE(fl_method_error_response_new(
         "Pipeline Error", error_msg, nullptr));
   }
@@ -179,7 +177,7 @@ static FlMethodResponse* handle_create(KataglyphisNativeInferencePlugin* self,
 
   self->texture = my_texture_new(width, height, 0x05U, 0x53U, 0xb1U);
 
-  // WICHTIG: TextureRegistrar setzen für GStreamer-Updates
+  // GStreamer frame updates go through the registrar.
   my_texture_set_texture_registrar(self->texture, texture_registrar);
   
   if (!fl_texture_registrar_register_texture(texture_registrar,
@@ -188,9 +186,7 @@ static FlMethodResponse* handle_create(KataglyphisNativeInferencePlugin* self,
         "Error", "Failed to register texture", nullptr));
   }
 
-  // Register as a knt_push_frame target now that the id exists. This is what
-  // lets the Rust webcam engine reach this texture; with no Rust features
-  // compiled in nothing ever calls the ABI and the registration is inert.
+  // Lets knt_push_frame reach this texture; inert without the Rust features.
   const int64_t texture_id = fl_texture_get_id(self->texture);
   my_texture_register_push_target(texture_id, self->texture);
 
@@ -321,9 +317,7 @@ static void kataglyphis_native_inference_plugin_dispose(GObject *object) {
   g_clear_pointer(&self->dart_entrypoint_arguments, g_strfreev);
   g_clear_object(&self->channel);
   g_clear_object(&self->texture_channel);
-  // Out of the push registry BEFORE the unref, so a frame in flight from the
-  // Rust capture thread cannot find a freed texture. my_texture_dispose sweeps
-  // too, but only once the last reference is actually gone.
+  // Unregister before the unref, so an in-flight Rust frame cannot find a freed texture.
   if (self->texture) {
     my_texture_unregister_push_target(fl_texture_get_id(self->texture));
   }
