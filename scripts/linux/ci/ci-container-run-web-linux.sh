@@ -82,10 +82,13 @@ echo "=== Dart checks: dependencies, format, analyze, test ==="
 run_flutter_common_checks "$STRICT_CHECKS" --extra-package third_party/ANThology
 
 echo "=== Enable flutter web + Rust WASM toolchain ==="
-# Guarded: installing a present nightly updates it and dies on the read-only image layer (os error 18).
-if ! rustup component list --toolchain nightly 2>/dev/null | grep -q '^rust-src.*(installed)' ||
-  ! rustup target list --toolchain nightly 2>/dev/null | grep -q '^wasm32-unknown-unknown (installed)'; then
-  rustup toolchain install nightly --component rust-src --target wasm32-unknown-unknown
+# The image's dated nightly, the one its hub pin names; the floating channel would download every run.
+web_nightly="$(sed -n 's/^RUST_NIGHTLY_TOOLCHAIN=//p' third_party/ANTfrastructure/linux/scripts/01-core/versions.env)"
+: "${web_nightly:?no RUST_NIGHTLY_TOOLCHAIN in third_party/ANTfrastructure/linux/scripts/01-core/versions.env}"
+# Guarded anyway: the image installs the components best-effort, and a bare host has none of it.
+if ! rustup component list --toolchain "$web_nightly" 2>/dev/null | grep -q '^rust-src.*(installed)' ||
+  ! rustup target list --toolchain "$web_nightly" 2>/dev/null | grep -q '^wasm32-unknown-unknown (installed)'; then
+  rustup toolchain install "$web_nightly" --component rust-src --target wasm32-unknown-unknown
 fi
 # Defaulted: a bare host has no CARGO_HOME, and set -u would abort there.
 export PATH="${CARGO_HOME:-$HOME/.cargo}/bin:$PATH"
@@ -96,7 +99,8 @@ flutter config --enable-web
 echo "=== Build Web App ==="
 flutter_rust_bridge_codegen build-web \
   --release \
-  --rust-root third_party/OxidANT
+  --rust-root third_party/OxidANT \
+  --wasm-pack-rustup-toolchain "$web_nightly"
 # Local CanvasKit, or an offline LAN host renders blank. See docs/source/project-operations.md § The web lane's CanvasKit source
 flutter_build_web --wasm --no-web-resources-cdn
 

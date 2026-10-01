@@ -101,6 +101,9 @@ thing is still unproven.
       36154744222 printed no line from the function while the APK built. Remove it
       together with the bullet that describes it (AGENTS.md § 4), and prove it with
       the android lane.
+      **Status 2026-10-01:** removed with its call and its description (AGENTS.md § 4). The published
+      `:latest` amd64 config carries `GSTREAMER_ROOT_ANDROID=/opt/android/gstreamer`. Waits
+      for the android run on that commit.
 
 ## Open — release and repository state
 
@@ -148,6 +151,10 @@ thing is still unproven.
       fix: the image installs `RUST_NIGHTLY_TOOLCHAIN` (`nightly-2026-06-28` in the
       pinned `versions.env`) with both components, and FRB's
       `--wasm-pack-rustup-toolchain` can name it.
+      **Status 2026-10-01:** the lane reads the pin from the hub's `versions.env` and passes it
+      to `build-web --wasm-pack-rustup-toolchain`. Checked in `:latest`: FRB 2.13.0 has the
+      option, and `nightly-2026-06-28` has `rust-src` and wasm32. Waits for the web run on
+      that commit.
 
 ## Open — verification gaps
 
@@ -172,9 +179,10 @@ thing is still unproven.
       no scripts at all. Mitigated 2026-09-17 by excluding that path from
       `Build-Windows-Container.ps1`'s inbound stream (the container builds
       into its own `rust_target`); upstream's sync-back still writes them.
-- [ ] **The Windows lane checks added on 2026-09-28 have not run on a Windows
-      host with an image.** *Flutter AOT Freshness* first runs in the next
-      windows-x64 CI build; the lane guard's `docker top` reading
+- [ ] **Two of the Windows lane checks added on 2026-09-28 have not run on a Windows
+      host with an image.** (*Flutter AOT Freshness* has: windows-x64 run 36866007231,
+      2026-10-01, `[OK] Flutter AOT Freshness` on the Release runner.) The lane guard's
+      `docker top` reading
       (`Test-WindowsBuildActive`) has only seen fixtures, since the dev box held
       no Windows image; and the scoped `-CodeQL` run is manual-only. Confirm
       each the first time it runs.
