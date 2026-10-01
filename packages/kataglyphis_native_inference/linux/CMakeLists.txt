@@ -128,6 +128,11 @@ if(${include_${PROJECT_NAME}_tests})
     target_link_libraries(${TEST_RUNNER} PRIVATE AccelerANTgine)
     target_link_libraries(${TEST_RUNNER} PRIVATE PkgConfig::GST PkgConfig::GST_APP PkgConfig::GST_VIDEO)
     target_link_libraries(${TEST_RUNNER} PRIVATE gtest_main gmock)
+    # AccelerANTgine builds its googletest with IPO; without it here the linker cannot read those LTO archives.
+    get_target_property(_gtest_ipo gtest_main INTERPROCEDURAL_OPTIMIZATION)
+    if(_gtest_ipo)
+      set_property(TARGET ${TEST_RUNNER} PROPERTY INTERPROCEDURAL_OPTIMIZATION ON)
+    endif()
 
     # PRE_TEST: listing the tests runs the binary, which belongs in ctest, not in the build.
     include(GoogleTest)

@@ -95,6 +95,11 @@ if(${include_${PROJECT_NAME}_tests})
   # kataglyphis_add comes from AccelerANTgine, as in the plugin itself.
   target_link_libraries(${TEST_RUNNER} PRIVATE AccelerANTgine)
   target_link_libraries(${TEST_RUNNER} PRIVATE gtest_main gmock)
+  # AccelerANTgine builds its googletest with IPO; without it here the linker cannot read those LTO archives.
+  get_target_property(_gtest_ipo gtest_main INTERPROCEDURAL_OPTIMIZATION)
+  if(_gtest_ipo)
+    set_property(TARGET ${TEST_RUNNER} PROPERTY INTERPROCEDURAL_OPTIMIZATION ON)
+  endif()
   # flutter_wrapper_plugin has link dependencies on the Flutter DLL.
   add_custom_command(
     TARGET ${TEST_RUNNER}
