@@ -360,10 +360,11 @@ before the image pull), `run-in-windows-container`, `actions/upload-artifact`
 and `upload-codeql-sarif`. (A second job, `ort-runner-suite`, is a plain
 checkout plus `run-pester-suite` over `scripts/windows/tests`, with no
 container; `windows-arm64.yml` runs the same job on `windows-11-arm`.) After the
-upload, three host steps test the runner outside the image: this repo's
-`Test-KntAbi.ps1`, the hub's `Test-TargetArch.ps1 -ImportWalk -Standalone`, and
-`Test-LaunchSmoke.ps1 -OrtStamp`, which re-proves the G6 stamp before it starts
-the app. Three consequences:
+upload, four host steps test the runner outside the image: this repo's
+`Test-KntAbi.ps1` and `Invoke-PluginGTest.ps1` (the plugin's gtest, built in the
+image, where `flutter_windows.dll` does not load), the hub's `Test-TargetArch.ps1
+-ImportWalk -Standalone`, and `Test-LaunchSmoke.ps1 -OrtStamp`, which re-proves
+the G6 stamp before it starts the app. Three consequences:
 
 - It prunes `third_party/DocumANTation` from the recursive checkout.
   This repo's chains are OmniAccelerANT → AccelerANTgine → ANTfrastructure →

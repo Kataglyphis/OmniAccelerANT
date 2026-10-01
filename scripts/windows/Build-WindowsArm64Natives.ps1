@@ -67,7 +67,12 @@ $seeds = @(Get-ChildItem -LiteralPath $runtime -Filter '*.dll' -File -Recurse | 
 $added = @(Copy-PeImportClosure -Path $seeds -SearchDirectory @(Get-ProductDllSearchPath -Arch arm64) -Destination $runtime -Arch arm64)
 Write-Host "arm64 natives in $out`: $($seeds.Count) seed(s), $($added.Count) closure DLL(s) in runtime\, features $RustFeatures"
 
-# runtime\ is what the app job stages beside the exe, so G6 proves it here, where ONNX_ROOT names the reference.
+# G6 places ORT from a host exe's folder, and runtime\ has none yet: a copy with AccelerANTgine.exe standing in is proved.
 $env:WINDOWS_TARGET_ARCH = 'arm64'
-$proof = Invoke-RunnerOrtProof -RunnerDir $runtime
+$proofDir = Join-Path $env:TEMP "omni-arm64-g6-$([guid]::NewGuid().ToString('N'))"
+Copy-Item -LiteralPath $runtime -Destination $proofDir -Recurse
+Copy-Item -LiteralPath (Join-Path $kciBundle 'bin\AccelerANTgine.exe') -Destination $proofDir
+$proof = Invoke-RunnerOrtProof -RunnerDir $proofDir
+Copy-Item -LiteralPath (Join-Path $proofDir 'ort-chain-stamp.json') -Destination $runtime
+Remove-Item -LiteralPath $proofDir -Recurse -Force
 Write-Host "G6: the chain ONNX Runtime in runtime\ is proved and stamped: $(@($proof.Stamp.sha256.Keys) -join ', ')"

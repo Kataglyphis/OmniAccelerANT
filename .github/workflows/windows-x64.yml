@@ -63,13 +63,20 @@ jobs:
           path: |
             ${{ steps.prep.outputs.workspace }}/${{ env.BUILD_DIR_RELEASE }}/**/*
 
-      # On the host, outside the image, as on a user's machine; the arm64 lane runs the same three scripts.
+      # On the host, outside the image, as on a user's machine; the arm64 lane runs the same scripts.
       - name: Plugin C ABI (x64)
         working-directory: ${{ steps.prep.outputs.workspace }}
         run: >-
           & ./scripts/windows/Test-KntAbi.ps1
           -PluginDll "$env:BUILD_DIR_RELEASE/kataglyphis_native_inference_plugin.dll"
           -SearchPath "$env:BUILD_DIR_RELEASE/bin"
+
+      # Built in the image by Build-Windows.ps1, run here: flutter_windows.dll does not load in Server Core (0xC0000135).
+      - name: Plugin gtest (x64)
+        working-directory: ${{ steps.prep.outputs.workspace }}
+        run: >-
+          & ./scripts/windows/Invoke-PluginGTest.ps1 -BuildDir build/windows/x64
+          -RuntimeDir $env:BUILD_DIR_RELEASE, "$env:BUILD_DIR_RELEASE/bin"
 
       # Standalone: the runner ships without the image's PATH, so every import must resolve inside it.
       - name: Arch gate + import walk (the x64 runner)

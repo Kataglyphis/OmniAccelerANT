@@ -542,7 +542,9 @@ written out rather than linked.
   is `scripts/windows/modules/WindowsOrtRunner.Common.psm1`, whose Pester suite
   runs in the `ort-runner-suite` job of `windows-x64.yml` and of `windows-arm64.yml`.
   The arm64 natives get the same proof and stamp in `Build-WindowsArm64Natives.ps1`,
-  re-proved on the device before the launch smoke. Every verdict is the hub's,
+  over a copy of `runtime\` with `AccelerANTgine.exe` standing in for the app's exe
+  (G6 places ORT from a host exe's folder, and without one it calls every importer
+  `UNRESOLVED`, run 36891845685); the device re-proves the stamp before the launch smoke. Every verdict is the hub's,
   so both scripts stop with the hub commit to move to when the pinned hub
   predates either module. The Linux bundle's twin is
   `check-bundle-closure.sh` (the packaged-Linux-artifact bullet above).
@@ -703,7 +705,9 @@ Six quality/output steps run before the native build (`-CodeQL` short-circuits
 before them), each skippable with the paired switch: **Dart format + CMake
 format** (`-SkipFormat`), **Dart analyze + Flutter tests + Plugin Flutter tests**
 (`-SkipTests`), **API docs generation** (`-SkipDocs`). `-SkipTests` also skips
-**Native Plugin Tests (gtest)**, which runs after each preset's runner is staged.
+**Build Native Plugin Tests (gtest)**, which builds the plugin's gtest after each
+preset's runner is staged; `windows-x64.yml` runs it on the host, since
+`flutter_windows.dll` does not load in the Server Core image (0xC0000135).
 
 **A failed step does not abort the run.** None of them is declared `-Critical`,
 and `-StopOnError` is off by default, so the step is recorded and the build
@@ -780,10 +784,10 @@ the hub's `windows/scripts/Invoke-Lint.ps1 -Path scripts` (a PowerShell parse
 gate on the host, before the ~54 GB image pull), `run-in-windows-container`,
 `actions/upload-artifact` and `upload-codeql-sarif` (plus the `ort-runner-suite`
 job: a checkout and `run-pester-suite` over `scripts/windows/tests`, no
-container). After the upload, three host steps test the runner outside the image,
-as the arm64 lane does: `Test-KntAbi.ps1`, the hub's `Test-TargetArch.ps1
--ImportWalk -Standalone`, and `Test-LaunchSmoke.ps1 -OrtStamp`. Three
-consequences, each easy to undo by accident:
+container). After the upload, four host steps test the runner outside the image,
+as the arm64 lane does: `Test-KntAbi.ps1`, `Invoke-PluginGTest.ps1`, the hub's
+`Test-TargetArch.ps1 -ImportWalk -Standalone`, and `Test-LaunchSmoke.ps1
+-OrtStamp`. Three consequences, each easy to undo by accident:
 
 - It prunes `third_party/DocumANTation` from the recursive checkout. Without
   that, the nested `.git/modules/<name>/` chain makes git abort with
@@ -852,7 +856,7 @@ cell is a test that cannot run there, and the reason is under the table.
 | --- | --- | --- | --- | --- | --- |
 | App Dart tests (`test/`) | yes | yes, in the image | yes, arm64 Dart VM | yes | yes |
 | Plugin Dart tests (`packages/kataglyphis_native_inference/test/`) | yes | yes, in the image | yes, arm64 Dart VM | yes | yes |
-| Plugin gtest (`kataglyphis_native_inference_test`) | yes | yes, in the image | yes, on the device | | |
+| Plugin gtest (`kataglyphis_native_inference_test`) | yes | built in the image, run on the host | yes, on the device | | |
 | Plugin C ABI (`knt_*`) | `check-knt-abi.sh` | `Test-KntAbi.ps1`, host | `Test-KntAbi.ps1`, device | | |
 | G6 over the shipped tree | `check-bundle-closure.sh` | at build, again on the host | at the natives build, again on the device | | |
 | Bundle gate's mutation suite | yes | | | | |
