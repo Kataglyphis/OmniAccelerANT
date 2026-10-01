@@ -55,9 +55,9 @@ jobs:
         with:
           persist-credentials: false
 
-      # ANThology is a pub path dependency; the hub pins Flutter and carries the arch gate.
+      # ANThology is a pub path dependency; the hub pins Flutter and carries the arch gate; the Dart tests read OxidANT's Cargo.toml.
       - name: Submodules the app build reads
-        run: git submodule update --init --depth 1 third_party/ANThology third_party/ANTfrastructure
+        run: git submodule update --init --depth 1 third_party/ANThology third_party/ANTfrastructure third_party/OxidANT
 
       - name: Flutter (the image's version)
         run: |
@@ -93,6 +93,22 @@ jobs:
           path: flutter-build.log
           if-no-files-found: error
 
+      # The Dart VM is arm64 here, unlike every x64 lane; the counts come from the JSON reporter, not the exit code alone.
+      - name: Flutter tests (arm64 Dart VM)
+        run: |
+          $json = Join-Path $env:RUNNER_TEMP 'flutter-test.json'
+          $PSNativeCommandUseErrorActionPreference = $false
+          flutter test --file-reporter "json:$json"
+          $exit = $LASTEXITCODE
+          $done = @(Get-Content -LiteralPath $json | ForEach-Object { $_ | ConvertFrom-Json } | Where-Object { $_.type -eq 'testDone' -and -not $_.hidden })
+          $skipped = @($done | Where-Object skipped).Count
+          $passed = @($done | Where-Object { $_.result -eq 'success' -and -not $_.skipped }).Count
+          $failed = @($done | Where-Object { $_.result -ne 'success' }).Count
+          "TESTS: passed=$passed failed=$failed skipped=$skipped"
+          "### flutter test on windows-11-arm`n`npassed $passed, failed $failed, skipped $skipped" | Out-File -Append -Encoding utf8 -FilePath $env:GITHUB_STEP_SUMMARY
+          if ($exit -or $failed) { throw "flutter test failed (exit $exit, $failed failed)" }
+          if ($passed -lt 1) { throw 'no Dart test passed; a run with nothing tested is not a test verdict' }
+
       - name: Stage the runtime beside the exe
         run: Copy-Item -Path natives\runtime\* -Destination $env:APP_DIR -Recurse -Force
 
@@ -100,6 +116,39 @@ jobs:
         run: |
           & third_party\ANTfrastructure\windows\scripts\build\Test-TargetArch.ps1 -Path $env:APP_DIR -Arch arm64 -MinInspected 6 -ImportWalk
           if ($LASTEXITCODE) { throw "the arch gate failed (exit $LASTEXITCODE)" }
+
+      # The Windows twin of scripts/linux/check-knt-abi.sh, loaded in-process by the arm64 pwsh: the Rust side resolves these by name.
+      - name: Plugin C ABI (arm64)
+        run: |
+          Add-Type -TypeDefinition @'
+          using System;
+          using System.Runtime.InteropServices;
+          public static class KntAbi {
+              [DllImport("kernel32", SetLastError = true, CharSet = CharSet.Unicode)] public static extern IntPtr LoadLibraryExW(string path, IntPtr file, uint flags);
+              [DllImport("kernel32", CharSet = CharSet.Ansi)] public static extern IntPtr GetProcAddress(IntPtr module, string name);
+              [UnmanagedFunctionPointer(CallingConvention.Cdecl)] public delegate int ApiVersion();
+              [UnmanagedFunctionPointer(CallingConvention.Cdecl)] public delegate int PushFrame(long id, IntPtr rgba, uint width, uint height);
+          }
+          '@
+          $dll = Resolve-Path "$env:APP_DIR\kataglyphis_native_inference_plugin.dll"
+          # LOAD_WITH_ALTERED_SEARCH_PATH: the plugin's own imports resolve from the app folder, as in the app.
+          $module = [KntAbi]::LoadLibraryExW($dll, [IntPtr]::Zero, 0x8)
+          if ($module -eq [IntPtr]::Zero) { throw "LoadLibraryExW($dll) failed with Win32 error $([Runtime.InteropServices.Marshal]::GetLastWin32Error())" }
+          $fn = @{}
+          foreach ($name in 'knt_api_version', 'knt_push_frame') {
+              $fn[$name] = [KntAbi]::GetProcAddress($module, $name)
+              if ($fn[$name] -eq [IntPtr]::Zero) { throw "$name is not exported" }
+          }
+          $version = [Runtime.InteropServices.Marshal]::GetDelegateForFunctionPointer($fn['knt_api_version'], [KntAbi+ApiVersion]).Invoke()
+          if ($version -ne 1) { throw "knt_api_version returned $version, expected 1" }
+          $push = [Runtime.InteropServices.Marshal]::GetDelegateForFunctionPointer($fn['knt_push_frame'], [KntAbi+PushFrame])
+          $pixel = [Runtime.InteropServices.Marshal]::AllocHGlobal(4)
+          try {
+              if ($push.Invoke(0, [IntPtr]::Zero, 1, 1) -ne -1) { throw 'knt_push_frame(null buffer) should be -1' }
+              if ($push.Invoke(0, $pixel, 0, 1) -ne -1) { throw 'knt_push_frame(width 0) should be -1' }
+              if ($push.Invoke(424242, $pixel, 1, 1) -ne -2) { throw 'knt_push_frame(unknown id) should be -2' }
+          } finally { [Runtime.InteropServices.Marshal]::FreeHGlobal($pixel) }
+          "knt_api_version = $version; knt_push_frame: bad args -> -1, unknown texture -> -2"
 
       # A missing DLL ends the process at once (0xC0000135); a healthy start stays up.
       - name: Launch smoke
