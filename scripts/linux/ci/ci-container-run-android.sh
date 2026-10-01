@@ -99,7 +99,6 @@ gate_reset "code quality"
 run_gate "cmake-format --check" run_cmake_format_check
 assert_gates
 setup_compiler_cache
-export_android_gstreamer_env
 export_toolchain_env "$MATRIX_ARCH"
 
 if maybe_truthy "$RUN_CODEQL"; then
