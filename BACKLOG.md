@@ -123,12 +123,6 @@ thing is still unproven.
       if nothing reads it, say so in a doc and stop carrying it. Nothing in
       `.github/workflows/` triggers on `main` alone any more, so today it costs
       nothing but confuses every reader.
-- [ ] **`version:` is still `1.1.0+1`**, which is what the annotated tag
-      `1.1.0+1` already names — 329 commits ago (2026-09-25). `app-packaging.sh` stamps it
-      into the `.deb` `Version:`, the AppImage filename and the flatpak
-      filename, so every artifact built since is version-indistinguishable from
-      that release. `msix_config.msix_version` repeats it by hand at
-      `pubspec.yaml`, so the two move together or drift.
 - [ ] **Branch protection after the develop-default rollout (2026-09-16).**
       `develop` is now the default in all 11 active non-fork Kataglyphis repos.
       Protection is per-branch, so whatever guarded `main` in the seven that
