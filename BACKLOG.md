@@ -11,22 +11,6 @@ consumes, so the loop this repo adopted on 2026-09-13 (`scripts/agentic-loop/`,
   backlog containing only blocked items still lets the planner run again
 - `- [x]` completed — pruned on sight; the history lives in git
 
-## Open — correctness
-
-- [ ] **The flatpak has no camera access.** The pinned hub's
-      `app_packaging_flatpak_finish_args_block` appends
-      `KATAGLYPHIS_FLATPAK_FINISH_ARGS` (space-separated) to its four defaults,
-      whose only device is `--device=dri`, so a sandboxed install cannot open a
-      webcam even though the GStreamer closure and the model travel inside it.
-      Flatpak has no `--device=video`; the hub's comment names `--device=all`
-      for a camera. (The runner rpath half was fixed on 2026-09-17:
-      `$ORIGIN/lib:$ORIGIN/../lib` in `bundle-runtime-closure.sh`.)
-      **Status 2026-10-01:** owner decision `--device=all`.
-      `scripts/linux/lib/packaging-common.sh` sets the variable, and
-      `package-linux.sh` prints the built app's `[Context]` and fails without it.
-      Waits for the native lanes' run on that commit; prune it once their log
-      shows `devices=` with `all`.
-
 ## Open — Windows arm64
 
 - [ ] **What the Windows arm64 lane does not prove yet** [M, ★]. The lane went green
@@ -72,6 +56,9 @@ consumes, so the loop this repo adopted on 2026-09-13 (`scripts/agentic-loop/`,
         (`Invoke-PluginGTest.ps1`), and re-proves the G6 stamp `Build-WindowsArm64Natives.ps1`
         writes before the launch smoke; a second job runs the Pester suite on `windows-11-arm`.
         The C ABI check and the launch smoke are shared scripts the x64 lane runs as well.
+        Run 36906197668 (0d5bd41) is green: `TESTS: passed=46` (42 app, 4 plugin), the plugin
+        gtest 1/1, the C ABI, the G6 stamp re-proved beside the exe, alive after 20 s at 130 MB,
+        and Pester 21/21 on windows-11-arm.
 
 ## Open — Linux Rust webcam inference (landed 2026-09-16, artifacts closed 2026-09-17)
 
