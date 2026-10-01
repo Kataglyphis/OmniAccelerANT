@@ -46,10 +46,8 @@ jobs:
           -RepoRoot .
           -Check
 
-  # Keep `with:` a flat block of plain `key: value` lines: Invoke-LinuxLane.ps1 -CheckParity parses it.
+  # No needs: on lint, so a finding cannot skip the tests; keep `with:` flat `key: value` lines for Invoke-LinuxLane.ps1 -CheckParity.
   build:
-    # No container pull to learn a shell script has a typo.
-    needs: [lint, shared-config]
     permissions:
       contents: read
       # reusable-linux.yml's compiler-cache-save deletes its key's older entries.

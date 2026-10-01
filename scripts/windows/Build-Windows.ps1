@@ -316,6 +316,17 @@ try {
                 Pop-Location
             }
         }
+
+        # Its own package with its own lock: the root's `flutter test` never reaches these.
+        Invoke-BuildStep -Context $context -StepName "Plugin Flutter Tests" -Script {
+            Push-Location (Join-Path $workspace 'packages\kataglyphis_native_inference')
+            try {
+                Invoke-BuildExternal -Context $context -File "flutter" -Parameters @("pub", "get")
+                Invoke-BuildExternal -Context $context -File "flutter" -Parameters @("test")
+            } finally {
+                Pop-Location
+            }
+        }
     } else {
         Write-BuildLog -Context $context -Message "Skipping Dart analysis/tests (SkipTests set)."
     }
@@ -426,6 +437,8 @@ try {
                     "-DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreadedDLL"
                 )
             }
+            # Only declares the plugin's gtest target (EXCLUDE_FROM_ALL); Native Plugin Tests builds it by name.
+            $cmakeArgs += "-Dinclude_kataglyphis_native_inference_tests=ON"
             if (Get-Command "sccache" -ErrorAction SilentlyContinue) {
                 $cmakeArgs += "-DCMAKE_C_COMPILER_LAUNCHER=sccache"
                 $cmakeArgs += "-DCMAKE_CXX_COMPILER_LAUNCHER=sccache"
@@ -522,8 +535,8 @@ try {
             $gstBin = if ($env:GSTREAMER_BIN) { $env:GSTREAMER_BIN } else { "C:\runtime\bin" }
             $gstPlugins = Join-Path (Split-Path $gstBin -Parent) "lib\gstreamer-1.0"
             if (Test-Path $gstBin) {
-                # Never an ORT-family DLL: only the next step may put one beside the exe.
-                Copy-Item -Path (Join-Path $gstBin "*.dll") -Exclude @('onnxruntime*.dll', 'DirectML.dll') -Destination $currentBuildDirFull -Force
+                # No ORT-family DLL (only the next step may stage one), nor gstopencv: nothing imports it, and its OpenCV is not shipped.
+                Copy-Item -Path (Join-Path $gstBin "*.dll") -Exclude @('onnxruntime*.dll', 'DirectML.dll', 'gstopencv-*.dll') -Destination $currentBuildDirFull -Force
                 Write-BuildLog -Context $context -Message "GStreamer core DLLs bundled from $gstBin"
             } else {
                 Write-BuildLog -Context $context -Message "WARNING: GStreamer bin not found ($gstBin); skipping core DLL bundling."
@@ -555,6 +568,15 @@ try {
             $null = Copy-ChainOrtBeside -OnnxRoot "$env:ONNX_ROOT" -Destination $currentBuildDirFull
             $proof = Invoke-RunnerOrtProof -RunnerDir $currentBuildDirFull
             Write-BuildLog -Context $context -Message "Chain ONNX Runtime staged from $env:ONNX_ROOT\bin and proved by G6: $(@($proof.Stamp.sha256.Keys) -join ', ')"
+        }
+
+        if (-not $SkipTests) {
+            # After the staging: the test loads AccelerANTgine.dll (runner\bin) and the chain ORT from this runner.
+            Invoke-BuildStep -Context $context -StepName "Native Plugin Tests (gtest)$stepSuffix" -Script {
+                & (Join-Path $PSScriptRoot 'Invoke-PluginGTest.ps1') -BuildDir $currentCMakeBuildDir `
+                    -RuntimeDir @($currentBuildDirFull, (Join-Path $currentBuildDirFull 'bin')) -Build *>&1 |
+                    ForEach-Object { Write-BuildLog -Context $context -Message "$_" }
+            }
         }
     }
 

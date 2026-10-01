@@ -124,6 +124,8 @@ if [[ -z "${KATAGLYPHIS_RUST_FEATURES+x}" ]]; then
   export KATAGLYPHIS_RUST_FEATURES="gstreamer,onnxruntime_dynamic"
 fi
 echo "Rust features: '${KATAGLYPHIS_RUST_FEATURES}'"
+# linux/CMakeLists.txt reads it at configure time: the plugin's gtest target, built only by run_plugin_gtest.
+export KATAGLYPHIS_PLUGIN_TESTS=1
 
 # Clean and build (pub get already done above, skip duplicate call)
 flutter clean
@@ -133,9 +135,17 @@ flutter build linux --"$BUILD_MODE"
 if [[ "$BUILD_MODE" == "release" ]]; then
   bash scripts/linux/bundle-runtime-closure.sh --arch "$MATRIX_ARCH" --build-mode "$BUILD_MODE"
 
+  build_dir="build/linux/${MATRIX_ARCH}/${BUILD_MODE}"
   gate_reset "bundle checks (${MATRIX_ARCH})"
   run_gate "knt ABI" bash scripts/linux/check-knt-abi.sh --arch "$MATRIX_ARCH" --build-mode "$BUILD_MODE"
   run_gate "runtime closure" bash scripts/linux/check-bundle-closure.sh --arch "$MATRIX_ARCH" --build-mode "$BUILD_MODE"
+  run_gate "plugin gtest" run_plugin_gtest "$build_dir"
+  assert_gates
+
+  # Under the image's xvfb-run: the packaged bundle starts, and the app drives its integration test.
+  gate_reset "app under Xvfb (${MATRIX_ARCH})"
+  run_gate "launch smoke" run_launch_smoke "${build_dir}/bundle/$(linux_binary_name)"
+  run_gate "integration test" run_integration_test
   assert_gates
 else
   echo "Info: runtime closure and bundle gates are release-only (build-mode is '$BUILD_MODE')."

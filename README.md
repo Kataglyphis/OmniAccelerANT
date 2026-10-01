@@ -236,8 +236,11 @@ The site CI publishes — the API docs plus every guide in `docs/source` — com
 
 ## Tests
 
-Testing infrastructure is under active development. The open gaps are tracked in
-[BACKLOG.md](BACKLOG.md) — contribute test plans via pull requests.
+Every test runs on every lane that can host it: the app's and the plugin's Dart
+suites, the plugin's gtest and C ABI check, the bundle's runtime closure and
+ONNX Runtime proof, a 20 s launch smoke and, on Linux, the integration test under
+Xvfb. The per-lane table is [AGENTS.md § 5](AGENTS.md#5-build-run-test), *What
+each lane tests*; the open gaps are tracked in [BACKLOG.md](BACKLOG.md).
 
 ## Roadmap
 

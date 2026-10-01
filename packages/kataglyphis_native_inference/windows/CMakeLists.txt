@@ -73,29 +73,27 @@ set(kataglyphis_native_inference_bundled_libraries
 
 # Tests
 
-# Only the example sets this, so plugin clients never build the tests.
+# Set by the example and by the lanes (-Dinclude_kataglyphis_native_inference_tests=ON), so a client build never fetches googletest.
 if(${include_${PROJECT_NAME}_tests})
   set(TEST_RUNNER "${PROJECT_NAME}_test")
   enable_testing()
 
-  # Add the Google Test dependency.
+  # Add the Google Test dependency; EXCLUDE_FROM_ALL, so only the test target builds it.
   include(FetchContent)
-  FetchContent_Declare(googletest URL https://github.com/google/googletest/archive/refs/tags/v1.18.0.zip)
-  # Prevent overriding the parent project's compiler/linker settings
-  set(gtest_force_shared_crt
-      ON
-      CACHE BOOL "" FORCE)
-  # Disable install commands for gtest so it doesn't end up in the bundle.
-  set(INSTALL_GTEST
-      OFF
-      CACHE BOOL "Disable installation of googletest" FORCE)
+  FetchContent_Declare(googletest URL https://github.com/google/googletest/archive/refs/tags/v1.18.0.zip
+                                      EXCLUDE_FROM_ALL)
+  # Normal variables, not FORCEd cache entries, so AccelerANTgine's own googletest keeps its settings.
+  set(gtest_force_shared_crt ON)
+  set(INSTALL_GTEST OFF)
   FetchContent_MakeAvailable(googletest)
 
-  # The C API is too narrow to unit-test, so compile the sources into the test binary.
-  add_executable(${TEST_RUNNER} test/kataglyphis_native_inference_plugin_test.cpp ${PLUGIN_SOURCES})
+  # The sources compiled in, as the C API is too narrow; EXCLUDE_FROM_ALL, so a broken test never breaks the app build.
+  add_executable(${TEST_RUNNER} EXCLUDE_FROM_ALL test/kataglyphis_native_inference_plugin_test.cpp ${PLUGIN_SOURCES})
   apply_standard_settings(${TEST_RUNNER})
-  target_include_directories(${TEST_RUNNER} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
+  target_include_directories(${TEST_RUNNER} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}" "${KCI_DIR}/Src")
   target_link_libraries(${TEST_RUNNER} PRIVATE flutter_wrapper_plugin)
+  # kataglyphis_add comes from AccelerANTgine, as in the plugin itself.
+  target_link_libraries(${TEST_RUNNER} PRIVATE AccelerANTgine)
   target_link_libraries(${TEST_RUNNER} PRIVATE gtest_main gmock)
   # flutter_wrapper_plugin has link dependencies on the Flutter DLL.
   add_custom_command(
@@ -103,7 +101,7 @@ if(${include_${PROJECT_NAME}_tests})
     POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different "${FLUTTER_LIBRARY}" $<TARGET_FILE_DIR:${TEST_RUNNER}>)
 
-  # Enable automatic test discovery.
+  # PRE_TEST: listing the tests runs the binary, which belongs in ctest, not in the build.
   include(GoogleTest)
-  gtest_discover_tests(${TEST_RUNNER})
+  gtest_discover_tests(${TEST_RUNNER} DISCOVERY_MODE PRE_TEST)
 endif()

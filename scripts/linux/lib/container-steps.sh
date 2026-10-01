@@ -23,7 +23,57 @@ run_flutter_common_checks() {
   shift || true
   if maybe_truthy "$strict_mode"; then strict_flag=true; else strict_flag=false; fi
   checks="$(antfrastructure_path linux/scripts/05-frameworks/flutter/flutter_checks.sh)" || return 1
-  bash "$checks" --strict "$strict_flag" "$@"
+  bash "$checks" --strict "$strict_flag" "$@" || return 1
+  run_plugin_dart_tests "$strict_flag"
+}
+
+KATAGLYPHIS_PLUGIN_PACKAGE="packages/kataglyphis_native_inference"
+
+# The hub's checks test the root package only; the plugin's own suite is graded with the same strictness.
+run_plugin_dart_tests() {
+  local strict_flag="${1:-true}"
+  echo "[Info] Dart tests of ${KATAGLYPHIS_PLUGIN_PACKAGE}"
+  if (cd "$KATAGLYPHIS_PLUGIN_PACKAGE" && flutter pub get && flutter test); then
+    return 0
+  fi
+  if [[ "$strict_flag" == true ]]; then
+    return 1
+  fi
+  echo "[Warn] the plugin's Dart tests failed (non-strict, continuing)." >&2
+}
+
+# EXCLUDE_FROM_ALL keeps the gtest out of the app build, so this builds it by name; KATAGLYPHIS_PLUGIN_TESTS=1 must reach the configure.
+run_plugin_gtest() {
+  local build_dir="${1:?app build dir required}"
+  cmake --build "$build_dir" --target kataglyphis_native_inference_test || return 1
+  ctest --test-dir "${build_dir}/plugins/kataglyphis_native_inference" --output-on-failure --no-tests=error
+}
+
+# The executable CMake names, read where it is set rather than guessed from the package name.
+linux_binary_name() {
+  sed -n 's/^set(BINARY_NAME "\([^"]*\)")$/\1/p' linux/CMakeLists.txt
+}
+
+# A missing library or a startup crash ends the app at once; timeout's 124 means it was still up.
+run_launch_smoke() {
+  local exe="${1:?executable required}" seconds="${2:-20}" rc=0
+  if [[ ! -x "$exe" ]]; then
+    echo "[Error] no executable at ${exe}" >&2
+    return 1
+  fi
+  xvfb-run -a timeout "$seconds" "$exe" || rc=$?
+  if [[ "$rc" -eq 124 ]]; then
+    echo "[Info] $(basename "$exe") still running after ${seconds} s"
+    return 0
+  fi
+  echo "[Error] $(basename "$exe") exited with ${rc} within ${seconds} s" >&2
+  return 1
+}
+
+# A debug build under build/linux/<arch>/debug, so the release bundle stays as packaged; non-incremental cargo is sccache-cacheable.
+run_integration_test() {
+  local target="${1:-integration_test/simple_test.dart}"
+  CARGO_INCREMENTAL=0 xvfb-run -a flutter test "$target" -d linux
 }
 
 _cmake_format_venv_create() {

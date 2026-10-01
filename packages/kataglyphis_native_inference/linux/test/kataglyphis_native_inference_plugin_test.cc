@@ -5,7 +5,7 @@
 #include "include/kataglyphis_native_inference/kataglyphis_native_inference_plugin.h"
 #include "kataglyphis_native_inference_plugin_private.h"
 
-// Built with the example app; run build/linux/x64/debug/plugins/<plugin>/<plugin>_test.
+// Not in the app build: run_plugin_gtest (scripts/linux/lib/container-steps.sh) builds and runs it in the native lanes.
 
 namespace kataglyphis_native_inference {
 namespace test {

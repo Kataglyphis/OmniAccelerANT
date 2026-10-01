@@ -29,7 +29,6 @@ BUILD_MODE="release"
 FLUTTER_DIR="/opt/flutter"
 APP_NAME=""
 RUN_CODEQL="0"
-STRICT_CHECKS="0"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -85,8 +84,8 @@ if ! validate_non_empty "--app-name" "$APP_NAME"; then
   exit 2
 fi
 
-# Non-strict, matching the workflow.
-STRICT_CHECKS="0"
+# Strict, as in run-android.sh: a failing Dart check reds this lane like the others (AGENTS.md § 5).
+STRICT_CHECKS="1"
 
 REPO_ROOT="$(resolve_repo_root /workspace)"
 cd "$REPO_ROOT"

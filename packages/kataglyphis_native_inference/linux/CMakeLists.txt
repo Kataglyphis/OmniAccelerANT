@@ -90,7 +90,7 @@ set(kataglyphis_native_inference_bundled_libraries
 
 # Tests
 
-# Only the example sets this, so plugin clients never build the tests.
+# Set by the example and by the lanes (KATAGLYPHIS_PLUGIN_TESTS), so a client build never fetches googletest.
 if(${include_${PROJECT_NAME}_tests})
   if(${CMAKE_VERSION} VERSION_LESS "3.11.0")
     message("Unit tests require CMake 3.11.0 or later")
@@ -98,22 +98,17 @@ if(${include_${PROJECT_NAME}_tests})
     set(TEST_RUNNER "${PROJECT_NAME}_test")
     enable_testing()
 
-    # Add the Google Test dependency.
+    # Add the Google Test dependency; EXCLUDE_FROM_ALL, so only the test target builds it.
     include(FetchContent)
-    FetchContent_Declare(googletest URL https://github.com/google/googletest/archive/refs/tags/v1.18.0.zip)
-    # Keep the parent project's compiler/linker settings.
-    set(gtest_force_shared_crt
-        ON
-        CACHE BOOL "" FORCE)
-    # Disable install commands for gtest so it doesn't end up in the bundle.
-    set(INSTALL_GTEST
-        OFF
-        CACHE BOOL "Disable installation of googletest" FORCE)
+    FetchContent_Declare(googletest URL https://github.com/google/googletest/archive/refs/tags/v1.18.0.zip
+                                        EXCLUDE_FROM_ALL)
+    # A normal variable, not a FORCEd cache entry, so AccelerANTgine's own googletest keeps its setting.
+    set(INSTALL_GTEST OFF)
 
     FetchContent_MakeAvailable(googletest)
 
-    # The exported API is too narrow to unit-test, so compile the sources into the test binary.
-    add_executable(${TEST_RUNNER} test/kataglyphis_native_inference_plugin_test.cc ${PLUGIN_SOURCES})
+    # The sources compiled in, as the export is too narrow; EXCLUDE_FROM_ALL, so a broken test never breaks the app build.
+    add_executable(${TEST_RUNNER} EXCLUDE_FROM_ALL test/kataglyphis_native_inference_plugin_test.cc ${PLUGIN_SOURCES})
     target_sources(
       ${TEST_RUNNER}
       PUBLIC FILE_SET
@@ -124,14 +119,19 @@ if(${include_${PROJECT_NAME}_tests})
              ${PLUGIN_MODULES})
     target_compile_features(${TEST_RUNNER} PRIVATE cxx_std_20)
     apply_standard_settings(${TEST_RUNNER})
-    target_include_directories(${TEST_RUNNER} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
+    target_include_directories(${TEST_RUNNER} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}" "${KCI_DIR}/Src")
+    target_include_directories(${TEST_RUNNER} PRIVATE ${GST_INCLUDE_DIRS} ${GST_APP_INCLUDE_DIRS}
+                                                      ${GST_VIDEO_INCLUDE_DIRS})
     target_link_libraries(${TEST_RUNNER} PRIVATE flutter)
     target_link_libraries(${TEST_RUNNER} PRIVATE PkgConfig::GTK)
+    # The plugin's own dependencies, since its sources are compiled in.
+    target_link_libraries(${TEST_RUNNER} PRIVATE AccelerANTgine)
+    target_link_libraries(${TEST_RUNNER} PRIVATE PkgConfig::GST PkgConfig::GST_APP PkgConfig::GST_VIDEO)
     target_link_libraries(${TEST_RUNNER} PRIVATE gtest_main gmock)
 
-    # Enable automatic test discovery.
+    # PRE_TEST: listing the tests runs the binary, which belongs in ctest, not in the build.
     include(GoogleTest)
-    gtest_discover_tests(${TEST_RUNNER})
+    gtest_discover_tests(${TEST_RUNNER} DISCOVERY_MODE PRE_TEST)
 
   endif() # CMake version check
 endif() # include_${PROJECT_NAME}_tests

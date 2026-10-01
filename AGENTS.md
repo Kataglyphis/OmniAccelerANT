@@ -50,7 +50,9 @@ replacement**: the two paragraphs below stay true.
 What is NOT done: **no frame has travelled Rust → `knt_push_frame` → texture.**
 The ABI is verified by `scripts/linux/check-knt-abi.sh`, which dlopens the built
 plugin and checks the symbols and error codes — and which the native lane now
-runs. A real frame needs a Linux desktop session and a camera. The lane sets
+runs. Since 2026-10-01 the lane also starts the packaged bundle under Xvfb and
+drives `integration_test/simple_test.dart` there (§ 5, *What each lane tests*), so
+the app is seen up; a real frame still needs a camera. The lane sets
 `KATAGLYPHIS_RUST_FEATURES=gstreamer,onnxruntime_dynamic` by default as of
 2026-09-17 (empty string opts out), and the packaged artifacts carry their
 GStreamer/ONNX Runtime/model closure, so the featureless app is no longer the
@@ -461,7 +463,7 @@ written out rather than linked.
   run reported `Formatted 7404 files (627 changed)` and rewrote the Flutter SDK
   on disk on the way. Both lanes list tracked files instead
   (`code_quality_find_dart_files` on Linux, `Get-ProjectDartFiles` on Windows;
-  the same 60 files). Keep the tracked-file listing even though the SDK now
+  the same 59 files). Keep the tracked-file listing even though the SDK now
   comes from the image. `dart analyze` is *not* affected and never was. Detail:
   [`docs/source/project-operations.md`](docs/source/project-operations.md)
   § *Static checks*.
@@ -523,7 +525,9 @@ written out rather than linked.
   the runner by hand. The staging is the hub's `Copy-ChainOrtBeside`
   (`WindowsOrtPayload.Common`, this repo's own code until 2026-09-25); the stamp
   is `scripts/windows/modules/WindowsOrtRunner.Common.psm1`, whose Pester suite
-  runs in `windows-x64.yml`'s `ort-runner-suite` job. Every verdict is the hub's,
+  runs in the `ort-runner-suite` job of `windows-x64.yml` and of `windows-arm64.yml`.
+  The arm64 natives get the same proof and stamp in `Build-WindowsArm64Natives.ps1`,
+  re-proved on the device before the launch smoke. Every verdict is the hub's,
   so both scripts stop with the hub commit to move to when the pinned hub
   predates either module. The Linux bundle's twin is
   `check-bundle-closure.sh` (the packaged-Linux-artifact bullet above).
@@ -680,10 +684,11 @@ supported` on hosts whose Docker/hcsshim is version-skewed from the image —
 `C:\workspace` is a baked image dir. Use a fresh target (`C:\ws-mnt` above; CI
 mounts `D:\ws → C:\ws`). ANTfrastructure owns the why — see § 2.
 
-Five quality/output steps run before the native build (`-CodeQL` short-circuits
+Six quality/output steps run before the native build (`-CodeQL` short-circuits
 before them), each skippable with the paired switch: **Dart format + CMake
-format** (`-SkipFormat`), **Dart analyze + Flutter tests** (`-SkipTests`),
-**API docs generation** (`-SkipDocs`).
+format** (`-SkipFormat`), **Dart analyze + Flutter tests + Plugin Flutter tests**
+(`-SkipTests`), **API docs generation** (`-SkipDocs`). `-SkipTests` also skips
+**Native Plugin Tests (gtest)**, which runs after each preset's runner is staged.
 
 **A failed step does not abort the run.** None of them is declared `-Critical`,
 and `-StopOnError` is off by default, so the step is recorded and the build
@@ -694,7 +699,7 @@ run shows both lines together (`FAILED: MSIX Packaging` … `=== Build Complete 
 never the log tail.**
 
 Two Windows-specific traps these steps carry: the format gate hands `dart
-format` the tracked file list (`Get-ProjectDartFiles`, the 60 files of § 4)
+format` the tracked file list (`Get-ProjectDartFiles`, the 59 files of § 4)
 rather than `.` (the recursive walk reaches the vendored submodule gitdir and
 exceeds MAX_PATH), and docs generation
 runs a `pub global activate dartdoc` (≥ 9.0.9) instead of the SDK-bundled
@@ -755,12 +760,15 @@ traps and MSIX packaging*.
 
 **The CI lane** ([`windows-x64.yml`](.github/workflows/windows-x64.yml))
 is three ANTfrastructure actions, one hub script and GitHub's
-`actions/upload-artifact`, nothing hand-rolled: `prepare-windows-container-host`,
+`actions/upload-artifact`: `prepare-windows-container-host`,
 the hub's `windows/scripts/Invoke-Lint.ps1 -Path scripts` (a PowerShell parse
 gate on the host, before the ~54 GB image pull), `run-in-windows-container`,
 `actions/upload-artifact` and `upload-codeql-sarif` (plus the `ort-runner-suite`
 job: a checkout and `run-pester-suite` over `scripts/windows/tests`, no
-container). Three consequences, each easy to undo by accident:
+container). After the upload, three host steps test the runner outside the image,
+as the arm64 lane does: `Test-KntAbi.ps1`, the hub's `Test-TargetArch.ps1
+-ImportWalk -Standalone`, and `Test-LaunchSmoke.ps1 -OrtStamp`. Three
+consequences, each easy to undo by accident:
 
 - It prunes `third_party/DocumANTation` from the recursive checkout. Without
   that, the nested `.git/modules/<name>/` chain makes git abort with
@@ -812,7 +820,45 @@ way there:
 - `.plugin_symlinks` is a junction there that `REALPATH` leaves unresolved. That is why the
   cross-built AccelerANTgine brings its own C API headers.
 
+The app job tests what it built, with the scripts the x64 lane uses:
+`Invoke-FlutterTests.ps1` (the app's and the plugin's Dart suites on the arm64
+Dart VM, one `TESTS:` line), `Test-KntAbi.ps1`, `Invoke-PluginGTest.ps1` (the
+target `Build-WindowsArm64App.ps1` builds), and `Test-LaunchSmoke.ps1 -OrtStamp`.
+Its `ort-runner-suite` job runs the Pester suite on `windows-11-arm`.
+
 BACKLOG § Windows arm64 keeps what the lane does not prove yet.
+
+### What each lane tests
+
+Owner goal 2026-10-01: every test runs on every lane that can host it. A blank
+cell is a test that cannot run there, and the reason is under the table.
+
+| Test | Linux x64 / arm64 | Windows x64 | Windows arm64 | Android | Web |
+| --- | --- | --- | --- | --- | --- |
+| App Dart tests (`test/`) | yes | yes, in the image | yes, arm64 Dart VM | yes | yes |
+| Plugin Dart tests (`packages/kataglyphis_native_inference/test/`) | yes | yes, in the image | yes, arm64 Dart VM | yes | yes |
+| Plugin gtest (`kataglyphis_native_inference_test`) | yes | yes, in the image | yes, on the device | | |
+| Plugin C ABI (`knt_*`) | `check-knt-abi.sh` | `Test-KntAbi.ps1`, host | `Test-KntAbi.ps1`, device | | |
+| G6 over the shipped tree | `check-bundle-closure.sh` | at build, again on the host | at the natives build, again on the device | | |
+| Bundle gate's mutation suite | yes | | | | |
+| Import walk | (the closure gate) | host, `-Standalone` | device | | |
+| Launch smoke, 20 s | under Xvfb | host | device | | |
+| Integration test (`integration_test/simple_test.dart`) | under Xvfb | | | | |
+| Pester (`scripts/windows/tests`) | | `windows-2025` | `windows-11-arm` | | |
+| Plugin JVM test | | | | yes | |
+
+- Android and Web build no desktop runner, so the desktop rows do not apply
+  there; Android adds the plugin's JVM test. Running the APK on an emulator and
+  the web build in Chrome belongs to the image and the hub (owner, 2026-10-01).
+- The integration test is Linux-only: `flutter test -d windows` builds the app
+  itself with Flutter's MSVC default, which STL1011 stops on `windows-11-arm` and
+  which every Windows build here refuses in favour of clang-cl (BACKLOG § Windows
+  arm64).
+- The mutation suite builds synthetic ELFs for the Linux closure gate; Windows has
+  no ELF and no such gate. Pester tests PowerShell that only Windows lanes run.
+- Every lane runs the plugin's Dart tests through the same strict gate as the
+  app's: `run_flutter_common_checks` on Linux, *Plugin Flutter Tests* in
+  `Build-Windows.ps1`, `Invoke-FlutterTests.ps1` on arm64.
 
 ### The Dart gate in 23 seconds, without a lane
 
@@ -845,8 +891,8 @@ mount.
 `scripts/windows/Invoke-DartChecks.ps1` is the same loop as a script
 (`-SkipFormat`, `-SkipAnalyze`, `-SkipTest`, `-Fix`; its pub cache is the
 `omni-dart-checks-pubcache` volume). Its format step covers `lib test
-integration_test test_driver` — 50 of the 60 tracked files the lanes grade, not
-the plugin's ten under `packages/`.
+integration_test test_driver` — 49 of the 59 tracked files the lanes grade, not
+the plugin's ten under `packages/`; its test step runs the plugin's suite too.
 
 **This is not a substitute for the lane.** It runs the Dart gate and nothing
 else — no `dart format` file listing, no CMake gate, no build, no packaging, and
@@ -883,9 +929,12 @@ reads.
 CI no longer runs it (AGENTS.md § 5).
 
 The native lane sets `KATAGLYPHIS_RUST_FEATURES=gstreamer,onnxruntime_dynamic`
-before `flutter build linux` — set it to the empty string to opt out — and for a
-release build runs `bundle-runtime-closure.sh`, then the `knt ABI` and
-`runtime closure` gates, between the build and packaging. `Invoke-LinuxLane.ps1
+before `flutter build linux` — set it to the empty string to opt out — and
+`KATAGLYPHIS_PLUGIN_TESTS=1`, which `linux/CMakeLists.txt` turns into the plugin's
+gtest target. For a release build it runs `bundle-runtime-closure.sh`, then the
+`knt ABI`, `runtime closure` and `plugin gtest` gates, then the launch smoke and
+the integration test under the image's `xvfb-run`, all between the build and
+packaging. `Invoke-LinuxLane.ps1
 -CheckParity` diffs the *values* it would send — `script` and `extra-args` —
 against the lane's workflow (change driver and workflow together); for
 `native` it grades `-Arch`'s own file, resolving `reusable-linux.yml`'s
@@ -1069,14 +1118,14 @@ on the stage:
 | --- | --- | --- |
 | native Linux ([`reusable-linux.yml`](.github/workflows/reusable-linux.yml), both architectures) | `true` | reds the lane |
 | web ([`web.yml`](.github/workflows/web.yml)) | `true` | reds the lane |
-| android (`ci-container-run-android.sh`) | not passed | reports and moves on — deliberate |
+| android (`ci-container-run-android.sh`) | not passed; always strict | reds the lane |
 
-So "treat a green `checks` run as *was executed*, not as *passed*" is true of
-the **android** lane only. It was true of all three until fc8b65c turned
-`--strict-checks true` on for native, and this paragraph went on claiming the
-`|| true` behaviour for every lane long after that — while a paragraph eight
-lines below said the opposite. The `|| warn` arm still exists; it moved upstream
-into `flutter_checks.sh` and is what the android lane still takes.
+Every lane is strict since 2026-10-01: the android lane was the last that
+reported a failing check and moved on, and `run-android.sh` now calls
+`run_flutter_common_checks true` like the others. All three also run the
+plugin's own Dart tests through that function, under the same strictness. The
+`|| warn` arm still exists upstream in `flutter_checks.sh`, for a local
+`--strict-checks false` run only.
 
 `Invoke-LinuxLane.ps1` passes `-StrictChecks true` by default (since
 2026-09-16) so a local run grades exactly as CI does. It defaulted to `false`

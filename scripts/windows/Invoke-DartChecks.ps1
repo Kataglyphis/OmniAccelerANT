@@ -79,7 +79,8 @@ $formatCmd = if ($Fix) {
 $steps = @()
 if (-not $SkipFormat) { $steps += "echo '=== format ==='; $formatCmd" }
 if (-not $SkipAnalyze) { $steps += "echo '=== analyze ==='; flutter analyze" }
-if (-not $SkipTest) { $steps += "echo '=== test ==='; flutter test" }
+# The plugin is its own package with its own lock, so the root's `flutter test` never reaches its suite.
+if (-not $SkipTest) { $steps += "echo '=== test ==='; flutter test; (cd packages/kataglyphis_native_inference && flutter pub get && flutter test)" }
 if ($steps.Count -eq 0) { throw 'Nothing to do: every step was skipped.' }
 
 # set -e makes the first failing step the exit code; safe.directory, as the host user owns the checkout.

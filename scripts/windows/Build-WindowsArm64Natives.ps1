@@ -22,6 +22,8 @@ param(
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'Resolve-BuildModule.ps1')
 Import-BuildModule 'WindowsCrossBundle.Common'
+# G6 and its stamp, as the x64 runner gets them; the app job re-proves the stamp on the device.
+Import-BuildModule @('WindowsOrtProvenance.Common', 'WindowsOrtPayload.Common', 'WindowsOrtRunner.Common')
 
 $out = Join-Path $WorkspaceDir $OutDir
 $runtime = Join-Path $out 'runtime'
@@ -64,3 +66,8 @@ foreach ($name in $GStreamerPlugins) { Copy-Item -LiteralPath (Join-Path $plugin
 $seeds = @(Get-ChildItem -LiteralPath $runtime -Filter '*.dll' -File -Recurse | ForEach-Object FullName)
 $added = @(Copy-PeImportClosure -Path $seeds -SearchDirectory @(Get-ProductDllSearchPath -Arch arm64) -Destination $runtime -Arch arm64)
 Write-Host "arm64 natives in $out`: $($seeds.Count) seed(s), $($added.Count) closure DLL(s) in runtime\, features $RustFeatures"
+
+# runtime\ is what the app job stages beside the exe, so G6 proves it here, where ONNX_ROOT names the reference.
+$env:WINDOWS_TARGET_ARCH = 'arm64'
+$proof = Invoke-RunnerOrtProof -RunnerDir $runtime
+Write-Host "G6: the chain ONNX Runtime in runtime\ is proved and stamped: $(@($proof.Stamp.sha256.Keys) -join ', ')"

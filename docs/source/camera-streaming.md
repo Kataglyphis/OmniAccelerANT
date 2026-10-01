@@ -68,7 +68,10 @@ client host (`platforms.md`, the `mediafoundation` row).
 `scripts/linux/check-knt-abi.sh` verifies the C ABI the Rust webcam engine
 depends on: that `knt_api_version` and `knt_push_frame` are exported from the
 built plugin, are callable from outside the library, and return their
-documented error codes (`-1` bad arguments, `-2` unknown texture id).
+documented error codes (`-1` bad arguments, `-2` unknown texture id). Its
+Windows twin, `scripts/windows/Test-KntAbi.ps1`, loads the plugin DLL into
+`pwsh` on the device: `windows-x64.yml` runs it on the host after the container
+build, `windows-arm64.yml` on `windows-11-arm`.
 
 It exists because that ABI is resolved **by name at runtime** with `libloading`.
 A rename, a dropped export or a visibility change is not a compile error on
@@ -77,9 +80,10 @@ script `dlopen`s the plugin exactly as Rust does, so a failure here is a failure
 Rust would also hit.
 
 It does not, and cannot, check that a real frame reaches the screen: frames end
-in a GTK texture, and no lane has a `DISPLAY`. Seeing an actual frame needs a
-Linux desktop session and a camera — on the Windows dev box that means the
-`usbipd attach --wsl` route in AGENTS.md § 4.
+in a GTK texture. The native lane has a display since 2026-10-01 — it starts the
+bundle and drives the integration test under the image's `xvfb-run` — but no
+camera, so nothing there pushes a frame. Seeing one needs a camera — on the
+Windows dev box that means the `usbipd attach --wsl` route in AGENTS.md § 4.
 
 Run it after a native build. The artefact is an ELF `.so`, so on a Windows host
 it goes through a container, with the lane's build volume mounted:

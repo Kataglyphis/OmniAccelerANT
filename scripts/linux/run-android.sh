@@ -5,6 +5,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 source "$SCRIPT_DIR/lib/cli-common.sh"
 source "$SCRIPT_DIR/lib/packaging-common.sh"
+source "$SCRIPT_DIR/lib/container-steps.sh"
 
 usage() {
   cat <<'EOF'
@@ -83,8 +84,8 @@ cd "$REPO_ROOT"
 require_cmd flutter
 require_cmd dart
 
-# The hub's pub get + format + analyze + test, non-strict; it formats tracked files only (AGENTS.md § 2).
-bash "$(antfrastructure_path linux/scripts/05-frameworks/flutter/flutter_checks.sh)" --strict false
+# The hub's pub get + format + analyze + test plus the plugin's Dart tests, strict like every lane (AGENTS.md § 5).
+run_flutter_common_checks true
 
 flutter config --enable-android
 

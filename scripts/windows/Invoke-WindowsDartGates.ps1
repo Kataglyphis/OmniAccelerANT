@@ -6,8 +6,8 @@
   scripts/windows/Build-Windows-Container.ps1 -TestsOnly.
 
 .DESCRIPTION
-  `flutter pub get`, `flutter analyze` and `flutter test` - the same pair
-  Build-Windows.ps1 runs when -SkipTests is omitted. It is a separate script
+  `flutter pub get`, `flutter analyze`, `flutter test` and the native plugin's
+  own `flutter test` - what Build-Windows.ps1 runs when -SkipTests is omitted. It is a separate script
   because the agentic loop's build invocation always passes -SkipTests (the
   test phase is its own command), and `Build-Windows.ps1
   -SkipBootstrapFlutterBuild` is not an alternative: its Delivery Check still
@@ -32,5 +32,12 @@ if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 flutter analyze
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
+flutter test
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+# Its own package with its own lock: the root's `flutter test` never reaches these.
+Set-Location 'C:\ws\packages\kataglyphis_native_inference'
+flutter pub get
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 flutter test
 exit $LASTEXITCODE
