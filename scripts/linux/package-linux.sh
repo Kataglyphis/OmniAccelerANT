@@ -98,6 +98,32 @@ fi
 
 IFS=',' read -r -a selected_formats <<< "$FORMATS"
 
+# The hub's flatpak packager, then proof that the extra finish-args reached the built app's [Context].
+package_flatpak_with_finish_args() {
+	app_packaging_package_linux_bundle_flatpak "$@" || return 1
+	local metadata="${KATAGLYPHIS_FLATPAK_WORKDIR:-/tmp/flatpak-work}/build-dir/metadata" arg key value
+	local -a extra=()
+	IFS=' ' read -r -a extra <<< "${KATAGLYPHIS_FLATPAK_FINISH_ARGS:-}"
+	if [[ ! -f "$metadata" ]]; then
+		echo "Error: no flatpak metadata at ${metadata}; the finish-args cannot be checked." >&2
+		return 1
+	fi
+	echo "[Info] ${metadata}:"
+	sed -n '/^\[Context\]/,/^$/p' "$metadata"
+	for arg in ${extra[@]+"${extra[@]}"}; do
+		case "$arg" in
+			--device=*) key=devices; value="${arg#--device=}" ;;
+			--socket=*) key=sockets; value="${arg#--socket=}" ;;
+			--share=*) key=shared; value="${arg#--share=}" ;;
+			*) continue ;;
+		esac
+		if ! grep -Eq "^${key}=(.*;)?${value};" "$metadata"; then
+			echo "Error: ${arg} is not in the flatpak's [Context] ${key}= line." >&2
+			return 1
+		fi
+	done
+}
+
 gate_reset "packaging ${APP_NAME} (${MATRIX_ARCH})"
 
 for raw_format in "${selected_formats[@]}"; do
@@ -106,7 +132,7 @@ for raw_format in "${selected_formats[@]}"; do
 	case "$format" in
 		tar) packager=app_packaging_package_linux_bundle_tar ;;
 		deb) packager=app_packaging_package_linux_bundle_deb ;;
-		flatpak) packager=app_packaging_package_linux_bundle_flatpak ;;
+		flatpak) packager=package_flatpak_with_finish_args ;;
 		appimage) packager=app_packaging_package_linux_bundle_appimage ;;
 		"") continue ;;
 		*)
