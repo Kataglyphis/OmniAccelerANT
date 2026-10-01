@@ -1,4 +1,6 @@
 // Cross-file pins that only fail in a browser; paths resolve from the test, not the CWD.
+@TestOn('vm')
+library;
 
 import 'dart:io';
 

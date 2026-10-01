@@ -63,11 +63,11 @@ void main() {
   });
 
   group('signalingServerUrl resolution', () {
+    // VM only: in Chrome kIsWeb is true and the value resolves against the page's host.
     test('a host-relative value is left alone off the web', () {
-      // kIsWeb is false in the VM, so only the native half is testable here.
       final WebRTCSettings settings = WebRTCSettings.fromJsonFile(_validMap());
       expect(settings.signalingServerUrl, '/webrtc-ws');
-    });
+    }, testOn: 'vm');
 
     test('an absolute URL passes through unchanged', () {
       final Map<String, dynamic> map = _validMap();

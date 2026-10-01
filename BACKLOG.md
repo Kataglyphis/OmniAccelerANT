@@ -75,6 +75,19 @@ thing is still unproven.
       set protection (owner action — deciding what to require is the whole
       point) or stop referencing it.
 
+## Open — web tests in Chrome
+
+- [b] **Switch the web lane's Dart tests to `flutter test --platform chrome`.**
+      Blocked on the image: no published `:latest` carries Chrome until the owner
+      approves the rebuild (hub 625b3653 has the Chrome/emulator work). The suite is
+      ready: the hub's proof image ran it in Chrome with 37 passing, and the three
+      VM-only spots are marked since 2026-10-01 (`@TestOn('vm')` on
+      `test/pinned_artefacts_test.dart` and `test/settings_asset_paths_test.dart`,
+      `testOn: 'vm'` on the off-web case in `test/webrtc_settings_test.dart`). When
+      the image ships Chrome, change `ci-container-run-web-linux.sh`'s test run, keep
+      the VM run on the native lanes, and add the Web column's count to AGENTS.md § 5
+      *What each lane tests*.
+
 ## Open — verification gaps
 
 - [ ] **G6 over the Pi producer bundle has not run since the hub pin moved past

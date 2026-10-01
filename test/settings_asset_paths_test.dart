@@ -1,4 +1,6 @@
 // Declared assets must exist AND be bundled: pubspec's `assets/documents/` entry is not recursive.
+@TestOn('vm')
+library;
 
 import 'dart:convert';
 import 'dart:io';
