@@ -27,7 +27,7 @@ under `flutter/`. That alone fails `--set-exit-if-changed`, and it rewrote the
 SDK on disk on the way.
 
 Both lanes list tracked files instead — `code_quality_find_dart_files` on Linux,
-`Get-ProjectDartFiles` on Windows, the same 60 files — which is what the command
+`Get-ProjectDartFiles` on Windows, the same 59 files — which is what the command
 above reproduces (tracked files minus `rust_builder/`, Cargokit's 19; `flutter/`
 is untracked and `third_party/` holds gitlinks, so `git ls-files` lists neither).
 Keep the tracked-file listing even now that the SDK comes from
@@ -119,8 +119,14 @@ file.
 
 ```bash
 flutter test
-flutter test integration_test/simple_test.dart
+(cd packages/kataglyphis_native_inference && flutter pub get && flutter test)
+xvfb-run -a flutter test integration_test/simple_test.dart -d linux
 ```
+
+The plugin is its own package with its own lock, so the root's `flutter test`
+never reaches its suite. The integration test needs a display; the native lane
+gives it the image's `xvfb-run`. Which lane runs which test is the table in
+AGENTS.md § *What each lane tests*.
 
 ## Documentation Workflow
 

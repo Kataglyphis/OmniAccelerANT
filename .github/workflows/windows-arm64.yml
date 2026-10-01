@@ -93,21 +93,9 @@ jobs:
           path: flutter-build.log
           if-no-files-found: error
 
-      # The Dart VM is arm64 here, unlike every x64 lane; the counts come from the JSON reporter, not the exit code alone.
+      # The Dart VM is arm64 here, unlike every x64 lane: the app's and the plugin's suites, counted from the JSON reporter.
       - name: Flutter tests (arm64 Dart VM)
-        run: |
-          $json = Join-Path $env:RUNNER_TEMP 'flutter-test.json'
-          $PSNativeCommandUseErrorActionPreference = $false
-          flutter test --file-reporter "json:$json"
-          $exit = $LASTEXITCODE
-          $done = @(Get-Content -LiteralPath $json | ForEach-Object { $_ | ConvertFrom-Json } | Where-Object { $_.type -eq 'testDone' -and -not $_.hidden })
-          $skipped = @($done | Where-Object skipped).Count
-          $passed = @($done | Where-Object { $_.result -eq 'success' -and -not $_.skipped }).Count
-          $failed = @($done | Where-Object { $_.result -ne 'success' }).Count
-          "TESTS: passed=$passed failed=$failed skipped=$skipped"
-          "### flutter test on windows-11-arm`n`npassed $passed, failed $failed, skipped $skipped" | Out-File -Append -Encoding utf8 -FilePath $env:GITHUB_STEP_SUMMARY
-          if ($exit -or $failed) { throw "flutter test failed (exit $exit, $failed failed)" }
-          if ($passed -lt 1) { throw 'no Dart test passed; a run with nothing tested is not a test verdict' }
+        run: '& ./scripts/windows/Invoke-FlutterTests.ps1'
 
       - name: Stage the runtime beside the exe
         run: Copy-Item -Path natives\runtime\* -Destination $env:APP_DIR -Recurse -Force
@@ -119,47 +107,17 @@ jobs:
 
       # The Windows twin of scripts/linux/check-knt-abi.sh, loaded in-process by the arm64 pwsh: the Rust side resolves these by name.
       - name: Plugin C ABI (arm64)
-        run: |
-          Add-Type -TypeDefinition @'
-          using System;
-          using System.Runtime.InteropServices;
-          public static class KntAbi {
-              [DllImport("kernel32", SetLastError = true, CharSet = CharSet.Unicode)] public static extern IntPtr LoadLibraryExW(string path, IntPtr file, uint flags);
-              [DllImport("kernel32", CharSet = CharSet.Ansi)] public static extern IntPtr GetProcAddress(IntPtr module, string name);
-              [UnmanagedFunctionPointer(CallingConvention.Cdecl)] public delegate int ApiVersion();
-              [UnmanagedFunctionPointer(CallingConvention.Cdecl)] public delegate int PushFrame(long id, IntPtr rgba, uint width, uint height);
-          }
-          '@
-          $dll = Resolve-Path "$env:APP_DIR\kataglyphis_native_inference_plugin.dll"
-          # LOAD_WITH_ALTERED_SEARCH_PATH: the plugin's own imports resolve from the app folder, as in the app.
-          $module = [KntAbi]::LoadLibraryExW($dll, [IntPtr]::Zero, 0x8)
-          if ($module -eq [IntPtr]::Zero) { throw "LoadLibraryExW($dll) failed with Win32 error $([Runtime.InteropServices.Marshal]::GetLastWin32Error())" }
-          $fn = @{}
-          foreach ($name in 'knt_api_version', 'knt_push_frame') {
-              $fn[$name] = [KntAbi]::GetProcAddress($module, $name)
-              if ($fn[$name] -eq [IntPtr]::Zero) { throw "$name is not exported" }
-          }
-          $version = [Runtime.InteropServices.Marshal]::GetDelegateForFunctionPointer($fn['knt_api_version'], [KntAbi+ApiVersion]).Invoke()
-          if ($version -ne 1) { throw "knt_api_version returned $version, expected 1" }
-          $push = [Runtime.InteropServices.Marshal]::GetDelegateForFunctionPointer($fn['knt_push_frame'], [KntAbi+PushFrame])
-          $pixel = [Runtime.InteropServices.Marshal]::AllocHGlobal(4)
-          try {
-              if ($push.Invoke(0, [IntPtr]::Zero, 1, 1) -ne -1) { throw 'knt_push_frame(null buffer) should be -1' }
-              if ($push.Invoke(0, $pixel, 0, 1) -ne -1) { throw 'knt_push_frame(width 0) should be -1' }
-              if ($push.Invoke(424242, $pixel, 1, 1) -ne -2) { throw 'knt_push_frame(unknown id) should be -2' }
-          } finally { [Runtime.InteropServices.Marshal]::FreeHGlobal($pixel) }
-          "knt_api_version = $version; knt_push_frame: bad args -> -1, unknown texture -> -2"
+        run: '& ./scripts/windows/Test-KntAbi.ps1 -PluginDll "$env:APP_DIR\kataglyphis_native_inference_plugin.dll"'
 
-      # A missing DLL ends the process at once (0xC0000135); a healthy start stays up.
+      # Built by Build-WindowsArm64App.ps1, run here against the staged natives.
+      - name: Plugin gtest (arm64)
+        run: '& ./scripts/windows/Invoke-PluginGTest.ps1 -BuildDir build\windows\arm64-clangcl -RuntimeDir $env:APP_DIR'
+
+      # G6 re-proves the stamp Build-WindowsArm64Natives.ps1 wrote; then a missing DLL would end the process at once (0xC0000135).
       - name: Launch smoke
-        run: |
-          $exe = Resolve-Path "$env:APP_DIR\omni_accelerant.exe"
-          $p = Start-Process -FilePath $exe -WorkingDirectory (Split-Path $exe) -PassThru
-          Start-Sleep -Seconds 20
-          $p.Refresh()
-          if ($p.HasExited) { throw ("omni_accelerant.exe exited after launch with 0x{0:X8}" -f $p.ExitCode) }
-          "alive after 20 s, working set {0:N0} MB" -f ($p.WorkingSet64 / 1MB)
-          Stop-Process -Id $p.Id -Force
+        env:
+          WINDOWS_TARGET_ARCH: arm64
+        run: '& ./scripts/windows/Test-LaunchSmoke.ps1 -AppDir $env:APP_DIR -OrtStamp'
 
       - name: Upload the app
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -167,3 +125,22 @@ jobs:
           name: omni-accelerant-windows-arm64
           path: ${{ env.APP_DIR }}
           if-no-files-found: error
+
+  # The x64 lane's Pester suite on the arm64 pwsh; byte fixtures, so it needs neither the natives nor a build.
+  ort-runner-suite:
+    name: Runner ONNX Runtime glue (Pester, windows-11-arm)
+    runs-on: windows-11-arm
+    timeout-minutes: 15
+    steps:
+      # Top-level submodules suffice: the suite imports G6 from the hub via Resolve-BuildModule.ps1.
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+          submodules: true
+
+      - name: Pester suite (scripts/windows/tests)
+        uses: Kataglyphis/ANTfrastructure/.github/actions/run-pester-suite@develop
+        with:
+          path: scripts/windows/tests
+          version: '3.4.0'

@@ -71,6 +71,11 @@ add_dependencies(${BINARY_NAME} flutter_assemble)
 # Only the installed bundle's copy finds its resources, so the unbundled one is tucked away.
 set_target_properties(${BINARY_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/intermediates_do_not_run")
 
+# The lanes' plugin gtest target; Flutter runs this configure itself, so a -D cannot reach it.
+if("$ENV{KATAGLYPHIS_PLUGIN_TESTS}" STREQUAL "1")
+  set(include_kataglyphis_native_inference_tests TRUE)
+endif()
+
 # Generated plugin build rules.
 include(flutter/generated_plugins.cmake)
 

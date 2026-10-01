@@ -85,9 +85,12 @@ try {
         '-DCMAKE_BUILD_TYPE=Release', '-DFLUTTER_TARGET_PLATFORM=windows-arm64',
         "-DCMAKE_C_COMPILER=$clangClCMake", "-DCMAKE_CXX_COMPILER=$clangClCMake",
         '-DCMAKE_C_COMPILER_TARGET=aarch64-pc-windows-msvc', '-DCMAKE_CXX_COMPILER_TARGET=aarch64-pc-windows-msvc',
-        "-DCMAKE_INSTALL_PREFIX=$installPrefix", '-DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreadedDLL')
+        "-DCMAKE_INSTALL_PREFIX=$installPrefix", '-DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreadedDLL',
+        '-Dinclude_kataglyphis_native_inference_tests=ON')
     Assert-ClangClOnly -BuildDir $BuildDir
     Invoke-Checked cmake @('--build', $BuildDir, '--target', 'install', '--parallel', "$([Environment]::ProcessorCount)")
+    # Built here, in the VS environment; windows-arm64.yml runs it once the natives sit beside the exe.
+    Invoke-Checked cmake @('--build', $BuildDir, '--target', 'kataglyphis_native_inference_test', '--parallel', "$([Environment]::ProcessorCount)")
 } finally {
     Pop-Location
 }

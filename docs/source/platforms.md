@@ -319,7 +319,7 @@ host.** The host's `cmake` is Strawberry Perl's 3.29.2 out of
 Two Windows-specific traps these steps carry:
 
 - The format gate hands `dart format` the tracked file list
-  (`Get-ProjectDartFiles`, 60 files), **not `.`**: `dart format .` recurses into
+  (`Get-ProjectDartFiles`, 59 files), **not `.`**: `dart format .` recurses into
   `.git`, and the deeply nested vendored submodule gitdir exceeds Windows
   MAX_PATH, so the listing throws and the gate crashes before formatting
   anything.
@@ -352,14 +352,18 @@ Both halves were broken until 2026-09-03 and nobody noticed, because CI passes
 
 **The CI lane** ([`windows-x64.yml`](../../.github/workflows/windows-x64.yml))
 is three ANTfrastructure actions, one hub script and GitHub's
-`actions/upload-artifact`, nothing hand-rolled:
+`actions/upload-artifact`:
 `prepare-windows-container-host` (long paths, short-path clone, data-root move,
 disk check, GHCR login, pull), the hub's `windows/scripts/Invoke-Lint.ps1 -Path
 scripts` (parse gate plus AST traps over this repo's own PowerShell, on the host
 before the image pull), `run-in-windows-container`, `actions/upload-artifact`
 and `upload-codeql-sarif`. (A second job, `ort-runner-suite`, is a plain
 checkout plus `run-pester-suite` over `scripts/windows/tests`, with no
-container.) Three consequences:
+container; `windows-arm64.yml` runs the same job on `windows-11-arm`.) After the
+upload, three host steps test the runner outside the image: this repo's
+`Test-KntAbi.ps1`, the hub's `Test-TargetArch.ps1 -ImportWalk -Standalone`, and
+`Test-LaunchSmoke.ps1 -OrtStamp`, which re-proves the G6 stamp before it starts
+the app. Three consequences:
 
 - It prunes `third_party/DocumANTation` from the recursive checkout.
   This repo's chains are OmniAccelerANT → AccelerANTgine → ANTfrastructure →

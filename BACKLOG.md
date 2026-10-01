@@ -63,6 +63,11 @@ consumes, so the loop this repo adopted on 2026-09-13 (`scripts/agentic-loop/`,
       - Run 36850422682 (2026-10-01) is green: `TESTS: passed=41 failed=0 skipped=0`, and the
         C ABI check passed. The lane is "Windows arm64 · cross build + test" since then. Still
         unproven: a red run from a test broken on purpose.
+      - Test parity (owner goal 2026-10-01, AGENTS.md § *What each lane tests*): the job now
+        counts the plugin's Dart suite too (`Invoke-FlutterTests.ps1`), runs the plugin's gtest
+        (`Invoke-PluginGTest.ps1`), and re-proves the G6 stamp `Build-WindowsArm64Natives.ps1`
+        writes before the launch smoke; a second job runs the Pester suite on `windows-11-arm`.
+        The C ABI check and the launch smoke are shared scripts the x64 lane runs as well.
 
 ## Open — Linux Rust webcam inference (landed 2026-09-16, artifacts closed 2026-09-17)
 
@@ -72,8 +77,9 @@ them load on a target, and both headless bundle gates run before packaging. One
 thing is still unproven.
 
 - [b] **No frame has travelled Rust → `knt_push_frame` → texture.** Blocked on
-      hardware, not on code: frames end in a GTK texture and no lane has a
-      `DISPLAY`. The dev box is Windows with a C920 and `usbipd` installed, so
+      hardware, not on code: frames end in a GTK texture, and the native lane's
+      Xvfb (launch smoke and integration test, since 2026-10-01) has no camera
+      behind it. The dev box is Windows with a C920 and `usbipd` installed, so
       the route exists (§ 4) — attach the camera to WSL, run the bundle under
       Xvfb in the image, and grep the log for
       `[my_texture] first pushed frame`. `xvfb-run` is in the image since
