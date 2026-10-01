@@ -13,6 +13,8 @@ extra["kataglyphisCompileSdk"] = 37
 extra["kataglyphisBuildTools"] = "37.0.0"
 extra["kataglyphisNdk"] = "29.0.14206865"
 extra["kataglyphisCmake"] = "4.1.2"
+// The one ABI the APK ships: the image's GStreamer and ONNX Runtime prebuilts, and so the native plugin, are arm64-v8a only.
+extra["kataglyphisAbi"] = "arm64-v8a"
 
 val newBuildDir: Directory =
     rootProject.layout.buildDirectory

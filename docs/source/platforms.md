@@ -484,8 +484,15 @@ The rules are in AGENTS.md § 4; the measurements that produced them are here.
   the plain `flutter build apk` — native link and the plugin's JVM test
   included — green on every completed run from 2026-09-18 on (36154744222 on
   2026-09-25: a 91.8 MB `app-release.apk`).
-  `abiFilters "arm64-v8a"` in the native plugin's
-  `android/build.gradle` stays — real phones, not the emulator.
+  The APK is arm64-v8a only — real phones, not the emulator. The native
+  plugin's `abiFilters` alone never achieved that: it filters the plugin's own
+  build, while the Flutter Gradle plugin writes its three ABIs into the app's
+  `defaultConfig.ndk` and builds `libapp`, `libflutter`, `liboxidant` and
+  `libsqlite3` for each. The release APK of run 36891844220 shipped
+  `armeabi-v7a` and `x86_64` slices with no `libkataglyphis_native_inference.so`.
+  Since 2026-10-01 the app clears Flutter's list for `kataglyphisAbi`, the build
+  passes `--target-platform android-arm64`, and `scripts/linux/check-apk-abi.sh`
+  fails the lane on any other slice (AGENTS.md § 4).
   AGP 9.4.1 + Gradle 9.8.0 builds that against four constraints, all
   load-bearing:
 

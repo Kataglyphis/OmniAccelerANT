@@ -28,6 +28,12 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+
+        // Flutter's Gradle plugin has already set all three of its ABIs by now; without this the APK ships two without the plugin.
+        ndk {
+            abiFilters.clear()
+            abiFilters += rootProject.extra["kataglyphisAbi"] as String
+        }
     }
 
     buildTypes {
