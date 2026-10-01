@@ -51,6 +51,16 @@ consumes, so the loop this repo adopted on 2026-09-13 (`scripts/agentic-loop/`,
          `docs/ci-build-triggers.md`, move with it).
       Proof: a green run with a non-zero test count, and a red one when a test is broken on
       purpose.
+      **Status 2026-10-01:** steps 1 and 2 are wired into the app job.
+      - `flutter test` runs with `--file-reporter json`. Its `testDone` events give
+        `TESTS: passed= failed= skipped=` and the job summary, and nothing passed fails.
+      - "Plugin C ABI (arm64)" loads the arm64 plugin into the arm64 pwsh and asserts
+        `knt_api_version()==1`, bad args -> -1 and an unknown texture -> -2.
+      - `third_party/OxidANT` is now checked out, since `pinned_artefacts_test.dart` reads its
+        `Cargo.toml`.
+      - Step 3 stays open: `flutter test -d windows` would run Flutter's own MSVC build,
+        which STL1011 stops on this runner.
+      - The rename waits for a green run with a non-zero count.
 
 ## Open — Linux Rust webcam inference (landed 2026-09-16, artifacts closed 2026-09-17)
 
