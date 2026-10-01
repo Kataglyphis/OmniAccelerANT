@@ -437,7 +437,7 @@ try {
                     "-DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreadedDLL"
                 )
             }
-            # Only declares the plugin's gtest target (EXCLUDE_FROM_ALL); Native Plugin Tests builds it by name.
+            # Only declares the plugin's gtest target (EXCLUDE_FROM_ALL); Build Native Plugin Tests builds it by name.
             $cmakeArgs += "-Dinclude_kataglyphis_native_inference_tests=ON"
             if (Get-Command "sccache" -ErrorAction SilentlyContinue) {
                 $cmakeArgs += "-DCMAKE_C_COMPILER_LAUNCHER=sccache"
@@ -571,10 +571,9 @@ try {
         }
 
         if (-not $SkipTests) {
-            # After the staging: the test loads AccelerANTgine.dll (runner\bin) and the chain ORT from this runner.
-            Invoke-BuildStep -Context $context -StepName "Native Plugin Tests (gtest)$stepSuffix" -Script {
-                & (Join-Path $PSScriptRoot 'Invoke-PluginGTest.ps1') -BuildDir $currentCMakeBuildDir `
-                    -RuntimeDir @($currentBuildDirFull, (Join-Path $currentBuildDirFull 'bin')) -Build *>&1 |
+            # Built here, run on the host by windows-x64.yml: flutter_windows.dll does not load in Server Core.
+            Invoke-BuildStep -Context $context -StepName "Build Native Plugin Tests (gtest)$stepSuffix" -Script {
+                & (Join-Path $PSScriptRoot 'Invoke-PluginGTest.ps1') -BuildDir $currentCMakeBuildDir -Build -NoRun *>&1 |
                     ForEach-Object { Write-BuildLog -Context $context -Message "$_" }
             }
         }
