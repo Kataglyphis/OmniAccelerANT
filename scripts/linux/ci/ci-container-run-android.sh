@@ -96,6 +96,8 @@ flutter_lane_prepare_env "$FLUTTER_DIR" || exit 2
 # Container-only preparation, kept out of run-android.sh; a batch so assert_gates turns a failure into the exit code.
 gate_reset "code quality"
 run_gate "cmake-format --check" run_cmake_format_check
+# The APK ABI gate's own suite (synthetic APKs): that it refuses an extra slice or a missing plugin.
+run_gate "apk abi gate tests" bash scripts/linux/tests/test-check-apk-abi.sh
 assert_gates
 setup_compiler_cache
 export_toolchain_env "$MATRIX_ARCH"
@@ -107,6 +109,7 @@ if maybe_truthy "$RUN_CODEQL"; then
 
   # No fallback build: a failed scan must fail the lane, not ship a plain APK.
   run_codeql_android "$FLUTTER_DIR" "$BUILD_MODE"
+  bash "$REPO_ROOT/scripts/linux/check-apk-abi.sh" --apk "build/app/outputs/flutter-apk/app-${BUILD_MODE}.apk"
 
   if [[ "$BUILD_MODE" == "release" ]]; then
     app_packaging_package_android_apk_outputs_tar "$MATRIX_ARCH" "$APP_NAME"

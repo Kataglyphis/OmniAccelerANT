@@ -259,7 +259,8 @@ written out rather than linked.
   wrong for this image, which carries 37.0.0 (and 36.0.0), 29.0.14206865 and 4.1.2. One
   place pins them (single-sourced 2026-09-17): the `extra` block in
   `android/build.gradle.kts` (`kataglyphisCompileSdk`, `kataglyphisBuildTools`,
-  `kataglyphisNdk`, `kataglyphisCmake`). Its global `subprojects` override sets
+  `kataglyphisNdk`, `kataglyphisCmake`; `kataglyphisAbi` beside them is the APK's
+  one ABI, below). Its global `subprojects` override sets
   compileSdk, build-tools and NDK on every Android module — which also drags
   third-party plugins such as permission_handler up from their own
   `compileSdk 35` — so `android/app`, the native plugin's `android/` and
@@ -417,8 +418,8 @@ written out rather than linked.
   completed run since 2026-09-18 is green (36154744222 on 2026-09-25: a 91.8 MB
   `app-release.apk`, `testDebugUnitTest` passed); before the switch, the CodeQL
   build was stopping at Kotlin compilation several steps before the native
-  link. `abiFilters "arm64-v8a"` stays — real phones, not the emulator. AGP 9.4.1 + Gradle 9.8.0
-  builds that against four constraints, all load-bearing and none of them
+  link. The APK is arm64-v8a only — real phones, not the emulator. AGP 9.4.1 + Gradle 9.8.0
+  builds that against five constraints, all load-bearing and none of them
   optional:
 
   - **Built-in Kotlin, with a declared KGP for the version check — and CodeQL
@@ -448,6 +449,21 @@ written out rather than linked.
     as `android-37.0`, and upstream's `substring(8) as int` dies on it with
     `For input string: "37.0"` while configuring `:oxidant`; the patch keeps
     the major version only.
+  - **arm64-v8a is pinned twice, because Flutter sets its own three ABIs.** The
+    native plugin's `abiFilters` only filters the plugin's own build. Flutter's
+    Gradle plugin puts all three of its ABIs into the app's `defaultConfig.ndk`
+    when it is applied, and builds `libapp`, `libflutter`, `liboxidant` and
+    `libsqlite3` for every `--target-platform`. Until 2026-10-01 the release APK
+    therefore shipped `armeabi-v7a` and `x86_64` slices without the plugin
+    (run 36891844220), which an x86_64 device or emulator would pick. Now:
+    - The app's `defaultConfig.ndk` clears that list and sets `kataglyphisAbi`
+      (`android/build.gradle.kts`), the value the plugin's `abiFilters` reads too.
+    - `run-android.sh` and the CodeQL build pass `--target-platform android-arm64`,
+      so nothing is built for a dropped ABI.
+    - `scripts/linux/check-apk-abi.sh` fails the lane on any `lib/<abi>/` but that
+      one, or on a missing `libflutter`, `libapp`, `liboxidant` or plugin library.
+      `scripts/linux/tests/test-check-apk-abi.sh` proves it on synthetic APKs in
+      the lane's code-quality batch.
   - **`compileSdk` is 37** (`kataglyphisCompileSdk`, build-tools 37.0.0). The
     `permission_handler_android` 14.x that permission_handler 13.0.2 resolves
     needs it, and the global override would otherwise pull that plugin back to
@@ -882,6 +898,7 @@ cell is a test that cannot run there, and the reason is under the table.
 | Integration test (`integration_test/simple_test.dart`) | under Xvfb | | | | |
 | Pester (`scripts/windows/tests`) | | `windows-2025` | `windows-11-arm` | | |
 | Plugin JVM test | | | | yes | |
+| APK ABI gate (`check-apk-abi.sh`) and its synthetic-APK suite | | | | yes | |
 
 - Android and Web build no desktop runner, so the desktop rows do not apply
   there; Android adds the plugin's JVM test. Running the APK on an emulator and
