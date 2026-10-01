@@ -103,17 +103,6 @@ thing is still unproven.
       what the CI lane actually invokes — the naming still misleads. The rule
       they sit beside holds without exception: **`scripts/linux/lib/` holds only
       files that are sourced or imported, never a file you invoke.**
-- [ ] **Delete `export_android_gstreamer_env`** (`scripts/linux/lib/container-steps.sh`,
-      called from `ci-container-run-android.sh`). It only existed because the image
-      shipped the Android GStreamer SDK without exporting `GSTREAMER_ROOT_ANDROID`.
-      The blocker is cleared: the pinned hub's `linux/Dockerfile.package` sets
-      `ENV GSTREAMER_ROOT_ANDROID=/opt/android/gstreamer`, and android run
-      36154744222 printed no line from the function while the APK built. Remove it
-      together with the bullet that describes it (AGENTS.md § 4), and prove it with
-      the android lane.
-      **Status 2026-10-01:** removed with its call and its description (AGENTS.md § 4). The published
-      `:latest` amd64 config carries `GSTREAMER_ROOT_ANDROID=/opt/android/gstreamer`. Waits
-      for the android run on that commit.
 
 ## Open — release and repository state
 
@@ -135,24 +124,6 @@ thing is still unproven.
       now says the name *was* that string and points back here. Either
       set protection (owner action — deciding what to require is the whole
       point) or stop referencing it.
-
-## Open — the web lane's rustup step
-
-- [ ] **Name the image's dated nightly instead of the floating `nightly`.**
-      `ci-container-run-web-linux.sh` still runs `rustup toolchain install nightly
-      --component rust-src --target wasm32-unknown-unknown`, guarded on the two
-      components being absent. On the read-only image layer a floating-channel
-      update dies with `Invalid cross-device link (os error 18)` (seen 2026-09-16),
-      and since 2026-09-25 CI takes the install path on every run (web run
-      36154744073 synced the channel and downloaded both, 8 s). The hub's
-      `docs/consumer-image-contract.md` § *The web lane toolchain* documents the
-      fix: the image installs `RUST_NIGHTLY_TOOLCHAIN` (`nightly-2026-06-28` in the
-      pinned `versions.env`) with both components, and FRB's
-      `--wasm-pack-rustup-toolchain` can name it.
-      **Status 2026-10-01:** the lane reads the pin from the hub's `versions.env` and passes it
-      to `build-web --wasm-pack-rustup-toolchain`. Checked in `:latest`: FRB 2.13.0 has the
-      option, and `nightly-2026-06-28` has `rust-src` and wasm32. Waits for the web run on
-      that commit.
 
 ## Open — verification gaps
 
