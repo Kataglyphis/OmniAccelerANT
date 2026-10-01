@@ -19,9 +19,13 @@ consumes, so the loop this repo adopted on 2026-09-13 (`scripts/agentic-loop/`,
       whose only device is `--device=dri`, so a sandboxed install cannot open a
       webcam even though the GStreamer closure and the model travel inside it.
       Flatpak has no `--device=video`; the hub's comment names `--device=all`
-      for a camera. Nothing in this repo sets the variable yet. (The runner
-      rpath half was fixed on 2026-09-17: `$ORIGIN/lib:$ORIGIN/../lib` in
-      `bundle-runtime-closure.sh`.)
+      for a camera. (The runner rpath half was fixed on 2026-09-17:
+      `$ORIGIN/lib:$ORIGIN/../lib` in `bundle-runtime-closure.sh`.)
+      **Status 2026-10-01:** owner decision `--device=all`.
+      `scripts/linux/lib/packaging-common.sh` sets the variable, and
+      `package-linux.sh` prints the built app's `[Context]` and fails without it.
+      Waits for the native lanes' run on that commit; prune it once their log
+      shows `devices=` with `all`.
 
 ## Open — Windows arm64
 
@@ -137,12 +141,6 @@ thing is still unproven.
       now says the name *was* that string and points back here. Either
       set protection (owner action — deciding what to require is the whole
       point) or stop referencing it.
-- [ ] **The Linux artifacts each carry the 59 MB detector model** since
-      2026-09-17 (`data/resources/models/yolov10m.onnx`, in tar/deb/AppImage/
-      flatpak). That is the "works out of the box" choice;
-      `KATAGLYPHIS_BUNDLE_MODEL=0` on the lane drops it for a smaller artifact
-      that then needs `KATAGLYPHIS_ONNX_MODEL` at runtime. Decide if the default
-      should flip.
 
 ## Open — the web lane's rustup step
 

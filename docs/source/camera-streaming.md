@@ -134,7 +134,9 @@ the lane for release builds, before packaging):
   then copies nothing for it and prints `Kept (already in bundle/lib, not
   copied)` with each file's sha256, so its `N file(s) copied` list never shows
   ORT in that case. Plus the 59 MB detector model at
-  `data/resources/models/yolov10m.onnx`;
+  `data/resources/models/yolov10m.onnx` — the standard model, bundled by default
+  (owner decision 2026-10-01); `KATAGLYPHIS_BUNDLE_MODEL=0` drops it for an
+  artifact that then needs `KATAGLYPHIS_ONNX_MODEL` at run time;
 - **an `$ORIGIN` rpath on every bundled ELF.** RUNPATH is not transitive: a
   dlopen'd plugin cannot reach a sibling through the runner's `$ORIGIN/lib`
   (measured), so "the file is present but unreachable" is the failure the gate

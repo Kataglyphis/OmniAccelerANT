@@ -288,6 +288,12 @@ written out rather than linked.
   conclusion. This cost one run: the log said "falling back to bare clang" while
   the file already had the fix. Wait for the container to exit.
 
+- **The flatpak gets `--device=all`, because flatpak has no `--device=video`**
+  (owner, 2026-10-01). `scripts/linux/lib/packaging-common.sh` sets
+  `KATAGLYPHIS_FLATPAK_FINISH_ARGS`, which the hub appends to its four finish-args,
+  and `package-linux.sh` prints the built app's `[Context]` and fails when an
+  appended argument is missing from it. An empty value drops it.
+
 - **A packaged Linux artifact must carry its runtime closure, and the runner's
   `$ORIGIN/lib` is not enough for a dlopen'd plugin.** RUNPATH is not transitive
   — measured — so every bundled ELF needs its own `$ORIGIN`, the GStreamer libs
