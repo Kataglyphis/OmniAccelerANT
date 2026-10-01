@@ -96,23 +96,6 @@ setup_compiler_cache() {
   echo "[Info] SCCACHE_DIR=${SCCACHE_DIR:-<unset>}  RUSTC_WRAPPER=${RUSTC_WRAPPER:-<unset>}"
 }
 
-# The image ships the SDK but announces it nowhere — AGENTS.md § 4.
-export_android_gstreamer_env() {
-  if [ -n "${GSTREAMER_ROOT_ANDROID:-}" ] && [ -d "${GSTREAMER_ROOT_ANDROID}" ]; then
-    return 0
-  fi
-  local candidate
-  for candidate in /opt/android/gstreamer /opt/gstreamer-android; do
-    if [ -d "$candidate" ]; then
-      export GSTREAMER_ROOT_ANDROID="$candidate"
-      echo "[Info] GSTREAMER_ROOT_ANDROID=$candidate"
-      return 0
-    fi
-  done
-  echo "[Warn] No Android GStreamer SDK found; the native plugin will not configure." >&2
-  return 0
-}
-
 # The image's clang cfg selects the source-built GCC; verified, as an older image links the distro one (AGENTS.md § 4).
 export_toolchain_env() {
   export CC=clang CXX=clang++
