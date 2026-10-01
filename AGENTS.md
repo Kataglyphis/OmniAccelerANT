@@ -386,6 +386,15 @@ written out rather than linked.
   `scripts/windows/Get-WindowsBuildConfig.ps1` (`RustDllName`,
   `RustPluginSubDir`). Change all three together.
 
+- **The app version is written twice, and both move together.** `version:` in
+  `pubspec.yaml` stamps the `.deb`, AppImage and flatpak names;
+  `msix_config.msix_version` is the MSIX's, with its fourth field held at 0 for
+  the Store. `test/pinned_artefacts_test.dart` fails when they drift. 2.0.0+2
+  (2026-10-01) is a major bump over the `1.1.0+1` tag: the 2026-09-05 rename
+  changed the package name, the executable, the Linux application id and the MSIX
+  identity (`Kataglyphis.KataglyphisInferenceEngine` → `Kataglyphis.OmniAccelerANT`),
+  so a 1.x install does not upgrade in place. `CHANGELOG.md` holds the rest.
+
 - **`dbName` in `lib/src/db/sqlite3_loader_web.dart` is deliberately NOT the
   package name.** It still reads `kataglyphis_inference_engine` after the
   2026-09-05 rename to `omni_accelerant`, because it names the **IndexedDB

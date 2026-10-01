@@ -101,6 +101,30 @@ void main() {
     });
   });
 
+  group('the app version is written once', () {
+    test('msix_config.msix_version follows version:', () {
+      final String version = _extract(
+        'pubspec.yaml',
+        RegExp(r'^version:\s*(\d+\.\d+\.\d+)\+\d+\s*$', multiLine: true),
+        'version: x.y.z+n',
+      );
+      final String msix = _extract(
+        'pubspec.yaml',
+        RegExp(r'^\s+msix_version:\s*([\d.]+)\s*$', multiLine: true),
+        'msix_config.msix_version',
+      );
+      // The Store wants the fourth MSIX field at 0, so it cannot carry the build number.
+      expect(
+        msix,
+        '$version.0',
+        reason:
+            'pubspec.yaml says version $version but msix_version $msix; the '
+            'MSIX would install as another release than the Linux packages. '
+            'Bump both together.',
+      );
+    });
+  });
+
   group('committed web binaries match their upstream pin', () {
     test('web/sqlite3.wasm is the build ANTfrastructure records', () {
       // Committed rather than fetched, so nothing else re-verifies it.
