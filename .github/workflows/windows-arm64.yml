@@ -1,5 +1,5 @@
 # Flutter cannot cross-build windows-arm64 (flutter/flutter#62597): natives cross-build in the image, the app on windows-11-arm.
-name: Windows arm64 · cross build + run
+name: Windows arm64 · cross build + test
 
 on:
   push:

@@ -60,7 +60,9 @@ consumes, so the loop this repo adopted on 2026-09-13 (`scripts/agentic-loop/`,
         `Cargo.toml`.
       - Step 3 stays open: `flutter test -d windows` would run Flutter's own MSVC build,
         which STL1011 stops on this runner.
-      - The rename waits for a green run with a non-zero count.
+      - Run 36850422682 (2026-10-01) is green: `TESTS: passed=41 failed=0 skipped=0`, and the
+        C ABI check passed. The lane is "Windows arm64 · cross build + test" since then. Still
+        unproven: a red run from a test broken on purpose.
 
 ## Open — Linux Rust webcam inference (landed 2026-09-16, artifacts closed 2026-09-17)
 
