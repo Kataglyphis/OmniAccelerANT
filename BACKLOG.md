@@ -47,8 +47,8 @@ consumes, so the loop this repo adopted on 2026-09-13 (`scripts/agentic-loop/`,
          windows`) if one runs headless on the runner; if the runner cannot host it,
          record why.
       4. Gate each with its pass/fail count in the job log; rename the lane to
-         `Windows arm64 · cross build + test` only when they gate (AGENTS.md § 5 and
-         `docs/ci-build-triggers.md` move with it).
+         `Windows arm64 · cross build + test` only when they gate (AGENTS.md § 5, and
+         `docs/ci-build-triggers.md`, move with it).
       Proof: a green run with a non-zero test count, and a red one when a test is broken on
       purpose.
 
