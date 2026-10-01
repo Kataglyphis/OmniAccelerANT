@@ -35,6 +35,11 @@ get_filename_component(_KCI_REPO_ROOT "${_KCI_PACKAGES}" DIRECTORY)
 set(KCI_DIR "${_KCI_REPO_ROOT}/third_party/AccelerANTgine")
 # Otherwise AccelerANTgine's Cache.cmake unsets the lane's sccache launcher for every later target.
 set(myproject_ENABLE_CACHE OFF)
+# Its Debug default instruments it and the plugin with ASan+UBSan, but the Flutter runner links no sanitizer runtime.
+set(myproject_ENABLE_SANITIZER_ADDRESS OFF)
+set(myproject_ENABLE_SANITIZER_UNDEFINED OFF)
+# Its own suites are its lanes' job; in a Debug app they add FuzzTest, whose ANTLR install rule names an unbuilt .so.
+set(BUILD_TESTING OFF)
 add_subdirectory(${KCI_DIR} ${CMAKE_CURRENT_BINARY_DIR}/native_build)
 
 # Named PLUGIN_NAME, which must not change.
@@ -102,7 +107,7 @@ if(${include_${PROJECT_NAME}_tests})
     include(FetchContent)
     FetchContent_Declare(googletest URL https://github.com/google/googletest/archive/refs/tags/v1.18.0.zip
                                         EXCLUDE_FROM_ALL)
-    # A normal variable, not a FORCEd cache entry, so AccelerANTgine's own googletest keeps its setting.
+    # A normal variable, so this googletest installs nothing into the bundle and leaves the cache alone.
     set(INSTALL_GTEST OFF)
 
     FetchContent_MakeAvailable(googletest)
@@ -128,11 +133,6 @@ if(${include_${PROJECT_NAME}_tests})
     target_link_libraries(${TEST_RUNNER} PRIVATE AccelerANTgine)
     target_link_libraries(${TEST_RUNNER} PRIVATE PkgConfig::GST PkgConfig::GST_APP PkgConfig::GST_VIDEO)
     target_link_libraries(${TEST_RUNNER} PRIVATE gtest_main gmock)
-    # AccelerANTgine builds its googletest with IPO; without it here the linker cannot read those LTO archives.
-    get_target_property(_gtest_ipo gtest_main INTERPROCEDURAL_OPTIMIZATION)
-    if(_gtest_ipo)
-      set_property(TARGET ${TEST_RUNNER} PROPERTY INTERPROCEDURAL_OPTIMIZATION ON)
-    endif()
 
     # PRE_TEST: listing the tests runs the binary, which belongs in ctest, not in the build.
     include(GoogleTest)

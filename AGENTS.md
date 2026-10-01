@@ -576,6 +576,23 @@ written out rather than linked.
   toolchain-less rustup shims are harmful. The winamd64 image provisions exactly
   that now (hub `docs/windows-builds.md` § *Rust toolchain*), so this bites only
   outside it.
+- **The Linux plugin builds AccelerANTgine without its test suites and without
+  its Debug sanitizers.** `packages/kataglyphis_native_inference/linux/CMakeLists.txt`
+  sets `BUILD_TESTING`, `myproject_ENABLE_SANITIZER_ADDRESS` and
+  `myproject_ENABLE_SANITIZER_UNDEFINED` to OFF before `add_subdirectory`, the
+  way it already set `myproject_ENABLE_CACHE`. The Debug app build that
+  `flutter test integration_test/… -d linux` makes failed twice without them,
+  both reproduced in `:latest` (2026-10-01):
+  - AccelerANTgine's Debug default turns on ASan and UBSan, and its public
+    options target carries the flags into the plugin. The uninstrumented
+    runner then cannot link: 58 undefined `__asan_*`/`__ubsan_*` references
+    from both libraries (run 36900441698).
+  - Its tests add FuzzTest in Debug, and on Linux the vendored ANTLR's install
+    rule names a `libantlr4-runtime.so.4.13.2` that is never built.
+
+  Release builds lost AccelerANTgine's googletest headers and archives from the
+  bundle as a side effect. The plugin's gtest fetches its own googletest.
+  Windows is unchanged, since its Debug preset ships ASan on purpose.
 - **Vendored ANTLR** (pulled in unconditionally by newer FUZZTEST) needs
   `WITH_STATIC_CRT OFF`, `ANTLR_BUILD_CPP_TESTS OFF`, `ANTLR_BUILD_SHARED OFF`,
   `/FIchrono`, and `LICENSE.txt` staged at the build root — its install rule
