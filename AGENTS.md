@@ -242,13 +242,12 @@ written out rather than linked.
   `include/`, `lib/`). Without `GSTREAMER_ROOT_ANDROID` the native plugin's
   `CMakeLists.txt` stops the Android lane at configure time with
   `GSTREAMER_ROOT_ANDROID must be set`; the plugin accepts both the per-ABI and
-  the flat layout, so the path alone is enough. The image used to ship the SDK
-  without the variable, so `export_android_gstreamer_env`
-  (`scripts/linux/lib/container-steps.sh`) probes and exports it, and returns
-  untouched when the variable is already set. The pinned hub's
-  `linux/Dockerfile.package` now sets `ENV GSTREAMER_ROOT_ANDROID=/opt/android/gstreamer`,
-  and the 2026-09-25 android run (36154744222) prints nothing from the function:
-  it is a no-op in CI, which was **the real fix**. BACKLOG.md tracks deleting it.
+  the flat layout, so the path alone is enough. The hub's `linux/Dockerfile.package`
+  sets `ENV GSTREAMER_ROOT_ANDROID=/opt/android/gstreamer` (checked in the published
+  `:latest` amd64 config, 2026-10-01). The image used to ship the SDK without the
+  variable, and `export_android_gstreamer_env` probed and exported it here until
+  2026-10-01, a no-op in CI since run 36154744222. If the configure error comes back,
+  the image lost its `ENV`: fix the image, do not bring the probe back.
 
 - **Every Android SDK component must be pinned to what the image ships.**
   `/opt/android-sdk` is read-only, so any component the Android Gradle Plugin
@@ -348,17 +347,18 @@ written out rather than linked.
   build-std=std,panic_abort`, so cargo compiles the standard library itself and
   stops without the component:
   `".../nightly-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/Cargo.lock"
-  does not exist, unable to build with the standard library`. The `rustup` step
-  that fixes it sat commented out in `ci-container-run-web-linux.sh` back when
-  `RUSTUP_HOME` was root-owned and every `rustup` write failed. That is fixed in
-  the image, and the step is live again as one `rustup toolchain install nightly
-  --component rust-src --target wasm32-unknown-unknown`, guarded (since
-  2026-09-16) on the two components being absent: on a present nightly the
-  command is not a no-op — it updates the channel, and on the read-only image
-  layer that update dies with `Invalid cross-device link`. The guard does not
-  skip in CI today either: the 2026-09-25 web run (36154744073) found the
-  image's `nightly` without both components and downloaded them. BACKLOG.md,
-  "the web lane's rustup step", has the rest.
+  does not exist, unable to build with the standard library`.
+  - **The toolchain is the image's dated nightly** (since 2026-10-01). The lane reads
+    `RUST_NIGHTLY_TOOLCHAIN` from the pinned hub's `versions.env` (`nightly-2026-06-28`
+    today) and passes it to `build-web` as `--wasm-pack-rustup-toolchain`.
+  - **The image installs that toolchain with both components.** It does not export the
+    variable, hence the read from `versions.env`.
+  - **The floating `nightly` is not in the image.** Naming it, as the lane did before, made
+    rustup download a fresh channel on every run (web run 36154744073). Installing it over
+    a present one updates the channel, and on the read-only image layer that update dies
+    with `Invalid cross-device link`.
+  - **The install step stays, guarded** on the two components being absent. It covers a
+    bare host, and the image's best-effort `try_rustup` install.
 
 - **The web lane installs `flutter_rust_bridge_codegen` only when the image has
   none.** `:latest` ships the binary at `FLUTTER_RUST_BRIDGE_VERSION`,
