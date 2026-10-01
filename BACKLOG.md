@@ -19,46 +19,9 @@ consumes, so the loop this repo adopted on 2026-09-13 (`scripts/agentic-loop/`,
       clang-cl (test run 36622834879). On the windows-11-arm device the app tree passes
       the hub's import walk (40 files, 0 unresolved), and the app stays up 20 s at 147 MB
       with a real window. No camera frame and no inference have run on arm64 (the
-      runner has no camera), and no arm64 MSIX is built. The lane is described in
-      `windows-arm64.yml` and in AGENTS.md § 5.
-
-- [ ] **The Windows arm64 lane runs tests, not only a launch** [M, ★★]. Owner request
-      2026-09-30; the family-wide plan is the hub's CON43. Today `windows-arm64.yml`'s app
-      job builds the app natively on `windows-11-arm` with the image's Flutter and then only
-      launches it for 20 s, so arm64 has no test verdict. This repo's own workflow (not the
-      hub's `container-ci-windows.yml`), so the steps are here:
-      1. `flutter test` in the app job, on the arm64 runner where Flutter already is — the
-         Dart VM and the plugin's FFI loads are arm64 there, unlike the x64 lanes.
-      2. The plugin's C ABI (`knt_push_frame`/`knt_api_version`) checked against the arm64
-         build, the Windows twin of `scripts/linux/check-knt-abi.sh`.
-      3. An integration test that drives the app (`integration_test/`, `flutter test -d
-         windows`) if one runs headless on the runner; if the runner cannot host it,
-         record why.
-      4. Gate each with its pass/fail count in the job log; rename the lane to
-         `Windows arm64 · cross build + test` only when they gate (AGENTS.md § 5, and
-         `docs/ci-build-triggers.md`, move with it).
-      Proof: a green run with a non-zero test count, and a red one when a test is broken on
-      purpose.
-      **Status 2026-10-01:** steps 1 and 2 are wired into the app job.
-      - `flutter test` runs with `--file-reporter json`. Its `testDone` events give
-        `TESTS: passed= failed= skipped=` and the job summary, and nothing passed fails.
-      - "Plugin C ABI (arm64)" loads the arm64 plugin into the arm64 pwsh and asserts
-        `knt_api_version()==1`, bad args -> -1 and an unknown texture -> -2.
-      - `third_party/OxidANT` is now checked out, since `pinned_artefacts_test.dart` reads its
-        `Cargo.toml`.
-      - Step 3 stays open: `flutter test -d windows` would run Flutter's own MSVC build,
-        which STL1011 stops on this runner.
-      - Run 36850422682 (2026-10-01) is green: `TESTS: passed=41 failed=0 skipped=0`, and the
-        C ABI check passed. The lane is "Windows arm64 · cross build + test" since then. Still
-        unproven: a red run from a test broken on purpose.
-      - Test parity (owner goal 2026-10-01, AGENTS.md § *What each lane tests*): the job now
-        counts the plugin's Dart suite too (`Invoke-FlutterTests.ps1`), runs the plugin's gtest
-        (`Invoke-PluginGTest.ps1`), and re-proves the G6 stamp `Build-WindowsArm64Natives.ps1`
-        writes before the launch smoke; a second job runs the Pester suite on `windows-11-arm`.
-        The C ABI check and the launch smoke are shared scripts the x64 lane runs as well.
-        Run 36906197668 (0d5bd41) is green: `TESTS: passed=46` (42 app, 4 plugin), the plugin
-        gtest 1/1, the C ABI, the G6 stamp re-proved beside the exe, alive after 20 s at 130 MB,
-        and Pester 21/21 on windows-11-arm.
+      runner has no camera), no arm64 MSIX is built, and the integration test does not
+      run there (`flutter test -d windows` builds with MSVC, which STL1011 stops). The
+      lane's tests gate since run 36906197668 (AGENTS.md § 5, *What each lane tests*).
 
 ## Open — Linux Rust webcam inference (landed 2026-09-16, artifacts closed 2026-09-17)
 
@@ -93,7 +56,7 @@ thing is still unproven.
 
 ## Open — release and repository state
 
-- [ ] **`main` is 329 commits behind `develop`** (counted 2026-09-25; 246 when
+- [ ] **`main` is 388 commits behind `develop`** (counted 2026-10-01; 246 when
       this was written), last synced by PR #23. Decide
       what `main` is for. If it is the release branch, that gap is the finding;
       if nothing reads it, say so in a doc and stop carrying it. Nothing in
