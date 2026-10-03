@@ -14,6 +14,7 @@ concurrency:
 
 env:
   BUILD_DIR_RELEASE: build/windows/x64/runner/x64-ClangCL-Windows-Release
+  BUILD_DIR_DEBUG: build/windows/x64/runner/x64-ClangCL-Windows-Debug
 
 defaults:
   run:
@@ -110,6 +111,64 @@ jobs:
         with:
           workspace: ${{ steps.prep.outputs.workspace }}
           category: windows-clang-rust
+
+  # The Debug preset links ASan+UBSan; the Release job above keeps the lane's gates, this one proves the instrumented runner starts.
+  build-clang-debug:
+    runs-on: windows-2025
+    timeout-minutes: 180
+    permissions:
+      contents: read
+
+    steps:
+
+      # DocumANTation pruning and unset mounts: AGENTS.md § 5, "The CI lane"; no `image:`, the actions default it.
+      - name: Prepare Windows container host
+        id: prep
+        uses: Kataglyphis/ANTfrastructure/.github/actions/prepare-windows-container-host@develop
+        with:
+          registry-password: ${{ secrets.GHCR_PAT }}
+          short-path-target: /d/ws
+          exclude-submodules: |
+            third_party/DocumANTation
+
+      # Format, tests and docs already ran in the Release job; this one is the instrumented build and its launch.
+      - name: Run container (Debug, ASan + UBSan)
+        uses: Kataglyphis/ANTfrastructure/.github/actions/run-in-windows-container@develop
+        with:
+          file: C:\ws\scripts\windows\Build-Windows.ps1
+          file-args: |
+            -Configurations
+            clangcl-debug
+            -SkipMsixPackaging
+            -SkipFormat
+            -SkipDocs
+
+      # Start-Windows.ps1 stages it for a local run; the CI runner must too, or the instrumented exe dies on load.
+      - name: Stage Microsoft's ASan runtime
+        working-directory: ${{ steps.prep.outputs.workspace }}
+        run: |
+          Import-Module ./third_party/ANTfrastructure/windows/scripts/modules/WindowsTesting.Common.psm1 -Force
+          $asan = Get-AsanRuntimeDll -RuntimeFlavor Msvc
+          if (-not $asan) { throw 'no MSVC ASan runtime on the runner; the Debug preset links it' }
+          Copy-Item -LiteralPath $asan -Destination (Join-Path $env:BUILD_DIR_DEBUG 'clang_rt.asan_dynamic-x86_64.dll') -Force
+          Write-Host "staged $asan"
+
+      - name: Launch smoke (x64, Debug/ASan)
+        working-directory: ${{ steps.prep.outputs.workspace }}
+        run: >-
+          & ./scripts/windows/Test-LaunchSmoke.ps1
+          -AppDir $env:BUILD_DIR_DEBUG -SearchPath "$env:BUILD_DIR_DEBUG/bin" -OrtStamp
+
+      - name: Upload build log
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: build-log-debug
+          path: |
+            ${{ steps.prep.outputs.workspace }}/logs/build-windows-*.log
+            ${{ steps.prep.outputs.workspace }}/logs/build-summary-*.json
+          # The script opens its log at start, so an empty upload means it never ran.
+          if-no-files-found: error
 
   # Byte fixtures, no image, no build; run-pester-suite fails a path that runs no test at all.
   ort-runner-suite:
