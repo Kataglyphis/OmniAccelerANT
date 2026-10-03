@@ -143,15 +143,14 @@ jobs:
             -SkipFormat
             -SkipDocs
 
-      # Start-Windows.ps1 stages it for a local run; the CI runner must too, or the instrumented exe dies on load.
-      - name: Stage Microsoft's ASan runtime
-        working-directory: ${{ steps.prep.outputs.workspace }}
-        run: |
-          Import-Module ./third_party/ANTfrastructure/windows/scripts/modules/WindowsTesting.Common.psm1 -Force
-          $asan = Get-AsanRuntimeDll -RuntimeFlavor Msvc
-          if (-not $asan) { throw 'no MSVC ASan runtime on the runner; the Debug preset links it' }
-          Copy-Item -LiteralPath $asan -Destination (Join-Path $env:BUILD_DIR_DEBUG 'clang_rt.asan_dynamic-x86_64.dll') -Force
-          Write-Host "staged $asan"
+      # The runner image's VS may not carry the ASan component; the image's toolset always does, and it is what the link used.
+      - name: Stage the image's ASan runtime beside the Debug runner
+        uses: Kataglyphis/ANTfrastructure/.github/actions/run-in-windows-container@develop
+        with:
+          file: C:\ws\scripts\windows\Stage-AsanRuntime.ps1
+          file-args: |
+            -Destination
+            C:\ws\build\windows\x64\runner\x64-ClangCL-Windows-Debug
 
       - name: Launch smoke (x64, Debug/ASan)
         working-directory: ${{ steps.prep.outputs.workspace }}

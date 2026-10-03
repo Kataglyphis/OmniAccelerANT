@@ -15,7 +15,7 @@ param(
     [string]$BuildDir = 'build\windows\arm64-clangcl',
     # What windows-arm64.yml stages, gates and uploads (APP_DIR).
     [string]$InstallDir = 'build\windows\arm64\runner\Release',
-    # Release, or Debug with ASan on (the aarch64 runtime ships since 2026-10-03); /MD stays, clang-cl strips /MDd under ASan.
+    # Release, or Debug with ASan on (the aarch64 runtime ships since 2026-10-03); Debug keeps /MDd, so the smoke stages the runner's debug CRT.
     [ValidateSet('Release', 'Debug')][string]$Configuration = 'Release'
 )
 
@@ -89,8 +89,9 @@ try {
     $cmakeArgs += @('-DFLUTTER_TARGET_PLATFORM=windows-arm64',
         "-DCMAKE_C_COMPILER=$clangClCMake", "-DCMAKE_CXX_COMPILER=$clangClCMake",
         '-DCMAKE_C_COMPILER_TARGET=aarch64-pc-windows-msvc', '-DCMAKE_CXX_COMPILER_TARGET=aarch64-pc-windows-msvc',
-        "-DCMAKE_INSTALL_PREFIX=$installPrefix", '-DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreadedDLL',
+        "-DCMAKE_INSTALL_PREFIX=$installPrefix",
         '-Dinclude_kataglyphis_native_inference_tests=ON')
+    # No CRT override: forcing /MD here left the plugin DLLs' /MDd objects without _CrtDbgReport; ASan links Microsoft's runtime either way.
     Invoke-Checked cmake $cmakeArgs
     Assert-ClangClOnly -BuildDir $BuildDir
     Invoke-Checked cmake @('--build', $BuildDir, '--target', 'install', '--parallel', "$([Environment]::ProcessorCount)")
