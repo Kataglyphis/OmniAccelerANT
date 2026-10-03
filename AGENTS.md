@@ -839,9 +839,13 @@ and the `$GIT_DIR` limit*.
 
 CI passes `-SkipMsixPackaging`, and `-CodeQL` is off there because of runtimes.
 
+A second job, `build-clang-debug`, builds the `clangcl-debug` preset (ASan + UBSan) in the same
+container, stages Microsoft's ASan runtime on the runner the way `Start-Windows.ps1` does
+locally, and runs the launch smoke against it; the Release job keeps the lane's quality gates.
+
 **The Windows arm64 lane is a hybrid** ([`windows-arm64.yml`](.github/workflows/windows-arm64.yml),
 2026-09-27). Flutter cannot cross-build `windows-arm64` from an x64 host
-(flutter/flutter#62597), so the lane has two jobs:
+(flutter/flutter#62597), so the lane has three jobs:
 - `natives` runs `scripts/windows/Build-WindowsArm64Natives.ps1` in the hub's arm64 container
   lane. It cross-builds AccelerANTgine and `oxidant.dll`, without DirectML, because the arm64
   ORT has no DirectML EP.
@@ -850,6 +854,10 @@ CI passes `-SkipMsixPackaging`, and `-CodeQL` is off there because of runtimes.
   switches do it. `CARGOKIT_PREBUILT_DIR` is a local Cargokit patch that copies the DLL and
   skips cargo. `KATAGLYPHIS_ACCELERANTGINE_PREBUILT` makes the plugin link an imported
   AccelerANTgine instead of `add_subdirectory`.
+- `app-debug` builds the same app as a Debug (ASan) one: `Build-WindowsArm64App.ps1
+  -Configuration Debug`, /MD like the natives (clang-cl strips /MDd under ASan, so no debug
+  CRT), the aarch64 ASan runtime staged from the runner's own VS, and the launch smoke proves
+  the instrumented app starts.
 
 With both switches unset, x64 builds exactly as before.
 
