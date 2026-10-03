@@ -15,7 +15,7 @@ param(
     [string]$BuildDir = 'build\windows\arm64-clangcl',
     # What windows-arm64.yml stages, gates and uploads (APP_DIR).
     [string]$InstallDir = 'build\windows\arm64\runner\Release',
-    # Release, or Debug with ASan on (the aarch64 runtime ships since 2026-10-03); Debug keeps /MDd, so the smoke stages the runner's debug CRT.
+    # Release, or Debug with ASan on (the aarch64 runtime ships since 2026-10-03); /MD stays, the x64 lane's Debug flags strip _DEBUG.
     [ValidateSet('Release', 'Debug')][string]$Configuration = 'Release'
 )
 
@@ -85,13 +85,18 @@ try {
     $installPrefix = (Join-Path $workspace $InstallDir) -replace '\\', '/'
     # ASan's sanitizer block picks Microsoft's aarch64 runtime by CMAKE_SYSTEM_PROCESSOR (hub Sanitizers.cmake).
     $cmakeArgs = @('-S', 'windows', '-B', $BuildDir, '-G', 'Ninja', "-DCMAKE_BUILD_TYPE=$Configuration")
-    if ($Configuration -eq 'Debug') { $cmakeArgs += '-Dmyproject_ENABLE_SANITIZER_ADDRESS=ON' }
+    if ($Configuration -eq 'Debug') {
+        $cmakeArgs += '-Dmyproject_ENABLE_SANITIZER_ADDRESS=ON'
+        # The x64 lane's recipe: Flutter needs /MD, and clang-cl's STL under _DEBUG wants /MDd (_CrtDbgReport missing).
+        $cmakeArgs += '-DCMAKE_CXX_FLAGS_DEBUG=/MD /Zi /Ob0 /Od /RTC1 /U_DEBUG /DNDEBUG /D_ITERATOR_DEBUG_LEVEL=0'
+        $cmakeArgs += '-DCMAKE_C_FLAGS_DEBUG=/MD /Zi /Ob0 /Od /RTC1 /U_DEBUG /DNDEBUG /D_ITERATOR_DEBUG_LEVEL=0'
+    }
     $cmakeArgs += @('-DFLUTTER_TARGET_PLATFORM=windows-arm64',
         "-DCMAKE_C_COMPILER=$clangClCMake", "-DCMAKE_CXX_COMPILER=$clangClCMake",
         '-DCMAKE_C_COMPILER_TARGET=aarch64-pc-windows-msvc', '-DCMAKE_CXX_COMPILER_TARGET=aarch64-pc-windows-msvc',
         "-DCMAKE_INSTALL_PREFIX=$installPrefix",
         '-Dinclude_kataglyphis_native_inference_tests=ON')
-    # No CRT override: forcing /MD here left the plugin DLLs' /MDd objects without _CrtDbgReport; ASan links Microsoft's runtime either way.
+    # The app's CMakeLists pins /MD; the Debug flags above strip _DEBUG, the pairing a release CRT requires.
     Invoke-Checked cmake $cmakeArgs
     Assert-ClangClOnly -BuildDir $BuildDir
     Invoke-Checked cmake @('--build', $BuildDir, '--target', 'install', '--parallel', "$([Environment]::ProcessorCount)")

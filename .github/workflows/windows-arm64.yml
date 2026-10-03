@@ -186,17 +186,11 @@ jobs:
           $env:WINDOWS_TARGET_ARCH = 'arm64'
           & ./third_party/ANTfrastructure/windows/scripts/build/Copy-Arm64VsRuntime.ps1 -InstallDir $env:APP_DIR -Flat
 
-      # G6 re-proves the stamp the natives wrote; the ASan runtime sits beside the exe, and the /MDd build needs the runner's debug CRT.
+      # G6 re-proves the stamp the natives wrote; the ASan runtime sits beside the exe, so a missing one ends the process at once.
       - name: Launch smoke (Debug/ASan)
         env:
           WINDOWS_TARGET_ARCH: arm64
-        run: |
-          $crt = @(Get-ChildItem 'C:\Program Files*\Microsoft Visual Studio\*\*\VC\Redist\MSVC\*\debug_nonredist\arm64\Microsoft.VC*.DebugCRT' -Directory -ErrorAction SilentlyContinue | Select-Object -First 1)
-          if ($crt.Count -eq 0) { throw 'no arm64 debug CRT under the runner VS; the Debug app is a /MDd build' }
-          $ucrt = @(Get-ChildItem 'C:\Program Files (x86)\Windows Kits\10\bin\*\arm64\ucrt\ucrtbased.dll' -File -ErrorAction SilentlyContinue | Select-Object -First 1)
-          if ($ucrt.Count -eq 0) { throw 'no arm64 ucrtbased.dll under the Windows SDK' }
-          $env:PATH = "$($crt[0].FullName);$($ucrt[0].DirectoryName);$env:PATH"
-          & ./scripts/windows/Test-LaunchSmoke.ps1 -AppDir $env:APP_DIR -OrtStamp
+        run: '& ./scripts/windows/Test-LaunchSmoke.ps1 -AppDir $env:APP_DIR -OrtStamp'
 
       - name: Upload the Debug app
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
