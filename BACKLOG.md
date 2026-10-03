@@ -11,17 +11,6 @@ consumes, so the loop this repo adopted on 2026-09-13 (`scripts/agentic-loop/`,
   backlog containing only blocked items still lets the planner run again
 - `- [x]` completed — pruned on sight; the history lives in git
 
-## Open — Windows arm64
-
-- [ ] **What the Windows arm64 lane does not prove yet** [M, ★]. The lane went green
-      on 2026-09-27 (run 36322839058). It went red on 2026-09-29, when windows-11-arm
-      moved to VS 2026 and MSVC's `cl` stopped at STL1011. Since then the app builds with
-      clang-cl (test run 36622834879). On the windows-11-arm device the app tree passes
-      the hub's import walk (40 files, 0 unresolved), and the app stays up 20 s at 147 MB
-      with a real window. No camera frame and no inference have run on arm64 (the
-      runner has no camera), no arm64 MSIX is built, and the integration test does not
-      run there (`flutter test -d windows` builds with MSVC, which STL1011 stops). The
-      lane's tests gate since run 36906197668 (AGENTS.md § 5, *What each lane tests*).
 
 ## Open — Linux Rust webcam inference (landed 2026-09-16, artifacts closed 2026-09-17)
 
@@ -56,8 +45,7 @@ thing is still unproven.
 
 ## Open — release and repository state
 
-- [ ] **`main` is 388 commits behind `develop`** (counted 2026-10-01; 246 when
-      this was written), last synced by PR #23. Decide
+- [ ] **`main` is 394 commits behind `develop`** (counted 2026-10-03), last synced by PR #23. Decide
       what `main` is for. If it is the release branch, that gap is the finding;
       if nothing reads it, say so in a doc and stop carrying it. Nothing in
       `.github/workflows/` triggers on `main` alone any more, so today it costs
@@ -77,9 +65,10 @@ thing is still unproven.
 
 ## Open — web tests in Chrome
 
-- [b] **Switch the web lane's Dart tests to `flutter test --platform chrome`.**
-      Blocked on the image: no published `:latest` carries Chrome until the owner
-      approves the rebuild (hub 625b3653 has the Chrome/emulator work). The suite is
+- [ ] **Switch the web lane's Dart tests to `flutter test --platform chrome`.**
+      Unblocked 2026-10-03: the published `:latest` (chain
+      `cross-build-20261002-latest`) carries Chrome for Testing, chromedriver and
+      the Android emulator (hub 625b3653, owner-approved 2026-10-01). The suite is
       ready: the hub's proof image ran it in Chrome with 37 passing, and the three
       VM-only spots are marked since 2026-10-01 (`@TestOn('vm')` on
       `test/pinned_artefacts_test.dart` and `test/settings_asset_paths_test.dart`,
