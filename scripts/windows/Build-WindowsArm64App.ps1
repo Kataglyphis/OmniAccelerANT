@@ -13,8 +13,8 @@ param(
     [string]$WorkspaceDir = $PWD.Path,
     # Beside Flutter's own build\windows\arm64, which --config-only configures for the VS generator.
     [string]$BuildDir = 'build\windows\arm64-clangcl',
-    # What windows-arm64.yml stages, gates and uploads (APP_DIR).
-    [string]$InstallDir = 'build\windows\arm64\runner\Release',
+    # What windows-arm64.yml stages, gates and uploads (APP_DIR). Empty = derived from -Configuration below.
+    [string]$InstallDir = '',
     # Release, or Debug with ASan on (the aarch64 runtime ships since 2026-10-03); /MD stays, the x64 lane's Debug flags strip _DEBUG.
     [ValidateSet('Release', 'Debug')][string]$Configuration = 'Release'
 )
@@ -22,6 +22,9 @@ param(
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'Resolve-BuildModule.ps1')
 Import-BuildModule @('WindowsScripts.Shared', 'WindowsBuild.Common', 'WindowsFlutter.Common', 'WindowsSourceBuild.Common')
+
+# The Debug app installs beside the Release one; a single fixed default sent both to runner\Release.
+if (-not $InstallDir) { $InstallDir = "build\windows\arm64\runner\$Configuration" }
 
 function Invoke-Checked {
     param([Parameter(Mandatory)][string]$File, [string[]]$Arguments = @())
