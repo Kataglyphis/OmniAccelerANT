@@ -16,7 +16,9 @@ param(
     # What windows-arm64.yml stages, gates and uploads (APP_DIR). Empty = derived from -Configuration below.
     [string]$InstallDir = '',
     # Release, or Debug with ASan on (the aarch64 runtime ships since 2026-10-03); /MD stays, the x64 lane's Debug flags strip _DEBUG.
-    [ValidateSet('Release', 'Debug')][string]$Configuration = 'Release'
+    [ValidateSet('Release', 'Debug')][string]$Configuration = 'Release',
+    # Dart entrypoint; empty = lib/main.dart. The integration app sets integration_test/simple_test.dart.
+    [string]$FlutterTarget = ''
 )
 
 $ErrorActionPreference = 'Stop'
@@ -60,8 +62,14 @@ try {
     $null = New-Item -ItemType Directory -Force -Path (Split-Path $toolsetFile)
     Set-Content -LiteralPath $toolsetFile -Value 'set(CMAKE_GENERATOR_TOOLSET "ClangCL")'
     $env:CMAKE_TOOLCHAIN_FILE = $toolsetFile
+    $configArgs = @('build', 'windows', "--$($Configuration.ToLowerInvariant())", '--config-only')
+    # tool_backend.dart reads FLUTTER_TARGET from the environment; the CMake build inherits it.
+    if (-not [string]::IsNullOrWhiteSpace($FlutterTarget)) {
+        $configArgs += @('--target', $FlutterTarget)
+        $env:FLUTTER_TARGET = $FlutterTarget
+    }
     try {
-        Invoke-Checked flutter @('build', 'windows', "--$($Configuration.ToLowerInvariant())", '--config-only')
+        Invoke-Checked flutter $configArgs
     } finally {
         Remove-Item Env:CMAKE_TOOLCHAIN_FILE
     }
