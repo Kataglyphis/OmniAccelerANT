@@ -9,6 +9,8 @@ param(
     [string] $RustCrateDir = "third_party\OxidANT",
     [string] $RustDllName = "oxidant.dll",
     [string] $Configurations = "",
+    # Dart entrypoint; empty = lib/main.dart. The integration app sets integration_test/simple_test.dart.
+    [string] $FlutterTarget = "",
     [string] $CMakeGenerator = "Ninja",
     [string] $CMakeBuildType = "Release",
     [string] $LogDir = "logs",
@@ -363,7 +365,13 @@ try {
         Invoke-BuildStep -Context $context -StepName "Flutter Ephemeral Build (C++ Headers)" -Script {
             $env:CC = "clang-cl"
             $env:CXX = "clang-cl"
-            Invoke-BuildExternal -Context $context -File "flutter" -Parameters @("build", "windows", "--config-only")
+            $flutterArgs = @("build", "windows", "--config-only")
+            if (-not [string]::IsNullOrWhiteSpace($FlutterTarget)) {
+                # tool_backend.dart reads FLUTTER_TARGET from the environment; the CMake build inherits it.
+                $flutterArgs += @("--target", $FlutterTarget)
+                $env:FLUTTER_TARGET = $FlutterTarget
+            }
+            Invoke-BuildExternal -Context $context -File "flutter" -Parameters $flutterArgs
         }
 
         Invoke-BuildStep -Context $context -StepName "Fix Plugin Symlinks (Junctions)" -Script {
