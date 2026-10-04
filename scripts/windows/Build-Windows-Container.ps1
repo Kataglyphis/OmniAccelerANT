@@ -87,8 +87,7 @@ $outputDirs = if ($TestsOnly) {
     @('logs', 'build/windows/x64/runner', 'build/windows/x64/plugins', 'build/windows/x64/bin')
 }
 
-# bsdtar matches every pattern at every depth, so a root 'build' needs omission here, not an exclude.
-# Raw enumeration: Get-ChildItem would answer with WhatIf records under -WhatIf.
+# Raw enumeration: Get-ChildItem answers WhatIf records under -WhatIf, and bsdtar --exclude matches at every depth.
 $rootOnlyExclude = @('build', 'out', 'logs', '.dart_tool', '.venv')
 $inboundItems = @([System.IO.Directory]::GetFileSystemEntries($repoRoot) |
     ForEach-Object { [System.IO.Path]::GetFileName($_) } |

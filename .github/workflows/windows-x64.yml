@@ -158,8 +158,7 @@ jobs:
           & ./scripts/windows/Test-LaunchSmoke.ps1
           -AppDir $env:BUILD_DIR_DEBUG -SearchPath "$env:BUILD_DIR_DEBUG/bin" -OrtStamp
 
-      # The integration app: the same Debug tree, rebuilt with the test as its Dart entrypoint
-      # (FLUTTER_TARGET), after the smoke proved the normal bundle.
+      # The integration app: the same Debug tree, rebuilt with the test as its Dart entrypoint (FLUTTER_TARGET).
       - name: Run container (integration target)
         uses: Kataglyphis/ANTfrastructure/.github/actions/run-in-windows-container@develop
         with:
