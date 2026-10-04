@@ -199,6 +199,26 @@ jobs:
           path: ${{ env.APP_DIR }}
           if-no-files-found: error
 
+      # The integration app: the same arm64 Debug build, rebuilt with the test as its Dart entrypoint.
+      - name: Build the app (integration target)
+        run: |
+          pwsh -NoProfile -File scripts\windows\Build-WindowsArm64App.ps1 -Configuration Debug -BuildDir build\windows\arm64-clangcl-debug -FlutterTarget integration_test/simple_test.dart *>&1 | Tee-Object -FilePath flutter-build-debug-integration.log
+          if ($LASTEXITCODE) { throw "Build-WindowsArm64App.ps1 -FlutterTarget failed (exit $LASTEXITCODE); the whole log is the artifact" }
+
+      - name: Upload the integration build log
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: flutter-build-log-windows-arm64-debug-integration
+          path: flutter-build-debug-integration.log
+          if-no-files-found: error
+
+      # flutter test -d windows would build with MSVC; drive the clang-cl app the build above made instead.
+      - name: Integration test (arm64)
+        run: >-
+          & ./scripts/windows/Invoke-WindowsIntegrationTest.ps1
+          -AppDir $env:APP_DIR
+
   # The x64 lane's Pester suite on the arm64 pwsh; byte fixtures, so it needs neither the natives nor a build.
   ort-runner-suite:
     name: Runner ONNX Runtime glue (Pester, windows-11-arm)

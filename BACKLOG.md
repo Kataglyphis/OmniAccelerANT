@@ -100,13 +100,14 @@ thing is still unproven.
       no scripts at all. Mitigated 2026-09-17 by excluding that path from
       `Build-Windows-Container.ps1`'s inbound stream (the container builds
       into its own `rust_target`); upstream's sync-back still writes them.
-- [ ] **Two of the Windows lane checks added on 2026-09-28 have not run on a Windows
-      host with an image.** (*Flutter AOT Freshness* has: windows-x64 run 36866007231,
-      2026-10-01, `[OK] Flutter AOT Freshness` on the Release runner.) The lane guard's
-      `docker top` reading
-      (`Test-WindowsBuildActive`) has only seen fixtures, since the dev box held
-      no Windows image; and the scoped `-CodeQL` run is manual-only. Confirm
-      each the first time it runs.
+- [ ] **One Windows lane check added on 2026-09-28 has not run yet.** (*Flutter AOT
+      Freshness* has: windows-x64 run 36866007231, 2026-10-01, `[OK]` on the Release
+      runner; the lane guard's `docker top` reading was confirmed against the real image
+      on 2026-10-05 — idle `cmd /c ping` reads false, a `pwsh` process true.) The scoped
+      `-CodeQL` run is manual-only; run it once.
+- [ ] **The integration test's Windows arm64 wiring proves itself.** The app-debug job of
+      `windows-arm64.yml` rebuilds with `-FlutterTarget` and drives the app; close when a
+      `windows-11-arm` run is green.
 
 ## Agentic loop
 
