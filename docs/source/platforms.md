@@ -151,10 +151,14 @@ Run the app on the host after a build:
 aborts the **whole** archive on any entry it cannot stat: the host's Flutter plugin junctions under
 `ephemeral/` and the Linux symlinks the cargo-cache sync-back leaves in `third_party/OxidANT/target` are
 both such entries, so both stay excluded (the container regenerates the first and builds into its own
-`CARGO_TARGET_DIR` instead of the second). The patterns match whole path components, so a prefix glob
-like `out*` also drops unrelated directories such as nlohmann's `detail/output/`. Of `.git` only
-`modules/` and the object store are left out: the CMake format gate's `git ls-files` needs HEAD, the
-index and refs, never an object.
+`CARGO_TARGET_DIR` instead of the second). The patterns match whole path components **at every depth**,
+so a root directory cannot be excluded by name: `build` would also take
+`third_party/ANTinfrastructure/windows/scripts/build` with it, and no pattern form anchors (`./build`,
+`[.]/build` and `build/` all behave the same). The root directories are omitted from the item list
+instead (`-InboundItems`, computed in the driver); the patterns cover the deep directories, and none is
+a prefix glob like `out*`, which would drop unrelated directories such as nlohmann's `detail/output/`.
+Of `.git` only `modules/` and the object store are left out: the CMake format gate's `git ls-files`
+needs HEAD, the index and refs, never an object.
 
 ### Standard build
 

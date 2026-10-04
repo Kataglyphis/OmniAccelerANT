@@ -102,11 +102,14 @@ $outputDirs = if ($TestsOnly) {
     @('logs', 'build/windows/x64/runner', 'build/windows/x64/plugins', 'build/windows/x64/bin')
 }
 
+# bsdtar matches every pattern at every depth, so a root 'build' needs omission here, not an exclude.
+$rootOnlyExclude = @('build', 'out', 'logs', '.dart_tool', '.venv')
+$inboundItems = @(Get-ChildItem -LiteralPath $repoRoot -Force | Where-Object { $_.Name -notin $rootOnlyExclude } | ForEach-Object Name)
+
 # See docs/source/platforms.md § Tar-pipe inbound exclusions
 $inboundExclude = @(
     '.git/modules', '.git/objects/pack', '.git/objects/??',
-    'build', 'out', 'logs', 'ephemeral',
-    '.dart_tool', '.venv', 'doc/api', 'third_party/DocumANTation',
+    'ephemeral', '.dart_tool', '.venv', 'doc/api', 'third_party/DocumANTation',
     'third_party/OxidANT/target'
 )
 
@@ -116,6 +119,7 @@ Invoke-ContainerBuild -DockerExe $docker -Image $Image `
     -ContainerName 'omniaccelerant-agentic-build' `
     -RepoRoot $repoRoot -WorkspacePath $workspacePath `
     -BuildCommand $buildArgv `
+    -InboundItems $inboundItems `
     -InboundExclude $inboundExclude `
     -KeepDirs @('logs', '.dart_tool', '.venv') `
     -OutputDirs $outputDirs `
