@@ -6,6 +6,7 @@
 
 .DESCRIPTION
   Docs and MSIX are always off. The container is reused (tar-pipe transport) so its caches survive.
+  The container plumbing is the hub's Invoke-RepoContainerBuild.ps1; this file keeps only the spec.
 
 .PARAMETER Configurations
   Build-Windows.ps1 preset alias (clangcl-release, clangcl-debug, ...).
@@ -24,9 +25,7 @@
 .PARAMETER Force
   Build even while a Linux lane rewrites the tree this transfer reads (AGENTS.md § 5).
 #>
-[Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseDeclaredVarsMoreThanAssignments', 'containerResult',
-    Justification = 'Assigned inside a ForEach-Object scriptblock and read after the pipeline; PSSA cannot see that.')]
-[CmdletBinding()]
+[CmdletBinding(SupportsShouldProcess)]
 param(
     [string]$Configurations = '',
     [switch]$SkipTests,
@@ -45,19 +44,6 @@ $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
 
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
-$modulesDir = Join-Path $repoRoot 'third_party\ANTfrastructure\windows\scripts\modules'
-
-$reuseModule = Join-Path $modulesDir 'WindowsContainerBuild.Reuse.psm1'
-if (-not (Test-Path -LiteralPath $reuseModule -PathType Leaf)) {
-    throw "Required module not found: $reuseModule (run: git submodule update --init --recursive third_party/ANTfrastructure)"
-}
-Import-Module $reuseModule -Force
-
-$imageModule = Join-Path $modulesDir 'WindowsContainerImage.Common.psm1'
-if (-not (Test-Path -LiteralPath $imageModule -PathType Leaf)) {
-    throw "Required module not found: $imageModule (run: git submodule update --init --recursive third_party/ANTfrastructure)"
-}
-Import-Module $imageModule -Force
 
 $guardModule = Join-Path $PSScriptRoot 'modules\WindowsLaneGuard.Common.psm1'
 Import-Module $guardModule -Force
@@ -68,10 +54,9 @@ if ($linuxLanes.Count -gt 0 -and -not $Force) {
     throw (Get-LaneConflictMessage -Busy $linuxLanes)
 }
 
-if ([string]::IsNullOrWhiteSpace($Image)) { $Image = Get-CiImageReference -Windows }
-$docker = Resolve-DockerExe
-Write-Host "Image:  $Image"
-Write-Host "Docker: $docker"
+# The container plumbing has one owner: the hub's Invoke-RepoContainerBuild.ps1.
+$runner = Join-Path $repoRoot 'third_party\ANTfrastructure\windows\scripts\build\Invoke-RepoContainerBuild.ps1'
+if (-not (Test-Path -LiteralPath $runner)) { throw "Required script not found: $runner (run: git submodule update --init --recursive third_party/ANTfrastructure)" }
 
 # Tokens must be space-free (docker CLI -> cmd /S /C -> %*); C:\ws is the tar-pipe workspace.
 $workspacePath = 'C:\ws'
@@ -103,8 +88,11 @@ $outputDirs = if ($TestsOnly) {
 }
 
 # bsdtar matches every pattern at every depth, so a root 'build' needs omission here, not an exclude.
+# Raw enumeration: Get-ChildItem would answer with WhatIf records under -WhatIf.
 $rootOnlyExclude = @('build', 'out', 'logs', '.dart_tool', '.venv')
-$inboundItems = @(Get-ChildItem -LiteralPath $repoRoot -Force | Where-Object { $_.Name -notin $rootOnlyExclude } | ForEach-Object Name)
+$inboundItems = @([System.IO.Directory]::GetFileSystemEntries($repoRoot) |
+    ForEach-Object { [System.IO.Path]::GetFileName($_) } |
+    Where-Object { $_ -notin $rootOnlyExclude })
 
 # See docs/source/platforms.md § Tar-pipe inbound exclusions
 $inboundExclude = @(
@@ -113,27 +101,15 @@ $inboundExclude = @(
     'third_party/OxidANT/target'
 )
 
-# Stream the command's output live and keep only the result object.
-$containerResult = $null
-Invoke-ContainerBuild -DockerExe $docker -Image $Image `
-    -ContainerName 'omniaccelerant-agentic-build' `
-    -RepoRoot $repoRoot -WorkspacePath $workspacePath `
-    -BuildCommand $buildArgv `
-    -InboundItems $inboundItems `
-    -InboundExclude $inboundExclude `
+& $runner -RepoRoot $repoRoot -ContainerName 'omniaccelerant-agentic-build' `
+    -BuildCommand $buildArgv -Image $Image -Isolation 'process' `
+    -InboundItems $inboundItems -InboundExclude $inboundExclude `
     -KeepDirs @('logs', '.dart_tool', '.venv') `
     -OutputDirs $outputDirs `
     -OutboundExclude @('CMakeCache.txt', 'CMakeFiles', '.ninja_deps', '.ninja_log', '*.obj', '*.pdb') `
-    -IsolationArgs (Get-ContainerIsolationArgs -Isolation 'process') `
-    -FreshContainer:$FreshContainer | ForEach-Object {
-        if ($_ -is [System.Management.Automation.PSCustomObject]) {
-            $containerResult = $_
-        } else {
-            Write-Host $_
-        }
-    }
+    -FreshContainer:$FreshContainer -WhatIf:$WhatIfPreference
 
-if (-not $TestsOnly) {
+if (-not $TestsOnly -and -not $WhatIfPreference) {
     # Build-Windows.ps1 checks the container's trees; this checks the copy that reached the host.
     $runnerRoot = Join-Path $repoRoot 'build\windows\x64\runner'
     $exe = Get-ChildItem -LiteralPath $runnerRoot -Filter 'omni_accelerant.exe' -Recurse -File -ErrorAction SilentlyContinue |
@@ -145,6 +121,4 @@ if (-not $TestsOnly) {
     Write-Host "Delivered: $($exe.FullName)" -ForegroundColor Green
 }
 
-if ($containerResult) {
-    Write-Host "Container run complete (transport: $($containerResult.Transport), container: $($containerResult.Container))." -ForegroundColor Green
-}
+if (-not $WhatIfPreference) { Write-Host 'Container build finished successfully.' -ForegroundColor Green }
