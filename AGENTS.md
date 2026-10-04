@@ -903,7 +903,7 @@ cell is a test that cannot run there, and the reason is under the table.
 | Bundle gate's mutation suite | yes | | | | |
 | Import walk | (the closure gate) | host, `-Standalone` | device | | |
 | Launch smoke, 20 s | under Xvfb | host | device | | |
-| Integration test (`integration_test/simple_test.dart`) | under Xvfb | | | | |
+| Integration test (`integration_test/simple_test.dart`) | under Xvfb | `flutter drive` against the clang-cl app | | | |
 | Pester (`scripts/windows/tests`) | | `windows-2025` | `windows-11-arm` | | |
 | Plugin JVM test | | | | yes | |
 | APK ABI gate (`check-apk-abi.sh`) and its synthetic-APK suite | | | | yes | |
@@ -911,10 +911,11 @@ cell is a test that cannot run there, and the reason is under the table.
 - Android and Web build no desktop runner, so the desktop rows do not apply
   there; Android adds the plugin's JVM test. Running the APK on an emulator and
   the web build in Chrome belongs to the image and the hub (owner, 2026-10-01).
-- The integration test is Linux-only: `flutter test -d windows` builds the app
-  itself with Flutter's MSVC default, which STL1011 stops on `windows-11-arm` and
-  which every Windows build here refuses in favour of clang-cl (BACKLOG § Windows
-  arm64).
+- The integration test runs on Windows x64 by driving the app the container built
+  with `-FlutterTarget integration_test/simple_test.dart` (`flutter drive
+  --use-application-binary`), because `flutter test -d windows` would build with
+  Flutter's MSVC default; the arm64 lane still needs its own wiring (BACKLOG §
+  Windows arm64).
 - The mutation suite builds synthetic ELFs for the Linux closure gate; Windows has
   no ELF and no such gate. Pester tests PowerShell that only Windows lanes run.
 - Every lane runs the plugin's Dart tests through the same strict gate as the

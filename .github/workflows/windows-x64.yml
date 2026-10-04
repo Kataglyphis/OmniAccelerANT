@@ -158,6 +158,43 @@ jobs:
           & ./scripts/windows/Test-LaunchSmoke.ps1
           -AppDir $env:BUILD_DIR_DEBUG -SearchPath "$env:BUILD_DIR_DEBUG/bin" -OrtStamp
 
+      # The integration app: the same Debug tree, rebuilt with the test as its Dart entrypoint
+      # (FLUTTER_TARGET), after the smoke proved the normal bundle.
+      - name: Run container (integration target)
+        uses: Kataglyphis/ANTfrastructure/.github/actions/run-in-windows-container@develop
+        with:
+          file: C:\ws\scripts\windows\Build-Windows.ps1
+          file-args: |
+            -Configurations
+            clangcl-debug
+            -FlutterTarget
+            integration_test/simple_test.dart
+            -SkipMsixPackaging
+            -SkipFormat
+            -SkipDocs
+            -SkipTests
+
+      # No Flutter SDK on the runner; the image's version, cloned as the arm64 lane does.
+      - name: Flutter (the image's version)
+        working-directory: ${{ steps.prep.outputs.workspace }}
+        run: |
+          $line = Select-String -LiteralPath third_party\ANTfrastructure\linux\scripts\01-core\versions.env -Pattern '^FLUTTER_VERSION=' | Select-Object -First 1
+          if (-not $line) { throw 'versions.env names no FLUTTER_VERSION' }
+          $version = $line.Line.Split('=', 2)[1].Trim()
+          $sdk = Join-Path $env:RUNNER_TEMP 'flutter'
+          git clone --depth 1 --branch $version https://github.com/flutter/flutter.git $sdk
+          if ($LASTEXITCODE) { throw "cloning Flutter $version failed" }
+          Add-Content -LiteralPath $env:GITHUB_PATH -Value (Join-Path $sdk 'bin')
+          & (Join-Path $sdk 'bin\flutter.bat') --version
+          if ($LASTEXITCODE) { throw 'flutter --version failed' }
+
+      # flutter test -d windows would build with MSVC; drive the clang-cl app the container built instead.
+      - name: Integration test (x64)
+        working-directory: ${{ steps.prep.outputs.workspace }}
+        run: >-
+          & ./scripts/windows/Invoke-WindowsIntegrationTest.ps1
+          -AppDir $env:BUILD_DIR_DEBUG
+
       - name: Upload build log
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
