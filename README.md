@@ -295,6 +295,8 @@ Helpful tutorials, documentation, and resources:
 - [WebRTC](https://webrtc.org/?hl=de)
 
 ### Tooling
+- [ripgrep](https://github.com/BurntSushi/ripgrep) (`rg`), the search tool for this tree:
+  `winget install --id BurntSushi.ripgrep.MSVC -e --scope user`, or `apt install ripgrep`
 - [tmux](https://github.com/tmux/tmux/wiki)
 - [zellij](https://zellij.dev/)
 - [psmux](https://github.com/marlocarlo/psmux)
