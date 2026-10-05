@@ -984,9 +984,11 @@ time, which is `flutter pub get` populating the cache volume).
 
 ```powershell
 # once: the cache volume must belong to the container's uid, like every other
-# volume this repo mounts — see Invoke-LinuxLane.ps1's chown step.
-nerdctl run --rm --platform linux/amd64 `
-  --mount "type=volume,source=oa-fastloop-pub,target=/vol" alpine chown -R 1001:1001 /vol
+# volume this repo mounts — see Invoke-LinuxLane.ps1's chown step. The image
+# does the chown itself: no stock image, not even alpine (owner rule 2026-10-05).
+nerdctl run --rm --platform linux/amd64 --user root --entrypoint chown `
+  --mount "type=volume,source=oa-fastloop-pub,target=/vol" `
+  ghcr.io/kataglyphis/kataglyphis_beschleuniger:latest -R 1001:1001 /vol
 
 # then, per edit:
 nerdctl run --rm --platform linux/amd64 `

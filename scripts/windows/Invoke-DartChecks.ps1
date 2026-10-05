@@ -63,11 +63,11 @@ if (-not $Image) {
 	$Image = Get-CiImageReference
 }
 
-# Volumes start root-owned; the image runs as uid 1001.
+# Volumes start root-owned; the image runs as uid 1001. The chown uses that image too: no stock image (owner rule 2026-10-05).
 & $engine 'volume' 'create' $PubCacheVolume 2>&1 | Out-Null
 & $engine 'run' '--rm' '--user' 'root' `
 	'--mount' "type=volume,source=${PubCacheVolume},target=/vol" `
-	'--platform' $Platform 'alpine' 'chown' '1001:1001' '/vol' 2>&1 | Out-Null
+	'--platform' $Platform '--entrypoint' 'chown' $Image '1001:1001' '/vol' 2>&1 | Out-Null
 
 $formatCmd = if ($Fix) {
 	'dart format lib test integration_test test_driver'
