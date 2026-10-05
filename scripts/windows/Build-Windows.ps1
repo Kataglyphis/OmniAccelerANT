@@ -188,7 +188,9 @@ try {
 
     if ($CodeQL) {
         # The scan is about the native build; the Dart gates run in every lane already.
-        $SkipFormat = $SkipTests = $SkipDocs = [switch]$true
+        $SkipFormat = $true
+        $SkipTests = $true
+        $SkipDocs = $true
         Write-BuildLog -Context $context -Message "CodeQL mode: no format, tests or docs; the bootstrap runs untraced, then CodeQL traces a cold native build."
     }
 
