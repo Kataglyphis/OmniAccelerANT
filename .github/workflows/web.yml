@@ -129,3 +129,11 @@ jobs:
             out/omni-accelerant-catcam-*.AppImage
             out/omni-accelerant-catcam-*-linux-*.tar.gz
           if-no-files-found: error
+
+      # After the upload, so a red test still leaves the packages to inspect; root installs them and runs the service user.
+      - name: Test the packages
+        uses: Kataglyphis/ANTfrastructure/.github/actions/run-in-linux-container@develop
+        with:
+          extra-args: --platform "${{ matrix.platform }}" --user 0:0
+          script: >-
+            bash /workspace/scripts/linux/cat-stream/test-catcam-package.sh

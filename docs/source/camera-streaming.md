@@ -271,7 +271,16 @@ the service forwards the WebSocket upgrade to its own signalling server on
 loopback `:8443`. Media goes over host candidates only unless `stun_server` is
 set, so the stream stays on the LAN. No TLS, no `serve.sh`, no container.
 
-**Verified so far:** amd64, the .deb and the AppImage each installed in `:latest`
+**`test-catcam-package.sh` checks both packages, and CI runs it.** `web.yml`'s
+`catcam` jobs run it on x64 and arm64 right after packaging. It runs as root in
+`:latest`, prints one PASS or FAIL per check, and exits with the number of failures.
+A package without `debugutilsbad` reds five of its checks. Locally:
+
+```bash
+bash scripts/linux/cat-stream/test-catcam-package.sh   # root, inside :latest; finds out/'s packages
+```
+
+**What it checks**, for the .deb and the AppImage each installed in `:latest`
 and run as the unit runs it, with a scrubbed environment as `omni-catcam`:
 - no shared object maps from outside the bundle, idle or with a viewer connected;
 - headless Chrome played the stream over the LAN address;
