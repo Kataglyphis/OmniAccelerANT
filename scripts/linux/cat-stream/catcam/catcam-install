@@ -57,8 +57,11 @@ install_bundle() {
     exit 1
   fi
   [ "${here}" != "${prefix}" ] || { printf 'this is the installed copy; run --install from the AppImage\n' >&2; exit 1; }
+  # A removed .deb leaves its mask (a link to /dev/null) here; that is a first install, not an upgrade to respect.
   fresh=true
-  [ -e "${unit_file}" ] && fresh=false
+  if [ -e "${unit_file}" ] && [ "$(readlink "${unit_file}")" != /dev/null ]; then
+    fresh=false
+  fi
 
   # The source may be the AppImage's read-only mount, owned by whoever built it.
   rm -rf "${prefix}.new"

@@ -12,6 +12,10 @@ fi
 
 case "$1" in
   configure|abort-upgrade|abort-deconfigure|abort-remove)
+    # Only the mask postrm made on remove; without this a reinstall after `apt remove` never starts.
+    if command -v deb-systemd-helper >/dev/null 2>&1; then
+      deb-systemd-helper unmask "$unit" >/dev/null || true
+    fi
     # OMNI_CATCAM_AUTOSTART=0 at the first install leaves the service disabled.
     if [ "${OMNI_CATCAM_AUTOSTART:-1}" != 0 ] && command -v deb-systemd-helper >/dev/null 2>&1; then
       if deb-systemd-helper debian-installed "$unit"; then
