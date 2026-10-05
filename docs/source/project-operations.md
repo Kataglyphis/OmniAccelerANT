@@ -199,11 +199,15 @@ history rewrite to be worth doing: the 72 undeclared font faces, then
 
 ## Serving the web build
 
-Two servers, one contract. Both must send `Cross-Origin-Opener-Policy: same-origin`
+Two servers, one contract. Both send `Cross-Origin-Opener-Policy: same-origin`
 and `Cross-Origin-Embedder-Policy: require-corp`, and both must serve `.wasm` as
-`application/wasm` — the Stream page checks `crossOriginIsolated` before using
-its SharedArrayBuffer, and `WebAssembly.compileStreaming()` refuses anything that
-is not `application/wasm`.
+`application/wasm`, because `WebAssembly.compileStreaming()` refuses anything
+else. The headers make the page cross-origin isolated, which only the Rust
+core's shared-memory wasm (`pkg/`) needs, and only in Firefox and Safari. The
+Stream page streams without them, and on web `main()` boots without the core
+when it does not load (`lib/src/boot/rust_core.dart`), so `serve.sh --http`
+serves a plain-HTTP LAN page with no certificate warning; there only the About
+page's Rust demo goes dark.
 
 | Where | Config |
 | --- | --- |

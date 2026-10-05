@@ -34,8 +34,9 @@
     Browsers only honour Cross-Origin-Opener-Policy, Cross-Origin-Embedder-Policy
     and Cross-Origin-Resource-Policy as real HTTP response headers; as
     <meta http-equiv> they are ignored outright. Three such tags sat here until
-    2026-09-16 and had never had any effect — which mattered, because the page
-    checks for crossOriginIsolated below before using its SharedArrayBuffer.
+    2026-09-16 and had never had any effect. Isolation matters only to the Rust
+    core's shared-memory wasm, which Firefox and Safari refuse without it;
+    main() then boots without the core (lib/src/boot/rust_core.dart).
 
     The two places that really set them, and which must agree:
       - scripts/linux/cat-stream/serve.sh  (the nginx demo server in this repo)

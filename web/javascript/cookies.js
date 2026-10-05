@@ -1,8 +1,9 @@
 function _setCookie(name, value) {
 	// Not an HTTP-date, so browsers drop it and this is a session cookie; fixing it changes the banner's lifetime.
 	const expires = "; expires=2147483647"; // ~2038 i.e. until user clears cookies
-	// Secure: SameSite=Strict alone still sends the cookie over a downgraded http request.
-	document.cookie = name + "=" + (value || "") + expires + "; SameSite=Strict; Secure";
+	// Secure on https (SameSite=Strict alone still sends it over a downgraded request); an http LAN page drops a Secure cookie.
+	const secure = location.protocol === "https:" ? "; Secure" : "";
+	document.cookie = name + "=" + (value || "") + expires + "; SameSite=Strict" + secure;
 }
 
 function _getCookie(name) {

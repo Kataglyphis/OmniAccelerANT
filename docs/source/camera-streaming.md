@@ -228,8 +228,10 @@ and for hosts too weak to run YOLO. `--rotate 90|180|270` flips the stream with
 `videoflip` (180 for a camera mounted upside down); inference sees the rotated
 frame, so the boxes still line up.
 
-Serve the web build with the COOP/COEP headers the Stream page needs and the
-`/webrtc-ws` proxy:
+Serve the web build with the `/webrtc-ws` proxy. `serve.sh` also sends COOP/COEP,
+which only the optional Rust core needs, and only in Firefox and Safari; the
+Stream page streams without them, so `--http` drops TLS and the certificate
+warning with it:
 
 ```bash
 # once — web/pkg/ is a generated frb artefact (gitignored), so regenerate it
@@ -240,6 +242,7 @@ flutter_rust_bridge_codegen build-web --release --rust-root third_party/OxidANT
 flutter build web --release --wasm --no-web-resources-cdn
 
 scripts/linux/cat-stream/serve.sh          # :8444 TLS, proxies to :8443
+scripts/linux/cat-stream/serve.sh --http   # :8444 plain HTTP, no certificate
 ```
 
 `serve.sh` also takes `--producer-host`/`--producer-port` to front a producer
@@ -274,7 +277,8 @@ blocks the named run with `name-store error` and would fail the boot start.
 `signalingServerUrl` in `assets/settings/webrtc_settings.json` is
 host-relative by default (`/webrtc-ws`); the web client resolves it against the
 page's origin, so the same build works on localhost, a LAN IP and a Raspberry
-Pi. Open `https://<host>:8444/` and accept the certificate warning.
+Pi. Open `https://<host>:8444/` and accept the certificate warning, or run
+`serve.sh --http` and open `http://<host>:8444/`, which has none.
 
 USB cameras work with `--v4l2 /dev/videoX`. For a Pi's CSI camera use
 `--libcamera`; on a Raspberry Pi 5 running the `:latest` image the

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# HTTPS + COOP/COEP front proxying /webrtc-ws. See docs/source/camera-streaming.md § Cat detection stream (Rust, native)
+# HTTPS (or --http) + COOP/COEP front proxying /webrtc-ws. See docs/source/camera-streaming.md § Cat detection stream (Rust, native)
 set -euo pipefail
 
 script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
@@ -10,16 +10,18 @@ producer_host=127.0.0.1
 producer_port=8443
 web_root="${repo_root}/build/web"
 state_dir="${repo_root}/build/cat-stream"
+plain_http=false
 
 while [ $# -gt 0 ]; do
   case "$1" in
+    --http) plain_http=true; shift ;;
     --port) port="${2:?--port needs a value}"; shift 2 ;;
     --producer-host) producer_host="${2:?--producer-host needs a value}"; shift 2 ;;
     --producer-port) producer_port="${2:?--producer-port needs a value}"; shift 2 ;;
     --web-root) web_root="${2:?--web-root needs a value}"; shift 2 ;;
     --state-dir) state_dir="${2:?--state-dir needs a value}"; shift 2 ;;
     -h|--help)
-      printf 'usage: %s [--port N] [--producer-host HOST] [--producer-port N] [--web-root DIR] [--state-dir DIR]\n' "$0"
+      printf 'usage: %s [--http] [--port N] [--producer-host HOST] [--producer-port N] [--web-root DIR] [--state-dir DIR]\n' "$0"
       exit 0
       ;;
     *) printf 'unknown argument: %s\n' "$1" >&2; exit 2 ;;
@@ -51,7 +53,7 @@ cert_has_san() {
     >/dev/null 2>&1
 }
 
-if ! cert_has_san; then
+if [ "${plain_http}" = false ] && ! cert_has_san; then
   command -v openssl >/dev/null 2>&1 || {
     printf 'openssl not found and no usable certificate in %s — install openssl\n' "${tls_dir}" >&2
     exit 1
@@ -85,6 +87,14 @@ if [ -f /etc/nginx/mime.types ]; then
   mime_include="include /etc/nginx/mime.types;"
 fi
 
+if [ "${plain_http}" = true ]; then
+  listen_directives="listen ${port};"
+else
+  listen_directives="listen ${port} ssl;
+    ssl_certificate ${tls_dir}/cert.pem;
+    ssl_certificate_key ${tls_dir}/key.pem;"
+fi
+
 cat > "${state_dir}/nginx.conf" <<EOF
 worker_processes 1;
 pid ${state_dir}/nginx.pid;
@@ -116,13 +126,11 @@ http {
   scgi_temp_path ${state_dir}/scgi;
 
   server {
-    listen ${port} ssl;
-    ssl_certificate ${tls_dir}/cert.pem;
-    ssl_certificate_key ${tls_dir}/key.pem;
+    ${listen_directives}
     root ${web_root};
 
-    # The Stream page checks for cross-origin isolation before using its
-    # SharedArrayBuffer-backed storage.
+    # Isolation lets Firefox and Safari load the Rust core's shared-memory wasm.
+    # The Stream page needs neither; over plain HTTP browsers ignore both headers.
     add_header Cross-Origin-Opener-Policy same-origin always;
     add_header Cross-Origin-Embedder-Policy require-corp always;
 
@@ -141,6 +149,10 @@ http {
 }
 EOF
 
-printf 'serving %s on https://<host>:%s/ (self-signed — accept the warning)\n' "${web_root}" "${port}"
+if [ "${plain_http}" = true ]; then
+  printf 'serving %s on http://<host>:%s/ (plain HTTP, no certificate)\n' "${web_root}" "${port}"
+else
+  printf 'serving %s on https://<host>:%s/ (self-signed — accept the warning)\n' "${web_root}" "${port}"
+fi
 printf 'proxying /webrtc-ws to the producer on %s:%s\n' "${producer_host}" "${producer_port}"
 exec nginx -c "${state_dir}/nginx.conf" -p "${state_dir}" -g 'daemon off;'
