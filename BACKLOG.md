@@ -14,12 +14,6 @@ consumes, so the loop this repo adopted on 2026-09-13 (`scripts/agentic-loop/`,
 
 ## Open — verification gaps
 
-- [ ] **G6 over the Pi producer bundle has not run since the hub pin moved past
-      e72a9a37.** `scripts/linux/cat-stream/package-producer-bundle.sh` proves
-      `/bin/kataglyphis_cat_webrtc`, which carries the chain ORT's Linux source
-      path as a string, with this repo's hub. Re-run it with the next Pi bundle.
-      (The Windows half is done: windows-x64 run 36154744287 had the real
-      `oxidant.dll` in the runner when G6 passed.)
 - [ ] **`scripts/windows/Start-Windows.ps1` on the dev box's console session.** The
       agent's shell runs in **Session 0**, where ANGLE/DXGI surface creation fails
       (`SwapChain11 … 0x887A0022`, `EGL Error: Context Lost`). CI shows a real window on

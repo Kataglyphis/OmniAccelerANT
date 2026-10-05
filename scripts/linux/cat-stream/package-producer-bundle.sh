@@ -11,9 +11,10 @@
 # does not matter, only libcamera with its IPA and tuning files must be there.
 #
 # Usage:
-#   scripts/linux/cat-stream/package-producer-bundle.sh [--build] [--deploy HOST]
+#   scripts/linux/cat-stream/package-producer-bundle.sh [--build] [--platform P] [--deploy HOST]
 #
 # --build        build the producer in the container first
+# --platform P   run the image as P; linux/arm64 builds the bundle on an x64 host, through QEMU
 # --deploy HOST  rsync the finished bundle to HOST:cat-cam/ afterwards
 #
 # On the target:
@@ -37,13 +38,16 @@ cargo_volume="kataglyphis-cat-cargo"
 bundle_dir="${repo_root}/build/cat-stream/pi-bundle"
 producer="/cargo-target/release/kataglyphis_cat_webrtc"
 do_build=false
+# Empty: the host's own arch, as on the Pi or an arm64 build host.
+platform_args=()
 deploy=""
 
 while [ $# -gt 0 ]; do
   case "$1" in
     --build) do_build=true; shift ;;
+    --platform) platform_args=(--platform "${2:?--platform needs a value, e.g. linux/arm64}"); shift 2 ;;
     --deploy) deploy="${2:?--deploy needs a host}"; shift 2 ;;
-    -h|--help) sed -n '2,24p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    -h|--help) sed -n '2,22p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *) printf 'unknown argument: %s\n' "$1" >&2; exit 2 ;;
   esac
 done
@@ -51,13 +55,13 @@ done
 command -v nerdctl >/dev/null 2>&1 || { printf 'nerdctl not found\n' >&2; exit 1; }
 
 producer_present() {
-  nerdctl run --rm --user 0:0 --entrypoint bash -v "${target_volume}":/cargo-target "${image}" \
+  nerdctl run ${platform_args[@]+"${platform_args[@]}"} --rm --user 0:0 --entrypoint bash -v "${target_volume}":/cargo-target "${image}" \
     -c "test -x ${producer}" >/dev/null 2>&1
 }
 
 if [ "${do_build}" = true ] || ! producer_present; then
   printf 'building kataglyphis_cat_webrtc in the container\n'
-  nerdctl run --rm --user 0:0 --network host \
+  nerdctl run ${platform_args[@]+"${platform_args[@]}"} --rm --user 0:0 --network host \
     -v "${repo_root}":/workspace \
     -v "${target_volume}":/cargo-target \
     -v "${cargo_volume}":/cargo-home \
@@ -69,7 +73,7 @@ fi
 printf 'assembling %s\n' "${bundle_dir}"
 rm -rf "${bundle_dir}"
 mkdir -p "${bundle_dir}"
-nerdctl run --rm -i --user 0:0 \
+nerdctl run ${platform_args[@]+"${platform_args[@]}"} --rm -i --user 0:0 \
   -v "${target_volume}":/cargo-target \
   -v "${bundle_dir}":/out \
   -v "${ort_census_dir}":/ort-census:ro \
