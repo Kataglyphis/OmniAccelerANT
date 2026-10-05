@@ -19,21 +19,29 @@ maybe_truthy() {
 
 # Tracked files only (AGENTS.md § 4); the driver resolves on its own line, as set -e is off inside run_gate.
 run_flutter_common_checks() {
-  local strict_mode="${1:-0}" strict_flag checks
+  local strict_mode="${1:-0}" strict_flag checks platform=vm prev="" arg
   shift || true
   if maybe_truthy "$strict_mode"; then strict_flag=true; else strict_flag=false; fi
+  # The plugin's suite runs on the platform the hub's gate is given.
+  for arg in "$@"; do
+    if [[ "$prev" == --test-platform ]]; then platform="$arg"; fi
+    prev="$arg"
+  done
   checks="$(antfrastructure_path linux/scripts/05-frameworks/flutter/flutter_checks.sh)" || return 1
-  bash "$checks" --strict "$strict_flag" "$@" || return 1
-  run_plugin_dart_tests "$strict_flag"
+  # As an extra package the plugin resolves before analyze; another lane's package_config would not resolve.
+  bash "$checks" --strict "$strict_flag" --extra-package "$KATAGLYPHIS_PLUGIN_PACKAGE" "$@" || return 1
+  run_plugin_dart_tests "$strict_flag" "$platform"
 }
 
 KATAGLYPHIS_PLUGIN_PACKAGE="packages/kataglyphis_native_inference"
 
 # The hub's checks test the root package only; the plugin's own suite is graded with the same strictness.
 run_plugin_dart_tests() {
-  local strict_flag="${1:-true}"
-  echo "[Info] Dart tests of ${KATAGLYPHIS_PLUGIN_PACKAGE}"
-  if (cd "$KATAGLYPHIS_PLUGIN_PACKAGE" && flutter pub get && flutter test); then
+  local strict_flag="${1:-true}" platform="${2:-vm}" test_args=()
+  # As in the hub's gate: Chrome only where the image ships it.
+  if [[ "$platform" == chrome && -n "${CHROME_EXECUTABLE:-}" ]]; then test_args=(--platform chrome); fi
+  echo "[Info] Dart tests of ${KATAGLYPHIS_PLUGIN_PACKAGE} (${test_args[*]:-vm})"
+  if (cd "$KATAGLYPHIS_PLUGIN_PACKAGE" && flutter pub get && flutter test ${test_args[@]+"${test_args[@]}"}); then
     return 0
   fi
   if [[ "$strict_flag" == true ]]; then
