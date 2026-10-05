@@ -219,7 +219,7 @@ Everything here is false or meaningless in another repo — that is why it is
 written out rather than linked.
 
 - **Two scripts print a fixed line range of their own header as `--help`.**
-  `scripts/linux/cat-stream/package-producer-bundle.sh` (`sed -n '2,24p'`) and
+  `scripts/linux/cat-stream/package-producer-bundle.sh` (`sed -n '2,22p'`) and
   `scripts/agentic-loop/Run-AgenticLoop.sh` (`head -30 | tail -28`): edit the
   header and the range together.
 - **The two bootstrap copies are body-mode assets.** Below their header,
