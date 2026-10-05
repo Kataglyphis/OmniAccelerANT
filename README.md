@@ -129,6 +129,10 @@ Refer to the detailed docs below for platform-specific requirements, camera stre
    are identical, down to the argument list. Reproduce a CI failure locally
    before pushing — that is the whole point of the arrangement.
 
+   The native Linux lane takes an opt-in linker,
+   `Invoke-LinuxLane.ps1 -Env KATAGLYPHIS_LINKER=lld` (or `mold`). It is off in CI;
+   what each one buys is in [AGENTS.md § 5](AGENTS.md#5-build-run-test).
+
    Building the Linux lane locally on a Windows host has host-side
    prerequisites — Rancher Desktop's engine, the drive the repo lives on being
    visible to *containerd's own* mount namespace, and QEMU binfmt registered

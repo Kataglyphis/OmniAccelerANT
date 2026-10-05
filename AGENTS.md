@@ -105,6 +105,7 @@ reorganisation.
 | Wiring this repo to ANTfrastructure — resolver, actions, libraries | `docs/adopting-in-a-new-project.md` |
 | Linux container builds | `docs/linux-build-basics.md` |
 | Running the Linux lane locally on Windows (Rancher Desktop/nerdctl), and **a bind mount that resolves but is empty** — containerd's mount namespace, Windows vs WSL path form | [`docs/rancher-desktop-linux-containers.md` § *An empty mount is not a missing drive*](third_party/ANTfrastructure/docs/rancher-desktop-linux-containers.md#an-empty-mount-is-not-a-missing-drive) |
+| Why WSL 3's `wslc` does not replace Rancher Desktop yet: no `--privileged`, `--platform` or `--device`, measured 2026-10-05 | [`docs/rancher-desktop-linux-containers.md` § *WSL containers*](third_party/ANTfrastructure/docs/rancher-desktop-linux-containers.md#wsl-containers-wslc-are-not-a-replacement-yet) |
 | The five shell-safety bug classes | `third_party/ANTfrastructure/AGENTS.md` § *Shell safety conventions* |
 | Code comments: one line, only the why; API docs short; gated | `third_party/ANTfrastructure/AGENTS.md` § *Comments: one line, only the why* |
 | Searching the tree: `rg`, not `grep -r` | `third_party/ANTfrastructure/AGENTS.md` § *Searching the tree: ripgrep (`rg`)* |
@@ -1022,7 +1023,19 @@ before `flutter build linux` — set it to the empty string to opt out — and
 gtest target. For a release build it runs `bundle-runtime-closure.sh`, then the
 `knt ABI`, `runtime closure` and `plugin gtest` gates, then the launch smoke and
 the integration test under the image's `xvfb-run`, all between the build and
-packaging. `Invoke-LinuxLane.ps1
+packaging.
+
+**`KATAGLYPHIS_LINKER=lld|mold` is an opt-in for the native lane** (2026-10-05):
+`.\scripts\windows\Invoke-LinuxLane.ps1 -Env KATAGLYPHIS_LINKER=lld`. `setup_linker`
+runs it after `export_toolchain_env`, so clang links the C++ and the host Rust target
+with that linker. Unset leaves GNU ld for C++ and rust-lld for x64 Rust. The switch is
+the hub's [`linker-select.sh`](third_party/ANTfrastructure/docs/shared-script-libraries.md#linker-selectsh--an-opt-in-linker);
+it fails rather than falls back, and it fetches the pinned mold 3.0.0 when the image has
+none. The measurement behind it is there too. lld is the useful value: about 1.3 s
+off a Debug relink, and nothing off a ~48 s release app build, which mold does not
+beat. CI never sets it, and the android and web lanes do not read it.
+
+`Invoke-LinuxLane.ps1
 -CheckParity` diffs the *values* it would send — `script` and `extra-args` —
 against the lane's workflow (change driver and workflow together); for
 `native` it grades `-Arch`'s own file, resolving `reusable-linux.yml`'s
