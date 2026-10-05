@@ -973,10 +973,14 @@ cell is a test that cannot run there, and the reason is under the table.
 | Plugin JVM test | | | | yes | |
 | APK ABI gate (`check-apk-abi.sh`) and its synthetic-APK suite | | | | yes | |
 | `liboxidant`'s rustc stamp (`check-rust-toolchain.sh`) and its suite | yes | | | yes, in the APK | |
+| Cat cam .deb + AppImage install checks (`test-catcam-package.sh`) | | | | | in `web.yml`'s `catcam` jobs, x64 and arm64 |
 
 - Android and Web build no desktop runner, so the desktop rows do not apply
   there; Android adds the plugin's JVM test. Running the APK on an emulator and
   the web build in Chrome belongs to the image and the hub (owner, 2026-10-01).
+- The cat cam checks live with the cat cam packages, which only `web.yml` builds,
+  since they wrap its web build. They run as root in `:latest` and drive headless
+  Chrome against the installed service.
 - The integration test runs on both Windows architectures by driving the app the
   build made (`flutter drive --use-application-binary`) — x64 from the container's
   `-FlutterTarget` rebuild, arm64 from `Build-WindowsArm64App.ps1 -FlutterTarget` —
