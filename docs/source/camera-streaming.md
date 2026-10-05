@@ -8,7 +8,7 @@ On Windows the **Stream** page runs a fully local webcam → ONNX → texture pi
 owned end-to-end by Rust — no signalling server, no browser. Video frames never
 cross the Dart bridge; only detection metadata does.
 
-> **Linux has the same design as of 2026-09-16 — built, not yet seen working.**
+> **Linux has the same design as of 2026-09-16; a frame has crossed it since 2026-10-05.**
 > It is an *addition*: the WebRTC cat-stream below stays, and a Linux build with
 > no `KATAGLYPHIS_RUST_FEATURES` keeps the C++ GStreamer MethodChannel path
 > exactly as it is. All four links are in the tree — the `knt_push_frame` C ABI,
@@ -21,9 +21,12 @@ cross the Dart bridge; only detection metadata does.
 > packaged artifacts carry their GStreamer/ONNX Runtime/model closure (below).
 > `check-knt-abi.sh` runs in the lane.
 >
-> **No frame has actually reached the screen yet.** That needs a Linux desktop
-> session and a camera; BACKLOG.md tracks it. Do not treat a green lane as a
-> working camera.
+> **A test-pattern frame reaches the texture on every native lane run.**
+> `integration_test/webcam_frame_test.dart` starts `RustWebcamView` on
+> `videotestsrc` under Xvfb and polls the plugin's `hasPushedFrame`, the flag
+> `knt_push_frame` sets. A camera changes only the source, so the push path
+> needs none. A green lane is still not a working *camera*: real V4L2 capture
+> on Linux remains a manual check.
 
 **Data flow:**
 

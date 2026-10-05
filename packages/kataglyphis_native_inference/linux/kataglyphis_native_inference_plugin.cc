@@ -142,6 +142,15 @@ static FlMethodResponse* handle_stop(KataglyphisNativeInferencePlugin* self,
   return FL_METHOD_RESPONSE(fl_method_success_response_new(nullptr));
 }
 
+// Whether knt_push_frame has filled the texture yet; false before one exists.
+static FlMethodResponse* handle_has_pushed_frame(KataglyphisNativeInferencePlugin* self,
+                                                 FlMethodCall* /*method_call*/) {
+  const gboolean pushed =
+      self->texture != nullptr && my_texture_has_pushed_frame(fl_texture_get_id(self->texture));
+  g_autoptr(FlValue) result = fl_value_new_bool(pushed);
+  return FL_METHOD_RESPONSE(fl_method_success_response_new(result));
+}
+
 // Handle request to create the texture.
 static FlMethodResponse* handle_create(KataglyphisNativeInferencePlugin* self,
                                        FlMethodCall* method_call) {
@@ -273,7 +282,7 @@ static void kataglyphis_native_inference_plugin_handle_method_call(
 
   const gchar* method = fl_method_call_get_name(method_call);
 
-  static constexpr std::array<std::pair<const char*, MethodHandler>, 7> kHandlers = {{
+  static constexpr std::array<std::pair<const char*, MethodHandler>, 8> kHandlers = {{
       {"getPlatformVersion", handle_get_platform_version},
       {"add", handle_add},
       {"create", handle_create},
@@ -281,6 +290,7 @@ static void kataglyphis_native_inference_plugin_handle_method_call(
       {"setPipeline", handle_set_pipeline},
       {"play", handle_play},
       {"pause", handle_pause},
+      {"hasPushedFrame", handle_has_pushed_frame},
   }};
 
   if (g_str_equal(method, "stop")) {

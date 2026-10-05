@@ -12,22 +12,6 @@ consumes, so the loop this repo adopted on 2026-09-13 (`scripts/agentic-loop/`,
 - `- [x]` completed — pruned on sight; the history lives in git
 
 
-## Open — Linux Rust webcam inference (landed 2026-09-16, artifacts closed 2026-09-17)
-
-The lane builds the crate with `gstreamer,onnxruntime_dynamic`, the packaged
-artifacts carry their GStreamer/ONNX Runtime/model closure, `$ORIGIN` rpaths make
-them load on a target, and both headless bundle gates run before packaging. One
-thing is still unproven.
-
-- [b] **No frame has travelled Rust → `knt_push_frame` → texture.** Blocked on
-      hardware, not on code: frames end in a GTK texture, and the native lane's
-      Xvfb (launch smoke and integration test, since 2026-10-01) has no camera
-      behind it. The dev box is Windows with a C920 and `usbipd` installed, so
-      the route exists (§ 4) — attach the camera to WSL, run the bundle under
-      Xvfb in the image, and grep the log for
-      `[my_texture] first pushed frame`. `xvfb-run` is in the image since
-      `:latest` of 2026-09-29 (hub CON20, checked in the published amd64 child).
-
 ## Open — verification gaps
 
 - [ ] **G6 over the Pi producer bundle has not run since the hub pin moved past

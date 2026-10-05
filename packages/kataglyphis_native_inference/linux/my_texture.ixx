@@ -18,6 +18,8 @@ export void my_texture_set_texture_registrar(FlTexture* texture, FlTextureRegist
 // from the Rust capture thread could reach a freed object.
 export void my_texture_register_push_target(int64_t texture_id, FlTexture* texture);
 export void my_texture_unregister_push_target(int64_t texture_id);
+// TRUE once knt_push_frame has filled this texture: the proof the integration test reads.
+export gboolean my_texture_has_pushed_frame(int64_t texture_id);
 
 export gboolean my_texture_set_pipeline(FlTexture* texture, const gchar* pipeline_description, GError** error);
 

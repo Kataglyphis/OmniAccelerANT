@@ -146,6 +146,10 @@ if [[ "$BUILD_MODE" == "release" ]]; then
   gate_reset "app under Xvfb (${MATRIX_ARCH})"
   run_gate "launch smoke" run_launch_smoke "${build_dir}/bundle/$(linux_binary_name)"
   run_gate "integration test" run_integration_test
+  # Rust -> knt_push_frame -> texture with a test pattern: CI has no camera, and the push path needs none.
+  if [[ -n "${KATAGLYPHIS_RUST_FEATURES}" ]]; then
+    run_gate "webcam frame test" run_integration_test integration_test/webcam_frame_test.dart
+  fi
   assert_gates
 else
   echo "Info: runtime closure and bundle gates are release-only (build-mode is '$BUILD_MODE')."

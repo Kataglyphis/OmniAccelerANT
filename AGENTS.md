@@ -39,7 +39,7 @@ falls back to `ksvideosrc`. Details in
 [`docs/source/camera-streaming.md`](docs/source/camera-streaming.md)
 § *Rust-owned webcam inference*.
 
-**Linux has this too as of 2026-09-16 — built, not yet seen working.** All four
+**Linux has this too as of 2026-09-16, and a frame has crossed it since 2026-10-05.** All four
 links are in the tree: the `knt_push_frame`/`knt_api_version` C ABI exported
 from the Linux plugin, `KATAGLYPHIS_RUST_FEATURES` forwarding, ONNX Runtime
 bundling, and a Dart branch that routes Linux to `RustWebcamView` behind a
@@ -47,16 +47,19 @@ runtime `listCameras()` probe — so a build with no features set keeps the C++
 GStreamer MethodChannel path unchanged. **This is an addition, not a
 replacement**: the two paragraphs below stay true.
 
-What is NOT done: **no frame has travelled Rust → `knt_push_frame` → texture.**
-The ABI is verified by `scripts/linux/check-knt-abi.sh`, which dlopens the built
-plugin and checks the symbols and error codes — and which the native lane now
-runs. Since 2026-10-01 the lane also starts the packaged bundle under Xvfb and
-drives `integration_test/simple_test.dart` there (§ 5, *What each lane tests*), so
-the app is seen up; a real frame still needs a camera. The lane sets
+**A test-pattern frame travels Rust → `knt_push_frame` → texture on every native
+lane run** (2026-10-05). `integration_test/webcam_frame_test.dart` starts
+`RustWebcamView` on `videotestsrc` under Xvfb and polls the plugin's
+`hasPushedFrame`, which reads the flag `knt_push_frame` sets. The capture half needs
+no camera for that, since a camera only changes the source. A real camera on Linux is
+still a manual check. The ABI is verified by `scripts/linux/check-knt-abi.sh`, which
+dlopens the built plugin and checks the symbols and error codes. Since 2026-10-01 the
+lane also starts the packaged bundle under Xvfb and drives
+`integration_test/simple_test.dart` there (§ 5, *What each lane tests*). The lane sets
 `KATAGLYPHIS_RUST_FEATURES=gstreamer,onnxruntime_dynamic` by default as of
 2026-09-17 (empty string opts out), and the packaged artifacts carry their
 GStreamer/ONNX Runtime/model closure, so the featureless app is no longer the
-only Linux product. BACKLOG.md tracks the frame.
+only Linux product.
 
 **Linux/web cat detection stream.** The same Stream page consumes a WebRTC
 stream produced by `third_party/OxidANT/crates/cat_webrtc`
@@ -921,6 +924,7 @@ cell is a test that cannot run there, and the reason is under the table.
 | Import walk | (the closure gate) | host, `-Standalone` | device | | |
 | Launch smoke, 20 s | under Xvfb | host | device | | |
 | Integration test (`integration_test/simple_test.dart`) | under Xvfb | `flutter drive` against the clang-cl app | `flutter drive` (the Debug app) | | |
+| Webcam frame through `knt_push_frame` (`integration_test/webcam_frame_test.dart`) | under Xvfb, test pattern | | | | |
 | Pester (`scripts/windows/tests`) | | `windows-2025` | `windows-11-arm` | | |
 | Plugin JVM test | | | | yes | |
 | APK ABI gate (`check-apk-abi.sh`) and its synthetic-APK suite | | | | yes | |
@@ -934,6 +938,8 @@ cell is a test that cannot run there, and the reason is under the table.
   because `flutter test -d windows` would build with Flutter's MSVC default.
 - The mutation suite builds synthetic ELFs for the Linux closure gate; Windows has
   no ELF and no such gate. Pester tests PowerShell that only Windows lanes run.
+- The webcam frame test is Linux-only: `hasPushedFrame` is the Linux plugin's, and
+  the Windows drives run `simple_test.dart`.
 - The web lane runs both Dart suites in Chrome since 2026-10-05 (`--test-platform chrome`
   to the hub's gate); the VM-only files are `@TestOn('vm')` and still run on every native
   lane. Counts measured locally that day on the `:latest` of 2026-10-03.

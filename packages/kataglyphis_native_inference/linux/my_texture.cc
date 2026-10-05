@@ -598,6 +598,19 @@ void my_texture_unregister_push_target(int64_t texture_id) {
   g_mutex_unlock(PushTargetsMutex());
 }
 
+gboolean my_texture_has_pushed_frame(int64_t texture_id) {
+  gboolean pushed = FALSE;
+  g_mutex_lock(PushTargetsMutex());
+  auto it = PushTargets().find(texture_id);
+  if (it != PushTargets().end()) {
+    g_mutex_lock(&it->second->pushed_mutex);
+    pushed = it->second->has_pushed;
+    g_mutex_unlock(&it->second->pushed_mutex);
+  }
+  g_mutex_unlock(PushTargetsMutex());
+  return pushed;
+}
+
 void my_texture_forget_push_target(FlTexture* texture) {
   if (!MY_IS_TEXTURE(texture)) return;
   MyTexture* self = MY_TEXTURE(texture);
