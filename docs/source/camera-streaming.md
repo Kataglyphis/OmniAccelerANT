@@ -312,7 +312,22 @@ Two notes from that board:
 - **A dark room is a black stream.** The imx219 has no IR, and the sensor itself
   read a mean Y of 0.5 out of 255 at night.
 
-**Not verified yet:** a USB webcam, and the AppImage on a board.
+**The AppImage on that board, 2026-10-06:**
+- run plainly as the login user, it mounted through FUSE, and Chrome on another host
+  played 844 frames in 28 s;
+- the switch a user might make, `.deb` → `apt remove` → AppImage `--install` →
+  `--uninstall` → `.deb`, ended enabled and running at every step, on the Pi camera,
+  with `rotate = 180` kept;
+- `--install` wrote a unit byte-identical to the .deb's.
+
+Making that switch work took two fixes:
+- `catcam-install` treats the removed .deb's mask as a first install.
+- It clears that package's `deb-systemd-helper` record, setting
+  `DPKG_MAINTSCRIPT_PACKAGE`, since the tool refuses to run outside dpkg otherwise.
+  Without that, the returning .deb read the AppImage's `--uninstall` as the admin's
+  disable and stayed off.
+
+**Not verified yet:** a USB webcam.
 
 ### Cat detection stream (Rust, native)
 

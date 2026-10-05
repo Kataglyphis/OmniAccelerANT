@@ -26,9 +26,6 @@ Linux amd64/arm64 ship as a .deb and an AppImage, proven on himbeere2 (Pi 5) on
   `--install`, re-install and `--uninstall --purge`. Done when a script in
   `scripts/linux/cat-stream/` runs them, `web.yml` runs it on both arches, and a
   deliberate breakage (for example dropping `rawparse`) reds the job.
-- [ ] **The AppImage on a board.** Proven only in `:latest` with
-  `APPIMAGE_EXTRACT_AND_RUN=1`. Done when the arm64 AppImage runs in the foreground
-  through FUSE on himbeere2, and `--install` there gives the same unit the .deb does.
 - [b] **A USB webcam through `camera = "auto"`.** The UVC branch (`uvcvideo`, MJPEG when
   no raw format) has run only in unit tests: himbeere2 has no USB camera, and the C270
   sits on the riscv64 X100, which the package does not build for. Blocked on a UVC camera
