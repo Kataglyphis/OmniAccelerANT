@@ -115,6 +115,10 @@ chrome_frames() {
 in_video_group() { id -nG "${user}" | grep -qw video; }
 log_lacks() { ! grep -q "$1" "$2"; }
 purged() { ! test -e "${config}" && ! test -e "${prefix}"; }
+unit_masked() { test "$(readlink /etc/systemd/system/omni-catcam.service)" = /dev/null; }
+unit_enabled_unmasked() {
+  ! unit_masked && test -e /etc/systemd/system/multi-user.target.wants/omni-catcam.service
+}
 as_plain() {
   setpriv --reuid=1001 --regid=1001 --clear-groups \
     env -i HOME="${work}/home" PATH=/usr/bin:/bin APPIMAGE_EXTRACT_AND_RUN=1 "$@"
@@ -166,6 +170,10 @@ echo 'rotate = 180' >>"${config}"
 dpkg -i "${deb}" </dev/null >"${work}/upgrade.log" 2>&1
 check "an upgrade over an edited settings file needs no terminal" grep -q '^Setting up omni-accelerant-catcam' "${work}/upgrade.log"
 check "the upgrade keeps the edit" grep -q '^rotate = 180' "${config}"
+dpkg -r omni-accelerant-catcam >"${work}/remove.log" 2>&1
+check "remove masks the unit, so nothing starts it" unit_masked
+dpkg -i "${deb}" </dev/null >"${work}/reinstall.log" 2>&1
+check "a reinstall after remove unmasks and enables it again" unit_enabled_unmasked
 dpkg --purge omni-accelerant-catcam >"${work}/purge.log" 2>&1
 check "purge removes the settings and ${prefix}" purged
 

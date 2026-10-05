@@ -11,3 +11,14 @@
 # "true" one.
 
 scripts/linux/lib/container-steps.sh	maybe_truthy
+
+# test-catcam-package.sh: pure predicates, each called only as `check NAME <predicate>`, i.e. `if "$@"`,
+# in a script without set -e. Their false answer is a FAIL line the script counts; returning 1 is the contract.
+scripts/linux/cat-stream/test-catcam-package.sh	log_lacks
+scripts/linux/cat-stream/test-catcam-package.sh	purged
+scripts/linux/cat-stream/test-catcam-package.sh	unit_masked
+scripts/linux/cat-stream/test-catcam-package.sh	unit_enabled_unmasked
+scripts/linux/cat-stream/test-catcam-package.sh	plain_install_refused
+scripts/linux/cat-stream/test-catcam-package.sh	appimage_installed
+scripts/linux/cat-stream/test-catcam-package.sh	installed_copy_refuses
+scripts/linux/cat-stream/test-catcam-package.sh	uninstalled
