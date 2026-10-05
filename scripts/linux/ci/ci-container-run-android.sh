@@ -98,6 +98,7 @@ gate_reset "code quality"
 run_gate "cmake-format --check" run_cmake_format_check
 # The APK ABI gate's own suite (synthetic APKs): that it refuses an extra slice or a missing plugin.
 run_gate "apk abi gate tests" bash scripts/linux/tests/test-check-apk-abi.sh
+run_gate "rust toolchain gate tests" bash scripts/linux/tests/test-check-rust-toolchain.sh
 assert_gates
 setup_compiler_cache
 export_toolchain_env "$MATRIX_ARCH"
@@ -110,6 +111,7 @@ if maybe_truthy "$RUN_CODEQL"; then
   # No fallback build: a failed scan must fail the lane, not ship a plain APK.
   run_codeql_android "$FLUTTER_DIR" "$BUILD_MODE"
   bash "$REPO_ROOT/scripts/linux/check-apk-abi.sh" --apk "build/app/outputs/flutter-apk/app-${BUILD_MODE}.apk"
+  bash "$REPO_ROOT/scripts/linux/check-rust-toolchain.sh" --apk "build/app/outputs/flutter-apk/app-${BUILD_MODE}.apk"
 
   if [[ "$BUILD_MODE" == "release" ]]; then
     app_packaging_package_android_apk_outputs_tar "$MATRIX_ARCH" "$APP_NAME"

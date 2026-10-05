@@ -55,6 +55,25 @@ class Rustup {
           (e) => e.name == toolchain || e.name.startsWith('$toolchain-'))
       ?.targets;
 
+  /// Local patch: the toolchain rustup resolves in [directory]
+  /// (RUSTUP_TOOLCHAIN, then rust-toolchain.toml, then the default).
+  static String activeToolchain(String directory) {
+    try {
+      final res = runCommand(
+        'rustup',
+        ['show', 'active-toolchain'],
+        workingDirectory: directory,
+      );
+      final name = res.stdout.toString().trim().split(RegExp(r'\s+')).first;
+      if (name.isNotEmpty) {
+        return name;
+      }
+    } on CommandFailedException catch (e) {
+      log.warning('rustup resolves no toolchain here, using stable: $e');
+    }
+    return 'stable';
+  }
+
   static List<_Toolchain> _getInstalledToolchains() {
     String extractToolchainName(String line) {
       // ignore (default) after toolchain name
@@ -65,8 +84,9 @@ class Rustup {
     final res = runCommand("rustup", ['toolchain', 'list']);
 
     // To list all non-custom toolchains, we need to filter out lines that
-    // don't start with "stable", "beta", or "nightly".
-    Pattern nonCustom = RegExp(r"^(stable|beta|nightly)");
+    // don't start with "stable", "beta", or "nightly". Local patch: a
+    // version pin such as 1.98.1-<host> is not custom either.
+    Pattern nonCustom = RegExp(r"^(stable|beta|nightly|\d+\.\d+)");
     final lines = res.stdout
         .toString()
         .split('\n')

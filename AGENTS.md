@@ -597,6 +597,26 @@ written out rather than linked.
   toolchain-less rustup shims are harmful. The winamd64 image provisions exactly
   that now (hub `docs/windows-builds.md` § *Rust toolchain*), so this bites only
   outside it.
+- **Cargokit builds `liboxidant` with the toolchain rustup resolves for OxidANT,
+  never a floating `stable`** (2026-10-05). Upstream runs `rustup run stable cargo
+  build` when `cargokit.yaml` names no toolchain. The Linux image carries only
+  `1.98.1` and a dated nightly, so every native and Android build downloaded the
+  day's stable and shipped a `liboxidant.so` stamped `rustc version 1.99.0`. A
+  local patch in `rust_builder/cargokit/build_tool/lib/src/` fixes it; keep both
+  halves when bumping the vendored copy:
+  - `builder.dart` asks `rustup show active-toolchain` in the crate dir, which
+    follows `RUSTUP_TOOLCHAIN`, then a `rust-toolchain.toml`, then the default.
+  - `rustup.dart` counts a version pin such as `1.98.1-<host>` as installed.
+    Upstream lists only channel names, so a pin would read as missing.
+
+  The Windows image's default is the `stable-…` it installed at build time, so
+  Windows resolves to the toolchain it already used. `scripts/linux/check-rust-toolchain.sh`
+  reads the `rustc version` stamp in `.comment` and fails the native lane (bundle)
+  and the Android lane (APK) on any other version. Its suite,
+  `scripts/linux/tests/test-check-rust-toolchain.sh`, runs in both lanes'
+  code-quality batches. The Android lane still adds `aarch64-linux-android` to the
+  pinned toolchain at build time (about 4 s), because the image does not carry that
+  target.
 - **The Linux plugin builds AccelerANTgine without its test suites and without
   its Debug sanitizers.** `packages/kataglyphis_native_inference/linux/CMakeLists.txt`
   sets `BUILD_TESTING`, `myproject_ENABLE_SANITIZER_ADDRESS` and
@@ -930,6 +950,7 @@ cell is a test that cannot run there, and the reason is under the table.
 | Pester (`scripts/windows/tests`) | | `windows-2025` | `windows-11-arm` | | |
 | Plugin JVM test | | | | yes | |
 | APK ABI gate (`check-apk-abi.sh`) and its synthetic-APK suite | | | | yes | |
+| `liboxidant`'s rustc stamp (`check-rust-toolchain.sh`) and its suite | yes | | | yes, in the APK | |
 
 - Android and Web build no desktop runner, so the desktop rows do not apply
   there; Android adds the plugin's JVM test. Running the APK on an emulator and
@@ -940,6 +961,9 @@ cell is a test that cannot run there, and the reason is under the table.
   because `flutter test -d windows` would build with Flutter's MSVC default.
 - The mutation suite builds synthetic ELFs for the Linux closure gate; Windows has
   no ELF and no such gate. Pester tests PowerShell that only Windows lanes run.
+- The rustc stamp lives in an ELF `.comment`, which a Windows PE does not have. The
+  web lane builds its wasm with `build-web` and the dated nightly it names (§ 4), not
+  Cargokit.
 - The webcam frame test is Linux-only: `hasPushedFrame` is the Linux plugin's, and
   the Windows drives run `simple_test.dart`.
 - The web lane runs both Dart suites in Chrome since 2026-10-05 (`--test-platform chrome`

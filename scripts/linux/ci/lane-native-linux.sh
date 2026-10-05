@@ -115,6 +115,7 @@ run_gate "flutter checks" run_flutter_common_checks "$STRICT_CHECKS"
 run_gate "cmake-format --check" run_cmake_format_check
 # The bundle gate's own mutation suite (synthetic ELFs, no build needed): when G6 runs, and that it decides.
 run_gate "bundle gate tests" bash scripts/linux/tests/test-check-bundle-closure.sh
+run_gate "rust toolchain gate tests" bash scripts/linux/tests/test-check-rust-toolchain.sh
 assert_gates
 
 flutter config --enable-linux-desktop
@@ -140,6 +141,7 @@ if [[ "$BUILD_MODE" == "release" ]]; then
   run_gate "knt ABI" bash scripts/linux/check-knt-abi.sh --arch "$MATRIX_ARCH" --build-mode "$BUILD_MODE"
   run_gate "runtime closure" bash scripts/linux/check-bundle-closure.sh --arch "$MATRIX_ARCH" --build-mode "$BUILD_MODE"
   run_gate "plugin gtest" run_plugin_gtest "$build_dir"
+  run_gate "rust toolchain" bash scripts/linux/check-rust-toolchain.sh "${build_dir}/bundle/lib/liboxidant.so"
   assert_gates
 
   # Under the image's xvfb-run: the packaged bundle starts, and the app drives its integration test.
