@@ -63,6 +63,10 @@ foreach ($candidateRoot in $resolvedBuildRoots) {
 	$candidatePluginDll = $candidateLayout.RustPluginDllPath
 	$candidateExePath = $candidateLayout.RunnerExePath
 
+	# The app loads oxidant.dll from beside the exe; runner\Release, the MSIX copy, has no plugins\Release twin.
+	if (-not (Test-Path -LiteralPath $candidatePluginDll -PathType Leaf)) {
+		$candidatePluginDll = Join-Path (Split-Path $candidateExePath -Parent) (Split-Path $candidatePluginDll -Leaf)
+	}
 	$hasPlugin = Test-Path -LiteralPath $candidatePluginDll -PathType Leaf
 	$hasExe = Test-Path -LiteralPath $candidateExePath -PathType Leaf
 
