@@ -8,10 +8,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 /// Document trees the settings reference but the repo lacks; a ratchet, so shrink it, never grow it.
-const Set<String> _knownMissing = <String>{
-  'assets/documents/books/',
-  'assets/documents/games/',
-};
+const Set<String> _knownMissing = <String>{};
 
 Directory _repoRoot() {
   Directory dir = Directory.current;
@@ -72,9 +69,10 @@ void main() {
         final File file = File('${root.path}/$settings');
         expect(file.existsSync(), isTrue, reason: '$settings is missing');
 
-        final List<String> declared = _assetPathsIn(
-          json.decode(file.readAsStringSync()),
-        );
+        final Object? decoded = json.decode(file.readAsStringSync());
+        // No entries declare nothing; entries that yield no path mean the walker missed the schema.
+        if (decoded is List && decoded.isEmpty) return;
+        final List<String> declared = _assetPathsIn(decoded);
         expect(
           declared,
           isNotEmpty,
