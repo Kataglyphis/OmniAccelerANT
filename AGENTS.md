@@ -1237,6 +1237,15 @@ lane and never written to. It used to default inside the workspace, which made
 an x64 and an arm64 run in the same tree overwrite each other's SDK; that is
 gone along with the installer.
 
+**A pre-commit hook runs CI's first gates** (2026-10-05). Enable it once per clone with
+`git config core.hooksPath scripts/git-hooks`. It runs `scripts/linux/run-lint-gates.sh`,
+the same lint gates `lint-gates.yml` runs (about 10 s on the Windows box). When a staged
+file is a `scripts/**/*.ps1` or `.psm1`, it also runs the hub's `Invoke-Lint.ps1 -Path
+scripts`, the step `windows-x64.yml` and `windows-arm64.yml` stop on before their image
+pull. That step once reached CI uncaught: e904182's chained `[switch]` assignment failed
+windows-x64 run 37324782889. It grades the working tree, like the hub's hook.
+`--no-verify` skips it.
+
 Quality gates — `Build-Windows.ps1` runs these by default (skip with
 `-SkipFormat` / `-SkipTests` / `-SkipDocs`). Note the format command is **not**
 `dart format .`: that is the form documented above as crashing on Windows.

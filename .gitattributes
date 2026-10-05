@@ -1,5 +1,7 @@
 *.sh text eol=lf
 *.bash text eol=lf
+# Extension-less, and bash stops at the first carriage return.
+scripts/git-hooks/* text eol=lf
 # Workflows run under `shell: pwsh`; CRLF breaks multi-line run: blocks.
 .github/**/*.yml text eol=lf
 .github/**/*.yaml text eol=lf
