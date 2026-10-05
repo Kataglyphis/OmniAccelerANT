@@ -124,6 +124,7 @@ fi
 # Ensure clang has a usable C++ runtime/toolchain setup in container builds.
 setup_compiler_cache
 export_toolchain_env "$MATRIX_ARCH"
+setup_linker
 
 # Checks, build and packaging live in lane-native-linux.sh.
 app_packaging_run_command_with_runtime "$PACKAGE_FORMATS" \

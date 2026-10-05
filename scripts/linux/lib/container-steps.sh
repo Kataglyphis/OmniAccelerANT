@@ -171,3 +171,9 @@ export_toolchain_env() {
       return 1 ;;
   esac
 }
+
+# Opt-in KATAGLYPHIS_LINKER=lld|mold; after export_toolchain_env, so the probe and the Rust host link use clang (AGENTS.md § 5).
+setup_linker() {
+  antfrastructure_source linux/scripts/lib/linker-select.sh || return 1
+  linker_select_env
+}
