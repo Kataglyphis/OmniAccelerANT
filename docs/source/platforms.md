@@ -88,11 +88,16 @@ caps, and the `docker build` prohibition are ANTfrastructure's, not this project
 > that — bind mounts from non-Dev-Drive volumes work fine. Caveat: **Dart's `copySync`/
 > `renameSync` fail on bind-mounted paths** on this host (plain writes and cmd copy/ren work),
 > so after mounting, junction Flutter's write dirs to container-local paths from *inside* the
-> container before building:
+> container before building. The plugin's pair needs it too: its tests copy into
+> `packages\kataglyphis_native_inference\build\unit_test_assets` (measured 2026-10-05):
 >
 > ```powershell
-> docker exec <name> cmd /c "mkdir C:\dtool & mkdir C:\fbuild\native_assets\windows & mklink /J C:\ws-mnt\.dart_tool C:\dtool & mklink /J C:\ws-mnt\build C:\fbuild"
+> docker exec <name> cmd /c "mkdir C:\dtool & mkdir C:\fbuild\native_assets\windows & mkdir C:\pdtool & mkdir C:\pbuild & mklink /J C:\ws-mnt\.dart_tool C:\dtool & mklink /J C:\ws-mnt\build C:\fbuild & mklink /J C:\ws-mnt\packages\kataglyphis_native_inference\.dart_tool C:\pdtool & mklink /J C:\ws-mnt\packages\kataglyphis_native_inference\build C:\pbuild"
 > ```
+>
+> `mklink /J` refuses a directory that already exists, so move the host's four aside first.
+> Remove the junctions with a plain `rmdir` before the container exits; otherwise the host keeps
+> four junctions to paths that only existed in the container.
 >
 > ```powershell
 > robocopy D:\GitHub\OmniAccelerANT C:\kata-ws /E /MT:16 /XJ /XD .dart_tool build logs

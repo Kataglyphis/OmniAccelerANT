@@ -734,6 +734,23 @@ supported` on hosts whose Docker/hcsshim is version-skewed from the image —
 `C:\workspace` is a baked image dir. Use a fresh target (`C:\ws-mnt` above; CI
 mounts `D:\ws → C:\ws`). ANTfrastructure owns the why — see § 2.
 
+**On the dev box the command above fails as written; junction first.** On this
+skewed host, Dart's and CMake's write-then-rename steps fail on the bind mount
+under a real build (§ 4). The command then reds up to ten steps: `PathNotFoundException`
+on Flutter's `sqlite3.dll` copy, and a `GOOGLE_BENCHMARK` `try_run` that cannot
+find its own `cmTC_*Targets.cmake`. Two things fix it:
+- Start from a checkout with no root or plugin `.dart_tool`/`build`. A Linux
+  lane's plugin `package_config.json` reds *Dart Analysis* on its own.
+- Inside the container, junction those four directories to container-local
+  ones before `Build-Windows.ps1`: [`docs/source/platforms.md`](docs/source/platforms.md)
+  § *Containerized build (Stevedore, recommended)*.
+
+With both, all three of `windows-x64.yml`'s container steps passed locally on
+2026-10-05 (27/27, 24/24, 20/20 steps). CI's fresh clone on `windows-2025` needs
+neither. `Build-Windows-Container.ps1` avoids both by construction: it streams
+the sources into the container instead of mounting them, and leaves the root
+`build` and every `.dart_tool` out.
+
 Six quality/output steps run before the native build (`-CodeQL` short-circuits
 before them), each skippable with the paired switch: **Dart format + CMake
 format** (`-SkipFormat`), **Dart analyze + Flutter tests + Plugin Flutter tests**
