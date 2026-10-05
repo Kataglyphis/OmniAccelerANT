@@ -334,10 +334,10 @@ $volumeArgs = @()
 foreach ($nativePath in $ContainerNativePaths) {
 	$volumeName = "kataglyphis-lane-$Lane-$Arch" + ($nativePath -replace '[^A-Za-z0-9]+', '-')
 	& $engine 'volume' 'create' $volumeName 2>&1 | Out-Null
-	# Volumes start root-owned; the image runs as uid 1001.
+	# Volumes start root-owned; the image runs as uid 1001. The chown uses that image too: no stock image (owner rule 2026-10-05).
 	& $engine 'run' '--rm' '--user' 'root' `
 		'--mount' "type=volume,source=${volumeName},target=/vol" `
-		'--platform' $platform 'alpine' 'chown' '1001:1001' '/vol' 2>&1 | Out-Null
+		'--platform' $platform '--entrypoint' 'chown' $Image '1001:1001' '/vol' 2>&1 | Out-Null
 	$volumeArgs += @('--mount', "type=volume,source=${volumeName},target=${nativePath}")
 	Write-Host "volume : $volumeName -> $nativePath"
 }
