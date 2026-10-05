@@ -84,7 +84,7 @@ if ! validate_non_empty "--app-name" "$APP_NAME"; then
   exit 2
 fi
 
-# Strict, as in run-android.sh: a failing Dart check reds this lane like the others (AGENTS.md § 5).
+# Strict, as in lane-android.sh: a failing Dart check reds this lane like the others (AGENTS.md § 5).
 STRICT_CHECKS="1"
 
 REPO_ROOT="$(resolve_repo_root /workspace)"
@@ -93,7 +93,7 @@ cd "$REPO_ROOT"
 # PATH, safe.directory, PUB_CACHE and `flutter --version` in one upstream call.
 flutter_lane_prepare_env "$FLUTTER_DIR" || exit 2
 
-# Container-only preparation, kept out of run-android.sh; a batch so assert_gates turns a failure into the exit code.
+# Container-only preparation, kept out of lane-android.sh; a batch so assert_gates turns a failure into the exit code.
 gate_reset "code quality"
 run_gate "cmake-format --check" run_cmake_format_check
 # The APK ABI gate's own suite (synthetic APKs): that it refuses an extra slice or a missing plugin.
@@ -103,7 +103,7 @@ setup_compiler_cache
 export_toolchain_env "$MATRIX_ARCH"
 
 if maybe_truthy "$RUN_CODEQL"; then
-  # CodeQL drives the APK build itself, so run-android.sh's checks run here instead.
+  # CodeQL drives the APK build itself, so lane-android.sh's checks run here instead.
   run_flutter_common_checks "$STRICT_CHECKS"
   flutter config --enable-android
 
@@ -118,7 +118,7 @@ if maybe_truthy "$RUN_CODEQL"; then
   fi
 else
   # The same entry point a developer runs, so the CI and local paths cannot drift.
-  bash "$REPO_ROOT/scripts/linux/run-android.sh" \
+  bash "$REPO_ROOT/scripts/linux/ci/lane-android.sh" \
     --arch "$MATRIX_ARCH" \
     --build-mode "$BUILD_MODE" \
     --app-name "$APP_NAME" \

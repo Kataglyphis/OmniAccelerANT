@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Maps the agentic loop's hard-coded `--preset --build-dir` onto run-native-linux.sh; the lane owns its build dir.
+# Maps the agentic loop's hard-coded `--preset --build-dir` onto lane-native-linux.sh; the lane owns its build dir.
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
@@ -21,5 +21,5 @@ case "$PRESET" in
   *) BUILD_MODE="release" ;;
 esac
 
-exec bash "${REPO_ROOT}/scripts/linux/run-native-linux.sh" \
+exec bash "${REPO_ROOT}/scripts/linux/ci/lane-native-linux.sh" \
   --build-mode "$BUILD_MODE" --no-package --run-docs false

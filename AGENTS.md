@@ -458,7 +458,7 @@ written out rather than linked.
     (run 36891844220), which an x86_64 device or emulator would pick. Now:
     - The app's `defaultConfig.ndk` clears that list and sets `kataglyphisAbi`
       (`android/build.gradle.kts`), the value the plugin's `abiFilters` reads too.
-    - `run-android.sh` and the CodeQL build pass `--target-platform android-arm64`,
+    - `lane-android.sh` and the CodeQL build pass `--target-platform android-arm64`,
       so nothing is built for a dropped ABI.
     - `scripts/linux/check-apk-abi.sh` fails the lane on any `lib/<abi>/` but that
       one, or on a missing `libflutter`, `libapp`, `liboxidant` or plugin library.
@@ -1134,7 +1134,7 @@ CI passes are the `with:` blocks of
 **`--app-name` derives from `pubspec.yaml`; do not hard-code it again.**
 `resolve_app_name` in `scripts/linux/lib/cli-common.sh` reads the `name:` entry
 and swaps `_` for `-`, so `omni_accelerant` yields `omni-accelerant`.
-`run-native-linux.sh`, `run-android.sh` (which appends `-apk`) and
+`lane-native-linux.sh`, `lane-android.sh` (which appends `-apk`) and
 `package-linux.sh` default through it, and `Invoke-LinuxLane.ps1` reads the same
 `name:` line itself. Before
 2026-09-05 the literal sat in all four plus the workflows, seven copies that a
@@ -1205,7 +1205,7 @@ on the stage:
 | android (`ci-container-run-android.sh`) | not passed; always strict | reds the lane |
 
 Every lane is strict since 2026-10-01: the android lane was the last that
-reported a failing check and moved on, and `run-android.sh` now calls
+reported a failing check and moved on, and `lane-android.sh` now calls
 `run_flutter_common_checks true` like the others. All three also run the
 plugin's own Dart tests through that function, under the same strictness. The
 `|| warn` arm still exists upstream in `flutter_checks.sh`, for a local
