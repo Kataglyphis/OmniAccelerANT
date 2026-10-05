@@ -85,21 +85,12 @@ thing is still unproven.
       path as a string, with this repo's hub. Re-run it with the next Pi bundle.
       (The Windows half is done: windows-x64 run 36154744287 had the real
       `oxidant.dll` in the runner when G6 passed.)
-- [ ] `scripts/windows/Start-Windows.ps1` now launches (2026-09-17) but the
-      window cannot be seen from the agent's shell: it runs in **Session 0**,
-      where ANGLE/DXGI surface creation fails (`SwapChain11 … 0x887A0022`,
-      `EGL Error: Context Lost`) and there is no desktop. The engine, the Rust
-      bridge and the frb version check all pass there — the residual is "no
-      interactive desktop", not an app defect. Confirm on the console session.
-- [ ] **The Windows container's sync-back plants unusable reparse points in
-      the host tree.** Robocopy of the container's cargo cache into
-      `third_party/OxidANT/target` writes Linux-style links as Windows reparse
-      points with no readable target (found on
-      `cxxbridge/rust/cxx.h`), and bsdtar then aborts the next inbound
-      transfer with `Cannot stat: Invalid argument` — the build started with
-      no scripts at all. Mitigated 2026-09-17 by excluding that path from
-      `Build-Windows-Container.ps1`'s inbound stream (the container builds
-      into its own `rust_target`); upstream's sync-back still writes them.
+- [ ] **`scripts/windows/Start-Windows.ps1` on the dev box's console session.** The
+      agent's shell runs in **Session 0**, where ANGLE/DXGI surface creation fails
+      (`SwapChain11 … 0x887A0022`, `EGL Error: Context Lost`). CI shows a real window on
+      both architectures (launch smoke, and the integration test's `flutter drive`:
+      windows-x64 run 37271415938, windows-arm64 run 37240841037), so what is left is one
+      launch by hand from the console.
 - [ ] **One Windows lane check added on 2026-09-28 has not run yet.** (*Flutter AOT
       Freshness* has: windows-x64 run 36866007231, 2026-10-01, `[OK]` on the Release
       runner; the lane guard's `docker top` reading was confirmed against the real image
@@ -107,9 +98,6 @@ thing is still unproven.
       `-CodeQL` run is manual-only; run it once (the first attempt, 2026-10-05, hung —
       5 h wall against 8 s CPU — and was killed; the hub now bounds every phase with
       `CODEQL_TIMEOUT_MINUTES`, default 180, and fails loudly with its name).
-- [ ] **The integration test's x64 drive proves itself.** arm64 is green (run
-      37240841037); x64's first drive failed before the VM service — `bin\` was not on
-      PATH for the app — and the fix rides the script; close when windows-x64 is green.
 
 ## Agentic loop
 
