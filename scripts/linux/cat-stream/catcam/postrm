@@ -1,0 +1,25 @@
+#!/bin/sh
+# Mirrors dh_installsystemd: mask on remove so the unit cannot start, forget it all on purge.
+set -e
+
+unit=omni-catcam.service
+
+if [ -d /run/systemd/system ]; then
+  systemctl --system daemon-reload >/dev/null || true
+fi
+
+if command -v deb-systemd-helper >/dev/null 2>&1; then
+  case "$1" in
+    remove) deb-systemd-helper mask "$unit" >/dev/null || true ;;
+    purge)
+      deb-systemd-helper purge "$unit" >/dev/null || true
+      deb-systemd-helper unmask "$unit" >/dev/null || true
+      ;;
+  esac
+fi
+
+if [ "$1" = purge ]; then
+  rm -rf /var/lib/omni-accelerant-catcam
+fi
+
+exit 0

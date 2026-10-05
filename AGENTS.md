@@ -168,6 +168,15 @@ Two upstream facts repeated here only because they bite before you reach a doc:
   libcamera installed; `--deploy HOST` rsyncs it there. Its ONNX Runtime is the
   image's chain copy, and the same image run proves the finished bundle with
   ANTfrastructure's G6 census before anything leaves the container.
+- `scripts/linux/cat-stream/package-catcam.sh` + `catcam/` — the installable
+  cat cam (2026-10-05). It packs the producer, its GStreamer plugins, the chain
+  ORT (G6-proved), the model, the web build and the image's loader, glibc and
+  libstdc++ into `/opt/omni-accelerant-catcam`, and wraps that in a `.deb`. The
+  `.deb` carries a systemd unit, enabled at install, a conffile at
+  `/etc/omni-accelerant/catcam.toml`, and a ufw profile. It runs in `:latest`
+  with `--web-root` naming the web lane's `build/web`. `catcam/*` is pinned to
+  LF in `.gitattributes`, because those files land on the target verbatim.
+  Detail: `docs/source/camera-streaming.md` § *The cat cam package*.
 
 **Deliberately not reused.** Two upstream Windows pieces were evaluated and
 rejected — `WindowsAppRunner.Common` (its executable probe would launch the
@@ -220,8 +229,9 @@ happen in their own repositories.
 Everything here is false or meaningless in another repo — that is why it is
 written out rather than linked.
 
-- **Two scripts print a fixed line range of their own header as `--help`.**
-  `scripts/linux/cat-stream/package-producer-bundle.sh` (`sed -n '2,22p'`) and
+- **Three scripts print a fixed line range of their own header as `--help`.**
+  `scripts/linux/cat-stream/package-producer-bundle.sh` (`sed -n '2,22p'`),
+  `scripts/linux/cat-stream/package-catcam.sh` (`sed -n '2,14p'`) and
   `scripts/agentic-loop/Run-AgenticLoop.sh` (`head -30 | tail -28`): edit the
   header and the range together.
 - **The two bootstrap copies are body-mode assets.** Below their header,

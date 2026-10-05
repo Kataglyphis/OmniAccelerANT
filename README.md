@@ -150,7 +150,23 @@ Refer to the detailed docs below for platform-specific requirements, camera stre
 `third_party/OxidANT`'s `kataglyphis_cat_webrtc` captures a camera, runs the
 YOLO ONNX model for cats (COCO class 15), burns the boxes into the frames and
 publishes them as a WebRTC stream that the Flutter web app's **Stream** page
-consumes. One native Linux host does everything — a Raspberry Pi included:
+consumes.
+
+**The installable cat cam (Linux .deb).** In `:latest`, with the web lane's
+`build/web`, run `scripts/linux/cat-stream/package-catcam.sh --web-root
+build/web`. That builds `out/omni-accelerant-catcam_<version>_<arch>.deb`.
+- `sudo apt install ./omni-accelerant-catcam_*.deb` installs a systemd service
+  that starts at boot.
+- Open `http://<host>:8080/` from a browser on the network.
+- The service picks a Raspberry Pi camera when one is attached, else a USB
+  webcam.
+- The settings live in `/etc/omni-accelerant/catcam.toml`, and `systemctl
+  disable --now omni-catcam` turns autostart off.
+
+Only amd64 is verified so far. Details:
+[docs/source/camera-streaming.md § The cat cam package](docs/source/camera-streaming.md#the-cat-cam-package).
+
+**By hand.** One native Linux host does everything, a Raspberry Pi included:
 
 ```bash
 # 1. the producer (in third_party/OxidANT); USB cameras use --v4l2. ONNX Runtime

@@ -1,0 +1,44 @@
+#!/bin/sh
+# Creates the service user and, as dh_installsystemd would, enables and starts the unit:
+# autostart is the default, and an admin's `systemctl disable` survives upgrades.
+set -e
+
+unit=omni-catcam.service
+user=omni-catcam
+
+if [ "$1" = configure ]; then
+  if ! getent passwd "$user" >/dev/null; then
+    useradd --system --no-create-home --home-dir /var/lib/omni-accelerant-catcam \
+      --shell /usr/sbin/nologin "$user"
+  fi
+  # The camera nodes and the dma-heaps a Pi camera allocates from belong to these, depending on the OS.
+  for group in video render; do
+    if getent group "$group" >/dev/null; then
+      usermod -a -G "$group" "$user"
+    fi
+  done
+fi
+
+case "$1" in
+  configure|abort-upgrade|abort-deconfigure|abort-remove)
+    # OMNI_CATCAM_AUTOSTART=0 at the first install leaves the service disabled.
+    if [ "${OMNI_CATCAM_AUTOSTART:-1}" != 0 ] && command -v deb-systemd-helper >/dev/null 2>&1; then
+      if deb-systemd-helper debian-installed "$unit"; then
+        deb-systemd-helper update-state "$unit" >/dev/null || true
+        if deb-systemd-helper --quiet was-enabled "$unit"; then
+          deb-systemd-helper enable "$unit" >/dev/null || true
+        fi
+      else
+        deb-systemd-helper enable "$unit" >/dev/null || true
+      fi
+    fi
+    if [ -d /run/systemd/system ]; then
+      systemctl --system daemon-reload >/dev/null || true
+      if [ -n "$2" ]; then action=restart; else action=start; fi
+      # deb-systemd-invoke leaves a disabled unit alone.
+      deb-systemd-invoke "$action" "$unit" >/dev/null || true
+    fi
+    ;;
+esac
+
+exit 0

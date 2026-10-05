@@ -4,3 +4,4 @@
 
 scripts/agentic-loop/Run-AgenticLoop.sh	# ──────────────────────────────────────────────────────────
 scripts/linux/cat-stream/package-producer-bundle.sh	# Packages a self-contained aarch64 runtime bundle of the ca
+scripts/linux/cat-stream/package-catcam.sh	# Packages the cat cam service: a self-contained bundle (its

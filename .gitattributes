@@ -2,6 +2,8 @@
 *.bash text eol=lf
 # Extension-less, and bash stops at the first carriage return.
 scripts/git-hooks/* text eol=lf
+# Packed into the .deb as maintainer scripts, a unit and configs: sh and systemd reject a carriage return.
+scripts/linux/cat-stream/catcam/* text eol=lf
 # Workflows run under `shell: pwsh`; CRLF breaks multi-line run: blocks.
 .github/**/*.yml text eol=lf
 .github/**/*.yaml text eol=lf

@@ -1,0 +1,33 @@
+# OmniAccelerANT cat cam. Uncomment a setting to change it, then: sudo systemctl restart omni-catcam
+
+# `omni-catcam --print-config` prints the settings in effect; `systemctl disable --now omni-catcam` stops autostart.
+
+# camera = "auto"          # a Raspberry Pi camera if attached, else a USB webcam; or rpicam | libcamera | v4l2 | v4l2:/dev/video0 | test | image:FILE
+
+# rotate = 0               # 90 | 180 | 270; 180 for a camera mounted upside down
+
+# width = 640
+
+# height = 480
+
+# fps = 30
+
+# name = "Trouble Tabbls Cat Cam"   # what viewers see
+
+# inference = "auto"       # auto | on | off; auto skips the model below 1 GiB of RAM or when it fails to load
+
+# model = "/opt/omni-accelerant-catcam/models/yolo26n.onnx"
+
+# score = 0.25
+
+# all_classes = false      # true boxes every COCO class, not only cats
+
+# http_port = 8080         # the page is http://<this-host>:8080/; 0 turns the web server off
+
+# http_host = "0.0.0.0"
+
+# ice_port_min = 40000     # WebRTC media's UDP range; `sudo ufw allow OmniCatCam` opens it and http_port
+
+# ice_port_max = 40099
+
+# stun_server = ""         # e.g. "stun://stun.l.google.com:19302"; empty keeps the stream LAN-only
