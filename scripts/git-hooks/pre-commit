@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+# CI's first gates before the commit, not after the push: lint-gates.yml, and windows-x64.yml's PowerShell lint when scripts change.
+set -euo pipefail
+
+# Git exports these to hooks; a gate's own `git -C <dir>` would then read this repository's index.
+unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_PREFIX
+cd "$(git rev-parse --show-toplevel)"
+export PYTHONUTF8=1
+
+staged="$(git diff --cached --name-only --diff-filter=ACMR)"
+[ -n "${staged}" ] || exit 0
+
+echo "pre-commit: lint gates (lint-gates.yml)…"
+bash scripts/linux/run-lint-gates.sh || {
+  echo "pre-commit: lint gates FAILED — fix them, or 'git commit --no-verify' if you know why" >&2
+  exit 1
+}
+
+if printf '%s\n' "${staged}" | grep -qE '^scripts/.*\.psm?1$'; then
+  if command -v pwsh >/dev/null 2>&1; then
+    echo "pre-commit: PowerShell lint (windows-x64.yml's first step)…"
+    pwsh -NoProfile -File third_party/ANTfrastructure/windows/scripts/Invoke-Lint.ps1 -Path scripts || {
+      echo "pre-commit: PowerShell lint FAILED — the Windows lanes stop on it before the image pull" >&2
+      exit 1
+    }
+  else
+    echo "pre-commit: no pwsh on PATH; the Windows lanes still run the PowerShell lint" >&2
+  fi
+fi
+echo "pre-commit: OK"
