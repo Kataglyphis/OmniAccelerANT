@@ -1,0 +1,4 @@
+[OmniCatCam]
+title=OmniAccelerANT cat cam
+description=The web page (TCP 8080) and WebRTC media (UDP 40000-40099)
+ports=8080/tcp|40000:40099/udp

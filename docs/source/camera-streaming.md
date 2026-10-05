@@ -192,6 +192,75 @@ travels, but it means the target is assumed to have a desktop stack.
 
 ## WebRTC pipelines (Linux / web)
 
+### The cat cam package
+
+`scripts/linux/cat-stream/package-catcam.sh` turns the producer below into one
+installable service. Run it inside `:latest`, with the web lane's `build/web` as
+its web root:
+
+```bash
+bash scripts/linux/cat-stream/package-catcam.sh --web-root build/web
+# out/omni-accelerant-catcam_<version>_<arch>.deb
+# out/omni-accelerant-catcam-<version>-linux-<arch>.tar.gz   (the same bundle, no installer)
+```
+
+Install it with `sudo apt install ./omni-accelerant-catcam_<version>_<arch>.deb`,
+then open `http://<host>:8080/` from any browser on the network.
+
+**What the bundle carries.** Everything lives in `/opt/omni-accelerant-catcam`:
+- the producer;
+- the GStreamer plugins it uses (`rswebrtc` and its WebRTC/DTLS/SRTP stack
+  included), and NSS's crypto modules beside `libnss3`;
+- the image's chain ONNX Runtime, proved by the hub's G6 census before packaging;
+- `yolo26n.onnx` (AGPL-3.0, see `share/doc/…/NOTICE-model`);
+- the web build;
+- the image's own loader, glibc and GCC 16 `libstdc++`. The chain ORT needs
+  `GLIBC_2.43` and `GLIBCXX_3.4.36`, which no current distro ships.
+
+The `catcam` launcher runs the producer through that loader with
+`--library-path`, never `LD_LIBRARY_PATH`. A child it starts, such as the host's
+`rpicam-vid`, therefore keeps the host's libraries. libcamera is the one library
+left to the host, because its IPA and tuning files must match the host kernel.
+
+**What the .deb does on install.**
+- It creates the `omni-catcam` system user and adds it to `video` and `render`.
+- It enables and starts `omni-catcam.service`, so the cat cam comes back after a
+  reboot.
+  - `systemctl disable --now omni-catcam` turns that off, and upgrades keep the
+    choice.
+  - `OMNI_CATCAM_AUTOSTART=0` on the first install leaves the service disabled.
+- `/etc/omni-accelerant/catcam.toml` is a conffile with every setting commented
+  out. `omni-catcam --print-config` shows the settings in effect.
+- `sudo ufw allow OmniCatCam` opens `8080/tcp` and the WebRTC range
+  `40000:40099/udp`.
+
+**How it picks a camera** (`camera = "auto"`), in this order:
+1. A Raspberry Pi camera through the host's `rpicam-vid`. The image's libcamera
+   cannot drive a Pi 5, which is why the host tool goes first.
+2. `libcamerasrc`.
+3. A USB webcam (`uvcvideo`), MJPEG when it offers no raw format.
+4. A test pattern as a stand-in, which re-probes every 30 s, so a camera plugged
+   in later is picked up.
+
+`/healthz` reports which camera is live. `inference = "auto"` turns the model off
+below 1 GiB of RAM.
+
+**One port reaches it.** The page and the `/webrtc-ws` signalling share `:8080`:
+the service forwards the WebSocket upgrade to its own signalling server on
+loopback `:8443`. Media goes over host candidates only unless `stun_server` is
+set, so the stream stays on the LAN. No TLS, no `serve.sh`, no container.
+
+**Verified so far:** amd64, installed in `:latest` and run as the unit runs it,
+with a scrubbed environment as `omni-catcam`:
+- no shared object maps from outside the bundle, idle or with a viewer connected;
+- headless Chrome played the stream over the LAN address;
+- the bundled model found both cats in ANThology's `Summy&Thundy` photo (best
+  score 0.72);
+- SIGTERM exits 0.
+
+**Not verified yet:** an arm64 build, a Raspberry Pi, a real camera, and a
+systemd boot.
+
 ### Cat detection stream (Rust, native)
 
 `third_party/OxidANT/crates/cat_webrtc` (`kataglyphis_cat_webrtc`) is the
@@ -208,6 +277,16 @@ cargo build --release -p kataglyphis_cat_webrtc
 ORT_DYLIB_PATH=/usr/local/lib/onnxruntime-cpu/lib/libonnxruntime.so \
   target/release/kataglyphis_cat_webrtc --v4l2 /dev/video0
 ```
+
+Since OxidANT dd496dc this binary is the service the package above installs:
+- **It also answers on `:8080`.** That port serves the web build from
+  `--web-root`, plus `/webrtc-ws` and `/healthz`. `--http-port 0` turns it off.
+- **Its signalling server listens on loopback only.** A `serve.sh` on the same
+  host still reaches it. A `serve.sh --producer-host` on another host needs the
+  producer started with `--signalling-host 0.0.0.0`; `run-producer-pi.sh`
+  passes that.
+- **The old camera flags keep working.** `--camera auto`, `--config` and
+  `--print-config` are added beside them.
 
 `--test` streams a `videotestsrc` pattern, `--image <file>` (or
 `$KATAGLYPHIS_CAT_IMAGE`) loops a still image — there is no default picture any
@@ -436,7 +515,8 @@ nerdctl run -d --rm --name x100-producer --user 0:0 --privileged --network host 
   --v4l2 /dev/video9 --listen-port 8443 --name "Cat Cam"
 ```
 
-If you front it from another host instead (`serve.sh --producer-host`), use its
+If you front it from another host instead (`serve.sh --producer-host`), add
+`--signalling-host 0.0.0.0` to the producer, and give `serve.sh` its
 **IP, not its mDNS name**: nginx resolves `proxy_pass` hostnames once at
 startup, so a DHCP or mDNS address change leaves it proxying into the void with
 a `101` in the access log and no connection on the producer.
