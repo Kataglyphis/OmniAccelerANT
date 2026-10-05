@@ -172,10 +172,12 @@ Two upstream facts repeated here only because they bite before you reach a doc:
   cat cam (2026-10-05). It packs the producer, its GStreamer plugins, the chain
   ORT (G6-proved), the model, the web build and the image's loader, glibc and
   libstdc++ into `/opt/omni-accelerant-catcam`, and wraps that in a `.deb` and
-  an AppImage. The `.deb` carries a systemd unit, enabled at install, a conffile
-  at `/etc/omni-accelerant/catcam.toml`, and a ufw profile. The AppImage's
-  `--install` sets up the same through `catcam/catcam-install`, whose `user` step
-  the `.deb`'s `postinst` calls too. It runs in `:latest`
+  an AppImage. The `.deb` carries a systemd unit, enabled at install, and a ufw
+  profile. The AppImage's `--install` sets up the same through
+  `catcam/catcam-install`, whose `setup` step the `.deb`'s `postinst` calls too.
+  **`/etc/omni-accelerant/catcam.toml` is not a conffile, on purpose.** `setup`
+  writes it only when it is absent. As a conffile, an edited copy stopped the
+  next upgrade at dpkg's keep-or-replace prompt, which hangs over SSH. It runs in `:latest`
   with `--web-root` naming the web lane's `build/web`. `catcam/*` is pinned to
   LF in `.gitattributes`, because those files land on the target verbatim.
   Detail: `docs/source/camera-streaming.md` § *The cat cam package*.

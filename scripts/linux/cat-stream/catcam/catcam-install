@@ -1,5 +1,5 @@
 #!/bin/sh
-# Installs this bundle as the omni-catcam service where no .deb fits (the AppImage's --install); postinst runs `user`.
+# Installs this bundle as the omni-catcam service where no .deb fits (the AppImage's --install); postinst runs `setup`.
 set -eu
 
 package=omni-accelerant-catcam
@@ -45,6 +45,11 @@ make_user() {
   done
 }
 
+# Never over an existing file: that one holds the admin's settings.
+make_config() {
+  [ -e "${config}" ] || install -D -m 644 "${share}/catcam.toml" "${config}"
+}
+
 install_bundle() {
   autostart="$1"
   if deb_installed; then
@@ -66,7 +71,7 @@ install_bundle() {
   mv "${prefix}.new" "${prefix}"
 
   install -m 644 "${share}/omni-catcam.service" "${unit_file}"
-  [ -e "${config}" ] || install -D -m 644 "${share}/catcam.toml" "${config}"
+  make_config
   if [ -d /etc/ufw/applications.d ]; then
     install -m 644 "${share}/ufw-omni-catcam" /etc/ufw/applications.d/omni-catcam
   fi
@@ -124,7 +129,10 @@ uninstall_bundle() {
 
 [ "$(id -u)" -eq 0 ] || { printf 'run it as root: sudo <the AppImage or catcam> %s\n' "$*" >&2; exit 1; }
 case "${1:-}" in
-  user) make_user ;;
+  setup)
+    make_user
+    make_config
+    ;;
   --install)
     case "${2:-}" in
       "") install_bundle true ;;

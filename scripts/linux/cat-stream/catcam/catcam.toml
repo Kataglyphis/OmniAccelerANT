@@ -20,6 +20,8 @@
 
 # score = 0.25
 
+# inference_fps = 2        # box updates per second; 0 runs the model as often as it can, on every core
+
 # all_classes = false      # true boxes every COCO class, not only cats
 
 # http_port = 8080         # the page is http://<this-host>:8080/; 0 turns the web server off

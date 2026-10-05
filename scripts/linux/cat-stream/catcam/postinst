@@ -6,8 +6,8 @@ set -e
 unit=omni-catcam.service
 
 if [ "$1" = configure ]; then
-  # The AppImage's installer creates the same user; one copy of that lives in the bundle.
-  /opt/omni-accelerant-catcam/libexec/catcam-install user
+  # The user, and the settings file if absent; as a conffile, an edited one stops every upgrade at a prompt.
+  /opt/omni-accelerant-catcam/libexec/catcam-install setup
 fi
 
 case "$1" in

@@ -20,6 +20,9 @@ fi
 
 if [ "$1" = purge ]; then
   rm -rf /var/lib/omni-accelerant-catcam
+  # postinst wrote the settings file, so dpkg does not know it; purge removes it here.
+  rm -f /etc/omni-accelerant/catcam.toml
+  rmdir /etc/omni-accelerant 2>/dev/null || true
 fi
 
 exit 0
