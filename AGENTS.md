@@ -1106,6 +1106,16 @@ Only the finished artifacts are written into `out/`. This is ANTfrastructure's
 documented rule for build directories and caches, applied to the packaging
 steps as well.
 
+**`pubspec.lock` cannot move off the mount, so its mtime can red the web lane.**
+When a workspace member's `pubspec.yaml` is newer than the root `pubspec.lock`
+(a submodule pull does that: on 2026-10-05 ANThology's was, by 19 s), the
+`dart run` inside `flutter_rust_bridge_codegen build-web` re-validates and
+touches the lock, and the mount refuses the `utime`: `FileSystemException:
+Failed to set file modification time, path = '/workspace/pubspec.lock' (OS
+Error: Operation not permitted, errno = 1)`. Touch the lock on the host —
+`(Get-Item pubspec.lock).LastWriteTime = Get-Date` — and rerun; the next run
+passed. CI's fresh clone never has the skew.
+
 **The flatpak bundle is written under `/tmp/flatpak-work` and copied out**, and
 the step asks `ostree --repo=<repo> refs` whether the app is committed rather
 than trusting flatpak-builder's exit code. Both come out of one hunt —
