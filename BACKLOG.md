@@ -28,20 +28,6 @@ thing is still unproven.
       `[my_texture] first pushed frame`. `xvfb-run` is in the image since
       `:latest` of 2026-09-29 (hub CON20, checked in the published amd64 child).
 
-## Open — web tests in Chrome
-
-- [ ] **Switch the web lane's Dart tests to `flutter test --platform chrome`.**
-      Unblocked 2026-10-03: the published `:latest` (chain
-      `cross-build-20261002-latest`) carries Chrome for Testing, chromedriver and
-      the Android emulator (hub 625b3653, owner-approved 2026-10-01). The suite is
-      ready: the hub's proof image ran it in Chrome with 37 passing, and the three
-      VM-only spots are marked since 2026-10-01 (`@TestOn('vm')` on
-      `test/pinned_artefacts_test.dart` and `test/settings_asset_paths_test.dart`,
-      `testOn: 'vm'` on the off-web case in `test/webrtc_settings_test.dart`). When
-      the image ships Chrome, change `ci-container-run-web-linux.sh`'s test run, keep
-      the VM run on the native lanes, and add the Web column's count to AGENTS.md § 5
-      *What each lane tests*.
-
 ## Open — verification gaps
 
 - [ ] **G6 over the Pi producer bundle has not run since the hub pin moved past

@@ -912,8 +912,8 @@ cell is a test that cannot run there, and the reason is under the table.
 
 | Test | Linux x64 / arm64 | Windows x64 | Windows arm64 | Android | Web |
 | --- | --- | --- | --- | --- | --- |
-| App Dart tests (`test/`) | yes | yes, in the image | yes, arm64 Dart VM | yes | yes |
-| Plugin Dart tests (`packages/kataglyphis_native_inference/test/`) | yes | yes, in the image | yes, arm64 Dart VM | yes | yes |
+| App Dart tests (`test/`) | yes | yes, in the image | yes, arm64 Dart VM | yes | in Chrome, 33 |
+| Plugin Dart tests (`packages/kataglyphis_native_inference/test/`) | yes | yes, in the image | yes, arm64 Dart VM | yes | in Chrome, 4 |
 | Plugin gtest (`kataglyphis_native_inference_test`) | yes | built in the image, run on the host | yes, on the device | | |
 | Plugin C ABI (`knt_*`) | `check-knt-abi.sh` | `Test-KntAbi.ps1`, host | `Test-KntAbi.ps1`, device | | |
 | G6 over the shipped tree | `check-bundle-closure.sh` | at build, again on the host | at the natives build, again on the device | | |
@@ -934,6 +934,9 @@ cell is a test that cannot run there, and the reason is under the table.
   because `flutter test -d windows` would build with Flutter's MSVC default.
 - The mutation suite builds synthetic ELFs for the Linux closure gate; Windows has
   no ELF and no such gate. Pester tests PowerShell that only Windows lanes run.
+- The web lane runs both Dart suites in Chrome since 2026-10-05 (`--test-platform chrome`
+  to the hub's gate); the VM-only files are `@TestOn('vm')` and still run on every native
+  lane. Counts measured locally that day on the `:latest` of 2026-10-03.
 - Every lane runs the plugin's Dart tests through the same strict gate as the
   app's: `run_flutter_common_checks` on Linux, *Plugin Flutter Tests* in
   `Build-Windows.ps1`, `Invoke-FlutterTests.ps1` on arm64.

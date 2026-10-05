@@ -78,8 +78,9 @@ export_toolchain_env "$MATRIX_ARCH"
 echo "=== Flutter doctor ==="
 flutter doctor -v
 
-echo "=== Dart checks: dependencies, format, analyze, test ==="
-run_flutter_common_checks "$STRICT_CHECKS" --extra-package third_party/ANThology
+echo "=== Dart checks: dependencies, format, analyze, test (in Chrome) ==="
+# The native lanes keep the VM run; @TestOn('vm') marks the files that read the checkout.
+run_flutter_common_checks "$STRICT_CHECKS" --extra-package third_party/ANThology --test-platform chrome
 
 echo "=== Enable flutter web + Rust WASM toolchain ==="
 # The image's dated nightly, the one its hub pin names; the floating channel would download every run.
