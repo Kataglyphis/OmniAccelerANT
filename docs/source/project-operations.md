@@ -274,6 +274,12 @@ check would fail forever and teach the next reader that the flag does not work.
 
 ## Release Hygiene
 
+**Branches.** `develop` is the default branch and the only one work lands on. `main` is the
+release branch: it moves only when the owner merges a release (the latest tag is `1.1.0+1`), so
+between releases it trails `develop` by design (416 commits on 2026-10-05). Nothing deploys from
+`main` alone. Every lane runs on pushes to either branch, and the API docs deploy over FTP on
+any push. Neither branch is protected, by the owner's decision of 2026-10-05.
+
 - Keep dependency upgrades and feature changes in separate pull requests.
 - Regenerate bridge code when Rust API signatures change.
 - Update docs in the same pull request for any user-facing behavior changes.

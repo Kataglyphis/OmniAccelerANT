@@ -28,40 +28,12 @@ thing is still unproven.
       `[my_texture] first pushed frame`. `xvfb-run` is in the image since
       `:latest` of 2026-09-29 (hub CON20, checked in the published amd64 child).
 
-## Open — smaller code leftovers
-
-- [ ] **`books/` and `games/` markdown are missing**, ratcheted in
-      `test/settings_asset_paths_test.dart`'s `_knownMissing`. Every `/books/*`
-      and `/games/*` route renders a failed load on the deployed web build.
-      Equivalents exist under `dummy_assets/`, so this is a content decision,
-      not a recovery problem. Shrink the ratchet set; never grow it.
-
 ## Open — duplication and drift
 
 - [ ] `run-native-linux.sh` / `run-android.sh` read as host-side scripts but are
       what the CI lane actually invokes — the naming still misleads. The rule
       they sit beside holds without exception: **`scripts/linux/lib/` holds only
       files that are sourced or imported, never a file you invoke.**
-
-## Open — release and repository state
-
-- [ ] **`main` is 394 commits behind `develop`** (counted 2026-10-03), last synced by PR #23. Decide
-      what `main` is for. If it is the release branch, that gap is the finding;
-      if nothing reads it, say so in a doc and stop carrying it. Nothing in
-      `.github/workflows/` triggers on `main` alone any more, so today it costs
-      nothing but confuses every reader.
-- [ ] **Branch protection after the develop-default rollout (2026-09-16).**
-      `develop` is now the default in all 11 active non-fork Kataglyphis repos.
-      Protection is per-branch, so whatever guarded `main` in the seven that
-      were switched does not guard `develop`. **Verified 2026-09-17: this repo
-      has no protection at all** — `gh api
-      repos/Kataglyphis/OmniAccelerANT/branches/{develop,main}/protection`
-      returns `404 Branch not protected` for both — still true on 2026-09-25.
-      `web.yml` has since stopped claiming its job name "is the
-      required-status-check string on develop's branch protection": its comment
-      now says the name *was* that string and points back here. Either
-      set protection (owner action — deciding what to require is the whole
-      point) or stop referencing it.
 
 ## Open — web tests in Chrome
 
