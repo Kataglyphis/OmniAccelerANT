@@ -4,19 +4,10 @@
 set -e
 
 unit=omni-catcam.service
-user=omni-catcam
 
 if [ "$1" = configure ]; then
-  if ! getent passwd "$user" >/dev/null; then
-    useradd --system --no-create-home --home-dir /var/lib/omni-accelerant-catcam \
-      --shell /usr/sbin/nologin "$user"
-  fi
-  # The camera nodes and the dma-heaps a Pi camera allocates from belong to these, depending on the OS.
-  for group in video render; do
-    if getent group "$group" >/dev/null; then
-      usermod -a -G "$group" "$user"
-    fi
-  done
+  # The AppImage's installer creates the same user; one copy of that lives in the bundle.
+  /opt/omni-accelerant-catcam/libexec/catcam-install user
 fi
 
 case "$1" in

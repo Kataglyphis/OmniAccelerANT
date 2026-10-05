@@ -171,9 +171,11 @@ Two upstream facts repeated here only because they bite before you reach a doc:
 - `scripts/linux/cat-stream/package-catcam.sh` + `catcam/` — the installable
   cat cam (2026-10-05). It packs the producer, its GStreamer plugins, the chain
   ORT (G6-proved), the model, the web build and the image's loader, glibc and
-  libstdc++ into `/opt/omni-accelerant-catcam`, and wraps that in a `.deb`. The
-  `.deb` carries a systemd unit, enabled at install, a conffile at
-  `/etc/omni-accelerant/catcam.toml`, and a ufw profile. It runs in `:latest`
+  libstdc++ into `/opt/omni-accelerant-catcam`, and wraps that in a `.deb` and
+  an AppImage. The `.deb` carries a systemd unit, enabled at install, a conffile
+  at `/etc/omni-accelerant/catcam.toml`, and a ufw profile. The AppImage's
+  `--install` sets up the same through `catcam/catcam-install`, whose `user` step
+  the `.deb`'s `postinst` calls too. It runs in `:latest`
   with `--web-root` naming the web lane's `build/web`. `catcam/*` is pinned to
   LF in `.gitattributes`, because those files land on the target verbatim.
   Detail: `docs/source/camera-streaming.md` § *The cat cam package*.

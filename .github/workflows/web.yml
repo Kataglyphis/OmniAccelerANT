@@ -126,5 +126,6 @@ jobs:
           name: omni-accelerant-catcam-linux-${{ matrix.arch }}
           path: |
             out/omni-accelerant-catcam_*.deb
+            out/omni-accelerant-catcam-*.AppImage
             out/omni-accelerant-catcam-*-linux-*.tar.gz
           if-no-files-found: error

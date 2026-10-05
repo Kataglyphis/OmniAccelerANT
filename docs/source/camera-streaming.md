@@ -200,12 +200,28 @@ its web root:
 
 ```bash
 bash scripts/linux/cat-stream/package-catcam.sh --web-root build/web
-# out/omni-accelerant-catcam_<version>_<arch>.deb
-# out/omni-accelerant-catcam-<version>-linux-<arch>.tar.gz   (the same bundle, no installer)
+# out/omni-accelerant-catcam_<version>_<deb-arch>.deb            Debian, Ubuntu, Raspberry Pi OS
+# out/omni-accelerant-catcam-<version>-<uname-arch>.AppImage     any glibc distro
+# out/omni-accelerant-catcam-<version>-linux-<deb-arch>.tar.gz   the same bundle, unpacked
 ```
 
 Install it with `sudo apt install ./omni-accelerant-catcam_<version>_<arch>.deb`,
-then open `http://<host>:8080/` from any browser on the network.
+or anywhere else with `sudo ./omni-accelerant-catcam-<version>-<arch>.AppImage --install`.
+Then open `http://<host>:8080/` from any browser on the network.
+
+**The AppImage either runs or installs.** Started plainly, it runs the cat cam in the
+foreground as the calling user, which needs the `video` group. `--install` copies it
+to `/opt/omni-accelerant-catcam` and sets up the same service as the .deb:
+- the unit goes to `/etc/systemd/system`, and `omni-catcam` to `/usr/local/bin`;
+- `--no-autostart` leaves the service disabled;
+- running it again with a newer AppImage upgrades, keeping the settings and the
+  enabled or disabled state;
+- `omni-catcam --uninstall [--purge]` removes it.
+
+The installer is `libexec/catcam-install` in the bundle, so the tarball's
+`sudo ./catcam --install` does the same. It refuses while the .deb is installed,
+and the .deb's `postinst` uses it to create the user. Without FUSE, set
+`APPIMAGE_EXTRACT_AND_RUN=1`.
 
 **What the bundle carries.** Everything lives in `/opt/omni-accelerant-catcam`:
 - the producer;
@@ -250,13 +266,15 @@ the service forwards the WebSocket upgrade to its own signalling server on
 loopback `:8443`. Media goes over host candidates only unless `stun_server` is
 set, so the stream stays on the LAN. No TLS, no `serve.sh`, no container.
 
-**Verified so far:** amd64, installed in `:latest` and run as the unit runs it,
-with a scrubbed environment as `omni-catcam`:
+**Verified so far:** amd64, the .deb and the AppImage each installed in `:latest`
+and run as the unit runs it, with a scrubbed environment as `omni-catcam`:
 - no shared object maps from outside the bundle, idle or with a viewer connected;
 - headless Chrome played the stream over the LAN address;
 - the bundled model found both cats in ANThology's `Summy&Thundy` photo (best
   score 0.72);
-- SIGTERM exits 0.
+- SIGTERM exits 0;
+- the AppImage's `--install`, a second `--install` over it, and `--uninstall --purge`
+  left the expected files, and then none.
 
 **Not verified yet:** an arm64 build, a Raspberry Pi, a real camera, and a
 systemd boot.
