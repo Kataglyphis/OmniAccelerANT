@@ -168,12 +168,15 @@ cargo install --locked --version 2.13.0 flutter_rust_bridge_codegen  # the pin i
 flutter_rust_bridge_codegen build-web --release --rust-root third_party/OxidANT
 flutter build web --release --wasm --no-web-resources-cdn
 
-# 3. HTTPS + COOP/COEP + the /webrtc-ws proxy in front of both (:8444)
+# 3. HTTPS + COOP/COEP + the /webrtc-ws proxy in front of both (:8444);
+#    --http serves the same on plain HTTP, with no certificate
 scripts/linux/cat-stream/serve.sh
 ```
 
 Open `https://<host>:8444/` — on the phone too, accepting the self-signed
-certificate warning. `signalingServerUrl` in
+certificate warning — or start `serve.sh --http` and open `http://<host>:8444/`
+with no warning: the Stream page needs no secure context, and the web app boots
+without its optional Rust core where a browser refuses it there. `signalingServerUrl` in
 `assets/settings/webrtc_settings.json` is host-relative (`/webrtc-ws`), so the
 web client connects to the origin it was served from and no hostname is baked
 into the build. On a Raspberry Pi 5 with the CSI camera,

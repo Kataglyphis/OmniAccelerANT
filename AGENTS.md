@@ -65,8 +65,8 @@ only Linux product.
 stream produced by `third_party/OxidANT/crates/cat_webrtc`
 (`kataglyphis_cat_webrtc`): V4L2/libcamera → ONNX (cat = COCO class 15) → boxes
 burned into the RGBA frames → `webrtcsink` with its own signalling server.
-`scripts/linux/cat-stream/serve.sh` puts HTTPS + COOP/COEP + a `/webrtc-ws`
-proxy in front of it, so one build works on localhost, a LAN IP or a
+`scripts/linux/cat-stream/serve.sh` puts HTTPS (or, with `--http`, plain HTTP)
++ COOP/COEP + a `/webrtc-ws` proxy in front of it, so one build works on localhost, a LAN IP or a
 Raspberry Pi; on a Pi 5 CSI camera the producer half is **OxidANT's**
 `third_party/OxidANT/scripts/linux/cat-stream/run-producer-pi.sh`, a Pi Zero
 2 W runs the image with the same host-libcamera swap plus a `gst-launch` no-AI
@@ -146,8 +146,8 @@ Two upstream facts repeated here only because they bite before you reach a doc:
   runner wrappers, prompt overlays. Engine `opencode` (**v2 only**), executor
   `opencode-go/deepseek-v4.1-flash`. Its Windows build/test driver is
   `scripts/windows/Build-Windows-Container.ps1`. Rules and commands: § 5.
-- `scripts/linux/cat-stream/serve.sh` — serves the web build over TLS with the
-  Stream page's COOP/COEP headers and proxies `/webrtc-ws` to the cat producer.
+- `scripts/linux/cat-stream/serve.sh` — serves the web build over TLS (`--http`:
+  plain HTTP, no certificate) with COOP/COEP for the Rust core and proxies `/webrtc-ws` to the cat producer.
   No container involved; it is the deployment half of the demo.
   `--producer-host`/`--producer-port` front a producer on another board and
   `--state-dir` keeps concurrent instances apart.
@@ -499,7 +499,7 @@ written out rather than linked.
   run reported `Formatted 7404 files (627 changed)` and rewrote the Flutter SDK
   on disk on the way. Both lanes list tracked files instead
   (`code_quality_find_dart_files` on Linux, `Get-ProjectDartFiles` on Windows;
-  the same 59 files). Keep the tracked-file listing even though the SDK now
+  the same 62 files). Keep the tracked-file listing even though the SDK now
   comes from the image. `dart analyze` is *not* affected and never was. Detail:
   [`docs/source/project-operations.md`](docs/source/project-operations.md)
   § *Static checks*.
@@ -640,16 +640,24 @@ written out rather than linked.
   assumes a monorepo layout. Wired up in
   `third_party/AccelerANTgine/third_party/CMakeLists.txt` — the inference core's
   own dependency list, not the plugin's.
-- **The web Stream page needs a trustworthy origin, and the phone needs TLS in
-  a proxy.** Chromium grants cross-origin isolation (COOP/COEP →
-  `SharedArrayBuffer`, which the page checks) only on HTTPS or localhost, so a
-  phone on the LAN gets no stream over plain HTTP. The GStreamer signalling
-  server cannot end TLS for this repo's certificates — rustls rejects a
-  self-signed one with `CaUsedAsEndEntity` — so
-  `scripts/linux/cat-stream/serve.sh` serves the build and terminates TLS
-  (port 8444) while proxying `/webrtc-ws` to the producer's plain `ws://`
-  server (port 8443). The producer's `--cert/--key` exist; the proxy is the
-  supported path.
+- **The Stream page needs no secure context; only the Rust wasm core wants
+  isolation, and the web boots without it.** The page is receive-only
+  gstwebrtc-api JS. `pkg/oxidant_bg.wasm` is a threads build whose shared
+  memory Firefox and Safari refuse unless the page is cross-origin isolated
+  (COOP/COEP, honoured only on HTTPS or localhost); Chromium creates it anyway.
+  On web `main()` therefore treats a failed `RustLib.init()` as optional
+  (`lib/src/boot/rust_core.dart`): the app starts, and only the About page's
+  Rust demo goes dark. No code ever checked `crossOriginIsolated`, whatever
+  older notes said. Measured 2026-10-05 on the web lane's build with
+  `:latest`'s Chrome for Testing 154, over plain HTTP from a non-loopback
+  address: the app boots with the core, and boots without it when
+  `oxidant_bg.wasm` is blocked — the path Firefox and Safari take, neither of
+  which was run. `serve.sh --http` serves that plain-HTTP page, no certificate
+  warning. Without `--http` it terminates TLS on 8444, because the GStreamer
+  signalling server cannot end TLS for this repo's certificates (rustls
+  rejects a self-signed one with `CaUsedAsEndEntity`); the producer's
+  `--cert/--key` exist, the proxy is the supported path. Either way it proxies
+  `/webrtc-ws` to the producer's plain `ws://` server (port 8443).
 - **`signalingServerUrl` may be host-relative, and only web resolves it.** A
   value starting with `/` (the committed `/webrtc-ws`) becomes
   `wss://<page-host>/webrtc-ws` in `WebRTCSettings.fromJsonFile`
@@ -793,7 +801,7 @@ run shows both lines together (`FAILED: MSIX Packaging` … `=== Build Complete 
 never the log tail.**
 
 Two Windows-specific traps these steps carry: the format gate hands `dart
-format` the tracked file list (`Get-ProjectDartFiles`, the 59 files of § 4)
+format` the tracked file list (`Get-ProjectDartFiles`, the 62 files of § 4)
 rather than `.` (the recursive walk reaches the vendored submodule gitdir and
 exceeds MAX_PATH), and docs generation
 runs a `pub global activate dartdoc` (≥ 9.0.9) instead of the SDK-bundled
@@ -1006,7 +1014,7 @@ mount.
 `scripts/windows/Invoke-DartChecks.ps1` is the same loop as a script
 (`-SkipFormat`, `-SkipAnalyze`, `-SkipTest`, `-Fix`; its pub cache is the
 `omni-dart-checks-pubcache` volume). Its format step covers `lib test
-integration_test test_driver` — 49 of the 59 tracked files the lanes grade, not
+integration_test test_driver` — 52 of the 62 tracked files the lanes grade, not
 the plugin's ten under `packages/`; its test step runs the plugin's suite too.
 
 **This is not a substitute for the lane.** It runs the Dart gate and nothing

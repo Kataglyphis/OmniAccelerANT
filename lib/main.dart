@@ -4,6 +4,7 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -21,6 +22,7 @@ import 'package:omni_accelerant/blog_dependent_app_attributes.dart';
 import 'package:omni_accelerant/l10n/app_localizations.dart';
 import 'package:omni_accelerant/settings/webrtc_settings.dart';
 import 'package:omni_accelerant/src/boot/boot_overlay.dart';
+import 'package:omni_accelerant/src/boot/rust_core.dart';
 import 'package:omni_accelerant/src/rust/frb_generated.dart';
 
 /// Everything read off disk before the first frame; [WebRTCSettings] makes it Omni's own type.
@@ -81,7 +83,11 @@ Future<OmniBootstrapData> loadAppSettings() async {
 Future<void> main() async {
   // The timeout matters: without web/pkg/ frb's loader never completes, so a bare catch would hang on the spinner.
   try {
-    await RustLib.init().timeout(const Duration(seconds: 20));
+    await loadRustCore(
+      () => RustLib.init().timeout(const Duration(seconds: 20)),
+      // Firefox and Safari refuse the core's shared wasm memory without COOP/COEP, and the web streams without it.
+      optional: kIsWeb,
+    );
   } catch (error, stackTrace) {
     showBootFailure(error, stackTrace);
     rethrow;

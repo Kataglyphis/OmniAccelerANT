@@ -235,14 +235,16 @@ gst-launch-1.0 \
 Build the web bindings the way the web lane does (`ci-container-run-web-linux.sh`).
 `build-web` runs wasm-pack with `-Z build-std`, so it needs the **nightly**
 toolchain with `rust-src` and the wasm target, and it writes `web/pkg/`, which is
-generated and gitignored — a build without it loads and then hangs:
+generated and gitignored — a build without it waits 20 s for the core at
+start-up, then runs without it (only the About page's Rust demo needs it):
 
 ```bash
 rustup toolchain install nightly --component rust-src --target wasm32-unknown-unknown
 flutter_rust_bridge_codegen build-web --release --rust-root third_party/OxidANT
 ```
 
-Run Flutter web with COOP/COEP headers:
+Run Flutter web with COOP/COEP headers; Firefox and Safari load the core's
+shared-memory wasm only on a cross-origin isolated page:
 
 ```bash
 flutter run \
