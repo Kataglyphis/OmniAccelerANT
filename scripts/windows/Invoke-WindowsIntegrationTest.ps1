@@ -35,6 +35,9 @@ if (-not (Test-Path -LiteralPath $exe -PathType Leaf)) {
     throw "Integration app not found: $exe (build it with Build-Windows.ps1 -FlutterTarget $Target)"
 }
 
+# bin\ carries AccelerANTgine.dll and friends; the loader needs it on PATH, as Start-Windows.ps1 prepends it.
+$env:PATH = "$(Join-Path $appDirFull 'bin');$env:PATH"
+
 Push-Location $repoRoot
 try {
     Write-Host "Driving $Target against $exe"

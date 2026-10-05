@@ -104,10 +104,11 @@ thing is still unproven.
       Freshness* has: windows-x64 run 36866007231, 2026-10-01, `[OK]` on the Release
       runner; the lane guard's `docker top` reading was confirmed against the real image
       on 2026-10-05 — idle `cmd /c ping` reads false, a `pwsh` process true.) The scoped
-      `-CodeQL` run is manual-only; run it once.
-- [ ] **The integration test's Windows arm64 wiring proves itself.** The app-debug job of
-      `windows-arm64.yml` rebuilds with `-FlutterTarget` and drives the app; close when a
-      `windows-11-arm` run is green.
+      `-CodeQL` run is manual-only; run it once (the first attempt, 2026-10-05, hung in
+      the analysis phase — 5 h wall against 8 s CPU — and was killed; watch the log).
+- [ ] **The integration test's x64 drive proves itself.** arm64 is green (run
+      37240841037); x64's first drive failed before the VM service — `bin\` was not on
+      PATH for the app — and the fix rides the script; close when windows-x64 is green.
 
 ## Agentic loop
 
