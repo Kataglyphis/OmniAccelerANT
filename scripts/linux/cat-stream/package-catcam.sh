@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Packages the cat cam service: a self-contained bundle (its own GStreamer, ONNX Runtime and C library)
-# and a .deb that installs it as a systemd service, enabled at install. Runs inside the family image.
+# and a .deb and an AppImage that install it as a systemd service, autostarted. Runs inside the family image.
 #
 # Usage, from the repository root inside the image:
 #   bash scripts/linux/cat-stream/package-catcam.sh --web-root build/web [options]
@@ -8,7 +8,7 @@
 #   --web-root DIR   the Flutter web build (the web lane's build/web); required
 #   --model FILE     ONNX model to ship (default: AccelerANTgine's yolo26n.onnx)
 #   --producer FILE  a built kataglyphis_cat_webrtc (default: cargo build --release here)
-#   --out DIR        where the .deb and the bundle tarball land (default: out/)
+#   --out DIR        where the .deb, the AppImage and the bundle tarball land (default: out/)
 #   --version X.Y.Z  package version (default: pubspec.yaml's, without +build)
 #
 # Details: docs/source/camera-streaming.md § The cat cam package.
@@ -42,7 +42,7 @@ done
 [ -n "${web_root}" ] || { printf -- '--web-root is required\n' >&2; exit 2; }
 [ -f "${web_root}/index.html" ] || { printf 'no index.html in %s\n' "${web_root}" >&2; exit 1; }
 [ -f "${model}" ] || { printf 'model not found: %s\n' "${model}" >&2; exit 1; }
-for tool in patchelf dpkg-deb readelf ldd; do
+for tool in patchelf dpkg-deb readelf ldd appimagetool; do
   command -v "${tool}" >/dev/null 2>&1 || { printf '%s not found\n' "${tool}" >&2; exit 1; }
 done
 
@@ -174,6 +174,7 @@ for lib in "${bundle}"/lib/*.so*; do
 done
 
 # The launcher passes --library-path; this RUNPATH says the same to G6's ld.so model.
+# shellcheck disable=SC2016
 patchelf --set-rpath '$ORIGIN/../lib' "${bundle}/bin/kataglyphis_cat_webrtc"
 bash "$(antfrastructure_path linux/scripts/06-packaging/check-ort-provenance.sh)" "${bundle}"
 
@@ -182,6 +183,9 @@ cat > "${bundle}/catcam" <<LAUNCHER
 # Runs the cat cam with its own GStreamer, ONNX Runtime and C library, whatever the host ships.
 # Arguments and ${package}'s catcam.toml settings pass straight through.
 here="\$(cd -- "\$(dirname -- "\$(readlink -f -- "\$0")")" && pwd)"
+case "\${1:-}" in
+  --install|--uninstall) exec "\$here/libexec/catcam-install" "\$@" ;;
+esac
 export GST_PLUGIN_PATH="\$here/lib/gstreamer-1.0"
 # Never the host's plugins: they are built against another GStreamer.
 export GST_PLUGIN_SYSTEM_PATH=""
@@ -196,6 +200,13 @@ export KATAGLYPHIS_ONNX_MODEL="\${KATAGLYPHIS_ONNX_MODEL:-\$here/models/${model_
 exec "\$here/lib/${loader}" --library-path "\$here/lib" "\$here/bin/kataglyphis_cat_webrtc" "\$@"
 LAUNCHER
 chmod 755 "${bundle}/catcam"
+
+# The installer the AppImage and the tarball run, and the files it installs; the .deb installs the same ones.
+install -m 755 "${script_dir}/catcam/catcam-install" "${bundle}/libexec/catcam-install"
+mkdir -p "${bundle}/share/${package}"
+for file in omni-catcam.service catcam.toml ufw-omni-catcam; do
+  install -m 644 "${script_dir}/catcam/${file}" "${bundle}/share/${package}/${file}"
+done
 
 cat > "${bundle}/share/doc/${package}/NOTICE-model" <<NOTICE
 ${model_name} is an Ultralytics YOLO model, licensed AGPL-3.0
@@ -240,5 +251,39 @@ deb_file="${out_dir}/${package}_${version}_${deb_arch}.deb"
 dpkg-deb --root-owner-group --build "${deb}" "${deb_file}" >/dev/null
 tar -C "${bundle}/.." -czf "${out_dir}/${package}-${version}-linux-${deb_arch}.tar.gz" \
   --transform "s|^bundle|${package}|" bundle
+
+# --- the AppImage: the bundle in the foreground, or `sudo <AppImage> --install` --------------
+appdir="${work}/appdir"
+cp -a "${bundle}" "${appdir}"
+ln -s catcam "${appdir}/AppRun"
+install -m 644 "${repo_root}/assets/icons/kataglyphis_app_icon.svg" "${appdir}/${package}.svg"
+cat > "${appdir}/${package}.desktop" <<DESKTOP
+[Desktop Entry]
+Type=Application
+Name=OmniAccelerANT Cat Cam
+Comment=Camera, YOLO cat boxes and a WebRTC stream for any browser on the network
+Exec=catcam
+Icon=${package}
+Categories=AudioVideo;Video;
+Terminal=true
+DESKTOP
+# The image stages appimagetool's runtime; naming it keeps the build from downloading one.
+runtime_args=()
+for candidate in "${HOME:-/root}/.local/share/appimagekit/runtime-$(uname -m)" \
+  "/etc/skel/.local/share/appimagekit/runtime-$(uname -m)"; do
+  if [ -f "${candidate}" ]; then
+    runtime_args=(--runtime-file "${candidate}")
+    break
+  fi
+done
+appimage_file="${out_dir}/${package}-${version}-$(uname -m).AppImage"
+if ! APPIMAGE_EXTRACT_AND_RUN=1 NO_APPSTREAM=1 ARCH="$(uname -m)" \
+  appimagetool "${runtime_args[@]}" "${appdir}" "${appimage_file}" >"${work}/appimagetool.log" 2>&1; then
+  cat "${work}/appimagetool.log" >&2
+  printf 'appimagetool failed for %s\n' "${appimage_file}" >&2
+  exit 1
+fi
+
 printf 'bundle: %s files, %s\n' "$(find "${bundle}" -type f | wc -l)" "$(du -sh "${bundle}" | cut -f1)"
 printf 'wrote %s (%s)\n' "${deb_file}" "$(du -h "${deb_file}" | cut -f1)"
+printf 'wrote %s (%s)\n' "${appimage_file}" "$(du -h "${appimage_file}" | cut -f1)"

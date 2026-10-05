@@ -1,0 +1,143 @@
+#!/bin/sh
+# Installs this bundle as the omni-catcam service where no .deb fits (the AppImage's --install); postinst runs `user`.
+set -eu
+
+package=omni-accelerant-catcam
+prefix="/opt/${package}"
+unit=omni-catcam.service
+unit_file="/etc/systemd/system/${unit}"
+user=omni-catcam
+config=/etc/omni-accelerant/catcam.toml
+here="$(cd -- "$(dirname -- "$(readlink -f -- "$0")")/.." && pwd)"
+share="${here}/share/${package}"
+
+usage() {
+  cat <<'EOF'
+usage: catcam --install [--no-autostart]
+       catcam --uninstall [--purge]
+
+  --install       copy the cat cam to /opt/omni-accelerant-catcam and run it as the
+                  omni-catcam service from boot; again with a newer copy, it upgrades
+  --no-autostart  install, but leave the service disabled
+                  (start it later with: sudo systemctl enable --now omni-catcam)
+  --uninstall     stop and remove the service and /opt/omni-accelerant-catcam;
+                  /etc/omni-accelerant/catcam.toml stays
+  --purge         with --uninstall: remove the settings, the state and the user too
+EOF
+}
+
+have_systemd() { [ -d /run/systemd/system ]; }
+
+deb_installed() {
+  command -v dpkg-query >/dev/null 2>&1 &&
+    dpkg-query -W -f='${Status}' "${package}" 2>/dev/null | grep -q 'ok installed'
+}
+
+make_user() {
+  if ! getent passwd "${user}" >/dev/null; then
+    useradd --system --no-create-home --home-dir "/var/lib/${package}" --shell /usr/sbin/nologin "${user}"
+  fi
+  # The camera nodes and the dma-heaps a Pi camera allocates from belong to these, depending on the OS.
+  for group in video render; do
+    if getent group "${group}" >/dev/null; then
+      usermod -a -G "${group}" "${user}"
+    fi
+  done
+}
+
+install_bundle() {
+  autostart="$1"
+  if deb_installed; then
+    printf 'the %s .deb is installed: upgrade it with the .deb, or remove it first\n' "${package}" >&2
+    exit 1
+  fi
+  [ "${here}" != "${prefix}" ] || { printf 'this is the installed copy; run --install from the AppImage\n' >&2; exit 1; }
+  fresh=true
+  [ -e "${unit_file}" ] && fresh=false
+
+  # The source may be the AppImage's read-only mount, owned by whoever built it.
+  rm -rf "${prefix}.new"
+  mkdir -p "$(dirname "${prefix}")"
+  cp -a --no-preserve=ownership "${here}/." "${prefix}.new"
+  if have_systemd; then
+    systemctl stop "${unit}" 2>/dev/null || true
+  fi
+  rm -rf "${prefix}"
+  mv "${prefix}.new" "${prefix}"
+
+  install -m 644 "${share}/omni-catcam.service" "${unit_file}"
+  [ -e "${config}" ] || install -D -m 644 "${share}/catcam.toml" "${config}"
+  if [ -d /etc/ufw/applications.d ]; then
+    install -m 644 "${share}/ufw-omni-catcam" /etc/ufw/applications.d/omni-catcam
+  fi
+  mkdir -p /usr/local/bin
+  ln -sfn "${prefix}/catcam" /usr/local/bin/omni-catcam
+  make_user
+
+  if have_systemd; then
+    systemctl daemon-reload
+    if [ "${autostart}" = false ]; then
+      systemctl disable "${unit}" 2>/dev/null || true
+    elif [ "${fresh}" = true ]; then
+      systemctl enable "${unit}"
+    fi
+    # An upgrade keeps the admin's choice: an enabled service restarts, a disabled one stays off.
+    if systemctl -q is-enabled "${unit}"; then
+      systemctl restart "${unit}"
+    fi
+    printf 'installed: %s\n' "$(systemctl is-enabled "${unit}" 2>/dev/null || true)"
+  else
+    printf 'installed; no systemd here, so start it with: %s/catcam\n' "${prefix}"
+  fi
+  printf 'the page: http://%s:8080/  settings: %s\n' "$(uname -n)" "${config}"
+  if command -v firewall-cmd >/dev/null 2>&1; then
+    printf 'firewalld: sudo firewall-cmd --permanent --add-port=8080/tcp --add-port=40000-40099/udp && sudo firewall-cmd --reload\n'
+  elif [ -d /etc/ufw/applications.d ]; then
+    printf 'ufw: sudo ufw allow OmniCatCam\n'
+  fi
+}
+
+uninstall_bundle() {
+  purge="$1"
+  if deb_installed; then
+    printf 'the %s .deb is installed: remove it with apt\n' "${package}" >&2
+    exit 1
+  fi
+  if have_systemd; then
+    systemctl disable --now "${unit}" 2>/dev/null || true
+  fi
+  rm -f "${unit_file}" /usr/local/bin/omni-catcam
+  if have_systemd; then
+    systemctl daemon-reload
+  fi
+  rm -rf "${prefix}"
+  if [ "${purge}" = true ]; then
+    rm -f "${config}" /etc/ufw/applications.d/omni-catcam
+    rmdir /etc/omni-accelerant 2>/dev/null || true
+    rm -rf "/var/lib/${package}"
+    if getent passwd "${user}" >/dev/null; then
+      userdel "${user}"
+    fi
+  fi
+  printf 'uninstalled%s\n' "$([ "${purge}" = true ] && printf ', settings and user included')"
+}
+
+[ "$(id -u)" -eq 0 ] || { printf 'run it as root: sudo <the AppImage or catcam> %s\n' "$*" >&2; exit 1; }
+case "${1:-}" in
+  user) make_user ;;
+  --install)
+    case "${2:-}" in
+      "") install_bundle true ;;
+      --no-autostart) install_bundle false ;;
+      *) usage >&2; exit 2 ;;
+    esac
+    ;;
+  --uninstall)
+    case "${2:-}" in
+      "") uninstall_bundle false ;;
+      --purge) uninstall_bundle true ;;
+      *) usage >&2; exit 2 ;;
+    esac
+    ;;
+  *) usage >&2; exit 2 ;;
+esac

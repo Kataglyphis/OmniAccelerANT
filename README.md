@@ -152,11 +152,12 @@ YOLO ONNX model for cats (COCO class 15), burns the boxes into the frames and
 publishes them as a WebRTC stream that the Flutter web app's **Stream** page
 consumes.
 
-**The installable cat cam (Linux .deb).** In `:latest`, with the web lane's
-`build/web`, run `scripts/linux/cat-stream/package-catcam.sh --web-root
-build/web`. That builds `out/omni-accelerant-catcam_<version>_<arch>.deb`.
-- `sudo apt install ./omni-accelerant-catcam_*.deb` installs a systemd service
-  that starts at boot.
+**The installable cat cam (Linux .deb or AppImage).** In `:latest`, with the web
+lane's `build/web`, run `scripts/linux/cat-stream/package-catcam.sh --web-root
+build/web`. That builds `out/omni-accelerant-catcam_<version>_<arch>.deb` and an
+`.AppImage`; `web.yml` uploads both for x64 and arm64.
+- `sudo apt install ./omni-accelerant-catcam_*.deb`, or `sudo ./omni-accelerant-catcam-*.AppImage
+  --install` on any other distro, installs a systemd service that starts at boot.
 - Open `http://<host>:8080/` from a browser on the network.
 - The service picks a Raspberry Pi camera when one is attached, else a USB
   webcam.
