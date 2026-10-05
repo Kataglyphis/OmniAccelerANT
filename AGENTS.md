@@ -1179,12 +1179,20 @@ from an ignored path. The Windows `-CodeQL` path passes the same file since
 4dbf68b9); `Build-Windows.ps1` stops rather than scan unscoped on an older pin,
 because the unscoped run of 2026-09-17 indexed every vendored tree. A reused
 `codeql-db-cluster` keeps the scope it was created with: pass `-CleanCodeQLDb`.
-For traced C++ the config does **not** scope the findings: the first complete Windows
+`database analyze` does **not** apply the config to traced C++: the first complete Windows
 run (2026-10-05) reported 39 of its 63 cpp results from the ignored
-`third_party/AccelerANTgine/third_party`, all four high-severity ones among them
-(BACKLOG § *Open — verification gaps*). Its Rust results were all OxidANT's. That run also
-needed a bootstrap build and a cold tree first, and a hub with `Disable-SccacheForTrace`.
-Under the tracer, the image's never-exiting sccache server hangs `database create`.
+`third_party/AccelerANTgine/third_party`. Since hub 09c3f983, `Invoke-BuildCodeQL` drops
+results under the config's `paths-ignore` from each SARIF and logs the count.
+
+`-CodeQL` starts from any tree. The untraced bootstrap runs first. Every preset's CMake
+folder and the cargo target are then cleared, and the traced build compiles cold with
+sccache off (hub `Disable-SccacheForTrace`): under the tracer, the image's never-exiting
+sccache server hangs `database create`. `Build-Windows-Container.ps1 -Configurations
+clangcl-release -CodeQL -CodeQLDownload -CleanCodeQLDb -FreshContainer` ran that way on
+2026-10-05 in about 37 min. It left 24 cpp and 10 rust results, all in owned code. The
+driver brings back only `logs` and the runner: the SARIFs stay in the container's
+`C:\ws\codeql-results`, readable with `docker exec omniaccelerant-agentic-build pwsh
+-Command "Get-Content -Raw C:\ws\codeql-results\cpp.sarif"`.
 
 `FLUTTER_DIR` defaults to `/opt/flutter` — the image's SDK, shared by every
 lane and never written to. It used to default inside the workspace, which made

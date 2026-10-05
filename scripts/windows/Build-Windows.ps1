@@ -187,20 +187,9 @@ try {
     Write-BuildLog -Context $context -Message ("=" * 60)
 
     if ($CodeQL) {
-        $codeQLForwardParameters = @{}
-        foreach ($pair in $PSBoundParameters.GetEnumerator()) {
-            $codeQLForwardParameters[$pair.Key] = $pair.Value
-        }
-        $codeQLForwardParameters['SkipBootstrapFlutterBuild'] = $true
-
-        Write-BuildLog -Context $context -Message "CodeQL mode: forcing SkipBootstrapFlutterBuild to analyze only non-bootstrap steps."
-        # Scoped like the android scan (AGENTS.md § 5); an older hub pin lacks the parameter.
-        $codeQLConfig = Join-Path $workspace '.github\codeql\codeql-config.yml'
-        if (-not (Get-Command Invoke-BuildCodeQL).Parameters.ContainsKey('CodeScanningConfig')) {
-            throw "Invoke-BuildCodeQL has no -CodeScanningConfig in this ANTfrastructure pin; move third_party/ANTfrastructure to hub commit 4dbf68b9 or later rather than scan unscoped."
-        }
-        Invoke-BuildCodeQL -Context $context -Workspace $workspace -ForwardParameters $codeQLForwardParameters -BuildScriptPath $MyInvocation.MyCommand.Path -CodeScanningConfig $codeQLConfig
-        exit 0
+        # The scan is about the native build; the Dart gates run in every lane already.
+        $SkipFormat = $SkipTests = $SkipDocs = [switch]$true
+        Write-BuildLog -Context $context -Message "CodeQL mode: no format, tests or docs; the bootstrap runs untraced, then CodeQL traces a cold native build."
     }
 
     Invoke-BuildStep -Context $context -StepName "Environment Check" -Script {
@@ -229,6 +218,13 @@ try {
     if (-not $SkipBootstrapFlutterBuild) {
         Invoke-BuildStep -Context $context -StepName "Flutter Dependencies" -Critical -Script {
             Invoke-BuildExternal -Context $context -File "flutter" -Parameters @("pub", "get") -IgnoreExitCode
+            # Dart Analysis reads the plugin's own package_config; another lane's leaves it unresolvable.
+            Push-Location (Join-Path $workspace 'packages\kataglyphis_native_inference')
+            try {
+                Invoke-BuildExternal -Context $context -File "flutter" -Parameters @("pub", "get") -IgnoreExitCode
+            } finally {
+                Pop-Location
+            }
             Invoke-BuildExternal -Context $context -File "flutter" -Parameters @("config", "--enable-windows-desktop") -IgnoreExitCode
         }
     } else {
@@ -383,6 +379,31 @@ try {
             Remove-BuildRootSafe -Context $context -Path $cmakeBuildDir -Label "CMake build directory"
             New-Item -ItemType Directory -Force -Path $cmakeBuildDir | Out-Null
         }
+    }
+
+    if ($CodeQL) {
+        # The extractor sees only compilers that run under the trace, so the traced build starts cold.
+        Invoke-BuildStep -Context $context -StepName "Cold Tree for CodeQL" -Script {
+            foreach ($currentPreset in $presetsToRun) {
+                $presetBuildDir = if ($currentPreset) { "${cmakeBuildDir}_${currentPreset}" } else { $cmakeBuildDir }
+                Remove-BuildRootSafe -Context $context -Path $presetBuildDir -Label "CMake build directory"
+            }
+            Remove-BuildRootSafe -Context $context -Path $env:CARGO_TARGET_DIR -Label "cargo target directory"
+        }
+
+        $codeQLForwardParameters = @{}
+        foreach ($pair in $PSBoundParameters.GetEnumerator()) {
+            $codeQLForwardParameters[$pair.Key] = $pair.Value
+        }
+        foreach ($name in 'SkipBootstrapFlutterBuild', 'SkipFormat', 'SkipTests', 'SkipDocs') { $codeQLForwardParameters[$name] = $true }
+
+        # Scoped like the android scan (AGENTS.md § 5); an older hub pin lacks the parameter.
+        $codeQLConfig = Join-Path $workspace '.github\codeql\codeql-config.yml'
+        if (-not (Get-Command Invoke-BuildCodeQL).Parameters.ContainsKey('CodeScanningConfig')) {
+            throw "Invoke-BuildCodeQL has no -CodeScanningConfig in this ANTfrastructure pin; move third_party/ANTfrastructure to hub commit 4dbf68b9 or later rather than scan unscoped."
+        }
+        Invoke-BuildCodeQL -Context $context -Workspace $workspace -ForwardParameters $codeQLForwardParameters -BuildScriptPath $MyInvocation.MyCommand.Path -CodeScanningConfig $codeQLConfig
+        exit 0
     }
 
     Update-PermissionHandlerWindows -Context $context -WorkspaceDir $workspace
