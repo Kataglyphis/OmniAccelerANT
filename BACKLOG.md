@@ -20,25 +20,6 @@ consumes, so the loop this repo adopted on 2026-09-13 (`scripts/agentic-loop/`,
       both architectures (launch smoke, and the integration test's `flutter drive`:
       windows-x64 run 37271415938, windows-arm64 run 37240841037), so what is left is one
       launch by hand from the console.
-- [ ] **The scoped Windows CodeQL scan does not keep vendored C++ out of its results.** The
-      first complete run (2026-10-05, 27 min, the `:winamd64` of 2026-10-04) reported 63 cpp
-      and 10 rust results. 39 of the cpp ones, including all four high-severity ones, are in
-      `third_party/AccelerANTgine/third_party` (SPDLOG's bundled fmt, GOOGLE_BENCHMARK), which
-      `.github/codeql/codeql-config.yml` ignores. All 10 rust results are OxidANT's. Filter the
-      SARIF by the config's paths after `database analyze` (the hub's `Invoke-BuildCodeQL`), or
-      keep vendored targets out of the traced build. Owned code has 21 results in
-      `AccelerANTgine/Src` and 3 here; its only two errors (`cpp/missing-return`,
-      `onnx_inference_engine.cpp:233` and `:240`) are false positives, since both lambdas return.
-- [ ] **`-CodeQL` cannot start from a fresh tree.** It forces `-SkipBootstrapFlutterBuild`, which
-      also skips `-CleanBuild` and the CMake reset. So the traced build needs an earlier build's
-      `windows/flutter/ephemeral`, and recompiles only what is stale: an up-to-date tree gives
-      the C++ extractor nothing to see. By reading (not run), `Build-Windows-Container.ps1
-      -CodeQL` cannot supply the headers either: the hub's `Remove-StaleContainerSources`
-      prunes `windows`, and the inbound stream excludes `ephemeral`. The 2026-10-05 run did it
-      by hand (`logs/_phase2/codeql-job2.ps1`, gitignored): a container-local copy, one plain
-      build, delete `C:\kataglyphis_fast_build\build\windows`, `rust_target` and the sccache
-      cache, then `-CodeQL -CodeQLDownload -CleanCodeQLDb`. Make the CodeQL path do that itself.
-
 ## Agentic loop
 
 Adopted 2026-09-13: `scripts/agentic-loop/` (config, runner wrappers, prompt
