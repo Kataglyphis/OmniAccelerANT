@@ -174,7 +174,7 @@ the ORT ABI (`OrtGetApiBase` and G6's other markers), not only when a
 under another name, is exactly what G6's verdicts exist to refuse. What it does
 not decide is which copy a process loads at run time — `runtime_paths.cc` above
 points `ORT_DYLIB_PATH` at the bundled one. A missing GStreamer lib or a foreign ONNX Runtime
-fails the lane here instead of on the first target machine. Both gates run in `run-native-linux.sh` after
+fails the lane here instead of on the first target machine. Both gates run in `lane-native-linux.sh` after
 `flutter build linux`; `scripts/linux/tests/test-check-bundle-closure.sh`, which
 mutation-tests when the census runs and that its verdict decides, runs in the
 same lane's code-quality batch before the build.

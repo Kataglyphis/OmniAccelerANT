@@ -125,9 +125,9 @@ fi
 setup_compiler_cache
 export_toolchain_env "$MATRIX_ARCH"
 
-# Checks, build and packaging live in run-native-linux.sh.
+# Checks, build and packaging live in lane-native-linux.sh.
 app_packaging_run_command_with_runtime "$PACKAGE_FORMATS" \
-  bash scripts/linux/run-native-linux.sh \
+  bash scripts/linux/ci/lane-native-linux.sh \
     --arch "$MATRIX_ARCH" \
     --build-mode "$BUILD_MODE" \
     --app-name "$APP_NAME" \

@@ -2,15 +2,15 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
-source "$SCRIPT_DIR/lib/cli-common.sh"
-source "$SCRIPT_DIR/lib/packaging-common.sh"
-source "$SCRIPT_DIR/lib/container-steps.sh"
+REPO_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
+source "$SCRIPT_DIR/../lib/cli-common.sh"
+source "$SCRIPT_DIR/../lib/packaging-common.sh"
+source "$SCRIPT_DIR/../lib/container-steps.sh"
 
 usage() {
   cat <<'EOF'
 Usage:
-  bash scripts/linux/run-android.sh [options]
+  bash scripts/linux/ci/lane-android.sh [options]
 
 Options:
   -a, --arch <x64|arm64>        Host architecture label for artifact naming (default: auto-detect)
@@ -20,7 +20,7 @@ Options:
   -h, --help                    Show this help
 
 Notes:
-  - This runs on the host (no Docker).
+  - The android lane's body: ci-container-run-android.sh runs it inside the CI image. It starts no container.
   - Requires flutter + dart available (either on PATH or via --flutter-dir).
 EOF
 }

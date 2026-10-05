@@ -28,13 +28,6 @@ thing is still unproven.
       `[my_texture] first pushed frame`. `xvfb-run` is in the image since
       `:latest` of 2026-09-29 (hub CON20, checked in the published amd64 child).
 
-## Open — duplication and drift
-
-- [ ] `run-native-linux.sh` / `run-android.sh` read as host-side scripts but are
-      what the CI lane actually invokes — the naming still misleads. The rule
-      they sit beside holds without exception: **`scripts/linux/lib/` holds only
-      files that are sourced or imported, never a file you invoke.**
-
 ## Open — web tests in Chrome
 
 - [ ] **Switch the web lane's Dart tests to `flutter test --platform chrome`.**

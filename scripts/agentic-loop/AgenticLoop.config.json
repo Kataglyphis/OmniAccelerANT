@@ -43,7 +43,7 @@
     "logToConsole": true
   },
   "build": {
-    "_comment": "Windows: host-side container driver; it always skips docs and MSIX and reuses one container. Tests are the Dart gates in-container via -TestsOnly. Quality commands stay empty - Build-Windows.ps1 runs the Dart+CMake format gate on every loop build. Linux: an adapter mapping the loop's --preset/--build-dir contract onto run-native-linux.sh; NOT yet exercised (the loop has only been run on Windows, and the Linux side additionally needs the opencode v2 CLI on that host).",
+    "_comment": "Windows: host-side container driver; it always skips docs and MSIX and reuses one container. Tests are the Dart gates in-container via -TestsOnly. Quality commands stay empty - Build-Windows.ps1 runs the Dart+CMake format gate on every loop build. Linux: an adapter mapping the loop's --preset/--build-dir contract onto lane-native-linux.sh; NOT yet exercised (the loop has only been run on Windows, and the Linux side additionally needs the opencode v2 CLI on that host).",
     "windowsScript": "scripts/windows/Build-Windows-Container.ps1",
     "linuxScript": "scripts/linux/agentic-build.sh",
     "windowsTestCommand": "pwsh -ExecutionPolicy Bypass -File \"scripts\\windows\\Build-Windows-Container.ps1\" -TestsOnly",
