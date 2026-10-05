@@ -124,7 +124,11 @@ class RustBuilder {
   CargoBuildOptions? get _buildOptions =>
       environment.crateOptions.cargo[environment.configuration];
 
-  String get _toolchain => _buildOptions?.toolchain.name ?? 'stable'; //
+  /// Local patch: without a cargokit.yaml toolchain, the one rustup resolves
+  /// for the crate, so an image's pinned default builds it rather than
+  /// whatever `stable` is on the day.
+  late final String _toolchain = _buildOptions?.toolchain.name ??
+      Rustup.activeToolchain(environment.manifestDir);
 
   /// Extra cargo flags injected per-platform (e.g. the Windows feature set)
   /// via CARGOKIT_EXTRA_CARGO_FLAGS, forwarded by cargokit.cmake. Space
