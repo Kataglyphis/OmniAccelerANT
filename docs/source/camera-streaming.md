@@ -293,7 +293,9 @@ The arm64 packages were built natively on the board in `:latest`, and CI's
 - with `inference_fps = 2` the service used 132 % of one core, and the board ran
   at 63 °C;
 - the same path, fed ANThology's photo, delivered the green YOLO boxes to that
-  browser.
+  browser;
+- after a reboot the unit was active about 11 s after the kernel started, on the Pi
+  camera again, and the browser played about 30 fps.
 
 Two notes from that board:
 - **A firewall needs rules.** If ufw is active, `sudo ufw allow OmniCatCam` opens
@@ -301,8 +303,7 @@ Two notes from that board:
 - **A dark room is a black stream.** The imx219 has no IR, and the sensor itself
   read a mean Y of 0.5 out of 255 at night.
 
-**Not verified yet:** a boot (the unit is enabled, but the board has not been
-rebooted), a USB webcam, and the AppImage on a board.
+**Not verified yet:** a USB webcam, and the AppImage on a board.
 
 ### Cat detection stream (Rust, native)
 
