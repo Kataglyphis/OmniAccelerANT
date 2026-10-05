@@ -886,7 +886,7 @@ Dart VM, one `TESTS:` line), `Test-KntAbi.ps1`, `Invoke-PluginGTest.ps1` (the
 target `Build-WindowsArm64App.ps1` builds), and `Test-LaunchSmoke.ps1 -OrtStamp`.
 Its `ort-runner-suite` job runs the Pester suite on `windows-11-arm`.
 
-BACKLOG § Windows arm64 keeps what the lane does not prove yet.
+BACKLOG § *Open — verification gaps* keeps what the Windows lanes do not prove yet.
 
 ### What each lane tests
 
