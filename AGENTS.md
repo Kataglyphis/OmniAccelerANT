@@ -1170,6 +1170,12 @@ from an ignored path. The Windows `-CodeQL` path passes the same file since
 4dbf68b9); `Build-Windows.ps1` stops rather than scan unscoped on an older pin,
 because the unscoped run of 2026-09-17 indexed every vendored tree. A reused
 `codeql-db-cluster` keeps the scope it was created with: pass `-CleanCodeQLDb`.
+For traced C++ the config does **not** scope the findings: the first complete Windows
+run (2026-10-05) reported 39 of its 63 cpp results from the ignored
+`third_party/AccelerANTgine/third_party`, all four high-severity ones among them
+(BACKLOG § *Open — verification gaps*). Its Rust results were all OxidANT's. That run also
+needed a bootstrap build and a cold tree first, and a hub with `Disable-SccacheForTrace`.
+Under the tracer, the image's never-exiting sccache server hangs `database create`.
 
 `FLUTTER_DIR` defaults to `/opt/flutter` — the image's SDK, shared by every
 lane and never written to. It used to default inside the workspace, which made

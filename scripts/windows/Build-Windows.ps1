@@ -387,7 +387,9 @@ try {
 
     Update-PermissionHandlerWindows -Context $context -WorkspaceDir $workspace
 
-    if (Get-Command "sccache" -ErrorAction SilentlyContinue) {
+    # Set by the hub's Invoke-BuildCodeQL: under its tracer sccache's server never exits and the trace never ends.
+    $useSccache = [bool](Get-Command "sccache" -ErrorAction SilentlyContinue) -and -not $env:KATAGLYPHIS_NO_SCCACHE
+    if ($useSccache) {
         Write-BuildLog -Context $context -Message "sccache found. Enabling for Rust."
         $env:RUSTC_WRAPPER = "sccache"
     }
@@ -447,9 +449,12 @@ try {
             }
             # Only declares the plugin's gtest target (EXCLUDE_FROM_ALL); Build Native Plugin Tests builds it by name.
             $cmakeArgs += "-Dinclude_kataglyphis_native_inference_tests=ON"
-            if (Get-Command "sccache" -ErrorAction SilentlyContinue) {
+            if ($useSccache) {
                 $cmakeArgs += "-DCMAKE_C_COMPILER_LAUNCHER=sccache"
                 $cmakeArgs += "-DCMAKE_CXX_COMPILER_LAUNCHER=sccache"
+            } elseif ($env:KATAGLYPHIS_NO_SCCACHE) {
+                # Empty values beat a cached launcher and the presets' COMPILER_CACHE=sccache (hub cmake/Cache.cmake).
+                $cmakeArgs += @("-DCMAKE_C_COMPILER_LAUNCHER=", "-DCMAKE_CXX_COMPILER_LAUNCHER=", "-DCOMPILER_CACHE=")
             }
 
             if (-not $isReleasePreset) {
