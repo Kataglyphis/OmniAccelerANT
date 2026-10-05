@@ -245,8 +245,13 @@ left to the host, because its IPA and tuning files must match the host kernel.
   - `systemctl disable --now omni-catcam` turns that off, and upgrades keep the
     choice.
   - `OMNI_CATCAM_AUTOSTART=0` on the first install leaves the service disabled.
-- `/etc/omni-accelerant/catcam.toml` is a conffile with every setting commented
-  out. `omni-catcam --print-config` shows the settings in effect.
+- `/etc/omni-accelerant/catcam.toml` is written at the first install, with every
+  setting commented out, and never overwritten. `omni-catcam --print-config`
+  shows the settings in effect.
+  - It is deliberately not a conffile. dpkg asks about an edited conffile on every
+    upgrade that changes it, and over SSH or in an unattended upgrade nobody
+    answers, so the install hangs. Found on himbeere2, 2026-10-05.
+  - `apt purge` removes it.
 - `sudo ufw allow OmniCatCam` opens `8080/tcp` and the WebRTC range
   `40000:40099/udp`.
 
@@ -274,10 +279,30 @@ and run as the unit runs it, with a scrubbed environment as `omni-catcam`:
   score 0.72);
 - SIGTERM exits 0;
 - the AppImage's `--install`, a second `--install` over it, and `--uninstall --purge`
-  left the expected files, and then none.
+  left the expected files, and then none;
+- the .deb installed over an edited `catcam.toml` with no terminal, kept the edit, and
+  `dpkg --purge` removed it.
 
-**Not verified yet:** an arm64 build, a Raspberry Pi, a real camera, and a
-systemd boot.
+**On a Raspberry Pi 5 (himbeere2: imx219, Debian 13, kernel 6.18), 2026-10-05.**
+The arm64 packages were built natively on the board in `:latest`, and CI's
+`web.yml` builds them on `ubuntu-26.04-arm`. The .deb ran as the systemd unit:
+- the camera came through `rpicam-vid`, with `rotate = 180` from the settings;
+- exactly one `rpicam-vid` child ran, and no shared object mapped from outside
+  the bundle;
+- headless Chrome on another LAN host played 821 frames in 28 s;
+- with `inference_fps = 2` the service used 132 % of one core, and the board ran
+  at 63 °C;
+- the same path, fed ANThology's photo, delivered the green YOLO boxes to that
+  browser.
+
+Two notes from that board:
+- **A firewall needs rules.** If ufw is active, `sudo ufw allow OmniCatCam` opens
+  8080 and the WebRTC UDP range. himbeere2's existing rules already covered both.
+- **A dark room is a black stream.** The imx219 has no IR, and the sensor itself
+  read a mean Y of 0.5 out of 255 at night.
+
+**Not verified yet:** a boot (the unit is enabled, but the board has not been
+rebooted), a USB webcam, and the AppImage on a board.
 
 ### Cat detection stream (Rust, native)
 

@@ -79,7 +79,7 @@ model_name="$(basename "${model}")"
 
 # The service's pipelines and webrtcsink's own; without debugutilsbad's errorignore its codec discovery finds none.
 gst_plugin_dir=/opt/gstreamer/lib/multiarch/gstreamer-1.0
-plugins=(coreelements app videoconvertscale videorate videofilter videotestsrc videoparsersbad debugutilsbad
+plugins=(coreelements app videoconvertscale videorate videofilter videotestsrc rawparse videoparsersbad debugutilsbad
   jpeg png multifile video4linux2 rswebrtc rsrtp webrtc nice dtls srtp sctp rtpmanager rtp vpx)
 for plugin in "${plugins[@]}"; do
   [ -e "${gst_plugin_dir}/libgst${plugin}.so" ] || {
@@ -218,16 +218,16 @@ NOTICE
 # --- the .deb --------------------------------------------------------------------------------
 deb="${work}/deb"
 mkdir -p "${deb}/DEBIAN" "${deb}${prefix}" "${deb}/usr/bin" "${deb}/usr/lib/systemd/system" \
-  "${deb}/etc/omni-accelerant" "${deb}/etc/ufw/applications.d"
+  "${deb}/etc/ufw/applications.d"
 cp -a "${bundle}/." "${deb}${prefix}/"
 ln -s "${prefix}/catcam" "${deb}/usr/bin/omni-catcam"
 install -m 644 "${script_dir}/catcam/omni-catcam.service" "${deb}/usr/lib/systemd/system/"
-install -m 644 "${script_dir}/catcam/catcam.toml" "${deb}/etc/omni-accelerant/catcam.toml"
 install -m 644 "${script_dir}/catcam/ufw-omni-catcam" "${deb}/etc/ufw/applications.d/omni-catcam"
 for script in postinst prerm postrm; do
   install -m 755 "${script_dir}/catcam/${script}" "${deb}/DEBIAN/${script}"
 done
-printf '%s\n' /etc/omni-accelerant/catcam.toml /etc/ufw/applications.d/omni-catcam > "${deb}/DEBIAN/conffiles"
+# catcam.toml is postinst's, written once from the bundle's copy, so no upgrade asks about an edited one.
+printf '%s\n' /etc/ufw/applications.d/omni-catcam > "${deb}/DEBIAN/conffiles"
 installed_kb="$(du -sk "${deb}" | cut -f1)"
 cat > "${deb}/DEBIAN/control" <<CONTROL
 Package: ${package}
