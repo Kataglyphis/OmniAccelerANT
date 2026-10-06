@@ -26,7 +26,7 @@
 
 # http_port = 8080         # the page is http://<this-pc>:8080/; 0 turns the web server off
 
-# ice_port_min = 40000     # WebRTC media's UDP range; Windows asks once to let the cat cam through its firewall
+# ice_port_min = 40000     # WebRTC media's UDP range; the installer's firewall rule lets the local network in
 
 # ice_port_max = 40099
 

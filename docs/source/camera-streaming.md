@@ -363,11 +363,17 @@ The exe points GStreamer, ONNX Runtime and the model at that folder itself (Oxid
 Both entries are features: you can deselect them in the installer, or switch autostart
 off later in Task Manager under *Startup apps*. Settings go in
 `%ProgramData%\omni-accelerant\catcam.toml`; the template ships in
-`share\omni-accelerant-catcam`. The image has no WiX firewall extension yet, so Windows
-asks once whether to let the cat cam onto the network.
+`share\omni-accelerant-catcam`.
 
-**`Test-CatCamWindows.ps1` checks the MSI** inside `:winamd64` as admin; the image was
-rebuilt from hub f4c0e2be on 2026-10-06. All 13 checks passed:
+**The MSI opens Windows Firewall to the local subnet**, so Windows does not ask. The
+rule is bound to the exe, not to ports, so a changed `http_port` or ICE range in
+`catcam.toml` stays covered. It carries `IgnoreFailure`: a Windows without the firewall
+service, such as the image's process-isolated container, still installs. Packaging needs
+WiX's firewall extension, which the hub's final stage installs (`WIX_FIREWALL_EXT_VERSION`).
+
+**`Test-CatCamWindows.ps1` checks the MSI** inside `:winamd64` as admin. In the image,
+14 checks passed on 2026-10-06:
+- the MSI's firewall rule: LAN-only, bound to the exe, installing where it cannot apply;
 - the silent install, its files, the Startup entry and the shortcuts;
 - the installed exe run with only System32 on PATH: `/healthz` and the page answer, and
   every loaded module comes from the install folder or Windows, idle and with a viewer;
@@ -375,8 +381,13 @@ rebuilt from hub f4c0e2be on 2026-10-06. All 13 checks passed:
 - the bundled model on the bundled ORT finding the cat;
 - a silent uninstall that leaves nothing.
 
+The container has no firewall service, so the test prints `SKIP` for the rule itself. On
+a host whose firewall runs, two more checks run: the rule exists after the install and is
+gone after the uninstall. `web.yml`'s `catcam-windows` job packages and tests the MSI
+around each run's web build.
+
 **Not verified yet:** an install on a Windows host with a camera, a browser on the LAN
-playing it, the logon start after a reboot, arm64, and a CI job.
+playing it, the logon start after a reboot, and arm64.
 
 ### Cat detection stream (Rust, native)
 
