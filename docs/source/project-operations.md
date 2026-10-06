@@ -324,6 +324,18 @@ as the Linux workflows; AGENTS.md § 5 (Build, run, test) holds the lane table a
 follows is the evidence behind those rules — each cost at least one run to find,
 and each has a symptom that names something other than its cause.
 
+**The android lane needs KVM in Rancher's VM, once per VM boot.** Its emulator
+smoke boots the image's AVD, and the VM starts without the KVM module even though
+the CPU flags (`svm`/`vmx`) reach it. nerdctl then refuses the run with `error
+stating device path: stat /dev/kvm: no such file or directory`. Load the module and
+open the node to the container's uid 1001, the same mode GitHub's runners get from
+`android.yml`'s udev rule (measured 2026-10-06, AMD host: AVD boot 20 s):
+
+```bash
+wsl -d rancher-desktop -u root -- modprobe kvm_amd    # kvm_intel on Intel
+wsl -d rancher-desktop -u root -- chmod 0666 /dev/kvm
+```
+
 **arm64 locally needs QEMU registered once per VM boot.** Rancher's VM starts
 with no emulators at all — `binfmt` reports `"emulators": null` and only
 `linux/amd64` variants under `supported`, so an arm64 container would run

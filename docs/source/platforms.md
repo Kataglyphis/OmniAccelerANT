@@ -495,7 +495,8 @@ The rules are in AGENTS.md § 4; the measurements that produced them are here.
   the plain `flutter build apk` — native link and the plugin's JVM test
   included — green on every completed run from 2026-09-18 on (36154744222 on
   2026-09-25: a 91.8 MB `app-release.apk`).
-  The APK is arm64-v8a only — real phones, not the emulator. The native
+  The APK is arm64-v8a only: real phones, and the image's x86_64 emulator through
+  its ARM translation (the android lane runs it there since 2026-10-06). The native
   plugin's `abiFilters` alone never achieved that: it filters the plugin's own
   build, while the Flutter Gradle plugin writes its three ABIs into the app's
   `defaultConfig.ndk` and builds `libapp`, `libflutter`, `liboxidant` and

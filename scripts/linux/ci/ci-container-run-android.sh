@@ -18,6 +18,7 @@ Options:
   --build-mode <debug|profile|release> Build mode for flutter build apk (default: release)
       --flutter-dir <path>      Flutter SDK directory (default: /opt/flutter, baked into the image)
   -n, --app-name <name>         Artifact base name (required)
+      --emulator-smoke <bool>   Run the APK on the image's AVD (needs /dev/kvm; default: false)
       --run-codeql <bool>       Run CodeQL scan (default: false; the scan is
                                 hours and is a manual/local run since 2026-09-17)
   -h, --help                    Show this help
@@ -29,6 +30,7 @@ BUILD_MODE="release"
 FLUTTER_DIR="/opt/flutter"
 APP_NAME=""
 RUN_CODEQL="0"
+EMULATOR_SMOKE="false"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -50,6 +52,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --run-codeql)
       RUN_CODEQL="${2:-}"
+      shift 2
+      ;;
+    --emulator-smoke)
+      EMULATOR_SMOKE="${2:-}"
       shift 2
       ;;
     -h|--help)
@@ -99,6 +105,7 @@ run_gate "cmake-format --check" run_cmake_format_check
 # The APK ABI gate's own suite (synthetic APKs): that it refuses an extra slice or a missing plugin.
 run_gate "apk abi gate tests" bash scripts/linux/tests/test-check-apk-abi.sh
 run_gate "rust toolchain gate tests" bash scripts/linux/tests/test-check-rust-toolchain.sh
+run_gate "emulator gate tests" bash scripts/linux/tests/test-check-apk-on-emulator.sh
 assert_gates
 setup_compiler_cache
 export_toolchain_env "$MATRIX_ARCH"
@@ -124,5 +131,6 @@ else
     --arch "$MATRIX_ARCH" \
     --build-mode "$BUILD_MODE" \
     --app-name "$APP_NAME" \
-    --flutter-dir "$FLUTTER_DIR"
+    --flutter-dir "$FLUTTER_DIR" \
+    --emulator-smoke "$EMULATOR_SMOKE"
 fi

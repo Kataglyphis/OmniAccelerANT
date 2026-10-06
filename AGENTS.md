@@ -437,7 +437,8 @@ written out rather than linked.
   completed run since 2026-09-18 is green (36154744222 on 2026-09-25: a 91.8 MB
   `app-release.apk`, `testDebugUnitTest` passed); before the switch, the CodeQL
   build was stopping at Kotlin compilation several steps before the native
-  link. The APK is arm64-v8a only — real phones, not the emulator. AGP 9.4.1 + Gradle 9.8.0
+  link. The APK is arm64-v8a only: real phones, and the image's x86_64 emulator through its
+  ARM translation (the emulator row of § 5's lane table). AGP 9.4.1 + Gradle 9.8.0
   builds that against five constraints, all load-bearing and none of them
   optional:
 
@@ -973,11 +974,13 @@ cell is a test that cannot run there, and the reason is under the table.
 | Plugin JVM test | | | | yes | |
 | APK ABI gate (`check-apk-abi.sh`) and its synthetic-APK suite | | | | yes | |
 | `liboxidant`'s rustc stamp (`check-rust-toolchain.sh`) and its suite | yes | | | yes, in the APK | |
+| APK on the emulator, 20 s (`check-apk-on-emulator.sh`) and its stub suite | | | | yes, API 35 x86_64 + ARM translation, on KVM | |
 | Cat cam .deb + AppImage install checks (`test-catcam-package.sh`) | | | | | in `web.yml`'s `catcam` jobs, x64 and arm64 |
 
 - Android and Web build no desktop runner, so the desktop rows do not apply
-  there; Android adds the plugin's JVM test. Running the APK on an emulator and
-  the web build in Chrome belongs to the image and the hub (owner, 2026-10-01).
+  there; Android adds the plugin's JVM test and the emulator run. The image carries
+  the emulator and Chrome (hub CON50, owner 2026-10-01); `android.yml` opens
+  `/dev/kvm` to the container and boots the AVD with `android-avd.sh` (since 2026-10-06).
 - The cat cam checks live with the cat cam packages, which only `web.yml` builds,
   since they wrap its web build. They run as root in `:latest` and drive headless
   Chrome against the installed service.
@@ -1068,6 +1071,13 @@ reads.
 
 `-Lane android -RunCodeQL` is the local opt-in for the hours-long CodeQL scan;
 CI no longer runs it (AGENTS.md § 5).
+
+**The android lane boots an emulator, so it needs `/dev/kvm` in Rancher's VM.**
+The VM boots without the KVM module, and nerdctl then stops at `stat /dev/kvm: no such
+file or directory`. Load it and open it to uid 1001 once per VM boot
+([`docs/source/project-operations.md`](docs/source/project-operations.md)
+§ *The Linux lane, locally*), or pass `-EmulatorSmoke false`, which `-CheckParity`
+then reports as a deviation.
 
 The native lane sets `KATAGLYPHIS_RUST_FEATURES=gstreamer,onnxruntime_dynamic`
 before `flutter build linux` — set it to the empty string to opt out — and
