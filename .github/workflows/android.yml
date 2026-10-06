@@ -1,4 +1,4 @@
-# The arm64-v8a APK, cross-built in the Linux image on an x64 runner, plus the plugin's JVM test.
+# The arm64-v8a APK, cross-built in the Linux image on an x64 runner, plus the plugin's JVM test and a run on the image's emulator.
 
 name: Android · build + test
 
@@ -54,16 +54,25 @@ jobs:
           mounts: 'sccache:/var/cache/sccache'
           env: 'SCCACHE_CACHE_SIZE=1000M'
 
+      # The emulator smoke needs KVM, and the container's uid 1001 is not in the device's group (hub consumer-image-contract.md).
+      - name: Open /dev/kvm to the container
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+          ls -l /dev/kvm
+
       - name: Run container
         uses: Kataglyphis/ANTfrastructure/.github/actions/run-in-linux-container@develop
         with:
-          extra-args: --platform "${{ matrix.platform }}" ${{ steps.cc.outputs.docker-args }}
+          extra-args: --device /dev/kvm --platform "${{ matrix.platform }}" ${{ steps.cc.outputs.docker-args }}
           script: >-
             bash /workspace/scripts/linux/ci/ci-container-run-android.sh
             --arch "${{ matrix.arch }}"
             --build-mode "${{ matrix.build_mode }}"
             --flutter-dir "${{ matrix.flutter_dir }}"
             --app-name "${{ matrix.app_name }}"
+            --emulator-smoke true
             --run-codeql false
 
       - name: Save compiler cache

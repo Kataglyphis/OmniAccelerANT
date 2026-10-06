@@ -21,6 +21,9 @@ param(
 	[string] $StrictChecks = 'true',
 	# Local opt-in for a manual android scan; CI sends --run-codeql false, so -CheckParity then differs.
 	[switch] $RunCodeQL,
+	# 'true', as android.yml passes; it needs /dev/kvm in the engine's VM (AGENTS.md § 5), 'false' skips the smoke.
+	[ValidateSet('true', 'false')]
+	[string] $EmulatorSmoke = 'true',
 	[switch] $SkipDocs,
 	[switch] $KeepContainer,
 	# Compare argument VALUES with the lane's workflow, then exit before any container work.
@@ -230,6 +233,7 @@ $laneArgs = switch ($Lane) {
 			'--build-mode', $BuildMode,
 			'--flutter-dir', '/opt/flutter',
 			'--app-name', "$AppName-apk",
+			'--emulator-smoke', $EmulatorSmoke,
 			'--run-codeql', $runCodeQLArg)
 	}
 	'web' {
@@ -244,6 +248,9 @@ $laneArgs = switch ($Lane) {
 
 # The android workflow does not pass --privileged; the other two do.
 $privilegedArgs = if ($Lane -eq 'android') { @() } else { @('--privileged') }
+
+# The emulator smoke boots the image's AVD on KVM, as android.yml's --device does.
+$deviceArgs = if ($Lane -eq 'android' -and $EmulatorSmoke -eq 'true') { @('--device', '/dev/kvm') } else { @() }
 
 # Only reusable-linux.yml passes -e CI=true, which lets generate-docs.sh chown doc/api/ back.
 $ciEnvArgs = if ($Lane -eq 'native') { @('-e', 'CI=true') } else { @() }
@@ -300,7 +307,7 @@ if ($CheckParity) {
 	# extra-args token by token, in order; -Env stays out, having no CI twin.
 	$resolvedExtra = Resolve-LaneExpression -Text $spec.ExtraArgs -Values $parityValues -EnvMap $spec.Env -CallerInputs $callerInputs
 	$workflowExtra = @($resolvedExtra -split '\s+' | Where-Object { $_ } | ForEach-Object { $_.Trim('"').Trim("'") })
-	$driverExtra = @(@() + $privilegedArgs + @('--platform', $platform) + $ciEnvArgs | Where-Object { $_ })
+	$driverExtra = @(@() + $privilegedArgs + $deviceArgs + @('--platform', $platform) + $ciEnvArgs | Where-Object { $_ })
 	if (($workflowExtra -join ' ') -cne ($driverExtra -join ' ')) {
 		$mismatches += "extra-args: workflow '$($workflowExtra -join ' ')' vs driver '$($driverExtra -join ' ')'"
 	}
@@ -344,7 +351,7 @@ foreach ($nativePath in $ContainerNativePaths) {
 
 $engineArgs = @(
 	'run', '--name', $ContainerName
-) + $privilegedArgs + @(
+) + $privilegedArgs + $deviceArgs + @(
 	'--platform', $platform
 ) + $ciEnvArgs + @($Env | ForEach-Object { '-e'; $_ }) + @(
 	'-v', "${repoRoot}:/workspace"

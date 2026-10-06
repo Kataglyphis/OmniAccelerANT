@@ -17,6 +17,7 @@ Options:
       --build-mode <debug|profile|release> Build mode for flutter build apk (default: release)
   -n, --app-name <name>         Artifact base name (default: pubspec name + -apk)
       --flutter-dir <path>      Optional Flutter SDK directory (uses <path>/bin/flutter)
+      --emulator-smoke <bool>   Run the APK on the image's AVD (needs /dev/kvm; default: false)
   -h, --help                    Show this help
 
 Notes:
@@ -29,6 +30,7 @@ APP_NAME="$(resolve_app_name)-apk"
 MATRIX_ARCH="$(detect_arch)"
 BUILD_MODE="release"
 FLUTTER_DIR=""
+EMULATOR_SMOKE="false"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -46,6 +48,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --flutter-dir)
       FLUTTER_DIR="${2:-}"
+      shift 2
+      ;;
+    --emulator-smoke)
+      EMULATOR_SMOKE="${2:-}"
       shift 2
       ;;
     -h|--help)
@@ -98,6 +104,12 @@ bash "$REPO_ROOT/scripts/linux/check-rust-toolchain.sh" --apk "build/app/outputs
 
 # The plugin's JVM test, fatal on purpose; Gradle is warm from the apk build, so it costs little.
 (cd android && ./gradlew :kataglyphis_native_inference:testDebugUnitTest --console=plain)
+
+if maybe_truthy "$EMULATOR_SMOKE"; then
+  application_id="$(sed -n 's/^[[:space:]]*applicationId = "\(.*\)"/\1/p' android/app/build.gradle.kts | tr -d '\r' | head -n 1)"
+  bash "$REPO_ROOT/scripts/linux/check-apk-on-emulator.sh" \
+    --apk "build/app/outputs/flutter-apk/app-${BUILD_MODE}.apk" --package "$application_id"
+fi
 
 if [[ "$BUILD_MODE" == "release" ]]; then
   app_packaging_package_android_apk_outputs_tar "$MATRIX_ARCH" "$APP_NAME"
