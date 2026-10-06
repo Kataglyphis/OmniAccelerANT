@@ -17,25 +17,25 @@ The installable cat cam: `docs/source/camera-streaming.md` § *The cat cam packa
 Linux amd64/arm64 ship as a .deb and an AppImage, proven on himbeere2 (Pi 5) on
 2026-10-05; these rows are what the owner's goal still lacks.
 
-- [ ] **The package checks run in CI.** `web.yml`'s `catcam` jobs build the .deb, the
-  AppImage and the tarball, and test none of them. The checks that proved them live in a
-  session scratchpad: an install as the unit runs it with a scrubbed environment,
-  nothing mapped from outside the bundle (idle and with a viewer), headless Chrome
-  playing the stream, the bundled model on ANThology's cat photo, SIGTERM exit 0, an
-  upgrade over an edited `catcam.toml` with no terminal, purge, and the AppImage's
-  `--install`, re-install and `--uninstall --purge`. Done when a script in
-  `scripts/linux/cat-stream/` runs them, `web.yml` runs it on both arches, and a
-  deliberate breakage (for example dropping `rawparse`) reds the job.
 - [b] **A USB webcam through `camera = "auto"`.** The UVC branch (`uvcvideo`, MJPEG when
   no raw format) has run only in unit tests: himbeere2 has no USB camera, and the C270
   sits on the riscv64 X100, which the package does not build for. Blocked on a UVC camera
   at an amd64 or arm64 board. Done when `/healthz` names it and a browser plays it.
 - [b] **The Windows cat cam: a service and an MSI (x64, then arm64).** The producer's
   `mf`/`ks` sources exist, and the hub's `Invoke-MsiPackage` (CON55) is the WiX step.
-  Blocked on two things: a published `:winamd64` carrying the hub's WebRTC fixes (CON28,
-  hub 7b833e31; until then `webrtcsink` is missing and `create-offer` never answers),
-  and the owner's camera-test-kit result, which decides between a Session 0 service and
-  a logon task. arm64 also waits on the hub's CON63.
+  Blocked on two things.
+  - **A `:winamd64` carrying the hub's WebRTC fixes** (CON28, hub 7b833e31). Until then
+    `webrtcsink` is missing and `create-offer` never answers.
+    - Its local rebuild, owner request 2026-10-06, waits on the Stevedore repair of
+      hub `docs/windows-host-setup.md` § Phase R.
+    - Stevedore's 2026-09-21 update had restored the stock runhcs shim and wiped the
+      buildkitd and containerd service settings.
+    - The patched shim is built from fork pin 5e9df53c and needs an elevated
+      `Publish-ShimPatch.ps1` + `Install-NewHost.ps1 -SkipShim`.
+  - **The owner's camera-test-kit result**, which decides between a Session 0 service
+    and a logon task.
+
+  arm64 also waits on the hub's CON63.
 
 
 ## Agentic loop
