@@ -1,6 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <!-- The Windows cat cam MSI; Package-CatCam.ps1 builds it through the hub's Invoke-MsiPackage, which passes every moving value with -d. -->
 <Wix xmlns='http://wixtoolset.org/schemas/v4/wxs'
+     xmlns:fw='http://wixtoolset.org/schemas/v4/wxs/firewall'
      xmlns:ui='http://wixtoolset.org/schemas/v4/wxs/ui'>
 
     <!-- InstallerVersion 500: an arm64 package needs it (WIX1143), and one value serves both arches. -->
@@ -35,7 +36,11 @@
                 <File Id='LicenseFile' Name='License.rtf' Source='$(var.LicenseRtf)' KeyPath='yes'/>
             </Component>
             <Component Id='Exe' Bitness='always64'>
-                <File Id='exe0' Name='kataglyphis_cat_webrtc.exe' Source='$(var.ExeSource)' KeyPath='yes'/>
+                <File Id='exe0' Name='kataglyphis_cat_webrtc.exe' Source='$(var.ExeSource)' KeyPath='yes'>
+                    <!-- Bound to the exe, not to ports, so http_port and the ICE range follow catcam.toml; IgnoreFailure keeps a host without the firewall service installable. -->
+                    <fw:FirewallException Id='CatCamFirewall' Name='$(var.ProductName)' Scope='localSubnet' IgnoreFailure='yes'
+                        Description='The cat cam page and its WebRTC media, for browsers on the local network'/>
+                </File>
             </Component>
         </DirectoryRef>
 

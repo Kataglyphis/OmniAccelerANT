@@ -131,5 +131,6 @@ foreach ($file in @(Get-ChildItem $final -Recurse -File)) {
 $msi = Join-Path $OutDir "$package-$Version-windows-$packageArch.msi"
 Invoke-MsiPackage -Context $context -WxsFile (Join-Path $PSScriptRoot 'catcam.wxs') -LicenseFile (Join-Path $PSScriptRoot 'License.rtf') `
     -ProductName 'OmniAccelerANT Cat Cam' -Manufacturer 'Kataglyphis' -ExeSource $payload.Exe -Version $Version `
-    -OutFile $msi -Arch $packageArch -PayloadFiles $payloadFiles.ToArray() -FragmentPath 'C:\catcam-out\msi-payload-files.wxs' | Out-Null
+    -OutFile $msi -Arch $packageArch -PayloadFiles $payloadFiles.ToArray() -FragmentPath 'C:\catcam-out\msi-payload-files.wxs' `
+    -Extensions @('WixToolset.UI.wixext', 'WixToolset.Firewall.wixext') | Out-Null
 Write-Host "wrote $msi ($([math]::Round((Get-Item $msi).Length / 1MB)) MB)"

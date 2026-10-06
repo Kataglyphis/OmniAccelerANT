@@ -7,7 +7,7 @@
     environment (System32 on PATH, no GST_*, ORT_* or KATAGLYPHIS_*) and must load every module from its install
     folder or Windows itself, idle and while a webrtcsrc viewer decodes its stream.
 .PARAMETER Msi
-    The omni-accelerant-catcam-<version>-windows-<arch>.msi to test.
+    The omni-accelerant-catcam-<version>-windows-<arch>.msi to test; a wildcard naming exactly one file works too.
 .PARAMETER Photo
     A photo with a cat in it, for the model check.
 #>
@@ -25,6 +25,9 @@ $startup = Join-Path $env:ProgramData "Microsoft\Windows\Start Menu\Programs\Sta
 $work = Join-Path $env:TEMP "catcam-test-$PID"
 $null = New-Item -ItemType Directory -Force -Path $work
 $script:failures = 0
+$msis = @(Get-ChildItem -Path $Msi -File)
+if ($msis.Count -ne 1) { throw "-Msi must name exactly one MSI; $Msi matches $($msis.Count)" }
+$Msi = $msis[0].FullName
 # A wildcard is fine, and the copy has a plain name: an & in a path splits cmd's command line, which docker run goes through.
 $source = Get-ChildItem -Path $Photo -File | Select-Object -First 1
 if (-not $source) { throw "no photo at $Photo" }
@@ -69,6 +72,31 @@ function Get-ForeignModule {
         })
 }
 
+# Rows of the MSI's own tables, through the Windows Installer COM API, read-only.
+function Get-MsiRow {
+    param([string]$Path, [string]$Query)
+    $installer = New-Object -ComObject WindowsInstaller.Installer
+    $db = $installer.GetType().InvokeMember('OpenDatabase', 'InvokeMethod', $null, $installer, @($Path, 0))
+    $view = $db.GetType().InvokeMember('OpenView', 'InvokeMethod', $null, $db, @($Query))
+    $null = $view.GetType().InvokeMember('Execute', 'InvokeMethod', $null, $view, $null)
+    try {
+        while ($record = $view.GetType().InvokeMember('Fetch', 'InvokeMethod', $null, $view, $null)) {
+            $count = $record.GetType().InvokeMember('FieldCount', 'GetProperty', $null, $record, $null)
+            , @(1..$count | ForEach-Object { $record.GetType().InvokeMember('StringData', 'GetProperty', $null, $record, $_) })
+        }
+    } finally {
+        $null = $view.GetType().InvokeMember('Close', 'InvokeMethod', $null, $view, $null)
+        $null = [Runtime.InteropServices.Marshal]::ReleaseComObject($view)
+        $null = [Runtime.InteropServices.Marshal]::ReleaseComObject($db)
+    }
+}
+
+# Inbound allow rules bound to the installed exe; empty where Windows Firewall is off.
+function Get-ExeFirewallRule {
+    @(Get-NetFirewallApplicationFilter -Program $exe -ErrorAction SilentlyContinue | Get-NetFirewallRule |
+            Where-Object { $_.Enabled -eq 'True' -and $_.Direction -eq 'Inbound' -and $_.Action -eq 'Allow' })
+}
+
 function Wait-Healthz {
     $deadline = (Get-Date).AddSeconds(40)
     do {
@@ -80,6 +108,12 @@ function Wait-Healthz {
 }
 
 Write-Host '=== install ==='
+Test-Check 'the MSI opens the firewall to the local subnet for its exe, and installs where it cannot' {
+    $rows = @(Get-MsiRow -Path $Msi -Query 'SELECT `Program`, `RemoteAddresses`, `Attributes` FROM `Wix5FirewallException`')
+    $rows.Count -eq 1 -and $rows[0][0] -eq '[#exe0]' -and $rows[0][1] -eq 'LocalSubnet' -and ([int]$rows[0][2] -band 1)
+}
+# A container has no firewall service; the MSI then skips the rule, and only a host can show it.
+$firewallOn = (Get-Service MpsSvc -ErrorAction SilentlyContinue).Status -eq 'Running'
 $installLog = Join-Path $work 'install.log'
 $p = Start-Process msiexec.exe -ArgumentList '/i', "`"$Msi`"", '/qn', '/l*v', "`"$installLog`"" -Wait -PassThru
 Test-Check 'msiexec installs it silently' { $p.ExitCode -eq 0 }
@@ -92,6 +126,12 @@ Test-Check 'the all-users Startup folder starts it at logon' { Test-Path $startu
 Test-Check 'the Start menu has Cat Cam and its page' {
     Test-Path (Join-Path $env:ProgramData "Microsoft\Windows\Start Menu\Programs\$product\Cat Cam page.lnk")
 }
+if ($firewallOn) {
+    Test-Check 'Windows Firewall lets the local subnet reach the exe' {
+        $rules = @(Get-ExeFirewallRule)
+        $rules.Count -gt 0 -and @($rules | Get-NetFirewallAddressFilter | Where-Object { $_.RemoteAddress -contains 'LocalSubnet' }).Count -gt 0
+    }
+} else { Write-Host 'SKIP  the firewall rule itself: this Windows runs no firewall service' }
 
 Write-Host '=== the installed service, scrubbed environment ==='
 $svc = Start-Installed -Arguments @('--camera', 'test', '--inference', 'off') -LogName 'service.log'
@@ -136,6 +176,7 @@ Test-Check 'msiexec removes it silently' { $u.ExitCode -eq 0 }
 Test-Check 'nothing is left: the folder, the Startup entry, the Start menu folder' {
     -not (Test-Path $exe) -and -not (Test-Path $startup) -and -not (Test-Path (Join-Path $env:ProgramData "Microsoft\Windows\Start Menu\Programs\$product"))
 }
+if ($firewallOn) { Test-Check 'the firewall rule went with it' { @(Get-ExeFirewallRule).Count -eq 0 } }
 
 Write-Host "$($script:failures) failure(s)"
 if ($script:failures -gt 0) {

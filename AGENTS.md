@@ -188,6 +188,8 @@ Two upstream facts repeated here only because they bite before you reach a doc:
     - Its DLL closure comes from the hub's `Copy-PeImportClosure`, plus the VC++ runtime.
     - The ORT comes from `Copy-ChainOrtBeside`, and `New-OrtProvenPayload` proves it.
     - The MSI's logon autostart is an all-users Startup-folder shortcut.
+    - Its firewall rule is LAN-only and bound to the exe. It needs WiX's firewall
+      extension, which the hub's final stage installs.
   - `Test-CatCamWindows.ps1` installs the MSI and runs the exe with a scrubbed
     environment.
   - On Windows the exe finds its plugins, ORT and model itself (OxidANT `install.rs`).
@@ -988,6 +990,7 @@ cell is a test that cannot run there, and the reason is under the table.
 | `liboxidant`'s rustc stamp (`check-rust-toolchain.sh`) and its suite | yes | | | yes, in the APK | |
 | APK on the emulator, 20 s (`check-apk-on-emulator.sh`) and its stub suite | | | | yes, API 35 x86_64 + ARM translation, on KVM | |
 | Cat cam .deb + AppImage install checks (`test-catcam-package.sh`) | | | | | in `web.yml`'s `catcam` jobs, x64 and arm64 |
+| Cat cam MSI install checks (`Test-CatCamWindows.ps1`) | | | | | in `web.yml`'s `catcam-windows` job, in `:winamd64` |
 
 - Android and Web build no desktop runner, so the desktop rows do not apply
   there; Android adds the plugin's JVM test and the emulator run. The image carries
@@ -995,7 +998,8 @@ cell is a test that cannot run there, and the reason is under the table.
   `/dev/kvm` to the container and boots the AVD with `android-avd.sh` (since 2026-10-06).
 - The cat cam checks live with the cat cam packages, which only `web.yml` builds,
   since they wrap its web build. They run as root in `:latest` and drive headless
-  Chrome against the installed service.
+  Chrome against the installed service. The MSI's run in `:winamd64` as
+  ContainerAdministrator, where a `webrtcsrc` viewer plays the installed exe.
 - The integration test runs on both Windows architectures by driving the app the
   build made (`flutter drive --use-application-binary`) — x64 from the container's
   `-FlutterTarget` rebuild, arm64 from `Build-WindowsArm64App.ps1 -FlutterTarget` —

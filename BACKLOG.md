@@ -21,23 +21,19 @@ Linux amd64/arm64 ship as a .deb and an AppImage, proven on himbeere2 (Pi 5) on
   no raw format) has run only in unit tests: himbeere2 has no USB camera, and the C270
   sits on the riscv64 X100, which the package does not build for. Blocked on a UVC camera
   at an amd64 or arm64 board. Done when `/healthz` names it and a browser plays it.
-- [ ] **The Windows cat cam on a real Windows host, then in CI and on arm64.** The MSI
-  exists and works in the image (`scripts/windows/cat-stream/`, 2026-10-06).
-  - `Test-CatCamWindows.ps1` passed all 13 checks there: the silent install, a
-    scrubbed-environment run loading only its own modules, a `webrtcsrc` viewer decoding
-    60 frames, the bundled model finding the cat, and a clean uninstall.
+- [ ] **The Windows cat cam on a real Windows host, then on arm64.** The MSI exists and
+  works in the image (`scripts/windows/cat-stream/`, 2026-10-06), and `web.yml`'s
+  `catcam-windows` job packages and tests it around every web build.
+  - `Test-CatCamWindows.ps1` passed all 14 checks in the image: the MSI's LAN-only
+    firewall rule, the silent install, a scrubbed-environment run loading only its own
+    modules, a `webrtcsrc` viewer decoding 60 frames, the bundled model finding the cat,
+    and a clean uninstall.
   - **Still unproven:**
-    - an install on a Windows host with a camera, which this dev box lacks;
-    - a browser on the LAN playing it;
+    - an install on a Windows host with a camera, which this dev box lacks; there the
+      test's two firewall checks run too;
+    - a browser on the LAN playing it through that rule;
     - the logon start after a reboot.
-  - **Then:**
-    - a `windows-x64.yml` job that packages and tests it, which needs `web.yml`'s web
-      build;
-    - arm64, after the hub's CON63.
-  - **Two follow-ups for the image, the hub's to fix:**
-    - WiX's firewall extension, so the MSI opens 8080/tcp and the ICE range instead of
-      Windows asking once;
-    - publishing the rebuilt `:winamd64`, which is the owner's decision.
+  - **Then:** arm64, after the hub's CON63.
   - Autostart is a logon task by owner decision; a Session 0 service waits on the
     camera-test-kit result.
 
