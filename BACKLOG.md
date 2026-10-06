@@ -21,22 +21,22 @@ Linux amd64/arm64 ship as a .deb and an AppImage, proven on himbeere2 (Pi 5) on
   no raw format) has run only in unit tests: himbeere2 has no USB camera, and the C270
   sits on the riscv64 X100, which the package does not build for. Blocked on a UVC camera
   at an amd64 or arm64 board. Done when `/healthz` names it and a browser plays it.
-- [b] **The Windows cat cam: a service and an MSI (x64, then arm64).** The producer's
+- [ ] **The Windows cat cam: a service and an MSI (x64, then arm64).** The producer's
   `mf`/`ks` sources exist, and the hub's `Invoke-MsiPackage` (CON55) is the WiX step.
-  Blocked on two things.
-  - **A `:winamd64` carrying the hub's WebRTC fixes** (CON28, hub 7b833e31). Until then
-    `webrtcsink` is missing and `create-offer` never answers.
-    - Its local rebuild, owner request 2026-10-06, waits on the Stevedore repair of
-      hub `docs/windows-host-setup.md` § Phase R.
-    - Stevedore's 2026-09-21 update had restored the stock runhcs shim and wiped the
-      buildkitd and containerd service settings.
-    - The patched shim is built from fork pin 5e9df53c and needs an elevated
-      `Publish-ShimPatch.ps1` + `Install-NewHost.ps1 -SkipShim`.
-  - **The owner's camera-test-kit result**, which decides between a Session 0 service
-    and a logon task.
+  - **The producer works in a `:winamd64` built locally from hub f4c0e2be (2026-10-06).**
+    - The image's smoke gate passed 229 assertions, with 1 skipped, including the WebRTC
+      loopback.
+    - `kataglyphis_cat_webrtc` builds in it in 79 s.
+    - A `webrtcsrc` consumer decoded 60 frames from its test pattern.
+    - The chain ORT found 2 cats in ANThology's photo.
+    - That image is not published yet; the owner decides.
+  - **Next:** a Windows bundle, with the exe, the GStreamer runtime subset, the chain ORT,
+    the model and the web build, then the MSI around it. Done when an MSI installed on a
+    Windows host streams to a browser on the LAN and comes back after a reboot.
+  - **Still open, and the owner's to decide:** the camera-test-kit result, which settles
+    a Session 0 service against a logon task.
 
   arm64 also waits on the hub's CON63.
-
 
 ## Agentic loop
 
