@@ -1049,6 +1049,11 @@ mount.
 `omni-dart-checks-pubcache` volume). Its format step covers `lib test
 integration_test test_driver` — 52 of the 62 tracked files the lanes grade, not
 the plugin's ten under `packages/`; its test step runs the plugin's suite too.
+`-Engine wslc` runs it in WSL 3's `wslc` instead of nerdctl (hub CON62's pilot,
+2026-10-06). Measured warm on this box: format + test 23 s against nerdctl's
+32 s, analyze 146 s against 371 s. The first run pulls `:latest` into wslc's own
+image store, about 30 GB and 554 s. wslc has no `--platform`, so the switch
+refuses any `-Platform` but `linux/amd64`.
 
 **This is not a substitute for the lane.** It runs the Dart gate and nothing
 else — no `dart format` file listing, no CMake gate, no build, no packaging, and

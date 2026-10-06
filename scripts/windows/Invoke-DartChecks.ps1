@@ -24,6 +24,8 @@ Skip `flutter test`.
 .\scripts\windows\Invoke-DartChecks.ps1 -SkipAnalyze          # fastest test loop
 .EXAMPLE
 .\scripts\windows\Invoke-DartChecks.ps1 -Fix                  # format in place
+.EXAMPLE
+.\scripts\windows\Invoke-DartChecks.ps1 -Engine wslc          # WSL containers, the hub's CON62 pilot
 #>
 
 param(
@@ -35,20 +37,31 @@ param(
 	[string] $Image = '',
 	[string] $Platform = 'linux/amd64',
 	# A named volume: the bind mount cannot do pub's rename out of .pub-cache/_temp (AGENTS.md § 5).
-	[string] $PubCacheVolume = 'omni-dart-checks-pubcache'
+	[string] $PubCacheVolume = 'omni-dart-checks-pubcache',
+	# wslc pilots hub CON62: faster bind mounts, but no --platform, so x64 images only.
+	[ValidateSet('nerdctl', 'wslc')]
+	[string] $Engine = 'nerdctl'
 )
 
 $ErrorActionPreference = 'Stop'
 
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..' '..')).Path
 
-$engine = (Get-Command 'nerdctl' -ErrorAction SilentlyContinue)?.Source
-if (-not $engine) {
-	$candidate = Join-Path $env:ProgramFiles 'Rancher Desktop\resources\resources\win32\bin\nerdctl.exe'
-	if (Test-Path $candidate) { $engine = $candidate }
-}
-if (-not $engine) {
-	throw "nerdctl not found. Install Rancher Desktop, or put nerdctl on PATH."
+if ($Engine -eq 'wslc') {
+	$engineExe = (Get-Command 'wslc' -ErrorAction SilentlyContinue)?.Source
+	if (-not $engineExe) { throw "wslc not found: it ships with WSL 3.0 or later." }
+	if ($Platform -ne 'linux/amd64') { throw "wslc has no --platform (microsoft/WSL#41123); -Platform $Platform needs -Engine nerdctl." }
+	$platformArgs = @()
+} else {
+	$engineExe = (Get-Command 'nerdctl' -ErrorAction SilentlyContinue)?.Source
+	if (-not $engineExe) {
+		$candidate = Join-Path $env:ProgramFiles 'Rancher Desktop\resources\resources\win32\bin\nerdctl.exe'
+		if (Test-Path $candidate) { $engineExe = $candidate }
+	}
+	if (-not $engineExe) {
+		throw "nerdctl not found. Install Rancher Desktop, or put nerdctl on PATH."
+	}
+	$platformArgs = @('--platform', $Platform)
 }
 
 if (-not $Image) {
@@ -64,10 +77,10 @@ if (-not $Image) {
 }
 
 # Volumes start root-owned; the image runs as uid 1001. The chown uses that image too: no stock image (owner rule 2026-10-05).
-& $engine 'volume' 'create' $PubCacheVolume 2>&1 | Out-Null
-& $engine 'run' '--rm' '--user' 'root' `
+& $engineExe 'volume' 'create' $PubCacheVolume 2>&1 | Out-Null
+& $engineExe 'run' '--rm' '--user' 'root' `
 	'--mount' "type=volume,source=${PubCacheVolume},target=/vol" `
-	'--platform' $Platform '--entrypoint' 'chown' $Image '1001:1001' '/vol' 2>&1 | Out-Null
+	@platformArgs '--entrypoint' 'chown' $Image '1001:1001' '/vol' 2>&1 | Out-Null
 
 $formatCmd = if ($Fix) {
 	'dart format lib test integration_test test_driver'
@@ -96,12 +109,13 @@ if (-not $SkipFormat) { $stepNames += if ($Fix) { 'format (fix)' } else { 'forma
 if (-not $SkipAnalyze) { $stepNames += 'analyze' }
 if (-not $SkipTest) { $stepNames += 'test' }
 
+Write-Host "engine: $Engine ($engineExe)"
 Write-Host "image : $Image"
 Write-Host "steps : $($stepNames -join ', ')"
 Write-Host ''
 
-& $engine 'run' '--rm' `
-	'--platform' $Platform `
+& $engineExe 'run' '--rm' `
+	@platformArgs `
 	'-v' "${repoRoot}:/workspace" `
 	'--mount' "type=volume,source=${PubCacheVolume},target=/pubcache" `
 	'-e' 'PUB_CACHE=/pubcache' `
