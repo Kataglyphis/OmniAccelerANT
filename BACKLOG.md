@@ -21,18 +21,24 @@ Linux amd64/arm64 ship as a .deb and an AppImage, proven on himbeere2 (Pi 5) on
   no raw format) has run only in unit tests: himbeere2 has no USB camera, and the C270
   sits on the riscv64 X100, which the package does not build for. Blocked on a UVC camera
   at an amd64 or arm64 board. Done when `/healthz` names it and a browser plays it.
-- [ ] **The Windows cat cam on a real Windows host, then on arm64.** The MSI exists and
-  works in the image (`scripts/windows/cat-stream/`, 2026-10-06), and `web.yml`'s
-  `catcam-windows` job packages and tests it around every web build.
-  - `Test-CatCamWindows.ps1` passed all 14 checks in the image: the MSI's LAN-only
+- [ ] **The Windows cat cam with a camera, at a real logon, then on arm64.** The MSI works
+  in the image and on a real Windows 11 host (`scripts/windows/cat-stream/`, 2026-10-06),
+  and `web.yml`'s `catcam-windows` job packages and tests it around every web build.
+  - **In the image:** `Test-CatCamWindows.ps1` passed all 14 checks: the MSI's LAN-only
     firewall rule, the silent install, a scrubbed-environment run loading only its own
     modules, a `webrtcsrc` viewer decoding 60 frames, the bundled model finding the cat,
     and a clean uninstall.
+  - **On the dev box** (Windows 11 Pro, no camera), installed and removed through UAC:
+    - the firewall rule was an inbound allow for the exe, `LocalSubnet` only, and went with
+      the uninstall;
+    - started from its Startup shortcut, the exe served the page and a test pattern
+      (`no camera found`), loading all 128 modules from its folder or Windows;
+    - himbeere2 reached the page through the rule, and a browser on another device on
+      the LAN played the stream.
   - **Still unproven:**
-    - an install on a Windows host with a camera, which this dev box lacks; there the
-      test's two firewall checks run too;
-    - a browser on the LAN playing it through that rule;
-    - the logon start after a reboot.
+    - a camera: Media Foundation or kernel-streaming capture on a Windows host that has
+      one;
+    - the start at a real sign-in; the shell ran the Startup shortcut, no logon did.
   - **Then:** arm64, after the hub's CON63.
   - Autostart is a logon task by owner decision; a Session 0 service waits on the
     camera-test-kit result.
