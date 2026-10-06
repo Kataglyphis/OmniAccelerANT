@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Packages the cat cam service: a self-contained bundle (its own GStreamer, ONNX Runtime and C library)
-# and a .deb and an AppImage that install it as a systemd service, autostarted. Runs inside the family image.
+# Packages the cat cam: a self-contained bundle (its own GStreamer, ONNX Runtime and C library), a .deb and an
+# AppImage that install it as a systemd service, and a flatpak started at sign-in. Runs privileged in the image.
 #
 # Usage, from the repository root inside the image:
 #   bash scripts/linux/cat-stream/package-catcam.sh --web-root build/web [options]
@@ -8,7 +8,7 @@
 #   --web-root DIR   the Flutter web build (the web lane's build/web); required
 #   --model FILE     ONNX model to ship (default: AccelerANTgine's yolo26n.onnx)
 #   --producer FILE  a built kataglyphis_cat_webrtc (default: cargo build --release here)
-#   --out DIR        where the .deb, the AppImage and the bundle tarball land (default: out/)
+#   --out DIR        where the packages and the bundle tarball land (default: out/)
 #   --version X.Y.Z  package version (default: pubspec.yaml's, without +build)
 #
 # Details: docs/source/camera-streaming.md § The cat cam package.
@@ -42,7 +42,7 @@ done
 [ -n "${web_root}" ] || { printf -- '--web-root is required\n' >&2; exit 2; }
 [ -f "${web_root}/index.html" ] || { printf 'no index.html in %s\n' "${web_root}" >&2; exit 1; }
 [ -f "${model}" ] || { printf 'model not found: %s\n' "${model}" >&2; exit 1; }
-for tool in patchelf dpkg-deb readelf ldd appimagetool; do
+for tool in patchelf dpkg-deb readelf ldd appimagetool flatpak flatpak-builder; do
   command -v "${tool}" >/dev/null 2>&1 || { printf '%s not found\n' "${tool}" >&2; exit 1; }
 done
 
@@ -284,6 +284,58 @@ if ! APPIMAGE_EXTRACT_AND_RUN=1 NO_APPSTREAM=1 ARCH="$(uname -m)" \
   exit 1
 fi
 
+# --- the flatpak: the bundle in /app/catcam on the image's runtime; no rpicam-vid inside, so USB cameras only
+flatpak_id="org.kataglyphis.${package}"
+flatpak_work="${work}/flatpak"
+mkdir -p "${flatpak_work}/files/bundle"
+cp -a "${bundle}/." "${flatpak_work}/files/bundle/"
+install -m 755 "${script_dir}/catcam/flatpak-omni-catcam" "${flatpak_work}/files/omni-catcam"
+install -m 644 "${repo_root}/assets/icons/kataglyphis_app_icon.svg" "${flatpak_work}/files/${flatpak_id}.svg"
+cat > "${flatpak_work}/files/${flatpak_id}.desktop" <<DESKTOP
+[Desktop Entry]
+Type=Application
+Name=OmniAccelerANT Cat Cam
+Comment=Camera, YOLO cat boxes and a WebRTC stream for any browser on the network
+Exec=omni-catcam
+Icon=${flatpak_id}
+Categories=AudioVideo;Video;
+Terminal=true
+DESKTOP
+runtime_version="$(sed -n 's/^FLATPAK_RUNTIME_VERSION=//p' "$(antfrastructure_path linux/scripts/01-core/versions.env)")"
+[ -n "${runtime_version}" ] || { printf 'no FLATPAK_RUNTIME_VERSION in the hub versions.env\n' >&2; exit 1; }
+cat > "${flatpak_work}/${flatpak_id}.yml" <<MANIFEST
+app-id: ${flatpak_id}
+runtime: org.freedesktop.Platform
+runtime-version: '${runtime_version}'
+sdk: org.freedesktop.Sdk
+command: omni-catcam
+finish-args:
+  - --share=network
+  - --device=all
+  - --filesystem=xdg-config/autostart:create
+modules:
+  - name: catcam
+    buildsystem: simple
+    build-commands:
+      - mkdir -p /app/catcam && cp -a bundle/. /app/catcam/
+      - install -Dm755 omni-catcam /app/bin/omni-catcam
+      - install -Dm644 ${flatpak_id}.desktop /app/share/applications/${flatpak_id}.desktop
+      - install -Dm644 ${flatpak_id}.svg /app/share/icons/hicolor/scalable/apps/${flatpak_id}.svg
+    sources:
+      - type: dir
+        path: files
+MANIFEST
+if ! flatpak-builder --force-clean --disable-rofiles-fuse --state-dir="${flatpak_work}/state" \
+  --repo="${flatpak_work}/repo" "${flatpak_work}/build" "${flatpak_work}/${flatpak_id}.yml" >"${work}/flatpak-builder.log" 2>&1; then
+  tail -20 "${work}/flatpak-builder.log" >&2
+  printf 'flatpak-builder failed; it needs a privileged container for bubblewrap\n' >&2
+  exit 1
+fi
+flatpak_file="${out_dir}/${package}-${version}-$(uname -m).flatpak"
+flatpak build-bundle "${flatpak_work}/repo" "${flatpak_work}/catcam.flatpak" "${flatpak_id}"
+cp -f "${flatpak_work}/catcam.flatpak" "${flatpak_file}"
+
 printf 'bundle: %s files, %s\n' "$(find "${bundle}" -type f | wc -l)" "$(du -sh "${bundle}" | cut -f1)"
 printf 'wrote %s (%s)\n' "${deb_file}" "$(du -h "${deb_file}" | cut -f1)"
 printf 'wrote %s (%s)\n' "${appimage_file}" "$(du -h "${appimage_file}" | cut -f1)"
+printf 'wrote %s (%s)\n' "${flatpak_file}" "$(du -h "${flatpak_file}" | cut -f1)"

@@ -178,8 +178,17 @@ Two upstream facts repeated here only because they bite before you reach a doc:
   **`/etc/omni-accelerant/catcam.toml` is not a conffile, on purpose.** `setup`
   writes it only when it is absent. As a conffile, an edited copy stopped the
   next upgrade at dpkg's keep-or-replace prompt, which hangs over SSH. It runs in `:latest`
-  with `--web-root` naming the web lane's `build/web`. `catcam/*` is pinned to
-  LF in `.gitattributes`, because those files land on the target verbatim.
+  with `--web-root` naming the web lane's `build/web`, **privileged**, because it also
+  builds a flatpak and `flatpak-builder` needs bubblewrap.
+  - The flatpak puts the same bundle in `/app/catcam` on the image's freedesktop runtime.
+  - Its command is `catcam/flatpak-omni-catcam`: a per-user `catcam.toml`, and a sign-in
+    autostart entry that `--autostart off|on` switches.
+  - It has no boot service and no Pi camera, since the sandbox cannot see `rpicam-vid`.
+  - `test-catcam-package.sh` installs it system-wide as root, because a user install
+    needs a D-Bus the container lacks.
+
+  `catcam/*` is pinned to LF in `.gitattributes`, because those files land on the
+  target verbatim.
   Detail: `docs/source/camera-streaming.md` § *The cat cam package*.
 - `scripts/windows/cat-stream/` — the Windows cat cam, built and tested in `:winamd64`
   (2026-10-06).
@@ -993,7 +1002,7 @@ cell is a test that cannot run there, and the reason is under the table.
 | APK ABI gate (`check-apk-abi.sh`) and its synthetic-APK suite | | | | yes | |
 | `liboxidant`'s rustc stamp (`check-rust-toolchain.sh`) and its suite | yes | | | yes, in the APK | |
 | APK on the emulator, 20 s (`check-apk-on-emulator.sh`) and its stub suite | | | | yes, API 35 x86_64 + ARM translation, on KVM | |
-| Cat cam .deb + AppImage install checks (`test-catcam-package.sh`) | | | | | in `web.yml`'s `catcam` jobs, x64 and arm64 |
+| Cat cam .deb, AppImage and flatpak install checks (`test-catcam-package.sh`) | | | | | in `web.yml`'s `catcam` jobs, x64 and arm64 |
 | Cat cam MSI install checks (`Test-CatCamWindows.ps1`) | | | | | in `web.yml`'s `catcam-windows` job, in `:winamd64` |
 | Cat cam MSIX package checks (`Test-CatCamMsix.ps1`, without `-Install`) | | | | | in `web.yml`'s `catcam-windows` job, in `:winamd64` |
 

@@ -112,10 +112,11 @@ jobs:
           name: gstreamer-ai-web-frontend
           path: ${{ env.BUILD_DIR_RELEASE }}
 
+      # Privileged: flatpak-builder runs its build commands in bubblewrap.
       - name: Package
         uses: Kataglyphis/ANTfrastructure/.github/actions/run-in-linux-container@develop
         with:
-          extra-args: --platform "${{ matrix.platform }}"
+          extra-args: --privileged --platform "${{ matrix.platform }}"
           script: >-
             bash /workspace/scripts/linux/cat-stream/package-catcam.sh
             --web-root /workspace/${{ env.BUILD_DIR_RELEASE }}
@@ -127,14 +128,15 @@ jobs:
           path: |
             out/omni-accelerant-catcam_*.deb
             out/omni-accelerant-catcam-*.AppImage
+            out/omni-accelerant-catcam-*.flatpak
             out/omni-accelerant-catcam-*-linux-*.tar.gz
           if-no-files-found: error
 
-      # After the upload, so a red test still leaves the packages to inspect; root installs them and runs the service user.
+      # After the upload, so a red test still leaves the packages to inspect; root installs them, privileged for flatpak run.
       - name: Test the packages
         uses: Kataglyphis/ANTfrastructure/.github/actions/run-in-linux-container@develop
         with:
-          extra-args: --platform "${{ matrix.platform }}" --user 0:0
+          extra-args: --privileged --platform "${{ matrix.platform }}" --user 0:0
           script: >-
             bash /workspace/scripts/linux/cat-stream/test-catcam-package.sh
 

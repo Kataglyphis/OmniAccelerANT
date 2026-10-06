@@ -1,21 +1,23 @@
 #!/usr/bin/env bash
-# Installs the cat cam .deb and AppImage the way a user does and checks what each promises; root, inside :latest.
+# Installs the cat cam .deb, AppImage and flatpak the way a user does and checks what each promises; privileged root in :latest.
 set -uo pipefail
 
 script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 repo_root="$(cd -- "${script_dir}/../../.." && pwd)"
 deb=""
 appimage=""
+flatpak_bundle=""
 photo="${repo_root}/third_party/ANThology/assets/images/cats/Summy&Thundy_compressed.png"
 
 usage() {
   cat <<'EOF'
-usage: test-catcam-package.sh [--deb FILE] [--appimage FILE] [--photo FILE]
+usage: test-catcam-package.sh [--deb FILE] [--appimage FILE] [--flatpak FILE] [--photo FILE]
 
-Runs as root in the family image (dpkg, a service user, headless Chrome). Each
-check prints PASS or FAIL; the exit code is the number of failures.
+Runs as root in a privileged family image (dpkg, a service user, bubblewrap, headless
+Chrome). Each check prints PASS or FAIL; the exit code is the number of failures.
   --deb FILE       the .deb (default: this machine's in out/, as package-catcam.sh names it)
   --appimage FILE  the AppImage (default: this machine's in out/)
+  --flatpak FILE   the flatpak bundle (default: this machine's in out/)
   --photo FILE     a photo with a cat in it (default: ANThology's Summy & Thundy)
 EOF
 }
@@ -24,6 +26,7 @@ while [ $# -gt 0 ]; do
   case "$1" in
     --deb) deb="${2:?--deb needs a file}"; shift 2 ;;
     --appimage) appimage="${2:?--appimage needs a file}"; shift 2 ;;
+    --flatpak) flatpak_bundle="${2:?--flatpak needs a file}"; shift 2 ;;
     --photo) photo="${2:?--photo needs a file}"; shift 2 ;;
     -h|--help) usage; exit 0 ;;
     *) usage >&2; exit 2 ;;
@@ -37,11 +40,14 @@ esac
 shopt -s nullglob
 debs=("${repo_root}"/out/omni-accelerant-catcam_*_"${deb_arch}".deb)
 appimages=("${repo_root}"/out/omni-accelerant-catcam-*-"$(uname -m)".AppImage)
+flatpaks=("${repo_root}"/out/omni-accelerant-catcam-*-"$(uname -m)".flatpak)
 shopt -u nullglob
 [ -n "${deb}" ] || deb="${debs[0]:-}"
 [ -n "${appimage}" ] || appimage="${appimages[0]:-}"
-[ -f "${deb}" ] && [ -f "${appimage}" ] || { printf 'no .deb or AppImage for %s\n' "${deb_arch}" >&2; usage >&2; exit 2; }
-printf 'testing %s and %s\n' "$(basename "${deb}")" "$(basename "${appimage}")"
+[ -n "${flatpak_bundle}" ] || flatpak_bundle="${flatpaks[0]:-}"
+[ -f "${deb}" ] && [ -f "${appimage}" ] && [ -f "${flatpak_bundle}" ] ||
+  { printf 'no .deb, AppImage or flatpak for %s\n' "${deb_arch}" >&2; usage >&2; exit 2; }
+printf 'testing %s, %s and %s\n' "$(basename "${deb}")" "$(basename "${appimage}")" "$(basename "${flatpak_bundle}")"
 [ -f "${photo}" ] || { printf 'no photo at %s\n' "${photo}" >&2; exit 2; }
 [ "$(id -u)" -eq 0 ] || { printf 'run as root: dpkg and the service user need it\n' >&2; exit 2; }
 
@@ -130,6 +136,7 @@ appimage_installed() {
     test "$(readlink -f /usr/local/bin/omni-catcam)" = "${prefix}/catcam"
 }
 installed_copy_refuses() { ! /usr/local/bin/omni-catcam --install >/dev/null 2>&1; }
+flatpak_gone() { ! flatpak info --system "$1" >/dev/null 2>&1; }
 uninstalled() {
   ! test -e "${prefix}" && ! test -e /etc/systemd/system/omni-catcam.service &&
     ! test -e "${config}" && ! id "${user}" >/dev/null 2>&1
@@ -198,6 +205,27 @@ check "a second --install keeps the edit" grep -q '^rotate = 180' "${config}"
 check "the installed copy refuses --install" installed_copy_refuses
 /usr/local/bin/omni-catcam --uninstall --purge >/dev/null 2>&1
 check "--uninstall --purge leaves nothing" uninstalled
+
+printf '=== the flatpak ===\n'
+# A system install: root needs no D-Bus for it, and a user install does.
+flatpak_id=org.kataglyphis.omni-accelerant-catcam
+autostart_entry="${HOME}/.config/autostart/${flatpak_id}.desktop"
+flatpak install --system -y --noninteractive "${flatpak_bundle}" >"${work}/fp-install.log" 2>&1
+check "flatpak installs it" flatpak info --system "${flatpak_id}"
+flatpak run --command=omni-catcam "${flatpak_id}" --camera test --inference off >"${work}/fp-stream.log" 2>&1 &
+pid=$!
+check "in its sandbox it answers /healthz" wait_healthz "${ip}"
+frames="$(chrome_frames "http://${ip}:8080/" 20000)"
+printf '      Chrome played %s frame(s) over %s\n' "${frames}" "${ip}"
+check "headless Chrome plays the sandboxed stream from the LAN address" test "${frames:-0}" -ge 200
+check "its first start set up the sign-in autostart" grep -q "^Exec=flatpak run --command=omni-catcam ${flatpak_id}$" "${autostart_entry}"
+kill "${pid}" 2>/dev/null
+flatpak kill "${flatpak_id}" >/dev/null 2>&1
+wait "${pid}" 2>/dev/null
+flatpak run --command=omni-catcam "${flatpak_id}" --autostart off >/dev/null 2>&1
+check "--autostart off removes the sign-in entry" test ! -e "${autostart_entry}"
+flatpak uninstall --system -y --noninteractive "${flatpak_id}" >/dev/null 2>&1
+check "flatpak uninstall leaves no app" flatpak_gone "${flatpak_id}"
 
 printf '%s failure(s)\n' "${failures}"
 if [ "${failures}" -gt 0 ]; then
