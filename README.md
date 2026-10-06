@@ -166,8 +166,9 @@ build/web`. That builds `out/omni-accelerant-catcam_<version>_<arch>.deb` and an
 
 Verified on amd64 in `:latest` and on a Raspberry Pi 5 with its CSI camera.
 On Windows, `scripts\windows\cat-stream\Package-CatCam.ps1` (in `:winamd64`) builds an
-MSI. It installs the cat cam, starts it at every logon, and streams the same page; so
-far it is tested in the image only. Details:
+MSI, and with `-Msix` a signed MSIX. Each installs the cat cam, starts it at every logon,
+opens the firewall to the network, and streams the same page. Both are tested in the
+image and on a Windows 11 PC; a camera on Windows is still untested. Details:
 [docs/source/camera-streaming.md § The cat cam package](docs/source/camera-streaming.md#the-cat-cam-package).
 
 **By hand.** One native Linux host does everything, a Raspberry Pi included:

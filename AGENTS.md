@@ -190,6 +190,12 @@ Two upstream facts repeated here only because they bite before you reach a doc:
     - The MSI's logon autostart is an all-users Startup-folder shortcut.
     - Its firewall rule is LAN-only and bound to the exe. It needs WiX's firewall
       extension, which the hub's final stage installs.
+    - `-Msix` packs the same folder as an MSIX (`AppxManifest.xml`): a startup task, the
+      `omni-catcam` alias, and port rules for private and domain networks. It is signed
+      by `-MsixPfx`, or else by a per-build test certificate whose `.cer` lands beside
+      it. An unsigned result fails the build, because the hub's signing step only warns.
+  - `Test-CatCamMsix.ps1` reads the MSIX anywhere. With `-Install` it deploys and runs
+    the package on a desktop host, which Server Core cannot do (`0x80073D19`).
   - `Test-CatCamWindows.ps1` installs the MSI and runs the exe with a scrubbed
     environment.
   - On Windows the exe finds its plugins, ORT and model itself (OxidANT `install.rs`).
@@ -989,6 +995,7 @@ cell is a test that cannot run there, and the reason is under the table.
 | APK on the emulator, 20 s (`check-apk-on-emulator.sh`) and its stub suite | | | | yes, API 35 x86_64 + ARM translation, on KVM | |
 | Cat cam .deb + AppImage install checks (`test-catcam-package.sh`) | | | | | in `web.yml`'s `catcam` jobs, x64 and arm64 |
 | Cat cam MSI install checks (`Test-CatCamWindows.ps1`) | | | | | in `web.yml`'s `catcam-windows` job, in `:winamd64` |
+| Cat cam MSIX package checks (`Test-CatCamMsix.ps1`, without `-Install`) | | | | | in `web.yml`'s `catcam-windows` job, in `:winamd64` |
 
 - Android and Web build no desktop runner, so the desktop rows do not apply
   there; Android adds the plugin's JVM test and the emulator run. The image carries

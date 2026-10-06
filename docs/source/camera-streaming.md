@@ -339,6 +339,9 @@ package above. Run it inside `:winamd64` with the web lane's build:
 pwsh -File scripts\windows\cat-stream\Package-CatCam.ps1 -WebRoot <build\web>
 # out\omni-accelerant-catcam-<version>-windows-x64.msi   (one click: double-click it)
 # out\omni-accelerant-catcam-<version>-windows-x64.zip   (the same folder, portable)
+# with -Msix also:
+# out\omni-accelerant-catcam-<version>-windows-x64.msix           (signed; see "The MSIX" below)
+# out\omni-accelerant-catcam-<version>-windows-x64-testcert.cer   (only without -MsixPfx)
 ```
 
 **One folder.** `C:\Program Files\OmniAccelerANT Cat Cam` holds:
@@ -394,7 +397,40 @@ and uninstalled cleanly through UAC:
   (`no camera found`), with all 128 modules from its folder or Windows;
 - a browser on another device on the LAN played the stream through that rule.
 
-**Not verified yet:** a camera on Windows, the start at a real sign-in, and arm64.
+**The MSIX** (`-Msix`) packs the same folder, which G6 has already proved, with
+`AppxManifest.xml`. It installs per user, needs no admin, and adds three things:
+- a `desktop:StartupTask` for the logon start, which *Startup apps* turns off;
+- the `omni-catcam` alias, the Linux packages' command name;
+- two firewall rules, TCP 8080 and UDP 40000-40099, on private and domain networks.
+
+  MSIX rules take ports and profiles but no remote scope. So unlike the MSI's rule they
+  are not limited to the local subnet, and a changed `http_port` or ICE range is not
+  covered.
+
+An MSIX installs only when Windows trusts its signer:
+- `-MsixPfx` signs with your certificate; its password goes in `MSIX_PFX_PASSWORD`, and
+  `-MsixPublisher` must equal its subject.
+- Without it, a certificate made for that build signs, and its `.cer` lands beside the
+  package. Import it into `LocalMachine\TrustedPeople` (admin), then double-click the
+  `.msix`.
+- `Package-CatCam.ps1` refuses an unsigned result. The hub's signing step only warns when
+  it fails.
+
+**`Test-CatCamMsix.ps1` checks the MSIX.**
+- **Everywhere, in CI too:** the signature against the publisher, the manifest's startup
+  task, alias and firewall rules, and the payload. These are six checks.
+- **With `-Install`, on a desktop host:** it installs for the current user, finds the
+  rules in Windows Firewall, starts the alias, reads `/healthz`, checks that every module
+  comes from the package or Windows, and removes the package again.
+
+Server Core cannot deploy an MSIX (`0x80073D19`), so CI runs only the first half.
+On the dev box (2026-10-06), with the test certificate trusted:
+- all 12 checks passed;
+- himbeere2 reached the page through the MSIX's rules;
+- the certificate came out of the store afterwards.
+
+**Not verified yet:** a camera on Windows, the start at a real sign-in (the MSI's Startup
+entry and the MSIX's startup task), and arm64.
 
 ### Cat detection stream (Rust, native)
 

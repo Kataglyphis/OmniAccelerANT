@@ -175,6 +175,7 @@ jobs:
           file-args: |
             -WebRoot
             C:\ws\build\web
+            -Msix
 
       - name: Upload the cat cam packages
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
@@ -182,6 +183,8 @@ jobs:
           name: omni-accelerant-catcam-windows-x64
           path: |
             ${{ steps.prep.outputs.workspace }}/out/omni-accelerant-catcam-*-windows-*.msi
+            ${{ steps.prep.outputs.workspace }}/out/omni-accelerant-catcam-*-windows-*.msix
+            ${{ steps.prep.outputs.workspace }}/out/omni-accelerant-catcam-*-windows-*-testcert.cer
             ${{ steps.prep.outputs.workspace }}/out/omni-accelerant-catcam-*-windows-*.zip
           if-no-files-found: error
 
@@ -195,3 +198,12 @@ jobs:
             C:\ws\out\omni-accelerant-catcam-*-windows-x64.msi
             -Photo
             C:\ws\third_party\ANThology\assets\images\cats\*.png
+
+      # Server Core cannot deploy an MSIX, so CI reads the package: signature, startup task, alias, firewall rules, payload.
+      - name: Check the MSIX
+        uses: Kataglyphis/ANTfrastructure/.github/actions/run-in-windows-container@develop
+        with:
+          file: C:\ws\scripts\windows\cat-stream\Test-CatCamMsix.ps1
+          file-args: |
+            -Msix
+            C:\ws\out\omni-accelerant-catcam-*-windows-x64.msix

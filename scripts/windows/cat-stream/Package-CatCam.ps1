@@ -12,14 +12,25 @@
     The Flutter web build (the web lane's build\web). Required.
 .PARAMETER Producer
     A built kataglyphis_cat_webrtc.exe; default: cargo build --release in third_party\OxidANT.
+.PARAMETER Msix
+    Also pack the same folder as an MSIX, with a logon startup task, its firewall rules and the omni-catcam alias.
+.PARAMETER MsixPfx
+    The certificate that signs the MSIX (password in MSIX_PFX_PASSWORD); without it a test certificate signs, and its
+    .cer lands beside the package for a tester to trust.
+.PARAMETER MsixPublisher
+    The MSIX publisher, which must equal the signing certificate's subject.
 #>
+[Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingConvertToSecureStringWithPlainText', '', Justification = 'a throwaway password for the per-build test certificate')]
 param(
     [Parameter(Mandatory)][string]$WebRoot,
     [string]$Model = '',
     [string]$Producer = '',
     [string]$OutDir = '',
     [string]$Version = '',
-    [switch]$SkipMsi
+    [switch]$SkipMsi,
+    [switch]$Msix,
+    [string]$MsixPfx = '',
+    [string]$MsixPublisher = 'CN=Kataglyphis'
 )
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
@@ -119,18 +130,50 @@ $zip = Join-Path $OutDir "$package-$Version-windows-$packageArch.zip"
 if (Test-Path -LiteralPath $zip) { Remove-Item -LiteralPath $zip -Force }
 Compress-Archive -Path $final -DestinationPath $zip
 Write-Host "wrote $zip"
-if ($SkipMsi) { return }
 
 $context = New-BuildContext -Workspace $repoRoot -LogDir (Join-Path $OutDir 'logs')
-$payloadFiles = [System.Collections.Generic.List[object]]::new()
-foreach ($file in @(Get-ChildItem $final -Recurse -File)) {
-    if ($file.FullName -eq $payload.Exe) { continue }
-    $sub = [System.IO.Path]::GetRelativePath($final, $file.DirectoryName)
-    $payloadFiles.Add([pscustomobject]@{ Source = $file.FullName; Subdirectory = $(if ($sub -eq '.') { '' } else { $sub }) })
+if (-not $SkipMsi) {
+    $payloadFiles = [System.Collections.Generic.List[object]]::new()
+    foreach ($file in @(Get-ChildItem $final -Recurse -File)) {
+        if ($file.FullName -eq $payload.Exe) { continue }
+        $sub = [System.IO.Path]::GetRelativePath($final, $file.DirectoryName)
+        $payloadFiles.Add([pscustomobject]@{ Source = $file.FullName; Subdirectory = $(if ($sub -eq '.') { '' } else { $sub }) })
+    }
+    $msi = Join-Path $OutDir "$package-$Version-windows-$packageArch.msi"
+    Invoke-MsiPackage -Context $context -WxsFile (Join-Path $PSScriptRoot 'catcam.wxs') -LicenseFile (Join-Path $PSScriptRoot 'License.rtf') `
+        -ProductName 'OmniAccelerANT Cat Cam' -Manufacturer 'Kataglyphis' -ExeSource $payload.Exe -Version $Version `
+        -OutFile $msi -Arch $packageArch -PayloadFiles $payloadFiles.ToArray() -FragmentPath 'C:\catcam-out\msi-payload-files.wxs' `
+        -Extensions @('WixToolset.UI.wixext', 'WixToolset.Firewall.wixext') | Out-Null
+    Write-Host "wrote $msi ($([math]::Round((Get-Item $msi).Length / 1MB)) MB)"
 }
-$msi = Join-Path $OutDir "$package-$Version-windows-$packageArch.msi"
-Invoke-MsiPackage -Context $context -WxsFile (Join-Path $PSScriptRoot 'catcam.wxs') -LicenseFile (Join-Path $PSScriptRoot 'License.rtf') `
-    -ProductName 'OmniAccelerANT Cat Cam' -Manufacturer 'Kataglyphis' -ExeSource $payload.Exe -Version $Version `
-    -OutFile $msi -Arch $packageArch -PayloadFiles $payloadFiles.ToArray() -FragmentPath 'C:\catcam-out\msi-payload-files.wxs' `
-    -Extensions @('WixToolset.UI.wixext', 'WixToolset.Firewall.wixext') | Out-Null
-Write-Host "wrote $msi ($([math]::Round((Get-Item $msi).Length / 1MB)) MB)"
+if (-not $Msix) { return }
+
+Import-BuildModule @('WindowsMsix.Signing')
+$msixBase = Join-Path $OutDir "$package-$Version-windows-$packageArch"
+$signing = 'C:\catcam-out\msix-signing'
+foreach ($d in $signing, 'C:\catcam-out\msix-stage') { if (Test-Path -LiteralPath $d) { Remove-Item -LiteralPath $d -Recurse -Force } }
+$null = New-Item -ItemType Directory -Force -Path $signing
+$passwordBefore = $env:MSIX_PFX_PASSWORD
+if ($MsixPfx) {
+    Copy-Item -LiteralPath $MsixPfx -Destination $signing
+} else {
+    $cert = New-SelfSignedCertificate -Type Custom -Subject $MsixPublisher -KeyUsage DigitalSignature -FriendlyName "$package test signing" `
+        -CertStoreLocation 'Cert:\CurrentUser\My' -TextExtension @('2.5.29.37={text}1.3.6.1.5.5.7.3.3', '2.5.29.19={text}')
+    $env:MSIX_PFX_PASSWORD = [Guid]::NewGuid().ToString('N')
+    $null = Export-PfxCertificate -Cert $cert -FilePath (Join-Path $signing 'test.pfx') -Password (ConvertTo-SecureString $env:MSIX_PFX_PASSWORD -AsPlainText -Force)
+    $null = Export-Certificate -Cert $cert -FilePath "$msixBase-testcert.cer"
+    Remove-Item -LiteralPath "Cert:\CurrentUser\My\$($cert.Thumbprint)"
+}
+$msixFile = "$msixBase.msix"
+try {
+    Invoke-MsixPackage -Context $context -StagingDir 'C:\catcam-out\msix-stage' -ManifestTemplatePath (Join-Path $PSScriptRoot 'AppxManifest.xml') `
+        -TokenMap @{ '__PUBLISHER__' = $MsixPublisher; '__VERSION__' = "$Version.0"; '__ARCH__' = $packageArch } `
+        -ResourcesDir $final -LogoPath (Join-Path $WebRoot 'icons\Icon-512.png') -OutputPath $msixFile -Sign -SigningRoot $signing | Out-Null
+} finally {
+    $env:MSIX_PFX_PASSWORD = $passwordBefore
+    Remove-Item -LiteralPath $signing -Recurse -Force -ErrorAction SilentlyContinue
+}
+# Invoke-MsixSign only warns when signing fails, and an unsigned MSIX does not install.
+$signer = (Get-AuthenticodeSignature -LiteralPath $msixFile).SignerCertificate
+if (-not $signer -or $signer.Subject -ne $MsixPublisher) { throw "$msixFile is not signed by $MsixPublisher" }
+Write-Host "wrote $msixFile ($([math]::Round((Get-Item $msixFile).Length / 1MB)) MB), signed by $($signer.Subject)"
