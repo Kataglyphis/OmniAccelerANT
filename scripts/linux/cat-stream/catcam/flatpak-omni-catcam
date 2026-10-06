@@ -1,0 +1,42 @@
+#!/bin/sh
+# The flatpak's command: the bundle's launcher with a per-user catcam.toml, autostarted at sign-in unless switched off.
+# A flatpak has no boot-time service; `omni-catcam --autostart off|on` toggles the sign-in start.
+set -eu
+app=/app/catcam
+config_dir="${XDG_CONFIG_HOME:-$HOME/.config}/omni-accelerant"
+config="${config_dir}/catcam.toml"
+# The host's autostart directory; finish-arg xdg-config/autostart:create mounts it at this path.
+entry="${HOME}/.config/autostart/${FLATPAK_ID}.desktop"
+
+write_entry() {
+  mkdir -p "$(dirname "${entry}")"
+  cat > "${entry}" <<EOF
+[Desktop Entry]
+Type=Application
+Name=OmniAccelerANT Cat Cam
+Comment=Starts the cat cam at sign-in; its page is http://localhost:8080/
+Exec=flatpak run --command=omni-catcam ${FLATPAK_ID}
+X-Flatpak=${FLATPAK_ID}
+Terminal=false
+EOF
+}
+
+case "${1:-}" in
+  --autostart)
+    mkdir -p "${config_dir}"
+    case "${2:-}" in
+      on) rm -f "${config_dir}/no-autostart"; write_entry; echo "autostart at sign-in: on" ;;
+      off) touch "${config_dir}/no-autostart"; rm -f "${entry}"; echo "autostart at sign-in: off" ;;
+      *) echo "usage: omni-catcam --autostart on|off" >&2; exit 2 ;;
+    esac
+    exit 0 ;;
+esac
+
+if [ ! -f "${config}" ]; then
+  mkdir -p "${config_dir}"
+  cp "${app}/share/omni-accelerant-catcam/catcam.toml" "${config}"
+fi
+if [ ! -e "${config_dir}/no-autostart" ] && [ ! -e "${entry}" ]; then
+  write_entry
+fi
+exec "${app}/catcam" --config "${config}" "$@"

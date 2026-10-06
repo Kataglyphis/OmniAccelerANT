@@ -15,7 +15,7 @@ consumes, so the loop this repo adopted on 2026-09-13 (`scripts/agentic-loop/`,
 
 The installable cat cam: `docs/source/camera-streaming.md` § *The cat cam package*.
 Linux amd64/arm64 ship as a .deb and an AppImage, proven on himbeere2 (Pi 5) on
-2026-10-05. Windows x64 ships as an MSI and an MSIX, proven on a Windows 11 host on
+2026-10-05, and as a flatpak, proven in `:latest` on 2026-10-06. Windows x64 ships as an MSI and an MSIX, proven on a Windows 11 host on
 2026-10-06. These rows are what the owner's goal still lacks.
 
 - [b] **A USB webcam through `camera = "auto"`.** The UVC branch (`uvcvideo`, MJPEG when
@@ -50,12 +50,17 @@ Linux amd64/arm64 ship as a .deb and an AppImage, proven on himbeere2 (Pi 5) on
   - Autostart is a logon task by owner decision. A boot-time service would run in
     Session 0, and on a PC with a webcam it first needs proof that LocalSystem or
     LocalService can open the camera there at all.
-- [ ] **A flatpak of the cat cam, Linux amd64 and arm64.** The owner's goal names .deb,
-  flatpak and AppImage, and `package-catcam.sh` builds the first and the last.
-  - A flatpak is sandboxed and runs in a user session. It cannot carry the .deb's systemd
-    unit, so it would start at sign-in through the background portal, not at boot.
-  - It needs `--device=all` for the camera, as the app's flatpak has, and network access.
-  - Done when it installs, starts at sign-in, and a browser on the LAN plays it.
+- [ ] **The cat cam flatpak on a real Linux desktop.** `package-catcam.sh` builds it
+  since 2026-10-06, and `web.yml` tests it on x64 and arm64 with the .deb and the
+  AppImage.
+  - In `:latest` it installed, answered `/healthz` from its sandbox, and headless Chrome
+    played it over the LAN address. Its first start wrote the sign-in entry.
+  - **Still unproven:**
+    - a desktop fetching its freedesktop runtime from Flathub;
+    - the start at a real sign-in;
+    - a USB camera through `--device=all`.
+  - It has no boot service and no Pi camera by design; those stay with the .deb and the
+    AppImage.
 
 ## Agentic loop
 

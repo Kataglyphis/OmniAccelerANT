@@ -203,8 +203,12 @@ its web root:
 bash scripts/linux/cat-stream/package-catcam.sh --web-root build/web
 # out/omni-accelerant-catcam_<version>_<deb-arch>.deb            Debian, Ubuntu, Raspberry Pi OS
 # out/omni-accelerant-catcam-<version>-<uname-arch>.AppImage     any glibc distro
+# out/omni-accelerant-catcam-<version>-<uname-arch>.flatpak      any flatpak desktop; USB cameras, sign-in start
 # out/omni-accelerant-catcam-<version>-linux-<deb-arch>.tar.gz   the same bundle, unpacked
 ```
+
+The flatpak's `flatpak-builder` runs in bubblewrap, so the script needs a privileged
+container (`nerdctl run --privileged`).
 
 Install it with `sudo apt install ./omni-accelerant-catcam_<version>_<arch>.deb`,
 or anywhere else with `sudo ./omni-accelerant-catcam-<version>-<arch>.AppImage --install`.
@@ -223,6 +227,20 @@ The installer is `libexec/catcam-install` in the bundle, so the tarball's
 `sudo ./catcam --install` does the same. It refuses while the .deb is installed,
 and the .deb's `postinst` uses it to create the user. Without FUSE, set
 `APPIMAGE_EXTRACT_AND_RUN=1`.
+
+**The flatpak starts at sign-in, not at boot, and takes USB cameras only.** Install it
+with `flatpak install ./omni-accelerant-catcam-<version>-<arch>.flatpak`; a desktop
+without the freedesktop runtime it names fetches that from Flathub. Start it with
+`flatpak run org.kataglyphis.omni-accelerant-catcam`.
+- It runs the same bundle, from `/app/catcam`, in a sandbox that has the network, every
+  device (`--device=all`, as the app's flatpak has) and the host's `~/.config/autostart`.
+- Its first run seeds `~/.var/app/org.kataglyphis.omni-accelerant-catcam/config/omni-accelerant/catcam.toml`
+  from the template and writes the sign-in entry. `flatpak run --command=omni-catcam
+  org.kataglyphis.omni-accelerant-catcam --autostart off|on` switches it.
+- A flatpak cannot carry a systemd unit, so it starts when the user who ran it once
+  signs in, never at boot.
+- It cannot use a Raspberry Pi camera. `rpicam-vid` is a host tool the sandbox cannot see,
+  and the image's libcamera cannot drive a Pi 5. On a Pi, use the .deb or the AppImage.
 
 **What the bundle carries.** Everything lives in `/opt/omni-accelerant-catcam`:
 - the producer;
@@ -272,9 +290,10 @@ the service forwards the WebSocket upgrade to its own signalling server on
 loopback `:8443`. Media goes over host candidates only unless `stun_server` is
 set, so the stream stays on the LAN. No TLS, no `serve.sh`, no container.
 
-**`test-catcam-package.sh` checks both packages, and CI runs it.** `web.yml`'s
-`catcam` jobs run it on x64 and arm64 right after packaging. It runs as root in
-`:latest`, prints one PASS or FAIL per check, and exits with the number of failures.
+**`test-catcam-package.sh` checks all three packages, and CI runs it.** `web.yml`'s
+`catcam` jobs run it on x64 and arm64 right after packaging. It runs as root in a
+privileged `:latest`, prints one PASS or FAIL per check, and exits with the number of
+failures.
 A package without `debugutilsbad` reds five of its checks. Locally:
 
 ```bash
@@ -291,7 +310,14 @@ and run as the unit runs it, with a scrubbed environment as `omni-catcam`:
 - the AppImage's `--install`, a second `--install` over it, and `--uninstall --purge`
   left the expected files, and then none;
 - the .deb installed over an edited `catcam.toml` with no terminal, kept the edit, and
-  `dpkg --purge` removed it.
+  `dpkg --purge` removed it;
+- the flatpak, installed system-wide, answered `/healthz` from its sandbox, and headless
+  Chrome played its stream over the LAN address. Its first start wrote the sign-in
+  entry, `--autostart off` removed it, and `flatpak uninstall` left nothing. A user
+  install needs a D-Bus session that the container lacks, hence the system install.
+
+On amd64 in `:latest` (2026-10-06), all 32 checks passed, and Chrome played 572 frames
+from the sandboxed stream. The flatpak bundle is 63 MB.
 
 **On a Raspberry Pi 5 (himbeere2: imx219, Debian 13, kernel 6.18), 2026-10-05.**
 The arm64 packages were built natively on the board in `:latest`, and CI's
@@ -328,7 +354,8 @@ Making that switch work took two fixes:
   Without that, the returning .deb read the AppImage's `--uninstall` as the admin's
   disable and stayed off.
 
-**Not verified yet:** a USB webcam.
+**Not verified yet:** a USB webcam, and the flatpak on a real desktop: its runtime
+fetched from Flathub, and its start at a sign-in.
 
 ### The Windows cat cam
 

@@ -22,3 +22,4 @@ scripts/linux/cat-stream/test-catcam-package.sh	plain_install_refused
 scripts/linux/cat-stream/test-catcam-package.sh	appimage_installed
 scripts/linux/cat-stream/test-catcam-package.sh	installed_copy_refuses
 scripts/linux/cat-stream/test-catcam-package.sh	uninstalled
+scripts/linux/cat-stream/test-catcam-package.sh	flatpak_gone
