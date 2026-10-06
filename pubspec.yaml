@@ -29,7 +29,7 @@ dependencies:
     path: rust_builder
   permission_handler: ^13.0.2
 
-  sqlite3: ^3.3.1
+  sqlite3: ^3.7.0
   web: ^1.1.1
 dev_dependencies:
   # test/pinned_artefacts_test.dart imports it directly, which a transitive dependency does not allow.
