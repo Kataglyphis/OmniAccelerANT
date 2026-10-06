@@ -329,6 +329,55 @@ Making that switch work took two fixes:
 
 **Not verified yet:** a USB webcam.
 
+### The Windows cat cam
+
+`scripts/windows/cat-stream/Package-CatCam.ps1` is the Windows twin of the
+package above. Run it inside `:winamd64` with the web lane's build:
+
+```powershell
+pwsh -File scripts\windows\cat-stream\Package-CatCam.ps1 -WebRoot <build\web>
+# out\omni-accelerant-catcam-<version>-windows-x64.msi   (one click: double-click it)
+# out\omni-accelerant-catcam-<version>-windows-x64.zip   (the same folder, portable)
+```
+
+**One folder.** `C:\Program Files\OmniAccelerANT Cat Cam` holds:
+- `kataglyphis_cat_webrtc.exe`;
+- the DLLs it and its plugins import (`Copy-PeImportClosure`), plus the VC++ runtime,
+  which a clean Windows lacks;
+- the GStreamer plugin subset in `lib\gstreamer-1.0`, with Media Foundation and kernel
+  streaming for the camera, and `openh264` as the stream's codec, since the image builds
+  no `vpx`;
+- the plugin scanner;
+- the chain ONNX Runtime, proved by the hub's G6 census before packaging;
+- `models\yolo26n.onnx` and the web build.
+
+The exe points GStreamer, ONNX Runtime and the model at that folder itself (OxidANT's
+`install.rs`), so it needs no launcher and nothing on PATH.
+
+**The MSI** installs per machine. It adds:
+- a Start menu folder, with **Cat Cam** and **Cat Cam page**;
+- an entry in the all-users Startup folder, so the cat cam starts minimized at every
+  logon. That's a logon task, by owner decision on 2026-10-06; a Session 0 service waits
+  on the camera-test-kit result.
+
+Both entries are features: you can deselect them in the installer, or switch autostart
+off later in Task Manager under *Startup apps*. Settings go in
+`%ProgramData%\omni-accelerant\catcam.toml`; the template ships in
+`share\omni-accelerant-catcam`. The image has no WiX firewall extension yet, so Windows
+asks once whether to let the cat cam onto the network.
+
+**`Test-CatCamWindows.ps1` checks the MSI** inside `:winamd64` as admin; the image was
+rebuilt from hub f4c0e2be on 2026-10-06. All 13 checks passed:
+- the silent install, its files, the Startup entry and the shortcuts;
+- the installed exe run with only System32 on PATH: `/healthz` and the page answer, and
+  every loaded module comes from the install folder or Windows, idle and with a viewer;
+- a `webrtcsrc` viewer decoding 60 frames;
+- the bundled model on the bundled ORT finding the cat;
+- a silent uninstall that leaves nothing.
+
+**Not verified yet:** an install on a Windows host with a camera, a browser on the LAN
+playing it, the logon start after a reboot, arm64, and a CI job.
+
 ### Cat detection stream (Rust, native)
 
 `third_party/OxidANT/crates/cat_webrtc` (`kataglyphis_cat_webrtc`) is the
