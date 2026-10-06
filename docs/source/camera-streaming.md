@@ -358,8 +358,8 @@ The exe points GStreamer, ONNX Runtime and the model at that folder itself (Oxid
 **The MSI** installs per machine. It adds:
 - a Start menu folder, with **Cat Cam** and **Cat Cam page**;
 - an entry in the all-users Startup folder, so the cat cam starts minimized at every
-  logon. That's a logon task, by owner decision on 2026-10-06; a Session 0 service waits
-  on the camera-test-kit result.
+  logon. That's a logon task, by owner decision on 2026-10-06. A boot-time service would
+  run in Session 0, and nobody has yet shown that a service can open a webcam there.
 
 Both entries are features: you can deselect them in the installer, or switch autostart
 off later in Task Manager under *Startup apps*. Settings go in
