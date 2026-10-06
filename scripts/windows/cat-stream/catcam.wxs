@@ -1,0 +1,88 @@
+<?xml version='1.0' encoding='utf-8'?>
+<!-- The Windows cat cam MSI; Package-CatCam.ps1 builds it through the hub's Invoke-MsiPackage, which passes every moving value with -d. -->
+<Wix xmlns='http://wixtoolset.org/schemas/v4/wxs'
+     xmlns:ui='http://wixtoolset.org/schemas/v4/wxs/ui'>
+
+    <!-- InstallerVersion 500: an arm64 package needs it (WIX1143), and one value serves both arches. -->
+    <Package
+        Name='$(var.ProductName)'
+        UpgradeCode='ECBCC716-5845-47EF-BE09-1E43D404DEFC'
+        Manufacturer='$(var.Manufacturer)'
+        Language='1033'
+        Codepage='1252'
+        Version='$(var.Version)'
+        InstallerVersion='500'
+        Compressed='yes'
+        Scope='perMachine'>
+
+        <SummaryInformation
+            Description='The cat cam: camera, YOLO cat boxes and a WebRTC stream for any browser on the network'
+            Manufacturer='$(var.Manufacturer)'
+            Codepage='1252'/>
+
+        <MajorUpgrade DowngradeErrorMessage='A newer version of [ProductName] is already installed. Setup will now exit.'/>
+        <MediaTemplate EmbedCab='yes'/>
+
+        <StandardDirectory Id='ProgramFiles64Folder'>
+            <Directory Id='APPLICATIONFOLDER' Name='$(var.ProductName)'/>
+        </StandardDirectory>
+        <StandardDirectory Id='ProgramMenuFolder'>
+            <Directory Id='ApplicationProgramsFolder' Name='$(var.ProductName)'/>
+        </StandardDirectory>
+
+        <DirectoryRef Id='APPLICATIONFOLDER'>
+            <Component Id='License' Bitness='always64'>
+                <File Id='LicenseFile' Name='License.rtf' Source='$(var.LicenseRtf)' KeyPath='yes'/>
+            </Component>
+            <Component Id='Exe' Bitness='always64'>
+                <File Id='exe0' Name='kataglyphis_cat_webrtc.exe' Source='$(var.ExeSource)' KeyPath='yes'/>
+            </Component>
+        </DirectoryRef>
+
+        <DirectoryRef Id='ApplicationProgramsFolder'>
+            <Component Id='StartMenu' Bitness='always64'>
+                <Shortcut Id='StartMenuCatCam' Name='Cat Cam' Description='Starts the cat cam; its page is http://localhost:8080/'
+                    Target='[!exe0]' WorkingDirectory='APPLICATIONFOLDER' Show='minimized'/>
+                <Shortcut Id='StartMenuPage' Name='Cat Cam page' Description='Opens the cat cam in the browser'
+                    Target='[WindowsFolder]explorer.exe' Arguments='http://localhost:8080/'/>
+                <RemoveFolder Id='RemoveStartMenuFolder' On='uninstall'/>
+                <RegistryValue Root='HKLM' Key='Software\Kataglyphis\OmniAccelerANT Cat Cam' Name='StartMenu' Type='integer' Value='1' KeyPath='yes'/>
+            </Component>
+        </DirectoryRef>
+
+        <!-- With Scope perMachine (ALLUSERS=1) this is the all-users Startup folder: every logon starts the cat cam, in that user's session. -->
+        <StandardDirectory Id='StartupFolder'>
+            <Component Id='StartAtLogon' Bitness='always64'>
+                <Shortcut Id='StartupCatCam' Name='$(var.ProductName)' Description='Starts the cat cam at logon'
+                    Target='[!exe0]' WorkingDirectory='APPLICATIONFOLDER' Show='minimized'/>
+                <RegistryValue Root='HKLM' Key='Software\Kataglyphis\OmniAccelerANT Cat Cam' Name='StartAtLogon' Type='integer' Value='1' KeyPath='yes'/>
+            </Component>
+        </StandardDirectory>
+
+        <Feature Id='CatCam' Title='Cat cam' Description='The cat cam and everything it runs on.' Level='1'
+            ConfigurableDirectory='APPLICATIONFOLDER' AllowAdvertise='no' Display='expand' AllowAbsent='no'>
+            <ComponentRef Id='License'/>
+            <ComponentRef Id='Exe'/>
+            <?ifdef PayloadFiles?>
+            <ComponentGroupRef Id='PayloadFiles'/>
+            <?endif?>
+            <Feature Id='StartMenuFeature' Title='Start menu shortcuts' Description='Cat Cam, and Cat Cam page for the browser.' Level='1' AllowAbsent='yes'>
+                <ComponentRef Id='StartMenu'/>
+            </Feature>
+            <Feature Id='StartAtLogonFeature' Title='Start at logon'
+                Description='Starts the cat cam at every logon. Turn it off here, or later in Task Manager under Startup apps.' Level='1' AllowAbsent='yes'>
+                <ComponentRef Id='StartAtLogon'/>
+            </Feature>
+        </Feature>
+
+        <SetProperty Id='ARPINSTALLLOCATION' Value='[APPLICATIONFOLDER]' After='CostFinalize'/>
+        <Property Id='ARPHELPLINK' Value='https://github.com/Kataglyphis/OmniAccelerANT'/>
+
+        <ui:WixUI Id='WixUI_FeatureTree'/>
+        <!-- Welcome goes straight to the feature tree; order 99 beats the extension's own license-dialog rows. -->
+        <UI>
+            <Publish Dialog='WelcomeDlg' Control='Next' Event='NewDialog' Value='CustomizeDlg' Order='99' Condition='1'/>
+            <Publish Dialog='CustomizeDlg' Control='Back' Event='NewDialog' Value='WelcomeDlg' Order='99' Condition='1'/>
+        </UI>
+    </Package>
+</Wix>

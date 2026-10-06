@@ -1,0 +1,33 @@
+# OmniAccelerANT cat cam. Copy this to %ProgramData%\omni-accelerant\catcam.toml, uncomment a setting, then restart the cat cam
+
+# Restart it: end "kataglyphis_cat_webrtc" in Task Manager, then start "Cat Cam" from the Start menu (or log off and on)
+
+# `kataglyphis_cat_webrtc.exe --print-config` prints the settings in effect; Task Manager > Startup apps turns autostart off
+
+# camera = "auto"          # a webcam via Media Foundation, else kernel streaming; or mf | ks | test | image:FILE
+
+# rotate = 0               # 90 | 180 | 270; 180 for a camera mounted upside down
+
+# width = 640
+
+# height = 480
+
+# fps = 30
+
+# name = "Trouble Tabbls Cat Cam"   # what viewers see
+
+# inference = "auto"       # auto | on | off; auto skips the model below 1 GiB of RAM or when it fails to load
+
+# score = 0.25
+
+# inference_fps = 2        # box updates per second; 0 runs the model as often as it can, on every core
+
+# all_classes = false      # true boxes every COCO class, not only cats
+
+# http_port = 8080         # the page is http://<this-pc>:8080/; 0 turns the web server off
+
+# ice_port_min = 40000     # WebRTC media's UDP range; Windows asks once to let the cat cam through its firewall
+
+# ice_port_max = 40099
+
+# stun_server = ""         # e.g. "stun://stun.l.google.com:19302"; empty keeps the stream LAN-only

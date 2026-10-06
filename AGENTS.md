@@ -181,6 +181,18 @@ Two upstream facts repeated here only because they bite before you reach a doc:
   with `--web-root` naming the web lane's `build/web`. `catcam/*` is pinned to
   LF in `.gitattributes`, because those files land on the target verbatim.
   Detail: `docs/source/camera-streaming.md` § *The cat cam package*.
+- `scripts/windows/cat-stream/` — the Windows cat cam, built and tested in `:winamd64`
+  (2026-10-06).
+  - `Package-CatCam.ps1` builds one install folder, the zip and the MSI around it
+    (`catcam.wxs` through the hub's `Invoke-MsiPackage`).
+    - Its DLL closure comes from the hub's `Copy-PeImportClosure`, plus the VC++ runtime.
+    - The ORT comes from `Copy-ChainOrtBeside`, and `New-OrtProvenPayload` proves it.
+    - The MSI's logon autostart is an all-users Startup-folder shortcut.
+  - `Test-CatCamWindows.ps1` installs the MSI and runs the exe with a scrubbed
+    environment.
+  - On Windows the exe finds its plugins, ORT and model itself (OxidANT `install.rs`).
+  - **openh264 is a required plugin on Windows**, because the image builds no `vpx`.
+  - Detail: `docs/source/camera-streaming.md` § *The Windows cat cam*.
 
 **Deliberately not reused.** Two upstream Windows pieces were evaluated and
 rejected — `WindowsAppRunner.Common` (its executable probe would launch the

@@ -164,7 +164,10 @@ build/web`. That builds `out/omni-accelerant-catcam_<version>_<arch>.deb` and an
 - The settings live in `/etc/omni-accelerant/catcam.toml`, and `systemctl
   disable --now omni-catcam` turns autostart off.
 
-Verified on amd64 in `:latest` and on a Raspberry Pi 5 with its CSI camera. Details:
+Verified on amd64 in `:latest` and on a Raspberry Pi 5 with its CSI camera.
+On Windows, `scripts\windows\cat-stream\Package-CatCam.ps1` (in `:winamd64`) builds an
+MSI. It installs the cat cam, starts it at every logon, and streams the same page; so
+far it is tested in the image only. Details:
 [docs/source/camera-streaming.md § The cat cam package](docs/source/camera-streaming.md#the-cat-cam-package).
 
 **By hand.** One native Linux host does everything, a Raspberry Pi included:
