@@ -124,10 +124,10 @@ packages:
     dependency: "direct main"
     description:
       name: cupertino_icons
-      sha256: "41e005c33bd814be4d3096aff55b1908d419fde52ca656c8c47719ec745873cd"
+      sha256: b7cc2390aac296c083bea762859413eb1cf5b630c70e0c7e4d831018f762a8b2
       url: "https://pub.dev"
     source: hosted
-    version: "1.0.9"
+    version: "2.0.0"
   cupertino_ui:
     dependency: transitive
     description:
@@ -524,12 +524,11 @@ packages:
   permission_handler_windows:
     dependency: "direct overridden"
     description:
-      path: permission_handler_windows
-      ref: main
-      resolved-ref: "3773d3b59fb5f8eed719909097468a9f13707048"
-      url: "https://github.com/Kataglyphis/flutter-permission-handler.git"
-    source: git
-    version: "0.2.3"
+      name: permission_handler_windows
+      sha256: caeae01858a0a7d2df67a445ac98e1ad95e55a0e77c73044f4e9b1c8c2289cbd
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.2.2"
   platform:
     dependency: transitive
     description:
