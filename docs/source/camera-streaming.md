@@ -186,7 +186,8 @@ The system allowlist is the GTK desktop stack the `.deb`'s `Depends` stand for.
 It deliberately does not include GStreamer, ONNX Runtime or the camera stack —
 those are the bundle's job.
 
-Not covered by any of this: seeing a frame (BACKLOG.md, hardware-blocked), and
+Not covered by any of this: a frame from a real camera (the native lane pushes a
+test-pattern frame through `knt_push_frame`, `integration_test/webcam_frame_test.dart`), and
 the `.deb` still naming only its GTK dependencies — correct now that GStreamer
 travels, but it means the target is assumed to have a desktop stack.
 
@@ -386,8 +387,14 @@ a host whose firewall runs, two more checks run: the rule exists after the insta
 gone after the uninstall. `web.yml`'s `catcam-windows` job packages and tests the MSI
 around each run's web build.
 
-**Not verified yet:** an install on a Windows host with a camera, a browser on the LAN
-playing it, the logon start after a reboot, and arm64.
+**On a real Windows 11 host** (the dev box, no camera, 2026-10-06), the MSI installed
+and uninstalled cleanly through UAC:
+- its firewall rule was an inbound allow for the exe, limited to `LocalSubnet`;
+- started from the Startup shortcut, the exe served the page and a test pattern
+  (`no camera found`), with all 128 modules from its folder or Windows;
+- a browser on another device on the LAN played the stream through that rule.
+
+**Not verified yet:** a camera on Windows, the start at a real sign-in, and arm64.
 
 ### Cat detection stream (Rust, native)
 
