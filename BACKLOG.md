@@ -55,9 +55,13 @@ Linux amd64/arm64 ship as a .deb and an AppImage, proven on himbeere2 (Pi 5) on
   AppImage.
   - In `:latest` it installed, answered `/healthz` from its sandbox, and headless Chrome
     played it over the LAN address. Its first start wrote the sign-in entry.
+  - **On a real desktop** (Ubuntu GNOME, amd64, 2026-10-08): CI's bundle installed as a user
+    install, fetched its runtime from Flathub (24.08, end-of-life; the next `:latest` builds
+    on 26.08, hub CON82), wrote the sign-in entry, and the host's Chrome played 582 frames
+    over the LAN address.
   - **Still unproven:**
-    - a desktop fetching its freedesktop runtime from Flathub;
-    - the start at a real sign-in;
+    - the start at a real sign-in (the entry is in place on that desktop);
+    - the 26.08 runtime, once the published `:latest` carries it;
     - a USB camera through `--device=all`.
   - It has no boot service and no Pi camera by design; those stay with the .deb and the
     AppImage.

@@ -354,8 +354,15 @@ Making that switch work took two fixes:
   Without that, the returning .deb read the AppImage's `--uninstall` as the admin's
   disable and stayed off.
 
-**Not verified yet:** a USB webcam, and the flatpak on a real desktop: its runtime
-fetched from Flathub, and its start at a sign-in.
+**On a real desktop (Ubuntu, GNOME, amd64), 2026-10-08.** CI's flatpak from web run
+37664412593 installed as a **user** install. `flatpak install --user` fetched its runtime
+from Flathub: freedesktop 24.08, which Flathub marks end-of-life, because that run's
+`:latest` predates the 26.08 refs (hub CON82). Its first run seeded the per-user
+`catcam.toml`, wrote `~/.config/autostart/org.kataglyphis.omni-accelerant-catcam.desktop`,
+loaded the chain ORT and the model from `/app/catcam`, and answered `/healthz` (test
+pattern, no camera on that host). The host's Chrome played 582 frames from the LAN address.
+
+**Not verified yet:** a USB webcam, and the flatpak's start at a real sign-in.
 
 ### The Windows cat cam
 
