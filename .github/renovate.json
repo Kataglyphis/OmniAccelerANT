@@ -6,5 +6,23 @@
     "Renovate resolves `github>Kataglyphis/ANTfrastructure` from ANTfrastructure's DEFAULT BRANCH, so a preset change reaches this repo only after it is merged there. The Renovate GitHub App is NOT installed on this repository and will not be (owner decision, 2026-09-09), so no bot will ever land a commit here - but this file is not idle: ANTfrastructure's linux/scripts/renovate-local.sh reads exactly it.",
     ".github/dependabot.yml is deliberately still present; see the comment at its top for the hand-over condition."
   ],
-  "extends": ["github>Kataglyphis/ANTfrastructure"]
+  "extends": ["github>Kataglyphis/ANTfrastructure"],
+  "packageRules": [
+    {
+      "description": [
+        "The pubspecs' `environment: flutter:` floor (`>=3.41.6`) is a range, but the flutter-version datasource defaults to exact semver, so Renovate skipped all three as invalid-value and never looked them up (NOT CHECKED, 2026-10-07). npm versioning reads the range the way pub does."
+      ],
+      "matchManagers": ["pub"],
+      "matchDatasources": ["flutter-version"],
+      "versioning": "npm"
+    },
+    {
+      "description": [
+        "dev.flutter.flutter-plugin-loader is the Flutter SDK's own Gradle plugin, included from the SDK through settings.gradle.kts (`includeBuild`). No Maven repository serves it, so every lookup failed; its version moves with the image's Flutter, not with a release feed."
+      ],
+      "matchManagers": ["gradle"],
+      "matchDepNames": ["dev.flutter.flutter-plugin-loader"],
+      "enabled": false
+    }
+  ]
 }

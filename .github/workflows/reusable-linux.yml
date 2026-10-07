@@ -108,7 +108,7 @@ jobs:
       # No SARIF upload: the native flow runs no CodeQL scan, and an always-skipped upload reads as coverage.
 
       - name: Upload artifact
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: ${{ inputs.app-name }}-linux-${{ inputs.arch }}-tar
           path: out/${{ inputs.app-name }}-linux-${{ inputs.arch }}.tar.gz
@@ -116,7 +116,7 @@ jobs:
 
       # `error` fails only when NONE of the three globs matches.
       - name: Upload Linux packages
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: ${{ inputs.app-name }}-linux-${{ inputs.arch }}-packages
           path: |
