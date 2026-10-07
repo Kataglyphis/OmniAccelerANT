@@ -20,7 +20,7 @@ dependencies:
   cupertino_icons: ^2.0.0
   # Floor matches OxidANT's =2.13.0 Rust pin; test/pinned_artefacts_test.dart holds them together.
   flutter_rust_bridge: ^2.13.0
-  go_router: ^18.0.0
+  go_router: ^18.0.2
   font_awesome_flutter: ^11.0.0
   flutter_localizations:
     sdk: flutter
