@@ -10,14 +10,6 @@
   "packageRules": [
     {
       "description": [
-        "The pubspecs' `environment: flutter:` floor (`>=3.41.6`) is a range, but the flutter-version datasource defaults to exact semver, so Renovate skipped all three as invalid-value and never looked them up (NOT CHECKED, 2026-10-07). npm versioning reads the range the way pub does."
-      ],
-      "matchManagers": ["pub"],
-      "matchDatasources": ["flutter-version"],
-      "versioning": "npm"
-    },
-    {
-      "description": [
         "dev.flutter.flutter-plugin-loader is the Flutter SDK's own Gradle plugin, included from the SDK through settings.gradle.kts (`includeBuild`). No Maven repository serves it, so every lookup failed; its version moves with the image's Flutter, not with a release feed."
       ],
       "matchManagers": ["gradle"],
