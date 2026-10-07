@@ -115,7 +115,7 @@ reorganisation.
 | The CMake gate's machinery — `code_quality_find_cmake_files` + `CODE_QUALITY_CMAKE_EXCLUDE_PATHS` on Linux, `Initialize-UvVenv` + `Install-UvRequirements` on Windows | `linux/scripts/lib/code-quality.sh`, `windows/scripts/modules/WindowsUv.Common.psm1` |
 | The canonical `.cmake-format.yaml` this repo's root copy syncs from, and the drift check | `shared/config/README.md` |
 | **Image and tag naming** — one published tag = one manifest over every arch of its variant; `:latest` (linux) / `:winamd64` (windows), variants `:latest-<variant>` (`nvidia`, `rocm`) only for a stack that cannot ship in `:latest`, per-arch tags are internal wrappers; Windows' arm64 output is a bundle, not a `windows/arm64` platform | `third_party/ANTfrastructure/AGENTS.md` § *Image and tag naming* |
-| **Every checkout on its branch tip** — this repo and its Kataglyphis submodules, recursively, fast-forward only; third-party submodules stay pinned and no gitlink is committed (`linux/scripts/git-sync-branches.sh`) | `docs/adopting-in-a-new-project.md` § *Putting every checkout on its branch* |
+| **Every checkout on its branch tip** — this repo and every submodule, third-party ones included, recursively, fast-forward only; no gitlink is committed (`linux/scripts/git-sync-branches.sh`) | `docs/adopting-in-a-new-project.md` § *Putting every checkout on its branch* |
 | Dependency upgrades — Renovate as a local CLI, why `--platform=local` only detects, the pinned Node/Renovate bootstrap, why `--apply` refuses a branchless submodule | `docs/dependency-updates.md` |
 
 Two upstream facts repeated here only because they bite before you reach a doc:
@@ -239,9 +239,12 @@ status` marks that only with a `+`.
 
 The opposite move, for local work on the newest code, is
 `bash third_party/ANTfrastructure/linux/scripts/git-sync-branches.sh` (`--dry-run`
-first): every Kataglyphis checkout goes to its `develop` tip, and the vendored
-third-party libraries under AccelerANTgine stay where they are. It leaves exactly
-that `+`. The next `git submodule update`, or a git GUI that runs one, puts the
+first): every checkout goes to the tip of its `branch =`, the vendored
+third-party libraries under AccelerANTgine included (owner decision 2026-10-07).
+FUZZTEST stays on a release because AccelerANTgine declares
+`branch = release_<date>` for it; move that line to take a newer release. It
+leaves exactly that `+`; commit the gitlinks innermost repo first. One `+` cannot
+be committed from here: nanobind's `ext/robin_map`, which only nanobind records. The next `git submodule update`, or a git GUI that runs one, puts the
 submodules back unless the gitlinks are committed: on 2026-10-07 one reset three
 submodules two minutes after they were moved.
 
