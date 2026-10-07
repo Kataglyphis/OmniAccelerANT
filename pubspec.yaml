@@ -29,7 +29,8 @@ dependencies:
     path: rust_builder
   permission_handler: ^13.0.2
 
-  sqlite3: ^3.3.1
+  # Floor = the hub's SQLITE3_WASM_VERSION: web/sqlite3.wasm is that release's build, so the Dart side may not resolve older.
+  sqlite3: ^3.7.0
   web: ^1.1.1
 dev_dependencies:
   # test/pinned_artefacts_test.dart imports it directly, which a transitive dependency does not allow.
