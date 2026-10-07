@@ -151,5 +151,31 @@ void main() {
             'linux/scripts/05-frameworks/flutter/setup-sqlite3-wasm.sh.',
       );
     });
+
+    test('the locked sqlite3 package is the release the wasm comes from', () {
+      // The Dart bindings and the wasm ship together; a lock refresh alone splits them.
+      final String wasm = _extract(
+        'third_party/ANTfrastructure/linux/scripts/01-core/versions.env',
+        RegExp(r'^SQLITE3_WASM_VERSION=(\S+)', multiLine: true),
+        'SQLITE3_WASM_VERSION',
+      );
+      final String locked = _extract(
+        'pubspec.lock',
+        RegExp(
+          r'^  sqlite3:\r?\n(?:    .*\r?\n)*?    version: "([^"]+)"',
+          multiLine: true,
+        ),
+        'the sqlite3 entry of pubspec.lock',
+      );
+      expect(
+        locked,
+        wasm,
+        reason:
+            'pubspec.lock resolves sqlite3 $locked, but web/sqlite3.wasm is '
+            'the sqlite3-$wasm build (SQLITE3_WASM_VERSION in the pinned '
+            'ANTfrastructure). Move the hub pin, web/sqlite3.wasm and the '
+            'lock together.',
+      );
+    });
   });
 }
