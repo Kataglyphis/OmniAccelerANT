@@ -303,6 +303,9 @@ Terminal=true
 DESKTOP
 runtime_version="$(sed -n 's/^FLATPAK_RUNTIME_VERSION=//p' "$(antfrastructure_path linux/scripts/01-core/versions.env)")"
 [ -n "${runtime_version}" ] || { printf 'no FLATPAK_RUNTIME_VERSION in the hub versions.env\n' >&2; exit 1; }
+# The image may lag the hub's pin (it shipped 24.08 when the pin moved to 26.08), so fetch the pair from Flathub.
+antfrastructure_source linux/scripts/lib/app-packaging.sh
+app_packaging_ensure_flatpak_runtime "" org.freedesktop.Platform org.freedesktop.Sdk "${runtime_version}"
 cat > "${flatpak_work}/${flatpak_id}.yml" <<MANIFEST
 app-id: ${flatpak_id}
 runtime: org.freedesktop.Platform
