@@ -164,7 +164,7 @@ $infer = Start-Installed -Arguments @('--camera', "image:$Photo", '--inference',
 Start-Sleep -Seconds 25
 $infer.Process.Kill($true)
 $infer.Process.WaitForExit()
-Get-Content -LiteralPath $infer.Log -ErrorAction SilentlyContinue | Select-String -Pattern 'model:|ONNX Runtime loaded|cat in view' | Select-Object -First 3 | ForEach-Object { Write-Host "      $($_.Line)" }
+Get-Content -LiteralPath $infer.Log -ErrorAction SilentlyContinue | Select-String -Pattern 'model:|ONNX Runtime loaded|ORT session|ERROR|cat in view' | Select-Object -First 5 | ForEach-Object { Write-Host "      $($_.Line)" }
 Test-Check 'it runs its own model on its own ONNX Runtime and finds a cat' {
     $log = Get-Content -LiteralPath $infer.Log -Raw
     $log -match [regex]::Escape("$prefix\models\yolo26n.onnx") -and $log -match [regex]::Escape("$prefix\onnxruntime.dll") -and $log -match 'cat in view'
