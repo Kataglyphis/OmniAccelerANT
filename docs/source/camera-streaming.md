@@ -293,6 +293,22 @@ sight the model runs only every 5 s (`idle_inference_fps`); motion or a cat brin
 still, empty scene from 74 % to 12 % of a core. `inference = "auto"` turns the model
 off below 1 GiB of RAM.
 
+A live `/healthz` from himbeere2 at night (2026-10-12), the camera's name shortened:
+
+```json
+{
+  "camera": "Raspberry Pi camera via rpicam-vid (imx219 [3280x2464 10-bit RGGB] (…))",
+  "cat": { "in_view": false, "last_score": null, "last_seen": null, "visits": 0 },
+  "inference": true,
+  "model_runs": 208,
+  "name": "Trouble Tabbls Cat Cam",
+  "ok": true
+}
+```
+
+`model_runs` and `visits` count since the service started. `last_seen` and
+`last_score` stay `null` until a cat has been in view.
+
 **One port reaches it.** The page and the `/webrtc-ws` signalling share `:8080`:
 the service forwards the WebSocket upgrade to its own signalling server on
 loopback `:8443`. Media goes over host candidates only unless `stun_server` is
@@ -311,9 +327,12 @@ bash scripts/linux/cat-stream/test-catcam-package.sh   # root, inside :latest; f
 **What it checks**, for the .deb and the AppImage each installed in `:latest`
 and run as the unit runs it, with a scrubbed environment as `omni-catcam`:
 - no shared object maps from outside the bundle, idle or with a viewer connected;
+- every setting the shipped `catcam.toml` documents, uncommented, is one the service
+  reads (`--print-config` takes them all);
 - headless Chrome played the stream over the LAN address;
-- the bundled model found both cats in ANThology's `Summy&Thundy` photo (best
-  score 0.72);
+- the bundled model found the cats in ANThology's `Summy&Thundy` photo (best score
+  0.76; 0.72 before the frames stayed I420), `/healthz` counted the visit and
+  `/snapshot.jpg` served the frame as a JPEG;
 - SIGTERM exits 0;
 - the AppImage's `--install`, a second `--install` over it, and `--uninstall --purge`
   left the expected files, and then none;
@@ -325,7 +344,9 @@ and run as the unit runs it, with a scrubbed environment as `omni-catcam`:
   install needs a D-Bus session that the container lacks, hence the system install.
 
 On amd64 in `:latest` (2026-10-06), all 32 checks passed, and Chrome played 572 frames
-from the sandboxed stream. The flatpak bundle is 63 MB.
+from the sandboxed stream. The flatpak bundle is 63 MB. On arm64 on himbeere2
+(2026-10-12) all 34 of today's checks passed, with about 520 frames to Chrome, and CI
+passed them on both architectures (`web.yml` run 38176735560).
 
 **On a Raspberry Pi 5 (himbeere2: imx219, Debian 13, kernel 6.18), 2026-10-05.**
 The arm64 packages were built natively on the board in `:latest`, and CI's
