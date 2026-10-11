@@ -329,6 +329,9 @@ and run as the unit runs it, with a scrubbed environment as `omni-catcam`:
 - no shared object maps from outside the bundle, idle or with a viewer connected;
 - every setting the shipped `catcam.toml` documents, uncommented, is one the service
   reads (`--print-config` takes them all);
+- the installed unit loads without a warning (`systemd-analyze verify`) and keeps its
+  sandbox: `systemd-analyze security` rates it 2.5 or less (1.8 on 2026-10-12, 8.7
+  before the unit was sandboxed);
 - headless Chrome played the stream over the LAN address;
 - the bundled model found the cats in ANThology's `Summy&Thundy` photo (best score
   0.76; 0.72 before the frames stayed I420), `/healthz` counted the visit and
@@ -345,8 +348,8 @@ and run as the unit runs it, with a scrubbed environment as `omni-catcam`:
 
 On amd64 in `:latest` (2026-10-06), all 32 checks passed, and Chrome played 572 frames
 from the sandboxed stream. The flatpak bundle is 63 MB. On arm64 on himbeere2
-(2026-10-12) all 34 of today's checks passed, with about 520 frames to Chrome, and CI
-passed them on both architectures (`web.yml` run 38176735560).
+(2026-10-12) all 36 checks passed, with about 500 frames to Chrome; CI passed the 34 of
+the day before the unit checks on both architectures (`web.yml` run 38176735560).
 
 **On a Raspberry Pi 5 (himbeere2: imx219, Debian 13, kernel 6.18), 2026-10-05.**
 The arm64 packages were built natively on the board in `:latest`, and CI's

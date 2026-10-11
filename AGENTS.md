@@ -178,7 +178,10 @@ Two upstream facts repeated here only because they bite before you reach a doc:
   `catcam/catcam-install`, whose `setup` step the `.deb`'s `postinst` calls too.
   **`/etc/omni-accelerant/catcam.toml` is not a conffile, on purpose.** `setup`
   writes it only when it is absent. As a conffile, an edited copy stopped the
-  next upgrade at dpkg's keep-or-replace prompt, which hangs over SSH. It runs in `:latest`
+  next upgrade at dpkg's keep-or-replace prompt, which hangs over SSH. The unit is
+  sandboxed (`systemd-analyze security` 1.8, from 8.7); its comment names what stays open
+  for the camera, the RAM check and GStreamer's ORC, and the package test fails above 2.5.
+  It runs in `:latest`
   with `--web-root` naming the web lane's `build/web`, **privileged**, because it also
   builds a flatpak and `flatpak-builder` needs bubblewrap.
   - The flatpak puts the same bundle in `/app/catcam` on the image's freedesktop runtime.

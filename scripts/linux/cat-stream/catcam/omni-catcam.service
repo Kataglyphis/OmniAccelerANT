@@ -15,6 +15,28 @@ Environment=HOME=/var/lib/omni-accelerant-catcam
 Environment=GST_REGISTRY=/var/lib/omni-accelerant-catcam/gst-registry.bin
 NoNewPrivileges=yes
 PrivateTmp=yes
+# Only what the camera, the model and WebRTC need: systemd-analyze security 8.7 -> 1.8 (2026-10-12).
+# Not set on purpose: PrivateDevices (the camera), ProcSubset (inference = "auto" reads /proc/meminfo)
+# and MemoryDenyWriteExecute (GStreamer's ORC compiles its loops at run time).
+ProtectSystem=strict
+ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+ProtectProc=invisible
+RestrictSUIDSGID=yes
+RestrictNamespaces=yes
+RestrictRealtime=yes
+LockPersonality=yes
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallErrorNumber=EPERM
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6 AF_NETLINK
+CapabilityBoundingSet=
+UMask=0077
 
 [Install]
 WantedBy=multi-user.target

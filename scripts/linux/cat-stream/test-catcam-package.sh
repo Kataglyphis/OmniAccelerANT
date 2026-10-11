@@ -133,6 +133,10 @@ template_keys_parse() {
     "${prefix}/catcam" --config "${work}/all-keys.toml" --print-config >/dev/null
 }
 
+# The unit loads without warnings and keeps its sandbox: systemd-analyze rates it 1.8 (2026-10-12).
+unit_verifies() { test -z "$(systemd-analyze verify "$1" 2>&1)"; }
+unit_sandboxed() { systemd-analyze security --offline=true --threshold=25 "$1" >/dev/null 2>&1; }
+
 in_video_group() { id -nG "${user}" | grep -qw video; }
 log_lacks() { ! grep -q "$1" "$2"; }
 purged() { ! test -e "${config}" && ! test -e "${prefix}"; }
@@ -165,6 +169,8 @@ check "the unit is installed and enabled" test -e /etc/systemd/system/multi-user
 check "postinst wrote the settings file" test -f "${config}"
 check "omni-catcam is on PATH" test "$(readlink -f /usr/bin/omni-catcam)" = "${prefix}/catcam"
 check "every setting catcam.toml documents is one the service reads" template_keys_parse
+check "the unit loads without a warning" unit_verifies /usr/lib/systemd/system/omni-catcam.service
+check "the unit keeps its sandbox (exposure 2.5 or less)" unit_sandboxed /usr/lib/systemd/system/omni-catcam.service
 mkdir -p "${state}" && chown "${user}:" "${state}"
 
 start_service "${work}/idle.log" "${prefix}/catcam" --camera test --inference on --http-port 0
