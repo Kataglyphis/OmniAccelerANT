@@ -119,9 +119,8 @@ void main() {
   group('present documents are actually bundled', () {
     test('pubspec.yaml lists every assets/documents subdirectory', () {
       // An unlisted directory ships nothing, and rootBundle fails as if the file were missing.
-      final String pubspec = File(
-        '${root.path}/pubspec.yaml',
-      ).readAsStringSync();
+      final String pubspec = File('${root.path}/pubspec.yaml')
+          .readAsStringSync();
       final Directory documents = Directory('${root.path}/assets/documents');
       if (!documents.existsSync()) return;
 

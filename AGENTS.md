@@ -769,6 +769,17 @@ written out rather than linked.
   OxidANT's `src/frb_generated.rs`; when the wasm artefacts are involved,
   `flutter_rust_bridge_codegen build-web --release --rust-root
   third_party/OxidANT`. `web/pkg/` is generated and gitignored.
+- **The `environment: sdk:` floor picks `dart format`'s style, and two
+  generators format with it.** At language version 3.13 the formatter puts a
+  blank line between import groups, so moving the floor from 3.11.4 to 3.13.0
+  (2026-10-11) reformatted ten tracked files, and the lanes' format gate failed
+  until they were committed (429fef3, reverted in fafa9f3).
+  `flutter_rust_bridge_codegen generate` and `flutter gen-l10n` run `dart
+  format` on their output at that same language version. After a floor move,
+  regenerate `lib/src/rust/` and `lib/l10n/` in the image rather than
+  hand-format them; what they write then passes the gate unchanged. The image
+  carries no `cargo-expand`, so the codegen installs it on first use and needs
+  network.
 - **Windows host only: the webcam reaches WSL over usbipd, and WebRTC needs
   mirrored networking.** `usbipd attach --wsl --busid <id>` (bus ids change)
   plus `modprobe uvcvideo` gives the container `/dev/video0`;

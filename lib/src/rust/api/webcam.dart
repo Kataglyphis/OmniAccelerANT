@@ -4,13 +4,13 @@
 // ignore_for_file: invalid_use_of_internal_member, unused_import, unnecessary_import
 
 import '../frb_generated.dart';
+
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
 List<CameraDesc> listCameras() =>
     RustLib.instance.api.crateApiWebcamListCameras();
 
-/// Starts capture + inference; events arrive on `sink` until
-/// [`stop_webcam_inference`] is called. Errors if already running.
+/// Streams capture + inference events to `sink` until [`stop_webcam_inference`]; errors if running.
 Stream<DetectionEvent> startWebcamInference({
   required WebcamStreamConfig config,
 }) => RustLib.instance.api.crateApiWebcamStartWebcamInference(config: config);
@@ -37,9 +37,7 @@ class CameraDesc {
           name == other.name;
 }
 
-/// A detection in source-frame pixel coordinates. Field-accessible Dart
-/// mirror of `kataglyphis_core::detection::Detection` (which the bridge
-/// would otherwise expose as an opaque type).
+/// A detection in source-frame pixels; a field-accessible mirror of the opaque core `Detection`.
 class DetectionBox {
   final double x1;
   final double y1;
