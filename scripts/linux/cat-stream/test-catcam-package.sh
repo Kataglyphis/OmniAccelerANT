@@ -68,13 +68,7 @@ check() {
   fi
 }
 
-# The unit's environment and nothing else: no LD_LIBRARY_PATH, no GST_*, no image PATH.
-as_service() {
-  env -i HOME="${state}" GST_REGISTRY="${state}/gst-registry.bin" PATH=/usr/bin:/bin \
-    setpriv --reuid="${user}" --regid="${user}" --init-groups "$@"
-}
-
-# exec in a subshell: $! is then the service itself, which a backgrounded function is not.
+# The unit's environment only (no LD_LIBRARY_PATH, GST_*, image PATH), exec'd in a subshell so $! is the service.
 start_service() {
   local log="$1"; shift
   (exec env -i HOME="${state}" GST_REGISTRY="${state}/gst-registry.bin" PATH=/usr/bin:/bin \
@@ -118,6 +112,27 @@ chrome_frames() {
   printf '%s' "${probe}" | jq -r '[.videos[].frames] | max // 0' 2>/dev/null || echo 0
 }
 
+wait_cat() {
+  local _
+  for _ in $(seq 1 120); do
+    curl -sf "http://$1:8080/healthz" 2>/dev/null | jq -e '.cat.in_view and .cat.visits >= 1' >/dev/null 2>&1 && return 0
+    sleep 0.25
+  done
+  return 1
+}
+
+snapshot_is_jpeg() {
+  curl -sf "http://$1:8080/snapshot.jpg" -o "${work}/snapshot.jpg" &&
+    test "$(head -c 3 "${work}/snapshot.jpg" | od -An -tx1 | tr -d ' \n')" = ffd8ff
+}
+
+# Every setting the shipped catcam.toml documents, uncommented: an unknown key is an error, so this reads them all.
+template_keys_parse() {
+  sed -E 's/^# ([a-z_]+ = )/\1/' "${prefix}/share/omni-accelerant-catcam/catcam.toml" >"${work}/all-keys.toml" &&
+    test "$(grep -cE '^[a-z_]+ = ' "${work}/all-keys.toml")" -ge 15 &&
+    "${prefix}/catcam" --config "${work}/all-keys.toml" --print-config >/dev/null
+}
+
 in_video_group() { id -nG "${user}" | grep -qw video; }
 log_lacks() { ! grep -q "$1" "$2"; }
 purged() { ! test -e "${config}" && ! test -e "${prefix}"; }
@@ -149,6 +164,7 @@ check "the service user is in the video group" in_video_group
 check "the unit is installed and enabled" test -e /etc/systemd/system/multi-user.target.wants/omni-catcam.service
 check "postinst wrote the settings file" test -f "${config}"
 check "omni-catcam is on PATH" test "$(readlink -f /usr/bin/omni-catcam)" = "${prefix}/catcam"
+check "every setting catcam.toml documents is one the service reads" template_keys_parse
 mkdir -p "${state}" && chown "${user}:" "${state}"
 
 start_service "${work}/idle.log" "${prefix}/catcam" --camera test --inference on --http-port 0
@@ -159,11 +175,14 @@ stop_service "${pid}"
 check "SIGTERM exits 0" test $? -eq 0
 check "no inference failed at shutdown" log_lacks 'inference failed' "${work}/idle.log"
 
-as_service timeout 25 "${prefix}/catcam" --camera "image:${photo}" --inference on --fps 5 --http-port 0 \
-  >"${work}/photo.log" 2>&1
+ip="$(hostname -I | awk '{print $1}')"
+start_service "${work}/photo.log" "${prefix}/catcam" --camera "image:${photo}" --inference on --fps 5
+pid=$!
+check "/healthz reports the cat in the photo as a visit" wait_cat "${ip}"
+check "/snapshot.jpg serves the boxed frame as a JPEG" snapshot_is_jpeg "${ip}"
+stop_service "${pid}"
 check "the bundled model finds a cat in the photo" grep -q 'cat in view' "${work}/photo.log"
 
-ip="$(hostname -I | awk '{print $1}')"
 start_service "${work}/stream.log" "${prefix}/catcam" --camera test --inference off
 pid=$!
 check "the page and /healthz answer on :8080" wait_healthz "${ip}"

@@ -282,8 +282,13 @@ left to the host, because its IPA and tuning files must match the host kernel.
 4. A test pattern as a stand-in, which re-probes every 30 s, so a camera plugged
    in later is picked up.
 
-`/healthz` reports which camera is live. `inference = "auto"` turns the model off
-below 1 GiB of RAM.
+`/healthz` reports which camera is live and the cat: whether one is in view, when one
+was last seen (Unix seconds), how many visits it counted and the last best score.
+`/snapshot.jpg` is the latest frame, boxes included, for a quick look without
+WebRTC: `curl -o cat.jpg http://<host>:8080/snapshot.jpg`. A cat counts after two
+detections in a row and leaves after about 3 s without one, so a lone hit near the
+score threshold draws no box and logs nothing. `inference = "auto"` turns the model
+off below 1 GiB of RAM.
 
 **One port reaches it.** The page and the `/webrtc-ws` signalling share `:8080`:
 the service forwards the WebSocket upgrade to its own signalling server on

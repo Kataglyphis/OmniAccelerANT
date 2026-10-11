@@ -20,7 +20,9 @@
 
 # score = 0.25
 
-# inference_fps = 2        # box updates per second; 0 runs the model as often as it can, on every core
+# inference_fps = 2        # box updates per second; 0 runs the model as often as it can
+
+# inference_threads = 2    # the model's threads; 0 takes one per core, which costs more CPU per update
 
 # all_classes = false      # true boxes every COCO class, not only cats
 
