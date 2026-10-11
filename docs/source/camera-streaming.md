@@ -287,7 +287,10 @@ was last seen (Unix seconds), how many visits it counted and the last best score
 `/snapshot.jpg` is the latest frame, boxes included, for a quick look without
 WebRTC: `curl -o cat.jpg http://<host>:8080/snapshot.jpg`. A cat counts after two
 detections in a row and leaves after about 3 s without one, so a lone hit near the
-score threshold draws no box and logs nothing. `inference = "auto"` turns the model
+score threshold draws no box and logs nothing. While nothing moves and no cat is in
+sight the model runs only every 5 s (`idle_inference_fps`); motion or a cat brings back
+`inference_fps`, and `/healthz` counts the runs (`model_runs`). On a Pi 5 that took a
+still, empty scene from 74 % to 12 % of a core. `inference = "auto"` turns the model
 off below 1 GiB of RAM.
 
 **One port reaches it.** The page and the `/webrtc-ws` signalling share `:8080`:

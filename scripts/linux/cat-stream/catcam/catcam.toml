@@ -24,6 +24,8 @@
 
 # inference_threads = 2    # the model's threads; 0 takes one per core, which costs more CPU per update
 
+# idle_inference_fps = 0.2 # the model's rate while nothing moves and no cat is in sight; inference_fps or more turns that off
+
 # all_classes = false      # true boxes every COCO class, not only cats
 
 # http_port = 8080         # the page is http://<this-host>:8080/; 0 turns the web server off
