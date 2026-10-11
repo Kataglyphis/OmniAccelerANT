@@ -58,10 +58,12 @@ Linux amd64/arm64 ship as a .deb and an AppImage, proven on himbeere2 (Pi 5) on
   - **On a real desktop** (Ubuntu GNOME, amd64, 2026-10-08): CI's bundle installed as a user
     install, fetched its runtime from Flathub (24.08, end-of-life), wrote the sign-in entry,
     and the host's Chrome played 582 frames over the LAN address.
+  - **On runtime 26.08 since 2026-10-11:** `web.yml` run 38158462452 (fafa9f3) built the bundle on
+    `org.freedesktop.Platform/26.08` for x64 and arm64, and `test-catcam-package.sh` installed and
+    removed it on both (`PASS flatpak installs it`); the app flatpak of Linux x64 run 38158462860 built
+    on 26.08 too.
   - **Still unproven:**
     - the start at a real sign-in (the entry is in place on that desktop);
-    - the 26.08 runtime: the published `:latest` carries its refs since 2026-10-09 (hub CON82), so
-      the next `web.yml` run builds the flatpak on it;
     - a USB camera through `--device=all`.
   - It has no boot service and no Pi camera by design; those stay with the .deb and the
     AppImage.
