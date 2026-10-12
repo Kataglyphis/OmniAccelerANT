@@ -310,6 +310,12 @@ A live `/healthz` from himbeere2 at night (2026-10-12), the camera's name shorte
 `model_runs` and `visits` count since the service started. `last_seen` and
 `last_score` stay `null` until a cat has been in view.
 
+The Stream page reads the same `/healthz` every 5 s (`CatStatusLine` in
+`lib/Pages/StreamPage/cat_status.dart`): under the video it puts the cat cam's `name`,
+then "Cat in view", "Cat last seen: 14:32" or "No cat seen yet", in English or German.
+Served from anywhere else, where `/healthz` is no cat cam's answer, it shows only the
+title.
+
 **It can tell you the cat came.** Set `notify_url` in `catcam.toml` and the service
 POSTs a JSON event there whenever a cat arrives or leaves:
 

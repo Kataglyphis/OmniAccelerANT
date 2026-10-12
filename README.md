@@ -160,7 +160,8 @@ consumes.
   --install` on any other distro, installs a systemd service that starts at boot.
 - `flatpak install ./omni-accelerant-catcam-*.flatpak` runs in a sandbox instead. It
   starts at sign-in once you have run it, and takes USB cameras only.
-- Open `http://<host>:8080/` from a browser on the network.
+- Open `http://<host>:8080/` from a browser on the network. Under the video the page
+  says whether a cat is in view, or when one was last seen.
 - `http://<host>:8080/healthz` says which camera is live and when a cat was last
   seen; `http://<host>:8080/snapshot.jpg` is the current picture, boxes included.
 - The service picks a Raspberry Pi camera when one is attached, else a USB

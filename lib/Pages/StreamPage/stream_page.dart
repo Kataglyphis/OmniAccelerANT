@@ -13,6 +13,10 @@ import 'package:omni_accelerant/Pages/StreamPage/webrtc_view_stub.dart'
     if (dart.library.js_interop) 'package:omni_accelerant/Pages/StreamPage/webrtc_view.dart'
     as webrtc_import;
 import 'package:omni_accelerant/Pages/StreamPage/rust_webcam_view.dart';
+import 'package:omni_accelerant/Pages/StreamPage/cat_status.dart';
+// Null on native, the page origin's /healthz on web.
+import 'package:omni_accelerant/Pages/StreamPage/healthz_fetch_stub.dart'
+    if (dart.library.js_interop) 'package:omni_accelerant/Pages/StreamPage/healthz_fetch_web.dart';
 
 // Constants
 
@@ -495,9 +499,9 @@ class StreamPageState extends State<StreamPage> {
                 ),
               ),
               const SizedBox(height: 20),
-              const Text(
-                'Trouble Tabbls Cat Cam',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              const CatStatusLine(
+                fetch: fetchHealthz,
+                fallbackName: 'Trouble Tabbls Cat Cam',
               ),
             ],
           ),

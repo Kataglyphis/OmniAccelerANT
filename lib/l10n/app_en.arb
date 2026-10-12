@@ -16,5 +16,15 @@
   "follow": "Visit page",
   "rerunSqliteHealthcheck": "Re-run SQLite Healthcheck",
   "sqliteError": "SQLite Error",
-  "sqliteWebHint": "Note: For web, sqlite3.wasm must be located at /web/sqlite3.wasm."
+  "sqliteWebHint": "Note: For web, sqlite3.wasm must be located at /web/sqlite3.wasm.",
+  "catInView": "Cat in view",
+  "catLastSeen": "Cat last seen: {when}",
+  "@catLastSeen": {
+    "placeholders": {
+      "when": {
+        "type": "String"
+      }
+    }
+  },
+  "catNotSeenYet": "No cat seen yet"
 }

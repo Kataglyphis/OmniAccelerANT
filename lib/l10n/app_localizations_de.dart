@@ -65,4 +65,15 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get sqliteWebHint =>
       'Hinweis: Für Web muss eine sqlite3.wasm unter /web/sqlite3.wasm liegen.';
+
+  @override
+  String get catInView => 'Katze im Bild';
+
+  @override
+  String catLastSeen(String when) {
+    return 'Katze zuletzt gesehen: $when';
+  }
+
+  @override
+  String get catNotSeenYet => 'Noch keine Katze gesehen';
 }

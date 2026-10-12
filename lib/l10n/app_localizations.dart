@@ -205,6 +205,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Note: For web, sqlite3.wasm must be located at /web/sqlite3.wasm.'**
   String get sqliteWebHint;
+
+  /// No description provided for @catInView.
+  ///
+  /// In en, this message translates to:
+  /// **'Cat in view'**
+  String get catInView;
+
+  /// No description provided for @catLastSeen.
+  ///
+  /// In en, this message translates to:
+  /// **'Cat last seen: {when}'**
+  String catLastSeen(String when);
+
+  /// No description provided for @catNotSeenYet.
+  ///
+  /// In en, this message translates to:
+  /// **'No cat seen yet'**
+  String get catNotSeenYet;
 }
 
 class _AppLocalizationsDelegate

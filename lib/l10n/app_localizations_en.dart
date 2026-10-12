@@ -64,4 +64,15 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get sqliteWebHint =>
       'Note: For web, sqlite3.wasm must be located at /web/sqlite3.wasm.';
+
+  @override
+  String get catInView => 'Cat in view';
+
+  @override
+  String catLastSeen(String when) {
+    return 'Cat last seen: $when';
+  }
+
+  @override
+  String get catNotSeenYet => 'No cat seen yet';
 }
