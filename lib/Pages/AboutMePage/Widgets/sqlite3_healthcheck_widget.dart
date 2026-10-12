@@ -4,7 +4,13 @@ import 'package:omni_accelerant/src/db/sqlite3_healthcheck.dart';
 
 /// SQLite3 health status, checked on init and re-runnable by button.
 class Sqlite3HealthcheckWidget extends StatefulWidget {
-  const Sqlite3HealthcheckWidget({super.key});
+  const Sqlite3HealthcheckWidget({
+    super.key,
+    this.check = runSqliteHealthcheck,
+  });
+
+  /// The check to run; a test passes one that fails.
+  final Future<String> Function() check;
 
   @override
   State<Sqlite3HealthcheckWidget> createState() =>
@@ -17,12 +23,12 @@ class _Sqlite3HealthcheckWidgetState extends State<Sqlite3HealthcheckWidget> {
   @override
   void initState() {
     super.initState();
-    _result = runSqliteHealthcheck();
+    _result = widget.check();
   }
 
   void _rerun() {
     setState(() {
-      _result = runSqliteHealthcheck();
+      _result = widget.check();
     });
   }
 
