@@ -13,30 +13,29 @@
 namespace kataglyphis_native_inference {
 namespace test {
 
-namespace {
+    namespace {
 
-using flutter::EncodableMap;
-using flutter::EncodableValue;
-using flutter::MethodCall;
-using flutter::MethodResultFunctions;
+        using flutter::EncodableMap;
+        using flutter::EncodableValue;
+        using flutter::MethodCall;
+        using flutter::MethodResultFunctions;
 
-}  // namespace
+    }// namespace
 
-TEST(KataglyphisNativeInferencePlugin, GetPlatformVersion) {
-  KataglyphisNativeInferencePlugin plugin;
-  // Save the reply value from the success callback.
-  std::string result_string;
-  plugin.HandleMethodCall(
-      MethodCall("getPlatformVersion", std::make_unique<EncodableValue>()),
-      std::make_unique<MethodResultFunctions<>>(
-          [&result_string](const EncodableValue* result) {
-            result_string = std::get<std::string>(*result);
-          },
-          nullptr, nullptr));
+    TEST(KataglyphisNativeInferencePlugin, GetPlatformVersion)
+    {
+        KataglyphisNativeInferencePlugin plugin;
+        // Save the reply value from the success callback.
+        std::string result_string;
+        plugin.HandleMethodCall(MethodCall("getPlatformVersion", std::make_unique<EncodableValue>()),
+          std::make_unique<MethodResultFunctions<>>(
+            [&result_string](const EncodableValue *result) { result_string = std::get<std::string>(*result); },
+            nullptr,
+            nullptr));
 
-  // The exact string varies by host.
-  EXPECT_TRUE(result_string.rfind("Windows ", 0) == 0);
-}
+        // The exact string varies by host.
+        EXPECT_TRUE(result_string.rfind("Windows ", 0) == 0);
+    }
 
-}  // namespace test
-}  // namespace kataglyphis_native_inference
+}// namespace test
+}// namespace kataglyphis_native_inference

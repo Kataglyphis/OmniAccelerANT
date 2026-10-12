@@ -4,9 +4,8 @@
 
 #include "kataglyphis_native_inference_plugin.h"
 
-void KataglyphisNativeInferencePluginCApiRegisterWithRegistrar(
-    FlutterDesktopPluginRegistrarRef registrar) {
-  kataglyphis_native_inference::KataglyphisNativeInferencePlugin::RegisterWithRegistrar(
-      flutter::PluginRegistrarManager::GetInstance()
-          ->GetRegistrar<flutter::PluginRegistrarWindows>(registrar));
+void KataglyphisNativeInferencePluginCApiRegisterWithRegistrar(FlutterDesktopPluginRegistrarRef registrar)
+{
+    kataglyphis_native_inference::KataglyphisNativeInferencePlugin::RegisterWithRegistrar(
+      flutter::PluginRegistrarManager::GetInstance()->GetRegistrar<flutter::PluginRegistrarWindows>(registrar));
 }

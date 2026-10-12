@@ -12,15 +12,15 @@ G_BEGIN_DECLS
 #endif
 
 typedef struct _KataglyphisNativeInferencePlugin KataglyphisNativeInferencePlugin;
-typedef struct {
-  GObjectClass parent_class;
+typedef struct
+{
+    GObjectClass parent_class;
 } KataglyphisNativeInferencePluginClass;
 
 FLUTTER_PLUGIN_EXPORT GType kataglyphis_native_inference_plugin_get_type();
 
-FLUTTER_PLUGIN_EXPORT void kataglyphis_native_inference_plugin_register_with_registrar(
-    FlPluginRegistrar* registrar);
+FLUTTER_PLUGIN_EXPORT void kataglyphis_native_inference_plugin_register_with_registrar(FlPluginRegistrar *registrar);
 
 G_END_DECLS
 
-#endif  // FLUTTER_PLUGIN_KATAGLYPHIS_NATIVE_INFERENCE_PLUGIN_H_
+#endif// FLUTTER_PLUGIN_KATAGLYPHIS_NATIVE_INFERENCE_PLUGIN_H_

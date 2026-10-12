@@ -14,10 +14,10 @@ extern "C" {
 #endif
 
 FLUTTER_PLUGIN_EXPORT void KataglyphisNativeInferencePluginCApiRegisterWithRegistrar(
-    FlutterDesktopPluginRegistrarRef registrar);
+  FlutterDesktopPluginRegistrarRef registrar);
 
 #if defined(__cplusplus)
-}  // extern "C"
+}// extern "C"
 #endif
 
-#endif  // FLUTTER_PLUGIN_KATAGLYPHIS_NATIVE_INFERENCE_PLUGIN_C_API_H_
+#endif// FLUTTER_PLUGIN_KATAGLYPHIS_NATIVE_INFERENCE_PLUGIN_C_API_H_
