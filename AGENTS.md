@@ -658,9 +658,11 @@ written out rather than linked.
   outside it.
 - **Cargokit builds `liboxidant` with the toolchain rustup resolves for OxidANT,
   never a floating `stable`** (2026-10-05). Upstream runs `rustup run stable cargo
-  build` when `cargokit.yaml` names no toolchain. The Linux image carries only
+  build` when `cargokit.yaml` names no toolchain. The Linux image then carried only
   `1.98.1` and a dated nightly, so every native and Android build downloaded the
-  day's stable and shipped a `liboxidant.so` stamped `rustc version 1.99.0`. A
+  day's stable and shipped a `liboxidant.so` stamped `rustc version 1.99.0`. The
+  `:latest` of 2026-10-10 carries 1.99.0, and the patch stays: whenever the image's
+  pin lags the newest stable, a floating `stable` downloads again. A
   local patch in `rust_builder/cargokit/build_tool/lib/src/` fixes it; keep both
   halves when bumping the vendored copy:
   - `builder.dart` asks `rustup show active-toolchain` in the crate dir, which
