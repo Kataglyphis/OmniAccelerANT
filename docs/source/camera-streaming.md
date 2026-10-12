@@ -336,6 +336,11 @@ Deliveries run on a thread of their own with a 5 s timeout, a failed one is logg
 dropped, and the log names only the URL's scheme and host, because a webhook's path is
 often its secret.
 
+**An open page survives a restart of the service.** The page sees its producer go and
+come back and consumes the new one, with no reload: on himbeere2 (2026-10-12) headless
+Chrome's video was playing at 30 fps again about 10 s after `systemctl restart
+omni-catcam`, as an upgrade does it.
+
 **One port reaches it.** The page and the `/webrtc-ws` signalling share `:8080`:
 the service forwards the WebSocket upgrade to its own signalling server on
 loopback `:8443`. Media goes over host candidates only unless `stun_server` is
