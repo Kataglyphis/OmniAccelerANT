@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:js_interop';
 import 'dart:ui_web' as ui_web;
 
@@ -6,31 +7,8 @@ import 'package:flutter/material.dart';
 
 import 'package:omni_accelerant/js/gstwebrtc_api_interop.dart';
 import 'package:omni_accelerant/l10n/app_localizations.dart';
+import 'package:omni_accelerant/Pages/StreamPage/stream_controller.dart';
 import 'package:omni_accelerant/settings/webrtc_settings.dart';
-
-// Add this extension to access the JS property directly.
-extension HTMLVideoElementSrcObject on web.HTMLVideoElement {
-  external JSAny? get srcObject;
-  external set srcObject(JSAny? value);
-}
-
-/// Connection stage, shown on screen because `debugPrint` is a no-op in a release web build.
-enum WebRTCStage {
-  /// The signalling socket has not connected yet.
-  connecting,
-
-  /// Connected to signalling, but no producer has announced itself.
-  waitingForProducer,
-
-  /// A producer was found and the peer connection is being negotiated.
-  negotiating,
-
-  /// Media is flowing.
-  streaming,
-
-  /// Something failed. [_WebRTCViewState._detail] carries the reason.
-  failed,
-}
 
 /// Consumes the `cat_webrtc` producer's stream; web only, native builds get the stub.
 class WebRTCView extends StatefulWidget {
@@ -50,11 +28,11 @@ class WebRTCView extends StatefulWidget {
   State<WebRTCView> createState() => _WebRTCViewState();
 }
 
-// Process-wide on purpose: theme/locale changes remount this widget, and neither the API nor the view factory can be torn down.
+// Process-wide on purpose: a page, theme or locale change remounts this widget, and the stream must not notice.
 
-GstWebRTCAPI? _sharedApi;
 web.HTMLVideoElement? _sharedVideo;
-String? _sharedApiSignalingUrl;
+WebRTCStreamController? _sharedController;
+String? _sharedSignalingUrl;
 
 const String _kViewType = 'omni-accelerant-webrtc-video';
 bool _viewFactoryRegistered = false;
@@ -71,212 +49,220 @@ JSAny? _buildWebRTCConfig(WebRTCSettings settings) {
   return <String, Object?>{'iceServers': iceServers}.jsify();
 }
 
-class _WebRTCViewState extends State<WebRTCView> {
-  ConsumerSession? _consumer;
-  WebRTCStage _stage = WebRTCStage.connecting;
+/// The page's one video element, view factory and stream controller, made by the first view.
+WebRTCStreamController _ensureSharedObjects(WebRTCView widget) {
+  final web.HTMLVideoElement video = _sharedVideo ??= web.HTMLVideoElement()
+    ..autoplay = true
+    ..muted =
+        true // helps autoplay
+    ..controls = true
+    ..style.width = '100%'
+    ..style.height = '100%'
+    ..setAttribute('playsinline', 'true');
 
-  /// Built at render time, so it follows the page's language.
-  String Function(AppLocalizations l10n)? _detail;
-
-  @override
-  void initState() {
-    super.initState();
-    _ensureSharedObjects();
-    _attachListeners();
+  if (!_viewFactoryRegistered) {
+    ui_web.platformViewRegistry.registerViewFactory(_kViewType, (_) => video);
+    _viewFactoryRegistered = true;
   }
 
-  void _ensureSharedObjects() {
-    _sharedVideo ??= web.HTMLVideoElement()
-      ..autoplay = true
-      ..muted =
-          true // helps autoplay
-      ..controls = true
-      ..style.width = '100%'
-      ..style.height = '100%'
-      ..setAttribute('playsinline', 'true');
-
-    if (!_viewFactoryRegistered) {
-      ui_web.platformViewRegistry.registerViewFactory(
-        _kViewType,
-        (_) => _sharedVideo!,
-      );
-      _viewFactoryRegistered = true;
-    }
-
-    final String url = widget.settings.signalingServerUrl;
-    if (_sharedApi == null) {
-      _sharedApi = GstWebRTCAPI(
-        GstWebRTCConfig(
-          signalingServerUrl: url,
-          reconnectionTimeout: widget.settings.reconnectionTimeoutMs,
-          webrtcConfig: _buildWebRTCConfig(widget.settings),
-        ),
-      );
-      _sharedApiSignalingUrl = url;
-    } else if (_sharedApiSignalingUrl != url) {
+  final String url = widget.settings.signalingServerUrl;
+  final WebRTCStreamController? existing = _sharedController;
+  if (existing != null) {
+    if (_sharedSignalingUrl != url) {
       // The API cannot re-target its socket, so say so rather than answer wrong.
       debugPrint(
-        'WebRTCView: signalling URL changed from $_sharedApiSignalingUrl to '
+        'WebRTCView: signalling URL changed from $_sharedSignalingUrl to '
         '$url, but GstWebRTCAPI cannot be re-targeted. Reload the page.',
       );
     }
+    return existing;
   }
+  final GstWebRTCAPI api = GstWebRTCAPI(
+    GstWebRTCConfig(
+      signalingServerUrl: url,
+      reconnectionTimeout: widget.settings.reconnectionTimeoutMs,
+      webrtcConfig: _buildWebRTCConfig(widget.settings),
+    ),
+  );
+  _sharedSignalingUrl = url;
+  return _sharedController = WebRTCStreamController(
+    _GstSignallingClient(api, video),
+    reconnectionTimeoutMs: widget.settings.reconnectionTimeoutMs,
+    producerId: widget.producerIdToConsume,
+  );
+}
 
-  void _attachListeners() {
-    final GstWebRTCAPI api = _sharedApi!;
+/// gstwebrtc-api behind [SignallingClient]; a session's media goes into the shared video element.
+class _GstSignallingClient implements SignallingClient {
+  _GstSignallingClient(this._api, this._video);
 
-    // Clear first, or the previous State's closures over a dead `this` stay live.
-    api.unregisterAllConnectionListeners();
-    api.unregisterAllPeerListeners();
+  final GstWebRTCAPI _api;
+  final web.HTMLVideoElement _video;
 
-    api.registerConnectionListener(
+  @override
+  void listen({
+    required void Function() connected,
+    required void Function() disconnected,
+    required void Function(String producerId) producerAdded,
+    required void Function(String producerId) producerRemoved,
+  }) {
+    _api.registerConnectionListener(
       ConnectionListener(
         connected: ((JSAny clientId) {
           debugPrint('Connected. ClientId: ${clientId.dartify()}');
-          _setStage(WebRTCStage.waitingForProducer);
-          final String? wanted = widget.producerIdToConsume;
-          if (wanted != null && wanted.isNotEmpty) {
-            _startConsuming(wanted);
-          }
+          connected();
         }).toJS,
         disconnected: (() {
           debugPrint('Disconnected');
-          _consumer = null;
-          _setStage(
-            WebRTCStage.connecting,
-            (l10n) => l10n.webrtcSignallingLost(
-              widget.settings.reconnectionTimeoutMs,
-            ),
-          );
+          disconnected();
         }).toJS,
       ),
     );
-
-    api.registerPeerListener(
+    _api.registerPeerListener(
       PeerListener(
         producerAdded: ((JSAny peerAny) {
           final Peer peer = peerAny as Peer;
           debugPrint('Producer added: ${peer.id}');
-          if (_consumer == null &&
-              (widget.producerIdToConsume == null ||
-                  widget.producerIdToConsume == peer.id)) {
-            _startConsuming(peer.id);
-          }
+          producerAdded(peer.id);
         }).toJS,
         producerRemoved: ((JSAny peerAny) {
           final Peer peer = peerAny as Peer;
           debugPrint('Producer removed: ${peer.id}');
-          // Otherwise `_startConsuming`'s guard ignores the restarted producer.
-          _consumer?.close();
-          _consumer = null;
-          _sharedVideo?.srcObject = null;
-          _setStage(
-            WebRTCStage.waitingForProducer,
-            (l10n) => l10n.webrtcCameraGone,
-          );
+          producerRemoved(peer.id);
         }).toJS,
       ),
     );
   }
 
-  void _setStage(
-    WebRTCStage stage, [
-    String Function(AppLocalizations l10n)? detail,
-  ]) {
-    if (!mounted) return;
-    setState(() {
-      _stage = stage;
-      _detail = detail;
-    });
+  @override
+  List<String> availableProducers() => <String>[
+    for (final JSObject peer in _api.getAvailableProducers().toDart)
+      (peer as Peer).id,
+  ];
+
+  @override
+  ConsumerSessionHandle? openSession(
+    String producerId, {
+    required void Function() streaming,
+    required void Function() failed,
+  }) {
+    final ConsumerSession? session = _api.createConsumerSession(producerId);
+    if (session == null) {
+      debugPrint('createConsumerSession($producerId) returned null');
+      return null;
+    }
+    session.addEventListener(
+      'streamsChanged'.toJS,
+      ((JSAny _) {
+        final List<JSAny> streams = session.streams.toDart;
+        if (streams.isEmpty) return;
+        _video.srcObject = streams.first as web.MediaStream;
+        _video.play();
+        streaming();
+      }).toJS,
+    );
+    session.addEventListener(
+      'remoteControllerChanged'.toJS,
+      ((JSAny _) {
+        final JSObject? controller = session.remoteController;
+        if (controller != null) {
+          (controller as RemoteController).attachVideoElement(_video as JSAny?);
+        }
+      }).toJS,
+    );
+    session.addEventListener(
+      'stateChanged'.toJS,
+      ((JSAny _) {
+        debugPrint('Consumer state: ${session.state}');
+      }).toJS,
+    );
+    session.addEventListener(
+      'error'.toJS,
+      ((JSAny _) {
+        debugPrint('Consumer error event');
+        failed();
+      }).toJS,
+    );
+    return _GstSession(session, _video);
+  }
+}
+
+class _GstSession implements ConsumerSessionHandle {
+  _GstSession(this._session, this._video);
+
+  final ConsumerSession _session;
+  final web.HTMLVideoElement _video;
+
+  @override
+  bool connect() => _session.connect();
+
+  @override
+  void close() {
+    _session.close();
+    _video.srcObject = null;
+  }
+}
+
+class _WebRTCViewState extends State<WebRTCView> {
+  late final WebRTCStreamController _controller;
+  final List<Timer> _resumeTimers = <Timer>[];
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = _ensureSharedObjects(widget);
+    _controller.addListener(_onStage);
+    _controller.attach();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _resumeAfterRemount());
+  }
+
+  /// A remount moves the shared element, and the browser pauses a media element that left the document a little later.
+  void _resumeAfterRemount() {
+    for (final int ms in const <int>[0, 300, 1000, 2000, 4000]) {
+      _resumeTimers.add(Timer(Duration(milliseconds: ms), _resumeVideo));
+    }
+  }
+
+  void _onStage() {
+    if (mounted) setState(() {});
+  }
+
+  void _resumeVideo() {
+    final web.HTMLVideoElement? video = _sharedVideo;
+    if (video != null &&
+        video.srcObject != null &&
+        video.isConnected &&
+        video.paused) {
+      video.play();
+    }
   }
 
   @override
   void dispose() {
-    // The shared socket stays open: it reconnects itself and has no close().
-    _sharedApi
-      ?..unregisterAllConnectionListeners()
-      ..unregisterAllPeerListeners();
-    _consumer?.close();
-    _consumer = null;
+    for (final Timer timer in _resumeTimers) {
+      timer.cancel();
+    }
+    _controller.removeListener(_onStage);
+    _controller.detach();
     super.dispose();
   }
 
-  void _startConsuming(String producerId) {
-    if (_consumer != null) return;
-
-    final ConsumerSession? consumer = _sharedApi!.createConsumerSession(
-      producerId,
-    );
-    if (consumer == null) {
-      debugPrint('createConsumerSession returned null (not connected yet?)');
-      _setStage(WebRTCStage.failed, (l10n) => l10n.webrtcNoSession(producerId));
-      return;
-    }
-    _consumer = consumer;
-    _setStage(WebRTCStage.negotiating);
-
-    consumer.addEventListener(
-      'streamsChanged'.toJS,
-      ((JSAny _) {
-        final List<JSAny> streams = consumer.streams.toDart;
-        if (streams.isNotEmpty) {
-          final web.MediaStream mediaStream = streams.first as web.MediaStream;
-          _sharedVideo?.srcObject = mediaStream;
-          _sharedVideo?.play();
-          _setStage(WebRTCStage.streaming);
-        }
-      }).toJS,
-    );
-
-    consumer.addEventListener(
-      'remoteControllerChanged'.toJS,
-      ((JSAny _) {
-        final JSObject? rcAny = consumer.remoteController;
-        if (rcAny != null) {
-          final RemoteController rc = rcAny as RemoteController;
-          rc.attachVideoElement(_sharedVideo as JSAny?);
-        }
-      }).toJS,
-    );
-
-    consumer.addEventListener(
-      'stateChanged'.toJS,
-      ((JSAny _) {
-        debugPrint('Consumer state: ${consumer.state}');
-      }).toJS,
-    );
-    consumer.addEventListener(
-      'error'.toJS,
-      ((JSAny e) {
-        debugPrint('Consumer error event');
-        _setStage(WebRTCStage.failed, (l10n) => l10n.webrtcPeerError);
-      }).toJS,
-    );
-
-    final bool ok = consumer.connect();
-    if (!ok) {
-      debugPrint('consumer.connect() returned false');
-      _setStage(WebRTCStage.failed, (l10n) => l10n.webrtcPeerNotStarted);
-    }
-  }
-
-  // Rendering
-
   @override
   Widget build(BuildContext context) {
+    final WebRTCStage stage = _controller.stage;
     return Stack(
       fit: StackFit.passthrough,
       children: <Widget>[
         const HtmlElementView(viewType: _kViewType),
-        if (_stage != WebRTCStage.streaming) _buildStatusOverlay(context),
+        if (stage != WebRTCStage.streaming) _buildStatusOverlay(context, stage),
       ],
     );
   }
 
-  Widget _buildStatusOverlay(BuildContext context) {
+  Widget _buildStatusOverlay(BuildContext context, WebRTCStage stage) {
     final ThemeData theme = Theme.of(context);
     final AppLocalizations l10n = AppLocalizations.of(context)!;
-    final bool failed = _stage == WebRTCStage.failed;
+    final bool failed = stage == WebRTCStage.failed;
 
     return Positioned.fill(
       child: ColoredBox(
@@ -302,7 +288,7 @@ class _WebRTCViewState extends State<WebRTCView> {
                   ),
                 const SizedBox(height: 12),
                 Text(
-                  _headline(l10n),
+                  _headline(l10n, stage),
                   textAlign: TextAlign.center,
                   style: theme.textTheme.titleSmall?.copyWith(
                     color: failed ? theme.colorScheme.error : null,
@@ -310,7 +296,7 @@ class _WebRTCViewState extends State<WebRTCView> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  _detail?.call(l10n) ?? _defaultDetail(l10n),
+                  _controller.detail?.call(l10n) ?? _defaultDetail(l10n, stage),
                   textAlign: TextAlign.center,
                   style: theme.textTheme.bodySmall,
                 ),
@@ -322,7 +308,7 @@ class _WebRTCViewState extends State<WebRTCView> {
     );
   }
 
-  String _headline(AppLocalizations l10n) => switch (_stage) {
+  String _headline(AppLocalizations l10n, WebRTCStage stage) => switch (stage) {
     WebRTCStage.connecting => l10n.webrtcConnecting,
     WebRTCStage.waitingForProducer => l10n.webrtcWaitingForCamera,
     WebRTCStage.negotiating => l10n.webrtcNegotiating,
@@ -331,11 +317,12 @@ class _WebRTCViewState extends State<WebRTCView> {
   };
 
   /// The fallback second line: what to check next, not the headline again.
-  String _defaultDetail(AppLocalizations l10n) => switch (_stage) {
-    WebRTCStage.connecting => widget.settings.signalingServerUrl,
-    WebRTCStage.waitingForProducer => l10n.webrtcNoCamera,
-    WebRTCStage.negotiating => l10n.webrtcExchangingCandidates,
-    WebRTCStage.streaming => '',
-    WebRTCStage.failed => l10n.webrtcSeeConsole,
-  };
+  String _defaultDetail(AppLocalizations l10n, WebRTCStage stage) =>
+      switch (stage) {
+        WebRTCStage.connecting => widget.settings.signalingServerUrl,
+        WebRTCStage.waitingForProducer => l10n.webrtcNoCamera,
+        WebRTCStage.negotiating => l10n.webrtcExchangingCandidates,
+        WebRTCStage.streaming => '',
+        WebRTCStage.failed => l10n.webrtcSeeConsole,
+      };
 }

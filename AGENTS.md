@@ -558,7 +558,7 @@ written out rather than linked.
   run reported `Formatted 7404 files (627 changed)` and rewrote the Flutter SDK
   on disk on the way. Both lanes list tracked files instead
   (`code_quality_find_dart_files` on Linux, `Get-ProjectDartFiles` on Windows;
-  the same 67 files). Keep the tracked-file listing even though the SDK now
+  the same 69 files). Keep the tracked-file listing even though the SDK now
   comes from the image. `dart analyze` is *not* affected and never was. Detail:
   [`docs/source/project-operations.md`](docs/source/project-operations.md)
   § *Static checks*.
@@ -873,7 +873,7 @@ run shows both lines together (`FAILED: MSIX Packaging` … `=== Build Complete 
 never the log tail.**
 
 Two Windows-specific traps these steps carry: the format gate hands `dart
-format` the tracked file list (`Get-ProjectDartFiles`, the 67 files of § 4)
+format` the tracked file list (`Get-ProjectDartFiles`, the 69 files of § 4)
 rather than `.` (the recursive walk reaches the vendored submodule gitdir and
 exceeds MAX_PATH), and docs generation
 runs a `pub global activate dartdoc` (≥ 9.0.9) instead of the SDK-bundled
@@ -1015,7 +1015,7 @@ cell is a test that cannot run there, and the reason is under the table.
 
 | Test | Linux x64 / arm64 | Windows x64 | Windows arm64 | Android | Web |
 | --- | --- | --- | --- | --- | --- |
-| App Dart tests (`test/`) | yes | yes, in the image | yes, arm64 Dart VM | yes | in Chrome, 48 |
+| App Dart tests (`test/`) | yes | yes, in the image | yes, arm64 Dart VM | yes | in Chrome, 57 |
 | Plugin Dart tests (`packages/kataglyphis_native_inference/test/`) | yes | yes, in the image | yes, arm64 Dart VM | yes | in Chrome, 4 |
 | Plugin gtest (`kataglyphis_native_inference_test`) | yes | built in the image, run on the host | yes, on the device | | |
 | Plugin C ABI (`knt_*`) | `check-knt-abi.sh` | `Test-KntAbi.ps1`, host | `Test-KntAbi.ps1`, device | | |
@@ -1101,7 +1101,7 @@ mount.
 `scripts/windows/Invoke-DartChecks.ps1` is the same loop as a script
 (`-SkipFormat`, `-SkipAnalyze`, `-SkipTest`, `-Fix`; its pub cache is the
 `omni-dart-checks-pubcache` volume). Its format step covers `lib test
-integration_test test_driver` — 57 of the 67 tracked files the lanes grade, not
+integration_test test_driver` — 59 of the 69 tracked files the lanes grade, not
 the plugin's ten under `packages/`; its test step runs the plugin's suite too.
 `-Engine wslc` runs it in WSL 3's `wslc` instead of nerdctl (hub CON62's pilot,
 2026-10-06). Measured warm on this box: format + test 23 s against nerdctl's

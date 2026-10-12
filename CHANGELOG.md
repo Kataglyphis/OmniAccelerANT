@@ -43,6 +43,11 @@ What landed on `develop` after 2.0.0+2. Most of it is the cat cam, whose guide i
   broken mid-word, and the footer's copyright runs to the current year (2026-10-12).
 - **The video box speaks the page's language** (2026-10-12): its status lines were
   English on the German page.
+- **The camera stream survives a language or theme change** (2026-10-12). Either left
+  the video box at "Connecting to the signalling server", because the remounted view
+  waited for connection events that had fired long before. The stream now lives in one
+  controller per page load: a remount keeps the playing session, and a view that
+  comes back later opens one at once.
 
 ### Changed
 

@@ -360,6 +360,17 @@ come back and consumes the new one, with no reload: on himbeere2 (2026-10-12) he
 Chrome's video was playing at 30 fps again about 10 s after `systemctl restart
 omni-catcam`, as an upgrade does it.
 
+**A language or theme change keeps the picture.** Either remounts the video box, and the
+stream's state lives outside it: one `WebRTCStreamController` per page load
+(`lib/Pages/StreamPage/stream_controller.dart`) registers the signalling listeners once.
+A remounted view attaches to the session as it was. A view that comes back after the
+session's 30 s keep-alive opens a new one at once from the producers the client already
+knows, because gstwebrtc-api never repeats a `connected` or `producerAdded` that has
+fired. A failed session is retried after 3 s. In headless Chrome on a test pattern
+(2026-10-12) the video kept counting about 33 frames a second through a switch to English
+and back, a theme toggle and two page changes. Before, a language switch left the box at
+"Connecting to the signalling server".
+
 **One port reaches it.** The page and the `/webrtc-ws` signalling share `:8080`:
 the service forwards the WebSocket upgrade to its own signalling server on
 loopback `:8443`. Media goes over host candidates only unless `stun_server` is
