@@ -12,7 +12,7 @@
 		"fileBaseDir": "packages/anthology/assets/documents/blog/",
 		"lastModified":"03.04.2024",
 		"landingPageAlignment":"left",
-		"landingPageEntryImagePath": "packages/anthology/assets/images/funny_programmer.gif",
+		"landingPageEntryImagePath": "packages/anthology/assets/images/funny_programmer.webp",
 		"landingPageEntryImageCaptioning": "image source: https://learnopengl.com",
 		"docsDesc": [
 			{
