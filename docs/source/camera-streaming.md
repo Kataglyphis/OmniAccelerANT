@@ -252,7 +252,11 @@ Everything it serves is on that one port, plain HTTP:
 **The web build ships compressed.** The packager runs the producer's `--precompress` over
 its copy of the web build, so each file the server gzips has a zopfli `.gz` beside it:
 about 5 % smaller than the server's own gzip, and nothing to compress on the board. A
-first visit is 3.75 MB on the wire, 3.93 MB before (himbeere2, 2026-10-12). The copy
+first visit from a phone on the LAN is 4.46 MB on the wire, about 4.62 MB before
+(himbeere2, 2026-10-12); over loopback it is 3.75 MB, 3.93 before. The gap is Flutter's
+renderer: a plain-HTTP page at a LAN address is no secure context, so the browser offers
+no `ImageDecoder` and the loader takes `skwasm_heavy` (2.2 MB gzipped, its own codecs
+inside) over `skwasm` (1.5 MB). Only a certificate the phones trust would change that. The copy
 leaves out what no browser fetches from this build: the `*.symbols` debug maps, and the
 `wimp` and `webparagraph` renderers, which Flutter's loader fetches only when the
 `_flutter.loader.load` call in `flutter_bootstrap.js` asks for them; the packager stops

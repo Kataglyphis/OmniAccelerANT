@@ -65,8 +65,8 @@ What landed on `develop` after 2.0.0+2. Most of it is the cat cam, whose guide i
   animation is a 0.85 MB WebP instead of a 4.9 MB GIF, and the 3.6 MB GIF the landing
   page no longer shows is gone. The web, Linux, Windows and Android builds all bundle
   ANThology's images.
-- **The cat cam's web build ships zopfli-compressed** (2026-10-12): a first visit is
-  3.75 MB, 180 kB less, and the board compresses nothing at run time. The packages leave
+- **The cat cam's web build ships zopfli-compressed** (2026-10-12): a phone's first visit
+  is 4.46 MB, 160 kB less, and the board compresses nothing at run time. The packages leave
   out two Flutter renderers this build never loads, and the debug maps.
 - **The service runs sandboxed** (2026-10-12): `systemd-analyze security` rates the unit
   1.8, down from 8.7, and the package test holds it at 2.5 or less.
