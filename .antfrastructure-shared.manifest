@@ -5,11 +5,15 @@
 # Checked by:
 #   bash third_party/ANTfrastructure/shared/config/sync-shared-config.sh --repo-root . --check
 #
-# The four names NOT listed here are not overrides - this Flutter app carries no
-# CMakeLists.txt, no C++ and no Dart pre-commit hooks, so .clang-format,
-# .clang-tidy, gcovr.cfg and .pre-commit-config.yaml were never taken. AGENTS.md
-# paragraph 4 records the same fact.
+# .clang-format sits in the native plugin, the only hand-written C++ here, so the
+# app's generated runner sources stay outside it (2026-10-12, hub CON71).
+#
+# The three names NOT listed here are not overrides - nothing here runs clang-tidy
+# or gcovr, and scripts/git-hooks/pre-commit is a plain git hook rather than the
+# pre-commit framework, so .clang-tidy, gcovr.cfg and .pre-commit-config.yaml were
+# never taken.
 
 cmake-format
 antfrastructure-sh
 resolve-build-module
+clang-format packages/kataglyphis_native_inference/.clang-format

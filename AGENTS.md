@@ -1415,7 +1415,7 @@ canonical config — `shared/config/README.md` owns why it is a copy. Refresh it
 with `pwsh -File third_party/ANTfrastructure/shared/config/Sync-SharedConfig.ps1
 -RepoRoot . -Write` (or the `sync-shared-config.sh --repo-root . --write` form)
 — **no `-Ignore`**: what this repo takes is declared in
-[`.antfrastructure-shared.manifest`](.antfrastructure-shared.manifest), three
+[`.antfrastructure-shared.manifest`](.antfrastructure-shared.manifest), four
 rows, and the scripts refuse `-Ignore` while that file exists. Where
 cmake-format itself comes from, why there is no root `requirements.txt`, and why
 `.gitattributes` pins CMake files to LF:

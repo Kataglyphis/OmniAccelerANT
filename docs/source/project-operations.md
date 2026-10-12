@@ -104,7 +104,7 @@ with `pwsh -File third_party/ANTfrastructure/shared/config/Sync-SharedConfig.ps1
 -RepoRoot . -Write` (or `bash
 third_party/ANTfrastructure/shared/config/sync-shared-config.sh --repo-root .
 --write`) — no `-Ignore`: what this repo takes is declared in
-[`.antfrastructure-shared.manifest`](../../.antfrastructure-shared.manifest), three rows,
+[`.antfrastructure-shared.manifest`](../../.antfrastructure-shared.manifest), four rows,
 and the scripts refuse `-Ignore` while that file exists. cmake-format itself
 comes from `PATH` or a
 uv venv fed by ANTfrastructure's pinned
