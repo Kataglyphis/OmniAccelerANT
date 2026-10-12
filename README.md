@@ -280,6 +280,18 @@ ONNX Runtime proof, a 20 s launch smoke and, on Linux, the integration test unde
 Xvfb. The per-lane table is [AGENTS.md § 5](AGENTS.md#5-build-run-test), *What
 each lane tests*; the open gaps are tracked in [BACKLOG.md](BACKLOG.md).
 
+The app's own Dart suite (`test/`) checks, among the rest:
+- every main page laid out at phone, tablet and desktop size with the real font
+  (`app_layout_test.dart`);
+- the camera stream's state across remounts, page changes, lost signalling and failed
+  sessions (`webrtc_stream_controller_test.dart`);
+- the cat status line, its visits and its arrival picture (`cat_status_test.dart`);
+- what no build step checks: the bridge's versions, the sqlite3 wasm, 8-bit icons
+  (`pinned_artefacts_test.dart`), and that every social link has an icon.
+
+`flutter test` in the `:latest` image runs it in under a minute
+([AGENTS.md § 5](AGENTS.md#5-build-run-test), *The Dart gate in 23 seconds*).
+
 ## Roadmap
 
 Planned work lives in [BACKLOG.md](BACKLOG.md), in the format ANTfrastructure's
