@@ -173,6 +173,15 @@ mp4_at() {
   return 0
 }
 
+# /arrival.mp4?t= serves the clip of that arrival, and 404 for one it never recorded.
+clip_by_arrival() {
+  local t
+  t="$(curl -sf "http://$1:8080/healthz" | jq -r '.cat.clip')" || return 1
+  [ "$(curl -s -o /dev/null -w '%{http_code}' "http://$1:8080/arrival.mp4?t=${t}")" = 200 ] || return 1
+  [ "$(curl -s -o /dev/null -w '%{http_code}' "http://$1:8080/arrival.mp4?t=1")" = 404 ] || return 1
+  return 0
+}
+
 visit_closed() {
   curl -sf "http://$1:8080/healthz" | jq -e --argjson s "$2" '.cat.recent[0].stayed_s >= $s' >/dev/null
 }
@@ -259,6 +268,7 @@ check "/arrival.jpg serves the frame the arrival was seen on" jpeg_at "${ip}" /a
 check "the visit log times the stay while the cat is in view" seen_for "${ip}" 2
 check "the arrival's clip is encoded and named in /healthz" clip_ready "${ip}"
 check "/arrival.mp4 serves it as an MP4 and answers a byte range" mp4_at "${ip}" /arrival.mp4
+check "/arrival.mp4?t= serves that arrival's clip and no other" clip_by_arrival "${ip}"
 check "the finished clip is POSTed to notify_url as JSON" webhook_got clip "${work}/webhook.jsonl"
 stop_service "${pid}"
 kill "${receiver}" 2>/dev/null

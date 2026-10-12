@@ -235,7 +235,10 @@ class _CatStatusLineState extends State<CatStatusLine> {
           ),
         if (status.hasLatestClip)
           Link(
-            uri: Uri.parse('/arrival.mp4?visit=${status.visits}'),
+            // Its arrival's own clip, even after a newer visit replaces the picture above.
+            uri: Uri.parse(
+              '/arrival.mp4?t=${status.clip!.millisecondsSinceEpoch ~/ 1000}',
+            ),
             target: LinkTarget.blank,
             builder: (context, followLink) => TextButton.icon(
               onPressed: followLink,

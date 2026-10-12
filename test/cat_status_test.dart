@@ -169,7 +169,7 @@ void main() {
     await tester.pump(const Duration(seconds: 5));
     expect(find.text('Watch the arrival'), findsOneWidget);
     final Link link = tester.widget<Link>(find.byType(Link));
-    expect(link.uri.toString(), '/arrival.mp4?visit=3');
+    expect(link.uri.toString(), '/arrival.mp4?t=1791763200');
     expect(link.target, LinkTarget.blank);
     await tester.pumpWidget(const SizedBox());
   });

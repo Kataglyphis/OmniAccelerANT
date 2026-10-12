@@ -222,7 +222,7 @@ Everything it serves is on that one port, plain HTTP:
 | `/healthz` | JSON: the live camera, `model_runs`, and the cat's `in_view`, `last_seen`, `visits`, `last_score`, `recent` visits and the `clip` arrival |
 | `/snapshot.jpg` | the latest frame, boxes drawn |
 | `/arrival.jpg` | the frame the last arrival was confirmed on; `404` until a cat has come |
-| `/arrival.mp4` | the last arrival as an H.264 clip, 3 s before it to 7 s after; byte ranges answered; `404` until one is encoded |
+| `/arrival.mp4` | the last arrival as an H.264 clip, 3 s before it to 7 s after; `?t=<arrival time>` that arrival's own, of the last five; byte ranges answered; `404` until one is encoded, or once that arrival's is dropped |
 | `/webrtc-ws` | the WebRTC signalling, forwarded to the producer's own server on loopback `:8443` |
 
 **The AppImage either runs or installs.** Started plainly, it runs the cat cam in the
@@ -364,10 +364,15 @@ references, so nothing is copied. An arrival takes those and the next 7 s and gi
 a thread of its own, which encodes them with `openh264enc` at 800 kbit/s (about 1 MB a
 clip at 640x480), `h264parse` and `mp4mux faststart=true`, so the index comes first and a
 browser starts playing at once. `/arrival.mp4` serves it with byte ranges, which Safari's
-`<video>` needs; `/healthz` names the arrival it shows as `cat.clip`; the state directory
-keeps it across a restart; and `notify_url` gets a `clip` event once it is written, with
-the arrival's `time` and `best_score`. The Stream page links it under the arrival picture
-once `cat.clip` is the newest visit, so it never offers the previous cat's clip.
+`<video>` needs; `/healthz` names the newest one's arrival as `cat.clip`; and `notify_url`
+gets a `clip` event once it is written, with the arrival's `time` and `best_score`.
+**The last five clips stay addressable by arrival**, as `clip-<time>.mp4` in the state
+directory, across a restart too: `/arrival.mp4?t=<time>` serves that arrival's own, and
+`404` once it is dropped, never a newer one. A false visit right after the cat (33 of them
+on himbeere2's morning of 2026-10-12) would otherwise have put its clip behind the cat's
+notification. The arrival event carries the visit log's own time, the one the clip is kept
+under. The Stream page links the newest clip by its time once `cat.clip` is the newest
+visit, so it never offers the previous cat's clip.
 On himbeere2 the packaged service, run on the cat photo at 30 fps (2026-10-12), confirmed
 the arrival at 16:21:40 and served the clip at 16:21:47: seven seconds of post-roll, and
 encoding and writing in under one. It was H.264 Constrained Baseline, which every phone
