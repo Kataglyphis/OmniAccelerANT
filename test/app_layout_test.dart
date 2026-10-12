@@ -18,12 +18,14 @@ const List<String> _routes = <String>[
   '/aiBlog',
 ];
 
-/// Phone, tablet and desktop, and a phone with its system font at 150 %, as many set it.
+/// Phone, tablet and desktop, and a phone at 150 % and 200 % system font (Android's largest), and a desktop at 200 %.
 const List<(Size, double)> _cases = <(Size, double)>[
   (Size(360, 800), 1),
   (Size(800, 1000), 1),
   (Size(1280, 900), 1),
   (Size(360, 800), 1.5),
+  (Size(360, 800), 2),
+  (Size(1280, 900), 2),
 ];
 
 void main() {

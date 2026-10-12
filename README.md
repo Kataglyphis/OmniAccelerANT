@@ -281,8 +281,9 @@ Xvfb. The per-lane table is [AGENTS.md § 5](AGENTS.md#5-build-run-test), *What
 each lane tests*; the open gaps are tracked in [BACKLOG.md](BACKLOG.md).
 
 The app's own Dart suite (`test/`) checks, among the rest:
-- every main page laid out at phone, tablet and desktop size, and on a phone with its
-  system font at 150 %, with the real font (`app_layout_test.dart`);
+- every main page laid out at phone, tablet and desktop size, on a phone with its system
+  font at 150 % and 200 %, and on a desktop at 200 %, with the real font
+  (`app_layout_test.dart`);
 - the camera stream's state across remounts, page changes, lost signalling and failed
   sessions (`webrtc_stream_controller_test.dart`);
 - the cat status line, its visits and its arrival picture (`cat_status_test.dart`);
