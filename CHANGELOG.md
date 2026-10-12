@@ -61,6 +61,9 @@ What landed on `develop` after 2.0.0+2. Most of it is the cat cam, whose guide i
     still, empty scene went from 74 % to 12 % of a core, a dark room at night to 2 %.
   - Frames stay I420 from the camera to the encoder.
   - The web build goes out gzipped, and a revalidation answers 304 without reading a file.
+- **The cat cam's web build ships zopfli-compressed** (2026-10-12): a first visit is
+  3.75 MB, 180 kB less, and the board compresses nothing at run time. The packages leave
+  out two Flutter renderers this build never loads, and the debug maps.
 - **The service runs sandboxed** (2026-10-12): `systemd-analyze security` rates the unit
   1.8, down from 8.7, and the package test holds it at 2.5 or less.
 - **The web build's first load is 2.8 MB lighter** (2026-10-12). Flutter web fetches

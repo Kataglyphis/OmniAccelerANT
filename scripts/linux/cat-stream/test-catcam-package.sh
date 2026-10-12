@@ -126,6 +126,15 @@ jpeg_at() {
     test "$(head -c 3 "${work}/got.jpg" | od -An -tx1 | tr -d ' \n')" = ffd8ff
 }
 
+# The engine as the browser gets it, gzipped: the packaged zopfli .gz byte for byte, which unzips to the file.
+packaged_gz_served() {
+  local file="${prefix}/web/$2"
+  test -s "${file}.gz" || return 1
+  curl -sf -H 'Accept-Encoding: gzip' "http://$1:8080/$2" -o "${work}/served.gz" || return 1
+  cmp -s "${work}/served.gz" "${file}.gz" || return 1
+  gzip -dc "${file}.gz" | cmp -s - "${file}"
+}
+
 # A webhook stand-in on loopback that appends every POST body to $2; exec, so $! is python and kill reaches it.
 webhook_receiver() {
   exec python3 -c '
@@ -277,6 +286,7 @@ check "the bundled model finds a cat in the photo" grep -q 'cat in view' "${work
 start_service "${work}/stream.log" "${prefix}/catcam" --camera test --inference off
 pid=$!
 check "the page and /healthz answer on :8080" wait_healthz "${ip}"
+check "main.dart.wasm goes out as the packaged zopfli .gz" packaged_gz_served "${ip}" main.dart.wasm
 check "a restart keeps the visit the photo counted" visit_remembered "${ip}"
 check "a restart closes the visit the stop cut short, at its last sighting" visit_closed "${ip}" 2
 check "a restart keeps the arrival frame" jpeg_at "${ip}" /arrival.jpg

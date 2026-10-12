@@ -74,6 +74,15 @@ mkdir -p "${bundle}/bin" "${bundle}/lib/gstreamer-1.0" "${bundle}/libexec" "${bu
 
 install -m 755 "${producer}" "${bundle}/bin/kataglyphis_cat_webrtc"
 cp -a "${web_root}" "${bundle}/web"
+# Only a loader config naming enableWimp or preferWebParagraph fetches those renderers, and no browser fetches *.symbols.
+if sed -n '/_flutter\.loader\.load(/,$p' "${web_root}/flutter_bootstrap.js" | grep -qE 'enableWimp|preferWebParagraph'; then
+  printf 'flutter_bootstrap.js asks for the wimp or webparagraph renderer, which this package leaves out\n' >&2
+  exit 1
+fi
+rm -rf "${bundle}/web/canvaskit/webparagraph" "${bundle}/web/canvaskit"/wimp.*
+find "${bundle}/web" -name '*.symbols' -delete
+# Zopfli .gz beside each file the server gzips: smaller than its own gzip, and nothing to compress on the board.
+"${producer}" --precompress "${bundle}/web"
 install -m 644 "${model}" "${bundle}/models/$(basename "${model}")"
 model_name="$(basename "${model}")"
 

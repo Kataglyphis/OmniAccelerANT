@@ -249,6 +249,15 @@ Everything it serves is on that one port, plain HTTP:
 | `/arrival.mp4` | the last arrival as an H.264 clip, 3 s before it to 7 s after; `?t=<arrival time>` that arrival's own, of the last five; byte ranges answered; `404` until one is encoded, or once that arrival's is dropped |
 | `/webrtc-ws` | the WebRTC signalling, forwarded to the producer's own server on loopback `:8443` |
 
+**The web build ships compressed.** The packager runs the producer's `--precompress` over
+its copy of the web build, so each file the server gzips has a zopfli `.gz` beside it:
+about 5 % smaller than the server's own gzip, and nothing to compress on the board. A
+first visit is 3.75 MB on the wire, 3.93 MB before (himbeere2, 2026-10-12). The copy
+leaves out what no browser fetches from this build: the `*.symbols` debug maps, and the
+`wimp` and `webparagraph` renderers, which Flutter's loader fetches only when the
+`_flutter.loader.load` call in `flutter_bootstrap.js` asks for them; the packager stops
+if it ever does. The .deb is 88 MB, 81 MB before.
+
 #### Installing it
 
 **The AppImage either runs or installs.** Started plainly, it runs the cat cam in the
