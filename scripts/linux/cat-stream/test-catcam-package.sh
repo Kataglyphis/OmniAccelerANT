@@ -135,6 +135,28 @@ packaged_gz_served() {
   gzip -dc "${file}.gz" | cmp -s - "${file}"
 }
 
+# package-catcam.sh leaves out the renderers this build's loader never asks for and the debug maps.
+web_pruned() {
+  local web="${prefix}/web"
+  test -f "${web}/canvaskit/skwasm.wasm" || return 1
+  test ! -e "${web}/canvaskit/webparagraph" || return 1
+  if [ -n "$(find "${web}" \( -name 'wimp.*' -o -name '*.symbols' \) -print -quit)" ]; then
+    return 1
+  fi
+}
+
+# Every file the server gzips (its types, 1 KiB and up) ships its zopfli .gz; one missing is gzipped at run time.
+web_precompressed() {
+  local missing
+  missing="$(find "${prefix}/web" -type f -size +1023c \( -name '*.js' -o -name '*.mjs' -o -name '*.wasm' \
+    -o -name '*.json' -o -name '*.html' -o -name '*.css' -o -name '*.svg' -o -name '*.ttf' -o -name '*.otf' \) \
+    ! -exec test -e '{}.gz' ';' -print)"
+  if [ -n "${missing}" ]; then
+    printf 'no .gz beside: %s\n' "${missing}" >&2
+    return 1
+  fi
+}
+
 # A webhook stand-in on loopback that appends every POST body to $2; exec, so $! is python and kill reaches it.
 webhook_receiver() {
   exec python3 -c '
@@ -287,6 +309,8 @@ start_service "${work}/stream.log" "${prefix}/catcam" --camera test --inference 
 pid=$!
 check "the page and /healthz answer on :8080" wait_healthz "${ip}"
 check "main.dart.wasm goes out as the packaged zopfli .gz" packaged_gz_served "${ip}" main.dart.wasm
+check "the web build ships without the renderers and debug maps no browser fetches" web_pruned
+check "every file the server gzips ships its zopfli .gz" web_precompressed
 check "a restart keeps the visit the photo counted" visit_remembered "${ip}"
 check "a restart closes the visit the stop cut short, at its last sighting" visit_closed "${ip}" 2
 check "a restart keeps the arrival frame" jpeg_at "${ip}" /arrival.jpg
