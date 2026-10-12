@@ -22,13 +22,16 @@ Linux amd64/arm64 ship as a .deb and an AppImage, proven on himbeere2 (Pi 5) on
   no raw format) has run only in unit tests: himbeere2 has no USB camera, and the C270
   sits on the riscv64 X100, which the package does not build for. Blocked on a UVC camera
   at an amd64 or arm64 board. Done when `/healthz` names it and a browser plays it.
-- [b] **A real cat's arrival on the owner's phone.** Since 2026-10-12 himbeere2's cat cam
-  posts to the owner's Home Assistant, whose automation
+- [b] **A real cat's arrival on the owner's phone, picture first and video after.** Since
+  2026-10-12 himbeere2's cat cam posts to the owner's Home Assistant, whose automation
   (`docs/source/camera-streaming.md`, *A phone notification with the picture*) sends
-  arrivals at 0.45 or more to the phone with `/arrival.jpg`. A test arrival posted to that
-  webhook reached the phone; the service's own POSTs are proven against a loopback
-  stand-in (`test-catcam-package.sh`, OxidANT's `notify.rs`). Blocked on a cat. Done when
-  one's arrival lands on the phone with its picture.
+  arrivals at 0.45 or more to the phone with `/arrival.jpg`, and updates that notification
+  with a tap to `/arrival.mp4?t=` once the clip's event comes. Test arrivals posted to that
+  webhook reached the phone; the service's own arrival and clip POSTs are proven against
+  a loopback stand-in (`test-catcam-package.sh`, 48 checks; OxidANT's `notify.rs`), and a
+  clip from the packaged service on the cat photo played (16:21, 603 kB). The visit
+  statistics and the outage alert run in the same Home Assistant. Blocked on a cat. Done
+  when one's arrival lands on the phone with its picture, and a tap plays its video.
 - [ ] **The Windows cat cam with a camera, at a real logon, then on arm64.** The MSI works
   in the image and on a real Windows 11 host (`scripts/windows/cat-stream/`, 2026-10-06),
   and `web.yml`'s `catcam-windows` job packages and tests it around every web build.
@@ -52,7 +55,10 @@ Linux amd64/arm64 ship as a .deb and an AppImage, proven on himbeere2 (Pi 5) on
     - the start at a real sign-in, for the MSI's Startup entry and the MSIX's startup
       task; the shell ran the shortcut, no logon did, and the task stays unregistered
       until one;
-    - an MSIX signed by a certificate users already trust; `-MsixPfx` takes the owner's.
+    - an MSIX signed by a certificate users already trust; `-MsixPfx` takes the owner's;
+    - the arrival clip: `Package-CatCam.ps1` takes `isomp4` as optional, and whether
+      `:winamd64` carries it is unchecked; without it the service records no clip and says
+      so at start.
   - **Then:** arm64, after the hub's CON63.
   - Autostart is a logon task by owner decision. A boot-time service would run in
     Session 0, and on a PC with a webcam it first needs proof that LocalSystem or
@@ -74,6 +80,22 @@ Linux amd64/arm64 ship as a .deb and an AppImage, proven on himbeere2 (Pi 5) on
     - a USB camera through `--device=all`.
   - It has no boot service and no Pi camera by design; those stay with the .deb and the
     AppImage.
+
+## Open — waiting on the owner
+
+- [b] **The legal pages carry placeholders.** ANThology's `imprintDe.md` says itself that
+  it holds dummy data (Elchwinkel 42, 12345 Bärstadt), and both privacy policies name
+  Elchwinkel 1, 10117 Bärstadt, a placeholder phone number and the e-mail `XX`. Both
+  OmniAccelerANT and jotrockenmitlocken show them. Blocked on the owner's postal address
+  (a c/o service address works) and the e-mail to publish. Done when both pages name them
+  in German and English.
+- [b] **False arrivals: a threshold or an ignore zone.** On the morning of 2026-10-12 a
+  white object at the bottom of himbeere2's frame made 33 "visits" between 0.26 and 0.44,
+  against 0.76 for a cat in the bundled photo. The Home Assistant automation keeps them off
+  the phone (0.45), but the visit log, its statistics and the arrival picture and clip
+  still take them, and each one now costs a clip encode. Either `score = 0.45` in
+  himbeere2's `catcam.toml`, or a new setting that ignores a part of the frame. Blocked on
+  the owner's choice.
 
 ## Agentic loop
 
