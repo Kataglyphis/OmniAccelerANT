@@ -214,6 +214,16 @@ Install it with `sudo apt install ./omni-accelerant-catcam_<version>_<arch>.deb`
 or anywhere else with `sudo ./omni-accelerant-catcam-<version>-<arch>.AppImage --install`.
 Then open `http://<host>:8080/` from any browser on the network.
 
+Everything it serves is on that one port, plain HTTP:
+
+| Path | Answers |
+| --- | --- |
+| `/` | the web app; its Stream page plays the camera and shows the cat's status, visits and last arrival |
+| `/healthz` | JSON: the live camera, `model_runs`, and the cat's `in_view`, `last_seen`, `visits`, `last_score` and `recent` visits |
+| `/snapshot.jpg` | the latest frame, boxes drawn |
+| `/arrival.jpg` | the frame the last arrival was confirmed on; `404` until a cat has come |
+| `/webrtc-ws` | the WebRTC signalling, forwarded to the producer's own server on loopback `:8443` |
+
 **The AppImage either runs or installs.** Started plainly, it runs the cat cam in the
 foreground as the calling user, which needs the `video` group. `--install` copies it
 to `/opt/omni-accelerant-catcam` and sets up the same service as the .deb:
