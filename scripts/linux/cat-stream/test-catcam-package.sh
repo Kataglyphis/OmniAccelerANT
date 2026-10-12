@@ -274,6 +274,7 @@ check "flatpak installs it" flatpak info --system "${flatpak_id}"
 flatpak run --command=omni-catcam "${flatpak_id}" --camera test --inference off >"${work}/fp-stream.log" 2>&1 &
 pid=$!
 check "in its sandbox it answers /healthz" wait_healthz "${ip}"
+check "it keeps the cat's visits in its own state directory" grep -q "state: .*/\.var/app/${flatpak_id}/" "${work}/fp-stream.log"
 frames="$(chrome_frames "http://${ip}:8080/" 20000)"
 printf '      Chrome played %s frame(s) over %s\n' "${frames}" "${ip}"
 check "headless Chrome plays the sandboxed stream from the LAN address" test "${frames:-0}" -ge 200

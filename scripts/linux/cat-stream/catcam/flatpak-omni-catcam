@@ -39,4 +39,6 @@ fi
 if [ ! -e "${config_dir}/no-autostart" ] && [ ! -e "${entry}" ]; then
   write_entry
 fi
+# No systemd here: the sandbox's own state directory keeps the cat's visits across restarts.
+export STATE_DIRECTORY="${STATE_DIRECTORY:-${XDG_STATE_HOME:-$HOME/.local/state}/omni-accelerant-catcam}"
 exec "${app}/catcam" --config "${config}" "$@"
