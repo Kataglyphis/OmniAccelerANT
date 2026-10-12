@@ -22,7 +22,7 @@ Rust core and a C++ inference plugin underneath it.
 | `scripts/windows/`, `scripts/linux/` | Thin wrappers over ANTfrastructure drivers + this repo's own glue |
 | `third_party/ANTfrastructure` | The submodule owning every reusable script, module and doc |
 
-**Rust-owned webcam inference (Windows today, Linux in progress).** The Stream
+**Rust-owned webcam inference (Windows, and Linux since 2026-09-16).** The Stream
 page runs a Rust-owned webcam → ONNX → Flutter-texture pipeline: `crates/media`
 GStreamer capture → `src/webcam_engine.rs` → frb `src/api/webcam.rs` stream.
 Frames reach the texture through the native plugin's `knt_push_frame` C ABI;
