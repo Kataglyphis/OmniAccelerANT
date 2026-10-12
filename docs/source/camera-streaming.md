@@ -368,6 +368,11 @@ browser starts playing at once. `/arrival.mp4` serves it with byte ranges, which
 keeps it across a restart; and `notify_url` gets a `clip` event once it is written, with
 the arrival's `time` and `best_score`. The Stream page links it under the arrival picture
 once `cat.clip` is the newest visit, so it never offers the previous cat's clip.
+On himbeere2 the packaged service, run on the cat photo at 30 fps (2026-10-12), confirmed
+the arrival at 16:21:40 and served the clip at 16:21:47: seven seconds of post-roll, and
+encoding and writing in under one. It was H.264 Constrained Baseline, which every phone
+and browser plays, 640x480 at 10 fps, 78 frames (the pre-roll was short, as the instance
+had just started) and 603 kB; `/arrival.mp4` answered `Range: bytes=0-99` with `206`.
 `clip_seconds` sets the length (0 records none). Frames wait in memory until encoded,
 about 46 MB for 10 s, which is why the setting stops at 60. The package bundles `isomp4`
 for `mp4mux` (`openh264` and `videoparsersbad` were in it already); a GStreamer without
