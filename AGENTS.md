@@ -558,7 +558,7 @@ written out rather than linked.
   run reported `Formatted 7404 files (627 changed)` and rewrote the Flutter SDK
   on disk on the way. Both lanes list tracked files instead
   (`code_quality_find_dart_files` on Linux, `Get-ProjectDartFiles` on Windows;
-  the same 69 files). Keep the tracked-file listing even though the SDK now
+  the same 70 files). Keep the tracked-file listing even though the SDK now
   comes from the image. `dart analyze` is *not* affected and never was. Detail:
   [`docs/source/project-operations.md`](docs/source/project-operations.md)
   § *Static checks*.
@@ -873,7 +873,7 @@ run shows both lines together (`FAILED: MSIX Packaging` … `=== Build Complete 
 never the log tail.**
 
 Two Windows-specific traps these steps carry: the format gate hands `dart
-format` the tracked file list (`Get-ProjectDartFiles`, the 69 files of § 4)
+format` the tracked file list (`Get-ProjectDartFiles`, the 70 files of § 4)
 rather than `.` (the recursive walk reaches the vendored submodule gitdir and
 exceeds MAX_PATH), and docs generation
 runs a `pub global activate dartdoc` (≥ 9.0.9) instead of the SDK-bundled
@@ -1101,7 +1101,7 @@ mount.
 `scripts/windows/Invoke-DartChecks.ps1` is the same loop as a script
 (`-SkipFormat`, `-SkipAnalyze`, `-SkipTest`, `-Fix`; its pub cache is the
 `omni-dart-checks-pubcache` volume). Its format step covers `lib test
-integration_test test_driver` — 59 of the 69 tracked files the lanes grade, not
+integration_test test_driver` — 60 of the 70 tracked files the lanes grade, not
 the plugin's ten under `packages/`; its test step runs the plugin's suite too.
 `-Engine wslc` runs it in WSL 3's `wslc` instead of nerdctl (hub CON62's pilot,
 2026-10-06). Measured warm on this box: format + test 23 s against nerdctl's

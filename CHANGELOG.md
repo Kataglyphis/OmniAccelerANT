@@ -43,6 +43,9 @@ What landed on `develop` after 2.0.0+2. Most of it is the cat cam, whose guide i
   broken mid-word, and the footer's copyright runs to the current year (2026-10-12).
 - **The video box speaks the page's language** (2026-10-12): its status lines were
   English on the German page.
+- **The desktop footer shows all its page links** (2026-10-12). Held at 150 px, it cut
+  off the fourth row; it now takes its content's height. A new test lays the whole app
+  out at phone, tablet and desktop size with the real font, and caught it.
 - **The camera stream survives a language or theme change** (2026-10-12). Either left
   the video box at "Connecting to the signalling server", because the remounted view
   waited for connection events that had fired long before. The stream now lives in one
