@@ -29,6 +29,9 @@ const double kWebRTCMaxWidth = 800.0;
 /// Maximum height constraint for WebRTC view container.
 const double kWebRTCMaxHeight = 600.0;
 
+/// The cat cam's 640x480: a box of the stream's shape leaves no empty band above and below it on a phone.
+const double kWebRTCAspectRatio = 4 / 3;
+
 /// Border width for video containers.
 const double kVideoBorderWidth = 2.0;
 
@@ -520,7 +523,7 @@ class StreamPageState extends State<StreamPage> {
         border: Border.all(color: Colors.grey, width: kVideoBorderWidth),
         borderRadius: BorderRadius.circular(kWebRTCBorderRadius),
       ),
-      child: child,
+      child: AspectRatio(aspectRatio: kWebRTCAspectRatio, child: child),
     );
   }
 
