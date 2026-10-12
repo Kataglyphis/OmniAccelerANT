@@ -307,8 +307,10 @@ A live `/healthz` from himbeere2 at night (2026-10-12), the camera's name shorte
 }
 ```
 
-`model_runs` and `visits` count since the service started. `last_seen` and
-`last_score` stay `null` until a cat has been in view.
+`model_runs` counts since the service started. `visits`, `last_seen` and `last_score`
+survive a restart, and so does `/arrival.jpg`: the service keeps them in
+`/var/lib/omni-accelerant-catcam`, its systemd state directory, on every arrival and
+departure. `last_seen` and `last_score` stay `null` until a cat has been in view.
 
 The Stream page reads the same `/healthz` every 5 s (`CatStatusLine` in
 `lib/Pages/StreamPage/cat_status.dart`): under the video it puts the cat cam's `name`,

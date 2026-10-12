@@ -68,10 +68,10 @@ check() {
   fi
 }
 
-# The unit's environment only (no LD_LIBRARY_PATH, GST_*, image PATH), exec'd in a subshell so $! is the service.
+# The unit's environment only (its HOME and GST_REGISTRY, systemd's STATE_DIRECTORY), exec'd so $! is the service.
 start_service() {
   local log="$1"; shift
-  (exec env -i HOME="${state}" GST_REGISTRY="${state}/gst-registry.bin" PATH=/usr/bin:/bin \
+  (exec env -i HOME="${state}" GST_REGISTRY="${state}/gst-registry.bin" STATE_DIRECTORY="${state}" PATH=/usr/bin:/bin \
     setpriv --reuid="${user}" --regid="${user}" --init-groups "$@" >"${log}" 2>&1) &
 }
 
@@ -137,6 +137,10 @@ class H(http.server.BaseHTTPRequestHandler):
     def log_message(self, *args): pass
 http.server.HTTPServer(("127.0.0.1", int(sys.argv[1])), H).serve_forever()
 ' "$1" "$2" >/dev/null 2>&1
+}
+
+visit_remembered() {
+  curl -sf "http://$1:8080/healthz" | jq -e '.cat.visits >= 1 and .cat.last_seen != null' >/dev/null
 }
 
 webhook_got_arrival() {
@@ -220,6 +224,8 @@ check "the bundled model finds a cat in the photo" grep -q 'cat in view' "${work
 start_service "${work}/stream.log" "${prefix}/catcam" --camera test --inference off
 pid=$!
 check "the page and /healthz answer on :8080" wait_healthz "${ip}"
+check "a restart keeps the visit the photo counted" visit_remembered "${ip}"
+check "a restart keeps the arrival frame" jpeg_at "${ip}" /arrival.jpg
 frames="$(chrome_frames "http://${ip}:8080/" 20000)"
 printf '      Chrome played %s frame(s) over %s\n' "${frames}" "${ip}"
 check "headless Chrome plays the stream from the LAN address" test "${frames:-0}" -ge 200
