@@ -23,6 +23,6 @@ scripts/linux/cat-stream/test-catcam-package.sh	appimage_installed
 scripts/linux/cat-stream/test-catcam-package.sh	installed_copy_refuses
 scripts/linux/cat-stream/test-catcam-package.sh	uninstalled
 scripts/linux/cat-stream/test-catcam-package.sh	flatpak_gone
-scripts/linux/cat-stream/test-catcam-package.sh	snapshot_is_jpeg
+scripts/linux/cat-stream/test-catcam-package.sh	jpeg_at
 scripts/linux/cat-stream/test-catcam-package.sh	template_keys_parse
 scripts/linux/cat-stream/test-catcam-package.sh	unit_verifies

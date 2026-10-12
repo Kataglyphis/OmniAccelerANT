@@ -310,6 +310,23 @@ A live `/healthz` from himbeere2 at night (2026-10-12), the camera's name shorte
 `model_runs` and `visits` count since the service started. `last_seen` and
 `last_score` stay `null` until a cat has been in view.
 
+**It can tell you the cat came.** Set `notify_url` in `catcam.toml` and the service
+POSTs a JSON event there whenever a cat arrives or leaves:
+
+```json
+{"event": "arrived", "name": "Trouble Tabbls Cat Cam", "time": 1791763273,
+ "detections": 2, "best_score": 0.76, "snapshot": "/arrival.jpg"}
+{"event": "left", "name": "Trouble Tabbls Cat Cam", "time": 1791763315, "stayed_s": 42}
+```
+
+`/arrival.jpg` is the frame the arrival was confirmed on, boxes included, so a
+notification can show what triggered it. A Home Assistant webhook trigger takes the events
+as they are: its URL `http://<home-assistant>:8123/api/webhook/<id>` is the
+`notify_url`, and `trigger.json.event` tells arrival from departure. https works too.
+Deliveries run on a thread of their own with a 5 s timeout, a failed one is logged and
+dropped, and the log names only the URL's scheme and host, because a webhook's path is
+often its secret.
+
 **One port reaches it.** The page and the `/webrtc-ws` signalling share `:8080`:
 the service forwards the WebSocket upgrade to its own signalling server on
 loopback `:8443`. Media goes over host candidates only unless `stun_server` is

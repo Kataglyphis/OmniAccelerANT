@@ -37,3 +37,5 @@
 # ice_port_max = 40099
 
 # stun_server = ""         # e.g. "stun://stun.l.google.com:19302"; empty keeps the stream LAN-only
+
+# notify_url = ""          # an http(s) URL POSTed {"event": "arrived"|"left", ...} as JSON when a cat comes or goes

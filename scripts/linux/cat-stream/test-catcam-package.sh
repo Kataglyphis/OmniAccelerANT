@@ -121,9 +121,31 @@ wait_cat() {
   return 1
 }
 
-snapshot_is_jpeg() {
-  curl -sf "http://$1:8080/snapshot.jpg" -o "${work}/snapshot.jpg" &&
-    test "$(head -c 3 "${work}/snapshot.jpg" | od -An -tx1 | tr -d ' \n')" = ffd8ff
+jpeg_at() {
+  curl -sf "http://$1:8080$2" -o "${work}/got.jpg" &&
+    test "$(head -c 3 "${work}/got.jpg" | od -An -tx1 | tr -d ' \n')" = ffd8ff
+}
+
+# A webhook stand-in on loopback that appends every POST body to $2; exec, so $! is python and kill reaches it.
+webhook_receiver() {
+  exec python3 -c '
+import http.server, sys
+class H(http.server.BaseHTTPRequestHandler):
+    def do_POST(self):
+        open(sys.argv[2], "ab").write(self.rfile.read(int(self.headers["content-length"])) + b"\n")
+        self.send_response(204); self.end_headers()
+    def log_message(self, *args): pass
+http.server.HTTPServer(("127.0.0.1", int(sys.argv[1])), H).serve_forever()
+' "$1" "$2" >/dev/null 2>&1
+}
+
+webhook_got_arrival() {
+  local _
+  for _ in $(seq 1 40); do
+    grep -q '"event":"arrived"' "$1" 2>/dev/null && return 0
+    sleep 0.25
+  done
+  return 1
 }
 
 # Every setting the shipped catcam.toml documents, uncommented: an unknown key is an error, so this reads them all.
@@ -182,11 +204,17 @@ check "SIGTERM exits 0" test $? -eq 0
 check "no inference failed at shutdown" log_lacks 'inference failed' "${work}/idle.log"
 
 ip="$(hostname -I | awk '{print $1}')"
-start_service "${work}/photo.log" "${prefix}/catcam" --camera "image:${photo}" --inference on --fps 5
+webhook_receiver 18999 "${work}/webhook.jsonl" &
+receiver=$!
+start_service "${work}/photo.log" "${prefix}/catcam" --camera "image:${photo}" --inference on --fps 5 \
+  --notify-url "http://127.0.0.1:18999/api/webhook/test"
 pid=$!
 check "/healthz reports the cat in the photo as a visit" wait_cat "${ip}"
-check "/snapshot.jpg serves the boxed frame as a JPEG" snapshot_is_jpeg "${ip}"
+check "/snapshot.jpg serves the boxed frame as a JPEG" jpeg_at "${ip}" /snapshot.jpg
+check "the arrival is POSTed to notify_url as JSON" webhook_got_arrival "${work}/webhook.jsonl"
+check "/arrival.jpg serves the frame the arrival was seen on" jpeg_at "${ip}" /arrival.jpg
 stop_service "${pid}"
+kill "${receiver}" 2>/dev/null
 check "the bundled model finds a cat in the photo" grep -q 'cat in view' "${work}/photo.log"
 
 start_service "${work}/stream.log" "${prefix}/catcam" --camera test --inference off
