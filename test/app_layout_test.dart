@@ -5,7 +5,17 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:omni_accelerant/main.dart';
+
+/// The bottom bar's three pages, a markdown footer page and a blog post.
+const List<String> _routes = <String>[
+  '/stream',
+  '/landingPage',
+  '/aboutMe',
+  '/privacyPolicy',
+  '/aiBlog',
+];
 
 const List<Size> _sizes = <Size>[
   Size(360, 800),
@@ -28,7 +38,7 @@ void main() {
 
   for (final Size size in _sizes) {
     testWidgets(
-      'the app lays out at ${size.width.toInt()}x${size.height.toInt()}',
+      'every main page lays out at ${size.width.toInt()}x${size.height.toInt()}',
       (WidgetTester tester) async {
         tester.view.physicalSize = size;
         tester.view.devicePixelRatio = 1;
@@ -41,8 +51,21 @@ void main() {
         for (int i = 0; i < 5; i++) {
           await tester.pump(const Duration(milliseconds: 100));
         }
-        expect(tester.takeException(), isNull);
         expect(find.byType(Scaffold), findsWidgets);
+        for (final String route in _routes) {
+          GoRouter.of(tester.element(find.byType(Scaffold).first)).go(route);
+          // Pages read markdown and JSON off the asset bundle too.
+          await tester.runAsync(
+            () => Future<void>.delayed(const Duration(milliseconds: 500)),
+          );
+          for (int i = 0; i < 5; i++) {
+            await tester.pump(const Duration(milliseconds: 100));
+          }
+          expect(tester.takeException(), isNull, reason: route);
+        }
+        // markdown_widget's VisibilityDetector re-arms a 500 ms timer while its pages live: unmount them, then let it run out.
+        await tester.pumpWidget(const SizedBox());
+        await tester.pump(const Duration(seconds: 1));
       },
     );
   }
