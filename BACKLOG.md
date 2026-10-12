@@ -74,6 +74,26 @@ Linux amd64/arm64 ship as a .deb and an AppImage, proven on himbeere2 (Pi 5) on
   - It has no boot service and no Pi camera by design; those stay with the .deb and the
     AppImage.
 
+## Open — the web app
+
+- [ ] **Every main page at 200 % system font.** `test/app_layout_test.dart` passes at 150 %
+  on a phone since 2026-10-12 (ANThology d3617d7). 200 % is Android's largest setting, and
+  there the test still finds four overflows (measured 2026-10-12, real Roboto):
+  - phone, `/landingPage`: an entry's "last changed" line, 81 px
+    (ANThology `landing_page_entry.dart`, the `Row` with `MainAxisAlignment.end`);
+  - phone, `/privacyPolicy`: a list row of `markdown_widget` 2.3.2+8, 20 px
+    (`lib/widget/blocks/container/list.dart:108`, inside a `WidgetSpan`);
+  - desktop 1280 px, every page: the footer's three sections side by side, 34 px
+    (ANThology `footer.dart`, the outer `Row`). A `Wrap` there is not the fix: its
+    sections lay out in an unbounded width, and `AdaptiveGrid`'s `Align` spans a bounded
+    one, so they would stack;
+  - desktop 1280 px, a markdown page: the same `markdown_widget` list row, laid out 4 px wide.
+
+  Done when the test runs a 360x800 and a 1280x900 case at text x2 without an exception.
+  To see each report while the page is still mounted, wrap `FlutterError.onError` in the
+  test body and print `details.toString()`; the report at the test's end has only defunct
+  elements and no creation location.
+
 ## Agentic loop
 
 Adopted 2026-09-13: `scripts/agentic-loop/` (config, runner wrappers, prompt
