@@ -11,12 +11,17 @@ import 'package:omni_accelerant/main.dart';
 
 import 'support/real_fonts.dart';
 
-/// Stands in for the plugin: records every call, and fails `setPipeline` for each source in [missing].
+/// Stands in for the plugin: records every call, fails `setPipeline` for each source in [missing], and refuses every method in [refused].
 class _FakePlugin {
-  _FakePlugin({this.missing = const <String>{}, this.createFails = false});
+  _FakePlugin({
+    this.missing = const <String>{},
+    this.createFails = false,
+    this.refused = const <String>{},
+  });
 
   final Set<String> missing;
   final bool createFails;
+  final Set<String> refused;
   final List<MethodCall> calls = <MethodCall>[];
 
   List<String> get methods => <String>[
@@ -30,6 +35,12 @@ class _FakePlugin {
 
   Future<Object?> handle(MethodCall call) async {
     calls.add(call);
+    if (refused.contains(call.method)) {
+      throw PlatformException(
+        code: 'refused',
+        message: '${call.method} refused',
+      );
+    }
     switch (call.method) {
       case 'create':
         if (createFails) {
@@ -197,6 +208,100 @@ void main() {
 
     await _unmount(tester);
   }, variant: linux);
+
+  testWidgets('the stop button stops the pipeline', (
+    WidgetTester tester,
+  ) async {
+    final _FakePlugin plugin = _FakePlugin();
+    await _pumpApp(tester, plugin);
+    plugin.calls.clear();
+
+    await tester.tap(find.text('Stop'));
+    await tester.pump();
+    expect(plugin.methods, <String>['stop']);
+    expect(find.text('Paused'), findsOneWidget);
+
+    await _unmount(tester);
+  }, variant: linux);
+
+  testWidgets('a stop the plugin refuses does not claim the stream stopped', (
+    WidgetTester tester,
+  ) async {
+    final _FakePlugin plugin = _FakePlugin(refused: <String>{'stop'});
+    await _pumpApp(tester, plugin);
+
+    await tester.tap(find.text('Stop'));
+    await tester.pump();
+    expect(find.text('Playing'), findsOneWidget);
+
+    await _unmount(tester);
+  }, variant: linux);
+
+  testWidgets(
+    'a source button stops the running pipeline and plays the chosen one',
+    (WidgetTester tester) async {
+      final _FakePlugin plugin = _FakePlugin();
+      await _pumpApp(tester, plugin);
+      plugin.calls.clear();
+
+      await tester.ensureVisible(find.text('SMPTE Pattern'));
+      await tester.tap(find.text('SMPTE Pattern'));
+      await tester.pump();
+      expect(plugin.methods, <String>['stop', 'setPipeline', 'play']);
+      expect(plugin.pipelines.single, contains('pattern=smpte'));
+      expect(find.text('Playing'), findsOneWidget);
+
+      await _unmount(tester);
+    },
+    variant: linux,
+  );
+
+  testWidgets('a colour button sends its RGB to the plugin', (
+    WidgetTester tester,
+  ) async {
+    final _FakePlugin plugin = _FakePlugin();
+    await _pumpApp(tester, plugin);
+    plugin.calls.clear();
+
+    await tester.ensureVisible(find.text('Red'));
+    await tester.tap(find.text('Red'));
+    await tester.pump();
+    expect(plugin.methods, <String>['setColor']);
+    expect(plugin.calls.single.arguments, <int>[0xf2, 0x5d, 0x50]);
+
+    await _unmount(tester);
+  }, variant: linux);
+
+  testWidgets(
+    'a pause the plugin refuses is reported and the stream plays on',
+    (WidgetTester tester) async {
+      final _FakePlugin plugin = _FakePlugin(refused: <String>{'pause'});
+      await _pumpApp(tester, plugin);
+
+      await tester.tap(find.text('Pause'));
+      await tester.pump();
+      expect(find.text('Play/Pause error: pause refused'), findsOneWidget);
+      expect(find.text('Playing'), findsOneWidget);
+
+      await _unmount(tester);
+    },
+    variant: linux,
+  );
+
+  testWidgets(
+    'a pipeline error no other source would fix is reported without a fallback',
+    (WidgetTester tester) async {
+      final _FakePlugin plugin = _FakePlugin(refused: <String>{'setPipeline'});
+      await _pumpApp(tester, plugin);
+
+      expect(plugin.methods, <String>['create', 'setPipeline']);
+      expect(find.text('Pipeline error: setPipeline refused'), findsOneWidget);
+      expect(find.text('Paused'), findsOneWidget);
+
+      await _unmount(tester);
+    },
+    variant: linux,
+  );
 
   test('the variant leaves no platform override behind', () {
     expect(debugDefaultTargetPlatformOverride, isNull);
