@@ -1,4 +1,4 @@
-// ELF constructor: every reader of these variables runs after load. See docs/source/camera-streaming.md § Relocatable Linux bundles
+// ELF constructor: runs at load, before any reader. See docs/source/camera-streaming.md § Relocatable Linux bundles
 
 #include <dlfcn.h>
 #include <sys/stat.h>
