@@ -28,10 +28,13 @@ Linux amd64/arm64 ship as a .deb and an AppImage, proven on himbeere2 (Pi 5) on
   arrivals at 0.45 or more to the phone with `/arrival.jpg`, and updates that notification
   with a tap to `/arrival.mp4?t=` once the clip's event comes. Test arrivals posted to that
   webhook reached the phone; the service's own arrival and clip POSTs are proven against
-  a loopback stand-in (`test-catcam-package.sh`, 48 checks; OxidANT's `notify.rs`), and a
+  a loopback stand-in (`test-catcam-package.sh`, 49 checks; OxidANT's `notify.rs`), and a
   clip from the packaged service on the cat photo played (16:21, 603 kB). The visit
-  statistics and the outage alert run in the same Home Assistant. Blocked on a cat. Done
-  when one's arrival lands on the phone with its picture, and a tap plays its video.
+  statistics, the outage alert, the departure that updates the notification with the stay
+  and the 21:00 summary run in the same Home Assistant; the summary's first run (21:00)
+  finished without an error, and a test departure set the stay. Blocked on a cat. Done
+  when one's arrival lands on the phone with its picture, a tap plays its video, and its
+  departure adds the stay.
 - [ ] **The Windows cat cam with a camera, at a real logon, then on arm64.** The MSI works
   in the image and on a real Windows 11 host (`scripts/windows/cat-stream/`, 2026-10-06),
   and `web.yml`'s `catcam-windows` job packages and tests it around every web build.
@@ -59,6 +62,12 @@ Linux amd64/arm64 ship as a .deb and an AppImage, proven on himbeere2 (Pi 5) on
     - the arrival clip: `Package-CatCam.ps1` takes `isomp4` as optional, and whether
       `:winamd64` carries it is unchecked; without it the service records no clip and says
       so at start.
+  - **The web build as Linux ships it** (2026-10-12): `package-catcam.sh` leaves out the
+    `wimp` and `webparagraph` renderers and `*.symbols`, and runs the producer's
+    `--precompress` over the copy, so the board sends zopfli `.gz` files. `Package-CatCam.ps1`
+    copies `build\web` whole, and the Windows service still gzips at run time: the same
+    steps after its `Copy-Item ... web`, and `Test-CatCamWindows.ps1` comparing a served
+    file against its `.gz`, want a `:winamd64` run, which himbeere2 cannot make.
   - **Then:** arm64, after the hub's CON63.
   - Autostart is a logon task by owner decision. A boot-time service would run in
     Session 0, and on a PC with a webcam it first needs proof that LocalSystem or
