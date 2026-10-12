@@ -172,7 +172,7 @@ consumes.
   The visits, that frame and that video survive a restart.
 - Set `notify_url` in the settings and the service POSTs every arrival, departure and
   finished video there as JSON, for example to a Home Assistant webhook.
-  [camera-streaming.md](docs/source/camera-streaming.md) has a Home Assistant automation
+  [camera-streaming.md § Home Assistant](docs/source/camera-streaming.md#home-assistant) has an automation
   that sends each arrival to a phone with its picture and then its video, and sensors
   for visits per day and an alert when the cat cam stops answering.
 - The service picks a Raspberry Pi camera when one is attached, else a USB

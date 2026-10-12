@@ -2,6 +2,30 @@
 
 Practical WebRTC streaming and inference pipelines for Kataglyphis.
 
+- [Rust-owned webcam inference (local, no WebRTC)](#rust-owned-webcam-inference-local-no-webrtc)
+  - [Checking the knt ABI](#checking-the-knt-abi)
+  - [Relocatable Linux bundles](#relocatable-linux-bundles)
+- [WebRTC pipelines (Linux / web)](#webrtc-pipelines-linux--web)
+  - [The cat cam package](#the-cat-cam-package)
+    - [Installing it](#installing-it)
+    - [Cameras](#cameras)
+    - [Detection, visits and /healthz](#detection-visits-and-healthz)
+    - [Arrival picture, video and webhook](#arrival-picture-video-and-webhook)
+    - [Home Assistant](#home-assistant)
+    - [The Stream page](#the-stream-page)
+    - [Tests](#tests)
+    - [Where it ran](#where-it-ran)
+  - [The Windows cat cam](#the-windows-cat-cam)
+  - [Cat detection stream (Rust, native)](#cat-detection-stream-rust-native)
+- [1) Start the signalling server](#1-start-the-signalling-server)
+- [2) Export plugin path (if required)](#2-export-plugin-path-if-required)
+- [3) Start a stream source](#3-start-a-stream-source)
+  - [USB webcam](#usb-webcam)
+  - [Pylon camera](#pylon-camera)
+  - [Raspberry Pi / Orange Pi (example)](#raspberry-pi--orange-pi-example)
+- [4) Run the web frontend](#4-run-the-web-frontend)
+- [Troubleshooting](#troubleshooting)
+
 ## Rust-owned webcam inference (local, no WebRTC)
 
 On Windows the **Stream** page runs a fully local webcam → ONNX → texture pipeline
@@ -225,6 +249,8 @@ Everything it serves is on that one port, plain HTTP:
 | `/arrival.mp4` | the last arrival as an H.264 clip, 3 s before it to 7 s after; `?t=<arrival time>` that arrival's own, of the last five; byte ranges answered; `404` until one is encoded, or once that arrival's is dropped |
 | `/webrtc-ws` | the WebRTC signalling, forwarded to the producer's own server on loopback `:8443` |
 
+#### Installing it
+
 **The AppImage either runs or installs.** Started plainly, it runs the cat cam in the
 foreground as the calling user, which needs the `video` group. `--install` copies it
 to `/opt/omni-accelerant-catcam` and sets up the same service as the .deb:
@@ -285,6 +311,8 @@ left to the host, because its IPA and tuning files must match the host kernel.
 - `sudo ufw allow OmniCatCam` opens `8080/tcp` and the WebRTC range
   `40000:40099/udp`.
 
+#### Cameras
+
 **How it picks a camera** (`camera = "auto"`), in this order:
 1. A Raspberry Pi camera through the host's `rpicam-vid`. The image's libcamera
    cannot drive a Pi 5, which is why the host tool goes first.
@@ -292,6 +320,8 @@ left to the host, because its IPA and tuning files must match the host kernel.
 3. A USB webcam (`uvcvideo`), MJPEG when it offers no raw format.
 4. A test pattern as a stand-in, which re-probes every 30 s, so a camera plugged
    in later is picked up.
+
+#### Detection, visits and `/healthz`
 
 `/healthz` reports which camera is live and the cat: whether one is in view, when one
 was last seen (Unix seconds), how many visits it counted, the last best score, and the
@@ -339,6 +369,8 @@ view for 35 s, headless Chrome sent seven `/healthz` requests and one `/arrival.
 (2026-10-12). Served from anywhere else, where `/healthz` is no cat cam's answer, it
 shows only the title.
 
+#### Arrival picture, video and webhook
+
 **It can tell you the cat came.** Set `notify_url` in `catcam.toml` and the service
 POSTs a JSON event there whenever a cat arrives or leaves:
 
@@ -384,6 +416,8 @@ for `mp4mux` (`openh264` and `videoparsersbad` were in it already); a GStreamer 
 one of the three records no clip and says which at start. `test-catcam-package.sh`
 checks that the photo's arrival yields one, that it is an MP4 that answers a byte range,
 that its event reaches the webhook, and that a restart keeps it.
+
+#### Home Assistant
 
 **A phone notification with the picture, through Home Assistant.** This automation sends
 an arrival to the Home Assistant companion app, with `/arrival.jpg` as its image and the
@@ -456,6 +490,8 @@ sensors, and with the cat cam unreachable they all turn `unavailable`. On himbee
   Assistant restart's few seconds stay quiet. Stopping `omni-catcam` for 5 min 45 s sent
   the first at 5 min, on the dot.
 
+#### The Stream page
+
 **An open page survives a restart of the service.** The page sees its producer go and
 come back and consumes the new one, with no reload: on himbeere2 (2026-10-12) headless
 Chrome's video was playing at 30 fps again about 10 s after `systemctl restart
@@ -476,6 +512,8 @@ and back, a theme toggle and two page changes. Before, a language switch left th
 the service forwards the WebSocket upgrade to its own signalling server on
 loopback `:8443`. Media goes over host candidates only unless `stun_server` is
 set, so the stream stays on the LAN. No TLS, no `serve.sh`, no container.
+
+#### Tests
 
 **`test-catcam-package.sh` checks all three packages, and CI runs it.** `web.yml`'s
 `catcam` jobs run it on x64 and arm64 right after packaging. It runs as root in a
@@ -519,6 +557,8 @@ from the sandboxed stream. The flatpak bundle is 63 MB. On arm64 on himbeere2
 (2026-10-12) all 43 checks passed, with about 510 frames to Chrome each time, and all 47
 once the arrival clip added four; CI passed the 41 from before the visit log on both
 architectures (`web.yml` run 38197312619).
+
+#### Where it ran
 
 **On a Raspberry Pi 5 (himbeere2: imx219, Debian 13, kernel 6.18), 2026-10-05.**
 The arm64 packages were built natively on the board in `:latest`, and CI's
