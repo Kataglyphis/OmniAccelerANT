@@ -272,7 +272,7 @@ Then open <http://127.0.0.1:8080>.
 | Platform Guides | [docs/source/platforms.md](docs/source/platforms.md) | Container, Windows, Raspberry Pi, and web build instructions — incl. the Windows container troubleshooting table (Dev Drive, pkg-config, rustup/Cargokit, Debug-preset pitfalls). |
 | Agent / contributor guide | [AGENTS.md](AGENTS.md) | Build workflow, container pitfalls, and quality gates for coding agents and new contributors. |
 | Known cleanups | [BACKLOG.md](BACKLOG.md) | Refactors and verification gaps this repo knows about but has not done yet, in the format ANTfrastructure's agentic loop consumes. |
-| Camera Streaming | [docs/source/camera-streaming.md](docs/source/camera-streaming.md) | GStreamer WebRTC pipelines, the Rust cat-detection producer, and the Rust webcam path (Windows; built for Linux, no frame seen yet). |
+| Camera Streaming | [docs/source/camera-streaming.md](docs/source/camera-streaming.md) | The installable cat cam and its Home Assistant notifications, the Rust webcam path (Windows and Linux; a test-pattern frame crosses it on every native lane run), and the GStreamer WebRTC pipelines. |
 | Upgrade guide | [docs/source/upgrade-guide.md](docs/source/upgrade-guide.md) | How to keep things up-to-date. |
 | Dependency upgrades | [third_party/ANTfrastructure/docs/dependency-updates.md](third_party/ANTfrastructure/docs/dependency-updates.md) | Renovate run as a local CLI. Submodule upgrades go through `bash scripts/linux/renovate-local.sh` (add `--apply` to move the gitlinks), not by hand; `--apply` also rewrites the manifests it reported, `pubspec.yaml` included (AGENTS.md § 5). |
 
@@ -292,12 +292,22 @@ The app's own Dart suite (`test/`) checks, among the rest:
   (`app_layout_test.dart`);
 - the camera stream's state across remounts, page changes, lost signalling and failed
   sessions (`webrtc_stream_controller_test.dart`);
-- the cat status line, its visits and its arrival picture (`cat_status_test.dart`);
-- the native Stream page's calls to the C++ plugin and its camera fallback, against a fake
-  plugin (`stream_page_native_test.dart`), and the Rust camera view's calls to the core,
-  against a fake core (`rust_webcam_view_test.dart`);
+- the cat status line, its visits, its arrival picture and video, and the earlier videos
+  (`cat_status_test.dart`);
+- the native Stream page's calls to the C++ plugin, its camera fallback, its buttons and
+  its error messages, against a fake plugin (`stream_page_native_test.dart`), and the Rust
+  camera view's calls to the core, against a fake core (`rust_webcam_view_test.dart`);
+- the GStreamer pipeline strings, which otherwise fail only on a machine with a camera
+  (`gstreamer_pipeline_builder_test.dart`);
+- the settings files: a malformed key named in the error, and the web's signalling URL
+  resolved against the page (`webrtc_settings_test.dart`, `settings_asset_paths_test.dart`);
+- the web booting without the Rust core, and native refusing to (`rust_core_test.dart`);
+- the About page's SQLite line and its error text (`sqlite3_healthcheck_widget_test.dart`);
 - what no build step checks: the bridge's versions, the sqlite3 wasm, 8-bit icons
   (`pinned_artefacts_test.dart`), and that every social link has an icon.
+
+The native Linux lane measures how much of `lib/` these reach and fails below a floor
+(91.5 % on 2026-10-12; `check-dart-coverage.sh`).
 
 `flutter test` in the `:latest` image runs it in under a minute
 ([AGENTS.md § 5](AGENTS.md#5-build-run-test), *The Dart gate in 23 seconds*).
