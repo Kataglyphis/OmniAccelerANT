@@ -1431,9 +1431,9 @@ rewrites, refuses any clang-format but `LLVM_RELEASE`, and runs in the native
 lane's code-quality batch beside a suite that plants a deviation. Its config is
 the hub's canonical `.clang-format`, declared in the manifest at
 `packages/kataglyphis_native_inference/.clang-format`, so the app's generated
-runner sources stay outside it. Keep comments there within 120 columns: the
-config reflows a longer one into a two-line block, which the comment-size gate
-rejects. Detail:
+runner sources stay outside it. The config leaves comments as written
+(`ReflowComments: Never`, hub 0b774f12): reflow made a comment past 120 columns
+a two-line block, which the comment-size gate rejects. Detail:
 [`docs/source/project-operations.md`](docs/source/project-operations.md)
 § *The plugin's C++ format gate*.
 

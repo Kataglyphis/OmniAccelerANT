@@ -145,8 +145,9 @@ which plants a deviation and provokes each refusal. Windows has no C++ format
 step.
 
 To clear a red run, rewrite the named files with `clang-format -i` from the
-image (23.1.3), and keep comments within 120 columns: the canonical config
-reflows a longer one onto a second line, which the comment-size gate rejects.
+image (23.1.3). The canonical config leaves comments as written
+(`ReflowComments: Never` since hub 0b774f12, 2026-10-12): reflow put a comment
+past 120 columns onto a second line, which the comment-size gate rejects.
 The 2026-10-12 sweep is in `.git-blame-ignore-revs`.
 
 ### Tests
