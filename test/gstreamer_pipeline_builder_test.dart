@@ -3,7 +3,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:omni_accelerant/Pages/StreamPage/stream_page.dart';
+import 'package:omni_accelerant/Pages/StreamPage/gstreamer_pipeline.dart';
 
 void main() {
   _fallbackPolicyTests();
