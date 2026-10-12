@@ -28,6 +28,7 @@ OmniAccelerANT bundles a Flutter/Dart frontend, a Rust/C++ inference core, and a
 ### 🌟 Highlights
 
 - 🎨 **GStreamer native GTK integration** – Leveraging users to write beautiful Linux AI inference apps.
+- 🐱 **An installable cat cam** – a `.deb`, AppImage, flatpak or Windows MSI that streams a camera to any browser, spots cats with a YOLO model on a Raspberry Pi 5, logs their visits, and keeps a picture and a 10 s video of each arrival; Home Assistant can put those on a phone ([Live cat detection stream](#live-cat-detection-stream-linux--raspberry-pi)).
 - 📹 **GStreamer WebRTC livestreaming** with ready-to-use pipelines for USB, Raspberry Pi, and Orange Pi cameras.
 - 🌉 **flutter_rust_bridge integration** – Ensures a seamless API boundary between Dart UI and Rust logic.
 - 🐳 **Containerized development flow** plus native instructions for Windows, Linux, web. For details in my build environment look into [ANTfrastructure](https://github.com/Kataglyphis/ANTfrastructure). On Windows the container engine is [Stevedore](https://github.com/slonopotamus/stevedore) and build containers run with `--isolation process` (full host CPU count) — see [docs/source/platforms.md](docs/source/platforms.md).
@@ -169,8 +170,11 @@ consumes.
   current picture, boxes included, `/arrival.jpg` the frame the last arrival was
   confirmed on, and `/arrival.mp4` that arrival as a 10 s video, from 3 s before it.
   The visits, that frame and that video survive a restart.
-- Set `notify_url` in the settings and the service POSTs every arrival and departure
-  there as JSON, for example to a Home Assistant webhook.
+- Set `notify_url` in the settings and the service POSTs every arrival, departure and
+  finished video there as JSON, for example to a Home Assistant webhook.
+  [camera-streaming.md](docs/source/camera-streaming.md) has a Home Assistant automation
+  that sends each arrival to a phone with its picture and then its video, and sensors
+  for visits per day and an alert when the cat cam stops answering.
 - The service picks a Raspberry Pi camera when one is attached, else a USB
   webcam.
 - The settings live in `/etc/omni-accelerant/catcam.toml`, and `systemctl
