@@ -410,6 +410,9 @@ the arrival at 16:21:40 and served the clip at 16:21:47: seven seconds of post-r
 encoding and writing in under one. It was H.264 Constrained Baseline, which every phone
 and browser plays, 640x480 at 10 fps, 78 frames (the pre-roll was short, as the instance
 had just started) and 603 kB; `/arrival.mp4` answered `Range: bytes=0-99` with `206`.
+With its own camera that evening (18:03 to 18:08) six arrivals of the drying rack at the
+bottom of the frame made one clip each, the full 100 frames, of 108 to 182 kB: a still
+room compresses far below the bitrate's ceiling.
 `clip_seconds` sets the length (0 records none). Frames wait in memory until encoded,
 about 46 MB for 10 s, which is why the setting stops at 60. The package bundles `isomp4`
 for `mp4mux` (`openh264` and `videoparsersbad` were in it already); a GStreamer without

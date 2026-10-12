@@ -89,8 +89,9 @@ Linux amd64/arm64 ship as a .deb and an AppImage, proven on himbeere2 (Pi 5) on
   OmniAccelerANT and jotrockenmitlocken show them. Blocked on the owner's postal address
   (a c/o service address works) and the e-mail to publish. Done when both pages name them
   in German and English.
-- [b] **False arrivals: a threshold or an ignore zone.** On the morning of 2026-10-12 a
-  white object at the bottom of himbeere2's frame made 33 "visits" between 0.26 and 0.44,
+- [b] **False arrivals: a threshold or an ignore zone.** On 2026-10-12 a drying rack at
+  the bottom edge of himbeere2's frame made 39 "visits" between 0.26 and 0.44 (33 in the
+  morning, 6 at 18:03 to 18:08),
   against 0.76 for a cat in the bundled photo. The Home Assistant automation keeps them off
   the phone (0.45), but the visit log, its statistics and the arrival picture and clip
   still take them, and each one now costs a clip encode. Either `score = 0.45` in
