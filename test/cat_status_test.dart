@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:omni_accelerant/Pages/StreamPage/cat_status.dart';
 import 'package:omni_accelerant/l10n/app_localizations.dart';
+import 'package:url_launcher/link.dart';
 
 const _inView =
     '{"ok":true,"name":"Garden Cam","cat":{"in_view":true,"last_seen":1791763273,"visits":3,'
@@ -59,6 +60,16 @@ void main() {
       expect(CatStatus.fromHealthz(_neverSeen)!.lastSeen, isNull);
       expect(CatStatus.fromHealthz(_neverSeen)!.visits, 0);
       expect(CatStatus.fromHealthz(_neverSeen)!.recent, isEmpty);
+    });
+
+    test('reads which arrival the clip shows, and none without one', () {
+      final withClip = CatStatus.fromHealthz(
+        _inView.replaceFirst('"visits":3', '"visits":3,"clip":1791763200'),
+      )!;
+      expect(withClip.clip, DateTime.fromMillisecondsSinceEpoch(1791763200000));
+      expect(withClip.hasLatestClip, isTrue);
+      expect(CatStatus.fromHealthz(_inView)!.clip, isNull);
+      expect(CatStatus.fromHealthz(_inView)!.hasLatestClip, isFalse);
     });
 
     test('is null for anything but a cat cam answer', () {
@@ -140,6 +151,26 @@ void main() {
     body = _inView.replaceFirst('"visits":3', '"visits":4');
     await tester.pump(const Duration(seconds: 5));
     expect(find.textContaining('/arrival.jpg?visit=4 '), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('the clip shows once it is of the newest arrival', (
+    tester,
+  ) async {
+    // The cat cam encodes a clip some seconds after the arrival it shows.
+    var body = _inView.replaceFirst(
+      '"visits":3',
+      '"visits":3,"clip":1791700000',
+    );
+    await _pumpLine(tester, () async => body);
+    await tester.pump();
+    expect(find.text('Watch the arrival'), findsNothing);
+    body = _inView.replaceFirst('"visits":3', '"visits":3,"clip":1791763200');
+    await tester.pump(const Duration(seconds: 5));
+    expect(find.text('Watch the arrival'), findsOneWidget);
+    final Link link = tester.widget<Link>(find.byType(Link));
+    expect(link.uri.toString(), '/arrival.mp4?visit=3');
+    expect(link.target, LinkTarget.blank);
     await tester.pumpWidget(const SizedBox());
   });
 

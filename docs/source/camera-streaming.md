@@ -219,9 +219,10 @@ Everything it serves is on that one port, plain HTTP:
 | Path | Answers |
 | --- | --- |
 | `/` | the web app; its Stream page plays the camera and shows the cat's status, visits and last arrival |
-| `/healthz` | JSON: the live camera, `model_runs`, and the cat's `in_view`, `last_seen`, `visits`, `last_score` and `recent` visits |
+| `/healthz` | JSON: the live camera, `model_runs`, and the cat's `in_view`, `last_seen`, `visits`, `last_score`, `recent` visits and the `clip` arrival |
 | `/snapshot.jpg` | the latest frame, boxes drawn |
 | `/arrival.jpg` | the frame the last arrival was confirmed on; `404` until a cat has come |
+| `/arrival.mp4` | the last arrival as an H.264 clip, 3 s before it to 7 s after; byte ranges answered; `404` until one is encoded |
 | `/webrtc-ws` | the WebRTC signalling, forwarded to the producer's own server on loopback `:8443` |
 
 **The AppImage either runs or installs.** Started plainly, it runs the cat cam in the
@@ -344,6 +345,8 @@ POSTs a JSON event there whenever a cat arrives or leaves:
 ```json
 {"event": "arrived", "name": "Trouble Tabbls Cat Cam", "time": 1791763273,
  "detections": 2, "best_score": 0.76, "snapshot": "/arrival.jpg"}
+{"event": "clip", "name": "Trouble Tabbls Cat Cam", "time": 1791763273,
+ "best_score": 0.76, "clip": "/arrival.mp4", "snapshot": "/arrival.jpg"}
 {"event": "left", "name": "Trouble Tabbls Cat Cam", "time": 1791763315, "stayed_s": 42}
 ```
 
@@ -355,6 +358,23 @@ Deliveries run on a thread of their own with a 5 s timeout, a failed one is logg
 dropped, and the log names only the URL's scheme and host, because a webhook's path is
 often its secret.
 
+**Each arrival is a 10 s video too.** The capture thread hands every annotated frame to
+`clip.rs`, which keeps one in three (10 fps of the 30) for the last 3 s, as buffer
+references, so nothing is copied. An arrival takes those and the next 7 s and gives them to
+a thread of its own, which encodes them with `openh264enc` at 800 kbit/s (about 1 MB a
+clip at 640x480), `h264parse` and `mp4mux faststart=true`, so the index comes first and a
+browser starts playing at once. `/arrival.mp4` serves it with byte ranges, which Safari's
+`<video>` needs; `/healthz` names the arrival it shows as `cat.clip`; the state directory
+keeps it across a restart; and `notify_url` gets a `clip` event once it is written, with
+the arrival's `time` and `best_score`. The Stream page links it under the arrival picture
+once `cat.clip` is the newest visit, so it never offers the previous cat's clip.
+`clip_seconds` sets the length (0 records none). Frames wait in memory until encoded,
+about 46 MB for 10 s, which is why the setting stops at 60. The package bundles `isomp4`
+for `mp4mux` (`openh264` and `videoparsersbad` were in it already); a GStreamer without
+one of the three records no clip and says which at start. `test-catcam-package.sh`
+checks that the photo's arrival yields one, that it is an MP4 that answers a byte range,
+that its event reaches the webhook, and that a restart keeps it.
+
 **A phone notification with the picture, through Home Assistant.** This automation sends
 an arrival to the Home Assistant companion app, with `/arrival.jpg` as its image and the
 live page behind a tap. Running on himbeere2 since 2026-10-12 (Home Assistant 2026.10.1):
@@ -363,8 +383,7 @@ live page behind a tap. Running on himbeere2 since 2026-10-12 (Home Assistant 20
 # automations.yaml; both values live in secrets.yaml, so this file can be committed.
 - id: catcam_arrival_notification
   alias: Katze ist da (Cat Cam)
-  mode: queued
-  max: 5
+  mode: parallel        # the clip's update must not wait behind the arrival's run
   triggers:
     - trigger: webhook
       webhook_id: !secret catcam_webhook_id   # notify_url ends in this
@@ -372,12 +391,14 @@ live page behind a tap. Running on himbeere2 since 2026-10-12 (Home Assistant 20
       local_only: true
   variables:
     catcam: !secret catcam_base_url           # e.g. http://<cat-cam-host>:8080
+    video: "{{ trigger.json.event == 'clip' }}"
   conditions:
     - condition: template
       value_template: >-
-        {{ trigger.json.event == 'arrived'
+        {{ trigger.json.event in ['arrived', 'clip']
            and (trigger.json.best_score | float(0)) >= 0.45 }}
   actions:
+    # The arrival sends the picture; its clip, some seconds later, updates the same notification.
     - action: notify.mobile_app_<phone>
       data:
         title: "🐱 Katze ist da"
@@ -387,8 +408,10 @@ live page behind a tap. Running on himbeere2 since 2026-10-12 (Home Assistant 20
           {{ ((trigger.json.best_score | float(0)) * 100) | round(0) | int }} % sicher.
         data:
           image: "{{ catcam }}/arrival.jpg?t={{ trigger.json.time }}"
-          clickAction: "{{ catcam }}/"
+          clickAction: >-
+            {{ catcam ~ ('/arrival.mp4?t=' ~ trigger.json.time if video else '/') }}
           tag: catcam-arrival
+          alert_once: true
 ```
 
 - **A webhook id is a password.** Generate it (`python3 -c 'import secrets;
@@ -483,8 +506,9 @@ and run as the unit runs it, with a scrubbed environment as `omni-catcam`:
 
 On amd64 in `:latest` (2026-10-06), all 32 checks passed, and Chrome played 572 frames
 from the sandboxed stream. The flatpak bundle is 63 MB. On arm64 on himbeere2
-(2026-10-12) all 43 checks passed, with about 510 frames to Chrome each time; CI passed
-the 41 from before the visit log on both architectures (`web.yml` run 38197312619).
+(2026-10-12) all 43 checks passed, with about 510 frames to Chrome each time, and all 47
+once the arrival clip added four; CI passed the 41 from before the visit log on both
+architectures (`web.yml` run 38197312619).
 
 **On a Raspberry Pi 5 (himbeere2: imx219, Debian 13, kernel 6.18), 2026-10-05.**
 The arm64 packages were built natively on the board in `:latest`, and CI's

@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:omni_accelerant/l10n/app_localizations.dart';
+import 'package:url_launcher/link.dart';
 
 /// One visit from `/healthz`'s `cat.recent`: when the cat came, and how long it stayed once it had left.
 class CatVisit {
@@ -21,6 +22,7 @@ class CatStatus {
     this.lastSeen,
     this.visits = 0,
     this.recent = const <CatVisit>[],
+    this.clip,
   });
 
   final String name;
@@ -32,6 +34,13 @@ class CatStatus {
 
   /// The latest visits, newest first.
   final List<CatVisit> recent;
+
+  /// The arrival `/arrival.mp4` shows; a clip is encoded a few seconds after its arrival.
+  final DateTime? clip;
+
+  /// The clip is of the newest visit, not one before it still waiting to be replaced.
+  bool get hasLatestClip =>
+      clip != null && recent.isNotEmpty && clip == recent.first.arrived;
 
   /// `null` for anything but a cat cam's `/healthz` answer, so other hosts show nothing.
   static CatStatus? fromHealthz(String body) {
@@ -52,6 +61,7 @@ class CatStatus {
     final seconds = cat['last_seen'];
     final visits = cat['visits'];
     final recent = cat['recent'];
+    final clip = cat['clip'];
     return CatStatus(
       name: name is String ? name : '',
       inView: cat['in_view'] == true,
@@ -59,6 +69,9 @@ class CatStatus {
           ? DateTime.fromMillisecondsSinceEpoch(seconds * 1000)
           : null,
       visits: visits is int ? visits : 0,
+      clip: clip is int
+          ? DateTime.fromMillisecondsSinceEpoch(clip * 1000)
+          : null,
       recent: <CatVisit>[
         if (recent is List)
           for (final visit in recent)
@@ -218,6 +231,16 @@ class _CatStatusLineState extends State<CatStatusLine> {
             child: widget.arrivalImage(
               '/arrival.jpg?visit=${status.visits}',
               l10n.catLastArrival,
+            ),
+          ),
+        if (status.hasLatestClip)
+          Link(
+            uri: Uri.parse('/arrival.mp4?visit=${status.visits}'),
+            target: LinkTarget.blank,
+            builder: (context, followLink) => TextButton.icon(
+              onPressed: followLink,
+              icon: const Icon(Icons.play_circle_outline),
+              label: Text(l10n.catArrivalVideo),
             ),
           ),
       ],

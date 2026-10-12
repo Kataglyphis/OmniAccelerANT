@@ -162,11 +162,13 @@ consumes.
   starts at sign-in once you have run it, and takes USB cameras only.
 - Open `http://<host>:8080/` from a browser on the network. Under the video the page
   says whether a cat is in view, or when one was last seen, lists its latest visits
-  with how long each lasted, and shows the picture of its last arrival.
+  with how long each lasted, and shows the picture of its last arrival, with a link to
+  its video once that is encoded.
 - `http://<host>:8080/healthz` says which camera is live, when a cat was last seen,
   how many visits it counted and how long the latest 20 lasted; `/snapshot.jpg` is the
-  current picture, boxes included, and `/arrival.jpg` the frame the last arrival was
-  confirmed on. The visits and that frame survive a restart.
+  current picture, boxes included, `/arrival.jpg` the frame the last arrival was
+  confirmed on, and `/arrival.mp4` that arrival as a 10 s video, from 3 s before it.
+  The visits, that frame and that video survive a restart.
 - Set `notify_url` in the settings and the service POSTs every arrival and departure
   there as JSON, for example to a Home Assistant webhook.
 - The service picks a Raspberry Pi camera when one is attached, else a USB

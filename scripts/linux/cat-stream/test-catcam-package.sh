@@ -154,14 +154,38 @@ seen_for() {
   return 1
 }
 
+# The arrival's clip, recorded 7 s past the arrival and then encoded, is named in /healthz; up to 30 s.
+clip_ready() {
+  local _
+  for _ in $(seq 1 120); do
+    curl -sf "http://$1:8080/healthz" 2>/dev/null \
+      | jq -e '.cat.clip != null and .cat.clip == .cat.recent[0].arrived' >/dev/null 2>&1 && return 0
+    sleep 0.25
+  done
+  return 1
+}
+
+# $2 serves an MP4 (its first box is ftyp) and answers a byte range with 206, which Safari's <video> needs.
+mp4_at() {
+  curl -sf "http://$1:8080$2" -o "${work}/clip.mp4" || return 1
+  [ "$(dd if="${work}/clip.mp4" bs=1 skip=4 count=4 2>/dev/null)" = ftyp ] || return 1
+  [ "$(curl -s -o /dev/null -w '%{http_code}' -H 'Range: bytes=0-99' "http://$1:8080$2")" = 206 ] || return 1
+  return 0
+}
+
 visit_closed() {
   curl -sf "http://$1:8080/healthz" | jq -e --argjson s "$2" '.cat.recent[0].stayed_s >= $s' >/dev/null
 }
 
 webhook_got_arrival() {
+  webhook_got arrived "$1"
+}
+
+# The receiver logged a "$1" event; up to 10 s.
+webhook_got() {
   local _
   for _ in $(seq 1 40); do
-    grep -q '"event":"arrived"' "$1" 2>/dev/null && return 0
+    grep -q "\"event\":\"$1\"" "$2" 2>/dev/null && return 0
     sleep 0.25
   done
   return 1
@@ -233,6 +257,9 @@ check "/snapshot.jpg serves the boxed frame as a JPEG" jpeg_at "${ip}" /snapshot
 check "the arrival is POSTed to notify_url as JSON" webhook_got_arrival "${work}/webhook.jsonl"
 check "/arrival.jpg serves the frame the arrival was seen on" jpeg_at "${ip}" /arrival.jpg
 check "the visit log times the stay while the cat is in view" seen_for "${ip}" 2
+check "the arrival's clip is encoded and named in /healthz" clip_ready "${ip}"
+check "/arrival.mp4 serves it as an MP4 and answers a byte range" mp4_at "${ip}" /arrival.mp4
+check "the finished clip is POSTed to notify_url as JSON" webhook_got clip "${work}/webhook.jsonl"
 stop_service "${pid}"
 kill "${receiver}" 2>/dev/null
 check "the bundled model finds a cat in the photo" grep -q 'cat in view' "${work}/photo.log"
@@ -243,6 +270,7 @@ check "the page and /healthz answer on :8080" wait_healthz "${ip}"
 check "a restart keeps the visit the photo counted" visit_remembered "${ip}"
 check "a restart closes the visit the stop cut short, at its last sighting" visit_closed "${ip}" 2
 check "a restart keeps the arrival frame" jpeg_at "${ip}" /arrival.jpg
+check "a restart keeps the arrival clip" mp4_at "${ip}" /arrival.mp4
 frames="$(chrome_frames "http://${ip}:8080/" 20000)"
 printf '      Chrome played %s frame(s) over %s\n' "${frames}" "${ip}"
 check "headless Chrome plays the stream from the LAN address" test "${frames:-0}" -ge 200

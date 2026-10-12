@@ -28,6 +28,8 @@ dependencies:
   oxidant:
     path: rust_builder
   permission_handler: ^13.0.2
+  # Link opens the cat cam's /arrival.mp4 in a new tab; ANThology already resolves it.
+  url_launcher: ^6.3.2
 
   # Floor = the hub's SQLITE3_WASM_VERSION: web/sqlite3.wasm is that release's build, so the Dart side may not resolve older.
   sqlite3: ^3.7.0

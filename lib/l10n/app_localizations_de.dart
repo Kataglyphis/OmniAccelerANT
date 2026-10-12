@@ -81,6 +81,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String get catLastArrival => 'Die letzte Ankunft der Katze';
 
   @override
+  String get catArrivalVideo => 'Ankunft als Video ansehen';
+
+  @override
   String catRecentVisits(String visits) {
     return 'Letzte Besuche: $visits';
   }

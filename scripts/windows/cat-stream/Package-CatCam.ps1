@@ -78,7 +78,8 @@ Copy-Item -LiteralPath $Producer -Destination $stage
 $plugins = 'coreelements', 'app', 'videoconvertscale', 'videorate', 'videofilter', 'videotestsrc', 'rawparse',
 'videoparsersbad', 'debugutilsbad', 'jpeg', 'png', 'multifile', 'mediafoundation', 'winks', 'rswebrtc', 'rsrtp',
 'webrtc', 'nice', 'dtls', 'srtp', 'sctp', 'rtpmanager', 'rtp', 'openh264'
-$optional = 'vpx', 'd3d11'
+# isomp4 muxes the arrival clip; without it the service records none and says so.
+$optional = 'vpx', 'd3d11', 'isomp4'
 foreach ($name in $plugins + $optional) {
     $dll = Join-Path $runtime "lib\gstreamer-1.0\gst$name.dll"
     if (Test-Path -LiteralPath $dll) { Copy-Item -LiteralPath $dll -Destination $plugDir }

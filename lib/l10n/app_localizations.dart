@@ -230,6 +230,12 @@ abstract class AppLocalizations {
   /// **'The cat\'s last arrival'**
   String get catLastArrival;
 
+  /// No description provided for @catArrivalVideo.
+  ///
+  /// In en, this message translates to:
+  /// **'Watch the arrival'**
+  String get catArrivalVideo;
+
   /// No description provided for @catRecentVisits.
   ///
   /// In en, this message translates to:

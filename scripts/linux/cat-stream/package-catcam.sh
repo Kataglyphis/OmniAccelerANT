@@ -80,7 +80,7 @@ model_name="$(basename "${model}")"
 # The service's pipelines and webrtcsink's own; without debugutilsbad's errorignore its codec discovery finds none.
 gst_plugin_dir=/opt/gstreamer/lib/multiarch/gstreamer-1.0
 plugins=(coreelements app videoconvertscale videorate videofilter videotestsrc rawparse videoparsersbad debugutilsbad
-  jpeg png multifile video4linux2 rswebrtc rsrtp webrtc nice dtls srtp sctp rtpmanager rtp vpx)
+  jpeg png multifile video4linux2 rswebrtc rsrtp webrtc nice dtls srtp sctp rtpmanager rtp vpx isomp4)
 for plugin in "${plugins[@]}"; do
   [ -e "${gst_plugin_dir}/libgst${plugin}.so" ] || {
     printf 'GStreamer plugin %s not in the image (%s)\n' "${plugin}" "${gst_plugin_dir}" >&2
