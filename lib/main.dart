@@ -13,11 +13,10 @@ import 'package:anthology/Pages/Home/default_home_config.dart';
 import 'package:anthology/app_settings.dart';
 import 'package:anthology/app_shell.dart';
 import 'package:anthology/blog_page_config.dart';
-import 'package:anthology/my_two_cents_config.dart';
 import 'package:anthology/user_settings.dart';
 
-import 'package:omni_accelerant/Pages/jotrockenmitlocken_screen_configurations.dart';
-import 'package:omni_accelerant/Routing/jotrockenmitlocken_router.dart';
+import 'package:omni_accelerant/Pages/omni_screen_configurations.dart';
+import 'package:omni_accelerant/Routing/omni_router.dart';
 import 'package:omni_accelerant/blog_dependent_app_attributes.dart';
 import 'package:omni_accelerant/l10n/app_localizations.dart';
 import 'package:omni_accelerant/settings/webrtc_settings.dart';
@@ -30,7 +29,6 @@ typedef OmniBootstrapData = (
   AppSettings,
   UserSettings,
   List<BlogPageConfig>,
-  List<MyTwoCentsConfig>,
   WebRTCSettings,
 );
 
@@ -38,8 +36,6 @@ const String userSettingsFilePath =
     "assets/settings/user_settings/global_user_settings.json";
 const String appSettingsFilePath = "assets/settings/app_settings.json";
 const String blogSettingsFilePath = "assets/settings/blog_settings.json";
-const String twoCentsSettingsFilePath =
-    "assets/settings/my_two_cents_settings.json";
 const String webrtcSettingsFilePath = "assets/settings/webrtc_settings.json";
 
 /// Loads all settings files in parallel; throws [FormatException] on malformed JSON.
@@ -48,15 +44,13 @@ Future<OmniBootstrapData> loadAppSettings() async {
     rootBundle.loadString(userSettingsFilePath),
     rootBundle.loadString(appSettingsFilePath),
     rootBundle.loadString(blogSettingsFilePath),
-    rootBundle.loadString(twoCentsSettingsFilePath),
     rootBundle.loadString(webrtcSettingsFilePath),
   ]);
 
   final userSettingsJson = json.decode(results[0]) as Map<String, dynamic>;
   final appSettingsJson = json.decode(results[1]) as Map<String, dynamic>;
   final blogSettingsJson = json.decode(results[2]) as List<dynamic>;
-  final twoCentsSettingsJson = json.decode(results[3]) as List<dynamic>;
-  final webrtcSettingsJson = json.decode(results[4]) as Map<String, dynamic>;
+  final webrtcSettingsJson = json.decode(results[3]) as Map<String, dynamic>;
 
   final userSettings = UserSettings.fromJsonFile(userSettingsJson);
   final appSettings = AppSettings.fromJsonFile(appSettingsJson);
@@ -65,19 +59,9 @@ Future<OmniBootstrapData> loadAppSettings() async {
       .map((e) => BlogPageConfig.fromJsonFile(e as Map<String, dynamic>))
       .toList();
 
-  final twoCentsConfigs = twoCentsSettingsJson
-      .map((e) => MyTwoCentsConfig.fromJsonFile(e as Map<String, dynamic>))
-      .toList();
-
   final webrtcSettings = WebRTCSettings.fromJsonFile(webrtcSettingsJson);
 
-  return (
-    appSettings,
-    userSettings,
-    blogConfigs,
-    twoCentsConfigs,
-    webrtcSettings,
-  );
+  return (appSettings, userSettings, blogConfigs, webrtcSettings);
 }
 
 Future<void> main() async {
@@ -109,19 +93,11 @@ class App extends StatelessWidget {
       ],
       buildBinding:
           (OmniBootstrapData data, KataglyphisAppShellRuntime runtime) {
-            final (
-              appSettings,
-              userSettings,
-              blogConfigs,
-              twoCentsConfigs,
-              webrtcSettings,
-            ) = data;
+            final (appSettings, userSettings, blogConfigs, webrtcSettings) =
+                data;
 
-            final JotrockenmitLockenScreenConfigurations screenConfigurations =
-                JotrockenmitLockenScreenConfigurations.fromBlogAndDataConfigs(
-                  blogPageConfigs: blogConfigs,
-                  twoCentsConfigs: twoCentsConfigs,
-                );
+            final OmniScreenConfigurations screenConfigurations =
+                OmniScreenConfigurations(blogPageConfigs: blogConfigs);
 
             return KataglyphisAppShellBinding(
               appAttributes: runtime.buildAppAttributes(
@@ -131,10 +107,9 @@ class App extends StatelessWidget {
                 userSettings: userSettings,
                 screenConfigurations: screenConfigurations,
               ),
-              routesCreator: JotrockenMitLockenRoutes(
+              routesCreator: OmniRoutes(
                 blogDependentAppAttributes: OmniBlogDependentAppAttributes(
                   blogDependentScreenConfigurations: screenConfigurations,
-                  twoCentsConfigs: twoCentsConfigs,
                   blockSettings: blogConfigs,
                   webrtcSettings: webrtcSettings,
                 ),

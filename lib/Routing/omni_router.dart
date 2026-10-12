@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:omni_accelerant/Pages/AboutMePage/about_me_page.dart';
 import 'package:omni_accelerant/Pages/Blog/blog_page.dart';
 import 'package:anthology/Pages/DataPage/BlockOverviewPage/block_overview_page.dart';
-import 'package:omni_accelerant/Pages/DataPage/media_critics_page.dart';
 import 'package:omni_accelerant/Pages/StreamPage/stream_page.dart';
 import 'package:anthology/Pages/ErrorPage/error_page.dart';
 import 'package:omni_accelerant/blog_dependent_app_attributes.dart';
@@ -11,16 +10,15 @@ import 'package:anthology/Pages/LandingPage/landing_page.dart';
 import 'package:anthology/Pages/Footer/footer.dart';
 import 'package:anthology/Pages/Footer/footer_page_config.dart';
 import 'package:anthology/blog_page_config.dart';
-import 'package:anthology/my_two_cents_config.dart';
 import 'package:anthology/Routing/router_creater.dart';
 import 'package:anthology/app_attributes.dart';
 import 'package:anthology/Pages/stateful_branch_info_provider.dart';
 
 /// All OmniAccelerANT routes, each paired with its [StatefulBranchInfoProvider].
-class JotrockenMitLockenRoutes extends RoutesCreator {
+class OmniRoutes extends RoutesCreator {
   OmniBlogDependentAppAttributes blogDependentAppAttributes;
 
-  JotrockenMitLockenRoutes({required this.blogDependentAppAttributes});
+  OmniRoutes({required this.blogDependentAppAttributes});
 
   @override
   List<(Widget, StatefulBranchInfoProvider)> getAllPagesWithConfigs(
@@ -31,7 +29,6 @@ class JotrockenMitLockenRoutes extends RoutesCreator {
     allPagesAndConfigs += _getFooterPagesAndConfigs(appAttributes);
     allPagesAndConfigs += _getBlogPagesAndConfigs(appAttributes);
     allPagesAndConfigs += _getDataPagesAndConfigs(appAttributes);
-    allPagesAndConfigs += _getMediaCriticsPagesAndConfigs(appAttributes);
     allPagesAndConfigs += _getErrorPagesAndConfigs(appAttributes);
 
     return allPagesAndConfigs;
@@ -100,28 +97,6 @@ class JotrockenMitLockenRoutes extends RoutesCreator {
       for (int i = 0; i < navBarPages.length; i += 1)
         (navBarPages[i], navBarPageConfigs[i]),
     ];
-  }
-
-  List<(Widget, StatefulBranchInfoProvider)> _getMediaCriticsPagesAndConfigs(
-    AppAttributes appAttributes,
-  ) {
-    List<MyTwoCentsConfig> blogPagesConfigs = blogDependentAppAttributes
-        .blogDependentScreenConfigurations
-        .getMediaCriticsPagesConfig();
-    List<(Widget, StatefulBranchInfoProvider)> footerPages = blogPagesConfigs
-        .map(
-          (pageConfig) => (
-            MediaCriticsPage(
-              footer: getFooter(appAttributes),
-              appAttributes: appAttributes,
-              mediaCriticsPageConfig: pageConfig,
-            ),
-            pageConfig,
-          ),
-        )
-        .toList();
-
-    return footerPages;
   }
 
   List<(Widget, StatefulBranchInfoProvider)> _getBlogPagesAndConfigs(

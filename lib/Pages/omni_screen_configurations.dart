@@ -18,14 +18,10 @@ import 'package:anthology/Pages/navbar_page_config.dart';
 import 'package:anthology/Pages/stateful_branch_info_provider.dart';
 import 'package:anthology/Routing/screen_configurations.dart';
 
-class JotrockenmitLockenScreenConfigurations extends ScreenConfigurations
+class OmniScreenConfigurations extends ScreenConfigurations
     with BlogDependentScreenConfigurations {
   List<BlogPageConfig> blogPageConfigs;
-  List<MyTwoCentsConfig> twoCentsConfigs;
-  JotrockenmitLockenScreenConfigurations.fromBlogAndDataConfigs({
-    required this.blogPageConfigs,
-    required this.twoCentsConfigs,
-  });
+  OmniScreenConfigurations({required this.blogPageConfigs});
 
   @override
   List<StatefulBranchInfoProvider> getAllPagesConfigs() {
@@ -40,10 +36,6 @@ class JotrockenmitLockenScreenConfigurations extends ScreenConfigurations
     }
     for (StatefulBranchInfoProvider blogPageConfig in getBlogPagesConfig()) {
       pagesConfigs.add(blogPageConfig);
-    }
-    for (StatefulBranchInfoProvider mediaCriticsPageConfig
-        in getMediaCriticsPagesConfig()) {
-      pagesConfigs.add(mediaCriticsPageConfig);
     }
     for (StatefulBranchInfoProvider errorPageConfig in getErrorPagesConfig()) {
       pagesConfigs.add(errorPageConfig);
@@ -87,10 +79,10 @@ class JotrockenmitLockenScreenConfigurations extends ScreenConfigurations
     return blogPageConfigs;
   }
 
+  // No media reviews here; the shared mixin asks every site for its list.
   @override
-  List<MyTwoCentsConfig> getMediaCriticsPagesConfig() {
-    return twoCentsConfigs;
-  }
+  List<MyTwoCentsConfig> getMediaCriticsPagesConfig() =>
+      const <MyTwoCentsConfig>[];
 
   @override
   List<StatefulBranchInfoProvider> getDataPagesConfig() {

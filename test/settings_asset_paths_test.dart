@@ -60,7 +60,6 @@ void main() {
 
   const List<String> settingsFiles = <String>[
     'assets/settings/blog_settings.json',
-    'assets/settings/my_two_cents_settings.json',
   ];
 
   group('every declared asset exists on disk', () {
