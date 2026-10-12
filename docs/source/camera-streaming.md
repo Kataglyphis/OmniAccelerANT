@@ -368,20 +368,24 @@ and run as the unit runs it, with a scrubbed environment as `omni-catcam`:
 - the bundled model found the cats in ANThology's `Summy&Thundy` photo (best score
   0.76; 0.72 before the frames stayed I420), `/healthz` counted the visit and
   `/snapshot.jpg` served the frame as a JPEG;
-- SIGTERM exits 0;
+- the arrival reached a stand-in webhook as a JSON POST, and `/arrival.jpg` served the
+  frame it was seen on;
+- a restart kept the visit and the arrival frame;
+- SIGTERM exits 0, and no inference fails on the way out;
 - the AppImage's `--install`, a second `--install` over it, and `--uninstall --purge`
   left the expected files, and then none;
 - the .deb installed over an edited `catcam.toml` with no terminal, kept the edit, and
   `dpkg --purge` removed it;
-- the flatpak, installed system-wide, answered `/healthz` from its sandbox, and headless
-  Chrome played its stream over the LAN address. Its first start wrote the sign-in
+- the flatpak, installed system-wide, answered `/healthz` from its sandbox, kept the
+  cat's visits in its own state directory, and headless Chrome played its stream over
+  the LAN address. Its first start wrote the sign-in
   entry, `--autostart off` removed it, and `flatpak uninstall` left nothing. A user
   install needs a D-Bus session that the container lacks, hence the system install.
 
 On amd64 in `:latest` (2026-10-06), all 32 checks passed, and Chrome played 572 frames
 from the sandboxed stream. The flatpak bundle is 63 MB. On arm64 on himbeere2
-(2026-10-12) all 36 checks passed, with about 500 frames to Chrome; CI passed the 34 of
-the day before the unit checks on both architectures (`web.yml` run 38176735560).
+(2026-10-12) all 41 checks passed, with about 505 frames to Chrome each time, and CI
+passed the same 41 on both architectures (`web.yml` run 38197312619).
 
 **On a Raspberry Pi 5 (himbeere2: imx219, Debian 13, kernel 6.18), 2026-10-05.**
 The arm64 packages were built natively on the board in `:latest`, and CI's
