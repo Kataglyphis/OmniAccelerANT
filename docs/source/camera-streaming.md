@@ -412,7 +412,11 @@ and browser plays, 640x480 at 10 fps, 78 frames (the pre-roll was short, as the 
 had just started) and 603 kB; `/arrival.mp4` answered `Range: bytes=0-99` with `206`.
 With its own camera that evening (18:03 to 18:08) six arrivals of the drying rack at the
 bottom of the frame made one clip each, the full 100 frames, of 108 to 182 kB: a still
-room compresses far below the bitrate's ceiling.
+room compresses far below the bitrate's ceiling. Memory plateaus rather than grows: forty
+100-frame 640x480 encodes in a row (a release build, 0.6 s each) held the process at
+70 MB from the sixth on, glibc keeping the freed frames for the next clip, and the live
+service sat at 282 MB for 20 minutes after fourteen arrivals, that plateau plus the
+model's.
 `clip_seconds` sets the length (0 records none). Frames wait in memory until encoded,
 about 46 MB for 10 s, which is why the setting stops at 60. The package bundles `isomp4`
 for `mp4mux` (`openh264` and `videoparsersbad` were in it already); a GStreamer without
