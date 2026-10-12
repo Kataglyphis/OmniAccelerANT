@@ -1,4 +1,4 @@
-// Cross-file pins that only fail in a browser; paths resolve from the test, not the CWD.
+// Pins on committed artefacts that no build step checks; paths resolve from the test, not the CWD.
 @TestOn('vm')
 library;
 
@@ -27,6 +27,20 @@ String _read(String relative) {
   final File file = File('${_repoRoot().path}/$relative');
   if (!file.existsSync()) fail('missing file: $relative');
   return file.readAsStringSync();
+}
+
+/// The generated icons: the web favicon, its manifest icons and the Android mipmaps.
+List<File> _generatedIcons() {
+  final String root = _repoRoot().path;
+  bool png(FileSystemEntity e) => e is File && e.path.endsWith('.png');
+  return <File>[
+    File('$root/web/favicon.png'),
+    ...Directory('$root/web/icons').listSync().where(png).cast<File>(),
+    ...Directory('$root/android/app/src/main/res')
+        .listSync(recursive: true)
+        .where(png)
+        .cast<File>(),
+  ];
 }
 
 /// First capture group of [pattern] in [relative], or a failure naming both.
@@ -175,6 +189,27 @@ void main() {
             'the sqlite3-$wasm build (SQLITE3_WASM_VERSION in the pinned '
             'ANTfrastructure). Move the hub pin, web/sqlite3.wasm and the '
             'lock together.',
+      );
+    });
+  });
+
+  group('generated icons', () {
+    test('are 8 bits per channel', () {
+      // flutter_launcher_icons writes 16; browsers show 8, and Icon-192.png was 123 kB instead of 26.
+      final String root = _repoRoot().path;
+      final List<String> deep = <String>[
+        for (final File icon in _generatedIcons())
+          if (icon.readAsBytesSync()[24] != 8)
+            icon.path.substring(root.length + 1),
+      ];
+      expect(
+        deep,
+        isEmpty,
+        reason:
+            'these icons are not 8 bits per channel: ${deep.join(', ')}. '
+            'Re-encode them, in :latest: python3 -c "import sys; from PIL '
+            'import Image; [Image.open(p).save(p, optimize=True, '
+            'compress_level=9) for p in sys.argv[1:]]" <files>',
       );
     });
   });
