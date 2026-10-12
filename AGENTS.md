@@ -1067,6 +1067,13 @@ cell is a test that cannot run there, and the reason is under the table.
   build workflows skip it through `paths-ignore` on `push` (2026-10-12), so a docs commit
   neither queues two hour-long Windows lanes nor cancels the ones in flight. Pull
   requests always run everything, so no required check waits on a skipped workflow.
+- **A push to `develop` cancels the round in flight,** on purpose: every workflow's
+  `concurrency` has `cancel-in-progress: true`, because a superseded verdict is not worth an
+  hour of Windows runner. Sessions that push every twenty minutes therefore finish no round:
+  on 2026-10-12, 77 of the day's 142 push runs were cancelled, about 18 hours of runner
+  wall time, 28 of them Windows lanes. So batch: commit locally, and push when the round on
+  `origin/develop` has finished, or while it is still queued (it then reruns with your
+  commit in it). `gh run list --branch develop --limit 8` shows where it stands.
 
 ### The Dart gate in 23 seconds, without a lane
 
