@@ -161,9 +161,14 @@ consumes.
 - `flatpak install ./omni-accelerant-catcam-*.flatpak` runs in a sandbox instead. It
   starts at sign-in once you have run it, and takes USB cameras only.
 - Open `http://<host>:8080/` from a browser on the network. Under the video the page
-  says whether a cat is in view, or when one was last seen.
-- `http://<host>:8080/healthz` says which camera is live and when a cat was last
-  seen; `http://<host>:8080/snapshot.jpg` is the current picture, boxes included.
+  says whether a cat is in view, or when one was last seen, and shows the picture of
+  its last arrival.
+- `http://<host>:8080/healthz` says which camera is live, when a cat was last seen
+  and how many visits it counted; `/snapshot.jpg` is the current picture, boxes
+  included, and `/arrival.jpg` the frame the last arrival was confirmed on. The visits
+  and that frame survive a restart.
+- Set `notify_url` in the settings and the service POSTs every arrival and departure
+  there as JSON, for example to a Home Assistant webhook.
 - The service picks a Raspberry Pi camera when one is attached, else a USB
   webcam.
 - The settings live in `/etc/omni-accelerant/catcam.toml`, and `systemctl
