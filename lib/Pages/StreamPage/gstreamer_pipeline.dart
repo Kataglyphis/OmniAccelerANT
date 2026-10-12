@@ -54,6 +54,7 @@ class GStreamerPipelineBuilder {
     return switch (source) {
       'videotestsrc' => _buildTestPattern('ball'),
       'ahcsrc' => _buildAndroidCamera('ahcsrc'),
+      'ahc2src' => _buildAndroidCamera('ahc2src'),
       'autovideosrc' => _buildAutoVideoSrc(),
       'v4l2src' => _buildV4L2Src(),
       'ksvideosrc' => _buildKsVideoSrc(),

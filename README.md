@@ -298,8 +298,10 @@ The app's own Dart suite (`test/`) checks, among the rest:
 - the cat status line, its visits, its arrival picture and video, and the earlier videos
   (`cat_status_test.dart`);
 - the native Stream page's calls to the C++ plugin, its camera fallback, its buttons and
-  its error messages, against a fake plugin (`stream_page_native_test.dart`), and the Rust
-  camera view's calls to the core, against a fake core (`rust_webcam_view_test.dart`);
+  its error messages, on Linux, Android (camera permission included), macOS and the
+  rest, against a fake plugin (`stream_page_native_test.dart`); Windows and Linux with the
+  Rust features handing the camera to the Rust view (`stream_page_rust_test.dart`); and
+  the Rust camera view's calls to the core, against a fake core (`rust_webcam_view_test.dart`);
 - the GStreamer pipeline strings, which otherwise fail only on a machine with a camera
   (`gstreamer_pipeline_builder_test.dart`);
 - the settings files: a malformed key named in the error, and the web's signalling URL
@@ -310,7 +312,7 @@ The app's own Dart suite (`test/`) checks, among the rest:
   (`pinned_artefacts_test.dart`), and that every social link has an icon.
 
 The native Linux lane measures how much of `lib/` these reach and fails below a floor
-(91.5 % on 2026-10-12; `check-dart-coverage.sh`).
+(95.8 % on 2026-10-13; `check-dart-coverage.sh`).
 
 `flutter test` in the `:latest` image runs it in under a minute
 ([AGENTS.md § 5](AGENTS.md#5-build-run-test), *The Dart gate in 23 seconds*).

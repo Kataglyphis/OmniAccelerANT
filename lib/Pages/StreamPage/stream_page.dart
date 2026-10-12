@@ -222,9 +222,11 @@ class StreamPageState extends State<StreamPage> {
       final message = e.message ?? '';
       final bool missingElement =
           message.contains('no element') || message.contains('not found');
-      // Any platform: a missing element or failed state change means the same everywhere.
+      // A missing element or failed state change falls back, from a source on the chain only: a button off it reports its own error.
       final bool shouldRetry =
-          source != null && (missingElement || e.code == 'command_failed');
+          source != null &&
+          _sourceCandidates.contains(source) &&
+          (missingElement || e.code == 'command_failed');
 
       if (shouldRetry) {
         final String? diag = await channel

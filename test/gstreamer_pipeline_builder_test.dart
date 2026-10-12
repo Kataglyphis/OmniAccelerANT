@@ -44,6 +44,14 @@ void main() {
       expect(android.build('ahcsrc'), contains('glimagesink name=overlay'));
       expect(android.build('ahcsrc'), isNot(contains('appsink')));
     });
+
+    test('both android camera sources build a camera, not the ball', () {
+      // The page's camera button sends ahc2src; unknown, it fell through to the test pattern.
+      for (final String source in <String>['ahcsrc', 'ahc2src']) {
+        expect(android.build(source), startsWith('$source ! '));
+        expect(android.build(source), isNot(contains('videotestsrc')));
+      }
+    });
   });
 
   group('v4l2src — the Linux default', () {
