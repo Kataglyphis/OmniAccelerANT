@@ -171,13 +171,14 @@ file next to a pinned shared one is exactly the drift that removal closed.
 
 ## Large tracked binaries
 
-Measured 2026-09-15: **148 MiB across 451 tracked files**, of which roughly
-141 MiB is binary assets. The inventory, so nobody has to re-derive it:
+Measured 2026-10-12: **100 MiB across 438 tracked files**, of which roughly
+93 MiB is binary assets, after the Noto Sans family (47.9 MiB, 76 files) went that
+day; 2026-09-15 counted 148 MiB across 451. The inventory, so nobody has to
+re-derive it:
 
 | What | Size | Why it is tracked |
 |------|------|-------------------|
 | `dummy_assets/` | 79.7 MiB, 16 files | Fixture corpus mirroring the shape of `assets/`. 79.1 MiB (82.9 MB) of it is two PDFs, `documents/thesis/{Master,Bachelor}_Thesis.pdf`. **Nothing references it** — not `pubspec.yaml`'s asset list, not `lib/`, not a test, not a script. It is sample content for trying the document pages against. |
-| `assets/fonts/Noto_Sans/` | 47.9 MiB, 76 files | The complete Noto Sans family as shipped by Google Fonts: 2 variable fonts plus all 72 static faces. `pubspec.yaml` declares **4** of them (Regular, Italic, Bold, BoldItalic). The other 72 files are the download, not a requirement. |
 | `assets/videos/funnyandsummy.mp4` | 12.3 MiB | Demo clip. Not in `pubspec.yaml`'s asset list and not referenced from `lib/`. |
 | `assets/icons/kataglyphis_app_icon.png` | 1.9 MiB | Load-bearing: `flutter_launcher_icons` generates every platform icon set from it (`pubspec.yaml` names it five times), so it must stay at source resolution. |
 | `images/overview.gif` | 1.6 MiB | README illustration. |
@@ -196,9 +197,12 @@ above. It changes the next one: a new asset the app genuinely ships is added
 with `git add -f <path>` and earns a row here saying what it is for. Having to
 type `-f` is the whole mechanism.
 
-If the tree is ever trimmed, the order is obvious from the table and needs no
-history rewrite to be worth doing: the 72 undeclared font faces, then
-`dummy_assets/`, then the video. All three are deletions in a normal commit.
+The fonts went first, on 2026-10-12: all 76 Noto Sans files, the four faces
+`pubspec.yaml` declared included, because no code ever rendered with the family
+(the theme font is ANThology's Roboto) and Flutter web downloaded those four, about
+1.2 MB, before every cold load's first frame. If the tree is trimmed further, the
+order is obvious from the table and needs no history rewrite: `dummy_assets/`,
+then the video. Both are deletions in a normal commit.
 
 ## Serving the web build
 

@@ -42,6 +42,12 @@ What landed on `develop` after 2.0.0+2. Most of it is the cat cam, whose guide i
   - The web build goes out gzipped, and a revalidation answers 304 without reading a file.
 - **The service runs sandboxed** (2026-10-12): `systemd-analyze security` rates the unit
   1.8, down from 8.7, and the package test holds it at 2.5 or less.
+- **The web build's first load is 2.8 MB lighter** (2026-10-12). Flutter web fetches
+  every font its manifest declares before the first frame, and two of the three
+  families were never rendered: this repo's Noto Sans (4 faces) and ANThology's
+  Montserrat (18). The cat cam page's cold load went from 7.36 MB in 71 requests to
+  4.55 MB in 49, and on a 10 Mbit/s link its first video frame from 7.7 s to 5.6 s.
+  Pages render pixel for pixel as before. The checkout is 48 MiB lighter too.
 
 ## 2.0.0+2 — 2026-10-01
 
