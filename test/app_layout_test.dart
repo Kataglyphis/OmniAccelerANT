@@ -3,10 +3,11 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:omni_accelerant/main.dart';
+
+import 'support/real_fonts.dart';
 
 /// The bottom bar's three pages, a markdown footer page and a blog post.
 const List<String> _routes = <String>[
@@ -25,18 +26,8 @@ const List<(Size, double)> _cases = <(Size, double)>[
   (Size(360, 800), 1.5),
 ];
 
-/// The theme's Roboto, so text measures as in the app: the test font's square glyphs overflow rows real text fits.
-Future<void> _loadRealFonts() async {
-  const String dir = 'packages/anthology/assets/fonts/Roboto';
-  final FontLoader roboto = FontLoader('packages/anthology/Roboto');
-  for (final String face in <String>['Regular', 'Medium', 'Bold', 'Italic']) {
-    roboto.addFont(rootBundle.load('$dir/Roboto-$face.ttf'));
-  }
-  await roboto.load();
-}
-
 void main() {
-  setUpAll(_loadRealFonts);
+  setUpAll(loadRealFonts);
 
   for (final (Size size, double textScale) in _cases) {
     testWidgets(

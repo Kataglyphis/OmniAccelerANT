@@ -286,6 +286,8 @@ The app's own Dart suite (`test/`) checks, among the rest:
 - the camera stream's state across remounts, page changes, lost signalling and failed
   sessions (`webrtc_stream_controller_test.dart`);
 - the cat status line, its visits and its arrival picture (`cat_status_test.dart`);
+- the native Stream page's calls to the C++ plugin and its camera fallback, against a fake
+  plugin (`stream_page_native_test.dart`);
 - what no build step checks: the bridge's versions, the sqlite3 wasm, 8-bit icons
   (`pinned_artefacts_test.dart`), and that every social link has an icon.
 
