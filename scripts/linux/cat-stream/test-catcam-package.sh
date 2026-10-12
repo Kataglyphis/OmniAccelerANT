@@ -143,6 +143,21 @@ visit_remembered() {
   curl -sf "http://$1:8080/healthz" | jq -e '.cat.visits >= 1 and .cat.last_seen != null' >/dev/null
 }
 
+# The live service has seen the cat for $2 s of its current visit; up to 10 s.
+seen_for() {
+  local _
+  for _ in $(seq 1 40); do
+    curl -sf "http://$1:8080/healthz" 2>/dev/null \
+      | jq -e --argjson s "$2" '.cat.last_seen - .cat.recent[0].arrived >= $s' >/dev/null 2>&1 && return 0
+    sleep 0.25
+  done
+  return 1
+}
+
+visit_closed() {
+  curl -sf "http://$1:8080/healthz" | jq -e --argjson s "$2" '.cat.recent[0].stayed_s >= $s' >/dev/null
+}
+
 webhook_got_arrival() {
   local _
   for _ in $(seq 1 40); do
@@ -217,6 +232,7 @@ check "/healthz reports the cat in the photo as a visit" wait_cat "${ip}"
 check "/snapshot.jpg serves the boxed frame as a JPEG" jpeg_at "${ip}" /snapshot.jpg
 check "the arrival is POSTed to notify_url as JSON" webhook_got_arrival "${work}/webhook.jsonl"
 check "/arrival.jpg serves the frame the arrival was seen on" jpeg_at "${ip}" /arrival.jpg
+check "the visit log times the stay while the cat is in view" seen_for "${ip}" 2
 stop_service "${pid}"
 kill "${receiver}" 2>/dev/null
 check "the bundled model finds a cat in the photo" grep -q 'cat in view' "${work}/photo.log"
@@ -225,6 +241,7 @@ start_service "${work}/stream.log" "${prefix}/catcam" --camera test --inference 
 pid=$!
 check "the page and /healthz answer on :8080" wait_healthz "${ip}"
 check "a restart keeps the visit the photo counted" visit_remembered "${ip}"
+check "a restart closes the visit the stop cut short, at its last sighting" visit_closed "${ip}" 2
 check "a restart keeps the arrival frame" jpeg_at "${ip}" /arrival.jpg
 frames="$(chrome_frames "http://${ip}:8080/" 20000)"
 printf '      Chrome played %s frame(s) over %s\n' "${frames}" "${ip}"

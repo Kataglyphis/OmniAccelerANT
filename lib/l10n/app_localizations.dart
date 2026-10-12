@@ -229,6 +229,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'The cat\'s last arrival'**
   String get catLastArrival;
+
+  /// No description provided for @catRecentVisits.
+  ///
+  /// In en, this message translates to:
+  /// **'Recent visits: {visits}'**
+  String catRecentVisits(String visits);
+
+  /// No description provided for @catVisitStay.
+  ///
+  /// In en, this message translates to:
+  /// **'{time} ({minutes} min)'**
+  String catVisitStay(String time, String minutes);
 }
 
 class _AppLocalizationsDelegate

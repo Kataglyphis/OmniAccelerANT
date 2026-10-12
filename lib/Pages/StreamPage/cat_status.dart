@@ -5,6 +5,14 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:omni_accelerant/l10n/app_localizations.dart';
 
+/// One visit from `/healthz`'s `cat.recent`: when the cat came, and how long it stayed once it had left.
+class CatVisit {
+  const CatVisit(this.arrived, [this.stayed]);
+
+  final DateTime arrived;
+  final Duration? stayed;
+}
+
 /// What the cat cam's `/healthz` says: its name, whether and when a cat was in view, and its visits.
 class CatStatus {
   const CatStatus({
@@ -12,6 +20,7 @@ class CatStatus {
     required this.inView,
     this.lastSeen,
     this.visits = 0,
+    this.recent = const <CatVisit>[],
   });
 
   final String name;
@@ -20,6 +29,9 @@ class CatStatus {
 
   /// Arrivals so far; each one replaces `/arrival.jpg`.
   final int visits;
+
+  /// The latest visits, newest first.
+  final List<CatVisit> recent;
 
   /// `null` for anything but a cat cam's `/healthz` answer, so other hosts show nothing.
   static CatStatus? fromHealthz(String body) {
@@ -39,6 +51,7 @@ class CatStatus {
     final name = json['name'];
     final seconds = cat['last_seen'];
     final visits = cat['visits'];
+    final recent = cat['recent'];
     return CatStatus(
       name: name is String ? name : '',
       inView: cat['in_view'] == true,
@@ -46,6 +59,19 @@ class CatStatus {
           ? DateTime.fromMillisecondsSinceEpoch(seconds * 1000)
           : null,
       visits: visits is int ? visits : 0,
+      recent: <CatVisit>[
+        if (recent is List)
+          for (final visit in recent)
+            if (visit is Map<String, dynamic> && visit['arrived'] is int)
+              CatVisit(
+                DateTime.fromMillisecondsSinceEpoch(
+                  (visit['arrived'] as int) * 1000,
+                ),
+                visit['stayed_s'] is int
+                    ? Duration(seconds: visit['stayed_s'] as int)
+                    : null,
+              ),
+      ],
     );
   }
 }
@@ -58,6 +84,10 @@ String formatLastSeen(DateTime when, DateTime now, String locale) {
       ? DateFormat.Hm(locale).format(when)
       : DateFormat.MMMd(locale).add_Hm().format(when);
 }
+
+/// A stay in whole minutes, `<1` below one.
+String stayMinutes(Duration stayed) =>
+    stayed.inSeconds < 60 ? '<1' : '${(stayed.inSeconds / 60).round()}';
 
 /// The arrival picture at [url], 240 px wide: the previous one until the next loads, nothing on an error.
 Widget arrivalPicture(String url, String label) => Image.network(
@@ -132,6 +162,8 @@ class _CatStatusLineState extends State<CatStatusLine> {
       return title;
     }
     final l10n = AppLocalizations.of(context)!;
+    final locale = Localizations.localeOf(context).toString();
+    final now = DateTime.now();
     final lastSeen = status.lastSeen;
     final IconData icon;
     final Color? color;
@@ -139,8 +171,7 @@ class _CatStatusLineState extends State<CatStatusLine> {
     if (status.inView) {
       (icon, color, text) = (Icons.pets, Colors.green, l10n.catInView);
     } else if (lastSeen != null) {
-      final locale = Localizations.localeOf(context).toString();
-      final when = formatLastSeen(lastSeen, DateTime.now(), locale);
+      final when = formatLastSeen(lastSeen, now, locale);
       (icon, color, text) = (Icons.history, null, l10n.catLastSeen(when));
     } else {
       (icon, color, text) = (
@@ -163,6 +194,23 @@ class _CatStatusLineState extends State<CatStatusLine> {
             Flexible(child: Text(text)),
           ],
         ),
+        if (status.recent.isNotEmpty)
+          Text(
+            l10n.catRecentVisits(
+              status.recent
+                  .take(3)
+                  .map((visit) {
+                    final time = formatLastSeen(visit.arrived, now, locale);
+                    final stayed = visit.stayed;
+                    return stayed == null
+                        ? time
+                        : l10n.catVisitStay(time, stayMinutes(stayed));
+                  })
+                  .join(' · '),
+            ),
+            style: Theme.of(context).textTheme.bodySmall,
+            textAlign: TextAlign.center,
+          ),
         // Keyed by the visit, which the cat cam counts after storing its frame; last_seen moves every run.
         if (status.visits > 0)
           ClipRRect(

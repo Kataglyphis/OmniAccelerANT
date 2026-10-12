@@ -17,14 +17,15 @@ What landed on `develop` after 2.0.0+2. Most of it is the cat cam, whose guide i
   starting at logon with a firewall rule for the LAN. `web.yml` packages each one and
   install-tests it.
 - **It reports the cat** (2026-10-11/12). `/healthz` says whether a cat is in view,
-  when one last was, and how many visits it counted. `/snapshot.jpg` is the latest
+  when one last was, how many visits it counted, and when the latest 20 began and how
+  long they lasted. `/snapshot.jpg` is the latest
   boxed frame and `/arrival.jpg` the frame each arrival was confirmed on. A cat counts
   after two detections in a row. Visits and the arrival frame outlive a restart.
 - **It can notify** (2026-10-12): `notify_url` gets every arrival and departure as a
   JSON POST, which a Home Assistant webhook trigger takes as it is.
 - **The Stream page shows the cat** (2026-10-12). Under the video: the cat cam's name,
   then "Cat in view", "Cat last seen: 14:32" or "No cat seen yet" in English or German,
-  and the last arrival's picture. On a phone the video keeps its 4:3 and the line wraps.
+  the latest visits with their stays, and the last arrival's picture. On a phone the video keeps its 4:3 and the line wraps.
 - The web app boots without its Rust core, as Firefox and Safari need without
   cross-origin isolation; `serve.sh --http` serves the page with no certificate
   (2026-10-05).

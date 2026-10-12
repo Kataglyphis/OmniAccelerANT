@@ -79,4 +79,14 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get catLastArrival => 'Die letzte Ankunft der Katze';
+
+  @override
+  String catRecentVisits(String visits) {
+    return 'Letzte Besuche: $visits';
+  }
+
+  @override
+  String catVisitStay(String time, String minutes) {
+    return '$time ($minutes Min.)';
+  }
 }

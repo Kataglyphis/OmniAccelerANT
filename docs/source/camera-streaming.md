@@ -283,7 +283,9 @@ left to the host, because its IPA and tuning files must match the host kernel.
    in later is picked up.
 
 `/healthz` reports which camera is live and the cat: whether one is in view, when one
-was last seen (Unix seconds), how many visits it counted and the last best score.
+was last seen (Unix seconds), how many visits it counted, the last best score, and the
+latest 20 visits, newest first (`recent`: `arrived`, and `stayed_s` once the cat has
+left).
 `/snapshot.jpg` is the latest frame, boxes included, for a quick look without
 WebRTC: `curl -o cat.jpg http://<host>:8080/snapshot.jpg`. A cat counts after two
 detections in a row and leaves after about 3 s without one, so a lone hit near the
@@ -299,24 +301,27 @@ A live `/healthz` from himbeere2 at night (2026-10-12), the camera's name shorte
 ```json
 {
   "camera": "Raspberry Pi camera via rpicam-vid (imx219 [3280x2464 10-bit RGGB] (…))",
-  "cat": { "in_view": false, "last_score": null, "last_seen": null, "visits": 0 },
+  "cat": { "in_view": false, "last_score": null, "last_seen": null, "recent": [], "visits": 0 },
   "inference": true,
-  "model_runs": 208,
+  "model_runs": 4,
   "name": "Trouble Tabbls Cat Cam",
   "ok": true
 }
 ```
 
-`model_runs` counts since the service started. `visits`, `last_seen` and `last_score`
-survive a restart, and so does `/arrival.jpg`: the service keeps them in
+`model_runs` counts since the service started. `visits`, `last_seen`, `last_score` and
+`recent` survive a restart, and so does `/arrival.jpg`: the service keeps them in
 `/var/lib/omni-accelerant-catcam`, its systemd state directory, on every arrival and
-departure. The flatpak keeps them in its own `~/.var/app/…/.local/state`, the Windows
+departure and once more when it stops. A visit the stop cut short is closed at the cat's
+last sighting when the service starts again; after a power cut, which writes nothing, at
+the last arrival or departure written. The flatpak keeps them in its own `~/.var/app/…/.local/state`, the Windows
 cat cam in `%LOCALAPPDATA%\omni-accelerant-catcam`. `last_seen` and `last_score` stay `null` until a cat has been in view.
 
 The Stream page reads the same `/healthz` every 5 s (`CatStatusLine` in
 `lib/Pages/StreamPage/cat_status.dart`): under the video it puts the cat cam's `name`,
 then "Cat in view", "Cat last seen: 14:32" or "No cat seen yet", in English or German,
-and from the first visit on the last arrival's picture. Its URL carries the visit count
+the three latest visits ("Recent visits: 14:32 (3 min) · 11:05 (10 min)"; one still going
+on has no stay yet), and from the first visit on the last arrival's picture. Its URL carries the visit count
 (`/arrival.jpg?visit=3`), not `last_seen`, which moves on every model run while a cat
 stays, so the page fetches the picture once per visit. On the photo, with the cat in
 view for 35 s, headless Chrome sent seven `/healthz` requests and one `/arrival.jpg`
@@ -374,7 +379,8 @@ and run as the unit runs it, with a scrubbed environment as `omni-catcam`:
   `/snapshot.jpg` served the frame as a JPEG;
 - the arrival reached a stand-in webhook as a JSON POST, and `/arrival.jpg` served the
   frame it was seen on;
-- a restart kept the visit and the arrival frame;
+- the visit log timed the stay while the cat was in view, and a restart kept the visit
+  and the arrival frame and closed that visit at its last sighting;
 - SIGTERM exits 0, and no inference fails on the way out;
 - the AppImage's `--install`, a second `--install` over it, and `--uninstall --purge`
   left the expected files, and then none;
@@ -388,8 +394,8 @@ and run as the unit runs it, with a scrubbed environment as `omni-catcam`:
 
 On amd64 in `:latest` (2026-10-06), all 32 checks passed, and Chrome played 572 frames
 from the sandboxed stream. The flatpak bundle is 63 MB. On arm64 on himbeere2
-(2026-10-12) all 41 checks passed, with about 505 frames to Chrome each time, and CI
-passed the same 41 on both architectures (`web.yml` run 38197312619).
+(2026-10-12) all 43 checks passed, with about 510 frames to Chrome each time; CI passed
+the 41 from before the visit log on both architectures (`web.yml` run 38197312619).
 
 **On a Raspberry Pi 5 (himbeere2: imx219, Debian 13, kernel 6.18), 2026-10-05.**
 The arm64 packages were built natively on the board in `:latest`, and CI's

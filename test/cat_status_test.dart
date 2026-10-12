@@ -5,11 +5,13 @@ import 'package:omni_accelerant/Pages/StreamPage/cat_status.dart';
 import 'package:omni_accelerant/l10n/app_localizations.dart';
 
 const _inView =
-    '{"ok":true,"name":"Garden Cam","cat":{"in_view":true,"last_seen":1791763273,"visits":3}}';
+    '{"ok":true,"name":"Garden Cam","cat":{"in_view":true,"last_seen":1791763273,"visits":3,'
+    '"recent":[{"arrived":1791763200,"stayed_s":null}]}}';
 const _seenBefore =
-    '{"ok":true,"name":"Garden Cam","cat":{"in_view":false,"last_seen":1791763273,"visits":3}}';
+    '{"ok":true,"name":"Garden Cam","cat":{"in_view":false,"last_seen":1791763273,"visits":3,'
+    '"recent":[{"arrived":1791763088,"stayed_s":185},{"arrived":1791700000,"stayed_s":20}]}}';
 const _neverSeen =
-    '{"ok":true,"name":"","cat":{"in_view":false,"last_seen":null,"visits":0}}';
+    '{"ok":true,"name":"","cat":{"in_view":false,"last_seen":null,"visits":0,"recent":[]}}';
 
 Widget _fakeArrival(String url, String label) =>
     Text('picture $url ($label)', key: const Key('arrival'));
@@ -47,8 +49,16 @@ void main() {
         DateTime.fromMillisecondsSinceEpoch(1791763273 * 1000),
       );
       expect(status.visits, 3);
+      expect(status.recent, hasLength(2));
+      expect(status.recent.first.stayed, const Duration(seconds: 185));
+      expect(
+        status.recent.last.arrived,
+        DateTime.fromMillisecondsSinceEpoch(1791700000 * 1000),
+      );
+      expect(CatStatus.fromHealthz(_inView)!.recent.single.stayed, isNull);
       expect(CatStatus.fromHealthz(_neverSeen)!.lastSeen, isNull);
       expect(CatStatus.fromHealthz(_neverSeen)!.visits, 0);
+      expect(CatStatus.fromHealthz(_neverSeen)!.recent, isEmpty);
     });
 
     test('is null for anything but a cat cam answer', () {
@@ -70,6 +80,32 @@ void main() {
       formatLastSeen(DateTime(2026, 10, 11, 14, 32), now, 'de'),
       '11. Okt. 14:32',
     );
+  });
+
+  test('a stay is whole minutes, <1 below one', () {
+    expect(stayMinutes(const Duration(seconds: 59)), '<1');
+    expect(stayMinutes(const Duration(seconds: 60)), '1');
+    expect(stayMinutes(const Duration(seconds: 185)), '3');
+    expect(stayMinutes(const Duration(minutes: 95)), '95');
+  });
+
+  testWidgets('recent visits list each arrival and how long the cat stayed', (
+    tester,
+  ) async {
+    await _pumpLine(tester, () async => _seenBefore);
+    await tester.pump();
+    expect(find.textContaining('Recent visits: '), findsOneWidget);
+    expect(find.textContaining('(3 min) · '), findsOneWidget);
+    expect(find.textContaining('(<1 min)'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('a visit still going on shows no stay', (tester) async {
+    await _pumpLine(tester, () async => _inView);
+    await tester.pump();
+    expect(find.textContaining('Recent visits: '), findsOneWidget);
+    expect(find.textContaining(' min)'), findsNothing);
+    await tester.pumpWidget(const SizedBox());
   });
 
   testWidgets('a cat in view shows under the cat cam name', (tester) async {
@@ -141,6 +177,7 @@ void main() {
       );
       await tester.pump();
       expect(find.textContaining('Katze zuletzt gesehen: '), findsOneWidget);
+      expect(find.textContaining('Letzte Besuche: '), findsOneWidget);
       expect(tester.takeException(), isNull);
       await tester.pumpWidget(const SizedBox());
     },

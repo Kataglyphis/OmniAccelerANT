@@ -20,5 +20,7 @@
   "catInView": "Katze im Bild",
   "catLastSeen": "Katze zuletzt gesehen: {when}",
   "catNotSeenYet": "Noch keine Katze gesehen",
-  "catLastArrival": "Die letzte Ankunft der Katze"
+  "catLastArrival": "Die letzte Ankunft der Katze",
+  "catRecentVisits": "Letzte Besuche: {visits}",
+  "catVisitStay": "{time} ({minutes} Min.)"
 }

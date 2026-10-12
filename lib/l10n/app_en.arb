@@ -27,5 +27,24 @@
     }
   },
   "catNotSeenYet": "No cat seen yet",
-  "catLastArrival": "The cat's last arrival"
+  "catLastArrival": "The cat's last arrival",
+  "catRecentVisits": "Recent visits: {visits}",
+  "@catRecentVisits": {
+    "placeholders": {
+      "visits": {
+        "type": "String"
+      }
+    }
+  },
+  "catVisitStay": "{time} ({minutes} min)",
+  "@catVisitStay": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      },
+      "minutes": {
+        "type": "String"
+      }
+    }
+  }
 }
