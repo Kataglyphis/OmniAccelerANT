@@ -5,6 +5,7 @@ import 'package:web/web.dart' as web;
 import 'package:flutter/material.dart';
 
 import 'package:omni_accelerant/js/gstwebrtc_api_interop.dart';
+import 'package:omni_accelerant/l10n/app_localizations.dart';
 import 'package:omni_accelerant/settings/webrtc_settings.dart';
 
 // Add this extension to access the JS property directly.
@@ -73,7 +74,9 @@ JSAny? _buildWebRTCConfig(WebRTCSettings settings) {
 class _WebRTCViewState extends State<WebRTCView> {
   ConsumerSession? _consumer;
   WebRTCStage _stage = WebRTCStage.connecting;
-  String? _detail;
+
+  /// Built at render time, so it follows the page's language.
+  String Function(AppLocalizations l10n)? _detail;
 
   @override
   void initState() {
@@ -141,8 +144,9 @@ class _WebRTCViewState extends State<WebRTCView> {
           _consumer = null;
           _setStage(
             WebRTCStage.connecting,
-            'Lost the signalling connection — retrying every '
-            '${widget.settings.reconnectionTimeoutMs} ms.',
+            (l10n) => l10n.webrtcSignallingLost(
+              widget.settings.reconnectionTimeoutMs,
+            ),
           );
         }).toJS,
       ),
@@ -166,13 +170,19 @@ class _WebRTCViewState extends State<WebRTCView> {
           _consumer?.close();
           _consumer = null;
           _sharedVideo?.srcObject = null;
-          _setStage(WebRTCStage.waitingForProducer, 'The producer went away.');
+          _setStage(
+            WebRTCStage.waitingForProducer,
+            (l10n) => l10n.webrtcCameraGone,
+          );
         }).toJS,
       ),
     );
   }
 
-  void _setStage(WebRTCStage stage, [String? detail]) {
+  void _setStage(
+    WebRTCStage stage, [
+    String Function(AppLocalizations l10n)? detail,
+  ]) {
     if (!mounted) return;
     setState(() {
       _stage = stage;
@@ -199,10 +209,7 @@ class _WebRTCViewState extends State<WebRTCView> {
     );
     if (consumer == null) {
       debugPrint('createConsumerSession returned null (not connected yet?)');
-      _setStage(
-        WebRTCStage.failed,
-        'Could not open a session for producer $producerId.',
-      );
+      _setStage(WebRTCStage.failed, (l10n) => l10n.webrtcNoSession(producerId));
       return;
     }
     _consumer = consumer;
@@ -242,18 +249,14 @@ class _WebRTCViewState extends State<WebRTCView> {
       'error'.toJS,
       ((JSAny e) {
         debugPrint('Consumer error event');
-        _setStage(
-          WebRTCStage.failed,
-          'The peer connection reported an error. If this is a remote board, '
-          'check that the WebRTC UDP range reaches it.',
-        );
+        _setStage(WebRTCStage.failed, (l10n) => l10n.webrtcPeerError);
       }).toJS,
     );
 
     final bool ok = consumer.connect();
     if (!ok) {
       debugPrint('consumer.connect() returned false');
-      _setStage(WebRTCStage.failed, 'Could not start the peer connection.');
+      _setStage(WebRTCStage.failed, (l10n) => l10n.webrtcPeerNotStarted);
     }
   }
 
@@ -272,6 +275,7 @@ class _WebRTCViewState extends State<WebRTCView> {
 
   Widget _buildStatusOverlay(BuildContext context) {
     final ThemeData theme = Theme.of(context);
+    final AppLocalizations l10n = AppLocalizations.of(context)!;
     final bool failed = _stage == WebRTCStage.failed;
 
     return Positioned.fill(
@@ -298,7 +302,7 @@ class _WebRTCViewState extends State<WebRTCView> {
                   ),
                 const SizedBox(height: 12),
                 Text(
-                  _headline,
+                  _headline(l10n),
                   textAlign: TextAlign.center,
                   style: theme.textTheme.titleSmall?.copyWith(
                     color: failed ? theme.colorScheme.error : null,
@@ -306,7 +310,7 @@ class _WebRTCViewState extends State<WebRTCView> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  _detail ?? _defaultDetail,
+                  _detail?.call(l10n) ?? _defaultDetail(l10n),
                   textAlign: TextAlign.center,
                   style: theme.textTheme.bodySmall,
                 ),
@@ -318,22 +322,20 @@ class _WebRTCViewState extends State<WebRTCView> {
     );
   }
 
-  String get _headline => switch (_stage) {
-    WebRTCStage.connecting => 'Connecting to the signalling server',
-    WebRTCStage.waitingForProducer => 'Waiting for a camera',
-    WebRTCStage.negotiating => 'Negotiating the video stream',
-    WebRTCStage.streaming => 'Streaming',
-    WebRTCStage.failed => 'The stream could not be started',
+  String _headline(AppLocalizations l10n) => switch (_stage) {
+    WebRTCStage.connecting => l10n.webrtcConnecting,
+    WebRTCStage.waitingForProducer => l10n.webrtcWaitingForCamera,
+    WebRTCStage.negotiating => l10n.webrtcNegotiating,
+    WebRTCStage.streaming => l10n.webrtcStreaming,
+    WebRTCStage.failed => l10n.webrtcFailed,
   };
 
   /// The fallback second line: what to check next, not the headline again.
-  String get _defaultDetail => switch (_stage) {
+  String _defaultDetail(AppLocalizations l10n) => switch (_stage) {
     WebRTCStage.connecting => widget.settings.signalingServerUrl,
-    WebRTCStage.waitingForProducer =>
-      'Signalling is up, but no producer has announced itself. Start '
-          'kataglyphis_cat_webrtc on the camera host.',
-    WebRTCStage.negotiating => 'Exchanging ICE candidates.',
+    WebRTCStage.waitingForProducer => l10n.webrtcNoCamera,
+    WebRTCStage.negotiating => l10n.webrtcExchangingCandidates,
     WebRTCStage.streaming => '',
-    WebRTCStage.failed => 'See the browser console for the underlying error.',
+    WebRTCStage.failed => l10n.webrtcSeeConsole,
   };
 }

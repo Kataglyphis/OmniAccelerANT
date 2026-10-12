@@ -88,4 +88,50 @@ class AppLocalizationsEn extends AppLocalizations {
   String catVisitStay(String time, String minutes) {
     return '$time ($minutes min)';
   }
+
+  @override
+  String get webrtcConnecting => 'Connecting to the signalling server';
+
+  @override
+  String get webrtcWaitingForCamera => 'Waiting for a camera';
+
+  @override
+  String get webrtcNegotiating => 'Negotiating the video stream';
+
+  @override
+  String get webrtcStreaming => 'Streaming';
+
+  @override
+  String get webrtcFailed => 'The stream could not be started';
+
+  @override
+  String webrtcSignallingLost(int ms) {
+    return 'Lost the signalling connection — retrying every $ms ms.';
+  }
+
+  @override
+  String get webrtcCameraGone => 'The camera went offline.';
+
+  @override
+  String webrtcNoSession(String camera) {
+    return 'Could not open a session for the camera $camera.';
+  }
+
+  @override
+  String get webrtcPeerError =>
+      'The connection reported an error. If the camera is another device, check that the WebRTC UDP range reaches it.';
+
+  @override
+  String get webrtcPeerNotStarted => 'Could not start the connection.';
+
+  @override
+  String get webrtcNoCamera =>
+      'Signalling is up, but no camera has announced itself. Start kataglyphis_cat_webrtc on the camera host.';
+
+  @override
+  String get webrtcExchangingCandidates => 'Exchanging ICE candidates.';
+
+  @override
+  String get webrtcSeeConsole =>
+      'See the browser console for the underlying error.';
 }

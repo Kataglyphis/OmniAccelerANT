@@ -46,5 +46,32 @@
         "type": "String"
       }
     }
-  }
+  },
+  "webrtcConnecting": "Connecting to the signalling server",
+  "webrtcWaitingForCamera": "Waiting for a camera",
+  "webrtcNegotiating": "Negotiating the video stream",
+  "webrtcStreaming": "Streaming",
+  "webrtcFailed": "The stream could not be started",
+  "webrtcSignallingLost": "Lost the signalling connection — retrying every {ms} ms.",
+  "@webrtcSignallingLost": {
+    "placeholders": {
+      "ms": {
+        "type": "int"
+      }
+    }
+  },
+  "webrtcCameraGone": "The camera went offline.",
+  "webrtcNoSession": "Could not open a session for the camera {camera}.",
+  "@webrtcNoSession": {
+    "placeholders": {
+      "camera": {
+        "type": "String"
+      }
+    }
+  },
+  "webrtcPeerError": "The connection reported an error. If the camera is another device, check that the WebRTC UDP range reaches it.",
+  "webrtcPeerNotStarted": "Could not start the connection.",
+  "webrtcNoCamera": "Signalling is up, but no camera has announced itself. Start kataglyphis_cat_webrtc on the camera host.",
+  "webrtcExchangingCandidates": "Exchanging ICE candidates.",
+  "webrtcSeeConsole": "See the browser console for the underlying error."
 }

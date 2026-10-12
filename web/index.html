@@ -18,6 +18,8 @@
     <base href="$FLUTTER_BASE_HREF">
 
     <meta charset="UTF-8">
+    <!-- Without it a phone lays the loading screen and cookie notice out at 980 px, like a desktop; Flutter sets its own once it runs. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta content="IE=Edge" http-equiv="X-UA-Compatible">
     <meta name="description"
         content="Cross-platform AI inference: a Flutter frontend over a Rust core, with live GStreamer WebRTC object detection.">
@@ -84,13 +86,11 @@
 
     <script>
         var userLanguage = navigator.language || navigator.userLanguage;
-        var messageEn = `I only use technically necessary cookies to provide services.\n
-			Further information can be found in the cookie statement at
-			the bottom of the website.\n Have fun :)`;
-        var messageDe = `Ich verwende ausschließlich technisch notwendige Cookies, um Dienstleistungen zu erbringen.
-			Weitere informationen finden Sie in der Cookie Erklärung im unteren Teil der Website. Viel Spaß :)`;
+        var messageEn = 'I only use technically necessary cookies to provide services.\n'
+            + 'Further information can be found in the cookie statement at the bottom of the website. Have fun :)';
+        var messageDe = 'Ich verwende ausschließlich technisch notwendige Cookies, um Dienstleistungen zu erbringen.\n'
+            + 'Weitere Informationen finden Sie in der Cookie-Erklärung im unteren Teil der Website. Viel Spaß :)';
         setMessage(userLanguage.substring(0, 2), 'message', messageDe, messageEn);
-        setMessage(userLanguage.substring(0, 2), 'loading-message', messageDe, messageEn);
         initCookieNotice();
     </script>
 

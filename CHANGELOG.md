@@ -32,6 +32,18 @@ What landed on `develop` after 2.0.0+2. Most of it is the cat cam, whose guide i
 - The integration test runs on Windows x64 and arm64, through `flutter drive` against
   the clang-cl app (2026-10-04/05).
 
+### Fixed
+
+- **The footer shows all seven social icons** (2026-10-12). Icon tree shaking had kept
+  GitHub's alone, because ANThology held the others in a map that was not `const`.
+- **The loading screen and cookie notice fit a phone** (2026-10-12). The page had no
+  viewport tag, so a phone laid both out 980 px wide, like a desktop, until Flutter
+  started. The cookie notice now stacks its text above a full-width button there.
+- **The About page's skills fit a phone**, a title above each list instead of words
+  broken mid-word, and the footer's copyright runs to the current year (2026-10-12).
+- **The video box speaks the page's language** (2026-10-12): its status lines were
+  English on the German page.
+
 ### Changed
 
 - **The cat cam needs a fraction of the CPU** (2026-10-11/12, measured on a Pi 5).

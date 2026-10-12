@@ -241,6 +241,84 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{time} ({minutes} min)'**
   String catVisitStay(String time, String minutes);
+
+  /// No description provided for @webrtcConnecting.
+  ///
+  /// In en, this message translates to:
+  /// **'Connecting to the signalling server'**
+  String get webrtcConnecting;
+
+  /// No description provided for @webrtcWaitingForCamera.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting for a camera'**
+  String get webrtcWaitingForCamera;
+
+  /// No description provided for @webrtcNegotiating.
+  ///
+  /// In en, this message translates to:
+  /// **'Negotiating the video stream'**
+  String get webrtcNegotiating;
+
+  /// No description provided for @webrtcStreaming.
+  ///
+  /// In en, this message translates to:
+  /// **'Streaming'**
+  String get webrtcStreaming;
+
+  /// No description provided for @webrtcFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The stream could not be started'**
+  String get webrtcFailed;
+
+  /// No description provided for @webrtcSignallingLost.
+  ///
+  /// In en, this message translates to:
+  /// **'Lost the signalling connection — retrying every {ms} ms.'**
+  String webrtcSignallingLost(int ms);
+
+  /// No description provided for @webrtcCameraGone.
+  ///
+  /// In en, this message translates to:
+  /// **'The camera went offline.'**
+  String get webrtcCameraGone;
+
+  /// No description provided for @webrtcNoSession.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not open a session for the camera {camera}.'**
+  String webrtcNoSession(String camera);
+
+  /// No description provided for @webrtcPeerError.
+  ///
+  /// In en, this message translates to:
+  /// **'The connection reported an error. If the camera is another device, check that the WebRTC UDP range reaches it.'**
+  String get webrtcPeerError;
+
+  /// No description provided for @webrtcPeerNotStarted.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not start the connection.'**
+  String get webrtcPeerNotStarted;
+
+  /// No description provided for @webrtcNoCamera.
+  ///
+  /// In en, this message translates to:
+  /// **'Signalling is up, but no camera has announced itself. Start kataglyphis_cat_webrtc on the camera host.'**
+  String get webrtcNoCamera;
+
+  /// No description provided for @webrtcExchangingCandidates.
+  ///
+  /// In en, this message translates to:
+  /// **'Exchanging ICE candidates.'**
+  String get webrtcExchangingCandidates;
+
+  /// No description provided for @webrtcSeeConsole.
+  ///
+  /// In en, this message translates to:
+  /// **'See the browser console for the underlying error.'**
+  String get webrtcSeeConsole;
 }
 
 class _AppLocalizationsDelegate

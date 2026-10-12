@@ -1,23 +1,22 @@
+/* Shown until Flutter draws its first frame; lib/src/boot/boot_overlay_web.dart removes it. */
 .loading {
 	display: flex;
 	flex-direction: column;
-	justify-content: center;
 	align-items: center;
-	margin: 0;
+	gap: 16px;
 	position: absolute;
 	top: 50%;
 	left: 50%;
-	-ms-transform: translate(-50%, -50%);
+	width: min(90vw, 480px);
 	transform: translate(-50%, -50%);
+	text-align: center;
 }
 
 #loading-message {
 	color: #000000;
 	font-size: 24px;
-	margin-left: 15px;
 }
 
-/* #69f0ae */
 #background-animation {
 	position: fixed;
 	top: 0;
@@ -30,38 +29,36 @@
 	animation: gradientAnimation 5s ease infinite;
 }
 
-/* #ffffff, #69f0ae */
 .loader {
-	border: 16px solid #f3f3f3;
-	border-radius: 50%;
-	border: 15px solid;
-	border-top: 16px solid var(--kPrimaryColor);
-	border-right: 16px solid white;
-	border-bottom: 16px solid var(--kPrimaryColor);
-	border-left: 16px solid white;
 	width: 120px;
 	height: 120px;
-	-webkit-animation: spin 2s linear infinite;
+	border: 16px solid white;
+	border-top-color: var(--kPrimaryColor);
+	border-bottom-color: var(--kPrimaryColor);
+	border-radius: 50%;
 	animation: spin 2s linear infinite;
-	margin: 10px 0;
 }
 
-@-webkit-keyframes spin {
-	0% {
-		-webkit-transform: rotate(0deg);
+@media (max-width: 480px) {
+	.loader {
+		width: 88px;
+		height: 88px;
+		border-width: 12px;
 	}
 
-	100% {
-		-webkit-transform: rotate(360deg);
+	#loading-message {
+		font-size: 20px;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	#background-animation {
+		animation: none;
 	}
 }
 
 @keyframes spin {
-	0% {
-		transform: rotate(0deg);
-	}
-
-	100% {
+	to {
 		transform: rotate(360deg);
 	}
 }

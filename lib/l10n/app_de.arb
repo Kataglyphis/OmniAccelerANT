@@ -22,5 +22,18 @@
   "catNotSeenYet": "Noch keine Katze gesehen",
   "catLastArrival": "Die letzte Ankunft der Katze",
   "catRecentVisits": "Letzte Besuche: {visits}",
-  "catVisitStay": "{time} ({minutes} Min.)"
+  "catVisitStay": "{time} ({minutes} Min.)",
+  "webrtcConnecting": "Verbinde mit dem Signalisierungsserver",
+  "webrtcWaitingForCamera": "Warte auf eine Kamera",
+  "webrtcNegotiating": "Der Videostream wird ausgehandelt",
+  "webrtcStreaming": "Wird übertragen",
+  "webrtcFailed": "Der Stream konnte nicht gestartet werden",
+  "webrtcSignallingLost": "Verbindung zum Signalisierungsserver verloren – neuer Versuch alle {ms} ms.",
+  "webrtcCameraGone": "Die Kamera ist offline gegangen.",
+  "webrtcNoSession": "Konnte keine Sitzung für die Kamera {camera} öffnen.",
+  "webrtcPeerError": "Die Verbindung meldete einen Fehler. Ist die Kamera ein anderes Gerät, prüfen Sie, ob der WebRTC-UDP-Bereich es erreicht.",
+  "webrtcPeerNotStarted": "Die Verbindung konnte nicht gestartet werden.",
+  "webrtcNoCamera": "Der Signalisierungsserver läuft, aber keine Kamera hat sich gemeldet. Starten Sie kataglyphis_cat_webrtc auf dem Kamerarechner.",
+  "webrtcExchangingCandidates": "ICE-Kandidaten werden ausgetauscht.",
+  "webrtcSeeConsole": "Den zugrunde liegenden Fehler zeigt die Browser-Konsole."
 }
