@@ -61,6 +61,10 @@ What landed on `develop` after 2.0.0+2. Most of it is the cat cam, whose guide i
     still, empty scene went from 74 % to 12 % of a core, a dark room at night to 2 %.
   - Frames stay I420 from the camera to the encoder.
   - The web build goes out gzipped, and a revalidation answers 304 without reading a file.
+- **Every build is 7.6 MB lighter** (2026-10-12, ANThology c441bb7): the 404 page's
+  animation is a 0.85 MB WebP instead of a 4.9 MB GIF, and the 3.6 MB GIF the landing
+  page no longer shows is gone. The web, Linux, Windows and Android builds all bundle
+  ANThology's images.
 - **The cat cam's web build ships zopfli-compressed** (2026-10-12): a first visit is
   3.75 MB, 180 kB less, and the board compresses nothing at run time. The packages leave
   out two Flutter renderers this build never loads, and the debug maps.
