@@ -88,6 +88,34 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
+  testWidgets(
+    'a long German line wraps on a narrow phone instead of overflowing',
+    (tester) async {
+      tester.view.physicalSize = const Size(220, 600);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('de'),
+          home: Scaffold(
+            body: Center(
+              child: CatStatusLine(
+                fetch: () async => _seenBefore,
+                fallbackName: 'Fallback Cam',
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      expect(find.textContaining('Katze zuletzt gesehen: '), findsOneWidget);
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
+
   testWidgets('without a cat cam behind the page only the name shows', (
     tester,
   ) async {

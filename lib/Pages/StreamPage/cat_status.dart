@@ -136,7 +136,8 @@ class _CatStatusLineState extends State<CatStatusLine> {
           spacing: 6,
           children: [
             Icon(icon, size: 18, color: color),
-            Text(text),
+            // Flexible, so a long German line wraps on a narrow phone instead of overflowing.
+            Flexible(child: Text(text)),
           ],
         ),
       ],
