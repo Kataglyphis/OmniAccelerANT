@@ -48,7 +48,6 @@ flutter:
   uses-material-design: true
   # Only app-specific assets; the shared corpus is referenced as `packages/anthology/assets/...`.
   assets:
-    - assets/images/
     - assets/documents/
     - assets/documents/footer/
     - assets/data/

@@ -66,6 +66,10 @@ What landed on `develop` after 2.0.0+2. Most of it is the cat cam, whose guide i
   Montserrat (18). The cat cam page's cold load went from 7.36 MB in 71 requests to
   4.55 MB in 49, and on a 10 Mbit/s link its first video frame from 7.7 s to 5.6 s.
   Pages render pixel for pixel as before. The checkout is 48 MiB lighter too.
+- **The checkout is 6.6 MiB, down from 99 MiB** (2026-10-12). Every tracked file nothing
+  referenced went: `dummy_assets/` (79.7 MiB), an unlisted video (12.3 MiB),
+  `assets/images/barbell.png`, gstwebrtc-api's demo page and the UMD build only it
+  loaded (both published with every web build), and ANThology's `Untitled.md`.
 - **The app icons are 8-bit PNGs** (2026-10-12). They were stored at 16 bits per
   channel, which no browser shows: Chrome decodes old and new to the same pixels. The
   192 px icon Chrome fetches with every cold load is 26 kB instead of 123 kB, and the

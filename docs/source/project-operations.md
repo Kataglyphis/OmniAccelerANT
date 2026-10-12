@@ -203,15 +203,12 @@ file next to a pinned shared one is exactly the drift that removal closed.
 
 ## Large tracked binaries
 
-Measured 2026-10-12: **100 MiB across 438 tracked files**, of which roughly
-93 MiB is binary assets, after the Noto Sans family (47.9 MiB, 76 files) went that
-day; 2026-09-15 counted 148 MiB across 451. The inventory, so nobody has to
-re-derive it:
+Measured 2026-10-12: **6.6 MiB across 424 tracked files**, after that day removed
+every tracked binary nothing referenced (below); 2026-09-15 counted 148 MiB across
+451. The inventory, so nobody has to re-derive it:
 
 | What | Size | Why it is tracked |
 |------|------|-------------------|
-| `dummy_assets/` | 79.7 MiB, 16 files | Fixture corpus mirroring the shape of `assets/`. 79.1 MiB (82.9 MB) of it is two PDFs, `documents/thesis/{Master,Bachelor}_Thesis.pdf`. **Nothing references it** — not `pubspec.yaml`'s asset list, not `lib/`, not a test, not a script. It is sample content for trying the document pages against. |
-| `assets/videos/funnyandsummy.mp4` | 12.3 MiB | Demo clip. Not in `pubspec.yaml`'s asset list and not referenced from `lib/`. |
 | `assets/icons/kataglyphis_app_icon.png` | 1.9 MiB | Load-bearing: `flutter_launcher_icons` generates every platform icon set from it (`pubspec.yaml` names it five times), so it must stay at source resolution. |
 | `images/overview.gif` | 1.6 MiB | README illustration. |
 | `web/sqlite3.wasm` | 0.7 MiB | The sqlite3 WASM build the web app loads. Fetched and checksum-verified by ANTfrastructure's `setup-sqlite3-wasm.sh`; the committed copy is a convenience, and it has been wrong before (see [Getting Started](getting-started.md)). |
@@ -229,12 +226,19 @@ above. It changes the next one: a new asset the app genuinely ships is added
 with `git add -f <path>` and earns a row here saying what it is for. Having to
 type `-f` is the whole mechanism.
 
-The fonts went first, on 2026-10-12: all 76 Noto Sans files, the four faces
-`pubspec.yaml` declared included, because no code ever rendered with the family
-(the theme font is ANThology's Roboto) and Flutter web downloaded those four, about
-1.2 MB, before every cold load's first frame. If the tree is trimmed further, the
-order is obvious from the table and needs no history rewrite: `dummy_assets/`,
-then the video. Both are deletions in a normal commit.
+**The trim happened on 2026-10-12, in normal commits.** What went:
+- all 76 Noto Sans files (47.9 MiB), the four faces `pubspec.yaml` declared included.
+  No code ever rendered with the family (the theme font is ANThology's Roboto), and
+  Flutter web downloaded those four, about 1.2 MB, before every cold load's first frame;
+- `dummy_assets/` (79.7 MiB, 16 files, two thesis PDFs most of it), the fixture corpus
+  nothing read;
+- `assets/videos/funnyandsummy.mp4` (12.3 MiB), in no asset list;
+- `assets/images/barbell.png`, the folder's last file, and the folder's `pubspec.yaml`
+  entry with it;
+- gstwebrtc-api's demo page `web/javascript/webrtc/index.html` with the UMD build only
+  it loaded. Every web build had published both; the app imports the ESM module.
+
+What the table lists now is load-bearing.
 
 ## Serving the web build
 
