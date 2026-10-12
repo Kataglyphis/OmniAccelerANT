@@ -72,6 +72,17 @@ void main() {
       expect(CatStatus.fromHealthz(_inView)!.hasLatestClip, isFalse);
     });
 
+    test('reads every kept clip, newest first', () {
+      final status = CatStatus.fromHealthz(
+        _inView.replaceFirst('"visits":3', '"visits":3,"clips":[30,20,"x",10]'),
+      )!;
+      expect(status.clips, <DateTime>[
+        for (final int t in <int>[30, 20, 10])
+          DateTime.fromMillisecondsSinceEpoch(t * 1000),
+      ]);
+      expect(CatStatus.fromHealthz(_inView)!.clips, isEmpty);
+    });
+
     test('is null for anything but a cat cam answer', () {
       expect(CatStatus.fromHealthz('<!DOCTYPE html><html></html>'), isNull);
       expect(CatStatus.fromHealthz('{"ok":false}'), isNull);
@@ -171,6 +182,37 @@ void main() {
     final Link link = tester.widget<Link>(find.byType(Link));
     expect(link.uri.toString(), '/arrival.mp4?t=1791763200');
     expect(link.target, LinkTarget.blank);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('earlier clips are linked beside the newest arrival\'s', (
+    tester,
+  ) async {
+    // Only the newest arrival's clip: no list of earlier ones.
+    var body = _inView.replaceFirst(
+      '"visits":3',
+      '"visits":3,"clip":1791763200,"clips":[1791763200]',
+    );
+    await _pumpLine(tester, () async => body);
+    await tester.pump();
+    expect(find.text('Watch the arrival'), findsOneWidget);
+    expect(find.text('Earlier videos:'), findsNothing);
+
+    body = _inView.replaceFirst(
+      '"visits":3',
+      '"visits":3,"clip":1791763200,"clips":[1791763200,1791700000,1791600000]',
+    );
+    await tester.pump(const Duration(seconds: 5));
+    expect(find.text('Earlier videos:'), findsOneWidget);
+    final List<String> links = <String>[
+      for (final Link l in tester.widgetList<Link>(find.byType(Link)))
+        l.uri.toString(),
+    ];
+    expect(links, <String>[
+      '/arrival.mp4?t=1791763200',
+      '/arrival.mp4?t=1791700000',
+      '/arrival.mp4?t=1791600000',
+    ]);
     await tester.pumpWidget(const SizedBox());
   });
 

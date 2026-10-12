@@ -159,7 +159,7 @@ clip_ready() {
   local _
   for _ in $(seq 1 120); do
     curl -sf "http://$1:8080/healthz" 2>/dev/null \
-      | jq -e '.cat.clip != null and .cat.clip == .cat.recent[0].arrived' >/dev/null 2>&1 && return 0
+      | jq -e '.cat.clip != null and .cat.clip == .cat.recent[0].arrived and .cat.clips[0] == .cat.clip' >/dev/null 2>&1 && return 0
     sleep 0.25
   done
   return 1
@@ -266,7 +266,7 @@ check "/snapshot.jpg serves the boxed frame as a JPEG" jpeg_at "${ip}" /snapshot
 check "the arrival is POSTed to notify_url as JSON" webhook_got_arrival "${work}/webhook.jsonl"
 check "/arrival.jpg serves the frame the arrival was seen on" jpeg_at "${ip}" /arrival.jpg
 check "the visit log times the stay while the cat is in view" seen_for "${ip}" 2
-check "the arrival's clip is encoded and named in /healthz" clip_ready "${ip}"
+check "the arrival's clip is encoded, named in /healthz and first in its list" clip_ready "${ip}"
 check "/arrival.mp4 serves it as an MP4 and answers a byte range" mp4_at "${ip}" /arrival.mp4
 check "/arrival.mp4?t= serves that arrival's clip and no other" clip_by_arrival "${ip}"
 check "the finished clip is POSTed to notify_url as JSON" webhook_got clip "${work}/webhook.jsonl"

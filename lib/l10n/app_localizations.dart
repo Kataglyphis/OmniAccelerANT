@@ -236,6 +236,12 @@ abstract class AppLocalizations {
   /// **'Watch the arrival'**
   String get catArrivalVideo;
 
+  /// No description provided for @catEarlierVideos.
+  ///
+  /// In en, this message translates to:
+  /// **'Earlier videos:'**
+  String get catEarlierVideos;
+
   /// No description provided for @catRecentVisits.
   ///
   /// In en, this message translates to:

@@ -243,7 +243,7 @@ Everything it serves is on that one port, plain HTTP:
 | Path | Answers |
 | --- | --- |
 | `/` | the web app; its Stream page plays the camera and shows the cat's status, visits and last arrival |
-| `/healthz` | JSON: the live camera, `model_runs`, and the cat's `in_view`, `last_seen`, `visits`, `last_score`, `recent` visits and the `clip` arrival |
+| `/healthz` | JSON: the live camera, `model_runs`, and the cat's `in_view`, `last_seen`, `visits`, `last_score`, `recent` visits, the newest `clip`'s arrival and every kept one's (`clips`) |
 | `/snapshot.jpg` | the latest frame, boxes drawn |
 | `/arrival.jpg` | the frame the last arrival was confirmed on; `404` until a cat has come |
 | `/arrival.mp4` | the last arrival as an H.264 clip, 3 s before it to 7 s after; `?t=<arrival time>` that arrival's own, of the last five; byte ranges answered; `404` until one is encoded, or once that arrival's is dropped |
@@ -379,7 +379,8 @@ POSTs a JSON event there whenever a cat arrives or leaves:
  "detections": 2, "best_score": 0.76, "snapshot": "/arrival.jpg"}
 {"event": "clip", "name": "Trouble Tabbls Cat Cam", "time": 1791763273,
  "best_score": 0.76, "clip": "/arrival.mp4", "snapshot": "/arrival.jpg"}
-{"event": "left", "name": "Trouble Tabbls Cat Cam", "time": 1791763315, "stayed_s": 42}
+{"event": "left", "name": "Trouble Tabbls Cat Cam", "time": 1791763315, "stayed_s": 42,
+ "arrived": 1791763273, "best_score": 0.76}
 ```
 
 `/arrival.jpg` is the frame the arrival was confirmed on, boxes included, so a
@@ -404,7 +405,8 @@ directory, across a restart too: `/arrival.mp4?t=<time>` serves that arrival's o
 on himbeere2's morning of 2026-10-12) would otherwise have put its clip behind the cat's
 notification. The arrival event carries the visit log's own time, the one the clip is kept
 under. The Stream page links the newest clip by its time once `cat.clip` is the newest
-visit, so it never offers the previous cat's clip.
+visit, so it never offers the previous cat's clip, and lists the other kept ones beside it
+("Earlier videos: ▶ 18:07 ▶ 18:05", from `cat.clips`).
 On himbeere2 the packaged service, run on the cat photo at 30 fps (2026-10-12), confirmed
 the arrival at 16:21:40 and served the clip at 16:21:47: seven seconds of post-roll, and
 encoding and writing in under one. It was H.264 Constrained Baseline, which every phone
@@ -482,6 +484,19 @@ live page behind a tap. Running on himbeere2 since 2026-10-12 (Home Assistant 20
   can reach: an IP or a name its network resolves, not loopback.
 
 A test arrival posted to that webhook reached the owner's phone on 2026-10-12.
+
+**The same notification learns when the cat left.** A departure names the arrival it
+ends (`arrived`) and that arrival's `best_score`, so the automation above takes it under
+the same 0.45 and updates the notification by its `tag`: "Katze war da … War 4 Min. da."
+A clip event carries `stayed_s` too when the visit was over before its clip was encoded.
+himbeere2's automation keeps the last departure in an `input_text`
+(`"<arrival time> <seconds>"`), so its minute-apart tries of an arrival keep the stay a
+departure in between added.
+
+**At 21:00 a summary.** Each notified arrival appends its time to another `input_text`,
+which the midnight reset clears with the day's counter, and a time trigger sends
+"Heute 2 Katzenbesuche: 07:12, 18:30." or "Heute keine Katze gesehen." under a tag of its
+own.
 
 **Statistics and an outage alert, from `/healthz`.** Home Assistant's `rest` integration
 polls `http://127.0.0.1:8080/healthz` every 30 s when it runs on the cat cam's host:

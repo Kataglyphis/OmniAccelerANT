@@ -83,6 +83,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get catArrivalVideo => 'Watch the arrival';
 
   @override
+  String get catEarlierVideos => 'Earlier videos:';
+
+  @override
   String catRecentVisits(String visits) {
     return 'Recent visits: $visits';
   }

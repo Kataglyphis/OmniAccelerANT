@@ -23,6 +23,7 @@ class CatStatus {
     this.visits = 0,
     this.recent = const <CatVisit>[],
     this.clip,
+    this.clips = const <DateTime>[],
   });
 
   final String name;
@@ -37,6 +38,9 @@ class CatStatus {
 
   /// The arrival `/arrival.mp4` shows; a clip is encoded a few seconds after its arrival.
   final DateTime? clip;
+
+  /// Every arrival whose clip `/arrival.mp4?t=` still serves, newest first.
+  final List<DateTime> clips;
 
   /// The clip is of the newest visit, not one before it still waiting to be replaced.
   bool get hasLatestClip =>
@@ -62,6 +66,7 @@ class CatStatus {
     final visits = cat['visits'];
     final recent = cat['recent'];
     final clip = cat['clip'];
+    final clips = cat['clips'];
     return CatStatus(
       name: name is String ? name : '',
       inView: cat['in_view'] == true,
@@ -72,6 +77,11 @@ class CatStatus {
       clip: clip is int
           ? DateTime.fromMillisecondsSinceEpoch(clip * 1000)
           : null,
+      clips: <DateTime>[
+        if (clips is List)
+          for (final t in clips)
+            if (t is int) DateTime.fromMillisecondsSinceEpoch(t * 1000),
+      ],
       recent: <CatVisit>[
         if (recent is List)
           for (final visit in recent)
@@ -245,6 +255,33 @@ class _CatStatusLineState extends State<CatStatusLine> {
               icon: const Icon(Icons.play_circle_outline),
               label: Text(l10n.catArrivalVideo),
             ),
+          ),
+        // The other kept clips, so an earlier visit's video stays a tap away after a newer one.
+        if (status.clips.any(
+          (t) => !(status.hasLatestClip && t == status.clip),
+        ))
+          Wrap(
+            alignment: WrapAlignment.center,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              Text(
+                l10n.catEarlierVideos,
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+              for (final t in status.clips)
+                if (!(status.hasLatestClip && t == status.clip))
+                  Link(
+                    uri: Uri.parse(
+                      '/arrival.mp4?t=${t.millisecondsSinceEpoch ~/ 1000}',
+                    ),
+                    target: LinkTarget.blank,
+                    builder: (context, followLink) => TextButton.icon(
+                      onPressed: followLink,
+                      icon: const Icon(Icons.play_arrow, size: 16),
+                      label: Text(formatLastSeen(t, now, locale)),
+                    ),
+                  ),
+            ],
           ),
       ],
     );

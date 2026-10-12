@@ -22,6 +22,7 @@
   "catNotSeenYet": "Noch keine Katze gesehen",
   "catLastArrival": "Die letzte Ankunft der Katze",
   "catArrivalVideo": "Ankunft als Video ansehen",
+  "catEarlierVideos": "Frühere Videos:",
   "catRecentVisits": "Letzte Besuche: {visits}",
   "catVisitStay": "{time} ({minutes} Min.)",
   "webrtcConnecting": "Verbinde mit dem Signalisierungsserver",

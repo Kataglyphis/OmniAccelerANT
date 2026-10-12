@@ -29,6 +29,7 @@
   "catNotSeenYet": "No cat seen yet",
   "catLastArrival": "The cat's last arrival",
   "catArrivalVideo": "Watch the arrival",
+  "catEarlierVideos": "Earlier videos:",
   "catRecentVisits": "Recent visits: {visits}",
   "@catRecentVisits": {
     "placeholders": {
