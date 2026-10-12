@@ -4,6 +4,8 @@ name: Windows arm64 · cross build + test
 on:
   push:
     branches: ["main", "develop"]
+    # A docs-only push builds nothing here; linux-x64 still runs on it and deploys the docs.
+    paths-ignore: ["docs/**", "*.md"]
   pull_request:
     branches: ["main", "develop"]
 

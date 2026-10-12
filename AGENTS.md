@@ -1062,6 +1062,11 @@ cell is a test that cannot run there, and the reason is under the table.
 - Every lane runs the plugin's Dart tests through the same strict gate as the
   app's: `run_flutter_common_checks` on Linux, *Plugin Flutter Tests* in
   `Build-Windows.ps1`, `Invoke-FlutterTests.ps1` on arm64.
+- A push that touches only `docs/**` or root-level `*.md` runs Linux x64 alone, which
+  builds and deploys the docs (and Submodule pins when a gitlink moved). The other five
+  build workflows skip it through `paths-ignore` on `push` (2026-10-12), so a docs commit
+  neither queues two hour-long Windows lanes nor cancels the ones in flight. Pull
+  requests always run everything, so no required check waits on a skipped workflow.
 
 ### The Dart gate in 23 seconds, without a lane
 
