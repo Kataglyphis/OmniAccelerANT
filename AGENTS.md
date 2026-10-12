@@ -558,7 +558,7 @@ written out rather than linked.
   run reported `Formatted 7404 files (627 changed)` and rewrote the Flutter SDK
   on disk on the way. Both lanes list tracked files instead
   (`code_quality_find_dart_files` on Linux, `Get-ProjectDartFiles` on Windows;
-  the same 73 files). Keep the tracked-file listing even though the SDK now
+  the same list, `git ls-files -- '*.dart' ':!:rust_builder/**'`). Keep the tracked-file listing even though the SDK now
   comes from the image. `dart analyze` is *not* affected and never was. Detail:
   [`docs/source/project-operations.md`](docs/source/project-operations.md)
   § *Static checks*.
@@ -873,7 +873,7 @@ run shows both lines together (`FAILED: MSIX Packaging` … `=== Build Complete 
 never the log tail.**
 
 Two Windows-specific traps these steps carry: the format gate hands `dart
-format` the tracked file list (`Get-ProjectDartFiles`, the 73 files of § 4)
+format` the tracked file list (`Get-ProjectDartFiles`, the list of § 4)
 rather than `.` (the recursive walk reaches the vendored submodule gitdir and
 exceeds MAX_PATH), and docs generation
 runs a `pub global activate dartdoc` (≥ 9.0.9) instead of the SDK-bundled
@@ -1015,8 +1015,8 @@ cell is a test that cannot run there, and the reason is under the table.
 
 | Test | Linux x64 / arm64 | Windows x64 | Windows arm64 | Android | Web |
 | --- | --- | --- | --- | --- | --- |
-| App Dart tests (`test/`) | yes | yes, in the image | yes, arm64 Dart VM | yes | in Chrome, 61 |
-| Plugin Dart tests (`packages/kataglyphis_native_inference/test/`) | yes | yes, in the image | yes, arm64 Dart VM | yes | in Chrome, 4 |
+| App Dart tests (`test/`) | yes | yes, in the image | yes, arm64 Dart VM | yes | in Chrome |
+| Plugin Dart tests (`packages/kataglyphis_native_inference/test/`) | yes | yes, in the image | yes, arm64 Dart VM | yes | in Chrome |
 | Plugin gtest (`kataglyphis_native_inference_test`) | yes | built in the image, run on the host | yes, on the device | | |
 | Plugin C ABI (`knt_*`) | `check-knt-abi.sh` | `Test-KntAbi.ps1`, host | `Test-KntAbi.ps1`, device | | |
 | G6 over the shipped tree | `check-bundle-closure.sh` | at build, again on the host | at the natives build, again on the device | | |
@@ -1063,7 +1063,9 @@ cell is a test that cannot run there, and the reason is under the table.
   the Windows drives run `simple_test.dart`.
 - The web lane runs both Dart suites in Chrome since 2026-10-05 (`--test-platform chrome`
   to the hub's gate); the VM-only files are `@TestOn('vm')` and still run on every native
-  lane. Counts measured locally on 2026-10-12, on the `:latest` of 2026-10-10.
+  lane. Chrome still *compiles* them, so a VM-only test must compile for web too: a plain
+  `int` for a Rust `i64` field failed web run 38255398872 (§ 4, `PlatformInt64Util.from`).
+  `flutter test --platform chrome` in `:latest` shows it before a push.
 - Every lane runs the plugin's Dart tests through the same strict gate as the
   app's: `run_flutter_common_checks` on Linux, *Plugin Flutter Tests* in
   `Build-Windows.ps1`, `Invoke-FlutterTests.ps1` on arm64.
@@ -1113,8 +1115,8 @@ mount.
 `scripts/windows/Invoke-DartChecks.ps1` is the same loop as a script
 (`-SkipFormat`, `-SkipAnalyze`, `-SkipTest`, `-Fix`; its pub cache is the
 `omni-dart-checks-pubcache` volume). Its format step covers `lib test
-integration_test test_driver` — 63 of the 73 tracked files the lanes grade, not
-the plugin's ten under `packages/`; its test step runs the plugin's suite too.
+integration_test test_driver` — every tracked file the lanes grade but the plugin's
+under `packages/`; its test step runs the plugin's suite too.
 `-Engine wslc` runs it in WSL 3's `wslc` instead of nerdctl (hub CON62's pilot,
 2026-10-06). Measured warm on this box: format + test 23 s against nerdctl's
 32 s, analyze 146 s against 371 s. The first run pulls `:latest` into wslc's own

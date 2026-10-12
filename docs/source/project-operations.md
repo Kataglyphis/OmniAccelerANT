@@ -30,7 +30,7 @@ under `flutter/`. That alone fails `--set-exit-if-changed`, and it rewrote the
 SDK on disk on the way.
 
 Both lanes list tracked files instead — `code_quality_find_dart_files` on Linux,
-`Get-ProjectDartFiles` on Windows, the same 59 files — which is what the command
+`Get-ProjectDartFiles` on Windows, the same list — which is what the command
 above reproduces (tracked files minus `rust_builder/`, Cargokit's 19; `flutter/`
 is untracked and `third_party/` holds gitlinks, so `git ls-files` lists neither).
 Keep the tracked-file listing even now that the SDK comes from
