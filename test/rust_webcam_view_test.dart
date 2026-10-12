@@ -6,6 +6,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:omni_accelerant/Pages/StreamPage/rust_webcam_view.dart';
 import 'package:omni_accelerant/src/rust/api/webcam.dart';
@@ -53,7 +54,14 @@ DetectionEvent _event({required int boxes, double fps = 0, double ms = 0}) =>
     DetectionEvent(
       detections: <DetectionBox>[
         for (int i = 0; i < boxes; i++)
-          DetectionBox(x1: 10, y1: 10, x2: 50, y2: 50, score: 0.8, classId: 15),
+          DetectionBox(
+            x1: 10,
+            y1: 10,
+            x2: 50,
+            y2: 50,
+            score: 0.8,
+            classId: PlatformInt64Util.from(15),
+          ),
       ],
       frameSequence: BigInt.one,
       ptsMs: null,

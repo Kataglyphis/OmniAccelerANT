@@ -1015,7 +1015,7 @@ cell is a test that cannot run there, and the reason is under the table.
 
 | Test | Linux x64 / arm64 | Windows x64 | Windows arm64 | Android | Web |
 | --- | --- | --- | --- | --- | --- |
-| App Dart tests (`test/`) | yes | yes, in the image | yes, arm64 Dart VM | yes | in Chrome, 57 |
+| App Dart tests (`test/`) | yes | yes, in the image | yes, arm64 Dart VM | yes | in Chrome, 59 |
 | Plugin Dart tests (`packages/kataglyphis_native_inference/test/`) | yes | yes, in the image | yes, arm64 Dart VM | yes | in Chrome, 4 |
 | Plugin gtest (`kataglyphis_native_inference_test`) | yes | built in the image, run on the host | yes, on the device | | |
 | Plugin C ABI (`knt_*`) | `check-knt-abi.sh` | `Test-KntAbi.ps1`, host | `Test-KntAbi.ps1`, device | | |
