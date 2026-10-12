@@ -481,7 +481,8 @@ live page behind a tap. Running on himbeere2 since 2026-10-12 (Home Assistant 20
 - **Notify above 0.45, count from `score`.** On 2026-10-12 a white object at the bottom of
   himbeere2's frame made 33 "visits" between 0.26 and 0.44, and a cat in the bundled photo
   scores 0.76. The condition keeps those off the phone while the visit log still counts
-  them; raising `score` instead would drop them from both.
+  them; raising `score` instead would drop them from both. It is not enough on its own:
+  at 21:57 the same object scored 0.65 and reached the phone (BACKLOG, *False arrivals*).
 - **The companion app's `minimal` build has no push service.** It receives notifications
   only over its own connection to Home Assistant, so set *Persistent connection* to
   *Always* in its server settings. The `full` build gets them through Firebase. A push
@@ -507,6 +508,19 @@ which the midnight reset clears with the day's counter, and a time trigger sends
 "Heute 2 Katzenbesuche: 07:12, 18:30." or "Heute keine Katze gesehen." under a tag of its
 own.
 
+**More than one cat cam.** Each posts to a webhook of its own, and one automation takes
+them all: a webhook trigger per camera with an `id`, and variables that map that id to
+the camera's base URL (both in `secrets.yaml`), its video sensor and the place a
+notification names ("Katze ist am Futtertrog"). The `tag` carries the id
+(`catcam-arrival-<id>`), so one camera's notification never replaces another's, and the
+stay is kept as `"<id> <arrival> <seconds>"`. The counters count both, and the summary
+names the place with each time ("21:57 Büro, 22:30 Futtertrog"). A second `rest` entry
+polls the other camera's `/healthz`, and the outage alert watches both online sensors,
+under one tag per camera. Since 2026-10-12 himbeere2's Home Assistant takes its own cat
+cam ("Cat Cam Büro", on loopback) and tabblscatcam's ("Cat Cam Futtertrog", a second
+Pi 5 with a Camera Module 3); a departure posted from tabblscatcam to its webhook updated
+that camera's notification and stay.
+
 **Statistics and an outage alert, from `/healthz`.** Home Assistant's `rest` integration
 polls `http://127.0.0.1:8080/healthz` every 30 s when it runs on the cat cam's host:
 `cat.in_view`, `cat.last_seen`, `cat.visits`, `cat.recent[0].stayed_s` and `ok` become
@@ -520,6 +534,12 @@ sensors, and with the cat cam unreachable they all turn `unavailable`. On himbee
   offline", and its return after such an outage sends "Cat cam wieder da"; a Home
   Assistant restart's few seconds stay quiet. Stopping `omni-catcam` for 5 min 45 s sent
   the first at 5 min, on the dot.
+- **A sensor that has no value yet needs `availability`, not `none`.** A `rest` template
+  that returns `none` renders the text "None", which a timestamp sensor logs as an invalid
+  timestamp on every poll and a duration sensor refuses at load (`ValueError: ... has the
+  non-numeric value: 'None'`). A new camera has no sighting yet, and a visit in progress
+  has a null `stayed_s`, so `last_seen` and the stay are guarded with `availability`
+  templates (`{{ value_json.cat.last_seen is number }}`) and show unavailable instead.
 
 #### The Stream page
 
