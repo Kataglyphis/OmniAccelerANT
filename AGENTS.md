@@ -1021,6 +1021,7 @@ cell is a test that cannot run there, and the reason is under the table.
 | Plugin C ABI (`knt_*`) | `check-knt-abi.sh` | `Test-KntAbi.ps1`, host | `Test-KntAbi.ps1`, device | | |
 | G6 over the shipped tree | `check-bundle-closure.sh` | at build, again on the host | at the natives build, again on the device | | |
 | Bundle gate's mutation suite | yes | | | | |
+| Dart coverage of `lib/`, floor 85 % (`check-dart-coverage.sh`), and its synthetic-lcov suite | yes | | | | |
 | Plugin C++ format (`check-plugin-cpp-format.sh`) and its planted-deviation suite | yes | | | | |
 | Import walk | (the closure gate) | host, `-Standalone` | device | | |
 | Launch smoke, 20 s | under Xvfb | host | device | | |
@@ -1050,7 +1051,11 @@ cell is a test that cannot run there, and the reason is under the table.
 - The mutation suite builds synthetic ELFs for the Linux closure gate; Windows has
   no ELF and no such gate. Pester tests PowerShell that only Windows lanes run.
 - The plugin's C++ format gate needs only the sources, so one lane grades them for
-  every platform; Windows has no C++ format step.
+  every platform; Windows has no C++ format step. The coverage floor is the same kind of
+  check: one lane's `flutter test --coverage` measures the same Dart everywhere. It counts
+  `lib/` without the generated bridge and localizations, was 87.4 % on 2026-10-12 (62 %
+  that morning, before the native Stream page and Rust camera view tests), and fails the
+  batch below 85 %; a file no test imports is not in the report at all.
 - The rustc stamp lives in an ELF `.comment`, which a Windows PE does not have. The
   web lane builds its wasm with `build-web` and the dated nightly it names (§ 4), not
   Cargokit.
