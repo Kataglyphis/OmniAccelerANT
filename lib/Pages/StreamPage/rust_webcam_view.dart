@@ -126,19 +126,21 @@ class _RustWebcamViewState extends State<RustWebcamView> {
   }
 
   void _stop() {
+    _release();
+    if (_running) setState(() => _running = false);
+  }
+
+  /// Stops the core's session and drops its stream, without touching the UI.
+  void _release() {
     stopWebcamInference();
     _subscription?.cancel();
     _subscription = null;
-    if (mounted && _running) {
-      setState(() => _running = false);
-    } else {
-      _running = false;
-    }
   }
 
   @override
   void dispose() {
-    _stop();
+    // No setState from here: the element is already defunct, so _stop's rebuild failed an assertion.
+    _release();
     _modelPathController.dispose();
     super.dispose();
   }
