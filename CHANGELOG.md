@@ -48,6 +48,10 @@ What landed on `develop` after 2.0.0+2. Most of it is the cat cam, whose guide i
   Montserrat (18). The cat cam page's cold load went from 7.36 MB in 71 requests to
   4.55 MB in 49, and on a 10 Mbit/s link its first video frame from 7.7 s to 5.6 s.
   Pages render pixel for pixel as before. The checkout is 48 MiB lighter too.
+- **The app icons are 8-bit PNGs** (2026-10-12). They were stored at 16 bits per
+  channel, which no browser shows: Chrome decodes old and new to the same pixels. The
+  192 px icon Chrome fetches with every cold load is 26 kB instead of 123 kB, and the
+  ten web and Android icons together 0.3 MB instead of 1.7 MB.
 
 ## 2.0.0+2 — 2026-10-01
 
