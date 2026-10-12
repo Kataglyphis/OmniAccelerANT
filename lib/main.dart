@@ -65,17 +65,12 @@ Future<OmniBootstrapData> loadAppSettings() async {
 }
 
 Future<void> main() async {
-  // The timeout matters: without web/pkg/ frb's loader never completes, so a bare catch would hang on the spinner.
-  try {
-    await loadRustCore(
-      () => RustLib.init().timeout(const Duration(seconds: 20)),
-      // Firefox and Safari refuse the core's shared wasm memory without COOP/COEP, and the web streams without it.
-      optional: kIsWeb,
-    );
-  } catch (error, stackTrace) {
-    showBootFailure(error, stackTrace);
-    rethrow;
-  }
+  // The timeout matters: without web/pkg/ frb's loader never completes, and the page would stay on its spinner.
+  await loadRustCore(
+    () => RustLib.init().timeout(const Duration(seconds: 20)),
+    // Firefox and Safari refuse the core's shared wasm memory without COOP/COEP, and the web streams without it.
+    optional: kIsWeb,
+  );
   dismissBootOverlay();
   runApp(const App());
 }
