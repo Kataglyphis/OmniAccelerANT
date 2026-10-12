@@ -164,7 +164,7 @@ consumes.
 - Open `http://<host>:8080/` from a browser on the network. Under the video the page
   says whether a cat is in view, or when one was last seen, lists its latest visits
   with how long each lasted, and shows the picture of its last arrival, with a link to
-  its video once that is encoded.
+  its video once that is encoded and to the four videos kept before it.
 - `http://<host>:8080/healthz` says which camera is live, when a cat was last seen,
   how many visits it counted and how long the latest 20 lasted; `/snapshot.jpg` is the
   current picture, boxes included, `/arrival.jpg` the frame the last arrival was
@@ -175,12 +175,15 @@ consumes.
   [camera-streaming.md § Home Assistant](docs/source/camera-streaming.md#home-assistant) has an automation
   that sends each arrival to a phone with its picture and then its video, and sensors
   for visits per day and an alert when the cat cam stops answering.
+- A second cat cam is another install on another board: give each its own `name` and
+  webhook, and one Home Assistant automation serves both (*More than one cat cam* there).
 - The service picks a Raspberry Pi camera when one is attached, else a USB
   webcam.
 - The settings live in `/etc/omni-accelerant/catcam.toml`, and `systemctl
   disable --now omni-catcam` turns autostart off.
 
-Verified on amd64 in `:latest` and on a Raspberry Pi 5 with its CSI camera.
+Verified on amd64 in `:latest`, and running on two Raspberry Pi 5s, one with a Camera
+Module 2 (imx219) and one with a Camera Module 3 (imx708).
 On Windows, `scripts\windows\cat-stream\Package-CatCam.ps1` (in `:winamd64`) builds an
 MSI, and with `-Msix` a signed MSIX. Each installs the cat cam, starts it at every logon,
 opens the firewall to the network, and streams the same page. Both are tested in the

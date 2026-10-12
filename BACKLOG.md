@@ -90,6 +90,16 @@ Linux amd64/arm64 ship as a .deb and an AppImage, proven on himbeere2 (Pi 5) on
   - It has no boot service and no Pi camera by design; those stay with the .deb and the
     AppImage.
 
+## Open — CI time
+
+- [b] **Half of every Windows lane is the image pull.** Measured on 1686eae (2026-10-12):
+  *Prepare Windows container host* took 27 and 31 min of `windows-x64.yml`'s 45 and 64 min
+  jobs, 25 of `windows-arm64.yml`'s 35, and 30 of `web.yml`'s 37-min Windows cat cam job;
+  the Linux lanes spend 5 to 8 of 10 to 15 min there. A round's wall time is the Windows
+  Debug job's 64 min, of which 31 pull the ~54 GB `:winamd64`. The pull is the hub's
+  `prepare-windows-container-host`; a smaller image for these lanes, or a cache the hosted
+  runners keep, would halve the round. Blocked on the hub.
+
 ## Open — waiting on the owner
 
 - [b] **The legal pages carry placeholders.** ANThology's `imprintDe.md` says itself that
