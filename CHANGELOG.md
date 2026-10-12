@@ -23,8 +23,8 @@ What landed on `develop` after 2.0.0+2. Most of it is the cat cam, whose guide i
 - **It can notify** (2026-10-12): `notify_url` gets every arrival and departure as a
   JSON POST, which a Home Assistant webhook trigger takes as it is.
 - **The Stream page shows the cat** (2026-10-12). Under the video: the cat cam's name,
-  then "Cat in view", "Cat last seen: 14:32" or "No cat seen yet" in English or German.
-  On a phone the video keeps its 4:3 and the line wraps.
+  then "Cat in view", "Cat last seen: 14:32" or "No cat seen yet" in English or German,
+  and the last arrival's picture. On a phone the video keeps its 4:3 and the line wraps.
 - The web app boots without its Rust core, as Firefox and Safari need without
   cross-origin isolation; `serve.sh --http` serves the page with no certificate
   (2026-10-05).

@@ -223,6 +223,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No cat seen yet'**
   String get catNotSeenYet;
+
+  /// No description provided for @catLastArrival.
+  ///
+  /// In en, this message translates to:
+  /// **'The cat\'s last arrival'**
+  String get catLastArrival;
 }
 
 class _AppLocalizationsDelegate

@@ -76,4 +76,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get catNotSeenYet => 'Noch keine Katze gesehen';
+
+  @override
+  String get catLastArrival => 'Die letzte Ankunft der Katze';
 }

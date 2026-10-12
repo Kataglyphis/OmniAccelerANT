@@ -75,4 +75,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get catNotSeenYet => 'No cat seen yet';
+
+  @override
+  String get catLastArrival => 'The cat\'s last arrival';
 }

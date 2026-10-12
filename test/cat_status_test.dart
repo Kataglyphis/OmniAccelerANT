@@ -5,11 +5,14 @@ import 'package:omni_accelerant/Pages/StreamPage/cat_status.dart';
 import 'package:omni_accelerant/l10n/app_localizations.dart';
 
 const _inView =
-    '{"ok":true,"name":"Garden Cam","cat":{"in_view":true,"last_seen":1791763273}}';
+    '{"ok":true,"name":"Garden Cam","cat":{"in_view":true,"last_seen":1791763273,"visits":3}}';
 const _seenBefore =
-    '{"ok":true,"name":"Garden Cam","cat":{"in_view":false,"last_seen":1791763273}}';
+    '{"ok":true,"name":"Garden Cam","cat":{"in_view":false,"last_seen":1791763273,"visits":3}}';
 const _neverSeen =
-    '{"ok":true,"name":"","cat":{"in_view":false,"last_seen":null}}';
+    '{"ok":true,"name":"","cat":{"in_view":false,"last_seen":null,"visits":0}}';
+
+Widget _fakeArrival(String url, String label) =>
+    Text('picture $url ($label)', key: const Key('arrival'));
 
 Future<void> _pumpLine(WidgetTester tester, Future<String?> Function() fetch) {
   return tester.pumpWidget(
@@ -18,7 +21,11 @@ Future<void> _pumpLine(WidgetTester tester, Future<String?> Function() fetch) {
       supportedLocales: AppLocalizations.supportedLocales,
       locale: const Locale('en'),
       home: Scaffold(
-        body: CatStatusLine(fetch: fetch, fallbackName: 'Fallback Cam'),
+        body: CatStatusLine(
+          fetch: fetch,
+          fallbackName: 'Fallback Cam',
+          arrivalImage: _fakeArrival,
+        ),
       ),
     ),
   );
@@ -39,7 +46,9 @@ void main() {
         status.lastSeen,
         DateTime.fromMillisecondsSinceEpoch(1791763273 * 1000),
       );
+      expect(status.visits, 3);
       expect(CatStatus.fromHealthz(_neverSeen)!.lastSeen, isNull);
+      expect(CatStatus.fromHealthz(_neverSeen)!.visits, 0);
     });
 
     test('is null for anything but a cat cam answer', () {
@@ -75,6 +84,26 @@ void main() {
     await _pumpLine(tester, () async => _seenBefore);
     await tester.pump();
     expect(find.textContaining('Cat last seen: '), findsOneWidget);
+    expect(
+      find.text("picture /arrival.jpg?visit=3 (The cat's last arrival)"),
+      findsOneWidget,
+    );
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('the picture changes with a new visit, not with each sighting', (
+    tester,
+  ) async {
+    var body = _inView;
+    await _pumpLine(tester, () async => body);
+    await tester.pump();
+    expect(find.textContaining('/arrival.jpg?visit=3 '), findsOneWidget);
+    body = _inView.replaceFirst('1791763273', '1791763290');
+    await tester.pump(const Duration(seconds: 5));
+    expect(find.textContaining('/arrival.jpg?visit=3 '), findsOneWidget);
+    body = _inView.replaceFirst('"visits":3', '"visits":4');
+    await tester.pump(const Duration(seconds: 5));
+    expect(find.textContaining('/arrival.jpg?visit=4 '), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
   });
 
@@ -85,6 +114,7 @@ void main() {
     await tester.pump();
     expect(find.text('Fallback Cam'), findsOneWidget);
     expect(find.text('No cat seen yet'), findsOneWidget);
+    expect(find.byKey(const Key('arrival')), findsNothing);
     await tester.pumpWidget(const SizedBox());
   });
 

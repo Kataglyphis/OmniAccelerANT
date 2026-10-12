@@ -315,9 +315,13 @@ cat cam in `%LOCALAPPDATA%\omni-accelerant-catcam`. `last_seen` and `last_score`
 
 The Stream page reads the same `/healthz` every 5 s (`CatStatusLine` in
 `lib/Pages/StreamPage/cat_status.dart`): under the video it puts the cat cam's `name`,
-then "Cat in view", "Cat last seen: 14:32" or "No cat seen yet", in English or German.
-Served from anywhere else, where `/healthz` is no cat cam's answer, it shows only the
-title.
+then "Cat in view", "Cat last seen: 14:32" or "No cat seen yet", in English or German,
+and from the first visit on the last arrival's picture. Its URL carries the visit count
+(`/arrival.jpg?visit=3`), not `last_seen`, which moves on every model run while a cat
+stays, so the page fetches the picture once per visit. On the photo, with the cat in
+view for 35 s, headless Chrome sent seven `/healthz` requests and one `/arrival.jpg`
+(2026-10-12). Served from anywhere else, where `/healthz` is no cat cam's answer, it
+shows only the title.
 
 **It can tell you the cat came.** Set `notify_url` in `catcam.toml` and the service
 POSTs a JSON event there whenever a cat arrives or leaves:
