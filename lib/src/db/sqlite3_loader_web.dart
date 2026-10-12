@@ -10,7 +10,8 @@ Future<CommonSqlite3> loadSqlite3Impl() async {
     _sqlite ??= await WasmSqlite3.loadFromUrl(Uri.parse('sqlite3.wasm'));
   } catch (e) {
     throw StateError(
-      'Failed to load SQLite3 WASM. Ensure sqlite3.wasm exists at /web/sqlite3.wasm. '
+      'Failed to load SQLite3 WASM. Ensure sqlite3.wasm is served beside index.html '
+      '(the build copies web/sqlite3.wasm there). '
       'Error: $e',
     );
   }

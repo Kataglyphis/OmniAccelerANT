@@ -16,7 +16,7 @@
   "follow": "Visit page",
   "rerunSqliteHealthcheck": "Re-run SQLite Healthcheck",
   "sqliteError": "SQLite Error",
-  "sqliteWebHint": "Note: For web, sqlite3.wasm must be located at /web/sqlite3.wasm.",
+  "sqliteWebHint": "Note: on the web, sqlite3.wasm must be served beside the page (the build copies web/sqlite3.wasm there).",
   "catInView": "Cat in view",
   "catLastSeen": "Cat last seen: {when}",
   "@catLastSeen": {

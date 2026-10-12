@@ -39,6 +39,9 @@ void main() {
       find.textContaining('SQLite Error: Bad state: no sqlite3.wasm'),
       findsOneWidget,
     );
-    expect(find.textContaining('sqlite3.wasm must be located'), findsOneWidget);
+    expect(
+      find.textContaining('sqlite3.wasm must be served beside the page'),
+      findsOneWidget,
+    );
   });
 }
