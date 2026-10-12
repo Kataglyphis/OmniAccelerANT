@@ -69,6 +69,21 @@ void main() {
       expect(settings.signalingServerUrl, '/webrtc-ws');
     }, testOn: 'vm');
 
+    // Browser only: the page's own host and port, ws for http, so one build serves any board.
+    test(
+      'a host-relative value resolves against the serving page on the web',
+      () {
+        final String url = WebRTCSettings.fromJsonFile(_validMap())
+            .signalingServerUrl;
+        final Uri resolved = Uri.parse(url);
+        expect(resolved.scheme, Uri.base.scheme == 'https' ? 'wss' : 'ws');
+        expect(resolved.host, Uri.base.host);
+        expect(resolved.port, Uri.base.port);
+        expect(resolved.path, '/webrtc-ws');
+      },
+      testOn: 'browser',
+    );
+
     test('an absolute URL passes through unchanged', () {
       final Map<String, dynamic> map = _validMap();
       map['signalingServerUrl'] = 'wss://cat-cam.local:8443/webrtc-ws';
@@ -128,6 +143,47 @@ void main() {
             (FormatException e) => e.message,
             'message',
             contains('fps'),
+          ),
+        ),
+      );
+    });
+
+    test('a missing or non-string signalling URL', () {
+      final Map<String, dynamic> missing = _validMap()
+        ..remove('signalingServerUrl');
+      expect(
+        () => WebRTCSettings.fromJsonFile(missing),
+        throwsA(
+          isA<FormatException>().having(
+            (FormatException e) => e.message,
+            'message',
+            contains('signalingServerUrl'),
+          ),
+        ),
+      );
+      final Map<String, dynamic> number = _validMap()
+        ..['signalingServerUrl'] = 8443;
+      expect(
+        () => WebRTCSettings.fromJsonFile(number),
+        throwsA(
+          isA<FormatException>().having(
+            (FormatException e) => e.message,
+            'message',
+            contains('must be a String'),
+          ),
+        ),
+      );
+    });
+
+    test('a nested block that is not an object', () {
+      final Map<String, dynamic> map = _validMap()..['texture'] = 640;
+      expect(
+        () => WebRTCSettings.fromJsonFile(map),
+        throwsA(
+          isA<FormatException>().having(
+            (FormatException e) => e.message,
+            'message',
+            allOf(contains('texture'), contains('must be a Map')),
           ),
         ),
       );
