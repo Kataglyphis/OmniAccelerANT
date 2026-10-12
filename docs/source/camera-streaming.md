@@ -594,8 +594,14 @@ and run as the unit runs it, with a scrubbed environment as `omni-catcam`:
   `/snapshot.jpg` served the frame as a JPEG;
 - the arrival reached a stand-in webhook as a JSON POST, and `/arrival.jpg` served the
   frame it was seen on;
-- the visit log timed the stay while the cat was in view, and a restart kept the visit
-  and the arrival frame and closed that visit at its last sighting;
+- the arrival's clip was encoded and named first in `/healthz`'s `clips`, `/arrival.mp4`
+  served it as an MP4 and answered a byte range, `?t=` served that arrival's own and
+  `404` for another, and the clip's event reached the stand-in webhook;
+- the visit log timed the stay while the cat was in view, and a restart kept the visit,
+  the arrival frame and the clip, and closed that visit at its last sighting;
+- the web build left out the `wimp` and `webparagraph` renderers and the `*.symbols`
+  debug maps, every file the server gzips came with its zopfli `.gz`, and the served
+  `main.dart.wasm` was that `.gz` byte for byte;
 - SIGTERM exits 0, and no inference fails on the way out;
 - the AppImage's `--install`, a second `--install` over it, and `--uninstall --purge`
   left the expected files, and then none;
@@ -610,7 +616,8 @@ and run as the unit runs it, with a scrubbed environment as `omni-catcam`:
 On amd64 in `:latest` (2026-10-06), all 32 checks passed, and Chrome played 572 frames
 from the sandboxed stream. The flatpak bundle is 63 MB. On arm64 on himbeere2
 (2026-10-12) all 43 checks passed, with about 510 frames to Chrome each time, and all 47
-once the arrival clip added four; CI passed the 41 from before the visit log on both
+once the arrival clip added four; all 51 on 2026-10-13, three of them on the
+precompressed web build. CI passed the 41 from before the visit log on both
 architectures (`web.yml` run 38197312619).
 
 #### Where it ran
