@@ -399,11 +399,29 @@ live page behind a tap. Running on himbeere2 since 2026-10-12 (Home Assistant 20
   them; raising `score` instead would drop them from both.
 - **The companion app's `minimal` build has no push service.** It receives notifications
   only over its own connection to Home Assistant, so set *Persistent connection* to
-  *Always* in its server settings. The `full` build gets them through Firebase.
+  *Always* in its server settings. The `full` build gets them through Firebase. A push
+  while the app is not connected fails with `not connected to local push notifications`
+  and is gone; himbeere2's automations therefore send each notification three times a
+  minute apart under one `tag` with `alert_once: true`, and `continue_on_error` on the call,
+  so a repeat replaces a delivered one silently and reaches a phone that reconnected.
 - **The picture loads from the phone,** so `catcam_base_url` must be an address the phone
   can reach: an IP or a name its network resolves, not loopback.
 
 A test arrival posted to that webhook reached the owner's phone on 2026-10-12.
+
+**Statistics and an outage alert, from `/healthz`.** Home Assistant's `rest` integration
+polls `http://127.0.0.1:8080/healthz` every 30 s when it runs on the cat cam's host:
+`cat.in_view`, `cat.last_seen`, `cat.visits`, `cat.recent[0].stayed_s` and `ok` become
+sensors, and with the cat cam unreachable they all turn `unavailable`. On himbeere2
+(2026-10-12):
+- the arrival automation increments two counters, *today* and *total*, so they count only
+  what reached the phone; a template sensor with `state_class: total_increasing` mirrors
+  *total*, which lets a `statistics-graph` card draw visits per day, and a time trigger
+  resets *today* at midnight;
+- `binary_sensor.cat_cam_online` unavailable or off for five minutes sends "Cat cam
+  offline", and its return after such an outage sends "Cat cam wieder da"; a Home
+  Assistant restart's few seconds stay quiet. Stopping `omni-catcam` for 5 min 45 s sent
+  the first at 5 min, on the dot.
 
 **An open page survives a restart of the service.** The page sees its producer go and
 come back and consumes the new one, with no reload: on himbeere2 (2026-10-12) headless
