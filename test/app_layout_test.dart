@@ -1,4 +1,4 @@
-// The whole app at a phone's, a tablet's and a desktop's size: a layout that breaks at one width alone failed only the slow Linux integration test.
+// The whole app at a phone's, a tablet's and a desktop's size, and at a large system font: a layout that breaks at one width alone failed only the slow Linux integration test.
 @TestOn('vm')
 library;
 
@@ -17,10 +17,12 @@ const List<String> _routes = <String>[
   '/aiBlog',
 ];
 
-const List<Size> _sizes = <Size>[
-  Size(360, 800),
-  Size(800, 1000),
-  Size(1280, 900),
+/// Phone, tablet and desktop, and a phone with its system font at 150 %, as many set it.
+const List<(Size, double)> _cases = <(Size, double)>[
+  (Size(360, 800), 1),
+  (Size(800, 1000), 1),
+  (Size(1280, 900), 1),
+  (Size(360, 800), 1.5),
 ];
 
 /// The theme's Roboto, so text measures as in the app: the test font's square glyphs overflow rows real text fits.
@@ -36,12 +38,14 @@ Future<void> _loadRealFonts() async {
 void main() {
   setUpAll(_loadRealFonts);
 
-  for (final Size size in _sizes) {
+  for (final (Size size, double textScale) in _cases) {
     testWidgets(
-      'every main page lays out at ${size.width.toInt()}x${size.height.toInt()}',
+      'every main page lays out at ${size.width.toInt()}x${size.height.toInt()}, text x$textScale',
       (WidgetTester tester) async {
         tester.view.physicalSize = size;
         tester.view.devicePixelRatio = 1;
+        tester.platformDispatcher.textScaleFactorTestValue = textScale;
+        addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
         addTearDown(tester.view.reset);
         await tester.runAsync(() async {
           await tester.pumpWidget(const App());
