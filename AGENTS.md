@@ -1021,6 +1021,7 @@ cell is a test that cannot run there, and the reason is under the table.
 | Plugin C ABI (`knt_*`) | `check-knt-abi.sh` | `Test-KntAbi.ps1`, host | `Test-KntAbi.ps1`, device | | |
 | G6 over the shipped tree | `check-bundle-closure.sh` | at build, again on the host | at the natives build, again on the device | | |
 | Bundle gate's mutation suite | yes | | | | |
+| Plugin C++ format (`check-plugin-cpp-format.sh`) and its planted-deviation suite | yes | | | | |
 | Import walk | (the closure gate) | host, `-Standalone` | device | | |
 | Launch smoke, 20 s | under Xvfb | host | device | | |
 | Integration test (`integration_test/simple_test.dart`) | under Xvfb | `flutter drive` against the clang-cl app | `flutter drive` (the Debug app) | | |
@@ -1048,6 +1049,8 @@ cell is a test that cannot run there, and the reason is under the table.
   because `flutter test -d windows` would build with Flutter's MSVC default.
 - The mutation suite builds synthetic ELFs for the Linux closure gate; Windows has
   no ELF and no such gate. Pester tests PowerShell that only Windows lanes run.
+- The plugin's C++ format gate needs only the sources, so one lane grades them for
+  every platform; Windows has no C++ format step.
 - The rustc stamp lives in an ELF `.comment`, which a Windows PE does not have. The
   web lane builds its wasm with `build-web` and the dated nightly it names (§ 4), not
   Cargokit.
@@ -1421,6 +1424,18 @@ cmake-format itself comes from, why there is no root `requirements.txt`, and why
 `.gitattributes` pins CMake files to LF:
 [`docs/source/project-operations.md`](docs/source/project-operations.md)
 § *The CMake format gate*.
+
+**The plugin's C++ format gate covers its 15 hand-written files** (2026-10-12,
+hub CON71). `scripts/linux/check-plugin-cpp-format.sh` checks and never
+rewrites, refuses any clang-format but `LLVM_RELEASE`, and runs in the native
+lane's code-quality batch beside a suite that plants a deviation. Its config is
+the hub's canonical `.clang-format`, declared in the manifest at
+`packages/kataglyphis_native_inference/.clang-format`, so the app's generated
+runner sources stay outside it. Keep comments there within 120 columns: the
+config reflows a longer one into a two-line block, which the comment-size gate
+rejects. Detail:
+[`docs/source/project-operations.md`](docs/source/project-operations.md)
+§ *The plugin's C++ format gate*.
 
 ### Dependency upgrades
 

@@ -113,6 +113,9 @@ require_cmd dart
 gate_reset "code quality (${MATRIX_ARCH})"
 run_gate "flutter checks" run_flutter_common_checks "$STRICT_CHECKS"
 run_gate "cmake-format --check" run_cmake_format_check
+# The plugin's C++ against its .clang-format, graded only by LLVM_RELEASE's clang-format; its suite plants a deviation.
+run_gate "plugin clang-format --check" bash scripts/linux/check-plugin-cpp-format.sh
+run_gate "plugin format gate tests" bash scripts/linux/tests/test-check-plugin-cpp-format.sh
 # The bundle gate's own mutation suite (synthetic ELFs, no build needed): when G6 runs, and that it decides.
 run_gate "bundle gate tests" bash scripts/linux/tests/test-check-bundle-closure.sh
 run_gate "rust toolchain gate tests" bash scripts/linux/tests/test-check-rust-toolchain.sh

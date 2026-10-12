@@ -118,6 +118,37 @@ in `scripts/windows/Build-Windows.ps1`. The config's
 to LF — a `core.autocrlf=true` checkout would otherwise fail `--check` on every
 file.
 
+### The plugin's C++ format gate
+
+`scripts/linux/check-plugin-cpp-format.sh` checks the native plugin's tracked,
+hand-written C/C++: 15 files under `android/`, `linux/` and `windows/` of
+`packages/kataglyphis_native_inference`. It runs `clang-format --dry-run
+-Werror` through the hub's `code_quality_check_clang_format`, never rewrites,
+and fails on a single deviating file. It refuses to grade (exit 2, also red) on
+three conditions:
+
+- a clang-format other than the hub's `LLVM_RELEASE` (the environment's value,
+  else the pinned `versions.env`), because releases format differently;
+- no `.clang-format` beside the sources, where clang-format would fall back to
+  LLVM style without a word;
+- no tracked files at all.
+
+`example/*/runner/` is Flutter's generated scaffolding and is not graded, just
+as the comment-size gate skips it.
+
+The config is `packages/kataglyphis_native_inference/.clang-format`, the hub's
+canonical one, declared in `.antfrastructure-shared.manifest` with that path:
+the drift gate watches it, and the app's own generated runner sources stay
+outside it. The gate runs in the native-Linux lane's code-quality batch on both
+architectures, beside `scripts/linux/tests/test-check-plugin-cpp-format.sh`,
+which plants a deviation and provokes each refusal. Windows has no C++ format
+step.
+
+To clear a red run, rewrite the named files with `clang-format -i` from the
+image (23.1.3), and keep comments within 120 columns: the canonical config
+reflows a longer one onto a second line, which the comment-size gate rejects.
+The 2026-10-12 sweep is in `.git-blame-ignore-revs`.
+
 ### Tests
 
 ```bash
