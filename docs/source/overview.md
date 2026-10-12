@@ -8,6 +8,9 @@ OmniAccelerANT combines a Flutter frontend with native Rust/C++ inference and GS
 - **Native core:** Rust/C++ components exposed via `flutter_rust_bridge`
 - **Media stack:** GStreamer pipelines for camera ingest and WebRTC transport
 - **Targets:** Linux, Windows, Android, Web, and embedded Linux variants
+- **The cat cam:** a `.deb`, AppImage, flatpak or Windows MSI that streams a camera to
+  any browser, spots cats with a YOLO model, logs their visits, keeps a picture and a
+  10 s video of each arrival, and posts them to a webhook such as Home Assistant's
 
 ## Repository Structure
 
@@ -36,3 +39,5 @@ OmniAccelerANT combines a Flutter frontend with native Rust/C++ inference and GS
 - Setup and first run: [Getting Started](getting-started.md)
 - Target-specific builds: [Platform Guides](platforms.md)
 - Streaming and inference pipelines: [Camera Streaming](camera-streaming.md)
+- The cat cam, installed and wired to a phone: [The cat cam package](camera-streaming.md#the-cat-cam-package)
+  and [Home Assistant](camera-streaming.md#home-assistant)
