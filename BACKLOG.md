@@ -22,12 +22,13 @@ Linux amd64/arm64 ship as a .deb and an AppImage, proven on himbeere2 (Pi 5) on
   no raw format) has run only in unit tests: himbeere2 has no USB camera, and the C270
   sits on the riscv64 X100, which the package does not build for. Blocked on a UVC camera
   at an amd64 or arm64 board. Done when `/healthz` names it and a browser plays it.
-- [b] **`notify_url` against a real Home Assistant.** The arrival and departure POSTs are
-  proven against a loopback stand-in (`test-catcam-package.sh`, and a live POST in
-  OxidANT's `notify.rs` tests), https only through `ureq`'s own tests. A Home Assistant
-  webhook trigger taking them, and an automation acting on `trigger.json.event` with
-  `/arrival.jpg`, are not. Blocked on the owner's Home Assistant (himbeere2 runs one).
-  Done when a cat's arrival lands as a phone notification with its picture.
+- [b] **A real cat's arrival on the owner's phone.** Since 2026-10-12 himbeere2's cat cam
+  posts to the owner's Home Assistant, whose automation
+  (`docs/source/camera-streaming.md`, *A phone notification with the picture*) sends
+  arrivals at 0.45 or more to the phone with `/arrival.jpg`. A test arrival posted to that
+  webhook reached the phone; the service's own POSTs are proven against a loopback
+  stand-in (`test-catcam-package.sh`, OxidANT's `notify.rs`). Blocked on a cat. Done when
+  one's arrival lands on the phone with its picture.
 - [ ] **The Windows cat cam with a camera, at a real logon, then on arm64.** The MSI works
   in the image and on a real Windows 11 host (`scripts/windows/cat-stream/`, 2026-10-06),
   and `web.yml`'s `catcam-windows` job packages and tests it around every web build.

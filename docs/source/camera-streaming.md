@@ -355,6 +355,56 @@ Deliveries run on a thread of their own with a 5 s timeout, a failed one is logg
 dropped, and the log names only the URL's scheme and host, because a webhook's path is
 often its secret.
 
+**A phone notification with the picture, through Home Assistant.** This automation sends
+an arrival to the Home Assistant companion app, with `/arrival.jpg` as its image and the
+live page behind a tap. Running on himbeere2 since 2026-10-12 (Home Assistant 2026.10.1):
+
+```yaml
+# automations.yaml; both values live in secrets.yaml, so this file can be committed.
+- id: catcam_arrival_notification
+  alias: Katze ist da (Cat Cam)
+  mode: queued
+  max: 5
+  triggers:
+    - trigger: webhook
+      webhook_id: !secret catcam_webhook_id   # notify_url ends in this
+      allowed_methods: [POST]
+      local_only: true
+  variables:
+    catcam: !secret catcam_base_url           # e.g. http://<cat-cam-host>:8080
+  conditions:
+    - condition: template
+      value_template: >-
+        {{ trigger.json.event == 'arrived'
+           and (trigger.json.best_score | float(0)) >= 0.45 }}
+  actions:
+    - action: notify.mobile_app_<phone>
+      data:
+        title: "🐱 Katze ist da"
+        message: >-
+          {{ trigger.json.name }}: um
+          {{ trigger.json.time | timestamp_custom('%H:%M') }} gesehen,
+          {{ ((trigger.json.best_score | float(0)) * 100) | round(0) | int }} % sicher.
+        data:
+          image: "{{ catcam }}/arrival.jpg?t={{ trigger.json.time }}"
+          clickAction: "{{ catcam }}/"
+          tag: catcam-arrival
+```
+
+- **A webhook id is a password.** Generate it (`python3 -c 'import secrets;
+  print("catcam-" + secrets.token_urlsafe(24))'`) and keep it out of git.
+- **Notify above 0.45, count from `score`.** On 2026-10-12 a white object at the bottom of
+  himbeere2's frame made 33 "visits" between 0.26 and 0.44, and a cat in the bundled photo
+  scores 0.76. The condition keeps those off the phone while the visit log still counts
+  them; raising `score` instead would drop them from both.
+- **The companion app's `minimal` build has no push service.** It receives notifications
+  only over its own connection to Home Assistant, so set *Persistent connection* to
+  *Always* in its server settings. The `full` build gets them through Firebase.
+- **The picture loads from the phone,** so `catcam_base_url` must be an address the phone
+  can reach: an IP or a name its network resolves, not loopback.
+
+A test arrival posted to that webhook reached the owner's phone on 2026-10-12.
+
 **An open page survives a restart of the service.** The page sees its producer go and
 come back and consumes the new one, with no reload: on himbeere2 (2026-10-12) headless
 Chrome's video was playing at 30 fps again about 10 s after `systemctl restart
