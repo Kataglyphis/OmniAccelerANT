@@ -2,7 +2,18 @@
 
 This guide takes you from clone to a working local setup.
 
+Only want the cat cam? It installs as a package, with nothing to build:
+[README](../../README.md#live-cat-detection-stream-linux--raspberry-pi).
+
 ## 1) Prerequisites
+
+**Or skip them:** every CI lane runs in the family image
+`ghcr.io/kataglyphis/kataglyphis_beschleuniger:latest`, which carries Flutter, Rust,
+GStreamer and ONNX Runtime. [AGENTS.md § 5](../../AGENTS.md#5-build-run-test), *The Dart
+gate in 23 seconds*, runs the tests in it with nothing installed on the host. The clone
+below works without a GitHub account: every URL is HTTPS.
+
+On the host:
 
 - Flutter SDK and Dart in `PATH`
 - Rust toolchain (`rustup`, `cargo`)
@@ -23,7 +34,7 @@ gst-launch-1.0 --version
 ## 2) Clone the repository
 
 ```bash
-git clone --recurse-submodules --branch develop git@github.com:Kataglyphis/OmniAccelerANT.git
+git clone --recurse-submodules --branch develop https://github.com/Kataglyphis/OmniAccelerANT.git
 cd OmniAccelerANT
 ```
 

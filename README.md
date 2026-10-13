@@ -102,7 +102,7 @@ OmniAccelerANT bundles a Flutter/Dart frontend, a Rust/C++ inference core, and a
   > On Windows I use [Git Bash](https://git-scm.com/install/windows) instead of  
   > Powershell or cmd
    ```bash
-   git clone --recurse-submodules --branch develop git@github.com:Kataglyphis/OmniAccelerANT.git
+   git clone --recurse-submodules --branch develop https://github.com/Kataglyphis/OmniAccelerANT.git
    cd OmniAccelerANT
    ```
 2. Initialize submodules if needed.  
