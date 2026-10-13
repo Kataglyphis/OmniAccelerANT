@@ -173,7 +173,11 @@ Two upstream facts repeated here only because they bite before you reach a doc:
   cat cam (2026-10-05). It packs the producer, its GStreamer plugins, the chain
   ORT (G6-proved), the model, the web build and the image's loader, glibc and
   libstdc++ into `/opt/omni-accelerant-catcam`, and wraps that in a `.deb` and
-  an AppImage. The `.deb` carries a systemd unit, enabled at install, and a ufw
+  an AppImage. The web build goes in without the `wimp` and `webparagraph`
+  renderers and the `*.symbols` maps, which no browser fetches from it (the script
+  stops if `flutter_bootstrap.js`'s load call ever asks for either), and the
+  producer's `--precompress` puts a zopfli `.gz` beside each file the server gzips
+  (2026-10-12). The `.deb` carries a systemd unit, enabled at install, and a ufw
   profile. The AppImage's `--install` sets up the same through
   `catcam/catcam-install`, whose `setup` step the `.deb`'s `postinst` calls too.
   **`/etc/omni-accelerant/catcam.toml` is not a conffile, on purpose.** `setup`
