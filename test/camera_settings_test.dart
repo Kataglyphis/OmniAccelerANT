@@ -228,6 +228,62 @@ void main() {
     expect(find.textContaining('Katzenerkennung'), findsWidgets);
   });
 
+  testWidgets(
+    'a page behind another tab fetches nothing, and reads the camera again on return',
+    (tester) async {
+      final cam = _FakeCatCam();
+      var fetches = 0;
+      var shown = true;
+      late StateSetter flip;
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('en'),
+          home: Scaffold(
+            body: StatefulBuilder(
+              builder: (context, setState) {
+                flip = setState;
+                // What go_router's indexed stack does to a branch that is not shown.
+                return TickerMode(
+                  enabled: shown,
+                  child: SingleChildScrollView(
+                    child: CameraSettingsPanel(
+                      fetchSettings: () {
+                        fetches++;
+                        return cam.fetchSettings();
+                      },
+                      saveSettings: cam.save,
+                      fetchHealthz: () async => _healthz,
+                      preview: _fakePreview,
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      String preview() =>
+          (tester.widget(find.byKey(const Key('preview'))) as Text).data!;
+      flip(() => shown = false);
+      await tester.pump();
+      final hidden = preview();
+      await tester.pump(const Duration(seconds: 10));
+      expect(preview(), hidden, reason: 'no snapshot while hidden');
+      expect(fetches, 1);
+      cam.settings = {...cam.settings, 'rotate': 90};
+      flip(() => shown = true);
+      await tester.pump();
+      await tester.pump();
+      expect(fetches, 2);
+      expect(find.text('90°'), findsOneWidget);
+      expect(preview(), isNot(hidden));
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
+
   testWidgets('the preview reloads on its interval while the page shows', (
     tester,
   ) async {

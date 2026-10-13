@@ -135,6 +135,9 @@ class _CameraSettingsPanelState extends State<CameraSettingsPanel> {
   double? _score;
   int _frame = 0;
   Timer? _timer;
+
+  /// False while another tab of the bottom bar shows: go_router keeps this page alive behind it.
+  bool _visible = true;
   final TextEditingController _name = TextEditingController();
 
   @override
@@ -142,7 +145,7 @@ class _CameraSettingsPanelState extends State<CameraSettingsPanel> {
     super.initState();
     _load();
     _timer = Timer.periodic(widget.previewInterval, (_) {
-      if (mounted && _settings != null) {
+      if (mounted && _visible && _settings != null) {
         setState(() => _frame++);
       }
     });
@@ -202,6 +205,16 @@ class _CameraSettingsPanelState extends State<CameraSettingsPanel> {
 
   @override
   Widget build(BuildContext context) {
+    final visible = TickerMode.valuesOf(context).enabled;
+    if (visible && !_visible) {
+      // Back in view: the camera may have moved on, so read it again rather than show a stale frame.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _load();
+        }
+      });
+    }
+    _visible = visible;
     final l10n = AppLocalizations.of(context)!;
     final settings = _settings;
     if (!_loaded) {
