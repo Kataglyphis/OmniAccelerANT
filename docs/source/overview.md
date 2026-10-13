@@ -10,7 +10,9 @@ OmniAccelerANT combines a Flutter frontend with native Rust/C++ inference and GS
 - **Targets:** Linux, Windows, Android, Web, and embedded Linux variants
 - **The cat cam:** a `.deb`, AppImage, flatpak or Windows MSI that streams a camera to
   any browser, spots cats with a YOLO model, logs their visits, keeps a picture and a
-  10 s video of each arrival, and posts them to a webhook such as Home Assistant's
+  10 s video of each arrival, and posts them to a webhook such as Home Assistant's. Its
+  web page has a Camera page that turns the picture, sets how sure detection must be and
+  renames the camera while it runs. It runs on x64, arm64 and riscv64 boards
 
 ## Repository Structure
 
