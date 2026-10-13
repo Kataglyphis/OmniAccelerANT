@@ -13,7 +13,8 @@ What landed on `develop` after 2.0.0+2. Most of it is the cat cam, whose guide i
 - **A Camera page for the cat cam's settings** (2026-10-13), in the bottom bar beside
   Stream. ⟲ and ⟳ turn the picture a quarter each way, for a board that gets moved about; a
   slider sets how sure detection must be before a cat counts, against false alarms; a field
-  renames the camera. A live preview shows the result, and a table what the camera runs.
+  renames the camera. A live preview shows the result, the score of the last arrival under
+  the slider says where a false one sits, and a table shows what the camera runs.
   The cat cam applies each change at once and keeps it across restarts. It turns the
   picture itself, so detection, the arrival picture and the clips turn with the stream, and
   a quarter turn is bordered into the frame now, where it used to come out stretched.
@@ -23,6 +24,10 @@ What landed on `develop` after 2.0.0+2. Most of it is the cat cam, whose guide i
   it as that service, and a flatpak. On Windows it is an MSI and a signed MSIX, each
   starting at logon with a firewall rule for the LAN. `web.yml` packages each one and
   install-tests it.
+- **The cat cam on riscv64** (2026-10-13). `package-catcam.sh` builds its .deb and tarball
+  natively on a riscv64 board, in that board's own `:latest`; no AppImage or flatpak, as
+  flatpak has no riscv64 runtime. It runs on a SpacemiT board with a USB webcam, at about
+  24 fps to a browser on the LAN. No CI lane builds it yet.
 - **It reports the cat** (2026-10-11/12). `/healthz` says whether a cat is in view,
   when one last was, how many visits it counted, and when the latest 20 began and how
   long they lasted. `/snapshot.jpg` is the latest
