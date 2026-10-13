@@ -87,6 +87,12 @@ class AppLocalizationsDe extends AppLocalizations {
   String get catEarlierVideos => 'Frühere Videos:';
 
   @override
+  String get catRotateLeft => 'Bild nach links drehen';
+
+  @override
+  String get catRotateRight => 'Bild nach rechts drehen';
+
+  @override
   String catVideoFrom(String time) {
     return 'Video von $time';
   }

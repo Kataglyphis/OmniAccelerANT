@@ -243,11 +243,22 @@ Everything it serves is on that one port, plain HTTP:
 | Path | Answers |
 | --- | --- |
 | `/` | the web app; its Stream page plays the camera and shows the cat's status, visits and last arrival |
-| `/healthz` | JSON: the live camera, `model_runs`, and the cat's `in_view`, `last_seen`, `visits`, `last_score`, `recent` visits, the newest `clip`'s arrival and every kept one's (`clips`) |
+| `/healthz` | JSON: the live camera, `model_runs`, `rotate`, and the cat's `in_view`, `last_seen`, `visits`, `last_score`, `recent` visits, the newest `clip`'s arrival and every kept one's (`clips`) |
 | `/snapshot.jpg` | the latest frame, boxes drawn |
 | `/arrival.jpg` | the frame the last arrival was confirmed on; `404` until a cat has come |
 | `/arrival.mp4` | the last arrival as an H.264 clip, 3 s before it to 7 s after; `?t=<arrival time>` that arrival's own, of the last five; byte ranges answered; `404` until one is encoded, or once that arrival's is dropped |
+| `/rotate` | `POST {"rotate": 90}` (`application/json` only) turns the picture: 0, 90, 180 or 270 degrees clockwise |
 | `/webrtc-ws` | the WebRTC signalling, forwarded to the producer's own server on loopback `:8443` |
+
+**The picture turns from the page.** Under the video, ⟲ and ⟳ turn it a quarter each way
+(2026-10-13), for a board that is easily moved. The cat cam turns the picture itself, before
+the model sees it, so detection, `/arrival.jpg` and the clips turn with the stream, and the
+running capture follows on its next frame, with no restart and no reconnect. The angle is
+kept in the state directory (`settings.json`) and wins over `rotate` in `catcam.toml`, which
+the service cannot write. At 90 and 270 the upright picture is bordered into the frame,
+black at its sides, instead of stretched: until then a quarter turn squeezed a 4:3 picture
+into 4:3 the other way round, and a cupboard looked square. `/rotate` takes JSON only, so
+another site's page cannot turn the camera with a plain form post.
 
 **The web build ships compressed.** The packager runs the producer's `--precompress` over
 its copy of the web build, so each file the server gzips has a zopfli `.gz` beside it:

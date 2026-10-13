@@ -6,7 +6,7 @@
 
 # camera = "auto"          # a webcam via Media Foundation, else kernel streaming; or mf | ks | test | image:FILE
 
-# rotate = 0               # 90 | 180 | 270; 180 for a camera mounted upside down
+# rotate = 0               # clockwise: 90 | 180 | 270; the page's rotate buttons override it
 
 # width = 640
 

@@ -23,6 +23,8 @@
   "catLastArrival": "Die letzte Ankunft der Katze",
   "catArrivalVideo": "Ankunft als Video ansehen",
   "catEarlierVideos": "Frühere Videos:",
+  "catRotateLeft": "Bild nach links drehen",
+  "catRotateRight": "Bild nach rechts drehen",
   "catVideoFrom": "Video von {time}",
   "catRecentVisits": "Letzte Besuche: {visits}",
   "catVisitStay": "{time} ({minutes} Min.)",

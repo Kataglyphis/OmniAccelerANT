@@ -242,6 +242,18 @@ abstract class AppLocalizations {
   /// **'Earlier videos:'**
   String get catEarlierVideos;
 
+  /// No description provided for @catRotateLeft.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn the picture left'**
+  String get catRotateLeft;
+
+  /// No description provided for @catRotateRight.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn the picture right'**
+  String get catRotateRight;
+
   /// What a screen reader says for an earlier video's play link.
   ///
   /// In en, this message translates to:

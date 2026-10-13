@@ -157,6 +157,17 @@ web_precompressed() {
   fi
 }
 
+# The page's rotate buttons: a JSON POST to /rotate, answered in /healthz and kept in the state directory.
+rotate_from_page() {
+  curl -sf -X POST -H 'content-type: application/json' -d "{\"rotate\": $2}" "http://$1:8080/rotate" >/dev/null || return 1
+  rotation_is "$1" "$2" || return 1
+  jq -e --argjson r "$2" '.rotate == $r' "${state}/settings.json" >/dev/null
+}
+
+rotation_is() {
+  curl -sf "http://$1:8080/healthz" | jq -e --argjson r "$2" '.rotate == $r' >/dev/null
+}
+
 # A webhook stand-in on loopback that appends every POST body to $2; exec, so $! is python and kill reaches it.
 webhook_receiver() {
   exec python3 -c '
@@ -301,6 +312,7 @@ check "the arrival's clip is encoded, named in /healthz and first in its list" c
 check "/arrival.mp4 serves it as an MP4 and answers a byte range" mp4_at "${ip}" /arrival.mp4
 check "/arrival.mp4?t= serves that arrival's clip and no other" clip_by_arrival "${ip}"
 check "the finished clip is POSTed to notify_url as JSON" webhook_got clip "${work}/webhook.jsonl"
+check "the page's rotate button turns the picture and the setting is kept" rotate_from_page "${ip}" 90
 stop_service "${pid}"
 kill "${receiver}" 2>/dev/null
 check "the bundled model finds a cat in the photo" grep -q 'cat in view' "${work}/photo.log"
@@ -315,6 +327,8 @@ check "a restart keeps the visit the photo counted" visit_remembered "${ip}"
 check "a restart closes the visit the stop cut short, at its last sighting" visit_closed "${ip}" 2
 check "a restart keeps the arrival frame" jpeg_at "${ip}" /arrival.jpg
 check "a restart keeps the arrival clip" mp4_at "${ip}" /arrival.mp4
+check "a restart keeps the rotation the page set" rotation_is "${ip}" 90
+check "the page turns the picture upright again" rotate_from_page "${ip}" 0
 frames="$(chrome_frames "http://${ip}:8080/" 20000)"
 printf '      Chrome played %s frame(s) over %s\n' "${frames}" "${ip}"
 check "headless Chrome plays the stream from the LAN address" test "${frames:-0}" -ge 200

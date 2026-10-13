@@ -30,6 +30,8 @@
   "catLastArrival": "The cat's last arrival",
   "catArrivalVideo": "Watch the arrival",
   "catEarlierVideos": "Earlier videos:",
+  "catRotateLeft": "Turn the picture left",
+  "catRotateRight": "Turn the picture right",
   "catVideoFrom": "Video from {time}",
   "@catVideoFrom": {
     "description": "What a screen reader says for an earlier video's play link.",
