@@ -301,6 +301,8 @@ The app's own Dart suite (`test/`) checks, among the rest:
   sessions (`webrtc_stream_controller_test.dart`);
 - the cat status line, its visits, its arrival picture and video, and the earlier videos
   (`cat_status_test.dart`);
+- the Camera page: what it reads from a cat cam, what each button, the slider and the
+  name field send, a refused change, and the page off a cat cam (`camera_settings_test.dart`);
 - the native Stream page's calls to the C++ plugin, its camera fallback, its buttons and
   its error messages, on Linux, Android (camera permission included), macOS and the
   rest, against a fake plugin (`stream_page_native_test.dart`); Windows and Linux with the
@@ -316,7 +318,7 @@ The app's own Dart suite (`test/`) checks, among the rest:
   (`pinned_artefacts_test.dart`), and that every social link has an icon.
 
 The native Linux lane measures how much of `lib/` these reach and fails below a floor
-(95.8 % on 2026-10-13; `check-dart-coverage.sh`).
+(96.1 % on 2026-10-13; `check-dart-coverage.sh`).
 
 `flutter test` in the `:latest` image runs it in under a minute
 ([AGENTS.md § 5](AGENTS.md#5-build-run-test), *The Dart gate in 23 seconds*).
