@@ -510,6 +510,9 @@ live page behind a tap. Running on himbeere2 since 2026-10-12 (Home Assistant 20
   scores 0.76. The condition keeps those off the phone while the visit log still counts
   them; raising `score` instead would drop them from both. It is not enough on its own:
   at 21:57 the same object scored 0.65 and reached the phone (BACKLOG, *False arrivals*).
+  For a spot like that, raise that one camera's `score` above the false object's on the
+  web app's Camera page (since 2026-10-13): it applies at the next model run, needs no
+  SSH, and leaves the other cameras as they are.
 - **The companion app's `minimal` build has no push service.** It receives notifications
   only over its own connection to Home Assistant, so set *Persistent connection* to
   *Always* in its server settings. The `full` build gets them through Firebase. A push
@@ -1105,6 +1108,13 @@ flutter run -d web-server --profile --web-port 8080 --web-hostname 0.0.0.0
 
 ## Troubleshooting
 
+- **A cat cam reports cats that are not there.** Open its page, *Camera* in the bottom
+  bar. The preview shows the boxes the model drew, and `/healthz`'s `last_score` the score
+  of the last arrival. Move the detection slider above that score; the next model run
+  uses it, and the cat cam keeps it across restarts. Too high and a cat in poor light
+  is missed too: a real cat scored 0.76 in the bundled photo, the drying rack 0.26 to 0.65.
+- **The picture is sideways after the board was moved.** ⟲ and ⟳ on the same page turn
+  it a quarter at a time; detection, the arrival picture and the clips turn with it.
 - Use `GST_DEBUG=2` or `GST_DEBUG=3` to inspect pipeline performance and caps negotiation.
 - Validate camera device permissions (`/dev/video*`) when streams fail to start.
 - Ensure host/port pairs in `signaller::uri` match your signalling server.
