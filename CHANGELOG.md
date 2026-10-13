@@ -34,6 +34,14 @@ What landed on `develop` after 2.0.0+2. Most of it is the cat cam, whose guide i
 
 ### Fixed
 
+- **The Impressum no longer shows a commented-out phone number** (2026-10-13). The
+  Markdown renderer printed `<!-- Telefon: … -->` as text, there and on two blog pages;
+  ANThology strips HTML comments outside code blocks now, and a test fails any page that
+  would show one.
+- **Android's "Camera (ahc2src)" button opens the camera** (2026-10-13), not the
+  bouncing test pattern its unknown source name fell back to. A pattern button that
+  fails reports its own error rather than "No video source worked" over sources it
+  never tried.
 - **The footer shows all seven social icons** (2026-10-12). Icon tree shaking had kept
   GitHub's alone, because ANThology held the others in a map that was not `const`.
 - **The loading screen and cookie notice fit a phone** (2026-10-12). The page had no
@@ -61,6 +69,8 @@ What landed on `develop` after 2.0.0+2. Most of it is the cat cam, whose guide i
     still, empty scene went from 74 % to 12 % of a core, a dark room at night to 2 %.
   - Frames stay I420 from the camera to the encoder.
   - The web build goes out gzipped, and a revalidation answers 304 without reading a file.
+- **92 kB less on every first visit** (2026-10-13): Roboto's Medium Italic face, which
+  nothing draws, is no longer declared, so Flutter web no longer fetches it.
 - **Every build is 7.6 MB lighter** (2026-10-12, ANThology c441bb7): the 404 page's
   animation is a 0.85 MB WebP instead of a 4.9 MB GIF, and the 3.6 MB GIF the landing
   page no longer shows is gone. The web, Linux, Windows and Android builds all bundle
