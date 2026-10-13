@@ -194,6 +194,9 @@ Two upstream facts repeated here only because they bite before you reach a doc:
   - It has no boot service and no Pi camera, since the sandbox cannot see `rpicam-vid`.
   - `test-catcam-package.sh` installs it system-wide as root, because a user install
     needs a D-Bus the container lacks.
+  - On riscv64 it builds the `.deb` and the tarball only, natively on the board in the
+    riscv64 `:latest` (a 16 KiB-page Pi cannot emulate it): the freedesktop runtime has no
+    riscv64 build and no AppImage runtime is staged for one. No CI lane builds it.
 
   `catcam/*` is pinned to LF in `.gitattributes`, because those files land on the
   target verbatim.
@@ -283,7 +286,7 @@ written out rather than linked.
 
 - **Three scripts print a fixed line range of their own header as `--help`.**
   `scripts/linux/cat-stream/package-producer-bundle.sh` (`sed -n '2,22p'`),
-  `scripts/linux/cat-stream/package-catcam.sh` (`sed -n '2,14p'`) and
+  `scripts/linux/cat-stream/package-catcam.sh` (`sed -n '2,15p'`) and
   `scripts/agentic-loop/Run-AgenticLoop.sh` (`head -30 | tail -28`): edit the
   header and the range together.
 - **The two bootstrap copies are body-mode assets.** Below their header,

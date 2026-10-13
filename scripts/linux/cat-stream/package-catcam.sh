@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Packages the cat cam: a self-contained bundle (its own GStreamer, ONNX Runtime and C library), a .deb and an
-# AppImage that install it as a systemd service, and a flatpak started at sign-in. Runs privileged in the image.
+# AppImage that install it as a systemd service, and a flatpak started at sign-in. Runs privileged in the image;
+# riscv64 gets the .deb and the tarball only.
 #
 # Usage, from the repository root inside the image:
 #   bash scripts/linux/cat-stream/package-catcam.sh --web-root build/web [options]
@@ -34,7 +35,7 @@ while [ $# -gt 0 ]; do
     --producer) producer="${2:?--producer needs a file}"; shift 2 ;;
     --out) out_dir="${2:?--out needs a directory}"; shift 2 ;;
     --version) version="${2:?--version needs a value}"; shift 2 ;;
-    -h|--help) sed -n '2,14p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    -h|--help) sed -n '2,15p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *) printf 'unknown argument: %s\n' "$1" >&2; exit 2 ;;
   esac
 done
@@ -42,15 +43,19 @@ done
 [ -n "${web_root}" ] || { printf -- '--web-root is required\n' >&2; exit 2; }
 [ -f "${web_root}/index.html" ] || { printf 'no index.html in %s\n' "${web_root}" >&2; exit 1; }
 [ -f "${model}" ] || { printf 'model not found: %s\n' "${model}" >&2; exit 1; }
-for tool in patchelf dpkg-deb readelf ldd appimagetool flatpak flatpak-builder; do
-  command -v "${tool}" >/dev/null 2>&1 || { printf '%s not found\n' "${tool}" >&2; exit 1; }
-done
-
+# The freedesktop flatpak runtime has no riscv64 build, and no AppImage runtime is staged for it.
+desktop_formats=1
 case "$(uname -m)" in
   x86_64) deb_arch=amd64; triplet=x86_64-linux-gnu; loader=ld-linux-x86-64.so.2 ;;
   aarch64) deb_arch=arm64; triplet=aarch64-linux-gnu; loader=ld-linux-aarch64.so.1 ;;
+  riscv64) deb_arch=riscv64; triplet=riscv64-linux-gnu; loader=ld-linux-riscv64-lp64d.so.1; desktop_formats=0 ;;
   *) printf 'unsupported architecture: %s\n' "$(uname -m)" >&2; exit 1 ;;
 esac
+tools=(patchelf dpkg-deb readelf ldd)
+[ "${desktop_formats}" = 0 ] || tools+=(appimagetool flatpak flatpak-builder)
+for tool in "${tools[@]}"; do
+  command -v "${tool}" >/dev/null 2>&1 || { printf '%s not found\n' "${tool}" >&2; exit 1; }
+done
 
 if [ -z "${version}" ]; then
   version="$(sed -n 's/^version:[[:space:]]*\([0-9][0-9.]*\).*/\1/p' "${repo_root}/pubspec.yaml" | head -1)"
@@ -260,6 +265,11 @@ deb_file="${out_dir}/${package}_${version}_${deb_arch}.deb"
 dpkg-deb --root-owner-group --build "${deb}" "${deb_file}" >/dev/null
 tar -C "${bundle}/.." -czf "${out_dir}/${package}-${version}-linux-${deb_arch}.tar.gz" \
   --transform "s|^bundle|${package}|" bundle
+if [ "${desktop_formats}" = 0 ]; then
+  printf 'bundle: %s files, %s\n' "$(find "${bundle}" -type f | wc -l)" "$(du -sh "${bundle}" | cut -f1)"
+  printf 'wrote %s (%s); no AppImage or flatpak on %s\n' "${deb_file}" "$(du -h "${deb_file}" | cut -f1)" "$(uname -m)"
+  exit 0
+fi
 
 # --- the AppImage: the bundle in the foreground, or `sudo <AppImage> --install` --------------
 appdir="${work}/appdir"
