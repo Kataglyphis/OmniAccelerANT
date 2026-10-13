@@ -368,9 +368,12 @@ WebRTC: `curl -o cat.jpg http://<host>:8080/snapshot.jpg`. A cat counts after tw
 detections in a row and leaves after about 3 s without one, so a lone hit near the
 score threshold draws no box and logs nothing. While nothing moves and no cat is in
 sight the model runs only every 5 s (`idle_inference_fps`), and not at all while the
-picture is black; motion or a cat brings back `inference_fps`, and `/healthz` counts the
+picture is black; motion brings back `inference_fps`, and `/healthz` counts the
 runs (`model_runs`). On a Pi 5 that took a still, empty scene from 74 % to 12 % of a
-core, and a dark room at night to 2 %. `inference = "auto"` turns the model
+core, and a dark room at night to 2 %. A cat in view that does not move, asleep or a false
+one, is looked at half as often (2026-10-13): himbeere2's drying rack, counted as a cat at
+0.34 all afternoon, went from 69 % to 36 % of a core. Leaving is motion, so a departure is
+seen as fast as before. `inference = "auto"` turns the model
 off below 1 GiB of RAM.
 
 A live `/healthz` from himbeere2 at night (2026-10-12), the camera's name shortened:

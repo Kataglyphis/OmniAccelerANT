@@ -74,6 +74,8 @@ What landed on `develop` after 2.0.0+2. Most of it is the cat cam, whose guide i
     to 70 % of a core on the live camera.
   - While nothing moves, the model runs every 5 s, and not at all on a black picture: a
     still, empty scene went from 74 % to 12 % of a core, a dark room at night to 2 %.
+  - A cat in view that does not move is looked at half as often (2026-10-13): a drying
+    rack counted as a cat went from 69 % to 36 % of a core.
   - Frames stay I420 from the camera to the encoder.
   - The web build goes out gzipped, and a revalidation answers 304 without reading a file.
 - **92 kB less on every first visit** (2026-10-13): Roboto's Medium Italic face, which
