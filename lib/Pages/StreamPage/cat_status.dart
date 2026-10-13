@@ -278,7 +278,13 @@ class _CatStatusLineState extends State<CatStatusLine> {
                     builder: (context, followLink) => TextButton.icon(
                       onPressed: followLink,
                       icon: const Icon(Icons.play_arrow, size: 16),
-                      label: Text(formatLastSeen(t, now, locale)),
+                      // A screen reader skips the icon; the time alone would not say what plays.
+                      label: Text(
+                        formatLastSeen(t, now, locale),
+                        semanticsLabel: l10n.catVideoFrom(
+                          formatLastSeen(t, now, locale),
+                        ),
+                      ),
                     ),
                   ),
             ],

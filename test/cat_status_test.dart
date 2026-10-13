@@ -188,6 +188,7 @@ void main() {
   testWidgets('earlier clips are linked beside the newest arrival\'s', (
     tester,
   ) async {
+    final SemanticsHandle semantics = tester.ensureSemantics();
     // Only the newest arrival's clip: no list of earlier ones.
     var body = _inView.replaceFirst(
       '"visits":3',
@@ -213,6 +214,9 @@ void main() {
       '/arrival.mp4?t=1791700000',
       '/arrival.mp4?t=1791600000',
     ]);
+    // A screen reader hears what each earlier link plays, not a bare time.
+    expect(find.bySemanticsLabel(RegExp(r'^Video from ')), findsNWidgets(2));
+    semantics.dispose();
     await tester.pumpWidget(const SizedBox());
   });
 

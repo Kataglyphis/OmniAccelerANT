@@ -242,6 +242,12 @@ abstract class AppLocalizations {
   /// **'Earlier videos:'**
   String get catEarlierVideos;
 
+  /// What a screen reader says for an earlier video's play link.
+  ///
+  /// In en, this message translates to:
+  /// **'Video from {time}'**
+  String catVideoFrom(String time);
+
   /// No description provided for @catRecentVisits.
   ///
   /// In en, this message translates to:

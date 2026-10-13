@@ -30,6 +30,11 @@
   "catLastArrival": "The cat's last arrival",
   "catArrivalVideo": "Watch the arrival",
   "catEarlierVideos": "Earlier videos:",
+  "catVideoFrom": "Video from {time}",
+  "@catVideoFrom": {
+    "description": "What a screen reader says for an earlier video's play link.",
+    "placeholders": { "time": { "type": "String" } }
+  },
   "catRecentVisits": "Recent visits: {visits}",
   "@catRecentVisits": {
     "placeholders": {
