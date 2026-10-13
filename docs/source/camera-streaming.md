@@ -822,9 +822,9 @@ the Raspberry Pi CSI camera, whose `rp1-cfe` V4L2 nodes carry raw Bayer that
 WebRTC stream keeps camera rate while the boxes lag one inference behind
 (seconds per frame on a Pi 5 CPU). `--no-inference` skips the model entirely —
 no ORT, no detector, frames published unannotated — for camera/WebRTC bring-up
-and for hosts too weak to run YOLO. `--rotate 90|180|270` flips the stream with
-`videoflip` (180 for a camera mounted upside down); inference sees the rotated
-frame, so the boxes still line up.
+and for hosts too weak to run YOLO. `--rotate 90|180|270` turns the stream clockwise with
+`videoflip` (180 for a camera mounted upside down), and so do the page's ⟲ and ⟳ while it
+runs; inference sees the turned frame, so the boxes still line up.
 
 Serve the web build with the `/webrtc-ws` proxy. `serve.sh` also sends COOP/COEP,
 which only the optional Rust core needs, and only in Firefox and Safari; the
