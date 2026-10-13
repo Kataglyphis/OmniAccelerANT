@@ -118,6 +118,12 @@ Linux amd64/arm64 ship as a .deb and an AppImage, proven on himbeere2 (Pi 5) on
   zone over the frame's bottom edge, or moving the rack out of view, does. Either `score = 0.45` in
   himbeere2's `catcam.toml`, or a new setting that ignores a part of the frame. Blocked on
   the owner's choice.
+  - 2026-10-13: the score no longer needs SSH. The web app's Camera page sets it per
+    camera, at run time, kept across restarts, so the owner can try a value and watch the
+    preview's boxes. The rack scored 0.34 all afternoon (92 "visits" by 13:40); above that
+    it stops counting. A still false cat also costs half the model runs now (69 to 36 % of
+    a core on himbeere2). An ignore zone would still be the clean fix for a spot that sees
+    real cats too.
 
 ## Agentic loop
 
