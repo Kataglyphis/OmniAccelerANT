@@ -47,6 +47,7 @@ class CatCamInfo {
     this.modelRuns = 0,
     this.visits = 0,
     this.lastScore,
+    this.problem,
   });
 
   final String camera;
@@ -57,12 +58,16 @@ class CatCamInfo {
   final int modelRuns;
   final int visits;
 
-  /// The best score of the last arrival, where to set the slider just above for a false one.
+  /// The best score of the last detection, where to set the slider just above for a false one.
   final double? lastScore;
+
+  /// Why the camera is not ok, in the cat cam's words; `null` while it delivers.
+  final String? problem;
 
   static CatCamInfo? parse(String? body) {
     final json = decodeJsonObject(body);
-    if (json == null || json['ok'] != true) {
+    final ok = json?['ok'];
+    if (json == null || ok is! bool) {
       return null;
     }
     final frame = json['frame'];
@@ -77,6 +82,9 @@ class CatCamInfo {
       inference: json['inference'] == true,
       modelRuns: field(json, 'model_runs') ?? 0,
       visits: field(cat, 'visits') ?? 0,
+      problem: ok
+          ? null
+          : (json['problem'] is String ? json['problem'] as String : ''),
       lastScore: cat is Map<String, dynamic> && cat['last_score'] is num
           ? (cat['last_score'] as num).toDouble()
           : null,
@@ -310,6 +318,7 @@ class _InfoTable extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final rows = <(String, String)>[
+      if (info.problem case final problem?) (l10n.cameraProblem, problem),
       (l10n.cameraDevice, info.camera),
       if (info.width != null && info.height != null)
         (l10n.cameraResolution, '${info.width} × ${info.height}'),

@@ -171,13 +171,14 @@ no riscv64 runtime.
   picture a quarter each way, a slider sets how sure detection must be before a cat counts,
   and the name can be changed. A preview shows the result, and a table what the camera
   runs. The cat cam keeps all three across restarts.
-- `http://<host>:8080/healthz` says which camera is live, when a cat was last seen,
+- `http://<host>:8080/healthz` says whether the camera delivers (`ok`, else the `problem`), which camera is live, when a cat was last seen,
   how many visits it counted and how long the latest 20 lasted; `/snapshot.jpg` is the
   current picture, boxes included, `/arrival.jpg` the frame the last arrival was
   confirmed on, and `/arrival.mp4` that arrival as a 10 s video, from 3 s before it.
   The visits, that frame and that video survive a restart.
 - Set `notify_url` in the settings and the service POSTs every arrival, departure and
-  finished video there as JSON, for example to a Home Assistant webhook.
+  finished video there as JSON, for example to a Home Assistant webhook, and tries a
+  failed one again for up to ten minutes.
   [camera-streaming.md § Home Assistant](docs/source/camera-streaming.md#home-assistant) has an automation
   that sends each arrival to a phone with its picture and then its video, and sensors
   for visits per day and an alert when the cat cam stops answering.

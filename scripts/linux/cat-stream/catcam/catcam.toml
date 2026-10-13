@@ -40,4 +40,6 @@
 
 # notify_url = ""          # an http(s) URL POSTed {"event": "arrived"|"left"|"clip", ...} as JSON when a cat comes or goes
 
+# allowed_hosts = []       # names besides IPs and local ones (.local, .fritz.box, ...) the page may act under, e.g. a reverse proxy's
+
 # clip_seconds = 10        # seconds of H.264 video per arrival at /arrival.mp4, 3 of them before it; 0 records none

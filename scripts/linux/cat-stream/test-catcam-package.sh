@@ -178,6 +178,39 @@ settings_refuse_bad_posts() {
   if healthz_holds "$1" '.rotate == 180'; then return 1; fi
 }
 
+# Another site's page may not change a setting; the cat cam's own page, by IP and port, may.
+own_page_only() {
+  local post=(-s -o /dev/null -w '%{http_code}' -X POST -H 'content-type: application/json' -d '{"name": "Paket-Test"}')
+  [ "$(curl "${post[@]}" -H 'Origin: http://evil.example' "http://$1:8080/settings")" = 403 ] || return 1
+  [ "$(curl "${post[@]}" -H "Origin: http://$1:8080" "http://$1:8080/settings")" = 200 ] || return 1
+  return 0
+}
+
+# Each arrival keeps its own picture, named by its time as the clips are.
+picture_by_arrival() {
+  local t
+  t="$(curl -sf "http://$1:8080/healthz" | jq -r '.cat.recent[0].arrived')" || return 1
+  jpeg_at "$1" "/arrival.jpg?t=${t}" || return 1
+  [ "$(curl -s -o /dev/null -w '%{http_code}' "http://$1:8080/arrival.jpg?t=1")" = 404 ] || return 1
+  return 0
+}
+
+# Only root and the service's group read the settings, which a webhook secret may be part of.
+config_private() {
+  [ "$(stat -c '%a %U %G' "${config}")" = "640 root $(id -gn "${user}")" ] || return 1
+  return 0
+}
+
+# An older version's world-readable settings file is made private at the next setup, its content kept.
+old_config_tightened() {
+  chmod 644 "${config}" && chgrp root "${config}" || return 1
+  cp "${config}" "${work}/config.before"
+  "${prefix}/libexec/catcam-install" setup || return 1
+  config_private || return 1
+  cmp -s "${config}" "${work}/config.before" || return 1
+  return 0
+}
+
 # A webhook stand-in on loopback that appends every POST body to $2; exec, so $! is python and kill reaches it.
 webhook_receiver() {
   exec python3 -c '
@@ -293,10 +326,14 @@ check "dpkg installs it with no terminal" grep -q '^Setting up omni-accelerant-c
 check "the service user is in the video group" in_video_group
 check "the unit is installed and enabled" test -e /etc/systemd/system/multi-user.target.wants/omni-catcam.service
 check "postinst wrote the settings file" test -f "${config}"
+check "only root and the service's group read it" config_private
+check "an older version's world-readable settings file is made private" old_config_tightened
 check "omni-catcam is on PATH" test "$(readlink -f /usr/bin/omni-catcam)" = "${prefix}/catcam"
 check "every setting catcam.toml documents is one the service reads" template_keys_parse
 check "the unit loads without a warning" unit_verifies /usr/lib/systemd/system/omni-catcam.service
 check "the unit keeps its sandbox (exposure 2.5 or less)" unit_sandboxed /usr/lib/systemd/system/omni-catcam.service
+check "the unit brings the service back whatever ended it" grep -qx 'Restart=always' /usr/lib/systemd/system/omni-catcam.service
+check "the unit starts once the clock is set" grep -qE '^After=.* time-sync\.target' /usr/lib/systemd/system/omni-catcam.service
 mkdir -p "${state}" && chown "${user}:" "${state}"
 
 start_service "${work}/idle.log" "${prefix}/catcam" --camera test --inference on --http-port 0
@@ -314,9 +351,11 @@ start_service "${work}/photo.log" "${prefix}/catcam" --camera "image:${photo}" -
   --notify-url "http://127.0.0.1:18999/api/webhook/test"
 pid=$!
 check "/healthz reports the cat in the photo as a visit" wait_cat "${ip}"
+check "/healthz says ok while the camera delivers frames" healthz_holds "${ip}" '.ok and .problem == null and .frame_age_s <= 2 and .model_age_s <= 10'
 check "/snapshot.jpg serves the boxed frame as a JPEG" jpeg_at "${ip}" /snapshot.jpg
 check "the arrival is POSTed to notify_url as JSON" webhook_got_arrival "${work}/webhook.jsonl"
 check "/arrival.jpg serves the frame the arrival was seen on" jpeg_at "${ip}" /arrival.jpg
+check "/arrival.jpg?t= serves that arrival's picture and no other" picture_by_arrival "${ip}"
 check "the visit log times the stay while the cat is in view" seen_for "${ip}" 2
 check "the arrival's clip is encoded, named in /healthz and first in its list" clip_ready "${ip}"
 check "/arrival.mp4 serves it as an MP4 and answers a byte range" mp4_at "${ip}" /arrival.mp4
@@ -325,6 +364,7 @@ check "the finished clip is POSTed to notify_url as JSON" webhook_got clip "${wo
 check "the page's rotate button turns the picture and the setting is kept" set_from_page "${ip}" '{"rotate": 90}' '.rotate == 90'
 check "the settings page sets the detection score and the name" set_from_page "${ip}" '{"score": 0.6, "name": "Paket-Test"}' '.score == 0.6 and .name == "Paket-Test"'
 check "/settings refuses a form post and a bad value changes nothing" settings_refuse_bad_posts "${ip}"
+check "/settings refuses another site's page and takes the cat cam's own" own_page_only "${ip}"
 stop_service "${pid}"
 kill "${receiver}" 2>/dev/null
 check "the bundled model finds a cat in the photo" grep -q 'cat in view' "${work}/photo.log"

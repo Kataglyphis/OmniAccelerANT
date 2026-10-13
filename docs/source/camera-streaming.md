@@ -243,12 +243,20 @@ Everything it serves is on that one port, plain HTTP:
 | Path | Answers |
 | --- | --- |
 | `/` | the web app; its Stream page plays the camera and shows the cat's status, visits and last arrival |
-| `/healthz` | JSON: the live camera, its `frame` size and rate, `model_runs`, `rotate`, `score`, and the cat's `in_view`, `last_seen`, `visits`, `last_score`, `recent` visits, the newest `clip`'s arrival and every kept one's (`clips`) |
-| `/snapshot.jpg` | the latest frame, boxes drawn |
-| `/arrival.jpg` | the frame the last arrival was confirmed on; `404` until a cat has come |
+| `/healthz` | JSON: `ok`, or `false` with the `problem`; the seconds since the last frame and model run (`frame_age_s`, `model_age_s`); the live camera, its `frame` size and rate, `model_runs`, `rotate`, `score`, and the cat's `in_view`, `last_seen`, `visits`, `last_score`, `recent` visits, the newest `clip`'s arrival and every kept one's (`clips`) |
+| `/snapshot.jpg` | the latest frame, boxes drawn; encoded once per frame however many ask |
+| `/arrival.jpg` | the frame the last arrival was confirmed on; `?t=<arrival time>` that arrival's own, of the last five; `404` until a cat has come, or once that arrival's is dropped |
 | `/arrival.mp4` | the last arrival as an H.264 clip, 3 s before it to 7 s after; `?t=<arrival time>` that arrival's own, of the last five; byte ranges answered; `404` until one is encoded, or once that arrival's is dropped |
 | `/settings` | `GET`: the `name`, `rotate` and `score` the settings page can change. `POST` any of them as JSON (`application/json` only), e.g. `{"rotate": 90}`: 0, 90, 180 or 270 degrees clockwise, a `score` from 0.05 to 0.95, a name of up to 64 characters |
 | `/webrtc-ws` | the WebRTC signalling, forwarded to the producer's own server on loopback `:8443` |
+
+**Only the cat cam's own page may act** (2026-10-13). `/webrtc-ws` and a `POST /settings`
+answer `403` when a browser's `Origin` is not the address the request was sent to, so
+another site's page cannot open the camera or change it. The address must also be an IP,
+a name without a dot, or one ending in `.local`, `.lan`, `.home`, `.internal`, `.home.arpa`
+or `.fritz.box`, which keeps out a public name pointed at the board (DNS rebinding). A
+reverse proxy under a public name is added to `allowed_hosts` in `catcam.toml`. Everything
+else stays readable on the LAN, and a tool such as curl, which sends no `Origin`, passes.
 
 **The Camera page changes the cat cam while it runs** (2026-10-13). It is the web app's
 own page in the bottom bar, for a board that is easily moved or a spot with false alarms:
@@ -260,8 +268,8 @@ own page in the bottom bar, for a board that is easily moved or a spot with fals
   and a cupboard looked square.
 - A slider sets the detection score, how sure the model must be before a cat counts. The
   next model run uses it. Higher means fewer false alarms, lower finds a cat in poor light.
-  Under it the page names the last arrival's score, real or false, so the slider can go
-  just above a false one.
+  Under it the page names the last detection's score ("Last detection: 34 %"), real or
+  false, so the slider can go just above a false one.
 - A field renames the camera. The next webhook event and the next `/healthz` carry the new
   name; a viewer that is already connected keeps the old one until it reconnects.
 - A preview of `/snapshot.jpg`, reloaded every 3 s, shows the result, and a table what the
@@ -335,13 +343,18 @@ left to the host, because its IPA and tuning files must match the host kernel.
 **What the .deb does on install.**
 - It creates the `omni-catcam` system user and adds it to `video` and `render`.
 - It enables and starts `omni-catcam.service`, so the cat cam comes back after a
-  reboot.
+  reboot, and after any exit of its own (`Restart=always`). The unit starts after
+  `time-sync.target`, so on a board without a clock, where a time-wait-sync service is
+  enabled, the first visit is not stamped with yesterday's time.
   - `systemctl disable --now omni-catcam` turns that off, and upgrades keep the
     choice.
   - `OMNI_CATCAM_AUTOSTART=0` on the first install leaves the service disabled.
 - `/etc/omni-accelerant/catcam.toml` is written at the first install, with every
   setting commented out, and never overwritten. `omni-catcam --print-config`
   shows the settings in effect.
+  - Only root and the service's group read it (`640 root:omni-catcam`), because a
+    `notify_url` can carry a webhook's secret. An install before 2026-10-13 wrote it
+    world-readable; the next upgrade takes that read away and keeps its content.
   - It is deliberately not a conffile. dpkg asks about an edited conffile on every
     upgrade that changes it, and over SSH or in an unattended upgrade nobody
     answers, so the install hangs. Found on himbeere2, 2026-10-05.
@@ -365,6 +378,12 @@ left to the host, because its IPA and tuning files must match the host kernel.
 was last seen (Unix seconds), how many visits it counted, the last best score, and the
 latest 20 visits, newest first (`recent`: `arrived`, and `stayed_s` once the cat has
 left).
+**`ok` is `false` when the camera does not deliver** (2026-10-13), and `problem` says why:
+"waiting for the first frame", "no frame for 25 s" after 20 s without one, or "no camera
+found, streaming a test pattern". Until then `ok` was always `true`, so a monitor saw a
+cat cam whose camera had gone as healthy. `frame_age_s` and `model_age_s` are the seconds
+since the last frame and the last model run. The Stream page and the Camera page show the
+problem in orange above the cat.
 `/snapshot.jpg` is the latest frame, boxes included, for a quick look without
 WebRTC: `curl -o cat.jpg http://<host>:8080/snapshot.jpg`. A cat counts after two
 detections in a row and leaves after about 3 s without one, so a lone hit near the
@@ -441,11 +460,15 @@ POSTs a JSON event there whenever a cat arrives or leaves:
 ```
 
 `/arrival.jpg` is the frame the arrival was confirmed on, boxes included, so a
-notification can show what triggered it. A Home Assistant webhook trigger takes the events
+notification can show what triggered it. Each of the last five arrivals keeps its own,
+`/arrival.jpg?t=<time>` (2026-10-13), as the clips do: until then a false visit a minute
+later replaced the picture a cat's notification showed. A Home Assistant webhook trigger takes the events
 as they are: its URL `http://<home-assistant>:8123/api/webhook/<id>` is the
 `notify_url`, and `trigger.json.event` tells arrival from departure. https works too.
-Deliveries run on a thread of their own with a 5 s timeout, a failed one is logged and
-dropped, and the log names only the URL's scheme and host, because a webhook's path is
+Deliveries run on a thread of their own with a 5 s timeout. A failed one is tried again
+after 5 s, 15 s, 45 s and 2 min, so a Home Assistant restart loses no visit; the events
+stay in order, and one older than ten minutes is dropped, since a notification that late
+helps nobody. The log names only the URL's scheme and host, because a webhook's path is
 often its secret.
 
 **Each arrival is a 10 s video too.** The capture thread hands every annotated frame to
@@ -456,6 +479,8 @@ clip at 640x480), `h264parse` and `mp4mux faststart=true`, so the index comes fi
 browser starts playing at once. `/arrival.mp4` serves it with byte ranges, which Safari's
 `<video>` needs; `/healthz` names the newest one's arrival as `cat.clip`; and `notify_url`
 gets a `clip` event once it is written, with the arrival's `time` and `best_score`.
+A second arrival during a clip's 7 s gets a clip of its own (2026-10-13): up to three
+record at once and share their frames, and two finished ones wait for the encoder.
 **The last five clips stay addressable by arrival**, as `clip-<time>.mp4` in the state
 directory, across a restart too: `/arrival.mp4?t=<time>` serves that arrival's own, and
 `404` once it is dropped, never a newer one. A false visit right after the cat (33 of them

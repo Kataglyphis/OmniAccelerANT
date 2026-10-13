@@ -13,7 +13,7 @@ What landed on `develop` after 2.0.0+2. Most of it is the cat cam, whose guide i
 - **A Camera page for the cat cam's settings** (2026-10-13), in the bottom bar beside
   Stream. ⟲ and ⟳ turn the picture a quarter each way, for a board that gets moved about; a
   slider sets how sure detection must be before a cat counts, against false alarms; a field
-  renames the camera. A live preview shows the result, the score of the last arrival under
+  renames the camera. A live preview shows the result, the score of the last detection under
   the slider says where a false one sits, and a table shows what the camera runs.
   The cat cam applies each change at once and keeps it across restarts. It turns the
   picture itself, so detection, the arrival picture and the clips turn with the stream, and
@@ -45,6 +45,22 @@ What landed on `develop` after 2.0.0+2. Most of it is the cat cam, whose guide i
   the clang-cl app (2026-10-04/05).
 
 ### Fixed
+
+- **The cat cam review's fixes** (2026-10-13; OxidANT's changelog has the detail).
+  - Each of the last five arrivals keeps its own picture (`/arrival.jpg?t=`), so a false
+    visit no longer swaps the picture in the cat's phone notification.
+  - A second arrival during a clip's recording gets its own clip.
+  - A webhook delivery that fails is tried again for up to ten minutes, in order.
+  - `/healthz` is `ok: false` with a `problem` when the camera delivers no frames or a
+    test pattern stands in for it; the Stream and Camera pages show the problem.
+  - Another site's page can no longer open the stream or change a setting (`403`); a
+    reverse proxy's name goes into the new `allowed_hosts`.
+  - `catcam.toml` is `640 root:omni-catcam`, since a `notify_url` can carry a webhook
+    secret, and an upgrade takes the world's read off an older one.
+  - The service comes back after any exit (`Restart=always`) and starts after
+    `time-sync.target`.
+  - The Camera page's slider note reads "Last detection: 34 %": it is every detection's
+    score, not only an arrival's.
 
 - **The Impressum no longer shows a commented-out phone number** (2026-10-13). The
   Markdown renderer printed `<!-- Telefon: … -->` as text, there and on two blog pages;

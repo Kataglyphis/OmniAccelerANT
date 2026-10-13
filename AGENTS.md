@@ -181,7 +181,8 @@ Two upstream facts repeated here only because they bite before you reach a doc:
   profile. The AppImage's `--install` sets up the same through
   `catcam/catcam-install`, whose `setup` step the `.deb`'s `postinst` calls too.
   **`/etc/omni-accelerant/catcam.toml` is not a conffile, on purpose.** `setup`
-  writes it only when it is absent. As a conffile, an edited copy stopped the
+  writes it only when it is absent, `640 root:omni-catcam`, since a `notify_url` can hold a
+  webhook secret, and takes other users' read off an older, world-readable one. As a conffile, an edited copy stopped the
   next upgrade at dpkg's keep-or-replace prompt, which hangs over SSH. The unit is
   sandboxed (`systemd-analyze security` 1.8, from 8.7); its comment names what stays open
   for the camera, the RAM check and GStreamer's ORC, and the package test fails above 2.5.

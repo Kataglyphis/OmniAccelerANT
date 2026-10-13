@@ -356,11 +356,23 @@ abstract class AppLocalizations {
   /// **'Visits counted'**
   String get cameraVisits;
 
-  /// Under the detection slider: the best score of the last arrival, real or false.
+  /// Under the detection slider: the best score of the last detection, real or false, to set the slider just above a false one.
   ///
   /// In en, this message translates to:
-  /// **'The last arrival scored {percent} %'**
+  /// **'Last detection: {percent} %'**
   String cameraLastScore(int percent);
+
+  /// Under the cat cam name when its /healthz says it is not ok; the problem is the cat cam's own English text.
+  ///
+  /// In en, this message translates to:
+  /// **'The camera has a problem: {problem}'**
+  String catCamProblem(String problem);
+
+  /// No description provided for @cameraProblem.
+  ///
+  /// In en, this message translates to:
+  /// **'Problem'**
+  String get cameraProblem;
 
   /// Text under the detection sensitivity slider.
   ///

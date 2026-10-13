@@ -45,9 +45,16 @@ make_user() {
   done
 }
 
-# Never over an existing file: that one holds the admin's settings.
+# Never over the admin's file, and only the service's group reads it: a notify_url can carry a webhook secret.
 make_config() {
-  [ -e "${config}" ] || install -D -m 644 "${share}/catcam.toml" "${config}"
+  service_group="$(id -gn "${user}")"
+  if [ ! -e "${config}" ]; then
+    install -D -m 640 -g "${service_group}" "${share}/catcam.toml" "${config}"
+  elif [ -n "$(find "${config}" -perm -o=r)" ]; then
+    # Versions before 2026-10-13 wrote it world-readable.
+    chgrp "${service_group}" "${config}"
+    chmod o-rwx "${config}"
+  fi
 }
 
 install_bundle() {
@@ -81,13 +88,13 @@ install_bundle() {
   mv "${prefix}.new" "${prefix}"
 
   install -m 644 "${share}/omni-catcam.service" "${unit_file}"
+  make_user
   make_config
   if [ -d /etc/ufw/applications.d ]; then
     install -m 644 "${share}/ufw-omni-catcam" /etc/ufw/applications.d/omni-catcam
   fi
   mkdir -p /usr/local/bin
   ln -sfn "${prefix}/catcam" /usr/local/bin/omni-catcam
-  make_user
 
   if have_systemd; then
     systemctl daemon-reload

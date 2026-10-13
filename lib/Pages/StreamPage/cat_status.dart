@@ -24,7 +24,11 @@ class CatStatus {
     this.recent = const <CatVisit>[],
     this.clip,
     this.clips = const <DateTime>[],
+    this.problem,
   });
+
+  /// Why the camera is not ok, in the cat cam's words; `null` while it delivers.
+  final String? problem;
 
   final String name;
   final bool inView;
@@ -46,10 +50,12 @@ class CatStatus {
   bool get hasLatestClip =>
       clip != null && recent.isNotEmpty && clip == recent.first.arrived;
 
-  /// `null` for anything but a cat cam's `/healthz` answer, so other hosts show nothing.
+  /// `null` for anything but a cat cam's `/healthz` answer, so other hosts show nothing; one that is
+  /// not ok still is one, with its [problem].
   static CatStatus? fromHealthz(String body) {
     final json = decodeJsonObject(body);
-    if (json == null || json['ok'] != true) {
+    final ok = json?['ok'];
+    if (json == null || ok is! bool) {
       return null;
     }
     final cat = json['cat'];
@@ -62,7 +68,9 @@ class CatStatus {
     final recent = cat['recent'];
     final clip = cat['clip'];
     final clips = cat['clips'];
+    final problem = json['problem'];
     return CatStatus(
+      problem: ok ? null : (problem is String ? problem : ''),
       name: name is String ? name : '',
       inView: cat['in_view'] == true,
       lastSeen: seconds is int
@@ -220,6 +228,15 @@ class _CatStatusLineState extends State<CatStatusLine> {
       spacing: 6,
       children: [
         title,
+        if (status.problem case final problem?)
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            spacing: 6,
+            children: [
+              const Icon(Icons.warning_amber, size: 18, color: Colors.orange),
+              Flexible(child: Text(l10n.catCamProblem(problem))),
+            ],
+          ),
         Row(
           mainAxisSize: MainAxisSize.min,
           spacing: 6,

@@ -87,7 +87,20 @@ void main() {
       expect(CatStatus.fromHealthz('<!DOCTYPE html><html></html>'), isNull);
       expect(CatStatus.fromHealthz('{"ok":false}'), isNull);
       expect(CatStatus.fromHealthz('{"ok":true}'), isNull);
+      expect(CatStatus.fromHealthz('{"ok":"yes","cat":{}}'), isNull);
       expect(CatStatus.fromHealthz('[]'), isNull);
+    });
+
+    test('a cat cam that is not ok is still one, with its problem', () {
+      final sick = CatStatus.fromHealthz(
+        _inView.replaceFirst(
+          '"ok":true',
+          '"ok":false,"problem":"no frame for 45 s"',
+        ),
+      )!;
+      expect(sick.problem, 'no frame for 45 s');
+      expect(sick.name, 'Garden Cam');
+      expect(CatStatus.fromHealthz(_inView)!.problem, isNull);
     });
   });
 
@@ -320,4 +333,24 @@ void main() {
       await tester.pumpWidget(const SizedBox());
     },
   );
+
+  testWidgets('a camera with a problem says so above the cat', (tester) async {
+    await _pumpLine(
+      tester,
+      () async => _inView.replaceFirst(
+        '"ok":true',
+        '"ok":false,"problem":"no camera found, streaming a test pattern"',
+      ),
+    );
+    await tester.pump();
+    expect(
+      find.text(
+        'The camera has a problem: no camera found, streaming a test pattern',
+      ),
+      findsOneWidget,
+    );
+    expect(find.byIcon(Icons.warning_amber), findsOneWidget);
+    expect(find.text('Cat in view'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+  });
 }

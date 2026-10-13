@@ -1,14 +1,16 @@
 [Unit]
 Description=OmniAccelerANT cat cam (camera, YOLO cat boxes, WebRTC, web page on :8080)
 Documentation=https://github.com/Kataglyphis/OmniAccelerANT
-After=network-online.target
+# Visit times need a set clock on a board without an RTC; the target is passive, so it is not pulled in.
+After=network-online.target time-sync.target
 Wants=network-online.target
 
 [Service]
 Type=simple
 User=omni-catcam
 ExecStart=/opt/omni-accelerant-catcam/catcam
-Restart=on-failure
+# A clean exit is no reason to stay down either: an admin stops a cat cam with systemctl.
+Restart=always
 RestartSec=5
 StateDirectory=omni-accelerant-catcam
 Environment=HOME=/var/lib/omni-accelerant-catcam

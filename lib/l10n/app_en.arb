@@ -49,11 +49,17 @@
   "cameraOff": "off",
   "cameraModelRuns": "Model runs",
   "cameraVisits": "Visits counted",
-  "cameraLastScore": "The last arrival scored {percent} %",
+  "cameraLastScore": "Last detection: {percent} %",
   "@cameraLastScore": {
-    "description": "Under the detection slider: the best score of the last arrival, real or false.",
+    "description": "Under the detection slider: the best score of the last detection, real or false, to set the slider just above a false one.",
     "placeholders": { "percent": { "type": "int" } }
   },
+  "catCamProblem": "The camera has a problem: {problem}",
+  "@catCamProblem": {
+    "description": "Under the cat cam name when its /healthz says it is not ok; the problem is the cat cam's own English text.",
+    "placeholders": { "problem": { "type": "String" } }
+  },
+  "cameraProblem": "Problem",
   "cameraScoreValue": "A cat counts from {percent} % certainty",
   "@cameraScoreValue": {
     "description": "Text under the detection sensitivity slider.",

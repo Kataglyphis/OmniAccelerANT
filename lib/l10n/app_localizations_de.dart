@@ -147,8 +147,16 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String cameraLastScore(int percent) {
-    return 'Die letzte Ankunft hatte $percent % Sicherheit';
+    return 'Letzte Erkennung: $percent %';
   }
+
+  @override
+  String catCamProblem(String problem) {
+    return 'Die Kamera hat ein Problem: $problem';
+  }
+
+  @override
+  String get cameraProblem => 'Problem';
 
   @override
   String cameraScoreValue(int percent) {

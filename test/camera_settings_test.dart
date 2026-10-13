@@ -110,9 +110,17 @@ void main() {
     });
 
     test('is null without ok, or for garbage', () {
-      expect(CatCamInfo.parse('{"ok":false}'), isNull);
+      expect(CatCamInfo.parse('{"camera":"x"}'), isNull);
       expect(CatCamInfo.parse('nope'), isNull);
       expect(CatCamInfo.parse(null), isNull);
+    });
+
+    test('a camera that is not ok still parses, with its problem', () {
+      final info = CatCamInfo.parse(
+        '{"ok":false,"problem":"no frame for 45 s","camera":"x"}',
+      )!;
+      expect(info.problem, 'no frame for 45 s');
+      expect(CatCamInfo.parse(_healthz)!.problem, isNull);
     });
   });
 
@@ -158,7 +166,7 @@ void main() {
     expect(find.textContaining('imx708'), findsOneWidget);
     expect(find.textContaining('1234'), findsOneWidget);
     // Where a false arrival sits, so the slider can go just above it.
-    expect(find.text('The last arrival scored 34 %'), findsOneWidget);
+    expect(find.text('Last detection: 34 %'), findsOneWidget);
   });
 
   testWidgets('the rotate buttons turn the picture a quarter each way', (
@@ -229,10 +237,7 @@ void main() {
     await tester.pump();
     expect(find.text('Kamera-Einstellungen'), findsOneWidget);
     expect(find.text('Eine Katze zählt ab 45 % Sicherheit'), findsOneWidget);
-    expect(
-      find.text('Die letzte Ankunft hatte 34 % Sicherheit'),
-      findsOneWidget,
-    );
+    expect(find.text('Letzte Erkennung: 34 %'), findsOneWidget);
     expect(find.textContaining('Katzenerkennung'), findsWidgets);
   });
 
