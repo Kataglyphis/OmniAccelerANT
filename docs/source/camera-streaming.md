@@ -673,6 +673,16 @@ Two notes from that board:
 - **A dark room is a black stream.** The imx219 has no IR, and the sensor itself
   read a mean Y of 0.5 out of 255 at night.
 
+**On a SpacemiT riscv64 board (mintberrycrunch: Ubuntu 26.04, 8 cores, 16 GB, Logitech C270),
+2026-10-13.** `package-catcam.sh` built the riscv64 `.deb` natively on the board in the riscv64
+`:latest`, in 7 min 53 s (the producer's cargo build 6 min 10 s); a Raspberry Pi 5 cannot emulate
+it, because its 16 KiB pages break QEMU on the image's libraries. The unit:
+- found the webcam on its own (`v4l2src /dev/video9 (C270 HD WEBCAM)`) among the SoC's
+  codec and ISP nodes;
+- needed `sudo ufw allow OmniCatCam`, as the package says, before the LAN reached it;
+- streamed to headless Chrome on himbeere2 at about 24 fps (767 frames in 35 s);
+- used 15 % of one core and 282 MB with the room empty, the model running every 5 s.
+
 **The AppImage on that board, 2026-10-06:**
 - run plainly as the login user, it mounted through FUSE, and Chrome on another host
   played 844 frames in 28 s;
