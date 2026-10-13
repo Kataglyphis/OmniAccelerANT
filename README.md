@@ -84,7 +84,7 @@ OmniAccelerANT bundles a Flutter/Dart frontend, a Rust/C++ inference core, and a
 | 🪟 **Windows** | ARM64 | 🔶 | Hybrid lane (`windows-arm64.yml`): natives cross-built in `:winarm64`, the Flutter app built natively on `windows-11-arm`. On the device every import resolves and the app starts with a window; no camera frame or inference has run on arm64 yet |
 | 🐧 **Linux** | x86-64 | ✔️ | Full GTK support, Docker ready |
 | 🐧 **Linux** | ARM64 | ✔️ | SBC optimized (RPi, OPi support) |
-| 🐧 **Linux** | RISC-V | 🔶 | Emerging architecture support. No CI lane in this repo — the `:latest` image index carries a riscv64 variant, but nothing builds against it here. |
+| 🐧 **Linux** | RISC-V | 🔶 | Emerging architecture support. No CI lane in this repo — the `:latest` image index carries a riscv64 variant, and OxidANT tests its crates under QEMU. The cat cam `.deb` builds natively on a riscv64 board and runs there (2026-10-13). |
 | 🤖 **Android** | ARM64 | 🔶 | Native camera, NDK integration. The app targets `arm64-v8a` only. The image's Android GStreamer/ONNX/OpenCV prebuilts became `arm64-v8a` on 2026-09-11, so the old `incompatible with aarch64linux` link failure is gone, and since CI stopped running CodeQL (2026-09-17) the lane builds the plain APK — native link and the plugin's JVM test included (AGENTS.md § 4). |
 
 ---
@@ -156,7 +156,9 @@ consumes.
 **The installable cat cam (Linux .deb, AppImage or flatpak).** In a privileged
 `:latest`, with the web lane's `build/web`, run `scripts/linux/cat-stream/package-catcam.sh
 --web-root build/web`. That builds `out/omni-accelerant-catcam_<version>_<arch>.deb`, an
-`.AppImage` and a `.flatpak`; `web.yml` uploads all three for x64 and arm64.
+`.AppImage` and a `.flatpak`; `web.yml` uploads all three for x64 and arm64. On a riscv64
+board, run it in that board's own `:latest`: it builds the `.deb` and a tarball, as flatpak has
+no riscv64 runtime.
 - `sudo apt install ./omni-accelerant-catcam_*.deb`, or `sudo ./omni-accelerant-catcam-*.AppImage
   --install` on any other distro, installs a systemd service that starts at boot.
 - `flatpak install ./omni-accelerant-catcam-*.flatpak` runs in a sandbox instead. It
@@ -187,7 +189,8 @@ consumes.
   disable --now omni-catcam` turns autostart off.
 
 Verified on amd64 in `:latest`, and running on two Raspberry Pi 5s, one with a Camera
-Module 2 (imx219) and one with a Camera Module 3 (imx708).
+Module 2 (imx219) and one with a Camera Module 3 (imx708), and on a SpacemiT riscv64 board
+with a Logitech C270 (2026-10-13).
 On Windows, `scripts\windows\cat-stream\Package-CatCam.ps1` (in `:winamd64`) builds an
 MSI, and with `-Msix` a signed MSIX. Each installs the cat cam, starts it at every logon,
 opens the firewall to the network, and streams the same page. Both are tested in the
