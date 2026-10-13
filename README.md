@@ -321,7 +321,7 @@ The app's own Dart suite (`test/`) checks, among the rest:
   (`pinned_artefacts_test.dart`), and that every social link has an icon.
 
 The native Linux lane measures how much of `lib/` these reach and fails below a floor
-(96.1 % on 2026-10-13; `check-dart-coverage.sh`).
+(96.5 % on 2026-10-13; `check-dart-coverage.sh`).
 
 `flutter test` in the `:latest` image runs it in under a minute
 ([AGENTS.md § 5](AGENTS.md#5-build-run-test), *The Dart gate in 23 seconds*).

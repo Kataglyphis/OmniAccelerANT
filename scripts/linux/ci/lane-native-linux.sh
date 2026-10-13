@@ -119,7 +119,7 @@ run_gate "plugin format gate tests" bash scripts/linux/tests/test-check-plugin-c
 # The bundle gate's own mutation suite (synthetic ELFs, no build needed): when G6 runs, and that it decides.
 run_gate "bundle gate tests" bash scripts/linux/tests/test-check-bundle-closure.sh
 run_gate "rust toolchain gate tests" bash scripts/linux/tests/test-check-rust-toolchain.sh
-# lib/ was 96.1 % covered on 2026-10-13 (87.4 % on 2026-10-12); raise the floor as it climbs.
+# lib/ was 96.5 % covered on 2026-10-13 (87.4 % on 2026-10-12); raise the floor as it climbs.
 run_gate "dart coverage" bash scripts/linux/check-dart-coverage.sh --min 95
 run_gate "dart coverage gate tests" bash scripts/linux/tests/test-check-dart-coverage.sh
 assert_gates
