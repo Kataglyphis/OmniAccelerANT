@@ -15,7 +15,7 @@ import 'package:omni_accelerant/Pages/StreamPage/webrtc_view_stub.dart'
     as webrtc_import;
 import 'package:omni_accelerant/Pages/StreamPage/rust_webcam_view.dart';
 import 'package:omni_accelerant/Pages/StreamPage/cat_status.dart';
-// Null on native, the page origin's /healthz on web.
+// Nothing on native; on web the cat cam that serves the page (its /healthz, here).
 import 'package:omni_accelerant/Pages/StreamPage/cat_cam_api_stub.dart'
     if (dart.library.js_interop) 'package:omni_accelerant/Pages/StreamPage/cat_cam_api_web.dart';
 
