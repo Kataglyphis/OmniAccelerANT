@@ -378,18 +378,33 @@ one, is looked at half as often (2026-10-13): himbeere2's drying rack, counted a
 seen as fast as before. `inference = "auto"` turns the model
 off below 1 GiB of RAM.
 
-A live `/healthz` from himbeere2 at night (2026-10-12), the camera's name shortened:
+A live `/healthz` from mintberrycrunch, the riscv64 board, on its first afternoon
+(2026-10-13), its lists cut to two entries each:
 
 ```json
 {
-  "camera": "Raspberry Pi camera via rpicam-vid (imx219 [3280x2464 10-bit RGGB] (…))",
-  "cat": { "in_view": false, "last_score": null, "last_seen": null, "recent": [], "visits": 0 },
+  "camera": "v4l2src /dev/video9 (C270 HD WEBCAM)",
+  "cat": {
+    "clip": 1791909397,
+    "clips": [1791909397, 1791908969],
+    "in_view": false,
+    "last_score": 0.5225493311882019,
+    "last_seen": 1791909401,
+    "recent": [{ "arrived": 1791909397, "stayed_s": 1 }, { "arrived": 1791908975, "stayed_s": 2 }],
+    "visits": 20
+  },
+  "frame": { "fps": 30, "height": 480, "width": 640 },
   "inference": true,
-  "model_runs": 4,
-  "name": "Trouble Tabbls Cat Cam",
-  "ok": true
+  "model_runs": 4073,
+  "name": "Mintberry Cat Cam",
+  "ok": true,
+  "rotate": 0,
+  "score": 0.25
 }
 ```
+
+Before the first cat, `last_score`, `last_seen` and `clip` are `null`, and `clips` and
+`recent` are empty.
 
 `model_runs` counts since the service started. `visits`, `last_seen`, `last_score` and
 `recent` survive a restart, and so does `/arrival.jpg`: the service keeps them in
@@ -399,7 +414,8 @@ last sighting when the service starts again; after a power cut, which writes not
 the last arrival or departure written. The flatpak keeps them in its own `~/.var/app/…/.local/state`, the Windows
 cat cam in `%LOCALAPPDATA%\omni-accelerant-catcam`. `last_seen` and `last_score` stay `null` until a cat has been in view.
 
-The Stream page reads the same `/healthz` every 5 s (`CatStatusLine` in
+The Stream page reads the same `/healthz` every 5 s while it shows, and at once when it
+comes back from another tab (`CatStatusLine` in
 `lib/Pages/StreamPage/cat_status.dart`): under the video it puts the cat cam's `name`,
 then "Cat in view", "Cat last seen: 14:32" or "No cat seen yet", in English or German,
 the three latest visits ("Recent visits: 14:32 (3 min) · 11:05 (10 min)"; one still going
