@@ -147,11 +147,18 @@ class _CatStatusLineState extends State<CatStatusLine> {
   CatStatus? _status;
   Timer? _timer;
 
+  /// False while another tab of the bottom bar shows: go_router keeps this page alive behind it.
+  bool _visible = true;
+
   @override
   void initState() {
     super.initState();
     _poll();
-    _timer = Timer.periodic(widget.interval, (_) => _poll());
+    _timer = Timer.periodic(widget.interval, (_) {
+      if (_visible) {
+        _poll();
+      }
+    });
   }
 
   Future<void> _poll() async {
@@ -175,6 +182,16 @@ class _CatStatusLineState extends State<CatStatusLine> {
 
   @override
   Widget build(BuildContext context) {
+    final visible = TickerMode.valuesOf(context).enabled;
+    if (visible && !_visible) {
+      // Back in view: show the cat as it is now, not as it was when the page was left.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _poll();
+        }
+      });
+    }
+    _visible = visible;
     final status = _status;
     final named = status != null && status.name.isNotEmpty;
     final title = Text(

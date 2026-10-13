@@ -272,4 +272,52 @@ void main() {
     expect(find.byType(Icon), findsNothing);
     await tester.pumpWidget(const SizedBox());
   });
+
+  testWidgets(
+    'behind another tab it polls nothing, and polls at once on return',
+    (tester) async {
+      var polls = 0;
+      var shown = true;
+      late StateSetter flip;
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('en'),
+          home: Scaffold(
+            body: StatefulBuilder(
+              builder: (context, setState) {
+                flip = setState;
+                // What go_router's indexed stack does to a branch that is not shown.
+                return TickerMode(
+                  enabled: shown,
+                  child: CatStatusLine(
+                    fetch: () async {
+                      polls++;
+                      return _inView;
+                    },
+                    fallbackName: 'Fallback Cam',
+                    arrivalImage: _fakeArrival,
+                  ),
+                );
+              },
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      expect(polls, 1);
+      flip(() => shown = false);
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 30));
+      expect(polls, 1, reason: 'no poll while hidden');
+      flip(() => shown = true);
+      await tester.pump();
+      await tester.pump();
+      expect(polls, 2);
+      await tester.pump(const Duration(seconds: 5));
+      expect(polls, 3);
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
 }
