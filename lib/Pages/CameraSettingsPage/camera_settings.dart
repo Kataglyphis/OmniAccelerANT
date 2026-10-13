@@ -1,8 +1,8 @@
 import 'dart:async';
-import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:omni_accelerant/l10n/app_localizations.dart';
+import 'package:omni_accelerant/utils/json_utils.dart';
 
 /// What the cat cam's settings page can change, as `GET /settings` answers it.
 class CatCamSettings {
@@ -22,16 +22,8 @@ class CatCamSettings {
 
   /// `null` for anything but a cat cam's answer.
   static CatCamSettings? parse(String? body) {
-    if (body == null) {
-      return null;
-    }
-    final Object? json;
-    try {
-      json = jsonDecode(body);
-    } on FormatException {
-      return null;
-    }
-    if (json is! Map<String, dynamic>) {
+    final json = decodeJsonObject(body);
+    if (json == null) {
       return null;
     }
     final name = json['name'];
@@ -65,16 +57,8 @@ class CatCamInfo {
   final int visits;
 
   static CatCamInfo? parse(String? body) {
-    if (body == null) {
-      return null;
-    }
-    final Object? json;
-    try {
-      json = jsonDecode(body);
-    } on FormatException {
-      return null;
-    }
-    if (json is! Map<String, dynamic> || json['ok'] != true) {
+    final json = decodeJsonObject(body);
+    if (json == null || json['ok'] != true) {
       return null;
     }
     final frame = json['frame'];

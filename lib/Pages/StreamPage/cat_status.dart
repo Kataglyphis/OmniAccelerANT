@@ -1,9 +1,9 @@
 import 'dart:async';
-import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:omni_accelerant/l10n/app_localizations.dart';
+import 'package:omni_accelerant/utils/json_utils.dart';
 import 'package:url_launcher/link.dart';
 
 /// One visit from `/healthz`'s `cat.recent`: when the cat came, and how long it stayed once it had left.
@@ -48,13 +48,8 @@ class CatStatus {
 
   /// `null` for anything but a cat cam's `/healthz` answer, so other hosts show nothing.
   static CatStatus? fromHealthz(String body) {
-    final Object? json;
-    try {
-      json = jsonDecode(body);
-    } on FormatException {
-      return null;
-    }
-    if (json is! Map<String, dynamic> || json['ok'] != true) {
+    final json = decodeJsonObject(body);
+    if (json == null || json['ok'] != true) {
       return null;
     }
     final cat = json['cat'];
