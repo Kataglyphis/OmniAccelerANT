@@ -145,6 +145,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get cameraVisits => 'Visits counted';
 
   @override
+  String cameraLastScore(int percent) {
+    return 'The last arrival scored $percent %';
+  }
+
+  @override
   String cameraScoreValue(int percent) {
     return 'A cat counts from $percent % certainty';
   }

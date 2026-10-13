@@ -42,6 +42,7 @@
   "cameraOff": "aus",
   "cameraModelRuns": "Modellläufe",
   "cameraVisits": "Gezählte Besuche",
+  "cameraLastScore": "Die letzte Ankunft hatte {percent} % Sicherheit",
   "cameraScoreValue": "Eine Katze zählt ab {percent} % Sicherheit",
   "catRotateLeft": "Bild nach links drehen",
   "catRotateRight": "Bild nach rechts drehen",

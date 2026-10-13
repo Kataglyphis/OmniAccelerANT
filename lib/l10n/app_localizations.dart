@@ -356,6 +356,12 @@ abstract class AppLocalizations {
   /// **'Visits counted'**
   String get cameraVisits;
 
+  /// Under the detection slider: the best score of the last arrival, real or false.
+  ///
+  /// In en, this message translates to:
+  /// **'The last arrival scored {percent} %'**
+  String cameraLastScore(int percent);
+
   /// Text under the detection sensitivity slider.
   ///
   /// In en, this message translates to:

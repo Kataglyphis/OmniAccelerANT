@@ -260,6 +260,8 @@ own page in the bottom bar, for a board that is easily moved or a spot with fals
   and a cupboard looked square.
 - A slider sets the detection score, how sure the model must be before a cat counts. The
   next model run uses it. Higher means fewer false alarms, lower finds a cat in poor light.
+  Under it the page names the last arrival's score, real or false, so the slider can go
+  just above a false one.
 - A field renames the camera. The next webhook event and the next `/healthz` carry the new
   name; a viewer that is already connected keeps the old one until it reconnects.
 - A preview of `/snapshot.jpg`, reloaded every 3 s, shows the result, and a table what the
@@ -1112,8 +1114,8 @@ flutter run -d web-server --profile --web-port 8080 --web-hostname 0.0.0.0
 ## Troubleshooting
 
 - **A cat cam reports cats that are not there.** Open its page, *Camera* in the bottom
-  bar. The preview shows the boxes the model drew, and `/healthz`'s `last_score` the score
-  of the last arrival. Move the detection slider above that score; the next model run
+  bar. The preview shows the boxes the model drew, and the line under the detection slider
+  the score of the last arrival. Move the slider above that score; the next model run
   uses it, and the cat cam keeps it across restarts. Too high and a cat in poor light
   is missed too: a real cat scored 0.76 in the bundled photo, the drying rack 0.26 to 0.65.
 - **The picture is sideways after the board was moved.** ⟲ and ⟳ on the same page turn

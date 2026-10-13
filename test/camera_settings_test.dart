@@ -6,7 +6,7 @@ import 'package:omni_accelerant/l10n/app_localizations.dart';
 const _healthz =
     '{"ok":true,"name":"Cat Cam Futtertrog","rotate":270,"score":0.45,'
     '"frame":{"width":640,"height":480,"fps":15},"camera":"imx708",'
-    '"inference":true,"model_runs":1234,"cat":{"visits":7}}';
+    '"inference":true,"model_runs":1234,"cat":{"visits":7,"last_score":0.3354}}';
 
 /// A cat cam that keeps what the page posts, as `/settings` does.
 class _FakeCatCam {
@@ -99,12 +99,14 @@ void main() {
       expect(info.inference, isTrue);
       expect(info.modelRuns, 1234);
       expect(info.visits, 7);
+      expect(info.lastScore, closeTo(0.3354, 1e-9));
     });
 
     test('an older cat cam without a frame block still parses', () {
       final info = CatCamInfo.parse('{"ok":true,"camera":"x"}')!;
       expect(info.width, isNull);
       expect(info.modelRuns, 0);
+      expect(info.lastScore, isNull);
     });
 
     test('is null without ok, or for garbage', () {
@@ -155,6 +157,8 @@ void main() {
     expect(find.textContaining('15 fps'), findsOneWidget);
     expect(find.textContaining('imx708'), findsOneWidget);
     expect(find.textContaining('1234'), findsOneWidget);
+    // Where a false arrival sits, so the slider can go just above it.
+    expect(find.text('The last arrival scored 34 %'), findsOneWidget);
   });
 
   testWidgets('the rotate buttons turn the picture a quarter each way', (
@@ -225,6 +229,10 @@ void main() {
     await tester.pump();
     expect(find.text('Kamera-Einstellungen'), findsOneWidget);
     expect(find.text('Eine Katze zählt ab 45 % Sicherheit'), findsOneWidget);
+    expect(
+      find.text('Die letzte Ankunft hatte 34 % Sicherheit'),
+      findsOneWidget,
+    );
     expect(find.textContaining('Katzenerkennung'), findsWidgets);
   });
 

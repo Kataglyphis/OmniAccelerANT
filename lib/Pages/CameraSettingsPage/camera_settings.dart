@@ -46,6 +46,7 @@ class CatCamInfo {
     this.inference = false,
     this.modelRuns = 0,
     this.visits = 0,
+    this.lastScore,
   });
 
   final String camera;
@@ -55,6 +56,9 @@ class CatCamInfo {
   final bool inference;
   final int modelRuns;
   final int visits;
+
+  /// The best score of the last arrival, where to set the slider just above for a false one.
+  final double? lastScore;
 
   static CatCamInfo? parse(String? body) {
     final json = decodeJsonObject(body);
@@ -73,6 +77,9 @@ class CatCamInfo {
       inference: json['inference'] == true,
       modelRuns: field(json, 'model_runs') ?? 0,
       visits: field(cat, 'visits') ?? 0,
+      lastScore: cat is Map<String, dynamic> && cat['last_score'] is num
+          ? (cat['last_score'] as num).toDouble()
+          : null,
     );
   }
 }
@@ -259,6 +266,8 @@ class _CameraSettingsPanelState extends State<CameraSettingsPanel> {
                     _save({'score': (value * 100).round() / 100}),
               ),
               Text(l10n.cameraScoreValue((score * 100).round())),
+              if (_info?.lastScore case final last?)
+                Text(l10n.cameraLastScore((last * 100).round())),
               Text(
                 l10n.cameraSensitivityHelp,
                 style: Theme.of(context).textTheme.bodySmall,
