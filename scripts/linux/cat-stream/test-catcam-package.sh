@@ -195,6 +195,30 @@ picture_by_arrival() {
   return 0
 }
 
+# "Not a cat" over the boxes the photo shows ends the visit, as the page's button does.
+not_a_cat_ends_the_visit() {
+  local boxes _
+  boxes="$(curl -sf "http://$1:8080/healthz" | jq -c '.cat.boxes')" || return 1
+  [ "$(jq length <<<"${boxes}")" -ge 1 ] || return 1
+  curl -sf -X POST -H 'content-type: application/json' -d "{\"ignore\": ${boxes}}" "http://$1:8080/settings" >/dev/null || return 1
+  for _ in $(seq 1 40); do
+    healthz_holds "$1" '.cat.in_view == false and .cat.boxes == []' && return 0
+    sleep 0.25
+  done
+  return 1
+}
+
+# Watched again, the photo's cat cannot start a visit: nothing in it moves, and its start is $2 s back.
+still_cat_starts_no_visit() {
+  local visits
+  while [ $(($(date +%s) - $2)) -lt 20 ]; do sleep 1; done
+  visits="$(curl -sf "http://$1:8080/healthz" | jq '.cat.visits')" || return 1
+  curl -sf -X POST -H 'content-type: application/json' -d '{"ignore": []}' "http://$1:8080/settings" >/dev/null || return 1
+  sleep 12
+  healthz_holds "$1" ".cat.in_view == false and .cat.visits == ${visits}" || return 1
+  return 0
+}
+
 # Only root and the service's group read the settings, which a webhook secret may be part of.
 config_private() {
   [ "$(stat -c '%a %U %G' "${config}")" = "640 root $(id -gn "${user}")" ] || return 1
@@ -381,10 +405,19 @@ check "a restart keeps the arrival frame" jpeg_at "${ip}" /arrival.jpg
 check "a restart keeps the arrival clip" mp4_at "${ip}" /arrival.mp4
 check "a restart keeps the rotation, score and name the page set" healthz_holds "${ip}" '.rotate == 90 and .score == 0.6 and .name == "Paket-Test"'
 check "the page turns the picture upright again" set_from_page "${ip}" '{"rotate": 0}' '.rotate == 0'
+check "the page sets the detection score back, below the photo's cat" set_from_page "${ip}" '{"score": 0.25}' '.score == 0.25'
 frames="$(chrome_frames "http://${ip}:8080/" 20000)"
 printf '      Chrome played %s frame(s) over %s\n' "${frames}" "${ip}"
 check "headless Chrome plays the stream from the LAN address" test "${frames:-0}" -ge 200
 check "with a viewer, it maps nothing from outside the bundle" nothing_outside_bundle "${pid}"
+stop_service "${pid}"
+
+started="$(date +%s)"
+start_service "${work}/ignore.log" "${prefix}/catcam" --camera "image:${photo}" --inference on --fps 5
+pid=$!
+check "the photo's cat arrives as the camera starts" wait_cat "${ip}"
+check "marking it not a cat ends its visit" not_a_cat_ends_the_visit "${ip}"
+check "watched again, a cat that does not move starts no visit" still_cat_starts_no_visit "${ip}" "${started}"
 stop_service "${pid}"
 
 echo 'rotate = 180' >>"${config}"

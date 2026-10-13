@@ -235,4 +235,46 @@ void main() {
     expect(client.sessions.single.producerId, 'garden');
     controller.dispose();
   });
+
+  testWidgets(
+    'a tab hidden for a minute closes the session, and showing it opens one',
+    (WidgetTester tester) async {
+      final (WebRTCStreamController controller, _FakeClient client) =
+          _streaming();
+      // A glance at another tab keeps the picture.
+      controller.pageHidden(true);
+      await tester.pump(const Duration(seconds: 30));
+      controller.pageHidden(false);
+      await tester.pump(const Duration(seconds: 60));
+      expect(client.sessions.single.closed, isFalse);
+      // A minute away closes it, so the cat cam stops encoding for nobody.
+      controller.pageHidden(true);
+      await tester.pump(const Duration(seconds: 61));
+      expect(client.sessions.single.closed, isTrue);
+      expect(controller.stage, WebRTCStage.waitingForProducer);
+      // A view that mounts while the tab is hidden opens nothing either.
+      controller.attach();
+      expect(client.sessions, hasLength(1));
+      controller.detach();
+      controller.pageHidden(false);
+      expect(client.sessions, hasLength(2));
+      expect(controller.stage, WebRTCStage.negotiating);
+      controller.dispose();
+    },
+  );
+
+  testWidgets('a view attached while hidden does not keep the session open', (
+    WidgetTester tester,
+  ) async {
+    final (WebRTCStreamController controller, _FakeClient client) =
+        _streaming();
+    controller.pageHidden(true);
+    await tester.pump(const Duration(seconds: 10));
+    // A remount in the hidden tab, as a theme change from the system makes.
+    controller.attach();
+    controller.detach();
+    await tester.pump(const Duration(seconds: 55));
+    expect(client.sessions.single.closed, isTrue);
+    controller.dispose();
+  });
 }

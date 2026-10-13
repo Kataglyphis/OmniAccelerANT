@@ -4,13 +4,40 @@ import 'package:flutter/material.dart';
 import 'package:omni_accelerant/l10n/app_localizations.dart';
 import 'package:omni_accelerant/utils/json_utils.dart';
 
+/// Spots of the picture as fractions of its width and height, from a JSON list of `[x1, y1, x2, y2]`.
+List<Rect> parseZones(Object? json) => <Rect>[
+  if (json is List)
+    for (final zone in json)
+      if (zone is List &&
+          zone.length == 4 &&
+          zone.every((v) => v is num) &&
+          (zone[0] as num) < (zone[2] as num) &&
+          (zone[1] as num) < (zone[3] as num))
+        Rect.fromLTRB(
+          (zone[0] as num).toDouble(),
+          (zone[1] as num).toDouble(),
+          (zone[2] as num).toDouble(),
+          (zone[3] as num).toDouble(),
+        ),
+];
+
+/// [zone] as the cat cam takes it, `[x1, y1, x2, y2]` to three places.
+List<double> zoneJson(Rect zone) => [
+  for (final v in [zone.left, zone.top, zone.right, zone.bottom])
+    (v * 1000).round() / 1000,
+];
+
 /// What the cat cam's settings page can change, as `GET /settings` answers it.
 class CatCamSettings {
   const CatCamSettings({
     required this.name,
     required this.rotate,
     required this.score,
+    this.ignore = const <Rect>[],
   });
+
+  /// Spots marked "not a cat"; a cat cam before them sends none.
+  final List<Rect> ignore;
 
   final String name;
 
@@ -32,7 +59,12 @@ class CatCamSettings {
     if (name is! String || rotate is! int || score is! num) {
       return null;
     }
-    return CatCamSettings(name: name, rotate: rotate, score: score.toDouble());
+    return CatCamSettings(
+      name: name,
+      rotate: rotate,
+      score: score.toDouble(),
+      ignore: parseZones(json['ignore']),
+    );
   }
 }
 
@@ -48,7 +80,15 @@ class CatCamInfo {
     this.visits = 0,
     this.lastScore,
     this.problem,
+    this.boxes = const <Rect>[],
+    this.version = '',
   });
+
+  /// The cat cam's build, as its package stamped it.
+  final String version;
+
+  /// The boxes drawn into the picture now, as fractions of it: what "not a cat" would ignore.
+  final List<Rect> boxes;
 
   final String camera;
   final int? width;
@@ -76,6 +116,7 @@ class CatCamInfo {
         map is Map<String, dynamic> && map[key] is int ? map[key] as int : null;
     return CatCamInfo(
       camera: json['camera'] is String ? json['camera'] as String : '',
+      version: json['version'] is String ? json['version'] as String : '',
       width: field(frame, 'width'),
       height: field(frame, 'height'),
       fps: field(frame, 'fps'),
@@ -85,6 +126,7 @@ class CatCamInfo {
       problem: ok
           ? null
           : (json['problem'] is String ? json['problem'] as String : ''),
+      boxes: parseZones(cat is Map<String, dynamic> ? cat['boxes'] : null),
       lastScore: cat is Map<String, dynamic> && cat['last_score'] is num
           ? (cat['last_score'] as num).toDouble()
           : null,
@@ -146,6 +188,8 @@ class _CameraSettingsPanelState extends State<CameraSettingsPanel> {
     _timer = Timer.periodic(widget.previewInterval, (_) {
       if (mounted && _visible && _settings != null) {
         setState(() => _frame++);
+        // With the picture, so "not a cat" offers the boxes it shows.
+        unawaited(_refreshInfo());
       }
     });
   }
@@ -185,6 +229,13 @@ class _CameraSettingsPanelState extends State<CameraSettingsPanel> {
         _name.text = settings.name;
       }
     });
+  }
+
+  Future<void> _refreshInfo() async {
+    final info = CatCamInfo.parse(await _quietly(widget.fetchHealthz));
+    if (mounted && info != null) {
+      setState(() => _info = info);
+    }
   }
 
   Future<void> _save(Map<String, Object> update) async {
@@ -234,8 +285,48 @@ class _CameraSettingsPanelState extends State<CameraSettingsPanel> {
         ),
         ClipRRect(
           borderRadius: BorderRadius.circular(6),
-          child: widget.preview('/snapshot.jpg?frame=$_frame'),
+          child: CustomPaint(
+            foregroundPainter: _IgnoredPainter(settings.ignore),
+            child: widget.preview('/snapshot.jpg?frame=$_frame'),
+          ),
         ),
+        if (_info?.boxes case final boxes? when boxes.isNotEmpty)
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 420),
+            child: Column(
+              spacing: 4,
+              children: [
+                OutlinedButton.icon(
+                  icon: const Icon(Icons.block),
+                  label: Text(l10n.cameraNotACat),
+                  onPressed: () => _save({
+                    'ignore': [
+                      ...settings.ignore,
+                      ...boxes,
+                    ].map(zoneJson).toList(),
+                  }),
+                ),
+                Text(
+                  l10n.cameraNotACatHelp,
+                  style: Theme.of(context).textTheme.bodySmall,
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          ),
+        if (settings.ignore.isNotEmpty)
+          Wrap(
+            alignment: WrapAlignment.center,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 8,
+            children: [
+              Text(l10n.cameraIgnoredSpots(settings.ignore.length)),
+              TextButton(
+                onPressed: () => _save({'ignore': <List<double>>[]}),
+                child: Text(l10n.cameraWatchAgain),
+              ),
+            ],
+          ),
         Text(l10n.cameraRotation, style: heading),
         Row(
           mainAxisSize: MainAxisSize.min,
@@ -309,6 +400,36 @@ class _CameraSettingsPanelState extends State<CameraSettingsPanel> {
   }
 }
 
+/// The spots marked "not a cat", grey over the preview, so the owner sees what no longer counts.
+class _IgnoredPainter extends CustomPainter {
+  const _IgnoredPainter(this.zones);
+
+  final List<Rect> zones;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final fill = Paint()..color = const Color(0x66808080);
+    final edge = Paint()
+      ..color = const Color(0xCCBDBDBD)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2;
+    for (final zone in zones) {
+      final rect = Rect.fromLTRB(
+        zone.left * size.width,
+        zone.top * size.height,
+        zone.right * size.width,
+        zone.bottom * size.height,
+      );
+      canvas
+        ..drawRect(rect, fill)
+        ..drawRect(rect, edge);
+    }
+  }
+
+  @override
+  bool shouldRepaint(_IgnoredPainter old) => old.zones != zones;
+}
+
 class _InfoTable extends StatelessWidget {
   const _InfoTable({required this.info});
 
@@ -327,6 +448,7 @@ class _InfoTable extends StatelessWidget {
       (l10n.cameraDetection, info.inference ? l10n.cameraOn : l10n.cameraOff),
       (l10n.cameraModelRuns, '${info.modelRuns}'),
       (l10n.cameraVisits, '${info.visits}'),
+      if (info.version.isNotEmpty) (l10n.cameraVersion, info.version),
     ];
     return ConstrainedBox(
       constraints: const BoxConstraints(maxWidth: 560),

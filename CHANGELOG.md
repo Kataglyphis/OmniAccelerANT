@@ -10,6 +10,19 @@ What landed on `develop` after 2.0.0+2. Most of it is the cat cam, whose guide i
 
 ### Added
 
+- **An overview of the other cat cams, and a calmer Stream page** (2026-10-14). With
+  `peers` in `catcam.toml`, the Stream page shows a card per other cat cam: its name,
+  picture and cat. It also says since when a cat cam is unreachable, folds out the whole
+  visit log, shows each earlier video with its arrival's picture, and closes the video of
+  a tab hidden for a minute. `/healthz` names the build (`version`, also on the Camera
+  page) and the tabs connected (`viewers`); more than `max_viewers` (8) get `503`.
+
+- **"Not a cat", and a cat must move to arrive** (2026-10-14). Under the Camera page's
+  preview, "Not a cat" marks the boxed spot, such as a drying rack, so the cat cam ignores
+  it from then on; the marked spots show grey, and "Watch again" forgets them. And a
+  detection now starts a visit only where something moved in the last 10 s, so a still
+  object the model takes for a cat never counts, while a cat that sits down stays counted.
+
 - **A Camera page for the cat cam's settings** (2026-10-13), in the bottom bar beside
   Stream. ⟲ and ⟳ turn the picture a quarter each way, for a board that gets moved about; a
   slider sets how sure detection must be before a cat counts, against false alarms; a field

@@ -158,6 +158,49 @@ class AppLocalizationsEn extends AppLocalizations {
   String get cameraProblem => 'Problem';
 
   @override
+  String get cameraNotACat => 'Not a cat';
+
+  @override
+  String get cameraNotACatHelp =>
+      'Ignores the boxed spot from now on, such as a drying rack the camera takes for a cat.';
+
+  @override
+  String cameraIgnoredSpots(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count spots are ignored (grey on the preview)',
+      one: '1 spot is ignored (grey on the preview)',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get cameraWatchAgain => 'Watch again';
+
+  @override
+  String catCamUnreachable(String time) {
+    return 'Camera unreachable since $time';
+  }
+
+  @override
+  String catAllVisits(int count) {
+    return 'All $count visits';
+  }
+
+  @override
+  String get catFewerVisits => 'Fewer visits';
+
+  @override
+  String get catOtherCameras => 'Other cat cams';
+
+  @override
+  String get catPeerUnreachable => 'Not reachable';
+
+  @override
+  String get cameraVersion => 'Version';
+
+  @override
   String cameraScoreValue(int percent) {
     return 'A cat counts from $percent % certainty';
   }

@@ -170,7 +170,11 @@ no riscv64 runtime.
 - The **Camera** page beside it changes the cat cam while it runs: ⟲ and ⟳ turn the
   picture a quarter each way, a slider sets how sure detection must be before a cat counts,
   and the name can be changed. A preview shows the result, and a table what the camera
-  runs. The cat cam keeps all three across restarts.
+  runs; "Not a cat" under it makes the camera ignore a boxed spot, such as a drying rack,
+  for good. The cat cam keeps all of it across restarts, and counts a cat only once
+  something moved where it is seen.
+- Several cat cams can show each other: list the others as `peers` in each
+  `catcam.toml`, and the Stream page shows a card per camera with its picture and cat.
 - `http://<host>:8080/healthz` says whether the camera delivers (`ok`, else the `problem`), which camera is live, when a cat was last seen,
   how many visits it counted and how long the latest 20 lasted; `/snapshot.jpg` is the
   current picture, boxes included, `/arrival.jpg` the frame the last arrival was

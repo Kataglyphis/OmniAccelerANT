@@ -64,6 +64,7 @@ class WebRTCStreamController extends ChangeNotifier {
     this.producerId,
     this.keepAlive = const Duration(seconds: 30),
     this.retryAfter = const Duration(seconds: 3),
+    this.hiddenGrace = const Duration(seconds: 60),
   }) {
     _client.listen(
       connected: _onConnected,
@@ -87,10 +88,14 @@ class WebRTCStreamController extends ChangeNotifier {
   /// How long after a failed session the next one is tried.
   final Duration retryAfter;
 
+  /// How long the browser tab may be hidden before the session closes; the cat cam encodes per viewer.
+  final Duration hiddenGrace;
+
   WebRTCStage _stage = WebRTCStage.connecting;
   String Function(AppLocalizations l10n)? _detail;
   bool _connected = false;
   int _views = 0;
+  bool _hidden = false;
   ConsumerSessionHandle? _session;
   String? _sessionProducer;
   Object? _sessionToken;
@@ -105,10 +110,25 @@ class WebRTCStreamController extends ChangeNotifier {
   /// A view shows the stream: it gets the open session, or a new one at once.
   void attach() {
     _views++;
-    _closeTimer?.cancel();
-    _closeTimer = null;
+    // In a hidden tab the pending close stands: the view shows nobody anything.
+    if (!_hidden) {
+      _closeTimer?.cancel();
+      _closeTimer = null;
+    }
     _ensureSession();
   }
+
+  /// The browser hid or showed the tab: hidden for [hiddenGrace], the session closes, and showing it opens one again.
+  void pageHidden(bool hidden) {
+    if (hidden == _hidden) return;
+    _hidden = hidden;
+    _closeTimer?.cancel();
+    _closeTimer = hidden ? Timer(hiddenGrace, _closeIdleSession) : null;
+    if (!hidden) _ensureSession();
+  }
+
+  /// A view shows the stream in a tab the user can see.
+  bool get _wanted => _views > 0 && !_hidden;
 
   /// A view went away; with none left, the session closes after [keepAlive].
   void detach() {
@@ -122,7 +142,7 @@ class WebRTCStreamController extends ChangeNotifier {
 
   void _closeIdleSession() {
     _closeTimer = null;
-    if (_views > 0) return;
+    if (_wanted) return;
     _retryTimer?.cancel();
     _retryTimer = null;
     _closeSession();
@@ -155,7 +175,7 @@ class WebRTCStreamController extends ChangeNotifier {
 
   /// Opens a session when a view wants one, the client is connected and none is open.
   void _ensureSession() {
-    if (_views == 0 || !_connected || _session != null) return;
+    if (!_wanted || !_connected || _session != null) return;
     if (_retryTimer != null) return;
     final String? target = _pickProducer();
     if (target == null) {

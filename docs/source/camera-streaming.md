@@ -243,12 +243,12 @@ Everything it serves is on that one port, plain HTTP:
 | Path | Answers |
 | --- | --- |
 | `/` | the web app; its Stream page plays the camera and shows the cat's status, visits and last arrival |
-| `/healthz` | JSON: `ok`, or `false` with the `problem`; the seconds since the last frame and model run (`frame_age_s`, `model_age_s`); the live camera, its `frame` size and rate, `model_runs`, `rotate`, `score`, and the cat's `in_view`, `last_seen`, `visits`, `last_score`, `recent` visits, the newest `clip`'s arrival and every kept one's (`clips`) |
+| `/healthz` | JSON: `ok`, or `false` with the `problem`; the seconds since the last frame and model run (`frame_age_s`, `model_age_s`); the build (`version`), the browser tabs on the stream (`viewers`) and the other cat cams (`peers`); the live camera, its `frame` size and rate, `model_runs`, `rotate`, `score`, and the cat's `in_view`, `last_seen`, `visits`, `last_score`, `recent` visits, the newest `clip`'s arrival and every kept one's (`clips`), and the `boxes` drawn now, as fractions of the picture |
 | `/snapshot.jpg` | the latest frame, boxes drawn; encoded once per frame however many ask |
 | `/arrival.jpg` | the frame the last arrival was confirmed on; `?t=<arrival time>` that arrival's own, of the last five; `404` until a cat has come, or once that arrival's is dropped |
 | `/arrival.mp4` | the last arrival as an H.264 clip, 3 s before it to 7 s after; `?t=<arrival time>` that arrival's own, of the last five; byte ranges answered; `404` until one is encoded, or once that arrival's is dropped |
-| `/settings` | `GET`: the `name`, `rotate` and `score` the settings page can change. `POST` any of them as JSON (`application/json` only), e.g. `{"rotate": 90}`: 0, 90, 180 or 270 degrees clockwise, a `score` from 0.05 to 0.95, a name of up to 64 characters |
-| `/webrtc-ws` | the WebRTC signalling, forwarded to the producer's own server on loopback `:8443` |
+| `/settings` | `GET`: the `name`, `rotate`, `score` and `ignore` the settings page can change. `POST` any of them as JSON (`application/json` only), e.g. `{"rotate": 90}`: 0, 90, 180 or 270 degrees clockwise, a `score` from 0.05 to 0.95, a name of up to 64 characters, and up to 16 spots marked "not a cat" as `[x1, y1, x2, y2]` fractions of the picture (`{"ignore": []}` forgets them) |
+| `/webrtc-ws` | the WebRTC signalling, forwarded to the producer's own server on loopback `:8443`; at most `max_viewers` tabs at once (8), `503` for one more |
 
 **Only the cat cam's own page may act** (2026-10-13). `/webrtc-ws` and a `POST /settings`
 answer `403` when a browser's `Origin` is not the address the request was sent to, so
@@ -270,6 +270,12 @@ own page in the bottom bar, for a board that is easily moved or a spot with fals
   next model run uses it. Higher means fewer false alarms, lower finds a cat in poor light.
   Under it the page names the last detection's score ("Last detection: 34 %"), real or
   false, so the slider can go just above a false one.
+- **"Not a cat"** (2026-10-14) appears under the preview while a box is drawn. It marks the
+  boxed spot, such as a drying rack, as no cat: from then on a detection that overlaps it
+  by more than half (intersection over union 0.5) is dropped before it counts, is drawn or
+  scores. A real cat in front of it still counts, since its box differs. The marked spots
+  show grey over the preview, and "Watch again" forgets them all. Turning the picture
+  forgets them too, as they no longer fit it.
 - A field renames the camera. The next webhook event and the next `/healthz` carry the new
   name; a viewer that is already connected keeps the old one until it reconnects.
 - A preview of `/snapshot.jpg`, reloaded every 3 s, shows the result, and a table what the
@@ -397,6 +403,16 @@ one, is looked at half as often (2026-10-13): himbeere2's drying rack, counted a
 seen as fast as before. `inference = "auto"` turns the model
 off below 1 GiB of RAM.
 
+**A cat must move to arrive** (2026-10-14). A detection starts a visit only where the picture
+changed in the last 10 s, inside its box or one 8-pixel block around it: a still object the
+model takes for a cat, like himbeere2's drying rack (92 "visits" by 13:40 on 2026-10-13),
+can no longer start one. Once a cat is in view, every detection keeps its visit going, so a
+cat that sits down or falls asleep stays counted. What the camera sees as it starts counts
+as just arrived, so a cat already there when the service starts is counted then. The motion
+comes from the same 2 Hz looks that pace the model; with that pacing off
+(`idle_inference_fps` at or above `inference_fps`, or `inference_fps = 0`), every detection
+may start a visit, as before.
+
 A live `/healthz` from mintberrycrunch, the riscv64 board, on its first afternoon
 (2026-10-13), its lists cut to two entries each:
 
@@ -444,6 +460,32 @@ stays, so the page fetches the picture once per visit. On the photo, with the ca
 view for 35 s, headless Chrome sent seven `/healthz` requests and one `/arrival.jpg`
 (2026-10-12). Served from anywhere else, where `/healthz` is no cat cam's answer, it
 shows only the title.
+
+Since 2026-10-14 the page also:
+- says "Camera unreachable since 14:32" in orange once a cat cam that answered stops
+  answering, and keeps what it said last, its name, visits and picture;
+- folds out the whole visit log ("All 20 visits") under the three latest;
+- shows each earlier video with its arrival's picture (`/arrival.jpg?t=`), so the right
+  one is found at a glance;
+- **closes the video in a tab hidden for a minute.** The cat cam encodes for each viewer,
+  so a forgotten tab cost a core's share all night; a glance at another tab keeps the
+  picture, and showing the tab again opens a new session at once. The signalling socket
+  stays, so the cat line and the overview keep updating.
+
+**An overview of the other cat cams** (2026-10-14). List them in `catcam.toml` as
+`peers`, each one's origin, on every cat cam:
+
+```toml
+peers = ["http://192.168.188.151:8080", "http://192.168.188.145:8080"]
+```
+
+The Stream page then shows a card per peer under its own cat: the peer's name, a picture
+refreshed every 10 s, and its cat line, or "Not reachable"; a tap opens that cat cam's
+page. A peer answers this page's reads (`/healthz`, `/snapshot.jpg`, `/arrival.jpg`,
+`/arrival.mp4`) with `Access-Control-Allow-Origin` and `Cross-Origin-Resource-Policy:
+cross-origin` only when it lists this page's origin among its own `peers`; nothing else,
+and no page outside the list, gets those headers. So list them both ways, and by the
+address the browser uses.
 
 #### Arrival picture, video and webhook
 
@@ -662,7 +704,8 @@ and run as the unit runs it, with a scrubbed environment as `omni-catcam`:
   before the unit was sandboxed);
 - headless Chrome played the stream over the LAN address;
 - the bundled model found the cats in ANThology's `Summy&Thundy` photo (best score
-  0.76; 0.72 before the frames stayed I420), `/healthz` counted the visit and
+  0.41 since 2026-10-13, 0.76 before: the portrait photo is bordered into the 4:3 frame
+  now instead of stretched, so the cats are smaller), `/healthz` counted the visit and
   `/snapshot.jpg` served the frame as a JPEG;
 - the arrival reached a stand-in webhook as a JSON POST, and `/arrival.jpg` served the
   frame it was seen on;

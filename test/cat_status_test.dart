@@ -229,6 +229,15 @@ void main() {
     ]);
     // A screen reader hears what each earlier link plays, not a bare time.
     expect(find.bySemanticsLabel(RegExp(r'^Video from ')), findsNWidgets(2));
+    // Each earlier video shows its arrival's own picture.
+    expect(
+      find.textContaining('picture /arrival.jpg?t=1791700000 '),
+      findsOneWidget,
+    );
+    expect(
+      find.textContaining('picture /arrival.jpg?t=1791600000 '),
+      findsOneWidget,
+    );
     semantics.dispose();
     await tester.pumpWidget(const SizedBox());
   });
@@ -351,6 +360,51 @@ void main() {
     );
     expect(find.byIcon(Icons.warning_amber), findsOneWidget);
     expect(find.text('Cat in view'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('a cat cam that stops answering says since when, and recovers', (
+    tester,
+  ) async {
+    String? body = _seenBefore;
+    await _pumpLine(tester, () async => body);
+    await tester.pump();
+    expect(find.textContaining('Cat last seen'), findsOneWidget);
+    body = null;
+    await tester.pump(const Duration(seconds: 5));
+    expect(find.textContaining('Camera unreachable since '), findsOneWidget);
+    expect(find.byIcon(Icons.cloud_off), findsOneWidget);
+    // What it said last stays: its name and its visits.
+    expect(find.text('Garden Cam'), findsOneWidget);
+    expect(find.textContaining('Recent visits'), findsOneWidget);
+    body = _seenBefore;
+    await tester.pump(const Duration(seconds: 5));
+    expect(find.textContaining('Camera unreachable'), findsNothing);
+    expect(find.textContaining('Cat last seen'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('more than three visits fold out on a tap', (tester) async {
+    final visits = [
+      for (var i = 0; i < 5; i++)
+        '{"arrived":${1791763000 - i * 600},"stayed_s":60}',
+    ].join(',');
+    await _pumpLine(
+      tester,
+      () async =>
+          '{"ok":true,"name":"Garden Cam","cat":{"in_view":false,"last_seen":1791763060,'
+          '"visits":5,"recent":[$visits]}}',
+    );
+    await tester.pump();
+    String line() =>
+        tester.widget<Text>(find.textContaining('Recent visits')).data!;
+    expect(' · '.allMatches(line()), hasLength(2));
+    await tester.tap(find.text('All 5 visits'));
+    await tester.pump();
+    expect(' · '.allMatches(line()), hasLength(4));
+    await tester.tap(find.text('Fewer visits'));
+    await tester.pump();
+    expect(' · '.allMatches(line()), hasLength(2));
     await tester.pumpWidget(const SizedBox());
   });
 }

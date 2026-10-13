@@ -16,6 +16,9 @@ Future<String?> _get(String path) async {
   }
 }
 
+/// The body of a GET to [url] on another cat cam, which lets this page read it (`peers`).
+Future<String?> fetchFrom(String url) => _get(url);
+
 /// The cat cam's `/healthz`.
 Future<String?> fetchHealthz() => _get('/healthz');
 

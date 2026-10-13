@@ -2,6 +2,8 @@
 
 Future<String?> fetchHealthz() async => null;
 
+Future<String?> fetchFrom(String url) async => null;
+
 Future<String?> fetchCatCamSettings() async => null;
 
 Future<bool> saveCatCamSettings(Map<String, Object> update) async => false;

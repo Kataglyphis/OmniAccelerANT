@@ -374,6 +374,66 @@ abstract class AppLocalizations {
   /// **'Problem'**
   String get cameraProblem;
 
+  /// Button under the camera preview: the boxed spots are no cat and are ignored from now on.
+  ///
+  /// In en, this message translates to:
+  /// **'Not a cat'**
+  String get cameraNotACat;
+
+  /// No description provided for @cameraNotACatHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Ignores the boxed spot from now on, such as a drying rack the camera takes for a cat.'**
+  String get cameraNotACatHelp;
+
+  /// How many spots were marked "not a cat"; they show grey over the preview.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 spot is ignored (grey on the preview)} other{{count} spots are ignored (grey on the preview)}}'**
+  String cameraIgnoredSpots(int count);
+
+  /// Button beside the ignored spots: forget them all.
+  ///
+  /// In en, this message translates to:
+  /// **'Watch again'**
+  String get cameraWatchAgain;
+
+  /// Under the cat cam name once its /healthz stopped answering; time is when it stopped.
+  ///
+  /// In en, this message translates to:
+  /// **'Camera unreachable since {time}'**
+  String catCamUnreachable(String time);
+
+  /// Button under the three latest visits: shows the whole visit log.
+  ///
+  /// In en, this message translates to:
+  /// **'All {count} visits'**
+  String catAllVisits(int count);
+
+  /// Button under the whole visit log: back to the three latest.
+  ///
+  /// In en, this message translates to:
+  /// **'Fewer visits'**
+  String get catFewerVisits;
+
+  /// Heading over the other cat cams this one lists as peers.
+  ///
+  /// In en, this message translates to:
+  /// **'Other cat cams'**
+  String get catOtherCameras;
+
+  /// Under another cat cam that does not answer this page.
+  ///
+  /// In en, this message translates to:
+  /// **'Not reachable'**
+  String get catPeerUnreachable;
+
+  /// Row of the camera info table: the cat cam build.
+  ///
+  /// In en, this message translates to:
+  /// **'Version'**
+  String get cameraVersion;
+
   /// Text under the detection sensitivity slider.
   ///
   /// In en, this message translates to:

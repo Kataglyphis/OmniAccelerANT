@@ -159,6 +159,49 @@ class AppLocalizationsDe extends AppLocalizations {
   String get cameraProblem => 'Problem';
 
   @override
+  String get cameraNotACat => 'Das ist keine Katze';
+
+  @override
+  String get cameraNotACatHelp =>
+      'Die markierte Stelle wird ab jetzt ignoriert, etwa ein Wäscheständer, den die Kamera für eine Katze hält.';
+
+  @override
+  String cameraIgnoredSpots(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Stellen werden ignoriert (grau in der Vorschau)',
+      one: '1 Stelle wird ignoriert (grau in der Vorschau)',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get cameraWatchAgain => 'Wieder beachten';
+
+  @override
+  String catCamUnreachable(String time) {
+    return 'Kamera nicht erreichbar seit $time';
+  }
+
+  @override
+  String catAllVisits(int count) {
+    return 'Alle $count Besuche';
+  }
+
+  @override
+  String get catFewerVisits => 'Weniger Besuche';
+
+  @override
+  String get catOtherCameras => 'Andere Katzenkameras';
+
+  @override
+  String get catPeerUnreachable => 'Nicht erreichbar';
+
+  @override
+  String get cameraVersion => 'Version';
+
+  @override
   String cameraScoreValue(int percent) {
     return 'Eine Katze zählt ab $percent % Sicherheit';
   }

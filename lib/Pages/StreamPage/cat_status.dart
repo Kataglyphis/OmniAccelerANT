@@ -25,7 +25,11 @@ class CatStatus {
     this.clip,
     this.clips = const <DateTime>[],
     this.problem,
+    this.peers = const <String>[],
   });
+
+  /// The other cat cams' origins, as `catcam.toml` lists them, for the overview.
+  final List<String> peers;
 
   /// Why the camera is not ok, in the cat cam's words; `null` while it delivers.
   final String? problem;
@@ -69,7 +73,13 @@ class CatStatus {
     final clip = cat['clip'];
     final clips = cat['clips'];
     final problem = json['problem'];
+    final peers = json['peers'];
     return CatStatus(
+      peers: <String>[
+        if (peers is List)
+          for (final peer in peers)
+            if (peer is String) peer,
+      ],
       problem: ok ? null : (problem is String ? problem : ''),
       name: name is String ? name : '',
       inView: cat['in_view'] == true,
@@ -102,6 +112,24 @@ class CatStatus {
   }
 }
 
+/// What [status] says about the cat in one line, with its icon and colour.
+(IconData, Color?, String) catLine(
+  AppLocalizations l10n,
+  CatStatus status,
+  DateTime now,
+  String locale,
+) {
+  final lastSeen = status.lastSeen;
+  if (status.inView) {
+    return (Icons.pets, Colors.green, l10n.catInView);
+  }
+  if (lastSeen != null) {
+    final when = formatLastSeen(lastSeen, now, locale);
+    return (Icons.history, null, l10n.catLastSeen(when));
+  }
+  return (Icons.visibility_off_outlined, null, l10n.catNotSeenYet);
+}
+
 /// `14:32` for today, `Oct 11 14:32` for an earlier day, in [locale].
 String formatLastSeen(DateTime when, DateTime now, String locale) {
   final today =
@@ -109,6 +137,18 @@ String formatLastSeen(DateTime when, DateTime now, String locale) {
   return today
       ? DateFormat.Hm(locale).format(when)
       : DateFormat.MMMd(locale).add_Hm().format(when);
+}
+
+/// One visit as the status line lists it: `14:32 (3 min)`, or the time alone while it goes on.
+String visitText(
+  AppLocalizations l10n,
+  CatVisit visit,
+  DateTime now,
+  String locale,
+) {
+  final time = formatLastSeen(visit.arrived, now, locale);
+  final stayed = visit.stayed;
+  return stayed == null ? time : l10n.catVisitStay(time, stayMinutes(stayed));
 }
 
 /// A stay in whole minutes, `<1` below one.
@@ -150,6 +190,12 @@ class _CatStatusLineState extends State<CatStatusLine> {
   CatStatus? _status;
   Timer? _timer;
 
+  /// When a cat cam that answered stopped answering; `null` while it answers.
+  DateTime? _unreachableSince;
+
+  /// The whole visit log shows, not only the three latest.
+  bool _allVisits = false;
+
   /// False while another tab of the bottom bar shows: go_router keeps this page alive behind it.
   bool _visible = true;
 
@@ -174,7 +220,15 @@ class _CatStatusLineState extends State<CatStatusLine> {
     if (!mounted) {
       return;
     }
-    setState(() => _status = body == null ? null : CatStatus.fromHealthz(body));
+    setState(() {
+      if (body == null && _status != null) {
+        // It answered before: say since when it is gone, and keep what it said.
+        _unreachableSince ??= DateTime.now();
+        return;
+      }
+      _unreachableSince = null;
+      _status = body == null ? null : CatStatus.fromHealthz(body);
+    });
   }
 
   @override
@@ -207,28 +261,20 @@ class _CatStatusLineState extends State<CatStatusLine> {
     final l10n = AppLocalizations.of(context)!;
     final locale = Localizations.localeOf(context).toString();
     final now = DateTime.now();
-    final lastSeen = status.lastSeen;
-    final IconData icon;
-    final Color? color;
-    final String text;
-    if (status.inView) {
-      (icon, color, text) = (Icons.pets, Colors.green, l10n.catInView);
-    } else if (lastSeen != null) {
-      final when = formatLastSeen(lastSeen, now, locale);
-      (icon, color, text) = (Icons.history, null, l10n.catLastSeen(when));
-    } else {
-      (icon, color, text) = (
-        Icons.visibility_off_outlined,
-        null,
-        l10n.catNotSeenYet,
-      );
-    }
+    final (icon, color, text) = switch (_unreachableSince) {
+      final since? => (
+        Icons.cloud_off,
+        Colors.orange,
+        l10n.catCamUnreachable(formatLastSeen(since, now, locale)),
+      ),
+      null => catLine(l10n, status, now, locale),
+    };
     return Column(
       mainAxisSize: MainAxisSize.min,
       spacing: 6,
       children: [
         title,
-        if (status.problem case final problem?)
+        if (status.problem case final problem? when _unreachableSince == null)
           Row(
             mainAxisSize: MainAxisSize.min,
             spacing: 6,
@@ -250,18 +296,21 @@ class _CatStatusLineState extends State<CatStatusLine> {
           Text(
             l10n.catRecentVisits(
               status.recent
-                  .take(3)
-                  .map((visit) {
-                    final time = formatLastSeen(visit.arrived, now, locale);
-                    final stayed = visit.stayed;
-                    return stayed == null
-                        ? time
-                        : l10n.catVisitStay(time, stayMinutes(stayed));
-                  })
+                  .take(_allVisits ? status.recent.length : 3)
+                  .map((visit) => visitText(l10n, visit, now, locale))
                   .join(' · '),
             ),
             style: Theme.of(context).textTheme.bodySmall,
             textAlign: TextAlign.center,
+          ),
+        if (status.recent.length > 3)
+          TextButton(
+            onPressed: () => setState(() => _allVisits = !_allVisits),
+            child: Text(
+              _allVisits
+                  ? l10n.catFewerVisits
+                  : l10n.catAllVisits(status.recent.length),
+            ),
           ),
         // Keyed by the visit, which the cat cam counts after storing its frame; last_seen moves every run.
         if (status.visits > 0)
@@ -304,14 +353,47 @@ class _CatStatusLineState extends State<CatStatusLine> {
                       '/arrival.mp4?t=${t.millisecondsSinceEpoch ~/ 1000}',
                     ),
                     target: LinkTarget.blank,
-                    builder: (context, followLink) => TextButton.icon(
-                      onPressed: followLink,
-                      icon: const Icon(Icons.play_arrow, size: 16),
-                      // A screen reader skips the icon; the time alone would not say what plays.
-                      label: Text(
-                        formatLastSeen(t, now, locale),
-                        semanticsLabel: l10n.catVideoFrom(
-                          formatLastSeen(t, now, locale),
+                    builder: (context, followLink) => InkWell(
+                      onTap: followLink,
+                      borderRadius: BorderRadius.circular(6),
+                      child: Padding(
+                        padding: const EdgeInsets.all(4),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          spacing: 2,
+                          children: [
+                            // The arrival's own picture, so the right video is found at a glance.
+                            ExcludeSemantics(
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(4),
+                                child: SizedBox(
+                                  width: 96,
+                                  height: 72,
+                                  child: FittedBox(
+                                    fit: BoxFit.cover,
+                                    clipBehavior: Clip.hardEdge,
+                                    child: widget.arrivalImage(
+                                      '/arrival.jpg?t=${t.millisecondsSinceEpoch ~/ 1000}',
+                                      '',
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.play_arrow, size: 16),
+                                // A screen reader skips the icon; the time alone would not say what plays.
+                                Text(
+                                  formatLastSeen(t, now, locale),
+                                  semanticsLabel: l10n.catVideoFrom(
+                                    formatLastSeen(t, now, locale),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
                         ),
                       ),
                     ),

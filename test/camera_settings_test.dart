@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:omni_accelerant/Pages/CameraSettingsPage/camera_settings.dart';
@@ -18,8 +20,7 @@ class _FakeCatCam {
   final posts = <Map<String, Object>>[];
   bool accept = true;
 
-  Future<String?> fetchSettings() async =>
-      '{"name":"${settings['name']}","rotate":${settings['rotate']},"score":${settings['score']}}';
+  Future<String?> fetchSettings() async => jsonEncode(settings);
 
   Future<bool> save(Map<String, Object> update) async {
     posts.add(update);
@@ -121,6 +122,17 @@ void main() {
       )!;
       expect(info.problem, 'no frame for 45 s');
       expect(CatCamInfo.parse(_healthz)!.problem, isNull);
+    });
+
+    test('carries the build the cat cam names', () {
+      final info = CatCamInfo.parse(
+        _healthz.replaceFirst(
+          '"ok":true',
+          '"ok":true,"version":"2.0.0 (cac26d4)"',
+        ),
+      )!;
+      expect(info.version, '2.0.0 (cac26d4)');
+      expect(CatCamInfo.parse(_healthz)!.version, isEmpty);
     });
   });
 
@@ -309,6 +321,119 @@ void main() {
     final second =
         (tester.widget(find.byKey(const Key('preview'))) as Text).data;
     expect(second, isNot(first));
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  group('zones', () {
+    test('parse from [x1, y1, x2, y2] lists and skip anything else', () {
+      expect(
+        parseZones([
+          [0.25, 0.75, 0.75, 1],
+          [0.5, 0.5, 0.4, 0.9],
+          [0, 0, 1],
+          'x',
+        ]),
+        [const Rect.fromLTRB(0.25, 0.75, 0.75, 1)],
+      );
+      expect(parseZones(null), isEmpty);
+      expect(zoneJson(const Rect.fromLTRB(0.12345, 0.2, 0.3, 0.4)), [
+        0.123,
+        0.2,
+        0.3,
+        0.4,
+      ]);
+    });
+
+    test('come from /settings and /healthz, empty from an older cat cam', () {
+      final settings = CatCamSettings.parse(
+        '{"name":"x","rotate":0,"score":0.3,"ignore":[[0.1,0.2,0.3,0.4]]}',
+      )!;
+      expect(settings.ignore, [const Rect.fromLTRB(0.1, 0.2, 0.3, 0.4)]);
+      expect(
+        CatCamSettings.parse('{"name":"x","rotate":0,"score":0.3}')!.ignore,
+        isEmpty,
+      );
+      final info = CatCamInfo.parse(
+        _healthz.replaceFirst(
+          '"visits":7',
+          '"visits":7,"boxes":[[0,0,0.5,0.5]]',
+        ),
+      )!;
+      expect(info.boxes, [const Rect.fromLTRB(0, 0, 0.5, 0.5)]);
+      expect(CatCamInfo.parse(_healthz)!.boxes, isEmpty);
+    });
+  });
+
+  testWidgets('"Not a cat" adds the boxes shown to the ignored spots', (
+    tester,
+  ) async {
+    final cam = _FakeCatCam()
+      ..settings['ignore'] = [
+        [0.0, 0.0, 0.1, 0.1],
+      ];
+    var healthz = _healthz;
+    await _pump(
+      tester,
+      fetchSettings: cam.fetchSettings,
+      save: cam.save,
+      fetchHealthz: () async => healthz,
+    );
+    await tester.pump();
+    expect(find.text('Not a cat'), findsNothing);
+    expect(
+      find.text('1 spot is ignored (grey on the preview)'),
+      findsOneWidget,
+    );
+    // The drying rack is boxed now: the next preview tick reads it from /healthz.
+    healthz = _healthz.replaceFirst(
+      '"visits":7',
+      '"visits":7,"boxes":[[0.25,0.75,0.75,1.0]]',
+    );
+    await tester.pump(const Duration(seconds: 3));
+    await tester.pump();
+    await tester.tap(find.text('Not a cat'));
+    await tester.pump();
+    expect(cam.posts.last, {
+      'ignore': [
+        [0.0, 0.0, 0.1, 0.1],
+        [0.25, 0.75, 0.75, 1.0],
+      ],
+    });
+    await tester.pump();
+    expect(
+      find.text('2 spots are ignored (grey on the preview)'),
+      findsOneWidget,
+    );
+    await tester.tap(find.text('Watch again'));
+    await tester.pump();
+    expect(cam.posts.last, {'ignore': <List<double>>[]});
+    await tester.pump();
+    expect(find.textContaining('ignored'), findsNothing);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('speaks German about ignored spots', (tester) async {
+    final cam = _FakeCatCam()
+      ..settings['ignore'] = [
+        [0.0, 0.0, 0.1, 0.1],
+        [0.2, 0.2, 0.3, 0.3],
+      ];
+    await _pump(
+      tester,
+      fetchSettings: cam.fetchSettings,
+      fetchHealthz: () async => _healthz.replaceFirst(
+        '"visits":7',
+        '"visits":7,"boxes":[[0.25,0.75,0.75,1.0]]',
+      ),
+      locale: const Locale('de'),
+    );
+    await tester.pump();
+    expect(find.text('Das ist keine Katze'), findsOneWidget);
+    expect(
+      find.text('2 Stellen werden ignoriert (grau in der Vorschau)'),
+      findsOneWidget,
+    );
+    expect(find.text('Wieder beachten'), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
   });
 }

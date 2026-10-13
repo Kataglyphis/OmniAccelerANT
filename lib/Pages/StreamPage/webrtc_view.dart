@@ -85,11 +85,16 @@ WebRTCStreamController _ensureSharedObjects(WebRTCView widget) {
     ),
   );
   _sharedSignalingUrl = url;
-  return _sharedController = WebRTCStreamController(
+  final WebRTCStreamController controller = WebRTCStreamController(
     _GstSignallingClient(api, video),
     reconnectionTimeoutMs: widget.settings.reconnectionTimeoutMs,
     producerId: widget.producerIdToConsume,
   );
+  web.document.addEventListener(
+    'visibilitychange',
+    ((web.Event _) => controller.pageHidden(web.document.hidden)).toJS,
+  );
+  return _sharedController = controller;
 }
 
 /// gstwebrtc-api behind [SignallingClient]; a session's media goes into the shared video element.

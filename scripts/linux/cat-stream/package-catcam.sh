@@ -65,6 +65,9 @@ fi
 if [ -z "${producer}" ]; then
   printf 'building kataglyphis_cat_webrtc (release)\n'
   export CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-/tmp/catcam-target}"
+  # /healthz names it; a copy of the tree without .git, as a board's build gets, keeps the version alone.
+  commit="$(git -C "${repo_root}" rev-parse --short HEAD 2>/dev/null || true)"
+  export CATCAM_VERSION="${CATCAM_VERSION:-${version}${commit:+ (${commit})}}"
   (cd "${repo_root}/third_party/OxidANT" && cargo build --release --locked -p kataglyphis_cat_webrtc)
   producer="${CARGO_TARGET_DIR}/release/kataglyphis_cat_webrtc"
 fi

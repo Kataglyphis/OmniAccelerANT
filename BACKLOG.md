@@ -28,7 +28,7 @@ Linux amd64/arm64 ship as a .deb and an AppImage, proven on himbeere2 (Pi 5) on
   arrivals at 0.45 or more to the phone with `/arrival.jpg`, and updates that notification
   with a tap to `/arrival.mp4?t=` once the clip's event comes. Test arrivals posted to that
   webhook reached the phone; the service's own arrival and clip POSTs are proven against
-  a loopback stand-in (`test-catcam-package.sh`, 63 checks; OxidANT's `notify.rs`), and a
+  a loopback stand-in (`test-catcam-package.sh`, 67 checks; OxidANT's `notify.rs`), and a
   clip from the packaged service on the cat photo played (16:21, 603 kB). The visit
   statistics, the outage alert, the departure that updates the notification with the stay
   and the 21:00 summary run in the same Home Assistant; the summary's first run (21:00)
@@ -103,6 +103,19 @@ Linux amd64/arm64 ship as a .deb and an AppImage, proven on himbeere2 (Pi 5) on
   OxidANT's riscv64 lane; worked around with `--image`. Blocked on the hub, where this repo
   does not commit.
 
+- [b] **A cheaper model, or a cheaper picture.** Measured 2026-10-14 at 01:00, one minute
+  each, CPU of the service process:
+  - himbeere2 (Pi 5, imx219, rotate 180, dark): 3 % of a core, no model run;
+  - tabblscatcam (imx708, rotate 270): 21 %, no model run: the capture thread (`fdsrc0`)
+    turns and borders 30 frames a second, which the model does not cause;
+  - mintberrycrunch (riscv64, C270, lit): 16 % of one of 8 cores, 12 model runs a minute.
+
+  The model runs at 640x640, fixed in `yolo26n.onnx`; a 320 export would cost about a
+  quarter per run, but needs an Ultralytics re-export (PyTorch, several GB) and real cat
+  frames from the boards to prove it still finds the cats, of which there is one photo.
+  `fps = 15` in a board's `catcam.toml` halves the capture cost at once, at a less smooth
+  stream. Blocked on the owner: 15 fps or not, and real cat frames to compare models on.
+
 ## Open — CI time
 
 - [b] **Half of every Windows lane is the image pull.** Measured on 1686eae (2026-10-12):
@@ -121,22 +134,14 @@ Linux amd64/arm64 ship as a .deb and an AppImage, proven on himbeere2 (Pi 5) on
   OmniAccelerANT and jotrockenmitlocken show them. Blocked on the owner's postal address
   (a c/o service address works) and the e-mail to publish. Done when both pages name them
   in German and English.
-- [b] **False arrivals: a threshold or an ignore zone.** On 2026-10-12 a drying rack at
-  the bottom edge of himbeere2's frame made 39 "visits" between 0.26 and 0.44 (33 in the
-  morning, 6 at 18:03 to 18:08),
-  against 0.76 for a cat in the bundled photo. The Home Assistant automation kept them off
-  the phone (0.45) until 21:57, when the rack scored 0.65 and a notification went out, the
-  visit counted. The visit log, its statistics and the arrival picture and clip take them
-  all, and each one costs a clip encode, so the threshold alone does not hold: an ignore
-  zone over the frame's bottom edge, or moving the rack out of view, does. Either `score = 0.45` in
-  himbeere2's `catcam.toml`, or a new setting that ignores a part of the frame. Blocked on
-  the owner's choice.
-  - 2026-10-13: the score no longer needs SSH. The web app's Camera page sets it per
-    camera, at run time, kept across restarts, so the owner can try a value and watch the
-    preview's boxes. The rack scored 0.34 all afternoon (92 "visits" by 13:40); above that
-    it stops counting. A still false cat also costs half the model runs now (69 to 36 % of
-    a core on himbeere2). An ignore zone would still be the clean fix for a spot that sees
-    real cats too.
+- [b] **False arrivals: proven gone on himbeere2.** On 2026-10-12 and 13 a drying rack at
+  the bottom edge of himbeere2's frame made dozens of "visits" a day at 0.26 to 0.65, each
+  with a clip encode, and one reached the phone. Since 2026-10-14 two fixes are in place:
+  a detection starts a visit only where something moved in the last 10 s, and the Camera
+  page's "Not a cat" makes the cat cam ignore a boxed spot for good
+  (`docs/source/camera-streaming.md`, *Detection, visits and /healthz* and the Camera page).
+  Blocked on a day of himbeere2's visit log with the rack in view. Done when that day
+  counts no visit the rack made, while a real cat still arrives.
 
 ## Agentic loop
 

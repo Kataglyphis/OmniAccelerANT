@@ -60,6 +60,46 @@
     "placeholders": { "problem": { "type": "String" } }
   },
   "cameraProblem": "Problem",
+  "cameraNotACat": "Not a cat",
+  "@cameraNotACat": {
+    "description": "Button under the camera preview: the boxed spots are no cat and are ignored from now on."
+  },
+  "cameraNotACatHelp": "Ignores the boxed spot from now on, such as a drying rack the camera takes for a cat.",
+  "cameraIgnoredSpots": "{count, plural, =1{1 spot is ignored (grey on the preview)} other{{count} spots are ignored (grey on the preview)}}",
+  "@cameraIgnoredSpots": {
+    "description": "How many spots were marked \"not a cat\"; they show grey over the preview.",
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "cameraWatchAgain": "Watch again",
+  "@cameraWatchAgain": {
+    "description": "Button beside the ignored spots: forget them all."
+  },
+  "catCamUnreachable": "Camera unreachable since {time}",
+  "@catCamUnreachable": {
+    "description": "Under the cat cam name once its /healthz stopped answering; time is when it stopped.",
+    "placeholders": { "time": { "type": "String" } }
+  },
+  "catAllVisits": "All {count} visits",
+  "@catAllVisits": {
+    "description": "Button under the three latest visits: shows the whole visit log.",
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "catFewerVisits": "Fewer visits",
+  "@catFewerVisits": {
+    "description": "Button under the whole visit log: back to the three latest."
+  },
+  "catOtherCameras": "Other cat cams",
+  "@catOtherCameras": {
+    "description": "Heading over the other cat cams this one lists as peers."
+  },
+  "catPeerUnreachable": "Not reachable",
+  "@catPeerUnreachable": {
+    "description": "Under another cat cam that does not answer this page."
+  },
+  "cameraVersion": "Version",
+  "@cameraVersion": {
+    "description": "Row of the camera info table: the cat cam build."
+  },
   "cameraScoreValue": "A cat counts from {percent} % certainty",
   "@cameraScoreValue": {
     "description": "Text under the detection sensitivity slider.",
