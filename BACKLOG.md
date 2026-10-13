@@ -90,6 +90,19 @@ Linux amd64/arm64 ship as a .deb and an AppImage, proven on himbeere2 (Pi 5) on
   - It has no boot service and no Pi camera by design; those stay with the .deb and the
     AppImage.
 
+- [b] **The riscv64 `.deb` is built by hand, on the board.** mintberrycrunch built and runs it
+  (2026-10-13; camera-streaming.md § *Where it ran*), but no lane builds or install-tests it:
+  GitHub has no riscv64 runner, `test-catcam-package.sh` needs the AppImage, the flatpak and a
+  Chrome for Testing that riscv64 lacks, and a Raspberry Pi 5 cannot emulate the image (16 KiB
+  pages, `third_party/OxidANT/AGENTS.md` § *The riscv64 lane*). A 4 KiB-page host could run
+  `package-catcam.sh` in the riscv64 `:latest` under QEMU, 20 to 30 times slower than the
+  board's 8 min. Blocked on a runner, or on the hub making that QEMU path a lane.
+- [b] **Hub: `riscv64-sysroot.sh` without `--image` stops at once.** Its line 84 calls
+  `ci-image-ref.sh linux`, which takes `--linux` only (`unknown argument "linux"`); CI always
+  passes `--image`, so only the documented local run hits it. Found 2026-10-13 reproducing
+  OxidANT's riscv64 lane; worked around with `--image`. Blocked on the hub, where this repo
+  does not commit.
+
 ## Open — CI time
 
 - [b] **Half of every Windows lane is the image pull.** Measured on 1686eae (2026-10-12):
