@@ -11,6 +11,6 @@
 # :kataglyphis_native_inference:compileReleaseKotlin). The function is kept so
 # restoring the scan is one line in codeql-android.sh rather than a rewrite; the
 # comment at codeql-android.sh:10 names the dispatch site and the condition
-# (CodeQL's ceiling clearing 2.4.20) under which this row goes.
+# (CodeQL's ceiling clearing the declared KGP, 2.4.21) under which this row goes.
 
 scripts/linux/codeql/codeql-common.sh	codeql_analyze_java

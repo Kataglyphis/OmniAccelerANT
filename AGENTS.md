@@ -486,18 +486,18 @@ written out rather than linked.
   `app-release.apk`, `testDebugUnitTest` passed); before the switch, the CodeQL
   build was stopping at Kotlin compilation several steps before the native
   link. The APK is arm64-v8a only: real phones, and the image's x86_64 emulator through its
-  ARM translation (the emulator row of § 5's lane table). AGP 9.4.1 + Gradle 9.8.0
+  ARM translation (the emulator row of § 5's lane table). AGP 9.4.1 + Gradle 9.8.1
   builds that against five constraints, all load-bearing and none of them
   optional:
 
   - **Built-in Kotlin, with a declared KGP for the version check — and CodeQL
     has a ceiling under it.** `android.builtInKotlin=true`, no `kotlin-android`
     plugin anywhere, and `android/settings.gradle.kts` must keep
-    `id("org.jetbrains.kotlin.android") version "2.4.20" apply false`: the
+    `id("org.jetbrains.kotlin.android") version "2.4.21" apply false`: the
     declaration, not an application, is what raises the classpath KGP over
     Flutter's 2.2.20 floor (AGP bundles 2.2.10). Above that floor sits a ceiling
-    belonging to a different tool — CodeQL's Java extractor refuses KGP 2.4.20
-    and takes the whole Gradle build with it, so
+    belonging to a different tool — CodeQL's Java extractor refuses any KGP from
+    2.4.20 on and takes the whole Gradle build with it, so
     `scripts/linux/codeql/codeql-android.sh` builds the cluster for **cpp, c and
     rust only** on its manual runs. Do not "fix" the missing java rows by
     lowering the KGP: that trades a building app for a scan of five glue files.

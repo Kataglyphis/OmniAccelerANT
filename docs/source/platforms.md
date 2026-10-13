@@ -505,7 +505,7 @@ The rules are in AGENTS.md § 4; the measurements that produced them are here.
   Since 2026-10-01 the app clears Flutter's list for `kataglyphisAbi`, the build
   passes `--target-platform android-arm64`, and `scripts/linux/check-apk-abi.sh`
   fails the lane on any other slice (AGENTS.md § 4).
-  AGP 9.4.1 + Gradle 9.8.0 builds that against four constraints, all
+  AGP 9.4.1 + Gradle 9.8.1 builds that against four constraints, all
   load-bearing:
 
   - **Built-in Kotlin, with a declared KGP for the version check — and CodeQL
@@ -513,7 +513,7 @@ The rules are in AGENTS.md § 4; the measurements that produced them are here.
     `kotlin-android` plugin anywhere; AGP compiles Kotlin itself, and the target
     is set with `kotlin { compilerOptions { jvmTarget = … } }`. AGP bundles KGP
     2.2.10, below Flutter's 2.2.20 floor, so `android/settings.gradle.kts` must
-    keep `id("org.jetbrains.kotlin.android") version "2.4.20" apply false` — the
+    keep `id("org.jetbrains.kotlin.android") version "2.4.21" apply false` — the
     declaration, not an application, is what raises the classpath KGP. Remove it
     and Flutter stops with `Your project's Kotlin version (2.2.10) is lower than
     Flutter's minimum supported version of 2.2.20`.
@@ -528,7 +528,7 @@ The rules are in AGENTS.md § 4; the measurements that produced them are here.
     below 2.4.20`, after which `database create` reported `Exit status 1 from
     command: [/tmp/codeql-build.sh]` and the lane exited 2 with no APK.
     The two bounds cannot both be satisfied by one KGP *and* a java database:
-    Flutter wants ≥ 2.2.20, CodeQL wants < 2.4.20, and 2.4.20 is what is
+    Flutter wants ≥ 2.2.20, CodeQL wants < 2.4.20, and 2.4.21 is what is
     declared. `scripts/linux/codeql/codeql-android.sh` therefore builds the
     cluster for **cpp, c and rust only** — where this project's inference code
     actually is — and `codeql_analyze_java` is kept, callerless, in
