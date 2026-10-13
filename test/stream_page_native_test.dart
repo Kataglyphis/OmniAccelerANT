@@ -6,11 +6,10 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:omni_accelerant/Pages/StreamPage/stream_page.dart';
-import 'package:omni_accelerant/main.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 import 'support/real_fonts.dart';
+import 'support/stream_page_app.dart';
 
 /// Stands in for the plugin: records every call, fails `setPipeline` for each source in [missing], and refuses every method in [refused].
 class _FakePlugin {
@@ -92,37 +91,6 @@ const MethodChannel _permissionChannel = MethodChannel(
   'flutter.baseflow.com/permissions/methods',
 );
 
-/// Boots the app on its start page, the Stream page, with [plugin] behind the channel.
-Future<void> _pumpApp(WidgetTester tester, _FakePlugin plugin) async {
-  tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
-    StreamPageState.channel,
-    plugin.handle,
-  );
-  addTearDown(
-    () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
-      StreamPageState.channel,
-      null,
-    ),
-  );
-  tester.view.physicalSize = const Size(1280, 2400);
-  tester.view.devicePixelRatio = 1;
-  addTearDown(tester.view.reset);
-  await tester.runAsync(() async {
-    await tester.pumpWidget(const App());
-    // The bootstrap reads its settings off the asset bundle, which is real I/O.
-    await Future<void>.delayed(const Duration(seconds: 1));
-  });
-  for (int i = 0; i < 10; i++) {
-    await tester.pump(const Duration(milliseconds: 100));
-  }
-}
-
-/// Unmounts the app, which stops the pipeline, and lets the timers it leaves run out.
-Future<void> _unmount(WidgetTester tester) async {
-  await tester.pumpWidget(const SizedBox());
-  await tester.pump(const Duration(seconds: 1));
-}
-
 void main() {
   setUpAll(loadRealFonts);
 
@@ -134,7 +102,7 @@ void main() {
     'Linux without the Rust core creates a texture and plays the camera',
     (WidgetTester tester) async {
       final _FakePlugin plugin = _FakePlugin();
-      await _pumpApp(tester, plugin);
+      await pumpStreamPageApp(tester, plugin.handle);
 
       expect(plugin.methods.take(3), <String>['create', 'setPipeline', 'play']);
       final List<Object?> size = plugin.calls.first.arguments as List<Object?>;
@@ -148,7 +116,7 @@ void main() {
       expect(find.byType(Texture), findsOneWidget);
       expect(find.text('Playing'), findsOneWidget);
 
-      await _unmount(tester);
+      await unmountApp(tester);
       expect(plugin.methods.last, 'stop');
     },
     variant: linux,
@@ -158,7 +126,7 @@ void main() {
     'a camera the pipeline cannot open falls back to the next source',
     (WidgetTester tester) async {
       final _FakePlugin plugin = _FakePlugin(missing: <String>{'v4l2src'});
-      await _pumpApp(tester, plugin);
+      await pumpStreamPageApp(tester, plugin.handle);
 
       expect(plugin.methods.take(5), <String>[
         'create',
@@ -171,7 +139,7 @@ void main() {
       expect(find.text('Playing'), findsOneWidget);
       expect(find.textContaining('No video source worked'), findsNothing);
 
-      await _unmount(tester);
+      await unmountApp(tester);
     },
     variant: linux,
   );
@@ -182,7 +150,7 @@ void main() {
     final _FakePlugin plugin = _FakePlugin(
       missing: <String>{'v4l2src', 'autovideosrc', 'videotestsrc'},
     );
-    await _pumpApp(tester, plugin);
+    await pumpStreamPageApp(tester, plugin.handle);
 
     expect(plugin.pipelines.map((String p) => p.split(' ').first), <String>[
       'v4l2src',
@@ -198,21 +166,21 @@ void main() {
       findsOneWidget,
     );
 
-    await _unmount(tester);
+    await unmountApp(tester);
   }, variant: linux);
 
   testWidgets(
     'a texture the plugin cannot create is reported, and no pipeline is set',
     (WidgetTester tester) async {
       final _FakePlugin plugin = _FakePlugin(createFails: true);
-      await _pumpApp(tester, plugin);
+      await pumpStreamPageApp(tester, plugin.handle);
 
       expect(plugin.methods.first, 'create');
       expect(plugin.methods, isNot(contains('setPipeline')));
       expect(find.textContaining('Texture creation failed'), findsOneWidget);
       expect(find.byType(Texture), findsNothing);
 
-      await _unmount(tester);
+      await unmountApp(tester);
     },
     variant: linux,
   );
@@ -221,7 +189,7 @@ void main() {
     WidgetTester tester,
   ) async {
     final _FakePlugin plugin = _FakePlugin();
-    await _pumpApp(tester, plugin);
+    await pumpStreamPageApp(tester, plugin.handle);
     plugin.calls.clear();
 
     await tester.tap(find.text('Pause'));
@@ -234,14 +202,14 @@ void main() {
     expect(plugin.methods, <String>['pause', 'play']);
     expect(find.text('Playing'), findsOneWidget);
 
-    await _unmount(tester);
+    await unmountApp(tester);
   }, variant: linux);
 
   testWidgets('the stop button stops the pipeline', (
     WidgetTester tester,
   ) async {
     final _FakePlugin plugin = _FakePlugin();
-    await _pumpApp(tester, plugin);
+    await pumpStreamPageApp(tester, plugin.handle);
     plugin.calls.clear();
 
     await tester.tap(find.text('Stop'));
@@ -249,27 +217,27 @@ void main() {
     expect(plugin.methods, <String>['stop']);
     expect(find.text('Paused'), findsOneWidget);
 
-    await _unmount(tester);
+    await unmountApp(tester);
   }, variant: linux);
 
   testWidgets('a stop the plugin refuses does not claim the stream stopped', (
     WidgetTester tester,
   ) async {
     final _FakePlugin plugin = _FakePlugin(refused: <String>{'stop'});
-    await _pumpApp(tester, plugin);
+    await pumpStreamPageApp(tester, plugin.handle);
 
     await tester.tap(find.text('Stop'));
     await tester.pump();
     expect(find.text('Playing'), findsOneWidget);
 
-    await _unmount(tester);
+    await unmountApp(tester);
   }, variant: linux);
 
   testWidgets(
     'a source button stops the running pipeline and plays the chosen one',
     (WidgetTester tester) async {
       final _FakePlugin plugin = _FakePlugin();
-      await _pumpApp(tester, plugin);
+      await pumpStreamPageApp(tester, plugin.handle);
       plugin.calls.clear();
 
       await tester.ensureVisible(find.text('SMPTE Pattern'));
@@ -279,7 +247,7 @@ void main() {
       expect(plugin.pipelines.single, contains('pattern=smpte'));
       expect(find.text('Playing'), findsOneWidget);
 
-      await _unmount(tester);
+      await unmountApp(tester);
     },
     variant: linux,
   );
@@ -288,7 +256,7 @@ void main() {
     WidgetTester tester,
   ) async {
     final _FakePlugin plugin = _FakePlugin();
-    await _pumpApp(tester, plugin);
+    await pumpStreamPageApp(tester, plugin.handle);
     plugin.calls.clear();
 
     await tester.ensureVisible(find.text('Red'));
@@ -297,21 +265,21 @@ void main() {
     expect(plugin.methods, <String>['setColor']);
     expect(plugin.calls.single.arguments, <int>[0xf2, 0x5d, 0x50]);
 
-    await _unmount(tester);
+    await unmountApp(tester);
   }, variant: linux);
 
   testWidgets(
     'a pause the plugin refuses is reported and the stream plays on',
     (WidgetTester tester) async {
       final _FakePlugin plugin = _FakePlugin(refused: <String>{'pause'});
-      await _pumpApp(tester, plugin);
+      await pumpStreamPageApp(tester, plugin.handle);
 
       await tester.tap(find.text('Pause'));
       await tester.pump();
       expect(find.text('Play/Pause error: pause refused'), findsOneWidget);
       expect(find.text('Playing'), findsOneWidget);
 
-      await _unmount(tester);
+      await unmountApp(tester);
     },
     variant: linux,
   );
@@ -320,13 +288,13 @@ void main() {
     'a pipeline error no other source would fix is reported without a fallback',
     (WidgetTester tester) async {
       final _FakePlugin plugin = _FakePlugin(refused: <String>{'setPipeline'});
-      await _pumpApp(tester, plugin);
+      await pumpStreamPageApp(tester, plugin.handle);
 
       expect(plugin.methods, <String>['create', 'setPipeline']);
       expect(find.text('Pipeline error: setPipeline refused'), findsOneWidget);
       expect(find.text('Paused'), findsOneWidget);
 
-      await _unmount(tester);
+      await unmountApp(tester);
     },
     variant: linux,
   );
@@ -335,7 +303,7 @@ void main() {
     WidgetTester tester,
   ) async {
     final _FakePlugin plugin = _FakePlugin(missing: <String>{'videotestsrc'});
-    await _pumpApp(tester, plugin);
+    await pumpStreamPageApp(tester, plugin.handle);
     plugin.calls.clear();
 
     await tester.ensureVisible(find.text('SMPTE Pattern'));
@@ -347,7 +315,7 @@ void main() {
       findsOneWidget,
     );
 
-    await _unmount(tester);
+    await unmountApp(tester);
   }, variant: linux);
 
   group('Android', () {
@@ -378,7 +346,7 @@ void main() {
       (WidgetTester tester) async {
         await grant(tester, PermissionStatus.granted);
         final _FakePlugin plugin = _FakePlugin();
-        await _pumpApp(tester, plugin);
+        await pumpStreamPageApp(tester, plugin.handle);
 
         expect(plugin.methods.take(3), <String>[
           'create',
@@ -390,7 +358,7 @@ void main() {
         expect(plugin.pipelines.single, startsWith('ahcsrc ! '));
         expect(find.byType(Texture), findsOneWidget);
 
-        await _unmount(tester);
+        await unmountApp(tester);
       },
       variant: android,
     );
@@ -400,7 +368,7 @@ void main() {
     ) async {
       await grant(tester, PermissionStatus.granted);
       final _FakePlugin plugin = _FakePlugin();
-      await _pumpApp(tester, plugin);
+      await pumpStreamPageApp(tester, plugin.handle);
       plugin.calls.clear();
 
       await tester.ensureVisible(find.text('Camera (ahc2src)'));
@@ -408,7 +376,7 @@ void main() {
       await tester.pump();
       expect(plugin.pipelines.single, startsWith('ahc2src ! '));
 
-      await _unmount(tester);
+      await unmountApp(tester);
     }, variant: android);
 
     testWidgets('without the camera permission it says so and starts nothing', (
@@ -419,7 +387,7 @@ void main() {
         PermissionStatus.denied,
       );
       final _FakePlugin plugin = _FakePlugin();
-      await _pumpApp(tester, plugin);
+      await pumpStreamPageApp(tester, plugin.handle);
 
       expect(plugin.methods, isEmpty);
       expect(
@@ -428,7 +396,7 @@ void main() {
       );
       expect(permissions.settingsOpened, isFalse);
 
-      await _unmount(tester);
+      await unmountApp(tester);
     }, variant: android);
 
     testWidgets('a permanently denied camera opens the app settings', (
@@ -439,12 +407,12 @@ void main() {
         PermissionStatus.permanentlyDenied,
       );
       final _FakePlugin plugin = _FakePlugin();
-      await _pumpApp(tester, plugin);
+      await pumpStreamPageApp(tester, plugin.handle);
 
       expect(plugin.methods, isEmpty);
       expect(permissions.settingsOpened, isTrue);
 
-      await _unmount(tester);
+      await unmountApp(tester);
     }, variant: android);
 
     testWidgets('a texture it cannot create falls back to the WebRTC preview', (
@@ -452,7 +420,7 @@ void main() {
     ) async {
       await grant(tester, PermissionStatus.granted);
       final _FakePlugin plugin = _FakePlugin(createFails: true);
-      await _pumpApp(tester, plugin);
+      await pumpStreamPageApp(tester, plugin.handle);
 
       expect(
         find.textContaining('Falling back to WebRTC preview on Android'),
@@ -460,7 +428,7 @@ void main() {
       );
       expect(find.byType(Texture), findsNothing);
 
-      await _unmount(tester);
+      await unmountApp(tester);
     }, variant: android);
   });
 
@@ -468,20 +436,20 @@ void main() {
     WidgetTester tester,
   ) async {
     final _FakePlugin plugin = _FakePlugin();
-    await _pumpApp(tester, plugin);
+    await pumpStreamPageApp(tester, plugin.handle);
 
     expect(plugin.methods.take(3), <String>['create', 'setPipeline', 'play']);
     expect(plugin.pipelines.single, startsWith('avfvideosrc '));
     expect(find.text('Mac Camera (avfvideosrc)'), findsOneWidget);
 
-    await _unmount(tester);
+    await unmountApp(tester);
   }, variant: TargetPlatformVariant.only(TargetPlatform.macOS));
 
   testWidgets('a platform without a native path shows the WebRTC stand-in', (
     WidgetTester tester,
   ) async {
     final _FakePlugin plugin = _FakePlugin();
-    await _pumpApp(tester, plugin);
+    await pumpStreamPageApp(tester, plugin.handle);
 
     expect(plugin.methods, isEmpty);
     expect(
@@ -489,7 +457,7 @@ void main() {
       findsOneWidget,
     );
 
-    await _unmount(tester);
+    await unmountApp(tester);
   }, variant: TargetPlatformVariant.only(TargetPlatform.iOS));
 
   test('the variant leaves no platform override behind', () {

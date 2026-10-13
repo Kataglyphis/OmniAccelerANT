@@ -3,16 +3,14 @@
 library;
 
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:omni_accelerant/Pages/StreamPage/rust_webcam_view.dart';
-import 'package:omni_accelerant/Pages/StreamPage/stream_page.dart';
-import 'package:omni_accelerant/main.dart';
 import 'package:omni_accelerant/src/rust/api/webcam.dart';
 import 'package:omni_accelerant/src/rust/frb_generated.dart';
 
 import 'support/real_fonts.dart';
+import 'support/stream_page_app.dart';
 
 /// The Rust core of a build with the webcam features: no camera attached.
 class _FakeRustApi extends Fake implements RustLibApi {
@@ -27,34 +25,6 @@ class _FakeRustApi extends Fake implements RustLibApi {
 
   @override
   void crateApiWebcamStopWebcamInference() => stops++;
-}
-
-/// Boots the app on the Stream page with [calls] recording the plugin's channel.
-Future<void> _pumpApp(WidgetTester tester, List<MethodCall> calls) async {
-  tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
-    StreamPageState.channel,
-    (MethodCall call) async {
-      calls.add(call);
-      return call.method == 'create' ? 7 : null;
-    },
-  );
-  addTearDown(
-    () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
-      StreamPageState.channel,
-      null,
-    ),
-  );
-  tester.view.physicalSize = const Size(1280, 2400);
-  tester.view.devicePixelRatio = 1;
-  addTearDown(tester.view.reset);
-  await tester.runAsync(() async {
-    await tester.pumpWidget(const App());
-    // The bootstrap reads its settings off the asset bundle, which is real I/O.
-    await Future<void>.delayed(const Duration(seconds: 1));
-  });
-  for (int i = 0; i < 10; i++) {
-    await tester.pump(const Duration(milliseconds: 100));
-  }
 }
 
 void main() {
@@ -72,7 +42,10 @@ void main() {
       '${platform.name} hands the camera to the Rust view, which alone creates the texture',
       (WidgetTester tester) async {
         final List<MethodCall> calls = <MethodCall>[];
-        await _pumpApp(tester, calls);
+        await pumpStreamPageApp(tester, (MethodCall call) async {
+          calls.add(call);
+          return call.method == 'create' ? 7 : null;
+        });
 
         expect(find.byType(RustWebcamView), findsOneWidget);
         expect(find.text('Webcam Live Inference (Rust)'), findsOneWidget);
@@ -82,8 +55,7 @@ void main() {
           expect(rust.listed, greaterThan(0), reason: 'Linux probes the core');
         }
 
-        await tester.pumpWidget(const SizedBox());
-        await tester.pump(const Duration(seconds: 1));
+        await unmountApp(tester);
       },
       variant: TargetPlatformVariant.only(platform),
     );
