@@ -16,8 +16,8 @@ import 'package:omni_accelerant/Pages/StreamPage/webrtc_view_stub.dart'
 import 'package:omni_accelerant/Pages/StreamPage/rust_webcam_view.dart';
 import 'package:omni_accelerant/Pages/StreamPage/cat_status.dart';
 // Null on native, the page origin's /healthz on web.
-import 'package:omni_accelerant/Pages/StreamPage/healthz_fetch_stub.dart'
-    if (dart.library.js_interop) 'package:omni_accelerant/Pages/StreamPage/healthz_fetch_web.dart';
+import 'package:omni_accelerant/Pages/StreamPage/cat_cam_api_stub.dart'
+    if (dart.library.js_interop) 'package:omni_accelerant/Pages/StreamPage/cat_cam_api_web.dart';
 
 // Constants
 

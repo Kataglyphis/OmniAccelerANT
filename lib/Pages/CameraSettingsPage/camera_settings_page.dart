@@ -3,8 +3,8 @@ import 'package:anthology/Layout/ResponsiveDesign/single_page.dart';
 import 'package:anthology/Pages/Footer/footer.dart';
 import 'package:anthology/app_attributes.dart';
 import 'package:omni_accelerant/Pages/CameraSettingsPage/camera_settings.dart';
-import 'package:omni_accelerant/Pages/StreamPage/healthz_fetch_stub.dart'
-    if (dart.library.js_interop) 'package:omni_accelerant/Pages/StreamPage/healthz_fetch_web.dart';
+import 'package:omni_accelerant/Pages/StreamPage/cat_cam_api_stub.dart'
+    if (dart.library.js_interop) 'package:omni_accelerant/Pages/StreamPage/cat_cam_api_web.dart';
 
 /// The cat cam's settings, on a page of their own: only a cat cam's own page has them to change.
 class CameraSettingsPage extends StatelessWidget {

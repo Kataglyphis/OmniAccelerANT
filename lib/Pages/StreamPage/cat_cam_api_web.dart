@@ -3,10 +3,10 @@ import 'dart:js_interop';
 
 import 'package:web/web.dart' as web;
 
-/// The cat cam's `/settings`, or `null` when nothing answers it.
-Future<String?> fetchCatCamSettings() async {
+/// The body of a GET to [path] on the page's own origin, the cat cam; `null` when nothing answers it.
+Future<String?> _get(String path) async {
   try {
-    final response = await web.window.fetch('/settings'.toJS).toDart;
+    final response = await web.window.fetch(path.toJS).toDart;
     if (!response.ok) {
       return null;
     }
@@ -15,6 +15,12 @@ Future<String?> fetchCatCamSettings() async {
     return null;
   }
 }
+
+/// The cat cam's `/healthz`.
+Future<String?> fetchHealthz() => _get('/healthz');
+
+/// The cat cam's `/settings`.
+Future<String?> fetchCatCamSettings() => _get('/settings');
 
 /// Changes the values in [update] on the cat cam; JSON, as it takes no other body.
 Future<bool> saveCatCamSettings(Map<String, Object> update) async {
@@ -34,18 +40,5 @@ Future<bool> saveCatCamSettings(Map<String, Object> update) async {
     return response.ok;
   } on Object {
     return false;
-  }
-}
-
-/// The cat cam's `/healthz` from the page's own origin; `null` when nothing answers it.
-Future<String?> fetchHealthz() async {
-  try {
-    final response = await web.window.fetch('/healthz'.toJS).toDart;
-    if (!response.ok) {
-      return null;
-    }
-    return (await response.text().toDart).toDart;
-  } on Object {
-    return null;
   }
 }
