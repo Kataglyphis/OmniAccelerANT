@@ -5,14 +5,6 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 
 /// Default resolution, framerate and bitrate of outgoing WebRTC video.
 class VideoSettings {
-  /// Creates video settings with the specified parameters.
-  VideoSettings({
-    required this.defaultWidth,
-    required this.defaultHeight,
-    required this.defaultFramerate,
-    required this.defaultBitrateKbps,
-  });
-
   /// Parses [json]; throws [FormatException] on a missing or mistyped field.
   VideoSettings.fromJsonFile(Map<String, dynamic> json)
     : defaultWidth = _requireInt(json, 'defaultWidth'),
@@ -35,9 +27,6 @@ class VideoSettings {
 
 /// Resolution of the native video texture on desktop and mobile.
 class TextureSettings {
-  /// Creates texture settings with the specified dimensions.
-  TextureSettings({required this.width, required this.height});
-
   /// Parses [json]; throws [FormatException] on a missing or mistyped field.
   TextureSettings.fromJsonFile(Map<String, dynamic> json)
     : width = _requireInt(json, 'width'),
@@ -52,13 +41,6 @@ class TextureSettings {
 
 /// Android video settings, separate because devices often need a lower resolution.
 class AndroidSettings {
-  /// Creates Android settings with the specified parameters.
-  AndroidSettings({
-    required this.width,
-    required this.height,
-    required this.fps,
-  });
-
   /// Parses [json]; throws [FormatException] on a missing or mistyped field.
   AndroidSettings.fromJsonFile(Map<String, dynamic> json)
     : width = _requireInt(json, 'width'),
@@ -77,17 +59,6 @@ class AndroidSettings {
 
 /// Signalling, ICE servers and per-platform video settings from `webrtc_settings.json`.
 class WebRTCSettings {
-  /// Creates WebRTC settings with all required parameters.
-  WebRTCSettings({
-    required this.signalingServerUrl,
-    required this.reconnectionTimeoutMs,
-    required this.stunServers,
-    required this.turnServers,
-    required this.video,
-    required this.texture,
-    required this.android,
-  });
-
   /// Parses [json]; throws [FormatException] on a missing or mistyped field.
   WebRTCSettings.fromJsonFile(Map<String, dynamic> json)
     : signalingServerUrl = _resolveSignalingServerUrl(
