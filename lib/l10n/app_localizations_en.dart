@@ -86,6 +86,70 @@ class AppLocalizationsEn extends AppLocalizations {
   String get catEarlierVideos => 'Earlier videos:';
 
   @override
+  String get cameraSettingsNav => 'Camera';
+
+  @override
+  String get cameraSettingsTitle => 'Camera settings';
+
+  @override
+  String get cameraNotReachable =>
+      'No cat cam answers here. These settings live on a cat cam\'s own page.';
+
+  @override
+  String get cameraRotation => 'Rotation';
+
+  @override
+  String get cameraSensitivity => 'Detection sensitivity';
+
+  @override
+  String get cameraSensitivityHelp =>
+      'Higher means fewer false alarms; lower spots a cat in poor light too.';
+
+  @override
+  String get cameraName => 'Name';
+
+  @override
+  String get cameraSave => 'Save';
+
+  @override
+  String get cameraSaved => 'Saved';
+
+  @override
+  String get cameraSaveFailed => 'Could not save';
+
+  @override
+  String get cameraInfo => 'Camera info';
+
+  @override
+  String get cameraDevice => 'Camera';
+
+  @override
+  String get cameraResolution => 'Resolution';
+
+  @override
+  String get cameraFrameRate => 'Frame rate';
+
+  @override
+  String get cameraDetection => 'Cat detection';
+
+  @override
+  String get cameraOn => 'on';
+
+  @override
+  String get cameraOff => 'off';
+
+  @override
+  String get cameraModelRuns => 'Model runs';
+
+  @override
+  String get cameraVisits => 'Visits counted';
+
+  @override
+  String cameraScoreValue(int percent) {
+    return 'A cat counts from $percent % certainty';
+  }
+
+  @override
   String get catRotateLeft => 'Turn the picture left';
 
   @override

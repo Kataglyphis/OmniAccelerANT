@@ -242,6 +242,126 @@ abstract class AppLocalizations {
   /// **'Earlier videos:'**
   String get catEarlierVideos;
 
+  /// No description provided for @cameraSettingsNav.
+  ///
+  /// In en, this message translates to:
+  /// **'Camera'**
+  String get cameraSettingsNav;
+
+  /// No description provided for @cameraSettingsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Camera settings'**
+  String get cameraSettingsTitle;
+
+  /// No description provided for @cameraNotReachable.
+  ///
+  /// In en, this message translates to:
+  /// **'No cat cam answers here. These settings live on a cat cam\'s own page.'**
+  String get cameraNotReachable;
+
+  /// No description provided for @cameraRotation.
+  ///
+  /// In en, this message translates to:
+  /// **'Rotation'**
+  String get cameraRotation;
+
+  /// No description provided for @cameraSensitivity.
+  ///
+  /// In en, this message translates to:
+  /// **'Detection sensitivity'**
+  String get cameraSensitivity;
+
+  /// No description provided for @cameraSensitivityHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Higher means fewer false alarms; lower spots a cat in poor light too.'**
+  String get cameraSensitivityHelp;
+
+  /// No description provided for @cameraName.
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get cameraName;
+
+  /// No description provided for @cameraSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get cameraSave;
+
+  /// No description provided for @cameraSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved'**
+  String get cameraSaved;
+
+  /// No description provided for @cameraSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not save'**
+  String get cameraSaveFailed;
+
+  /// No description provided for @cameraInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'Camera info'**
+  String get cameraInfo;
+
+  /// No description provided for @cameraDevice.
+  ///
+  /// In en, this message translates to:
+  /// **'Camera'**
+  String get cameraDevice;
+
+  /// No description provided for @cameraResolution.
+  ///
+  /// In en, this message translates to:
+  /// **'Resolution'**
+  String get cameraResolution;
+
+  /// No description provided for @cameraFrameRate.
+  ///
+  /// In en, this message translates to:
+  /// **'Frame rate'**
+  String get cameraFrameRate;
+
+  /// No description provided for @cameraDetection.
+  ///
+  /// In en, this message translates to:
+  /// **'Cat detection'**
+  String get cameraDetection;
+
+  /// No description provided for @cameraOn.
+  ///
+  /// In en, this message translates to:
+  /// **'on'**
+  String get cameraOn;
+
+  /// No description provided for @cameraOff.
+  ///
+  /// In en, this message translates to:
+  /// **'off'**
+  String get cameraOff;
+
+  /// No description provided for @cameraModelRuns.
+  ///
+  /// In en, this message translates to:
+  /// **'Model runs'**
+  String get cameraModelRuns;
+
+  /// No description provided for @cameraVisits.
+  ///
+  /// In en, this message translates to:
+  /// **'Visits counted'**
+  String get cameraVisits;
+
+  /// Text under the detection sensitivity slider.
+  ///
+  /// In en, this message translates to:
+  /// **'A cat counts from {percent} % certainty'**
+  String cameraScoreValue(int percent);
+
   /// No description provided for @catRotateLeft.
   ///
   /// In en, this message translates to:

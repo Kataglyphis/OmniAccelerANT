@@ -243,22 +243,34 @@ Everything it serves is on that one port, plain HTTP:
 | Path | Answers |
 | --- | --- |
 | `/` | the web app; its Stream page plays the camera and shows the cat's status, visits and last arrival |
-| `/healthz` | JSON: the live camera, `model_runs`, `rotate`, and the cat's `in_view`, `last_seen`, `visits`, `last_score`, `recent` visits, the newest `clip`'s arrival and every kept one's (`clips`) |
+| `/healthz` | JSON: the live camera, its `frame` size and rate, `model_runs`, `rotate`, `score`, and the cat's `in_view`, `last_seen`, `visits`, `last_score`, `recent` visits, the newest `clip`'s arrival and every kept one's (`clips`) |
 | `/snapshot.jpg` | the latest frame, boxes drawn |
 | `/arrival.jpg` | the frame the last arrival was confirmed on; `404` until a cat has come |
 | `/arrival.mp4` | the last arrival as an H.264 clip, 3 s before it to 7 s after; `?t=<arrival time>` that arrival's own, of the last five; byte ranges answered; `404` until one is encoded, or once that arrival's is dropped |
-| `/rotate` | `POST {"rotate": 90}` (`application/json` only) turns the picture: 0, 90, 180 or 270 degrees clockwise |
+| `/settings` | `GET`: the `name`, `rotate` and `score` the settings page can change. `POST` any of them as JSON (`application/json` only), e.g. `{"rotate": 90}`: 0, 90, 180 or 270 degrees clockwise, a `score` from 0.05 to 0.95, a name of up to 64 characters |
 | `/webrtc-ws` | the WebRTC signalling, forwarded to the producer's own server on loopback `:8443` |
 
-**The picture turns from the page.** Under the video, ⟲ and ⟳ turn it a quarter each way
-(2026-10-13), for a board that is easily moved. The cat cam turns the picture itself, before
-the model sees it, so detection, `/arrival.jpg` and the clips turn with the stream, and the
-running capture follows on its next frame, with no restart and no reconnect. The angle is
-kept in the state directory (`settings.json`) and wins over `rotate` in `catcam.toml`, which
-the service cannot write. At 90 and 270 the upright picture is bordered into the frame,
-black at its sides, instead of stretched: until then a quarter turn squeezed a 4:3 picture
-into 4:3 the other way round, and a cupboard looked square. `/rotate` takes JSON only, so
-another site's page cannot turn the camera with a plain form post.
+**The Camera page changes the cat cam while it runs** (2026-10-13). It is the web app's
+own page in the bottom bar, for a board that is easily moved or a spot with false alarms:
+- ⟲ and ⟳ turn the picture a quarter each way. The cat cam turns it itself, before the
+  model sees it, so detection, `/arrival.jpg` and the clips turn with the stream. The
+  running capture follows on its next frame, with no restart and no reconnect. At 90 and
+  270 the upright picture is bordered into the frame, black at its sides, instead of
+  stretched: until then a quarter turn squeezed a 4:3 picture into 4:3 the other way round,
+  and a cupboard looked square.
+- A slider sets the detection score, how sure the model must be before a cat counts. The
+  next model run uses it. Higher means fewer false alarms, lower finds a cat in poor light.
+- A field renames the camera. The next webhook event and the next `/healthz` carry the new
+  name; a viewer that is already connected keeps the old one until it reconnects.
+- A preview of `/snapshot.jpg`, reloaded every 3 s, shows the result, and a table what the
+  camera runs: its sensor, frame size and rate, whether detection runs, the model's runs and
+  the visits counted.
+
+Each change is kept in the state directory (`settings.json`) and wins over the same key in
+`catcam.toml`, which the service cannot write; a key the page never set still follows the
+file. `/settings` takes JSON only, so another site's page cannot change the camera with a
+plain form post, and it checks a whole post before it applies any of it. On a page that is
+not a cat cam's own, the Camera page says no cat cam answers.
 
 **The web build ships compressed.** The packager runs the producer's `--precompress` over
 its copy of the web build, so each file the server gzips has a zopfli `.gz` beside it:

@@ -378,7 +378,6 @@ class StreamPageState extends State<StreamPage> {
               const SizedBox(height: 20),
               const CatStatusLine(
                 fetch: fetchHealthz,
-                rotate: rotateCatCam,
                 fallbackName: 'Trouble Tabbls Cat Cam',
               ),
             ],

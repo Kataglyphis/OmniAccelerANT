@@ -24,7 +24,6 @@ class CatStatus {
     this.recent = const <CatVisit>[],
     this.clip,
     this.clips = const <DateTime>[],
-    this.rotate,
   });
 
   final String name;
@@ -42,9 +41,6 @@ class CatStatus {
 
   /// Every arrival whose clip `/arrival.mp4?t=` still serves, newest first.
   final List<DateTime> clips;
-
-  /// Clockwise degrees the cat cam turns its picture by; `null` from one too old to be turned.
-  final int? rotate;
 
   /// The clip is of the newest visit, not one before it still waiting to be replaced.
   bool get hasLatestClip =>
@@ -71,9 +67,7 @@ class CatStatus {
     final recent = cat['recent'];
     final clip = cat['clip'];
     final clips = cat['clips'];
-    final rotate = json['rotate'];
     return CatStatus(
-      rotate: rotate is int ? rotate : null,
       name: name is String ? name : '',
       inView: cat['in_view'] == true,
       lastSeen: seconds is int
@@ -135,7 +129,6 @@ class CatStatusLine extends StatefulWidget {
     required this.fallbackName,
     this.interval = const Duration(seconds: 5),
     this.arrivalImage = arrivalPicture,
-    this.rotate,
   });
 
   /// The `/healthz` body, or `null` when nothing answers it.
@@ -145,9 +138,6 @@ class CatStatusLine extends StatefulWidget {
 
   /// Builds the last arrival's picture from its URL and label; tests swap the network out.
   final Widget Function(String url, String label) arrivalImage;
-
-  /// Asks the cat cam to turn its picture to these clockwise degrees; `null` hides the buttons.
-  final Future<bool> Function(int degrees)? rotate;
 
   @override
   State<CatStatusLine> createState() => _CatStatusLineState();
@@ -183,12 +173,6 @@ class _CatStatusLineState extends State<CatStatusLine> {
     super.dispose();
   }
 
-  /// The cat cam turns the picture itself, so detection, snapshots and clips turn with the stream.
-  Future<void> _turn(int current, int by) async {
-    await widget.rotate!((current + by) % 360);
-    await _poll();
-  }
-
   @override
   Widget build(BuildContext context) {
     final status = _status;
@@ -219,28 +203,11 @@ class _CatStatusLineState extends State<CatStatusLine> {
         l10n.catNotSeenYet,
       );
     }
-    final rotate = widget.rotate == null ? null : status.rotate;
     return Column(
       mainAxisSize: MainAxisSize.min,
       spacing: 6,
       children: [
         title,
-        if (rotate != null)
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              IconButton(
-                icon: const Icon(Icons.rotate_left),
-                tooltip: l10n.catRotateLeft,
-                onPressed: () => _turn(rotate, 270),
-              ),
-              IconButton(
-                icon: const Icon(Icons.rotate_right),
-                tooltip: l10n.catRotateRight,
-                onPressed: () => _turn(rotate, 90),
-              ),
-            ],
-          ),
         Row(
           mainAxisSize: MainAxisSize.min,
           spacing: 6,

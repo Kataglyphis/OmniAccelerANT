@@ -1,4 +1,5 @@
 import 'package:omni_accelerant/Pages/AboutMePage/about_me_page_navbar_config.dart';
+import 'package:omni_accelerant/Pages/CameraSettingsPage/camera_settings_navbar_config.dart';
 import 'package:omni_accelerant/Pages/DataPage/BlockOverviewPage/block_overview_page_config.dart';
 import 'package:omni_accelerant/Pages/StreamPage/stream_page_navbar_config.dart';
 import 'package:anthology/Pages/ErrorPage/error_page_stateful_branch_info_provider.dart';
@@ -50,6 +51,7 @@ class OmniScreenConfigurations extends ScreenConfigurations
   List<NavBarPageConfig> getNavRailPagesConfig() {
     return [
       StreamPageNavBarConfig(),
+      CameraSettingsNavBarConfig(),
       LandingPageNavBarConfig(),
       AboutMePageNavBarConfig(),
     ];

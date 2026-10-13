@@ -10,11 +10,13 @@ What landed on `develop` after 2.0.0+2. Most of it is the cat cam, whose guide i
 
 ### Added
 
-- **The cat cam's picture turns from the page** (2026-10-13). Under the video, ⟲ and ⟳
-  turn it a quarter each way, for a board that gets moved about. The cat cam turns the
-  picture itself, so detection, the arrival picture and the clips turn with the stream; it
-  remembers the angle across restarts. A quarter turn is bordered into the frame now,
-  where it used to come out stretched.
+- **A Camera page for the cat cam's settings** (2026-10-13), in the bottom bar beside
+  Stream. ⟲ and ⟳ turn the picture a quarter each way, for a board that gets moved about; a
+  slider sets how sure detection must be before a cat counts, against false alarms; a field
+  renames the camera. A live preview shows the result, and a table what the camera runs.
+  The cat cam applies each change at once and keeps it across restarts. It turns the
+  picture itself, so detection, the arrival picture and the clips turn with the stream, and
+  a quarter turn is bordered into the frame now, where it used to come out stretched.
 - **An installable cat cam** (2026-10-05/06). The `cat_webrtc` producer, its GStreamer
   plugins, the chain ONNX Runtime, the model and the web build travel as one bundle:
   a .deb with a systemd service and a ufw profile, an AppImage that runs it or installs

@@ -17,11 +17,7 @@ const _neverSeen =
 Widget _fakeArrival(String url, String label) =>
     Text('picture $url ($label)', key: const Key('arrival'));
 
-Future<void> _pumpLine(
-  WidgetTester tester,
-  Future<String?> Function() fetch, {
-  Future<bool> Function(int degrees)? rotate,
-}) {
+Future<void> _pumpLine(WidgetTester tester, Future<String?> Function() fetch) {
   return tester.pumpWidget(
     MaterialApp(
       localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -32,7 +28,6 @@ Future<void> _pumpLine(
           fetch: fetch,
           fallbackName: 'Fallback Cam',
           arrivalImage: _fakeArrival,
-          rotate: rotate,
         ),
       ),
     ),
@@ -46,16 +41,6 @@ void main() {
   });
 
   group('CatStatus.fromHealthz', () {
-    test('reads the rotation, and none from a cat cam too old to turn', () {
-      expect(
-        CatStatus.fromHealthz(
-          _inView.replaceFirst('"ok":true', '"ok":true,"rotate":270'),
-        )!.rotate,
-        270,
-      );
-      expect(CatStatus.fromHealthz(_inView)!.rotate, isNull);
-    });
-
     test('reads the name, the cat and when it was last seen', () {
       final status = CatStatus.fromHealthz(_seenBefore)!;
       expect(status.name, 'Garden Cam');
@@ -285,47 +270,6 @@ void main() {
     await _pumpLine(tester, () async => throw StateError('offline'));
     await tester.pump(const Duration(seconds: 5));
     expect(find.byType(Icon), findsNothing);
-    await tester.pumpWidget(const SizedBox());
-  });
-
-  testWidgets('the rotate buttons turn the cat cam a quarter each way', (
-    tester,
-  ) async {
-    var angle = 0;
-    final asked = <int>[];
-    await _pumpLine(
-      tester,
-      () async =>
-          _inView.replaceFirst('"ok":true', '"ok":true,"rotate":$angle'),
-      rotate: (degrees) async {
-        asked.add(degrees);
-        angle = degrees;
-        return true;
-      },
-    );
-    await tester.pump();
-    await tester.tap(find.byTooltip('Turn the picture left'));
-    await tester.pump();
-    expect(asked, <int>[270]);
-    await tester.tap(find.byTooltip('Turn the picture right'));
-    await tester.pump();
-    // 270 and a quarter clockwise is upright again.
-    expect(asked, <int>[270, 0]);
-    await tester.pumpWidget(const SizedBox());
-  });
-
-  testWidgets('a cat cam that cannot turn gets no rotate buttons', (
-    tester,
-  ) async {
-    await _pumpLine(tester, () async => _inView, rotate: (_) async => true);
-    await tester.pump();
-    expect(find.byIcon(Icons.rotate_left), findsNothing);
-    await _pumpLine(
-      tester,
-      () async => _inView.replaceFirst('"ok":true', '"ok":true,"rotate":0'),
-    );
-    await tester.pump(const Duration(seconds: 5));
-    expect(find.byIcon(Icons.rotate_left), findsNothing);
     await tester.pumpWidget(const SizedBox());
   });
 }

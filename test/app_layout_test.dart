@@ -9,9 +9,10 @@ import 'package:omni_accelerant/main.dart';
 
 import 'support/real_fonts.dart';
 
-/// The bottom bar's three pages, a markdown footer page and a blog post.
+/// The bottom bar's four pages, a markdown footer page and a blog post.
 const List<String> _routes = <String>[
   '/stream',
+  '/cameraSettings',
   '/landingPage',
   '/aboutMe',
   '/privacyPolicy',

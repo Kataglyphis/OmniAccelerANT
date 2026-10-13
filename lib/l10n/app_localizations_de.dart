@@ -87,6 +87,70 @@ class AppLocalizationsDe extends AppLocalizations {
   String get catEarlierVideos => 'Frühere Videos:';
 
   @override
+  String get cameraSettingsNav => 'Kamera';
+
+  @override
+  String get cameraSettingsTitle => 'Kamera-Einstellungen';
+
+  @override
+  String get cameraNotReachable =>
+      'Hier antwortet keine Cat Cam. Diese Einstellungen gibt es auf der Seite einer Cat Cam.';
+
+  @override
+  String get cameraRotation => 'Drehung';
+
+  @override
+  String get cameraSensitivity => 'Empfindlichkeit der Katzenerkennung';
+
+  @override
+  String get cameraSensitivityHelp =>
+      'Höher heißt weniger Fehlalarme; niedriger erkennt eine Katze auch bei schlechtem Licht.';
+
+  @override
+  String get cameraName => 'Name';
+
+  @override
+  String get cameraSave => 'Speichern';
+
+  @override
+  String get cameraSaved => 'Gespeichert';
+
+  @override
+  String get cameraSaveFailed => 'Konnte nicht speichern';
+
+  @override
+  String get cameraInfo => 'Kamera-Info';
+
+  @override
+  String get cameraDevice => 'Kamera';
+
+  @override
+  String get cameraResolution => 'Auflösung';
+
+  @override
+  String get cameraFrameRate => 'Bildrate';
+
+  @override
+  String get cameraDetection => 'Katzenerkennung';
+
+  @override
+  String get cameraOn => 'an';
+
+  @override
+  String get cameraOff => 'aus';
+
+  @override
+  String get cameraModelRuns => 'Modellläufe';
+
+  @override
+  String get cameraVisits => 'Gezählte Besuche';
+
+  @override
+  String cameraScoreValue(int percent) {
+    return 'Eine Katze zählt ab $percent % Sicherheit';
+  }
+
+  @override
   String get catRotateLeft => 'Bild nach links drehen';
 
   @override

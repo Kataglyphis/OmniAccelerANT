@@ -164,8 +164,11 @@ consumes.
 - Open `http://<host>:8080/` from a browser on the network. Under the video the page
   says whether a cat is in view, or when one was last seen, lists its latest visits
   with how long each lasted, and shows the picture of its last arrival, with a link to
-  its video once that is encoded and to the four videos kept before it. ⟲ and ⟳ beside its
-  name turn the picture a quarter each way, and the cat cam keeps the angle.
+  its video once that is encoded and to the four videos kept before it.
+- The **Camera** page beside it changes the cat cam while it runs: ⟲ and ⟳ turn the
+  picture a quarter each way, a slider sets how sure detection must be before a cat counts,
+  and the name can be changed. A preview shows the result, and a table what the camera
+  runs. The cat cam keeps all three across restarts.
 - `http://<host>:8080/healthz` says which camera is live, when a cat was last seen,
   how many visits it counted and how long the latest 20 lasted; `/snapshot.jpg` is the
   current picture, boxes included, `/arrival.jpg` the frame the last arrival was
