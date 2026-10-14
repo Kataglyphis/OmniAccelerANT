@@ -82,6 +82,14 @@ jobs:
           mounts: 'sccache:/var/cache/sccache'
           env: 'SCCACHE_CACHE_SIZE=1500M'
 
+      # The frontend's frame timings compare against the default branch's last run on this arch.
+      - name: Restore the frontend performance baseline
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .perf-baseline
+          key: frontend-perf-${{ inputs.arch }}-${{ github.sha }}
+          restore-keys: frontend-perf-${{ inputs.arch }}-
+
       # -e CI=true lets generate-docs.sh chown doc/api/ back; Invoke-LinuxLane.ps1 -CheckParity parses extra-args and script.
       - name: Run container
         uses: Kataglyphis/ANTfrastructure/.github/actions/run-in-linux-container@develop
@@ -98,6 +106,22 @@ jobs:
             --strict-checks true
             --run-codeql false
             --run-docs "${{ inputs.run-docs }}"
+
+      - name: Frontend performance report
+        if: always() && hashFiles('build/perf/frontend.json') != ''
+        run: python3 scripts/linux/frontend-perf-report.py build/perf/frontend.json .perf-baseline/frontend.json 0.25 >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Keep the frontend performance baseline
+        id: perf-baseline
+        if: github.event_name == 'push' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch) && hashFiles('build/perf/frontend.json') != ''
+        run: mkdir -p .perf-baseline && cp build/perf/frontend.json .perf-baseline/frontend.json
+
+      - name: Save the frontend performance baseline
+        if: steps.perf-baseline.outcome == 'success'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .perf-baseline
+          key: frontend-perf-${{ inputs.arch }}-${{ github.sha }}
 
       - name: Save compiler cache
         if: always() && steps.cc.outputs.path != ''

@@ -1052,6 +1052,7 @@ cell is a test that cannot run there, and the reason is under the table.
 | Launch smoke, 20 s | under Xvfb | host | device | | |
 | Integration test (`integration_test/simple_test.dart`) | under Xvfb | `flutter drive` against the clang-cl app | `flutter drive` (the Debug app) | | |
 | Webcam frame through `knt_push_frame` (`integration_test/webcam_frame_test.dart`) | under Xvfb, test pattern | | | | |
+| Frame timings in profile mode (`integration_test/performance_test.dart`, `flutter drive --profile`), against the last default-branch run | x64, under Xvfb | | | | |
 | Pester (`scripts/windows/tests`) | | `windows-2025` | `windows-11-arm` | | |
 | Plugin JVM test | | | | yes | |
 | APK ABI gate (`check-apk-abi.sh`) and its synthetic-APK suite | | | | yes | |
@@ -1085,6 +1086,11 @@ cell is a test that cannot run there, and the reason is under the table.
 - The rustc stamp lives in an ELF `.comment`, which a Windows PE does not have. The
   web lane builds its wasm with `build-web` and the dated nightly it names (§ 4), not
   Cargokit.
+- The frame timings run on Linux x64 alone: a profile build costs minutes, and one arch is enough
+  to see the Dart side get slower. `reusable-linux.yml` restores the default branch's last
+  `build/perf/frontend.json` into `.perf-baseline/` and writes the comparison into the run's
+  summary; above +25 % it warns, and nothing fails on time (camera-streaming.md § *Measuring
+  performance*).
 - The webcam frame test is Linux-only: `hasPushedFrame` is the Linux plugin's, and
   the Windows drives run `simple_test.dart`.
 - The web lane runs both Dart suites in Chrome since 2026-10-05 (`--test-platform chrome`

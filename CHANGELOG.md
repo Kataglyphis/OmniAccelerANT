@@ -10,6 +10,14 @@ What landed on `develop` after 2.0.0+2. Most of it is the cat cam, whose guide i
 
 ### Added
 
+- **Benchmarks in the projects' own tooling, tracked in CI** (2026-10-14, owner). The Flutter side
+  is `integration_test/performance_test.dart` under `flutter drive --profile` with
+  `test_driver/perf_driver.dart`: `watchPerformance` times the start, three rounds through every
+  tab and resizes across both breakpoints. The native lane runs it on x64 under Xvfb, and
+  `scripts/linux/frontend-perf-report.py` compares it with the default branch's last run in the
+  run's summary, warning above +25 %. The Rust side is OxidANT's Criterion benches under `cargo
+  bench`, tracked the same way. `bench/page-perf.mjs` also times the signalling socket now.
+
 - **Performance tools and a baseline** (2026-10-14, the owner's benchmark).
   `scripts/linux/observant/bench/model.sh` times models in the installed service on a board,
   `viewer.sh` measures a board idle and with one viewer plus the page's cold load

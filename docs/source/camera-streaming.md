@@ -76,8 +76,24 @@ parameters, 7 GFLOPs, 43.0 AP, a 640x640 input and a 15 MB file.
 
 ## Measuring performance
 
-**Three tools measure what the boards really do** (2026-10-14). Repeat them after a change
-that could cost time, and compare with the baseline below.
+**The code's benchmarks live in each project's own tooling, and CI tracks them** (2026-10-14,
+owner): a change that costs time shows in the run's summary, against the default branch's last
+run on that arch, and warns above +25 %. A shared runner is noisy, so nothing fails on time.
+
+- **Rust:** OxidANT's Criterion benches under `cargo bench`, run by its Linux lanes: what a frame
+  pays before the model, and a whole detection on the real model (OxidANT's AGENTS.md).
+- **Flutter:** `integration_test/performance_test.dart`, driven in profile mode by
+  `flutter drive --profile -d linux --driver=test_driver/perf_driver.dart
+  --target=integration_test/performance_test.dart`. Flutter's `watchPerformance` times the
+  frames of the app's start, three rounds through every tab, and resizes across both layout
+  breakpoints; the driver keeps them in `build/perf/frontend.json`, and
+  `scripts/linux/frontend-perf-report.py` turns them into the table (frames, build and raster
+  time on average, at the 90th percentile and at worst, missed build budgets). The native lane
+  runs it under Xvfb on x64 (`run_frontend_performance`); `reusable-linux.yml` keeps the
+  default branch's last result in `.perf-baseline/`.
+
+**Two tools measure what the boards really do**, which no runner can: repeat them after a change
+that could cost time there, and compare with the baseline below.
 
 - `scripts/linux/observant/bench/model.sh PICTURE MODEL.onnx...`, on a board: the installed
   service runs each model nonstop on a still picture, on a spare port (no camera, no state, the
@@ -86,11 +102,7 @@ that could cost time, and compare with the baseline below.
   response times, the service idle and while one phone-sized headless Chrome plays the stream,
   and that page's cold load: the files on the boot path with their times, the renderer the
   browser got, the first Flutter frame and the first video frame, and the requests and main-
-  thread time once it runs.
-- OxidANT's `stage_costs_per_frame` and `stage_costs_on_a_real_model` tests, run with
-  `cargo test --release -- --ignored --nocapture stage_costs` (the second needs
-  `KATAGLYPHIS_BENCH_MODEL`): each per-frame step, and a model run's preprocessing, model
-  and postprocessing apart.
+  thread time once it runs, and when the signalling socket opened and answered.
 
 **The baseline, 2026-10-14** (Pi 5 boards, the SpacemiT K3 board, the web client a headless
 Chrome on a Pi 5):

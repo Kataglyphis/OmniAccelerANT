@@ -161,6 +161,10 @@ if [[ "$BUILD_MODE" == "release" ]]; then
   if [[ -n "${KATAGLYPHIS_RUST_FEATURES}" ]]; then
     run_gate "webcam frame test" run_integration_test integration_test/webcam_frame_test.dart
   fi
+  # One arch is enough to track the Dart side, and a profile build costs minutes.
+  if [[ "$MATRIX_ARCH" == "x64" ]]; then
+    run_gate "frontend performance" run_frontend_performance
+  fi
   assert_gates
 else
   echo "Info: runtime closure and bundle gates are release-only (build-mode is '$BUILD_MODE')."
