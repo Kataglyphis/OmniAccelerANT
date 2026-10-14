@@ -209,7 +209,7 @@ every tracked binary nothing referenced (below); 2026-09-15 counted 148 MiB acro
 
 | What | Size | Why it is tracked |
 |------|------|-------------------|
-| `assets/icons/kataglyphis_app_icon.png` | 1.9 MiB | Load-bearing: `flutter_launcher_icons` generates every platform icon set from it (`pubspec.yaml` names it five times), so it must stay at source resolution. |
+| `assets/icons/kataglyphis_app_icon.png` | 1.9 MiB | Load-bearing: `flutter_launcher_icons` generates every platform icon set from it (`pubspec.yaml` names it four times, one of them msix's `logo_path`), so it must stay at source resolution. |
 | `images/overview.gif` | 1.6 MiB | README illustration. |
 | `web/sqlite3.wasm` | 0.7 MiB | The sqlite3 WASM build the web app loads. Fetched and checksum-verified by ANTfrastructure's `setup-sqlite3-wasm.sh`; the committed copy is a convenience, and it has been wrong before (see [Getting Started](getting-started.md)). |
 
@@ -324,8 +324,9 @@ check would fail forever and teach the next reader that the flag does not work.
 **Branches.** `develop` is the default branch and the only one work lands on. `main` is the
 release branch: it moves only when the owner merges a release (the latest tag is `1.1.0+1`), so
 between releases it trails `develop` by design (416 commits on 2026-10-05). Nothing deploys from
-`main` alone. Every lane runs on pushes to either branch, and the API docs deploy over FTP on
-any push. Neither branch is protected, by the owner's decision of 2026-10-05.
+`main` alone. Every lane runs on pushes to either branch, except that a push touching only
+`docs/**` or root-level `*.md` runs Linux x64 alone (`paths-ignore`, 2026-10-12), and the API
+docs deploy over FTP on any push. Neither branch is protected, by the owner's decision of 2026-10-05.
 
 - Keep dependency upgrades and feature changes in separate pull requests.
 - Regenerate bridge code when Rust API signatures change.
@@ -388,7 +389,7 @@ x86-64 binaries and die exactly as CI did before the image went multi-arch
 ```powershell
 nerdctl run --rm --privileged tonistiigi/binfmt --install arm64
 nerdctl run --rm --privileged tonistiigi/binfmt          # verify: qemu-aarch64 listed
-nerdctl run --rm --platform linux/arm64 alpine uname -m  # verify: aarch64
+nerdctl run --rm --platform linux/arm64 --entrypoint uname ghcr.io/kataglyphis/kataglyphis_beschleuniger:latest -m  # verify: aarch64
 ```
 
 Like the `D:` mount in containerd's namespace, this does not survive a VM

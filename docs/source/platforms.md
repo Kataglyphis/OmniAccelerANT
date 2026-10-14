@@ -147,8 +147,8 @@ Run the app on the host after a build:
 | `docker run --mount` fails: `hcs::CreateComputeSystem ... Die Anforderung wird nicht unterstützt` although the source is plain NTFS | The mount **target** already exists in the image (e.g. baked `C:\workspace`) — refused on skewed hosts | Mount to a path that does not exist in the image (e.g. `target=C:\ws-mnt`) and pass `-w C:\ws-mnt`. |
 | `docker commit` (or `docker start` of a stopped container) fails `hcsshim::ActivateLayer ... (0x20)` | The container was created with `--isolation process`; on this host its writable layer stays locked after stop and cannot be snapshotted | Create any container you intend to **commit** with `--isolation hyperv` (kept-alive + `docker exec` build + stop + commit works — this is why the ANTfrastructure orchestrator uses hyperv for run+commit). `docker export` is **not** a workaround (the daemon refuses to export Windows containers). Reserve `--isolation process` for throwaway runs whose output you extract *live* via `tar` over `docker exec` before stopping. |
 | `mediafoundation` plugin registers "0 features" / `gst-inspect mfvideosrc` says "no such element"; debug shows `MFStartup` → `0x80004001` (E_NOTIMPL) | The build image's **Server Core** base ships no Media Foundation platform — copying `mfplat.dll`/`mf.dll` doesn't help (the `Server-Media-Foundation` feature is *Removed* with no servicing source; `Install-WindowsFeature` fails `0x800f0916`) | **Not a build defect.** `gstmediafoundation.dll` compiles, links, and loads correctly; it only registers `mfvideosrc` on a **Windows client host** (Win10/11) where MF is present. Verify the webcam source on the host, never in-container (which also has no camera). The Rust capture path auto-falls back `mfvideosrc → ksvideosrc → autovideosrc`, so `ksvideosrc` covers hosts without MF. |
-| CMake configure: `add_subdirectory ... .plugin_symlinks/kataglyphis_native_inference/windows which is not an existing directory` (only this one plugin) | `Fix-FlutterPluginSymlinks` (now `Repair-FlutterPluginSymlink`, the old name kept as an alias) used to **copy** each plugin dir into `.plugin_symlinks`; it now makes a junction first and copies only when that does not resolve. For `kataglyphis_native_inference` the recursive copy of its deep `native/AccelerANTgine/third_party/*` tree overruns the 260-char path limit and aborts before `windows\` is copied, leaving a broken junction. Since 2026-09-05 that tree is no longer inside the plugin — the inference core is a sibling submodule at `third_party/AccelerANTgine` and the plugin directory is 97 files — so a copy would no longer overrun; the junction stays regardless, as the cheaper and more robust option | Use a **junction** (`mklink /J`) rather than a copy for container-local workspaces — immune to MAX_PATH (the "copy avoids symlink access-denied" rationale only applies to bind-mounted paths). Clear stale `windows\flutter\ephemeral` + `.dart_tool` first: a broken junction from a prior run makes `flutter build --config-only` crash `PathExistsException` (errno 183, "already exists"). |
-| App window flashes then exits on the host (~6 MB, no window title) | The native C++ plugin can't load its dependency `AccelerANTgine.dll` — the build leaves it in a `bin\` **subdirectory** of the runner, not beside the exe — and the VC++ runtime isn't bundled | Copy `runner\...\bin\AccelerANTgine.dll` next to the exe, and stage the VC++ redist CRT DLLs (`VC\Redist\MSVC\*\x64\*.CRT\*.dll`, or `msvcp140.dll`/`vcruntime140*.dll` from `System32`). A fully-initialized app is ~130 MB with a real window handle. `Start-Windows.ps1` / the MSIX layout should place `AccelerANTgine.dll` beside the exe. |
+| CMake configure: `add_subdirectory ... .plugin_symlinks/kataglyphis_native_inference/windows which is not an existing directory` (only this one plugin) | `Fix-FlutterPluginSymlinks` (now `Repair-FlutterPluginSymlink`, the old name kept as an alias) used to **copy** each plugin dir into `.plugin_symlinks`; it now makes a junction first and copies only when that does not resolve. For `kataglyphis_native_inference` the recursive copy of its deep `native/AccelerANTgine/third_party/*` tree overruns the 260-char path limit and aborts before `windows\` is copied, leaving a broken junction. Since 2026-09-05 that tree is no longer inside the plugin — the inference core is a sibling submodule at `third_party/AccelerANTgine` and the plugin directory is about 100 files — so a copy would no longer overrun; the junction stays regardless, as the cheaper and more robust option | Use a **junction** (`mklink /J`) rather than a copy for container-local workspaces — immune to MAX_PATH (the "copy avoids symlink access-denied" rationale only applies to bind-mounted paths). Clear stale `windows\flutter\ephemeral` + `.dart_tool` first: a broken junction from a prior run makes `flutter build --config-only` crash `PathExistsException` (errno 183, "already exists"). |
+| App window flashes then exits on the host (~6 MB, no window title) | The native C++ plugin can't load its dependency `AccelerANTgine.dll` — the build leaves it in a `bin\` **subdirectory** of the runner, not beside the exe — and the VC++ runtime isn't bundled | Copy `runner\...\bin\AccelerANTgine.dll` next to the exe, and stage the VC++ redist CRT DLLs (`VC\Redist\MSVC\*\x64\*.CRT\*.dll`, or `msvcp140.dll`/`vcruntime140*.dll` from `System32`). A fully-initialized app is ~130 MB with a real window handle. `Start-Windows.ps1` puts `runner\bin` on `PATH` for exactly that. |
 
 ### Tar-pipe inbound exclusions
 
@@ -158,7 +158,7 @@ aborts the **whole** archive on any entry it cannot stat: the host's Flutter plu
 both such entries, so both stay excluded (the container regenerates the first and builds into its own
 `CARGO_TARGET_DIR` instead of the second). The patterns match whole path components **at every depth**,
 so a root directory cannot be excluded by name: `build` would also take
-`third_party/ANTinfrastructure/windows/scripts/build` with it, and no pattern form anchors (`./build`,
+`third_party/ANTfrastructure/windows/scripts/build` with it, and no pattern form anchors (`./build`,
 `[.]/build` and `build/` all behave the same). The root directories are omitted from the item list
 instead (`-InboundItems`, computed in the driver); the patterns cover the deep directories, and none is
 a prefix glob like `out*`, which would drop unrelated directories such as nlohmann's `detail/output/`.
@@ -189,8 +189,9 @@ pwsh -NoProfile -ExecutionPolicy Bypass -File .\scripts\windows\Build-Windows.ps
   -SkipMsixPackaging
 ```
 
-`Build-Windows.ps1 -?` lists the rest. CI passes only `-SkipMsixPackaging`, so
-that invocation is the parity run — see AGENTS.md § 5.
+`Build-Windows.ps1 -?` lists the rest. CI's Release job (`build-clang`) passes only
+`-SkipMsixPackaging`, so that invocation is the parity run — see AGENTS.md § 5; its Debug
+job adds `-Configurations clangcl-debug -SkipFormat -SkipDocs`.
 
 ## Android
 
@@ -239,8 +240,11 @@ generated and gitignored — a build without it waits 20 s for the core at
 start-up, then runs without it (only the About page's Rust demo needs it):
 
 ```bash
-rustup toolchain install nightly --component rust-src --target wasm32-unknown-unknown
-flutter_rust_bridge_codegen build-web --release --rust-root third_party/OxidANT
+# The image's dated nightly, as the lane takes it; the floating one breaks in :latest (AGENTS.md § 4).
+nightly="$(sed -n 's/^RUST_NIGHTLY_TOOLCHAIN=//p' third_party/ANTfrastructure/linux/scripts/01-core/versions.env)"
+rustup toolchain install "$nightly" --component rust-src --target wasm32-unknown-unknown
+flutter_rust_bridge_codegen build-web --release --rust-root third_party/OxidANT \
+  --wasm-pack-rustup-toolchain "$nightly"
 ```
 
 Run Flutter web with COOP/COEP headers; Firefox and Safari load the core's
@@ -330,7 +334,7 @@ host.** The host's `cmake` is Strawberry Perl's 3.29.2 out of
 Two Windows-specific traps these steps carry:
 
 - The format gate hands `dart format` the tracked file list
-  (`Get-ProjectDartFiles`, 59 files), **not `.`**: `dart format .` recurses into
+  (`Get-ProjectDartFiles`, 85 files on 2026-10-14), **not `.`**: `dart format .` recurses into
   `.git`, and the deeply nested vendored submodule gitdir exceeds Windows
   MAX_PATH, so the listing throws and the gate crashes before formatting
   anything.
@@ -339,8 +343,8 @@ Two Windows-specific traps these steps carry:
   RangeError while precaching the Flutter SDK's own `@docImport` comments
   (reproduced with a bare `flutter create`). The step `pub global activate
   dartdoc` (≥ 9.0.9, which fixes it) and runs that — 9.0.9 in the 2026-09-25 CI
-  run. The image has since moved to Flutter 3.47.4, the same SDK whose bundled
-  `dart doc` the Linux lane's `generate-docs.sh` runs without trouble.
+  run. The image has since moved on (the hub pins Flutter 3.47.7 today), and the Linux
+  lane's `generate-docs.sh` runs its bundled `dart doc` without trouble.
 
 **MSIX packaging.** `msix_config.build_windows` is `false` on purpose: this
 script owns the build, and a second `flutter build windows` driven by msix
@@ -368,9 +372,12 @@ is three ANTfrastructure actions, one hub script and GitHub's
 disk check, GHCR login, pull), the hub's `windows/scripts/Invoke-Lint.ps1 -Path
 scripts` (parse gate plus AST traps over this repo's own PowerShell, on the host
 before the image pull), `run-in-windows-container`, `actions/upload-artifact`
-and `upload-codeql-sarif`. (A second job, `ort-runner-suite`, is a plain
-checkout plus `run-pester-suite` over `scripts/windows/tests`, with no
-container; `windows-arm64.yml` runs the same job on `windows-11-arm`.) After the
+and `upload-codeql-sarif`. The workflow has two more jobs. `build-clang-debug` builds the
+`clangcl-debug` preset (ASan + UBSan) in the same container, stages Microsoft's ASan runtime
+on the runner (`Stage-AsanRuntime.ps1`), runs the launch smoke against it and drives
+`integration_test/simple_test.dart` through `Invoke-WindowsIntegrationTest.ps1`.
+`ort-runner-suite` is a plain checkout plus `run-pester-suite` over `scripts/windows/tests`,
+with no container; `windows-arm64.yml` runs the same job on `windows-11-arm`. After the
 upload, four host steps test the runner outside the image: this repo's
 `Test-KntAbi.ps1` and `Invoke-PluginGTest.ps1` (the plugin's gtest, built in the
 image, where `flutter_windows.dll` does not load), the hub's `Test-TargetArch.ps1
@@ -467,9 +474,9 @@ The rules are in AGENTS.md § 4; the measurements that produced them are here.
   | `clang --gcc-toolchain=/opt/gcc-16.2.0` | bundle + all four packages |
 
   Without it clang resolves libstdc++ against the system copy rather than the
-  source-built GCC 16.2.0 the image provides. `export_toolchain_env` restores
-  the flags through `gcc_toolchain_prefix()`, which upstream kept — do not
-  hard-code `/opt/gcc-16.2.0`.
+  source-built GCC 16.2.0 the image provides. `export_toolchain_env` then restored
+  the flags through `gcc_toolchain_prefix()`, which upstream kept. (All of this is
+  history: see *Retired 2026-09-29* below.)
 
   The wider lesson for every ANTfrastructure bump: upstream reasons about its own
   tree when it removes something. "No caller" means no caller *there*.
@@ -505,8 +512,8 @@ The rules are in AGENTS.md § 4; the measurements that produced them are here.
   Since 2026-10-01 the app clears Flutter's list for `kataglyphisAbi`, the build
   passes `--target-platform android-arm64`, and `scripts/linux/check-apk-abi.sh`
   fails the lane on any other slice (AGENTS.md § 4).
-  AGP 9.4.1 + Gradle 9.8.1 builds that against four constraints, all
-  load-bearing:
+  AGP 9.4.1 + Gradle 9.8.1 builds that against these constraints, all
+  load-bearing (five, counting the arm64-v8a pin above as its own, in AGENTS.md § 4):
 
   - **Built-in Kotlin, with a declared KGP for the version check — and CodeQL
     has a ceiling under it.** `android.builtInKotlin=true` and no
@@ -543,7 +550,10 @@ The rules are in AGENTS.md § 4; the measurements that produced them are here.
   - **Cargokit carries a Gradle 9 port.** `Project.exec` and `Project.buildDir`
     are gone in Gradle 9; `rust_builder/cargokit/gradle/plugin.gradle` injects
     `ExecOperations` and reads `project.layout.buildDirectory`. Upstream Cargokit
-    still has the old calls, so keep this patch when bumping the vendored copy.
+    still has the old calls, so keep this patch when bumping the vendored copy. The
+    same file keeps a second patch: from API 37 AGP reports the compile SDK as
+    `android-37.0`, which upstream's `substring(8) as int` cannot parse; the patch keeps
+    the major version only.
   - **`compileSdk` moved to 37 on 2026-09-29, and the `permission_handler_android`
     13.0.1 pin went with it.** The 14.x that permission_handler 13.0.2 resolves
     needs `compileSdk 37`; the image shipped android-36 only, from a stale SDK
