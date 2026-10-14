@@ -173,7 +173,8 @@ no riscv64 runtime.
   runs; "Not a cat" under it makes the camera ignore a boxed spot, such as a drying rack,
   for good, and "Recent detections" offers the same for the last five arrivals, since a
   false one is seldom on screen when it happens. The cat cam keeps all of it across
-  restarts, and counts a cat only once something moved where it is seen.
+  restarts, and counts a cat only once something moved where it is seen. A cat that walks
+  out of the picture and back within a minute stays one visit.
 - Several cat cams can show each other: list the others as `peers` in each
   `catcam.toml`, and the Stream page shows a card per camera with its picture and cat.
 - `http://<host>:8080/healthz` says whether the camera delivers (`ok`, else the `problem`), which camera is live, when a cat was last seen,

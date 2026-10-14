@@ -424,14 +424,16 @@ score threshold draws no box and logs nothing. Its visit ends a minute after its
 sighting (2026-10-14): a cat back sooner, from behind the sofa or the feeding bowl, continues
 the visit and is not announced again. At the feeding trough one cat walking about had made
 21 visits in an hour, 10 to 90 s apart; the departure event and `stayed_s` come a minute
-later now, and `stayed_s` counts from the first sighting to the last. While nothing moves and no cat is in
+later now, and `stayed_s` counts from the first sighting to the last.
+
+While nothing moves and no cat is in
 sight the model runs only every 5 s (`idle_inference_fps`), and not at all while the
 picture is black; motion brings back `inference_fps`, and `/healthz` counts the
 runs (`model_runs`). On a Pi 5 that took a still, empty scene from 74 % to 12 % of a
 core, and a dark room at night to 2 %. A cat in view that does not move, asleep or a false
 one, is looked at half as often (2026-10-13): himbeere2's drying rack, counted as a cat at
-0.34 all afternoon, went from 69 % to 36 % of a core. Leaving is motion, so a departure is
-seen as fast as before. `inference = "auto"` turns the model
+0.34 all afternoon, went from 69 % to 36 % of a core. Leaving is motion, so the cat is
+out of view as fast as before. `inference = "auto"` turns the model
 off below 1 GiB of RAM.
 
 **A cat must move to arrive** (2026-10-14). A detection starts a visit only where the picture
@@ -663,7 +665,8 @@ live page behind a tap. Running on himbeere2 since 2026-10-12 (Home Assistant 20
 
 A test arrival posted to that webhook reached the owner's phone on 2026-10-12.
 
-**The same notification learns when the cat left.** A departure names the arrival it
+**The same notification learns when the cat left.** The departure comes a minute after
+the cat was last seen, since a cat back sooner continues its visit. It names the arrival it
 ends (`arrived`) and that arrival's `best_score`, so the automation above takes it under
 the same 0.45 and updates the notification by its `tag`: "Katze war da … War 4 Min. da."
 A clip event carries `stayed_s` too when the visit was over before its clip was encoded.
