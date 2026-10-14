@@ -476,6 +476,12 @@ abstract class AppLocalizations {
   /// **'The privacy filter is on, so only the settings file (observant.toml) can change these.'**
   String get cameraClassesLocked;
 
+  /// Button under the Camera page's not-reachable text that asks the camera again.
+  ///
+  /// In en, this message translates to:
+  /// **'Try again'**
+  String get cameraRetry;
+
   /// Button on the Stream page that opens the panel of performance numbers.
   ///
   /// In en, this message translates to:

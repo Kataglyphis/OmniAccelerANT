@@ -227,6 +227,9 @@ class AppLocalizationsEn extends AppLocalizations {
       'The privacy filter is on, so only the settings file (observant.toml) can change these.';
 
   @override
+  String get cameraRetry => 'Try again';
+
+  @override
   String get devStats => 'Stats';
 
   @override

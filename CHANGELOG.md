@@ -63,6 +63,16 @@ What landed on `develop` after 2.0.0+2. Most of it is the cat cam, whose guide i
 
 ### Fixed
 
+- **The app keeps its state, the Camera page recovers, and the Stream page names the animal**
+  (2026-10-14, the deep review).
+  - ANThology's app shell no longer rebuilds the app and its router on every resize or open
+    keyboard, which closed panels and could close a phone's keyboard while typing a name.
+  - The Camera page keeps a camera's last answer while it restarts, says "Camera unreachable
+    since …", asks again every 3 s, and offers "Try again" when the first look fails; before,
+    one failed load left it on "not reachable" until the tab was switched.
+  - The Stream page says "Dog in view" for the open visit's class instead of the watch list,
+    and names each visit's class once more than one is watched.
+
 - **ObservANT is harder to misuse from the LAN** (2026-10-14, the deep review). Reads now
   need a local host name too, so a website using DNS rebinding cannot fetch the camera's
   pictures; 128 connections at most and a 10 s limit for a request head keep one device from

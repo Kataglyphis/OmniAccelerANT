@@ -228,6 +228,9 @@ class AppLocalizationsDe extends AppLocalizations {
       'Der Privatsphäre-Filter ist an, darum lässt sich das nur in der Einstellungsdatei (observant.toml) ändern.';
 
   @override
+  String get cameraRetry => 'Erneut versuchen';
+
+  @override
   String get devStats => 'Statistik';
 
   @override

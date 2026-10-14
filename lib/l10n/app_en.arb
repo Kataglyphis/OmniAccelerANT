@@ -124,6 +124,8 @@
   "@cameraClassesHelp": { "description": "Help under the watched classes on the Camera page." },
   "cameraClassesLocked": "The privacy filter is on, so only the settings file (observant.toml) can change these.",
   "@cameraClassesLocked": { "description": "Shown instead of the class editor's help while ObservANT's privacy filter is on." },
+  "cameraRetry": "Try again",
+  "@cameraRetry": { "description": "Button under the Camera page's not-reachable text that asks the camera again." },
   "devStats": "Stats",
   "@devStats": { "description": "Button on the Stream page that opens the panel of performance numbers." },
   "devStatsNone": "No numbers yet: the camera reports none, and the browser plays nothing.",
