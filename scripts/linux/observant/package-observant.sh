@@ -269,7 +269,7 @@ Installed-Size: ${installed_kb}
 Replaces: omni-accelerant-catcam
 Conflicts: omni-accelerant-catcam
 Homepage: https://github.com/Kataglyphis/OmniAccelerANT
-Description: ObservANT - camera, YOLO boxes (cats by default), WebRTC and its web page
+Description: ObservANT - camera, detection boxes (cats by default), WebRTC and its web page
  Picks the Raspberry Pi camera when one is attached, else a USB webcam, draws a
  box around every object it watches (cats unless set otherwise) and streams the
  picture to any browser on the LAN
@@ -298,7 +298,7 @@ cat > "${appdir}/${package}.desktop" <<DESKTOP
 [Desktop Entry]
 Type=Application
 Name=ObservANT
-Comment=Camera, YOLO cat boxes and a WebRTC stream for any browser on the network
+Comment=Camera, cat detection boxes and a WebRTC stream for any browser on the network
 Exec=observant
 Icon=${package}
 Categories=AudioVideo;Video;
@@ -332,7 +332,7 @@ cat > "${flatpak_work}/files/${flatpak_id}.desktop" <<DESKTOP
 [Desktop Entry]
 Type=Application
 Name=ObservANT
-Comment=Camera, YOLO cat boxes and a WebRTC stream for any browser on the network
+Comment=Camera, cat detection boxes and a WebRTC stream for any browser on the network
 Exec=omni-observant
 Icon=${flatpak_id}
 Categories=AudioVideo;Video;

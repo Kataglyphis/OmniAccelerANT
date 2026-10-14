@@ -27,7 +27,7 @@
 
   <Applications>
     <Application Id="ObservANT" Executable="kataglyphis_observant.exe" EntryPoint="Windows.FullTrustApplication">
-      <uap:VisualElements DisplayName="ObservANT" Description="Camera, YOLO boxes (cats by default) and a WebRTC stream for any browser on the network; the page is http://localhost:8080/"
+      <uap:VisualElements DisplayName="ObservANT" Description="Camera, detection boxes (cats by default) and a WebRTC stream for any browser on the network; the page is http://localhost:8080/"
         BackgroundColor="transparent" Square150x150Logo="Assets\Square150x150Logo.png" Square44x44Logo="Assets\Square44x44Logo.png">
         <uap:DefaultTile Wide310x150Logo="Assets\Wide310x150Logo.png"/>
       </uap:VisualElements>
