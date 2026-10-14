@@ -119,7 +119,6 @@ $dllSource = Resolve-NormalizedPath -Path (Join-Path $cargoTargetBase "release/$
 $dllDestPath = $layout.RustPluginDllPath
 $dllDestDir = [System.IO.Path]::GetDirectoryName($dllDestPath)
 $installedPluginsDir = Resolve-NormalizedPath -Path (Join-Path $buildDirFull "plugins")
-$nativeAssetsDir = Resolve-NormalizedPath -Path (Join-Path $buildRoot "native_assets/windows")
 $generatedPluginsCMake = Resolve-NormalizedPath -Path (Join-Path $workspace "windows/flutter/generated_plugins.cmake")
 
 $buildDirRelease = Join-Path (Join-Path (Join-Path $BuildRootDir "windows") "x64") "runner"
@@ -345,7 +344,7 @@ try {
         if ($CleanBuild) {
             Invoke-BuildStep -Context $context -StepName "Clean Build Directory" -Script {
                 $removed = Remove-BuildRoot -Context $context -Path $buildRoot
-                $removedOriginal = Remove-BuildRoot -Context $context -Path $originalBuildRoot
+                $null = Remove-BuildRoot -Context $context -Path $originalBuildRoot
                 if (-not $removed -and -not $ContinueOnError) {
                     throw "Failed to remove build root: $buildRoot"
                 }
@@ -424,7 +423,6 @@ try {
         $layout = Resolve-KataglyphisWindowsLayout -BuildRootFull $buildRoot -WindowsBuildConfig $windowsBuildConfig -Configuration $currentPreset
         $currentBuildDirFull = $layout.RunnerDir
         $currentDllDestPath = $layout.RustPluginDllPath
-        $currentInstalledPluginsDir = Resolve-NormalizedPath -Path (Join-Path $currentBuildDirFull "plugins")
         $currentNativeAssetsDir = Resolve-NormalizedPath -Path (Join-Path $buildRoot "native_assets/windows")
 
         $isReleasePreset = $true

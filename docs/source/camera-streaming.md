@@ -841,7 +841,9 @@ pattern, no camera on that host). The host's Chrome played 582 frames from the L
 ### The Windows cat cam
 
 `scripts/windows/cat-stream/Package-CatCam.ps1` is the Windows twin of the
-package above. Run it inside `:winamd64` with the web lane's build:
+package above. Like `package-catcam.sh` it stamps the build into the exe as `CATCAM_VERSION`
+(the version and the short commit), which `/healthz` and the Camera page show. Run it inside
+`:winamd64` with the web lane's build:
 
 ```powershell
 pwsh -File scripts\windows\cat-stream\Package-CatCam.ps1 -WebRoot <build\web>

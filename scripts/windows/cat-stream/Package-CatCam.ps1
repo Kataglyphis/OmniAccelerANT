@@ -57,6 +57,12 @@ $packageArch = Get-WindowsPackageArch -Arch $arch
 if (-not $Producer) {
     # Container-local, never the mounted checkout: cargo's renames fail on a bind mount.
     $env:CARGO_TARGET_DIR = 'C:\catcam-target'
+    if (-not $env:CATCAM_VERSION) {
+        # /healthz and the Camera page name the build; without git or .git, the version alone.
+        $commit = $null
+        try { $commit = git -C $repoRoot rev-parse --short HEAD 2>$null } catch { $commit = $null }
+        $env:CATCAM_VERSION = if ($commit) { "$Version ($commit)" } else { $Version }
+    }
     Push-Location (Join-Path $repoRoot 'third_party\OxidANT')
     try {
         cargo build --release --locked -p kataglyphis_cat_webrtc
