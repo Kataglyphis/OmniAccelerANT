@@ -28,8 +28,8 @@ OmniAccelerANT bundles a Flutter/Dart frontend, a Rust/C++ inference core, and a
 ### 🌟 Highlights
 
 - 🎨 **GStreamer native GTK integration** – Leveraging users to write beautiful Linux AI inference apps.
-- 🐱 **An installable cat cam** – a `.deb`, AppImage, flatpak or Windows MSI that streams a camera to any browser, spots cats with a YOLO model on a Raspberry Pi 5, logs their visits, and keeps a picture and a 10 s video of each arrival; Home Assistant can put those on a phone ([Live cat detection stream](#live-cat-detection-stream-linux--raspberry-pi)).
-- 📹 **GStreamer WebRTC livestreaming** with ready-to-use pipelines for USB, Raspberry Pi, and Orange Pi cameras.
+- 🐱 **An installable cat cam** – a `.deb`, AppImage, flatpak or Windows MSI that streams a camera to any browser, spots cats with a YOLO model on a Raspberry Pi 4 or 5 or a SpacemiT X100 (riscv64), logs their visits, and keeps a picture and a 10 s video of each arrival; Home Assistant can put those on a phone ([Live cat detection stream](#live-cat-detection-stream-linux--raspberry-pi)).
+- 📹 **GStreamer WebRTC livestreaming** with ready-to-use pipelines for USB and Raspberry Pi cameras.
 - 🌉 **flutter_rust_bridge integration** – Ensures a seamless API boundary between Dart UI and Rust logic.
 - 🐳 **Containerized development flow** plus native instructions for Windows, Linux, web. For details in my build environment look into [ANTfrastructure](https://github.com/Kataglyphis/ANTfrastructure). On Windows the container engine is [Stevedore](https://github.com/slonopotamus/stevedore) and build containers run with `--isolation process` (full host CPU count) — see [docs/source/platforms.md](docs/source/platforms.md).
 
@@ -42,8 +42,7 @@ OmniAccelerANT bundles a Flutter/Dart frontend, a Rust/C++ inference core, and a
 | **Camera Streaming** | 📹 GStreamer WebRTC Livestream | ✔️ | ✔️ | ✔️ | ✔️ | N/A |
 | | 🧠 Local Webcam ONNX Inference (Rust) | ✔️ | 🔶 | 🔶 | 🔶 | 🔶 |
 | **Supported Cameras** | 🔌 USB Devices | ✔️ | ✔️ | ✔️ | ✔️ | N/A |
-| | 🍓 Raspberry Pi Camera | N/A | ✔️ | ✔️ | ✔️ | N/A |
-| | 🟠 Orange Pi Camera | N/A | ❌ | ❌ | ❌ | N/A |
+| | 🍓 Raspberry Pi Camera | N/A | N/A | ✔️ | N/A | N/A |
 | | 📱 Native Camera API | N/A | N/A | N/A | N/A | ✔️ |
 
 #### Infrastructure & Build
@@ -83,8 +82,8 @@ OmniAccelerANT bundles a Flutter/Dart frontend, a Rust/C++ inference core, and a
 | 🪟 **Windows** | x86-64 | ✔️ | Built with clang-cl, Win32 integration |
 | 🪟 **Windows** | ARM64 | 🔶 | Hybrid lane (`windows-arm64.yml`): natives cross-built in `:winarm64`, the Flutter app built natively on `windows-11-arm`. On the device every import resolves and the app starts with a window; no camera frame or inference has run on arm64 yet |
 | 🐧 **Linux** | x86-64 | ✔️ | Full GTK support, Docker ready |
-| 🐧 **Linux** | ARM64 | ✔️ | SBC optimized (RPi, OPi support) |
-| 🐧 **Linux** | RISC-V | 🔶 | Emerging architecture support. No CI lane in this repo — the `:latest` image index carries a riscv64 variant, and OxidANT tests its crates under QEMU. The cat cam `.deb` builds natively on a riscv64 board and runs there (2026-10-13). |
+| 🐧 **Linux** | ARM64 | ✔️ | Raspberry Pi 4, 5 and Zero 2 W; the Zero streams without detection, since 512 MB is not enough for the Rust producer |
+| 🐧 **Linux** | RISC-V | 🔶 | Emerging architecture support. No CI lane in this repo — the `:latest` image index carries a riscv64 variant, and OxidANT tests its crates under QEMU. The cat cam `.deb` builds natively on a SpacemiT X100 and runs there with a USB webcam (2026-10-13). |
 | 🤖 **Android** | ARM64 | 🔶 | Native camera, NDK integration. The app targets `arm64-v8a` only. The image's Android GStreamer/ONNX/OpenCV prebuilts became `arm64-v8a` on 2026-09-11, so the old `incompatible with aarch64linux` link failure is gone, and since CI stopped running CodeQL (2026-09-17) the lane builds the plain APK — native link and the plugin's JVM test included (AGENTS.md § 4). |
 
 ---
@@ -196,7 +195,7 @@ no riscv64 runtime.
   disable --now omni-catcam` turns autostart off.
 
 Verified on amd64 in `:latest`, and running on two Raspberry Pi 5s, one with a Camera
-Module 2 (imx219) and one with a Camera Module 3 (imx708), and on a SpacemiT riscv64 board
+Module 2 (imx219) and one with a Camera Module 3 (imx708), and on a SpacemiT X100 (riscv64)
 with a Logitech C270 (2026-10-13).
 On Windows, `scripts\windows\cat-stream\Package-CatCam.ps1` (in `:winamd64`) builds an
 MSI, and with `-Msix` a signed MSIX. Each installs the cat cam, starts it at every logon,

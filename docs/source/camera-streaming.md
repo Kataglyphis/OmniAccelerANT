@@ -40,7 +40,7 @@ on port 8080.
 - [3) Start a stream source](#3-start-a-stream-source)
   - [USB webcam](#usb-webcam)
   - [Pylon camera](#pylon-camera)
-  - [Raspberry Pi / Orange Pi (example)](#raspberry-pi--orange-pi-example)
+  - [Raspberry Pi (libcamera, example)](#raspberry-pi-libcamera-example)
 - [4) Run the web frontend](#4-run-the-web-frontend)
 - [Troubleshooting](#troubleshooting)
 
@@ -1271,7 +1271,7 @@ gst-launch-1.0 -e webrtcsink signaller::uri="ws://127.0.0.1:8444" name=ws \
   pylonsrc ! videoconvert ! ws.
 ```
 
-### Raspberry Pi / Orange Pi (example)
+### Raspberry Pi (libcamera, example)
 
 ```bash
 GST_DEBUG=3 gst-launch-1.0 \
