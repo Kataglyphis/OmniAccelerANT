@@ -98,6 +98,7 @@ reorganisation.
 | --- | --- |
 | The winamd64 image — what it carries, its entrypoint, running it with `--isolation process` | `docs/windows-builds.md` |
 | Stevedore setup and its post-install fixes | `docs/windows-host-setup.md` (Phase A), `docs/windows-stevedore-and-docker.md` |
+| The two host fixes that stop this box's Windows containers idling at teardown: the patched runhcs shim, which every Stevedore update reverts, and `TcpTimedWaitDelay` at 30 s (reboot to take effect). `Install-NewHost.ps1` sets both and `Test-HostSetup.ps1` checks both (measured 2026-10-14) | `docs/windows-host-setup.md` § R1 and § C6, `third_party/ANTfrastructure/AGENTS.md` § *Stevedore Fixes After Install* |
 | Isolation policy, and `docker commit` needing hyperv | `docs/windows-build-lanes.md` |
 | An error message from either lane — symptom → cause → fix | `docs/failure-modes.md` |
 | Bind mount vs tar-pipe, **Dev Drive filter setup**, container reuse, measured timings | `docs/windows-container-build-performance.md` |
