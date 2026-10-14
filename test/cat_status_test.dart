@@ -229,7 +229,8 @@ void main() {
     ]);
     // A screen reader hears what each earlier link plays, not a bare time.
     expect(find.bySemanticsLabel(RegExp(r'^Video from ')), findsNWidgets(2));
-    // Each earlier video shows its arrival's own picture.
+    // Each earlier video shows its arrival's own picture, over a film icon for one not kept.
+    expect(find.byIcon(Icons.movie_outlined), findsNWidgets(2));
     expect(
       find.textContaining('picture /arrival.jpg?t=1791700000 '),
       findsOneWidget,

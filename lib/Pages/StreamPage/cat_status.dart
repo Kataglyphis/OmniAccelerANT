@@ -369,13 +369,25 @@ class _CatStatusLineState extends State<CatStatusLine> {
                                 child: SizedBox(
                                   width: 96,
                                   height: 72,
-                                  child: FittedBox(
-                                    fit: BoxFit.cover,
-                                    clipBehavior: Clip.hardEdge,
-                                    child: widget.arrivalImage(
-                                      '/arrival.jpg?t=${t.millisecondsSinceEpoch ~/ 1000}',
-                                      '',
-                                    ),
+                                  // The film icon shows until the picture covers it, and stays where none is kept.
+                                  child: Stack(
+                                    fit: StackFit.expand,
+                                    children: [
+                                      ColoredBox(
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .surfaceContainerHighest,
+                                        child: const Icon(Icons.movie_outlined),
+                                      ),
+                                      FittedBox(
+                                        fit: BoxFit.cover,
+                                        clipBehavior: Clip.hardEdge,
+                                        child: widget.arrivalImage(
+                                          '/arrival.jpg?t=${t.millisecondsSinceEpoch ~/ 1000}',
+                                          '',
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
                               ),
