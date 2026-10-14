@@ -112,6 +112,26 @@ chrome_frames() {
   printf '%s' "${probe}" | jq -r '[.videos[].frames] | max // 0' 2>/dev/null || echo 0
 }
 
+# A tab that comes back after its sockets died unnoticed plays again (the owner's stuck tab, 2026-10-14).
+tab_returns_after_silence() {
+  local chrome result
+  chrome="$(find /opt/chrome-for-testing -maxdepth 3 -type f -name chrome -perm -u+x 2>/dev/null | head -1)"
+  [ -n "${chrome}" ] || return 1
+  python3 "${script_dir}/lib/silencing-proxy.py" 18097 8080 "${work}/silence" &
+  local proxy=$!
+  "${chrome}" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage \
+    --autoplay-policy=no-user-gesture-required --remote-debugging-port=9223 \
+    --user-data-dir="${work}/chrome-return" about:blank >/dev/null 2>&1 &
+  local browser=$!
+  sleep 3
+  result="$(node "${script_dir}/lib/cdp-tab-return.mjs" 9223 "http://127.0.0.1:18097/#/stream" "${work}/silence" 2>&1 | sed -n 's/^RETURN //p')"
+  kill "${browser}" "${proxy}" 2>/dev/null
+  wait "${browser}" "${proxy}" 2>/dev/null
+  printf '      tab return: %s\n' "${result}"
+  jq -e '.before > 100 and .back >= 0 and .later > .back' <<<"${result}" >/dev/null || return 1
+  return 0
+}
+
 wait_cat() {
   local _
   for _ in $(seq 1 120); do
@@ -419,6 +439,7 @@ frames="$(chrome_frames "http://${ip}:8080/" 20000)"
 printf '      Chrome played %s frame(s) over %s\n' "${frames}" "${ip}"
 check "headless Chrome plays the stream from the LAN address" test "${frames:-0}" -ge 200
 check "with a viewer, it maps nothing from outside the bundle" nothing_outside_bundle "${pid}"
+check "a tab back after its connections went silent plays again" tab_returns_after_silence
 stop_service "${pid}"
 
 started="$(date +%s)"

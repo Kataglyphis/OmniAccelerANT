@@ -769,6 +769,9 @@ and run as the unit runs it, with a scrubbed environment as `omni-catcam`:
   sandbox: `systemd-analyze security` rates it 2.5 or less (1.8 on 2026-10-12, 8.7
   before the unit was sandboxed);
 - headless Chrome played the stream over the LAN address;
+- a tab put in the background, its connections then silenced by a proxy that keeps them open
+  and carries nothing (`lib/silencing-proxy.py`, as a sleeping laptop leaves them), plays
+  again after it shows (`lib/cdp-tab-return.mjs`, 2026-10-14);
 - the bundled model found the cats in ANThology's `Summy&Thundy` photo (best score
   0.41 since 2026-10-13, 0.76 before: the portrait photo is bordered into the 4:3 frame
   now instead of stretched, so the cats are smaller), `/healthz` counted the visit and

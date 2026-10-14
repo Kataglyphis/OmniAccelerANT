@@ -28,7 +28,7 @@ Linux amd64/arm64 ship as a .deb and an AppImage, proven on himbeere2 (Pi 5) on
   arrivals at 0.45 or more to the phone with `/arrival.jpg`, and updates that notification
   with a tap to `/arrival.mp4?t=` once the clip's event comes. Test arrivals posted to that
   webhook reached the phone; the service's own arrival and clip POSTs are proven against
-  a loopback stand-in (`test-catcam-package.sh`, 67 checks; OxidANT's `notify.rs`), and a
+  a loopback stand-in (`test-catcam-package.sh`, 69 checks; OxidANT's `notify.rs`), and a
   clip from the packaged service on the cat photo played (16:21, 603 kB). The visit
   statistics, the outage alert, the departure that updates the notification with the stay
   and the 21:00 summary run in the same Home Assistant; the summary's first run (21:00)
