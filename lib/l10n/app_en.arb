@@ -100,6 +100,19 @@
   "@cameraVersion": {
     "description": "Row of the camera info table: the cat cam build."
   },
+  "cameraRecentDetections": "Recent detections",
+  "@cameraRecentDetections": {
+    "description": "Heading over the pictures of the latest arrivals on the Camera page."
+  },
+  "cameraRecentDetectionsHelp": "Was one of them not a cat? Mark it, and the camera ignores that spot from now on.",
+  "cameraWasNotACat": "Not a cat",
+  "@cameraWasNotACat": {
+    "description": "Button under a recent arrival: its boxes become spots the camera ignores."
+  },
+  "cameraSpotIgnored": "Ignored",
+  "@cameraSpotIgnored": {
+    "description": "Under a recent arrival whose spots are already ignored."
+  },
   "cameraScoreValue": "A cat counts from {percent} % certainty",
   "@cameraScoreValue": {
     "description": "Text under the detection sensitivity slider.",

@@ -1,7 +1,10 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter/material.dart';
 import 'package:omni_accelerant/l10n/app_localizations.dart';
+import 'package:omni_accelerant/Pages/StreamPage/cat_status.dart'
+    show formatLastSeen;
 import 'package:omni_accelerant/utils/json_utils.dart';
 
 /// Spots of the picture as fractions of its width and height, from a JSON list of `[x1, y1, x2, y2]`.
@@ -68,6 +71,17 @@ class CatCamSettings {
   }
 }
 
+/// A recent visit's arrival and the boxes it arrived with, which "not a cat" can ignore after the fact.
+class CatDetection {
+  const CatDetection(this.arrived, this.boxes);
+
+  final DateTime arrived;
+  final List<Rect> boxes;
+}
+
+/// The cat cam keeps the pictures of this many arrivals, so the page offers no more.
+const int _keptPictures = 5;
+
 /// The read-only half of the page, from `/healthz`.
 class CatCamInfo {
   const CatCamInfo({
@@ -82,7 +96,11 @@ class CatCamInfo {
     this.problem,
     this.boxes = const <Rect>[],
     this.version = '',
+    this.detections = const <CatDetection>[],
   });
+
+  /// The latest arrivals that came with boxes, newest first.
+  final List<CatDetection> detections;
 
   /// The cat cam's build, as its package stamped it.
   final String version;
@@ -127,12 +145,32 @@ class CatCamInfo {
           ? null
           : (json['problem'] is String ? json['problem'] as String : ''),
       boxes: parseZones(cat is Map<String, dynamic> ? cat['boxes'] : null),
+      detections: <CatDetection>[
+        if (cat is Map<String, dynamic> && cat['recent'] is List)
+          for (final visit in cat['recent'] as List)
+            if (visit is Map<String, dynamic> &&
+                visit['arrived'] is int &&
+                parseZones(visit['boxes']).isNotEmpty)
+              CatDetection(
+                DateTime.fromMillisecondsSinceEpoch(
+                  (visit['arrived'] as int) * 1000,
+                ),
+                parseZones(visit['boxes']),
+              ),
+      ].take(_keptPictures).toList(),
       lastScore: cat is Map<String, dynamic> && cat['last_score'] is num
           ? (cat['last_score'] as num).toDouble()
           : null,
     );
   }
 }
+
+/// An arrival's picture at [url], 160 px wide, nothing where none is kept.
+Widget recentArrivalPicture(String url) => Image.network(
+  url,
+  width: 160,
+  errorBuilder: (_, _, _) => const SizedBox.shrink(),
+);
 
 /// The live picture at [url], 320 px wide; tests swap the network out.
 Widget cameraPreview(String url) => Image.network(
@@ -151,6 +189,7 @@ class CameraSettingsPanel extends StatefulWidget {
     required this.fetchHealthz,
     this.preview = cameraPreview,
     this.previewInterval = const Duration(seconds: 3),
+    this.detectionPicture = recentArrivalPicture,
   });
 
   /// `GET /settings`, or `null` when no cat cam answers.
@@ -164,6 +203,9 @@ class CameraSettingsPanel extends StatefulWidget {
 
   final Widget Function(String url) preview;
   final Duration previewInterval;
+
+  /// Builds a recent arrival's picture from its URL; tests swap the network out.
+  final Widget Function(String url) detectionPicture;
 
   @override
   State<CameraSettingsPanel> createState() => _CameraSettingsPanelState();
@@ -305,6 +347,42 @@ class _CameraSettingsPanelState extends State<CameraSettingsPanel> {
               ],
             ),
           ),
+        if (_info?.detections case final detections?
+            when detections.isNotEmpty) ...[
+          Text(l10n.cameraRecentDetections, style: heading),
+          Text(
+            l10n.cameraRecentDetectionsHelp,
+            style: Theme.of(context).textTheme.bodySmall,
+            textAlign: TextAlign.center,
+          ),
+          Wrap(
+            alignment: WrapAlignment.center,
+            spacing: 12,
+            runSpacing: 12,
+            children: [
+              for (final found in detections)
+                _DetectionCard(
+                  picture: widget.detectionPicture(
+                    '/arrival.jpg?t=${found.arrived.millisecondsSinceEpoch ~/ 1000}',
+                  ),
+                  time: formatLastSeen(
+                    found.arrived,
+                    DateTime.now(),
+                    Localizations.localeOf(context).toString(),
+                  ),
+                  ignored: _ignores(settings.ignore, found.boxes),
+                  onNotACat: () => _save({
+                    'ignore': [
+                      ...settings.ignore,
+                      ...found.boxes.where(
+                        (box) => !_ignores(settings.ignore, [box]),
+                      ),
+                    ].map(zoneJson).toList(),
+                  }),
+                ),
+            ],
+          ),
+        ],
         if (settings.ignore.isNotEmpty)
           Wrap(
             alignment: WrapAlignment.center,
@@ -387,6 +465,53 @@ class _CameraSettingsPanelState extends State<CameraSettingsPanel> {
         ),
         if (_info case final info?) _InfoTable(info: info),
       ],
+    );
+  }
+}
+
+/// Every one of [boxes] is already among the [ignored] spots, as the cat cam rounds them.
+bool _ignores(List<Rect> ignored, List<Rect> boxes) => boxes.every(
+  (box) => ignored.any((spot) => listEquals(zoneJson(spot), zoneJson(box))),
+);
+
+/// One recent arrival on the Camera page: its picture, its time, and "not a cat" or that it is ignored.
+class _DetectionCard extends StatelessWidget {
+  const _DetectionCard({
+    required this.picture,
+    required this.time,
+    required this.ignored,
+    required this.onNotACat,
+  });
+
+  final Widget picture;
+  final String time;
+  final bool ignored;
+  final VoidCallback onNotACat;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return SizedBox(
+      width: 168,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        spacing: 4,
+        children: [
+          ClipRRect(borderRadius: BorderRadius.circular(6), child: picture),
+          Text(time, style: Theme.of(context).textTheme.bodySmall),
+          if (ignored)
+            Text(
+              l10n.cameraSpotIgnored,
+              style: Theme.of(context).textTheme.bodySmall,
+            )
+          else
+            TextButton.icon(
+              icon: const Icon(Icons.block, size: 16),
+              label: Text(l10n.cameraWasNotACat),
+              onPressed: onNotACat,
+            ),
+        ],
+      ),
     );
   }
 }

@@ -202,6 +202,19 @@ class AppLocalizationsDe extends AppLocalizations {
   String get cameraVersion => 'Version';
 
   @override
+  String get cameraRecentDetections => 'Letzte Erkennungen';
+
+  @override
+  String get cameraRecentDetectionsHelp =>
+      'War eine davon keine Katze? Markieren Sie sie, und die Kamera ignoriert diese Stelle ab jetzt.';
+
+  @override
+  String get cameraWasNotACat => 'Keine Katze';
+
+  @override
+  String get cameraSpotIgnored => 'Wird ignoriert';
+
+  @override
   String cameraScoreValue(int percent) {
     return 'Eine Katze zählt ab $percent % Sicherheit';
   }

@@ -34,6 +34,8 @@ class _FakeCatCam {
 Widget _fakePreview(String url) =>
     Text('preview $url', key: const Key('preview'));
 
+Widget _fakeDetection(String url) => Text('detection $url');
+
 Future<void> _pump(
   WidgetTester tester, {
   required Future<String?> Function() fetchSettings,
@@ -53,6 +55,7 @@ Future<void> _pump(
             saveSettings: save ?? (_) async => true,
             fetchHealthz: fetchHealthz ?? () async => _healthz,
             preview: _fakePreview,
+            detectionPicture: _fakeDetection,
           ),
         ),
       ),
@@ -436,4 +439,56 @@ void main() {
     expect(find.text('Wieder beachten'), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
   });
+
+  test('recent detections come from the visits that kept boxes, five at most', () {
+    final visits = [
+      for (var i = 0; i < 7; i++)
+        '{"arrived":${1791900000 - i * 600},"stayed_s":30,"boxes":[[0.25,0.75,0.75,1.0]]}',
+      '{"arrived":1791000000,"stayed_s":30}',
+    ].join(',');
+    final info = CatCamInfo.parse(
+      _healthz.replaceFirst('"visits":7', '"visits":7,"recent":[$visits]'),
+    )!;
+    expect(info.detections, hasLength(5));
+    expect(
+      info.detections.first.arrived.millisecondsSinceEpoch,
+      1791900000 * 1000,
+    );
+    expect(info.detections.first.boxes, [
+      const Rect.fromLTRB(0.25, 0.75, 1 - 0.25, 1),
+    ]);
+    expect(CatCamInfo.parse(_healthz)!.detections, isEmpty);
+  });
+
+  testWidgets(
+    'a recent detection marked "not a cat" adds its boxes and then reads as ignored',
+    (tester) async {
+      final cam = _FakeCatCam()..settings['ignore'] = <List<double>>[];
+      const rack = '[[0.25,0.75,0.75,1.0]]';
+      final healthz = _healthz.replaceFirst(
+        '"visits":7',
+        '"visits":7,"recent":[{"arrived":1791900000,"stayed_s":172,"boxes":$rack}]',
+      );
+      await _pump(
+        tester,
+        fetchSettings: cam.fetchSettings,
+        save: cam.save,
+        fetchHealthz: () async => healthz,
+      );
+      await tester.pump();
+      expect(find.text('Recent detections'), findsOneWidget);
+      expect(find.text('detection /arrival.jpg?t=1791900000'), findsOneWidget);
+      await tester.ensureVisible(find.text('Not a cat').last);
+      await tester.tap(find.text('Not a cat').last);
+      await tester.pump();
+      expect(cam.posts.last, {
+        'ignore': [
+          [0.25, 0.75, 0.75, 1.0],
+        ],
+      });
+      await tester.pump();
+      expect(find.text('Ignored'), findsOneWidget);
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
 }

@@ -298,6 +298,11 @@ own page in the bottom bar, for a board that is easily moved or a spot with fals
   scores. A real cat in front of it still counts, since its box differs. The marked spots
   show grey over the preview, and "Watch again" forgets them all. Turning the picture
   forgets them too, as they no longer fit it.
+- **"Recent detections"** (2026-10-14) lists the latest five arrivals with their pictures,
+  each with "Not a cat", since a false one is seldom on screen when it happens: himbeere2's
+  drying rack counted once at 09:09 for under three minutes. Each visit in `/healthz`'s
+  `recent` keeps the `boxes` it arrived with, and the button adds those as ignored spots; one
+  already ignored reads "Ignored". Visits from before that keep no boxes and are not listed.
 - A field renames the camera. The next webhook event and the next `/healthz` carry the new
   name; a viewer that is already connected keeps the old one until it reconnects.
 - A preview of `/snapshot.jpg`, reloaded every 3 s, shows the result, and a table what the

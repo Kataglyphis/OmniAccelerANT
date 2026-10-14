@@ -10,6 +10,10 @@ What landed on `develop` after 2.0.0+2. Most of it is the cat cam, whose guide i
 
 ### Added
 
+- **"Recent detections" on the Camera page** (2026-10-14): the last five arrivals with their
+  pictures, each with "Not a cat", which ignores the spot it was seen at. A false arrival is
+  seldom on screen when it happens, so the live button alone rarely caught one.
+
 - **An overview of the other cat cams, and a calmer Stream page** (2026-10-14). With
   `peers` in `catcam.toml`, the Stream page shows a card per other cat cam: its name,
   picture and cat. It also says since when a cat cam is unreachable, folds out the whole

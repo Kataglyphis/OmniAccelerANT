@@ -434,6 +434,30 @@ abstract class AppLocalizations {
   /// **'Version'**
   String get cameraVersion;
 
+  /// Heading over the pictures of the latest arrivals on the Camera page.
+  ///
+  /// In en, this message translates to:
+  /// **'Recent detections'**
+  String get cameraRecentDetections;
+
+  /// No description provided for @cameraRecentDetectionsHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Was one of them not a cat? Mark it, and the camera ignores that spot from now on.'**
+  String get cameraRecentDetectionsHelp;
+
+  /// Button under a recent arrival: its boxes become spots the camera ignores.
+  ///
+  /// In en, this message translates to:
+  /// **'Not a cat'**
+  String get cameraWasNotACat;
+
+  /// Under a recent arrival whose spots are already ignored.
+  ///
+  /// In en, this message translates to:
+  /// **'Ignored'**
+  String get cameraSpotIgnored;
+
   /// Text under the detection sensitivity slider.
   ///
   /// In en, this message translates to:
