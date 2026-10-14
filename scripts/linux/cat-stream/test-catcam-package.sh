@@ -58,12 +58,13 @@ user=omni-catcam
 work="$(mktemp -d /tmp/catcam-test.XXXXXX)"
 failures=0
 
+# Each line names its seconds, so the slow checks show in a CI log.
 check() {
-  local name="$1"; shift
+  local name="$1" started="${SECONDS}"; shift
   if "$@"; then
-    printf 'PASS  %s\n' "${name}"
+    printf 'PASS  %s (%d s)\n' "${name}" $((SECONDS - started))
   else
-    printf 'FAIL  %s\n' "${name}"
+    printf 'FAIL  %s (%d s)\n' "${name}" $((SECONDS - started))
     failures=$((failures + 1))
   fi
 }
@@ -505,7 +506,7 @@ check "--autostart off removes the sign-in entry" test ! -e "${autostart_entry}"
 flatpak uninstall --system -y --noninteractive "${flatpak_id}" >/dev/null 2>&1
 check "flatpak uninstall leaves no app" flatpak_gone "${flatpak_id}"
 
-printf '%s failure(s)\n' "${failures}"
+printf '%s failure(s) in %d s\n' "${failures}" "${SECONDS}"
 if [ "${failures}" -gt 0 ]; then
   for log in "${work}"/*.log; do
     printf -- '--- %s\n' "$(basename "${log}")"
