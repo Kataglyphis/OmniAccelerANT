@@ -1,27 +1,27 @@
 #!/bin/sh
-# Installs this bundle as the omni-catcam service where no .deb fits (the AppImage's --install); postinst runs `setup`.
+# Installs this bundle as the omni-observant service where no .deb fits (the AppImage's --install); postinst runs `setup`.
 set -eu
 
-package=omni-accelerant-catcam
+package=omni-observant
 prefix="/opt/${package}"
-unit=omni-catcam.service
+unit=omni-observant.service
 unit_file="/etc/systemd/system/${unit}"
-user=omni-catcam
-config=/etc/omni-accelerant/catcam.toml
+user=omni-observant
+config=/etc/omni-accelerant/observant.toml
 here="$(cd -- "$(dirname -- "$(readlink -f -- "$0")")/.." && pwd)"
 share="${here}/share/${package}"
 
 usage() {
   cat <<'EOF'
-usage: catcam --install [--no-autostart]
-       catcam --uninstall [--purge]
+usage: observant --install [--no-autostart]
+       observant --uninstall [--purge]
 
-  --install       copy the cat cam to /opt/omni-accelerant-catcam and run it as the
-                  omni-catcam service from boot; again with a newer copy, it upgrades
+  --install       copy ObservANT to /opt/omni-observant and run it as the
+                  omni-observant service from boot; again with a newer copy, it upgrades
   --no-autostart  install, but leave the service disabled
-                  (start it later with: sudo systemctl enable --now omni-catcam)
-  --uninstall     stop and remove the service and /opt/omni-accelerant-catcam;
-                  /etc/omni-accelerant/catcam.toml stays
+                  (start it later with: sudo systemctl enable --now omni-observant)
+  --uninstall     stop and remove the service and /opt/omni-observant;
+                  /etc/omni-accelerant/observant.toml stays
   --purge         with --uninstall: remove the settings, the state and the user too
 EOF
 }
@@ -45,11 +45,47 @@ make_user() {
   done
 }
 
+# An install from before ObservANT (omni-accelerant-catcam, until 2026-10-14) hands over its settings, its
+# visits, photos and clips, and its firewall rule; the old copies stay where they were.
+migrate_legacy() {
+  old_config=/etc/omni-accelerant/catcam.toml
+  old_state=/var/lib/omni-accelerant-catcam
+  if [ ! -e "${config}" ] && [ -f "${old_config}" ]; then
+    install -D -m 640 -g "$(id -gn "${user}")" "${old_config}" "${config}"
+    printf 'settings: took over %s\n' "${old_config}"
+  fi
+  if [ -d "${old_state}" ] && [ ! -e "/var/lib/${package}" ]; then
+    cp -a "${old_state}" "/var/lib/${package}"
+    chown -R "${user}:$(id -gn "${user}")" "/var/lib/${package}"
+    printf 'visits, photos and clips: took over %s\n' "${old_state}"
+  fi
+  if command -v ufw >/dev/null 2>&1 && [ -f /etc/ufw/applications.d/omni-observant ] &&
+    ufw status 2>/dev/null | grep -q OmniCatCam && ! ufw status 2>/dev/null | grep -q OmniObservANT; then
+    ufw allow OmniObservANT >/dev/null && printf 'firewall: OmniObservANT allowed, as OmniCatCam was\n'
+  fi
+  # The removed .deb leaves its unit masked and its boot link dangling; forget both, as a purge would.
+  if command -v deb-systemd-helper >/dev/null 2>&1 &&
+    [ -L /etc/systemd/system/multi-user.target.wants/omni-catcam.service ]; then
+    DPKG_MAINTSCRIPT_PACKAGE=omni-accelerant-catcam deb-systemd-helper purge omni-catcam.service >/dev/null 2>&1 || true
+    DPKG_MAINTSCRIPT_PACKAGE=omni-accelerant-catcam deb-systemd-helper unmask omni-catcam.service >/dev/null 2>&1 || true
+  fi
+  # The AppImage's install from before ran its own unit; two would fight over port 8080.
+  if [ -f /etc/systemd/system/omni-catcam.service ] && [ ! -L /etc/systemd/system/omni-catcam.service ]; then
+    if have_systemd; then
+      systemctl disable --now omni-catcam.service 2>/dev/null || true
+    fi
+    rm -f /etc/systemd/system/omni-catcam.service /usr/local/bin/omni-catcam
+    rm -rf /opt/omni-accelerant-catcam
+    printf 'removed the AppImage install from before ObservANT\n'
+  fi
+  return 0
+}
+
 # Never over the admin's file, and only the service's group reads it: a notify_url can carry a webhook secret.
 make_config() {
   service_group="$(id -gn "${user}")"
   if [ ! -e "${config}" ]; then
-    install -D -m 640 -g "${service_group}" "${share}/catcam.toml" "${config}"
+    install -D -m 640 -g "${service_group}" "${share}/observant.toml" "${config}"
   elif [ -n "$(find "${config}" -perm -o=r)" ]; then
     # Versions before 2026-10-13 wrote it world-readable.
     chgrp "${service_group}" "${config}"
@@ -87,14 +123,15 @@ install_bundle() {
   rm -rf "${prefix}"
   mv "${prefix}.new" "${prefix}"
 
-  install -m 644 "${share}/omni-catcam.service" "${unit_file}"
+  install -m 644 "${share}/omni-observant.service" "${unit_file}"
   make_user
-  make_config
   if [ -d /etc/ufw/applications.d ]; then
-    install -m 644 "${share}/ufw-omni-catcam" /etc/ufw/applications.d/omni-catcam
+    install -m 644 "${share}/ufw-omni-observant" /etc/ufw/applications.d/omni-observant
   fi
+  migrate_legacy
+  make_config
   mkdir -p /usr/local/bin
-  ln -sfn "${prefix}/catcam" /usr/local/bin/omni-catcam
+  ln -sfn "${prefix}/observant" /usr/local/bin/omni-observant
 
   if have_systemd; then
     systemctl daemon-reload
@@ -109,13 +146,13 @@ install_bundle() {
     fi
     printf 'installed: %s\n' "$(systemctl is-enabled "${unit}" 2>/dev/null || true)"
   else
-    printf 'installed; no systemd here, so start it with: %s/catcam\n' "${prefix}"
+    printf 'installed; no systemd here, so start it with: %s/observant\n' "${prefix}"
   fi
   printf 'the page: http://%s:8080/  settings: %s\n' "$(uname -n)" "${config}"
   if command -v firewall-cmd >/dev/null 2>&1; then
     printf 'firewalld: sudo firewall-cmd --permanent --add-port=8080/tcp --add-port=40000-40099/udp && sudo firewall-cmd --reload\n'
   elif [ -d /etc/ufw/applications.d ]; then
-    printf 'ufw: sudo ufw allow OmniCatCam\n'
+    printf 'ufw: sudo ufw allow OmniObservANT\n'
   fi
 }
 
@@ -128,13 +165,13 @@ uninstall_bundle() {
   if have_systemd; then
     systemctl disable --now "${unit}" 2>/dev/null || true
   fi
-  rm -f "${unit_file}" /usr/local/bin/omni-catcam
+  rm -f "${unit_file}" /usr/local/bin/omni-observant
   if have_systemd; then
     systemctl daemon-reload
   fi
   rm -rf "${prefix}"
   if [ "${purge}" = true ]; then
-    rm -f "${config}" /etc/ufw/applications.d/omni-catcam
+    rm -f "${config}" /etc/ufw/applications.d/omni-observant
     rmdir /etc/omni-accelerant 2>/dev/null || true
     rm -rf "/var/lib/${package}"
     if getent passwd "${user}" >/dev/null; then
@@ -144,10 +181,11 @@ uninstall_bundle() {
   printf 'uninstalled%s\n' "$([ "${purge}" = true ] && printf ', settings and user included')"
 }
 
-[ "$(id -u)" -eq 0 ] || { printf 'run it as root: sudo <the AppImage or catcam> %s\n' "$*" >&2; exit 1; }
+[ "$(id -u)" -eq 0 ] || { printf 'run it as root: sudo <the AppImage or observant> %s\n' "$*" >&2; exit 1; }
 case "${1:-}" in
   setup)
     make_user
+    migrate_legacy
     make_config
     ;;
   --install)

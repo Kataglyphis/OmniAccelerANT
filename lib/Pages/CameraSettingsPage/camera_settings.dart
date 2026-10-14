@@ -4,7 +4,7 @@ import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter/material.dart';
 import 'package:omni_accelerant/l10n/app_localizations.dart';
 import 'package:omni_accelerant/Pages/CameraSettingsPage/coco_classes.dart';
-import 'package:omni_accelerant/Pages/StreamPage/cat_status.dart'
+import 'package:omni_accelerant/Pages/StreamPage/detection_status.dart'
     show formatLastSeen;
 import 'package:omni_accelerant/utils/json_utils.dart';
 
@@ -25,15 +25,15 @@ List<Rect> parseZones(Object? json) => <Rect>[
         ),
 ];
 
-/// [zone] as the cat cam takes it, `[x1, y1, x2, y2]` to three places.
+/// [zone] as ObservANT takes it, `[x1, y1, x2, y2]` to three places.
 List<double> zoneJson(Rect zone) => [
   for (final v in [zone.left, zone.top, zone.right, zone.bottom])
     (v * 1000).round() / 1000,
 ];
 
-/// What the cat cam's settings page can change, as `GET /settings` answers it.
-class CatCamSettings {
-  const CatCamSettings({
+/// What ObservANT's settings page can change, as `GET /settings` answers it.
+class ObservantSettings {
+  const ObservantSettings({
     required this.name,
     required this.rotate,
     required this.score,
@@ -41,22 +41,22 @@ class CatCamSettings {
     this.classes,
   });
 
-  /// Spots marked "not a cat"; a cat cam before them sends none.
+  /// Spots marked "not a cat"; an ObservANT camera before them sends none.
   final List<Rect> ignore;
 
-  /// The COCO classes it watches; `null` for a cat cam that watches only cats and cannot change it.
+  /// The COCO classes it watches; `null` for an ObservANT camera that watches only cats and cannot change it.
   final List<String>? classes;
 
   final String name;
 
-  /// Clockwise degrees the cat cam turns its picture by.
+  /// Clockwise degrees ObservANT turns its picture by.
   final int rotate;
 
   /// The certainty a detection needs to count as a cat, 0 to 1.
   final double score;
 
-  /// `null` for anything but a cat cam's answer.
-  static CatCamSettings? parse(String? body) {
+  /// `null` for anything but an ObservANT camera's answer.
+  static ObservantSettings? parse(String? body) {
     final json = decodeJsonObject(body);
     if (json == null) {
       return null;
@@ -67,7 +67,7 @@ class CatCamSettings {
     if (name is! String || rotate is! int || score is! num) {
       return null;
     }
-    return CatCamSettings(
+    return ObservantSettings(
       name: name,
       rotate: rotate,
       score: score.toDouble(),
@@ -83,19 +83,19 @@ class CatCamSettings {
 }
 
 /// A recent visit's arrival and the boxes it arrived with, which "not a cat" can ignore after the fact.
-class CatDetection {
-  const CatDetection(this.arrived, this.boxes);
+class RecentDetection {
+  const RecentDetection(this.arrived, this.boxes);
 
   final DateTime arrived;
   final List<Rect> boxes;
 }
 
-/// The cat cam keeps the pictures of this many arrivals, so the page offers no more.
+/// ObservANT keeps the pictures of this many arrivals, so the page offers no more.
 const int _keptPictures = 5;
 
 /// The read-only half of the page, from `/healthz`.
-class CatCamInfo {
-  const CatCamInfo({
+class ObservantInfo {
+  const ObservantInfo({
     this.camera = '',
     this.width,
     this.height,
@@ -107,7 +107,7 @@ class CatCamInfo {
     this.problem,
     this.boxes = const <Rect>[],
     this.version = '',
-    this.detections = const <CatDetection>[],
+    this.detections = const <RecentDetection>[],
     this.pixelated = false,
   });
 
@@ -115,9 +115,9 @@ class CatCamInfo {
   final bool pixelated;
 
   /// The latest arrivals that came with boxes, newest first.
-  final List<CatDetection> detections;
+  final List<RecentDetection> detections;
 
-  /// The cat cam's build, as its package stamped it.
+  /// ObservANT's build, as its package stamped it.
   final String version;
 
   /// The boxes drawn into the picture now, as fractions of it: what "not a cat" would ignore.
@@ -134,20 +134,21 @@ class CatCamInfo {
   /// The best score of the last detection, where to set the slider just above for a false one.
   final double? lastScore;
 
-  /// Why the camera is not ok, in the cat cam's words; `null` while it delivers.
+  /// Why the camera is not ok, in ObservANT's words; `null` while it delivers.
   final String? problem;
 
-  static CatCamInfo? parse(String? body) {
+  static ObservantInfo? parse(String? body) {
     final json = decodeJsonObject(body);
     final ok = json?['ok'];
     if (json == null || ok is! bool) {
       return null;
     }
     final frame = json['frame'];
-    final cat = json['cat'];
+    // `cat` before ObservANT (2026-10-14).
+    final cat = json['detection'] ?? json['cat'];
     int? field(Object? map, String key) =>
         map is Map<String, dynamic> && map[key] is int ? map[key] as int : null;
-    return CatCamInfo(
+    return ObservantInfo(
       camera: json['camera'] is String ? json['camera'] as String : '',
       version: json['version'] is String ? json['version'] as String : '',
       pixelated: json['privacy'] == 'pixelate',
@@ -161,13 +162,13 @@ class CatCamInfo {
           ? null
           : (json['problem'] is String ? json['problem'] as String : ''),
       boxes: parseZones(cat is Map<String, dynamic> ? cat['boxes'] : null),
-      detections: <CatDetection>[
+      detections: <RecentDetection>[
         if (cat is Map<String, dynamic> && cat['recent'] is List)
           for (final visit in cat['recent'] as List)
             if (visit is Map<String, dynamic> &&
                 visit['arrived'] is int &&
                 parseZones(visit['boxes']).isNotEmpty)
-              CatDetection(
+              RecentDetection(
                 DateTime.fromMillisecondsSinceEpoch(
                   (visit['arrived'] as int) * 1000,
                 ),
@@ -196,7 +197,7 @@ Widget cameraPreview(String url) => Image.network(
   errorBuilder: (_, _, _) => const SizedBox.shrink(),
 );
 
-/// The cat cam's settings: a live preview, rotation, detection threshold and name, then what it runs.
+/// ObservANT's settings: a live preview, rotation, detection threshold and name, then what it runs.
 class CameraSettingsPanel extends StatefulWidget {
   const CameraSettingsPanel({
     super.key,
@@ -208,10 +209,10 @@ class CameraSettingsPanel extends StatefulWidget {
     this.detectionPicture = recentArrivalPicture,
   });
 
-  /// `GET /settings`, or `null` when no cat cam answers.
+  /// `GET /settings`, or `null` when no ObservANT answers.
   final Future<String?> Function() fetchSettings;
 
-  /// `POST /settings` with these values; `true` once the cat cam took them.
+  /// `POST /settings` with these values; `true` once ObservANT took them.
   final Future<bool> Function(Map<String, Object> update) saveSettings;
 
   /// `GET /healthz`, or `null`.
@@ -228,8 +229,8 @@ class CameraSettingsPanel extends StatefulWidget {
 }
 
 class _CameraSettingsPanelState extends State<CameraSettingsPanel> {
-  CatCamSettings? _settings;
-  CatCamInfo? _info;
+  ObservantSettings? _settings;
+  ObservantInfo? _info;
   bool _loaded = false;
   double? _score;
   int _frame = 0;
@@ -267,11 +268,11 @@ class _CameraSettingsPanelState extends State<CameraSettingsPanel> {
     if (!mounted) {
       return;
     }
-    final settings = CatCamSettings.parse(results[0]);
+    final settings = ObservantSettings.parse(results[0]);
     setState(() {
       _loaded = true;
       _settings = settings;
-      _info = CatCamInfo.parse(results[1]);
+      _info = ObservantInfo.parse(results[1]);
       _score = settings?.score;
       _frame++;
       if (settings != null && _name.text.isEmpty) {
@@ -281,7 +282,7 @@ class _CameraSettingsPanelState extends State<CameraSettingsPanel> {
   }
 
   Future<void> _refreshInfo() async {
-    final info = CatCamInfo.parse(await fetchOrNull(widget.fetchHealthz));
+    final info = ObservantInfo.parse(await fetchOrNull(widget.fetchHealthz));
     if (mounted && info != null) {
       setState(() => _info = info);
     }
@@ -347,7 +348,7 @@ class _CameraSettingsPanelState extends State<CameraSettingsPanel> {
               children: [
                 OutlinedButton.icon(
                   icon: const Icon(Icons.block),
-                  label: Text(l10n.cameraNotACat),
+                  label: Text(l10n.cameraFalseAlarm),
                   onPressed: () => _save({
                     'ignore': [
                       ...settings.ignore,
@@ -356,7 +357,7 @@ class _CameraSettingsPanelState extends State<CameraSettingsPanel> {
                   }),
                 ),
                 Text(
-                  l10n.cameraNotACatHelp,
+                  l10n.cameraFalseAlarmHelp,
                   style: Theme.of(context).textTheme.bodySmall,
                   textAlign: TextAlign.center,
                 ),
@@ -419,7 +420,7 @@ class _CameraSettingsPanelState extends State<CameraSettingsPanel> {
           children: [
             IconButton(
               icon: const Icon(Icons.rotate_left),
-              tooltip: l10n.catRotateLeft,
+              tooltip: l10n.cameraRotateLeft,
               onPressed: () => _save({'rotate': (settings.rotate + 270) % 360}),
             ),
             // Fixed, so the buttons stay put between 0° and 270°.
@@ -429,7 +430,7 @@ class _CameraSettingsPanelState extends State<CameraSettingsPanel> {
             ),
             IconButton(
               icon: const Icon(Icons.rotate_right),
-              tooltip: l10n.catRotateRight,
+              tooltip: l10n.cameraRotateRight,
               onPressed: () => _save({'rotate': (settings.rotate + 90) % 360}),
             ),
           ],
@@ -503,6 +504,7 @@ class _ClassesEditor extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final addable = cocoClasses.where((c) => !classes.contains(c)).toList();
+    final language = Localizations.localeOf(context).languageCode;
     return ConstrainedBox(
       constraints: const BoxConstraints(maxWidth: 560),
       child: Column(
@@ -515,7 +517,7 @@ class _ClassesEditor extends StatelessWidget {
             children: [
               for (final c in classes)
                 InputChip(
-                  label: Text(c),
+                  label: Text(classLabel(c, language)),
                   onDeleted: classes.length > 1
                       ? () => onChanged([
                           for (final other in classes)
@@ -532,7 +534,10 @@ class _ClassesEditor extends StatelessWidget {
             requestFocusOnTap: true,
             dropdownMenuEntries: [
               for (final c in addable)
-                DropdownMenuEntry<String>(value: c, label: c),
+                DropdownMenuEntry<String>(
+                  value: c,
+                  label: classLabel(c, language),
+                ),
             ],
             onSelected: (c) {
               if (c != null && !classes.contains(c)) {
@@ -551,7 +556,7 @@ class _ClassesEditor extends StatelessWidget {
   }
 }
 
-/// Every one of [boxes] is already among the [ignored] spots, as the cat cam rounds them.
+/// Every one of [boxes] is already among the [ignored] spots, as ObservANT rounds them.
 bool _ignores(List<Rect> ignored, List<Rect> boxes) => boxes.every(
   (box) => ignored.any((spot) => listEquals(zoneJson(spot), zoneJson(box))),
 );
@@ -589,7 +594,7 @@ class _DetectionCard extends StatelessWidget {
           else
             TextButton.icon(
               icon: const Icon(Icons.block, size: 16),
-              label: Text(l10n.cameraWasNotACat),
+              label: Text(l10n.cameraWasFalseAlarm),
               onPressed: onNotACat,
             ),
         ],
@@ -631,7 +636,7 @@ class _IgnoredPainter extends CustomPainter {
 class _InfoTable extends StatelessWidget {
   const _InfoTable({required this.info});
 
-  final CatCamInfo info;
+  final ObservantInfo info;
 
   @override
   Widget build(BuildContext context) {

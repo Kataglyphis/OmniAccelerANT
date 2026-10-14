@@ -3,11 +3,11 @@
 # autostart is the default, and an admin's `systemctl disable` survives upgrades.
 set -e
 
-unit=omni-catcam.service
+unit=omni-observant.service
 
 if [ "$1" = configure ]; then
   # The user, and the settings file if absent; as a conffile, an edited one stops every upgrade at a prompt.
-  /opt/omni-accelerant-catcam/libexec/catcam-install setup
+  /opt/omni-observant/libexec/observant-install setup
 fi
 
 case "$1" in
@@ -16,8 +16,8 @@ case "$1" in
     if command -v deb-systemd-helper >/dev/null 2>&1; then
       deb-systemd-helper unmask "$unit" >/dev/null || true
     fi
-    # OMNI_CATCAM_AUTOSTART=0 at the first install leaves the service disabled.
-    if [ "${OMNI_CATCAM_AUTOSTART:-1}" != 0 ] && command -v deb-systemd-helper >/dev/null 2>&1; then
+    # OMNI_OBSERVANT_AUTOSTART=0 at the first install leaves the service disabled.
+    if [ "${OMNI_OBSERVANT_AUTOSTART:-1}" != 0 ] && command -v deb-systemd-helper >/dev/null 2>&1; then
       if deb-systemd-helper debian-installed "$unit"; then
         deb-systemd-helper update-state "$unit" >/dev/null || true
         if deb-systemd-helper --quiet was-enabled "$unit"; then

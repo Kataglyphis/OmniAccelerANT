@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
-import 'package:omni_accelerant/Pages/StreamPage/cat_cam_peers.dart';
-import 'package:omni_accelerant/Pages/StreamPage/cat_status.dart';
+import 'package:omni_accelerant/Pages/StreamPage/camera_peers.dart';
+import 'package:omni_accelerant/Pages/StreamPage/detection_status.dart';
 import 'package:omni_accelerant/l10n/app_localizations.dart';
 import 'package:url_launcher/link.dart';
 
@@ -27,7 +27,7 @@ Future<void> _pump(
       supportedLocales: AppLocalizations.supportedLocales,
       locale: const Locale('en'),
       home: Scaffold(
-        body: CatCamPeers(
+        body: CameraPeers(
           fetchOwn: own,
           fetchFrom: (url) async {
             asked?.add(url);
@@ -46,17 +46,19 @@ void main() {
   });
 
   test('a /healthz names its peers', () {
-    expect(CatStatus.fromHealthz(_own)!.peers, [
+    expect(DetectionStatus.fromHealthz(_own)!.peers, [
       'http://10.0.0.2:8080/',
       'http://10.0.0.3:8080',
     ]);
-    expect(CatStatus.fromHealthz(_trough)!.peers, isEmpty);
+    expect(DetectionStatus.fromHealthz(_trough)!.peers, isEmpty);
   });
 
-  testWidgets('a cat cam without peers shows no overview', (tester) async {
+  testWidgets('an ObservANT camera without peers shows no overview', (
+    tester,
+  ) async {
     await _pump(tester, () async => _trough, const {});
     await tester.pump();
-    expect(find.text('Other cat cams'), findsNothing);
+    expect(find.text('Other cameras'), findsNothing);
     await tester.pumpWidget(const SizedBox());
   });
 
@@ -72,7 +74,7 @@ void main() {
         'http://10.0.0.2:8080/healthz',
         'http://10.0.0.3:8080/healthz',
       ]);
-      expect(find.text('Other cat cams'), findsOneWidget);
+      expect(find.text('Other cameras'), findsOneWidget);
       expect(find.text('Futtertrog'), findsOneWidget);
       expect(find.text('Cat in view'), findsOneWidget);
       expect(
@@ -109,7 +111,7 @@ void main() {
   });
 
   testWidgets(
-    'the own cat cam is asked once, and one without peers stops asking',
+    'the own ObservANT is asked once, and one without peers stops asking',
     (tester) async {
       var own = 0;
       var others = 0;
@@ -118,7 +120,7 @@ void main() {
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
           home: Scaffold(
-            body: CatCamPeers(
+            body: CameraPeers(
               fetchOwn: () async {
                 own++;
                 return body;
@@ -148,17 +150,17 @@ void main() {
     },
   );
 
-  testWidgets('an own cat cam that does not answer yet is asked again', (
+  testWidgets('an own ObservANT that does not answer yet is asked again', (
     tester,
   ) async {
     String? body;
     await _pump(tester, () async => body, const {});
     await tester.pump();
-    expect(find.text('Other cat cams'), findsNothing);
+    expect(find.text('Other cameras'), findsNothing);
     body = _own;
     await tester.pump(const Duration(seconds: 10));
     await tester.pump();
-    expect(find.text('Other cat cams'), findsOneWidget);
+    expect(find.text('Other cameras'), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
   });
 }

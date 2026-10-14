@@ -1,8 +1,8 @@
-# OmniAccelerANT cat cam. Copy this to %ProgramData%\omni-accelerant\catcam.toml, uncomment a setting, then restart the cat cam
+# OmniAccelerANT ObservANT. Copy this to %ProgramData%\omni-accelerant\observant.toml, uncomment a setting, then restart ObservANT
 
-# Restart it: end "kataglyphis_cat_webrtc" in Task Manager, then start "Cat Cam" from the Start menu (or log off and on)
+# Restart it: end "kataglyphis_observant" in Task Manager, then start "ObservANT" from the Start menu (or log off and on)
 
-# `kataglyphis_cat_webrtc.exe --print-config` prints the settings in effect; Task Manager > Startup apps turns autostart off
+# `kataglyphis_observant.exe --print-config` prints the settings in effect; Task Manager > Startup apps turns autostart off
 
 # camera = "auto"          # a webcam via Media Foundation, else kernel streaming; or mf | ks | test | image:FILE
 
@@ -14,7 +14,7 @@
 
 # fps = 30
 
-# name = "Trouble Tabbls Cat Cam"   # what viewers see
+# name = "ObservANT"   # what viewers see
 
 # inference = "auto"       # auto | on | off; auto skips the model below 1 GiB of RAM or when it fails to load
 

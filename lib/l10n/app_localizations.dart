@@ -206,41 +206,41 @@ abstract class AppLocalizations {
   /// **'Note: on the web, sqlite3.wasm must be served beside the page (the build copies web/sqlite3.wasm there).'**
   String get sqliteWebHint;
 
-  /// No description provided for @catInView.
+  /// Status line while something it watches is in view; what is the watched classes, e.g. "Cat" or "Cat / dog".
   ///
   /// In en, this message translates to:
-  /// **'Cat in view'**
-  String get catInView;
+  /// **'{what} in view'**
+  String detectionInView(String what);
 
-  /// No description provided for @catLastSeen.
+  /// No description provided for @detectionLastSeen.
   ///
   /// In en, this message translates to:
-  /// **'Cat last seen: {when}'**
-  String catLastSeen(String when);
+  /// **'Last seen: {when}'**
+  String detectionLastSeen(String when);
 
-  /// No description provided for @catNotSeenYet.
+  /// No description provided for @detectionNotSeenYet.
   ///
   /// In en, this message translates to:
-  /// **'No cat seen yet'**
-  String get catNotSeenYet;
+  /// **'Nothing seen yet'**
+  String get detectionNotSeenYet;
 
-  /// No description provided for @catLastArrival.
+  /// No description provided for @detectionLastArrival.
   ///
   /// In en, this message translates to:
-  /// **'The cat\'s last arrival'**
-  String get catLastArrival;
+  /// **'The last arrival'**
+  String get detectionLastArrival;
 
-  /// No description provided for @catArrivalVideo.
+  /// No description provided for @detectionArrivalVideo.
   ///
   /// In en, this message translates to:
   /// **'Watch the arrival'**
-  String get catArrivalVideo;
+  String get detectionArrivalVideo;
 
-  /// No description provided for @catEarlierVideos.
+  /// No description provided for @detectionEarlierVideos.
   ///
   /// In en, this message translates to:
   /// **'Earlier videos:'**
-  String get catEarlierVideos;
+  String get detectionEarlierVideos;
 
   /// No description provided for @cameraSettingsNav.
   ///
@@ -257,7 +257,7 @@ abstract class AppLocalizations {
   /// No description provided for @cameraNotReachable.
   ///
   /// In en, this message translates to:
-  /// **'No cat cam answers here. These settings live on a cat cam\'s own page.'**
+  /// **'No ObservANT camera answers here. These settings live on an ObservANT camera\'s own page.'**
   String get cameraNotReachable;
 
   /// No description provided for @cameraRotation.
@@ -275,7 +275,7 @@ abstract class AppLocalizations {
   /// No description provided for @cameraSensitivityHelp.
   ///
   /// In en, this message translates to:
-  /// **'Higher means fewer false alarms; lower spots a cat in poor light too.'**
+  /// **'Higher means fewer false alarms; lower finds one in poor light too.'**
   String get cameraSensitivityHelp;
 
   /// No description provided for @cameraName.
@@ -329,7 +329,7 @@ abstract class AppLocalizations {
   /// No description provided for @cameraDetection.
   ///
   /// In en, this message translates to:
-  /// **'Cat detection'**
+  /// **'Detection'**
   String get cameraDetection;
 
   /// No description provided for @cameraOn.
@@ -362,11 +362,11 @@ abstract class AppLocalizations {
   /// **'Last detection: {percent} %'**
   String cameraLastScore(int percent);
 
-  /// Under the cat cam name when its /healthz says it is not ok; the problem is the cat cam's own English text.
+  /// Under the camera name when its /healthz says it is not ok; the problem is ObservANT's own English text.
   ///
   /// In en, this message translates to:
   /// **'The camera has a problem: {problem}'**
-  String catCamProblem(String problem);
+  String observantProblem(String problem);
 
   /// No description provided for @cameraProblem.
   ///
@@ -377,14 +377,14 @@ abstract class AppLocalizations {
   /// Button under the camera preview: the boxed spots are no cat and are ignored from now on.
   ///
   /// In en, this message translates to:
-  /// **'Not a cat'**
-  String get cameraNotACat;
+  /// **'False alarm'**
+  String get cameraFalseAlarm;
 
-  /// No description provided for @cameraNotACatHelp.
+  /// No description provided for @cameraFalseAlarmHelp.
   ///
   /// In en, this message translates to:
   /// **'Ignores the boxed spot from now on, such as a drying rack the camera takes for a cat.'**
-  String get cameraNotACatHelp;
+  String get cameraFalseAlarmHelp;
 
   /// How many spots were marked "not a cat"; they show grey over the preview.
   ///
@@ -398,43 +398,43 @@ abstract class AppLocalizations {
   /// **'Watch again'**
   String get cameraWatchAgain;
 
-  /// Under the cat cam name once its /healthz stopped answering; time is when it stopped.
+  /// Under the camera name once its /healthz stopped answering; time is when it stopped.
   ///
   /// In en, this message translates to:
   /// **'Camera unreachable since {time}'**
-  String catCamUnreachable(String time);
+  String observantUnreachable(String time);
 
   /// Button under the three latest visits: shows the whole visit log.
   ///
   /// In en, this message translates to:
   /// **'All {count} visits'**
-  String catAllVisits(int count);
+  String detectionAllVisits(int count);
 
   /// Button under the whole visit log: back to the three latest.
   ///
   /// In en, this message translates to:
   /// **'Fewer visits'**
-  String get catFewerVisits;
+  String get detectionFewerVisits;
 
-  /// Heading over the other cat cams this one lists as peers.
+  /// Heading over the other ObservANT cameras this one lists as peers.
   ///
   /// In en, this message translates to:
-  /// **'Other cat cams'**
-  String get catOtherCameras;
+  /// **'Other cameras'**
+  String get observantOthers;
 
-  /// Under another cat cam that does not answer this page.
+  /// Under another ObservANT camera that does not answer this page.
   ///
   /// In en, this message translates to:
   /// **'Not reachable'**
-  String get catPeerUnreachable;
+  String get observantPeerUnreachable;
 
-  /// Row of the camera info table: the cat cam build.
+  /// Row of the camera info table: the ObservANT build.
   ///
   /// In en, this message translates to:
   /// **'Version'**
   String get cameraVersion;
 
-  /// Row of the camera info table: whether the cat cam pixelates all but the detected animals.
+  /// Row of the camera info table: whether ObservANT pixelates all but the detected animals.
   ///
   /// In en, this message translates to:
   /// **'Privacy filter'**
@@ -506,7 +506,7 @@ abstract class AppLocalizations {
   /// **'{ms} ms per run, {rate} runs/s'**
   String devStatsModelValue(String ms, String rate);
 
-  /// Stats row: the cat cam's CPU use and the system load.
+  /// Stats row: ObservANT's CPU use and the system load.
   ///
   /// In en, this message translates to:
   /// **'CPU'**
@@ -518,7 +518,7 @@ abstract class AppLocalizations {
   /// **'{percent} % of one core, {cores} cores, load {load}'**
   String devStatsCpuValue(String percent, String cores, String load);
 
-  /// Stats row: the cat cam's resident memory.
+  /// Stats row: ObservANT's resident memory.
   ///
   /// In en, this message translates to:
   /// **'Memory'**
@@ -530,7 +530,7 @@ abstract class AppLocalizations {
   /// **'Temperature'**
   String get devStatsTemperature;
 
-  /// Stats row: how long the cat cam has run.
+  /// Stats row: how long ObservANT has run.
   ///
   /// In en, this message translates to:
   /// **'Running for'**
@@ -560,11 +560,11 @@ abstract class AppLocalizations {
   /// **'{fps} fps, {size}, {dropped} dropped'**
   String devStatsBrowserValue(String fps, String size, String dropped);
 
-  /// Under the cat cam name when its /healthz says privacy is pixelate.
+  /// Under the camera name when its /healthz says privacy is pixelate.
   ///
   /// In en, this message translates to:
   /// **'Privacy filter on: everything but the detected animals is pixelated'**
-  String get catCamPixelated;
+  String get observantPixelated;
 
   /// Heading over the pictures of the latest arrivals on the Camera page.
   ///
@@ -575,14 +575,14 @@ abstract class AppLocalizations {
   /// No description provided for @cameraRecentDetectionsHelp.
   ///
   /// In en, this message translates to:
-  /// **'Was one of them not a cat? Mark it, and the camera ignores that spot from now on.'**
+  /// **'Was one of them a false alarm? Mark it, and the camera ignores that spot from now on.'**
   String get cameraRecentDetectionsHelp;
 
   /// Button under a recent arrival: its boxes become spots the camera ignores.
   ///
   /// In en, this message translates to:
-  /// **'Not a cat'**
-  String get cameraWasNotACat;
+  /// **'False alarm'**
+  String get cameraWasFalseAlarm;
 
   /// Under a recent arrival whose spots are already ignored.
   ///
@@ -593,38 +593,38 @@ abstract class AppLocalizations {
   /// Text under the detection sensitivity slider.
   ///
   /// In en, this message translates to:
-  /// **'A cat counts from {percent} % certainty'**
+  /// **'A detection counts from {percent} % certainty'**
   String cameraScoreValue(int percent);
 
-  /// No description provided for @catRotateLeft.
+  /// No description provided for @cameraRotateLeft.
   ///
   /// In en, this message translates to:
   /// **'Turn the picture left'**
-  String get catRotateLeft;
+  String get cameraRotateLeft;
 
-  /// No description provided for @catRotateRight.
+  /// No description provided for @cameraRotateRight.
   ///
   /// In en, this message translates to:
   /// **'Turn the picture right'**
-  String get catRotateRight;
+  String get cameraRotateRight;
 
   /// What a screen reader says for an earlier video's play link.
   ///
   /// In en, this message translates to:
   /// **'Video from {time}'**
-  String catVideoFrom(String time);
+  String detectionVideoFrom(String time);
 
-  /// No description provided for @catRecentVisits.
+  /// No description provided for @detectionRecentVisits.
   ///
   /// In en, this message translates to:
   /// **'Recent visits: {visits}'**
-  String catRecentVisits(String visits);
+  String detectionRecentVisits(String visits);
 
-  /// No description provided for @catVisitStay.
+  /// No description provided for @detectionVisitStay.
   ///
   /// In en, this message translates to:
   /// **'{time} ({minutes} min)'**
-  String catVisitStay(String time, String minutes);
+  String detectionVisitStay(String time, String minutes);
 
   /// No description provided for @webrtcConnecting.
   ///
@@ -689,7 +689,7 @@ abstract class AppLocalizations {
   /// No description provided for @webrtcNoCamera.
   ///
   /// In en, this message translates to:
-  /// **'Signalling is up, but no camera has announced itself. Start kataglyphis_cat_webrtc on the camera host.'**
+  /// **'Signalling is up, but no camera has announced itself. Start kataglyphis_observant on the camera host.'**
   String get webrtcNoCamera;
 
   /// No description provided for @webrtcExchangingCandidates.

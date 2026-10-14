@@ -22,10 +22,10 @@
 
 | Topic | Description |
 |-------|-------------|
-| [Overview](overview.md) | High-level summary, the cat cam, targets, the repository's structure and design goals. |
+| [Overview](overview.md) | High-level summary, ObservANT, targets, the repository's structure and design goals. |
 | [Getting Started](getting-started.md) | Environment prerequisites, installation steps, and run commands. |
 | [Platforms](platforms.md) | Container, Windows, Raspberry Pi, and Web build guides. |
-| [Camera Streaming](camera-streaming.md) | The installable cat cam (packages, endpoints, arrival picture and video, [Home Assistant](camera-streaming.md#home-assistant) notifications and statistics, its tests), the Rust webcam inference, and the GStreamer WebRTC pipelines. |
+| [Camera Streaming](camera-streaming.md) | The installable ObservANT (packages, endpoints, arrival picture and video, [Home Assistant](camera-streaming.md#home-assistant) notifications and statistics, its tests), the Rust webcam inference, and the GStreamer WebRTC pipelines. |
 | [Readmes](readmes.md) | Curated links to the key README files in this repository. |
 | [Project Operations](project-operations.md) | Tests, contribution process, repository hygiene, and upgrade notes. |
 | [Upgrade Guide](upgrade-guide.md) | Dependency and bridge update procedures. |

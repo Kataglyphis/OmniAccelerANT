@@ -1,18 +1,18 @@
 #!/usr/bin/env bash
-# Packages the cat cam: a self-contained bundle (its own GStreamer, ONNX Runtime and C library), a .deb and an
+# Packages ObservANT: a self-contained bundle (its own GStreamer, ONNX Runtime and C library), a .deb and an
 # AppImage that install it as a systemd service, and a flatpak started at sign-in. Runs privileged in the image;
 # riscv64 gets the .deb and the tarball only.
 #
 # Usage, from the repository root inside the image:
-#   bash scripts/linux/cat-stream/package-catcam.sh --web-root build/web [options]
+#   bash scripts/linux/observant/package-observant.sh --web-root build/web [options]
 #
 #   --web-root DIR   the Flutter web build (the web lane's build/web); required
 #   --model FILE     ONNX model to ship (default: AccelerANTgine's yolo26n.onnx)
-#   --producer FILE  a built kataglyphis_cat_webrtc (default: cargo build --release here)
+#   --producer FILE  a built kataglyphis_observant (default: cargo build --release here)
 #   --out DIR        where the packages and the bundle tarball land (default: out/)
 #   --version X.Y.Z  package version (default: pubspec.yaml's, without +build)
 #
-# Details: docs/source/camera-streaming.md § The cat cam package.
+# Details: docs/source/camera-streaming.md § ObservANT package.
 set -euo pipefail
 
 script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
@@ -20,7 +20,7 @@ repo_root="$(cd -- "${script_dir}/../../.." && pwd)"
 # shellcheck source=scripts/linux/lib/antfrastructure.sh
 source "${script_dir}/../lib/antfrastructure.sh"
 
-package=omni-accelerant-catcam
+package=omni-observant
 prefix="/opt/${package}"
 web_root=""
 model="${repo_root}/third_party/AccelerANTgine/models/yolo26n.onnx"
@@ -63,24 +63,24 @@ if [ -z "${version}" ]; then
 fi
 
 if [ -z "${producer}" ]; then
-  printf 'building kataglyphis_cat_webrtc (release)\n'
-  export CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-/tmp/catcam-target}"
+  printf 'building kataglyphis_observant (release)\n'
+  export CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-/tmp/observant-target}"
   # /healthz names it; a copy of the tree without .git, as a board's build gets, keeps the version alone.
   commit="$(git -C "${repo_root}" rev-parse --short HEAD 2>/dev/null || true)"
-  export CATCAM_VERSION="${CATCAM_VERSION:-${version}${commit:+ (${commit})}}"
-  (cd "${repo_root}/third_party/OxidANT" && cargo build --release --locked -p kataglyphis_cat_webrtc)
-  producer="${CARGO_TARGET_DIR}/release/kataglyphis_cat_webrtc"
+  export OBSERVANT_VERSION="${OBSERVANT_VERSION:-${version}${commit:+ (${commit})}}"
+  (cd "${repo_root}/third_party/OxidANT" && cargo build --release --locked -p kataglyphis_observant)
+  producer="${CARGO_TARGET_DIR}/release/kataglyphis_observant"
 fi
 [ -x "${producer}" ] || { printf 'producer not executable: %s\n' "${producer}" >&2; exit 1; }
 
 # Container-native work dir: the bind mount cannot chmod for the container uid (AGENTS.md § 5).
-work="$(mktemp -d /tmp/catcam-work.XXXXXX)"
+work="$(mktemp -d /tmp/observant-work.XXXXXX)"
 trap 'rm -rf "${work}"' EXIT
 bundle="${work}/bundle"
 mkdir -p "${bundle}/bin" "${bundle}/lib/gstreamer-1.0" "${bundle}/libexec" "${bundle}/models" \
   "${bundle}/share/doc/${package}"
 
-install -m 755 "${producer}" "${bundle}/bin/kataglyphis_cat_webrtc"
+install -m 755 "${producer}" "${bundle}/bin/kataglyphis_observant"
 cp -a "${web_root}" "${bundle}/web"
 # Only a loader config naming enableWimp or preferWebParagraph fetches those renderers, and no browser fetches *.symbols.
 if sed -n '/_flutter\.loader\.load(/,$p' "${web_root}/flutter_bootstrap.js" | grep -qE 'enableWimp|preferWebParagraph'; then
@@ -180,7 +180,7 @@ while IFS= read -r line; do
     */opt/gstreamer/*) ;;
     *libgst*) printf 'a GStreamer library resolved outside /opt/gstreamer: %s\n' "${line}" >&2; exit 1 ;;
   esac
-done < <(ldd "${bundle}/bin/kataglyphis_cat_webrtc" 2>/dev/null | awk '/libgst/ {print $1 " " $3}')
+done < <(ldd "${bundle}/bin/kataglyphis_observant" 2>/dev/null | awk '/libgst/ {print $1 " " $3}')
 
 # Loaders ask for sonames; the copies are named after the resolved files.
 for lib in "${bundle}"/lib/*.so*; do
@@ -192,16 +192,16 @@ done
 
 # The launcher passes --library-path; this RUNPATH says the same to G6's ld.so model.
 # shellcheck disable=SC2016
-patchelf --set-rpath '$ORIGIN/../lib' "${bundle}/bin/kataglyphis_cat_webrtc"
+patchelf --set-rpath '$ORIGIN/../lib' "${bundle}/bin/kataglyphis_observant"
 bash "$(antfrastructure_path linux/scripts/06-packaging/check-ort-provenance.sh)" "${bundle}"
 
-cat > "${bundle}/catcam" <<LAUNCHER
+cat > "${bundle}/observant" <<LAUNCHER
 #!/bin/sh
-# Runs the cat cam with its own GStreamer, ONNX Runtime and C library, whatever the host ships.
-# Arguments and ${package}'s catcam.toml settings pass straight through.
+# Runs ObservANT with its own GStreamer, ONNX Runtime and C library, whatever the host ships.
+# Arguments and ${package}'s observant.toml settings pass straight through.
 here="\$(cd -- "\$(dirname -- "\$(readlink -f -- "\$0")")" && pwd)"
 case "\${1:-}" in
-  --install|--uninstall) exec "\$here/libexec/catcam-install" "\$@" ;;
+  --install|--uninstall) exec "\$here/libexec/observant-install" "\$@" ;;
 esac
 export GST_PLUGIN_PATH="\$here/lib/gstreamer-1.0"
 # Never the host's plugins: they are built against another GStreamer.
@@ -214,22 +214,22 @@ export ORT_DYLIB_PATH="\${ORT_DYLIB_PATH:-\$here/lib/libonnxruntime.so.1}"
 export KATAGLYPHIS_WEB_ROOT="\${KATAGLYPHIS_WEB_ROOT:-\$here/web}"
 export KATAGLYPHIS_ONNX_MODEL="\${KATAGLYPHIS_ONNX_MODEL:-\$here/models/${model_name}}"
 # --library-path, not LD_LIBRARY_PATH: a child such as rpicam-vid must keep the host's libraries.
-exec "\$here/lib/${loader}" --library-path "\$here/lib" "\$here/bin/kataglyphis_cat_webrtc" "\$@"
+exec "\$here/lib/${loader}" --library-path "\$here/lib" "\$here/bin/kataglyphis_observant" "\$@"
 LAUNCHER
-chmod 755 "${bundle}/catcam"
+chmod 755 "${bundle}/observant"
 
 # The installer the AppImage and the tarball run, and the files it installs; the .deb installs the same ones.
-install -m 755 "${script_dir}/catcam/catcam-install" "${bundle}/libexec/catcam-install"
+install -m 755 "${script_dir}/package/observant-install" "${bundle}/libexec/observant-install"
 mkdir -p "${bundle}/share/${package}"
-for file in omni-catcam.service catcam.toml ufw-omni-catcam; do
-  install -m 644 "${script_dir}/catcam/${file}" "${bundle}/share/${package}/${file}"
+for file in omni-observant.service observant.toml ufw-omni-observant; do
+  install -m 644 "${script_dir}/package/${file}" "${bundle}/share/${package}/${file}"
 done
 
 cat > "${bundle}/share/doc/${package}/NOTICE-model" <<NOTICE
 ${model_name} is an Ultralytics YOLO model, licensed AGPL-3.0
 (https://www.gnu.org/licenses/agpl-3.0.html; https://ultralytics.com/license).
 It is a separate work shipped beside the MIT-licensed OmniAccelerANT code; replace it
-with a model of your choice through 'model' in /etc/omni-accelerant/catcam.toml.
+with a model of your choice through 'model' in /etc/omni-accelerant/observant.toml.
 NOTICE
 
 # --- the .deb --------------------------------------------------------------------------------
@@ -237,14 +237,14 @@ deb="${work}/deb"
 mkdir -p "${deb}/DEBIAN" "${deb}${prefix}" "${deb}/usr/bin" "${deb}/usr/lib/systemd/system" \
   "${deb}/etc/ufw/applications.d"
 cp -a "${bundle}/." "${deb}${prefix}/"
-ln -s "${prefix}/catcam" "${deb}/usr/bin/omni-catcam"
-install -m 644 "${script_dir}/catcam/omni-catcam.service" "${deb}/usr/lib/systemd/system/"
-install -m 644 "${script_dir}/catcam/ufw-omni-catcam" "${deb}/etc/ufw/applications.d/omni-catcam"
+ln -s "${prefix}/observant" "${deb}/usr/bin/omni-observant"
+install -m 644 "${script_dir}/package/omni-observant.service" "${deb}/usr/lib/systemd/system/"
+install -m 644 "${script_dir}/package/ufw-omni-observant" "${deb}/etc/ufw/applications.d/omni-observant"
 for script in postinst prerm postrm; do
-  install -m 755 "${script_dir}/catcam/${script}" "${deb}/DEBIAN/${script}"
+  install -m 755 "${script_dir}/package/${script}" "${deb}/DEBIAN/${script}"
 done
-# catcam.toml is postinst's, written once from the bundle's copy, so no upgrade asks about an edited one.
-printf '%s\n' /etc/ufw/applications.d/omni-catcam > "${deb}/DEBIAN/conffiles"
+# observant.toml is postinst's, written once from the bundle's copy, so no upgrade asks about an edited one.
+printf '%s\n' /etc/ufw/applications.d/omni-observant > "${deb}/DEBIAN/conffiles"
 installed_kb="$(du -sk "${deb}" | cut -f1)"
 cat > "${deb}/DEBIAN/control" <<CONTROL
 Package: ${package}
@@ -254,13 +254,16 @@ Maintainer: Kataglyphis <dev@kataglyphis.local>
 Section: video
 Priority: optional
 Installed-Size: ${installed_kb}
+Replaces: omni-accelerant-catcam
+Conflicts: omni-accelerant-catcam
 Homepage: https://github.com/Kataglyphis/OmniAccelerANT
-Description: OmniAccelerANT cat cam - camera, YOLO cat boxes, WebRTC and its web page
+Description: ObservANT - camera, YOLO boxes (cats by default), WebRTC and its web page
  Picks the Raspberry Pi camera when one is attached, else a USB webcam, draws a
- box around every cat it sees and streams the picture to any browser on the LAN
- at http://<this-host>:8080/. Runs as the omni-catcam service from boot; turn
- that off with: sudo systemctl disable --now omni-catcam
- Settings: /etc/omni-accelerant/catcam.toml. Firewall: sudo ufw allow OmniCatCam
+ box around every object it watches (cats unless set otherwise) and streams the
+ picture to any browser on the LAN
+ at http://<this-host>:8080/. Runs as the omni-observant service from boot; turn
+ that off with: sudo systemctl disable --now omni-observant
+ Settings: /etc/omni-accelerant/observant.toml. Firewall: sudo ufw allow OmniObservANT
 CONTROL
 
 mkdir -p "${out_dir}"
@@ -277,14 +280,14 @@ fi
 # --- the AppImage: the bundle in the foreground, or `sudo <AppImage> --install` --------------
 appdir="${work}/appdir"
 cp -a "${bundle}" "${appdir}"
-ln -s catcam "${appdir}/AppRun"
+ln -s observant "${appdir}/AppRun"
 install -m 644 "${repo_root}/assets/icons/kataglyphis_app_icon.svg" "${appdir}/${package}.svg"
 cat > "${appdir}/${package}.desktop" <<DESKTOP
 [Desktop Entry]
 Type=Application
-Name=OmniAccelerANT Cat Cam
+Name=ObservANT
 Comment=Camera, YOLO cat boxes and a WebRTC stream for any browser on the network
-Exec=catcam
+Exec=observant
 Icon=${package}
 Categories=AudioVideo;Video;
 Terminal=true
@@ -306,19 +309,19 @@ if ! APPIMAGE_EXTRACT_AND_RUN=1 NO_APPSTREAM=1 ARCH="$(uname -m)" \
   exit 1
 fi
 
-# --- the flatpak: the bundle in /app/catcam on the image's runtime; no rpicam-vid inside, so USB cameras only
+# --- the flatpak: the bundle in /app/observant on the image's runtime; no rpicam-vid inside, so USB cameras only
 flatpak_id="org.kataglyphis.${package}"
 flatpak_work="${work}/flatpak"
 mkdir -p "${flatpak_work}/files/bundle"
 cp -a "${bundle}/." "${flatpak_work}/files/bundle/"
-install -m 755 "${script_dir}/catcam/flatpak-omni-catcam" "${flatpak_work}/files/omni-catcam"
+install -m 755 "${script_dir}/package/flatpak-omni-observant" "${flatpak_work}/files/omni-observant"
 install -m 644 "${repo_root}/assets/icons/kataglyphis_app_icon.svg" "${flatpak_work}/files/${flatpak_id}.svg"
 cat > "${flatpak_work}/files/${flatpak_id}.desktop" <<DESKTOP
 [Desktop Entry]
 Type=Application
-Name=OmniAccelerANT Cat Cam
+Name=ObservANT
 Comment=Camera, YOLO cat boxes and a WebRTC stream for any browser on the network
-Exec=omni-catcam
+Exec=omni-observant
 Icon=${flatpak_id}
 Categories=AudioVideo;Video;
 Terminal=true
@@ -333,17 +336,17 @@ app-id: ${flatpak_id}
 runtime: org.freedesktop.Platform
 runtime-version: '${runtime_version}'
 sdk: org.freedesktop.Sdk
-command: omni-catcam
+command: omni-observant
 finish-args:
   - --share=network
   - --device=all
   - --filesystem=xdg-config/autostart:create
 modules:
-  - name: catcam
+  - name: observant
     buildsystem: simple
     build-commands:
-      - mkdir -p /app/catcam && cp -a bundle/. /app/catcam/
-      - install -Dm755 omni-catcam /app/bin/omni-catcam
+      - mkdir -p /app/observant && cp -a bundle/. /app/observant/
+      - install -Dm755 omni-observant /app/bin/omni-observant
       - install -Dm644 ${flatpak_id}.desktop /app/share/applications/${flatpak_id}.desktop
       - install -Dm644 ${flatpak_id}.svg /app/share/icons/hicolor/scalable/apps/${flatpak_id}.svg
     sources:
@@ -357,8 +360,8 @@ if ! flatpak-builder --force-clean --disable-rofiles-fuse --state-dir="${flatpak
   exit 1
 fi
 flatpak_file="${out_dir}/${package}-${version}-$(uname -m).flatpak"
-flatpak build-bundle "${flatpak_work}/repo" "${flatpak_work}/catcam.flatpak" "${flatpak_id}"
-cp -f "${flatpak_work}/catcam.flatpak" "${flatpak_file}"
+flatpak build-bundle "${flatpak_work}/repo" "${flatpak_work}/observant.flatpak" "${flatpak_id}"
+cp -f "${flatpak_work}/observant.flatpak" "${flatpak_file}"
 
 printf 'bundle: %s files, %s\n' "$(find "${bundle}" -type f | wc -l)" "$(du -sh "${bundle}" | cut -f1)"
 printf 'wrote %s (%s)\n' "${deb_file}" "$(du -h "${deb_file}" | cut -f1)"

@@ -2,7 +2,7 @@
 # Mirrors dh_installsystemd: mask on remove so the unit cannot start, forget it all on purge.
 set -e
 
-unit=omni-catcam.service
+unit=omni-observant.service
 
 if [ -d /run/systemd/system ]; then
   systemctl --system daemon-reload >/dev/null || true
@@ -19,9 +19,9 @@ if command -v deb-systemd-helper >/dev/null 2>&1; then
 fi
 
 if [ "$1" = purge ]; then
-  rm -rf /var/lib/omni-accelerant-catcam
+  rm -rf /var/lib/omni-observant
   # postinst wrote the settings file, so dpkg does not know it; purge removes it here.
-  rm -f /etc/omni-accelerant/catcam.toml
+  rm -f /etc/omni-accelerant/observant.toml
   rmdir /etc/omni-accelerant 2>/dev/null || true
 fi
 

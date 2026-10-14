@@ -14,12 +14,12 @@ import 'package:omni_accelerant/Pages/StreamPage/webrtc_view_stub.dart'
     if (dart.library.js_interop) 'package:omni_accelerant/Pages/StreamPage/webrtc_view.dart'
     as webrtc_import;
 import 'package:omni_accelerant/Pages/StreamPage/rust_webcam_view.dart';
-import 'package:omni_accelerant/Pages/StreamPage/cat_status.dart';
-import 'package:omni_accelerant/Pages/StreamPage/cat_cam_peers.dart';
+import 'package:omni_accelerant/Pages/StreamPage/detection_status.dart';
+import 'package:omni_accelerant/Pages/StreamPage/camera_peers.dart';
 import 'package:omni_accelerant/Pages/StreamPage/dev_stats.dart';
-// Nothing on native; on web the cat cam that serves the page (its /healthz, here).
-import 'package:omni_accelerant/Pages/StreamPage/cat_cam_api_stub.dart'
-    if (dart.library.js_interop) 'package:omni_accelerant/Pages/StreamPage/cat_cam_api_web.dart';
+// Nothing on native; on web ObservANT that serves the page (its /healthz, here).
+import 'package:omni_accelerant/Pages/StreamPage/observant_api_stub.dart'
+    if (dart.library.js_interop) 'package:omni_accelerant/Pages/StreamPage/observant_api_web.dart';
 
 // Constants
 
@@ -29,7 +29,7 @@ const double kWebRTCMaxWidth = 800.0;
 /// Maximum height constraint for WebRTC view container.
 const double kWebRTCMaxHeight = 600.0;
 
-/// The cat cam's 640x480: a box of the stream's shape leaves no empty band above and below it on a phone.
+/// ObservANT's 640x480: a box of the stream's shape leaves no empty band above and below it on a phone.
 const double kWebRTCAspectRatio = 4 / 3;
 
 /// Border width for video containers.
@@ -378,16 +378,16 @@ class StreamPageState extends State<StreamPage> {
                 ),
               ),
               const SizedBox(height: 20),
-              const CatStatusLine(
+              const DetectionStatusLine(
                 fetch: fetchHealthz,
-                fallbackName: 'Trouble Tabbls Cat Cam',
+                fallbackName: 'ObservANT',
               ),
               const DevStatsPanel(
                 fetch: fetchHealthz,
                 playback: webrtc_import.playbackStats,
               ),
               const SizedBox(height: 20),
-              const CatCamPeers(fetchOwn: fetchHealthz, fetchFrom: fetchFrom),
+              const CameraPeers(fetchOwn: fetchHealthz, fetchFrom: fetchFrom),
             ],
           ),
         ),

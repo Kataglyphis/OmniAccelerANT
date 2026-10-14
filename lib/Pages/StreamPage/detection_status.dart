@@ -3,39 +3,44 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:omni_accelerant/l10n/app_localizations.dart';
+import 'package:omni_accelerant/Pages/CameraSettingsPage/coco_classes.dart';
 import 'package:omni_accelerant/utils/json_utils.dart';
 import 'package:url_launcher/link.dart';
 
-/// One visit from `/healthz`'s `cat.recent`: when the cat came, and how long it stayed once it had left.
-class CatVisit {
-  const CatVisit(this.arrived, [this.stayed]);
+/// One visit from `/healthz`'s `cat.recent`: when ObservANTe, and how long it stayed once it had left.
+class Visit {
+  const Visit(this.arrived, [this.stayed]);
 
   final DateTime arrived;
   final Duration? stayed;
 }
 
-/// What the cat cam's `/healthz` says: its name, whether and when a cat was in view, and its visits.
-class CatStatus {
-  const CatStatus({
+/// What ObservANT's `/healthz` says: its name, whether and when a cat was in view, and its visits.
+class DetectionStatus {
+  const DetectionStatus({
     required this.name,
     required this.inView,
     this.lastSeen,
     this.visits = 0,
-    this.recent = const <CatVisit>[],
+    this.recent = const <Visit>[],
     this.clip,
     this.clips = const <DateTime>[],
     this.problem,
     this.peers = const <String>[],
     this.pixelated = false,
+    this.classes = const <String>['cat'],
   });
 
-  /// The cat cam blocks out all but the detected animals (`privacy = "pixelate"`).
+  /// The COCO classes it watches; an older camera that names none watches cats.
+  final List<String> classes;
+
+  /// ObservANT blocks out all but the detected animals (`privacy = "pixelate"`).
   final bool pixelated;
 
-  /// The other cat cams' origins, as `catcam.toml` lists them, for the overview.
+  /// The other ObservANT cameras' origins, as `observant.toml` lists them, for the overview.
   final List<String> peers;
 
-  /// Why the camera is not ok, in the cat cam's words; `null` while it delivers.
+  /// Why the camera is not ok, in ObservANT's words; `null` while it delivers.
   final String? problem;
 
   final String name;
@@ -46,7 +51,7 @@ class CatStatus {
   final int visits;
 
   /// The latest visits, newest first.
-  final List<CatVisit> recent;
+  final List<Visit> recent;
 
   /// The arrival `/arrival.mp4` shows; a clip is encoded a few seconds after its arrival.
   final DateTime? clip;
@@ -58,15 +63,17 @@ class CatStatus {
   bool get hasLatestClip =>
       clip != null && recent.isNotEmpty && clip == recent.first.arrived;
 
-  /// `null` for anything but a cat cam's `/healthz` answer, so other hosts show nothing; one that is
+  /// `null` for anything but an ObservANT camera's `/healthz` answer, so other hosts show nothing; one that is
   /// not ok still is one, with its [problem].
-  static CatStatus? fromHealthz(String body) {
+  static DetectionStatus? fromHealthz(String body) {
     final json = decodeJsonObject(body);
     final ok = json?['ok'];
     if (json == null || ok is! bool) {
       return null;
     }
-    final cat = json['cat'];
+    // `cat` before ObservANT (2026-10-14), so an older camera among the peers still reads.
+    final cat = json['detection'] ?? json['cat'];
+    final classes = json['classes'];
     if (cat is! Map<String, dynamic>) {
       return null;
     }
@@ -78,7 +85,7 @@ class CatStatus {
     final clips = cat['clips'];
     final problem = json['problem'];
     final peers = json['peers'];
-    return CatStatus(
+    return DetectionStatus(
       pixelated: json['privacy'] == 'pixelate',
       peers: <String>[
         if (peers is List)
@@ -88,6 +95,12 @@ class CatStatus {
       problem: ok ? null : (problem is String ? problem : ''),
       name: name is String ? name : '',
       inView: cat['in_view'] == true,
+      classes: classes is List
+          ? <String>[
+              for (final c in classes)
+                if (c is String) c,
+            ]
+          : const <String>['cat'],
       lastSeen: seconds is int
           ? DateTime.fromMillisecondsSinceEpoch(seconds * 1000)
           : null,
@@ -100,11 +113,11 @@ class CatStatus {
           for (final t in clips)
             if (t is int) DateTime.fromMillisecondsSinceEpoch(t * 1000),
       ],
-      recent: <CatVisit>[
+      recent: <Visit>[
         if (recent is List)
           for (final visit in recent)
             if (visit is Map<String, dynamic> && visit['arrived'] is int)
-              CatVisit(
+              Visit(
                 DateTime.fromMillisecondsSinceEpoch(
                   (visit['arrived'] as int) * 1000,
                 ),
@@ -118,21 +131,25 @@ class CatStatus {
 }
 
 /// What [status] says about the cat in one line, with its icon and colour.
-(IconData, Color?, String) catLine(
+(IconData, Color?, String) detectionLine(
   AppLocalizations l10n,
-  CatStatus status,
+  DetectionStatus status,
   DateTime now,
   String locale,
 ) {
   final lastSeen = status.lastSeen;
   if (status.inView) {
-    return (Icons.pets, Colors.green, l10n.catInView);
+    final what = watchedLabel(
+      status.classes,
+      locale.split(RegExp('[_-]')).first,
+    );
+    return (Icons.pets, Colors.green, l10n.detectionInView(what));
   }
   if (lastSeen != null) {
     final when = formatLastSeen(lastSeen, now, locale);
-    return (Icons.history, null, l10n.catLastSeen(when));
+    return (Icons.history, null, l10n.detectionLastSeen(when));
   }
-  return (Icons.visibility_off_outlined, null, l10n.catNotSeenYet);
+  return (Icons.visibility_off_outlined, null, l10n.detectionNotSeenYet);
 }
 
 /// `14:32` for today, `Oct 11 14:32` for an earlier day, in [locale].
@@ -147,13 +164,15 @@ String formatLastSeen(DateTime when, DateTime now, String locale) {
 /// One visit as the status line lists it: `14:32 (3 min)`, or the time alone while it goes on.
 String visitText(
   AppLocalizations l10n,
-  CatVisit visit,
+  Visit visit,
   DateTime now,
   String locale,
 ) {
   final time = formatLastSeen(visit.arrived, now, locale);
   final stayed = visit.stayed;
-  return stayed == null ? time : l10n.catVisitStay(time, stayMinutes(stayed));
+  return stayed == null
+      ? time
+      : l10n.detectionVisitStay(time, stayMinutes(stayed));
 }
 
 /// A stay in whole minutes, `<1` below one.
@@ -169,9 +188,9 @@ Widget arrivalPicture(String url, String label) => Image.network(
   errorBuilder: (_, _, _) => const SizedBox.shrink(),
 );
 
-/// The cat cam's name and its cat, polled from `/healthz`; with no cat cam behind the page, [fallbackName] alone.
-class CatStatusLine extends StatefulWidget {
-  const CatStatusLine({
+/// ObservANT's name and its cat, polled from `/healthz`; with no ObservANT behind the page, [fallbackName] alone.
+class DetectionStatusLine extends StatefulWidget {
+  const DetectionStatusLine({
     super.key,
     required this.fetch,
     required this.fallbackName,
@@ -188,14 +207,14 @@ class CatStatusLine extends StatefulWidget {
   final Widget Function(String url, String label) arrivalImage;
 
   @override
-  State<CatStatusLine> createState() => _CatStatusLineState();
+  State<DetectionStatusLine> createState() => _DetectionStatusLineState();
 }
 
-class _CatStatusLineState extends State<CatStatusLine> {
-  CatStatus? _status;
+class _DetectionStatusLineState extends State<DetectionStatusLine> {
+  DetectionStatus? _status;
   Timer? _timer;
 
-  /// When a cat cam that answered stopped answering; `null` while it answers.
+  /// When an ObservANT camera that answered stopped answering; `null` while it answers.
   DateTime? _unreachableSince;
 
   /// The whole visit log shows, not only the three latest.
@@ -227,7 +246,7 @@ class _CatStatusLineState extends State<CatStatusLine> {
         return;
       }
       _unreachableSince = null;
-      _status = body == null ? null : CatStatus.fromHealthz(body);
+      _status = body == null ? null : DetectionStatus.fromHealthz(body);
     });
   }
 
@@ -265,9 +284,9 @@ class _CatStatusLineState extends State<CatStatusLine> {
       final since? => (
         Icons.cloud_off,
         Colors.orange,
-        l10n.catCamUnreachable(formatLastSeen(since, now, locale)),
+        l10n.observantUnreachable(formatLastSeen(since, now, locale)),
       ),
-      null => catLine(l10n, status, now, locale),
+      null => detectionLine(l10n, status, now, locale),
     };
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -280,7 +299,7 @@ class _CatStatusLineState extends State<CatStatusLine> {
             spacing: 6,
             children: [
               const Icon(Icons.warning_amber, size: 18, color: Colors.orange),
-              Flexible(child: Text(l10n.catCamProblem(problem))),
+              Flexible(child: Text(l10n.observantProblem(problem))),
             ],
           ),
         if (status.pixelated)
@@ -289,7 +308,7 @@ class _CatStatusLineState extends State<CatStatusLine> {
             spacing: 6,
             children: [
               const Icon(Icons.blur_on, size: 18),
-              Flexible(child: Text(l10n.catCamPixelated)),
+              Flexible(child: Text(l10n.observantPixelated)),
             ],
           ),
         Row(
@@ -303,7 +322,7 @@ class _CatStatusLineState extends State<CatStatusLine> {
         ),
         if (status.recent.isNotEmpty)
           Text(
-            l10n.catRecentVisits(
+            l10n.detectionRecentVisits(
               status.recent
                   .take(_allVisits ? status.recent.length : 3)
                   .map((visit) => visitText(l10n, visit, now, locale))
@@ -317,17 +336,17 @@ class _CatStatusLineState extends State<CatStatusLine> {
             onPressed: () => setState(() => _allVisits = !_allVisits),
             child: Text(
               _allVisits
-                  ? l10n.catFewerVisits
-                  : l10n.catAllVisits(status.recent.length),
+                  ? l10n.detectionFewerVisits
+                  : l10n.detectionAllVisits(status.recent.length),
             ),
           ),
-        // Keyed by the visit, which the cat cam counts after storing its frame; last_seen moves every run.
+        // Keyed by the visit, which ObservANT counts after storing its frame; last_seen moves every run.
         if (status.visits > 0)
           ClipRRect(
             borderRadius: BorderRadius.circular(6),
             child: widget.arrivalImage(
               '/arrival.jpg?visit=${status.visits}',
-              l10n.catLastArrival,
+              l10n.detectionLastArrival,
             ),
           ),
         if (status.hasLatestClip)
@@ -340,7 +359,7 @@ class _CatStatusLineState extends State<CatStatusLine> {
             builder: (context, followLink) => TextButton.icon(
               onPressed: followLink,
               icon: const Icon(Icons.play_circle_outline),
-              label: Text(l10n.catArrivalVideo),
+              label: Text(l10n.detectionArrivalVideo),
             ),
           ),
         // The other kept clips, so an earlier visit's video stays a tap away after a newer one.
@@ -352,7 +371,7 @@ class _CatStatusLineState extends State<CatStatusLine> {
             crossAxisAlignment: WrapCrossAlignment.center,
             children: [
               Text(
-                l10n.catEarlierVideos,
+                l10n.detectionEarlierVideos,
                 style: Theme.of(context).textTheme.bodySmall,
               ),
               for (final t in status.clips)
@@ -408,7 +427,7 @@ class _CatStatusLineState extends State<CatStatusLine> {
                                 // A screen reader skips the icon; the time alone would not say what plays.
                                 Text(
                                   formatLastSeen(t, now, locale),
-                                  semanticsLabel: l10n.catVideoFrom(
+                                  semanticsLabel: l10n.detectionVideoFrom(
                                     formatLastSeen(t, now, locale),
                                   ),
                                 ),

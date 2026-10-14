@@ -9,7 +9,7 @@ port=8444
 producer_host=127.0.0.1
 producer_port=8443
 web_root="${repo_root}/build/web"
-state_dir="${repo_root}/build/cat-stream"
+state_dir="${repo_root}/build/observant"
 plain_http=false
 
 while [ $# -gt 0 ]; do
@@ -65,7 +65,7 @@ if [ "${plain_http}" = false ] && ! cert_has_san; then
   fi
 
   # `hostname -I` is missing on some minimal images, hence `|| true` and the fixed loopback entries.
-  san="DNS:localhost,DNS:$(hostname 2>/dev/null || echo cat-stream),IP:127.0.0.1,IP:::1"
+  san="DNS:localhost,DNS:$(hostname 2>/dev/null || echo observant),IP:127.0.0.1,IP:::1"
   for addr in $(hostname -I 2>/dev/null || true); do
     case "${addr}" in
       *:*) san="${san},IP:${addr}" ;;
@@ -76,10 +76,10 @@ if [ "${plain_http}" = false ] && ! cert_has_san; then
   # -addext needs openssl 1.1.1; the fallback keeps an older host working without a SAN.
   openssl req -x509 -newkey rsa:2048 -sha256 -days 825 -nodes \
     -keyout "${tls_dir}/key.pem" -out "${tls_dir}/cert.pem" \
-    -subj "/CN=cat-stream" -addext "subjectAltName=${san}" >/dev/null 2>&1 ||
+    -subj "/CN=observant" -addext "subjectAltName=${san}" >/dev/null 2>&1 ||
     openssl req -x509 -newkey rsa:2048 -sha256 -days 825 -nodes \
       -keyout "${tls_dir}/key.pem" -out "${tls_dir}/cert.pem" \
-      -subj "/CN=cat-stream" >/dev/null 2>&1
+      -subj "/CN=observant" >/dev/null 2>&1
 fi
 
 mime_include=""

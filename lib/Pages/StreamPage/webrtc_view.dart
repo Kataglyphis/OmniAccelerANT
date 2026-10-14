@@ -11,7 +11,7 @@ import 'package:omni_accelerant/l10n/app_localizations.dart';
 import 'package:omni_accelerant/Pages/StreamPage/stream_controller.dart';
 import 'package:omni_accelerant/settings/webrtc_settings.dart';
 
-/// Consumes the `cat_webrtc` producer's stream; web only, native builds get the stub.
+/// Consumes the ObservANT producer's stream; web only, native builds get the stub.
 class WebRTCView extends StatefulWidget {
   /// The parsed `assets/settings/webrtc_settings.json`, whole for its ICE servers and reconnection timeout.
   final WebRTCSettings settings;

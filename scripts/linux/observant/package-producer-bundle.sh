@@ -3,7 +3,7 @@
 # host that cannot run the :latest container (e.g. a Raspberry Pi Zero
 # 2 W with 512 MB RAM). The producer, its GStreamer subset and the transitive
 # closure of their shared libraries are exported from the image into
-# build/cat-stream/pi-bundle/; the bundle runs natively with its own run.sh.
+# build/observant/pi-bundle/; the bundle runs natively with its own run.sh.
 #
 # It uses the target host's libcamera (same 0.7 soname as the image's), so the
 # camera stack stays the one Raspberry Pi OS ships for that board, while the
@@ -11,15 +11,15 @@
 # does not matter, only libcamera with its IPA and tuning files must be there.
 #
 # Usage:
-#   scripts/linux/cat-stream/package-producer-bundle.sh [--build] [--platform P] [--deploy HOST]
+#   scripts/linux/observant/package-producer-bundle.sh [--build] [--platform P] [--deploy HOST]
 #
 # --build        build the producer in the container first
 # --platform P   run the image as P; linux/arm64 builds the bundle on an x64 host, through QEMU
-# --deploy HOST  rsync the finished bundle to HOST:cat-cam/ afterwards
+# --deploy HOST  rsync the finished bundle to HOST:observant/ afterwards
 #
 # On the target:
-#   ~/cat-cam/run.sh --no-inference --libcamera          # no AI, camera only
-#   ~/cat-cam/run.sh --libcamera                         # needs a model in models/
+#   ~/observant/run.sh --no-inference --libcamera          # no AI, camera only
+#   ~/observant/run.sh --libcamera                         # needs a model in models/
 set -euo pipefail
 
 script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
@@ -35,8 +35,8 @@ _ort_census_sh="$(antfrastructure_path linux/scripts/06-packaging/check-ort-prov
 ort_census_dir="$(dirname "${_ort_census_sh}")"
 target_volume="kataglyphis-cat-target"
 cargo_volume="kataglyphis-cat-cargo"
-bundle_dir="${repo_root}/build/cat-stream/pi-bundle"
-producer="/cargo-target/release/kataglyphis_cat_webrtc"
+bundle_dir="${repo_root}/build/observant/pi-bundle"
+producer="/cargo-target/release/kataglyphis_observant"
 do_build=false
 # Empty: the host's own arch, as on the Pi or an arm64 build host.
 platform_args=()
@@ -60,14 +60,14 @@ producer_present() {
 }
 
 if [ "${do_build}" = true ] || ! producer_present; then
-  printf 'building kataglyphis_cat_webrtc in the container\n'
+  printf 'building kataglyphis_observant in the container\n'
   nerdctl run ${platform_args[@]+"${platform_args[@]}"} --rm --user 0:0 --network host \
     -v "${repo_root}":/workspace \
     -v "${target_volume}":/cargo-target \
     -v "${cargo_volume}":/cargo-home \
     -e CARGO_TARGET_DIR=/cargo-target -e CARGO_HOME=/cargo-home \
     --entrypoint bash "${image}" \
-    -lc 'cd /workspace/third_party/OxidANT && cargo build --release --locked -p kataglyphis_cat_webrtc'
+    -lc 'cd /workspace/third_party/OxidANT && cargo build --release --locked -p kataglyphis_observant'
 fi
 
 printf 'assembling %s\n' "${bundle_dir}"
@@ -81,7 +81,7 @@ nerdctl run ${platform_args[@]+"${platform_args[@]}"} --rm -i --user 0:0 \
 set -euo pipefail
 
 mkdir -p /out/bin /out/lib /out/gstreamer-1.0 /out/libexec
-install -m 755 /cargo-target/release/kataglyphis_cat_webrtc /out/bin/
+install -m 755 /cargo-target/release/kataglyphis_observant /out/bin/
 for tool in gst-inspect-1.0 gst-launch-1.0; do
   if [ -e "/opt/gstreamer/bin/${tool}" ]; then
     install -m 755 "/opt/gstreamer/bin/${tool}" /out/bin/
@@ -187,7 +187,7 @@ done
 
 # run.sh starts the producer with --library-path lib/; its RUNPATH says the same to G6's ld.so model.
 # The verdict: every ORT binary in /out is this image's chain build and the producer resolves to it.
-patchelf --set-rpath '$ORIGIN/../lib' /out/bin/kataglyphis_cat_webrtc
+patchelf --set-rpath '$ORIGIN/../lib' /out/bin/kataglyphis_observant
 bash /ort-census/check-ort-provenance.sh /out
 
 printf 'bundle: %s files, %s\n' "$(find /out -type f | wc -l)" "$(du -sh /out | cut -f1)"
@@ -212,19 +212,19 @@ export GST_PLUGIN_SYSTEM_PATH_1_0=""
 # webrtcsink's codec discovery come up empty) and itself runs under the
 # bundled glibc through the wrapper.
 export GST_PLUGIN_SCANNER="${here}/libexec/gst-plugin-scanner-wrapper"
-export GST_REGISTRY="${GST_REGISTRY:-${HOME}/.cache/cat-cam/gst-registry.bin}"
+export GST_REGISTRY="${GST_REGISTRY:-${HOME}/.cache/observant/gst-registry.bin}"
 mkdir -p "$(dirname "${GST_REGISTRY}")"
 export ORT_DYLIB_PATH="${ORT_DYLIB_PATH:-${here}/lib/libonnxruntime.so.1}"
 
 # The image's glibc is bundled; invoke its loader explicitly so the host's
 # (older) libc never loads these libraries.
 exec "${here}/lib/ld-linux-aarch64.so.1" --library-path "${here}/lib" \
-  "${here}/bin/kataglyphis_cat_webrtc" "$@"
+  "${here}/bin/kataglyphis_observant" "$@"
 RUN_SH
 chmod +x "${bundle_dir}/run.sh"
 
 if [ -n "${deploy}" ]; then
-  printf 'deploying to %s:cat-cam/\n' "${deploy}"
-  rsync -a --delete "${bundle_dir}/" "${deploy}:cat-cam/"
-  printf 'done - run it there with: ssh %s '"'"'~/cat-cam/run.sh --no-inference --libcamera'"'"'\n' "${deploy}"
+  printf 'deploying to %s:observant/\n' "${deploy}"
+  rsync -a --delete "${bundle_dir}/" "${deploy}:observant/"
+  printf 'done - run it there with: ssh %s '"'"'~/observant/run.sh --no-inference --libcamera'"'"'\n' "${deploy}"
 fi

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
-import 'package:omni_accelerant/Pages/StreamPage/cat_status.dart';
+import 'package:omni_accelerant/Pages/StreamPage/detection_status.dart';
 import 'package:omni_accelerant/l10n/app_localizations.dart';
 import 'package:url_launcher/link.dart';
 
@@ -24,7 +24,7 @@ Future<void> _pumpLine(WidgetTester tester, Future<String?> Function() fetch) {
       supportedLocales: AppLocalizations.supportedLocales,
       locale: const Locale('en'),
       home: Scaffold(
-        body: CatStatusLine(
+        body: DetectionStatusLine(
           fetch: fetch,
           fallbackName: 'Fallback Cam',
           arrivalImage: _fakeArrival,
@@ -40,9 +40,9 @@ void main() {
     await initializeDateFormatting('de');
   });
 
-  group('CatStatus.fromHealthz', () {
+  group('DetectionStatus.fromHealthz', () {
     test('reads the name, the cat and when it was last seen', () {
-      final status = CatStatus.fromHealthz(_seenBefore)!;
+      final status = DetectionStatus.fromHealthz(_seenBefore)!;
       expect(status.name, 'Garden Cam');
       expect(status.inView, isFalse);
       expect(
@@ -56,60 +56,69 @@ void main() {
         status.recent.last.arrived,
         DateTime.fromMillisecondsSinceEpoch(1791700000 * 1000),
       );
-      expect(CatStatus.fromHealthz(_inView)!.recent.single.stayed, isNull);
-      expect(CatStatus.fromHealthz(_neverSeen)!.lastSeen, isNull);
-      expect(CatStatus.fromHealthz(_neverSeen)!.visits, 0);
-      expect(CatStatus.fromHealthz(_neverSeen)!.recent, isEmpty);
+      expect(
+        DetectionStatus.fromHealthz(_inView)!.recent.single.stayed,
+        isNull,
+      );
+      expect(DetectionStatus.fromHealthz(_neverSeen)!.lastSeen, isNull);
+      expect(DetectionStatus.fromHealthz(_neverSeen)!.visits, 0);
+      expect(DetectionStatus.fromHealthz(_neverSeen)!.recent, isEmpty);
     });
 
     test('reads which arrival the clip shows, and none without one', () {
-      final withClip = CatStatus.fromHealthz(
+      final withClip = DetectionStatus.fromHealthz(
         _inView.replaceFirst('"visits":3', '"visits":3,"clip":1791763200'),
       )!;
       expect(withClip.clip, DateTime.fromMillisecondsSinceEpoch(1791763200000));
       expect(withClip.hasLatestClip, isTrue);
-      expect(CatStatus.fromHealthz(_inView)!.clip, isNull);
-      expect(CatStatus.fromHealthz(_inView)!.hasLatestClip, isFalse);
+      expect(DetectionStatus.fromHealthz(_inView)!.clip, isNull);
+      expect(DetectionStatus.fromHealthz(_inView)!.hasLatestClip, isFalse);
     });
 
     test('reads every kept clip, newest first', () {
-      final status = CatStatus.fromHealthz(
+      final status = DetectionStatus.fromHealthz(
         _inView.replaceFirst('"visits":3', '"visits":3,"clips":[30,20,"x",10]'),
       )!;
       expect(status.clips, <DateTime>[
         for (final int t in <int>[30, 20, 10])
           DateTime.fromMillisecondsSinceEpoch(t * 1000),
       ]);
-      expect(CatStatus.fromHealthz(_inView)!.clips, isEmpty);
+      expect(DetectionStatus.fromHealthz(_inView)!.clips, isEmpty);
     });
 
-    test('is null for anything but a cat cam answer', () {
-      expect(CatStatus.fromHealthz('<!DOCTYPE html><html></html>'), isNull);
-      expect(CatStatus.fromHealthz('{"ok":false}'), isNull);
-      expect(CatStatus.fromHealthz('{"ok":true}'), isNull);
-      expect(CatStatus.fromHealthz('{"ok":"yes","cat":{}}'), isNull);
-      expect(CatStatus.fromHealthz('[]'), isNull);
+    test('is null for anything but an ObservANT camera answer', () {
+      expect(
+        DetectionStatus.fromHealthz('<!DOCTYPE html><html></html>'),
+        isNull,
+      );
+      expect(DetectionStatus.fromHealthz('{"ok":false}'), isNull);
+      expect(DetectionStatus.fromHealthz('{"ok":true}'), isNull);
+      expect(DetectionStatus.fromHealthz('{"ok":"yes","cat":{}}'), isNull);
+      expect(DetectionStatus.fromHealthz('[]'), isNull);
     });
 
-    test('a cat cam that is not ok is still one, with its problem', () {
-      final sick = CatStatus.fromHealthz(
-        _inView.replaceFirst(
-          '"ok":true',
-          '"ok":false,"problem":"no frame for 45 s"',
-        ),
-      )!;
-      expect(sick.problem, 'no frame for 45 s');
-      expect(sick.name, 'Garden Cam');
-      expect(CatStatus.fromHealthz(_inView)!.problem, isNull);
-    });
+    test(
+      'an ObservANT camera that is not ok is still one, with its problem',
+      () {
+        final sick = DetectionStatus.fromHealthz(
+          _inView.replaceFirst(
+            '"ok":true',
+            '"ok":false,"problem":"no frame for 45 s"',
+          ),
+        )!;
+        expect(sick.problem, 'no frame for 45 s');
+        expect(sick.name, 'Garden Cam');
+        expect(DetectionStatus.fromHealthz(_inView)!.problem, isNull);
+      },
+    );
 
     test('knows when the privacy filter pixelates the picture', () {
-      final private = CatStatus.fromHealthz(
+      final private = DetectionStatus.fromHealthz(
         _inView.replaceFirst('"ok":true', '"ok":true,"privacy":"pixelate"'),
       )!;
       expect(private.pixelated, isTrue);
-      expect(CatStatus.fromHealthz(_inView)!.pixelated, isFalse);
-      final off = CatStatus.fromHealthz(
+      expect(DetectionStatus.fromHealthz(_inView)!.pixelated, isFalse);
+      final off = DetectionStatus.fromHealthz(
         _inView.replaceFirst('"ok":true', '"ok":true,"privacy":"off"'),
       )!;
       expect(off.pixelated, isFalse);
@@ -155,7 +164,7 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
-  testWidgets('a cat in view shows under the cat cam name', (tester) async {
+  testWidgets('a cat in view shows under ObservANT name', (tester) async {
     await _pumpLine(tester, () async => _inView);
     await tester.pump();
     expect(find.text('Garden Cam'), findsOneWidget);
@@ -166,9 +175,9 @@ void main() {
   testWidgets('a cat seen before shows when', (tester) async {
     await _pumpLine(tester, () async => _seenBefore);
     await tester.pump();
-    expect(find.textContaining('Cat last seen: '), findsOneWidget);
+    expect(find.textContaining('Last seen: '), findsOneWidget);
     expect(
-      find.text("picture /arrival.jpg?visit=3 (The cat's last arrival)"),
+      find.text("picture /arrival.jpg?visit=3 (The last arrival)"),
       findsOneWidget,
     );
     await tester.pumpWidget(const SizedBox());
@@ -193,7 +202,7 @@ void main() {
   testWidgets('the clip shows once it is of the newest arrival', (
     tester,
   ) async {
-    // The cat cam encodes a clip some seconds after the arrival it shows.
+    // ObservANT encodes a clip some seconds after the arrival it shows.
     var body = _inView.replaceFirst(
       '"visits":3',
       '"visits":3,"clip":1791700000',
@@ -255,13 +264,13 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
-  testWidgets('an unnamed cat cam with no cat yet keeps the fallback name', (
+  testWidgets('an unnamed ObservANT with no cat yet keeps the fallback name', (
     tester,
   ) async {
     await _pumpLine(tester, () async => _neverSeen);
     await tester.pump();
     expect(find.text('Fallback Cam'), findsOneWidget);
-    expect(find.text('No cat seen yet'), findsOneWidget);
+    expect(find.text('Nothing seen yet'), findsOneWidget);
     expect(find.byKey(const Key('arrival')), findsNothing);
     await tester.pumpWidget(const SizedBox());
   });
@@ -279,7 +288,7 @@ void main() {
           locale: const Locale('de'),
           home: Scaffold(
             body: Center(
-              child: CatStatusLine(
+              child: DetectionStatusLine(
                 fetch: () async => _seenBefore,
                 fallbackName: 'Fallback Cam',
               ),
@@ -288,25 +297,26 @@ void main() {
         ),
       );
       await tester.pump();
-      expect(find.textContaining('Katze zuletzt gesehen: '), findsOneWidget);
+      expect(find.textContaining('Zuletzt gesehen: '), findsOneWidget);
       expect(find.textContaining('Letzte Besuche: '), findsOneWidget);
       expect(tester.takeException(), isNull);
       await tester.pumpWidget(const SizedBox());
     },
   );
 
-  testWidgets('without a cat cam behind the page only the name shows', (
-    tester,
-  ) async {
-    await _pumpLine(tester, () async => null);
-    await tester.pump();
-    expect(find.text('Fallback Cam'), findsOneWidget);
-    expect(find.byType(Icon), findsNothing);
-    await _pumpLine(tester, () async => throw StateError('offline'));
-    await tester.pump(const Duration(seconds: 5));
-    expect(find.byType(Icon), findsNothing);
-    await tester.pumpWidget(const SizedBox());
-  });
+  testWidgets(
+    'without an ObservANT camera behind the page only the name shows',
+    (tester) async {
+      await _pumpLine(tester, () async => null);
+      await tester.pump();
+      expect(find.text('Fallback Cam'), findsOneWidget);
+      expect(find.byType(Icon), findsNothing);
+      await _pumpLine(tester, () async => throw StateError('offline'));
+      await tester.pump(const Duration(seconds: 5));
+      expect(find.byType(Icon), findsNothing);
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
 
   testWidgets(
     'behind another tab it polls nothing, and polls at once on return',
@@ -326,7 +336,7 @@ void main() {
                 // What go_router's indexed stack does to a branch that is not shown.
                 return TickerMode(
                   enabled: shown,
-                  child: CatStatusLine(
+                  child: DetectionStatusLine(
                     fetch: () async {
                       polls++;
                       return _inView;
@@ -393,26 +403,27 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
-  testWidgets('a cat cam that stops answering says since when, and recovers', (
-    tester,
-  ) async {
-    String? body = _seenBefore;
-    await _pumpLine(tester, () async => body);
-    await tester.pump();
-    expect(find.textContaining('Cat last seen'), findsOneWidget);
-    body = null;
-    await tester.pump(const Duration(seconds: 5));
-    expect(find.textContaining('Camera unreachable since '), findsOneWidget);
-    expect(find.byIcon(Icons.cloud_off), findsOneWidget);
-    // What it said last stays: its name and its visits.
-    expect(find.text('Garden Cam'), findsOneWidget);
-    expect(find.textContaining('Recent visits'), findsOneWidget);
-    body = _seenBefore;
-    await tester.pump(const Duration(seconds: 5));
-    expect(find.textContaining('Camera unreachable'), findsNothing);
-    expect(find.textContaining('Cat last seen'), findsOneWidget);
-    await tester.pumpWidget(const SizedBox());
-  });
+  testWidgets(
+    'an ObservANT camera that stops answering says since when, and recovers',
+    (tester) async {
+      String? body = _seenBefore;
+      await _pumpLine(tester, () async => body);
+      await tester.pump();
+      expect(find.textContaining('Last seen'), findsOneWidget);
+      body = null;
+      await tester.pump(const Duration(seconds: 5));
+      expect(find.textContaining('Camera unreachable since '), findsOneWidget);
+      expect(find.byIcon(Icons.cloud_off), findsOneWidget);
+      // What it said last stays: its name and its visits.
+      expect(find.text('Garden Cam'), findsOneWidget);
+      expect(find.textContaining('Recent visits'), findsOneWidget);
+      body = _seenBefore;
+      await tester.pump(const Duration(seconds: 5));
+      expect(find.textContaining('Camera unreachable'), findsNothing);
+      expect(find.textContaining('Last seen'), findsOneWidget);
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
 
   testWidgets('more than three visits fold out on a tap', (tester) async {
     final visits = [
@@ -435,6 +446,46 @@ void main() {
     await tester.tap(find.text('Fewer visits'));
     await tester.pump();
     expect(' · '.allMatches(line()), hasLength(2));
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  test('reads ObservANT\'s detection, and an older camera\'s cat', () {
+    final current = DetectionStatus.fromHealthz(
+      '{"ok":true,"name":"A","classes":["cat","dog"],'
+      '"detection":{"in_view":true,"visits":2}}',
+    )!;
+    expect(current.inView, isTrue);
+    expect(current.visits, 2);
+    expect(current.classes, ['cat', 'dog']);
+    final older = DetectionStatus.fromHealthz(
+      '{"ok":true,"name":"B","cat":{"in_view":false,"visits":5}}',
+    )!;
+    expect(older.visits, 5);
+    expect(older.classes, ['cat']);
+  });
+
+  testWidgets('the line names what is in view, in the page\'s language', (
+    tester,
+  ) async {
+    const both =
+        '{"ok":true,"name":"A","classes":["cat","dog"],'
+        '"detection":{"in_view":true,"visits":1}}';
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        locale: const Locale('de'),
+        home: Scaffold(
+          body: DetectionStatusLine(
+            fetch: () async => both,
+            fallbackName: 'X',
+            arrivalImage: _fakeArrival,
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    expect(find.text('Katze / Hund im Bild'), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
   });
 }

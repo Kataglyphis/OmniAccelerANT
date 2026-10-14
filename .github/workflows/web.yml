@@ -1,4 +1,4 @@
-# The Flutter web build with the Rust wasm on an x64 runner, then the cat cam packages around it.
+# The Flutter web build with the Rust wasm on an x64 runner, then the ObservANT packages around it.
 
 name: Web · build + test
 
@@ -79,9 +79,9 @@ jobs:
           path: ${{ env.BUILD_DIR_RELEASE }}/**
           if-no-files-found: error
 
-  # The installable cat cam (docs/source/camera-streaming.md § The cat cam package) around this run's web build.
-  catcam:
-    name: cat cam package (${{ matrix.arch }})
+  # The installable ObservANT (docs/source/camera-streaming.md § The ObservANT package) around this run's web build.
+  observant:
+    name: ObservANT package (${{ matrix.arch }})
     needs: build
     strategy:
       fail-fast: false
@@ -120,18 +120,18 @@ jobs:
         with:
           extra-args: --privileged --platform "${{ matrix.platform }}"
           script: >-
-            bash /workspace/scripts/linux/cat-stream/package-catcam.sh
+            bash /workspace/scripts/linux/observant/package-observant.sh
             --web-root /workspace/${{ env.BUILD_DIR_RELEASE }}
 
-      - name: Upload the cat cam packages
+      - name: Upload the ObservANT packages
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: omni-accelerant-catcam-linux-${{ matrix.arch }}
+          name: omni-observant-linux-${{ matrix.arch }}
           path: |
-            out/omni-accelerant-catcam_*.deb
-            out/omni-accelerant-catcam-*.AppImage
-            out/omni-accelerant-catcam-*.flatpak
-            out/omni-accelerant-catcam-*-linux-*.tar.gz
+            out/omni-observant_*.deb
+            out/omni-observant-*.AppImage
+            out/omni-observant-*.flatpak
+            out/omni-observant-*-linux-*.tar.gz
           if-no-files-found: error
 
       # After the upload, so a red test still leaves the packages to inspect; root installs them, privileged for flatpak run.
@@ -140,11 +140,11 @@ jobs:
         with:
           extra-args: --privileged --platform "${{ matrix.platform }}" --user 0:0
           script: >-
-            bash /workspace/scripts/linux/cat-stream/test-catcam-package.sh
+            bash /workspace/scripts/linux/observant/test-observant-package.sh
 
-  # The Windows cat cam (docs/source/camera-streaming.md § The Windows cat cam): the MSI around this run's web build, installed in :winamd64.
-  catcam-windows:
-    name: cat cam package (windows x64)
+  # The Windows ObservANT (docs/source/camera-streaming.md § The Windows ObservANT): the MSI around this run's web build, installed in :winamd64.
+  observant-windows:
+    name: ObservANT package (windows x64)
     needs: build
     runs-on: windows-2025
     # The ~54 GB image pull and the producer's cargo build take most of it.
@@ -175,31 +175,31 @@ jobs:
       - name: Package
         uses: Kataglyphis/ANTfrastructure/.github/actions/run-in-windows-container@develop
         with:
-          file: C:\ws\scripts\windows\cat-stream\Package-CatCam.ps1
+          file: C:\ws\scripts\windows\observant\Package-ObservANT.ps1
           file-args: |
             -WebRoot
             C:\ws\build\web
             -Msix
 
-      - name: Upload the cat cam packages
+      - name: Upload the ObservANT packages
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: omni-accelerant-catcam-windows-x64
+          name: omni-observant-windows-x64
           path: |
-            ${{ steps.prep.outputs.workspace }}/out/omni-accelerant-catcam-*-windows-*.msi
-            ${{ steps.prep.outputs.workspace }}/out/omni-accelerant-catcam-*-windows-*.msix
-            ${{ steps.prep.outputs.workspace }}/out/omni-accelerant-catcam-*-windows-*-testcert.cer
-            ${{ steps.prep.outputs.workspace }}/out/omni-accelerant-catcam-*-windows-*.zip
+            ${{ steps.prep.outputs.workspace }}/out/omni-observant-*-windows-*.msi
+            ${{ steps.prep.outputs.workspace }}/out/omni-observant-*-windows-*.msix
+            ${{ steps.prep.outputs.workspace }}/out/omni-observant-*-windows-*-testcert.cer
+            ${{ steps.prep.outputs.workspace }}/out/omni-observant-*-windows-*.zip
           if-no-files-found: error
 
       # A fresh container, so the install is the MSI's alone; the image runs as ContainerAdministrator, which a per-machine install needs.
       - name: Test the MSI
         uses: Kataglyphis/ANTfrastructure/.github/actions/run-in-windows-container@develop
         with:
-          file: C:\ws\scripts\windows\cat-stream\Test-CatCamWindows.ps1
+          file: C:\ws\scripts\windows\observant\Test-ObservANTWindows.ps1
           file-args: |
             -Msi
-            C:\ws\out\omni-accelerant-catcam-*-windows-x64.msi
+            C:\ws\out\omni-observant-*-windows-x64.msi
             -Photo
             C:\ws\third_party\ANThology\assets\images\cats\*.png
 
@@ -207,7 +207,7 @@ jobs:
       - name: Check the MSIX
         uses: Kataglyphis/ANTfrastructure/.github/actions/run-in-windows-container@develop
         with:
-          file: C:\ws\scripts\windows\cat-stream\Test-CatCamMsix.ps1
+          file: C:\ws\scripts\windows\observant\Test-ObservANTMsix.ps1
           file-args: |
             -Msix
-            C:\ws\out\omni-accelerant-catcam-*-windows-x64.msix
+            C:\ws\out\omni-observant-*-windows-x64.msix

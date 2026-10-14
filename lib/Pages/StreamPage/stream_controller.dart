@@ -109,7 +109,7 @@ class WebRTCStreamController extends ChangeNotifier {
   /// How long after a failed session the next one is tried.
   final Duration retryAfter;
 
-  /// How long the browser tab may be hidden before the session closes; the cat cam encodes per viewer.
+  /// How long the browser tab may be hidden before the session closes; ObservANT encodes per viewer.
   final Duration hiddenGrace;
 
   /// A session that is not streaming after this rebuilds the signalling connection.

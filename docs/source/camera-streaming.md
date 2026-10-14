@@ -2,29 +2,29 @@
 
 Practical WebRTC streaming and inference pipelines for Kataglyphis.
 
-**The cat cam in one minute.** A board with a camera runs the `omni-accelerant-catcam`
+**The ObservANT in one minute.** A board with a camera runs the `omni-observant`
 service, which finds the camera, looks for cats with a YOLO model and serves the web app
 on port 8080.
-- **Install:** `sudo dpkg -i omni-accelerant-catcam_<version>_<arch>.deb` on Debian or
+- **Install:** `sudo dpkg -i omni-observant_<version>_<arch>.deb` on Debian or
   Raspberry Pi OS (amd64, arm64, riscv64). It starts at once and at every boot
   ([Installing it](#installing-it)).
 - **Watch:** `http://<board>:8080/`. The Stream page plays the camera, says whether a cat
-  is there, lists the visits with their pictures and videos, and shows the other cat cams
+  is there, lists the visits with their pictures and videos, and shows the other ObservANT cameras
   ([The Stream page](#the-stream-page)).
 - **Adjust:** the Camera page turns the picture, sets how sure detection must be, renames
-  the camera and marks a spot as "not a cat" ([The cat cam package](#the-cat-cam-package)).
+  the camera and marks a spot as "not a cat" ([ObservANT package](#the-observant-package)).
 - **Get told:** `notify_url` sends each arrival to a webhook; Home Assistant turns it into
   a phone notification with the picture and the video ([Home Assistant](#home-assistant)).
 - **Check:** `/healthz` says whether the camera delivers, and what it saw
   ([Detection, visits and `/healthz`](#detection-visits-and-healthz)).
-- **Configure:** `/etc/omni-accelerant/catcam.toml` documents every setting you would
+- **Configure:** `/etc/omni-accelerant/observant.toml` documents every setting you would
   change; what the page changes wins over it.
 
 - [Rust-owned webcam inference (local, no WebRTC)](#rust-owned-webcam-inference-local-no-webrtc)
   - [Checking the knt ABI](#checking-the-knt-abi)
   - [Relocatable Linux bundles](#relocatable-linux-bundles)
 - [WebRTC pipelines (Linux / web)](#webrtc-pipelines-linux--web)
-  - [The cat cam package](#the-cat-cam-package)
+  - [ObservANT package](#the-observant-package)
     - [Installing it](#installing-it)
     - [Cameras](#cameras)
     - [Detection, visits and /healthz](#detection-visits-and-healthz)
@@ -33,7 +33,7 @@ on port 8080.
     - [The Stream page](#the-stream-page)
     - [Tests](#tests)
     - [Where it ran](#where-it-ran)
-  - [The Windows cat cam](#the-windows-cat-cam)
+  - [The Windows ObservANT](#the-windows-observant)
   - [Cat detection stream (Rust, native)](#cat-detection-stream-rust-native)
 - [1) Start the signalling server](#1-start-the-signalling-server)
 - [2) Export plugin path (if required)](#2-export-plugin-path-if-required)
@@ -51,7 +51,7 @@ owned end-to-end by Rust — no signalling server, no browser. Video frames neve
 cross the Dart bridge; only detection metadata does.
 
 > **Linux has the same design as of 2026-09-16; a frame has crossed it since 2026-10-05.**
-> It is an *addition*: the WebRTC cat-stream below stays, and a Linux build with
+> It is an *addition*: the WebRTC stream below stays, and a Linux build with
 > no `KATAGLYPHIS_RUST_FEATURES` keeps the C++ GStreamer MethodChannel path
 > exactly as it is. All four links are in the tree — the `knt_push_frame` C ABI,
 > the feature forwarding, ONNX Runtime bundling, and the Dart branch behind a
@@ -237,18 +237,18 @@ travels, but it means the target is assumed to have a desktop stack.
 
 ## WebRTC pipelines (Linux / web)
 
-### The cat cam package
+### The ObservANT package
 
-`scripts/linux/cat-stream/package-catcam.sh` turns the producer below into one
+`scripts/linux/observant/package-observant.sh` turns the producer below into one
 installable service. Run it inside `:latest`, with the web lane's `build/web` as
 its web root:
 
 ```bash
-bash scripts/linux/cat-stream/package-catcam.sh --web-root build/web
-# out/omni-accelerant-catcam_<version>_<deb-arch>.deb            Debian, Ubuntu, Raspberry Pi OS
-# out/omni-accelerant-catcam-<version>-<uname-arch>.AppImage     any glibc distro
-# out/omni-accelerant-catcam-<version>-<uname-arch>.flatpak      any flatpak desktop; USB cameras, sign-in start
-# out/omni-accelerant-catcam-<version>-linux-<deb-arch>.tar.gz   the same bundle, unpacked
+bash scripts/linux/observant/package-observant.sh --web-root build/web
+# out/omni-observant_<version>_<deb-arch>.deb            Debian, Ubuntu, Raspberry Pi OS
+# out/omni-observant-<version>-<uname-arch>.AppImage     any glibc distro
+# out/omni-observant-<version>-<uname-arch>.flatpak      any flatpak desktop; USB cameras, sign-in start
+# out/omni-observant-<version>-linux-<deb-arch>.tar.gz   the same bundle, unpacked
 ```
 
 On riscv64 it writes the `.deb` and the tarball only: no freedesktop runtime and no AppImage
@@ -257,8 +257,8 @@ runtime exist for it.
 The flatpak's `flatpak-builder` runs in bubblewrap, so the script needs a privileged
 container (`nerdctl run --privileged`).
 
-Install it with `sudo apt install ./omni-accelerant-catcam_<version>_<arch>.deb`,
-or anywhere else with `sudo ./omni-accelerant-catcam-<version>-<arch>.AppImage --install`.
+Install it with `sudo apt install ./omni-observant_<version>_<arch>.deb`,
+or anywhere else with `sudo ./omni-observant-<version>-<arch>.AppImage --install`.
 Then open `http://<host>:8080/` from any browser on the network.
 
 Everything it serves is on that one port, plain HTTP:
@@ -266,24 +266,24 @@ Everything it serves is on that one port, plain HTTP:
 | Path | Answers |
 | --- | --- |
 | `/` | the web app; its Stream page plays the camera and shows the cat's status, visits and last arrival |
-| `/healthz` | JSON: `ok`, or `false` with the `problem`; the seconds since the last frame and model run (`frame_age_s`, `model_age_s`); the build (`version`), the browser tabs on the stream (`viewers`), the other cat cams (`peers`), the privacy filter (`privacy`: `off` or `pixelate`) and `stats`, sampled every 2 s: `capture_fps`, `model_ms` per run, `model_runs_per_s`, `cpu_percent` of one core, `cores`, `rss_mb`, `load_1m`, `temperature_c` and `uptime_s` (the CPU, memory, load and temperature from `/proc` and `/sys`, so `null` off Linux); the live camera, its `frame` size and rate, `model_runs`, `rotate`, `score`, and the cat's `in_view`, `last_seen`, `visits`, `last_score`, `recent` visits, the newest `clip`'s arrival and every kept one's (`clips`), and the `boxes` drawn now, as fractions of the picture |
+| `/healthz` | JSON: `ok`, or `false` with the `problem`; the seconds since the last frame and model run (`frame_age_s`, `model_age_s`); the build (`version`), the browser tabs on the stream (`viewers`), the other ObservANT cameras (`peers`), the privacy filter (`privacy`: `off` or `pixelate`) and `stats`, sampled every 2 s: `capture_fps`, `model_ms` per run, `model_runs_per_s`, `cpu_percent` of one core, `cores`, `rss_mb`, `load_1m`, `temperature_c` and `uptime_s` (the CPU, memory, load and temperature from `/proc` and `/sys`, so `null` off Linux); the live camera, its `frame` size and rate, `model_runs`, `rotate`, `score`, and under `detection` the watched `in_view`, `last_seen`, `visits`, `last_score`, `recent` visits, the newest `clip`'s arrival and every kept one's (`clips`), and the `boxes` drawn now, as fractions of the picture |
 | `/snapshot.jpg` | the latest frame, boxes drawn; encoded once per frame however many ask |
 | `/arrival.jpg` | the frame the last arrival was confirmed on; `?t=<arrival time>` that arrival's own, of the last five; `404` until a cat has come, or once that arrival's is dropped |
 | `/arrival.mp4` | the last arrival as an H.264 clip, 3 s before it to 7 s after; `?t=<arrival time>` that arrival's own, of the last five; byte ranges answered; `404` until one is encoded, or once that arrival's is dropped |
 | `/settings` | `GET`: the `name`, `rotate`, `score`, `ignore` and `classes` the settings page can change. `POST` any of them as JSON (`application/json` only), e.g. `{"rotate": 90}`: 0, 90, 180 or 270 degrees clockwise, a `score` from 0.05 to 0.95, a name of up to 64 characters, up to 16 spots marked "not a cat" as `[x1, y1, x2, y2]` fractions of the picture (`{"ignore": []}` forgets them), and the watched `classes`, one to all 80 COCO names (`{"classes": ["cat", "dog"]}`) |
 | `/webrtc-ws` | the WebRTC signalling, forwarded to the producer's own server on loopback `:8443`; at most `max_viewers` tabs at once (8), `503` for one more; a tab that vanished without closing, a laptop asleep, frees its place within about 2.5 min (TCP keepalive, 2026-10-14) |
 
-**Only the cat cam's own page may act** (2026-10-13). `/webrtc-ws` and a `POST /settings`
+**Only ObservANT's own page may act** (2026-10-13). `/webrtc-ws` and a `POST /settings`
 answer `403` when a browser's `Origin` is not the address the request was sent to, so
 another site's page cannot open the camera or change it. The address must also be an IP,
 a name without a dot, or one ending in `.local`, `.lan`, `.home`, `.internal`, `.home.arpa`
 or `.fritz.box`, which keeps out a public name pointed at the board (DNS rebinding). A
-reverse proxy under a public name is added to `allowed_hosts` in `catcam.toml`. Everything
+reverse proxy under a public name is added to `allowed_hosts` in `observant.toml`. Everything
 else stays readable on the LAN, and a tool such as curl, which sends no `Origin`, passes.
 
-**The Camera page changes the cat cam while it runs** (2026-10-13). It is the web app's
+**The Camera page changes ObservANT while it runs** (2026-10-13). It is the web app's
 own page in the bottom bar, for a board that is easily moved or a spot with false alarms:
-- ⟲ and ⟳ turn the picture a quarter each way. The cat cam turns it itself, before the
+- ⟲ and ⟳ turn the picture a quarter each way. ObservANT turns it itself, before the
   model sees it, so detection, `/arrival.jpg` and the clips turn with the stream. The
   running capture follows on its next frame, with no restart and no reconnect. At 90 and
   270 the upright picture is bordered into the frame, black at its sides, instead of
@@ -310,16 +310,16 @@ own page in the bottom bar, for a board that is easily moved or a spot with fals
   already ignored reads "Ignored". Visits from before that keep no boxes and are not listed.
 - A field renames the camera. The next webhook event, `/healthz` and the web page (within
   5 s) carry the new name; the WebRTC stream's own name, which a GStreamer viewer shows, stays
-  the one `catcam.toml` gave it at start.
+  the one `observant.toml` gave it at start.
 - A preview of `/snapshot.jpg`, reloaded every 3 s, shows the result, and a table what the
   camera runs: its sensor, frame size and rate, whether detection runs, the model's runs and
   the visits counted.
 
 Each change is kept in the state directory (`settings.json`) and wins over the same key in
-`catcam.toml`, which the service cannot write; a key the page never set still follows the
+`observant.toml`, which the service cannot write; a key the page never set still follows the
 file. `/settings` takes JSON only, so another site's page cannot change the camera with a
 plain form post, and it checks a whole post before it applies any of it. On a page that is
-not a cat cam's own, the Camera page says no cat cam answers.
+not an ObservANT camera's own, the Camera page says no ObservANT answers.
 
 **The web build ships compressed.** The packager runs the producer's `--precompress` over
 its copy of the web build, so each file the server gzips has a zopfli `.gz` beside it:
@@ -336,35 +336,35 @@ if it ever does. The .deb is 88 MB, 81 MB before.
 
 #### Installing it
 
-**The AppImage either runs or installs.** Started plainly, it runs the cat cam in the
+**The AppImage either runs or installs.** Started plainly, it runs ObservANT in the
 foreground as the calling user, which needs the `video` group. `--install` copies it
-to `/opt/omni-accelerant-catcam` and sets up the same service as the .deb:
-- the unit goes to `/etc/systemd/system`, and `omni-catcam` to `/usr/local/bin`;
+to `/opt/omni-observant` and sets up the same service as the .deb:
+- the unit goes to `/etc/systemd/system`, and `omni-observant` to `/usr/local/bin`;
 - `--no-autostart` leaves the service disabled;
 - running it again with a newer AppImage upgrades, keeping the settings and the
   enabled or disabled state;
-- `omni-catcam --uninstall [--purge]` removes it.
+- `omni-observant --uninstall [--purge]` removes it.
 
-The installer is `libexec/catcam-install` in the bundle, so the tarball's
-`sudo ./catcam --install` does the same. It refuses while the .deb is installed,
+The installer is `libexec/observant-install` in the bundle, so the tarball's
+`sudo ./observant --install` does the same. It refuses while the .deb is installed,
 and the .deb's `postinst` uses it to create the user. Without FUSE, set
 `APPIMAGE_EXTRACT_AND_RUN=1`.
 
 **The flatpak starts at sign-in, not at boot, and takes USB cameras only.** Install it
-with `flatpak install ./omni-accelerant-catcam-<version>-<arch>.flatpak`; a desktop
+with `flatpak install ./omni-observant-<version>-<arch>.flatpak`; a desktop
 without the freedesktop runtime it names fetches that from Flathub. Start it with
-`flatpak run org.kataglyphis.omni-accelerant-catcam`.
-- It runs the same bundle, from `/app/catcam`, in a sandbox that has the network, every
+`flatpak run org.kataglyphis.omni-observant`.
+- It runs the same bundle, from `/app/observant`, in a sandbox that has the network, every
   device (`--device=all`, as the app's flatpak has) and the host's `~/.config/autostart`.
-- Its first run seeds `~/.var/app/org.kataglyphis.omni-accelerant-catcam/config/omni-accelerant/catcam.toml`
-  from the template and writes the sign-in entry. `flatpak run --command=omni-catcam
-  org.kataglyphis.omni-accelerant-catcam --autostart off|on` switches it.
+- Its first run seeds `~/.var/app/org.kataglyphis.omni-observant/config/omni-accelerant/observant.toml`
+  from the template and writes the sign-in entry. `flatpak run --command=omni-observant
+  org.kataglyphis.omni-observant --autostart off|on` switches it.
 - A flatpak cannot carry a systemd unit, so it starts when the user who ran it once
   signs in, never at boot.
 - It cannot use a Raspberry Pi camera. `rpicam-vid` is a host tool the sandbox cannot see,
   and the image's libcamera cannot drive a Pi 5. On a Pi, use the .deb or the AppImage.
 
-**What the bundle carries.** Everything lives in `/opt/omni-accelerant-catcam`:
+**What the bundle carries.** Everything lives in `/opt/omni-observant`:
 - the producer;
 - the GStreamer plugins it uses (`rswebrtc` and its WebRTC/DTLS/SRTP stack
   included), and NSS's crypto modules beside `libnss3`;
@@ -374,31 +374,31 @@ without the freedesktop runtime it names fetches that from Flathub. Start it wit
 - the image's own loader, glibc and GCC 16 `libstdc++`. The chain ORT needs
   `GLIBC_2.43` and `GLIBCXX_3.4.36`, which no current distro ships.
 
-The `catcam` launcher runs the producer through that loader with
+The `observant` launcher runs the producer through that loader with
 `--library-path`, never `LD_LIBRARY_PATH`. A child it starts, such as the host's
 `rpicam-vid`, therefore keeps the host's libraries. libcamera is the one library
 left to the host, because its IPA and tuning files must match the host kernel.
 
 **What the .deb does on install.**
-- It creates the `omni-catcam` system user and adds it to `video` and `render`.
-- It enables and starts `omni-catcam.service`, so the cat cam comes back after a
+- It creates the `omni-observant` system user and adds it to `video` and `render`.
+- It enables and starts `omni-observant.service`, so ObservANT comes back after a
   reboot, and after any exit of its own (`Restart=always`). The unit starts after
   `time-sync.target`, so on a board without a clock, where a time-wait-sync service is
   enabled, the first visit is not stamped with yesterday's time.
-  - `systemctl disable --now omni-catcam` turns that off, and upgrades keep the
+  - `systemctl disable --now omni-observant` turns that off, and upgrades keep the
     choice.
-  - `OMNI_CATCAM_AUTOSTART=0` on the first install leaves the service disabled.
-- `/etc/omni-accelerant/catcam.toml` is written at the first install, with every
-  setting commented out, and never overwritten. `omni-catcam --print-config`
+  - `OMNI_OBSERVANT_AUTOSTART=0` on the first install leaves the service disabled.
+- `/etc/omni-accelerant/observant.toml` is written at the first install, with every
+  setting commented out, and never overwritten. `omni-observant --print-config`
   shows the settings in effect.
-  - Only root and the service's group read it (`640 root:omni-catcam`), because a
+  - Only root and the service's group read it (`640 root:omni-observant`), because a
     `notify_url` can carry a webhook's secret. An install before 2026-10-13 wrote it
     world-readable; the next upgrade takes that read away and keeps its content.
   - It is deliberately not a conffile. dpkg asks about an edited conffile on every
     upgrade that changes it, and over SSH or in an unattended upgrade nobody
     answers, so the install hangs. Found on himbeere2, 2026-10-05.
   - `apt purge` removes it.
-- `sudo ufw allow OmniCatCam` opens `8080/tcp` and the WebRTC range
+- `sudo ufw allow OmniObservANT` opens `8080/tcp` and the WebRTC range
   `40000:40099/udp`.
 
 #### Cameras
@@ -420,7 +420,7 @@ left).
 **`ok` is `false` when the camera does not deliver** (2026-10-13), and `problem` says why:
 "waiting for the first frame", "no frame for 25 s" after 20 s without one, or "no camera
 found, streaming a test pattern". Until then `ok` was always `true`, so a monitor saw a
-cat cam whose camera had gone as healthy. `frame_age_s` and `model_age_s` are the seconds
+ObservANT whose camera had gone as healthy. `frame_age_s` and `model_age_s` are the seconds
 since the last frame and the last model run. The Stream page and the Camera page show the
 problem in orange above the cat.
 `/snapshot.jpg` is the latest frame, boxes included, for a quick look without
@@ -458,7 +458,7 @@ peers' addresses left out:
 ```json
 {
   "camera": "Raspberry Pi camera via rpicam-vid (imx219 [3280x2464 10-bit RGGB] (...))",
-  "cat": {
+  "detection": {
     "boxes": [],
     "clip": 1791965878,
     "clips": [1791965878, 1791961744],
@@ -492,31 +492,31 @@ Before the first cat, `last_score`, `last_seen` and `clip` are `null`, and `clip
 
 `model_runs` counts since the service started. `visits`, `last_seen`, `last_score` and
 `recent` survive a restart, and so does `/arrival.jpg`: the service keeps them in
-`/var/lib/omni-accelerant-catcam`, its systemd state directory, on every arrival and
+`/var/lib/omni-observant`, its systemd state directory, on every arrival and
 departure and once more when it stops. A visit the stop cut short is closed at the cat's
 last sighting when the service starts again; after a power cut, which writes nothing, at
 the last arrival or departure written. The flatpak keeps them in its own `~/.var/app/…/.local/state`, the Windows
-cat cam in `%LOCALAPPDATA%\omni-accelerant-catcam`. `last_seen` and `last_score` stay `null` until a cat has been in view.
+ObservANT in `%LOCALAPPDATA%\omni-observant`. `last_seen` and `last_score` stay `null` until a cat has been in view.
 
 The Stream page reads the same `/healthz` every 5 s while it shows, and at once when it
 comes back from another tab (`CatStatusLine` in
-`lib/Pages/StreamPage/cat_status.dart`): under the video it puts the cat cam's `name`,
+`lib/Pages/StreamPage/cat_status.dart`): under the video it puts ObservANT's `name`,
 then "Cat in view", "Cat last seen: 14:32" or "No cat seen yet", in English or German,
 the three latest visits ("Recent visits: 14:32 (3 min) · 11:05 (10 min)"; one still going
 on has no stay yet), and from the first visit on the last arrival's picture. Its URL carries the visit count
 (`/arrival.jpg?visit=3`), not `last_seen`, which moves on every model run while a cat
 stays, so the page fetches the picture once per visit. On the photo, with the cat in
 view for 35 s, headless Chrome sent seven `/healthz` requests and one `/arrival.jpg`
-(2026-10-12). Served from anywhere else, where `/healthz` is no cat cam's answer, it
+(2026-10-12). Served from anywhere else, where `/healthz` is no ObservANT's answer, it
 shows only the title.
 
 Since 2026-10-14 the page also:
-- says "Camera unreachable since 14:32" in orange once a cat cam that answered stops
+- says "Camera unreachable since 14:32" in orange once an ObservANT camera that answered stops
   answering, and keeps what it said last, its name, visits and picture;
 - folds out the whole visit log ("All 20 visits") under the three latest;
 - shows each earlier video with its arrival's picture (`/arrival.jpg?t=`), so the right
   one is found at a glance;
-- **closes the video in a tab hidden for a minute.** The cat cam encodes for each viewer,
+- **closes the video in a tab hidden for a minute.** ObservANT encodes for each viewer,
   so a forgotten tab cost a core's share all night; a glance at another tab keeps the
   picture, and showing the tab again opens a new session at once.
 
@@ -536,15 +536,15 @@ page's open connections and keeps new ones working. Three guards now:
   no longer waits for minutes. Measured: back after 75 s with the socket silenced, the video
   played again within 3 s; with the service restarted after the return, 9 s after it.
 
-**An overview of the other cat cams** (2026-10-14). List them in `catcam.toml` as
-`peers`, each one's origin, on every cat cam:
+**An overview of the other ObservANT cameras** (2026-10-14). List them in `observant.toml` as
+`peers`, each one's origin, on every ObservANT:
 
 ```toml
 peers = ["http://192.168.188.151:8080", "http://192.168.188.145:8080"]
 ```
 
 The Stream page then shows a card per peer under its own cat: the peer's name, a picture
-refreshed every 10 s, and its cat line, or "Not reachable"; a tap opens that cat cam's
+refreshed every 10 s, and its cat line, or "Not reachable"; a tap opens that ObservANT's
 page. A peer answers this page's reads (`/healthz`, `/snapshot.jpg`, `/arrival.jpg`,
 `/arrival.mp4`) with `Access-Control-Allow-Origin` and `Cross-Origin-Resource-Policy:
 cross-origin` only when it lists this page's origin among its own `peers`; nothing else,
@@ -553,15 +553,15 @@ address the browser uses.
 
 #### Arrival picture, video and webhook
 
-**It can tell you the cat came.** Set `notify_url` in `catcam.toml` and the service
+**It can tell you ObservANTe.** Set `notify_url` in `observant.toml` and the service
 POSTs a JSON event there whenever a cat arrives or leaves:
 
 ```json
-{"event": "arrived", "name": "Trouble Tabbls Cat Cam", "time": 1791763273, "class": "cat",
+{"event": "arrived", "name": "ObservANT", "time": 1791763273, "class": "cat",
  "detections": 2, "best_score": 0.76, "snapshot": "/arrival.jpg"}
-{"event": "clip", "name": "Trouble Tabbls Cat Cam", "time": 1791763273,
+{"event": "clip", "name": "ObservANT", "time": 1791763273,
  "best_score": 0.76, "clip": "/arrival.mp4", "snapshot": "/arrival.jpg"}
-{"event": "left", "name": "Trouble Tabbls Cat Cam", "time": 1791763375, "stayed_s": 42,
+{"event": "left", "name": "ObservANT", "time": 1791763375, "stayed_s": 42,
  "arrived": 1791763273, "best_score": 0.76}
 ```
 
@@ -586,7 +586,7 @@ references, so nothing is copied. An arrival takes those and the next 7 s and gi
 a thread of its own, which encodes them with `openh264enc` at 800 kbit/s (about 1 MB a
 clip at 640x480), `h264parse` and `mp4mux faststart=true`, so the index comes first and a
 browser starts playing at once. `/arrival.mp4` serves it with byte ranges, which Safari's
-`<video>` needs; `/healthz` names the newest one's arrival as `cat.clip`; and `notify_url`
+`<video>` needs; `/healthz` names the newest one's arrival as `detection.clip`; and `notify_url`
 gets a `clip` event once it is written, with the arrival's `time` and `best_score`.
 A second arrival during a clip's 7 s gets a clip of its own (2026-10-13): up to three
 record at once and share their frames, and two finished ones wait for the encoder.
@@ -595,9 +595,9 @@ directory, across a restart too: `/arrival.mp4?t=<time>` serves that arrival's o
 `404` once it is dropped, never a newer one. A false visit right after the cat (33 of them
 on himbeere2's morning of 2026-10-12) would otherwise have put its clip behind the cat's
 notification. The arrival event carries the visit log's own time, the one the clip is kept
-under. The Stream page links the newest clip by its time once `cat.clip` is the newest
+under. The Stream page links the newest clip by its time once `detection.clip` is the newest
 visit, so it never offers the previous cat's clip, and lists the other kept ones beside it
-("Earlier videos: ▶ 18:07 ▶ 18:05", from `cat.clips`).
+("Earlier videos: ▶ 18:07 ▶ 18:05", from `detection.clips`).
 On himbeere2 the packaged service, run on the cat photo at 30 fps (2026-10-12), confirmed
 the arrival at 16:21:40 and served the clip at 16:21:47: seven seconds of post-roll, and
 encoding and writing in under one. It was H.264 Constrained Baseline, which every phone
@@ -613,7 +613,7 @@ model's.
 `clip_seconds` sets the length (0 records none). Frames wait in memory until encoded,
 about 46 MB for 10 s, which is why the setting stops at 60. The package bundles `isomp4`
 for `mp4mux` (`openh264` and `videoparsersbad` were in it already); a GStreamer without
-one of the three records no clip and says which at start. `test-catcam-package.sh`
+one of the three records no clip and says which at start. `test-observant-package.sh`
 checks that the photo's arrival yields one, that it is an MP4 that answers a byte range,
 that its event reaches the webhook, and that a restart keeps it.
 
@@ -700,7 +700,7 @@ which the midnight reset clears with the day's counter, and a time trigger sends
 "Heute 2 Katzenbesuche: 07:12, 18:30." or "Heute keine Katze gesehen." under a tag of its
 own.
 
-**More than one cat cam.** Each posts to a webhook of its own, and one automation takes
+**More than one ObservANT.** Each posts to a webhook of its own, and one automation takes
 them all: a webhook trigger per camera with an `id`, and variables that map that id to
 the camera's base URL (both in `secrets.yaml`), its video sensor and the place a
 notification names ("Katze ist am Futtertrog"). The `tag` carries the id
@@ -714,27 +714,27 @@ Pi 5 with a Camera Module 3); a departure posted from tabblscatcam to its webhoo
 that camera's notification and stay.
 
 **Statistics and an outage alert, from `/healthz`.** Home Assistant's `rest` integration
-polls `http://127.0.0.1:8080/healthz` every 30 s when it runs on the cat cam's host:
-`cat.in_view`, `cat.last_seen`, `cat.visits`, `cat.recent[0].stayed_s` and `ok` become
-sensors, and with the cat cam unreachable they all turn `unavailable`. On himbeere2
+polls `http://127.0.0.1:8080/healthz` every 30 s when it runs on ObservANT's host:
+`detection.in_view`, `detection.last_seen`, `detection.visits`, `detection.recent[0].stayed_s` and `ok` become
+sensors, and with ObservANT unreachable they all turn `unavailable`. On himbeere2
 (2026-10-12):
 - the arrival automation increments two counters, *today* and *total*, so they count only
   what reached the phone; a template sensor with `state_class: total_increasing` mirrors
   *total*, which lets a `statistics-graph` card draw visits per day, and a time trigger
   resets *today* at midnight;
-- `binary_sensor.cat_cam_online` unavailable or off for five minutes sends "Cat cam
-  offline", and its return after such an outage sends "Cat cam wieder da"; a Home
-  Assistant restart's few seconds stay quiet. Stopping `omni-catcam` for 5 min 45 s sent
+- `binary_sensor.cat_cam_online` unavailable or off for five minutes sends "ObservANT
+  offline", and its return after such an outage sends "ObservANT wieder da"; a Home
+  Assistant restart's few seconds stay quiet. Stopping `omni-observant` for 5 min 45 s sent
   the first at 5 min, on the dot.
 - **Off and unavailable say different things** (2026-10-14). Since `/healthz` reports
-  `ok: false` for a camera without a picture, the online sensor is off while the cat cam
+  `ok: false` for a camera without a picture, the online sensor is off while ObservANT
   answers but sees nothing, and unavailable only when it does not answer. A sensor per
   camera keeps the reason, and the alert names it: "hat seit 5 Minuten kein Bild (no frame
   for 300 s)" for the first, "antwortet seit 5 Minuten nicht" for the second.
 
   ```yaml
       sensor:
-        - name: Cat cam Problem
+        - name: ObservANT Problem
           unique_id: catcam_problem
           icon: mdi:camera-off
           value_template: "{{ value_json.problem or 'ok' }}"
@@ -744,14 +744,14 @@ sensors, and with the cat cam unreachable they all turn `unavailable`. On himbee
   timestamp on every poll and a duration sensor refuses at load (`ValueError: ... has the
   non-numeric value: 'None'`). A new camera has no sighting yet, and a visit in progress
   has a null `stayed_s`, so `last_seen` and the stay are guarded with `availability`
-  templates (`{{ value_json.cat.last_seen is number }}`) and show unavailable instead.
+  templates (`{{ value_json.detection.last_seen is number }}`) and show unavailable instead.
 
 #### The Stream page
 
 **An open page survives a restart of the service.** The page sees its producer go and
 come back and consumes the new one, with no reload: on himbeere2 (2026-10-12) headless
 Chrome's video was playing at 30 fps again about 10 s after `systemctl restart
-omni-catcam`, as an upgrade does it.
+omni-observant`, as an upgrade does it.
 
 **A language or theme change keeps the picture.** Either remounts the video box, and the
 stream's state lives outside it: one `WebRTCStreamController` per page load
@@ -783,7 +783,7 @@ set, so the stream stays on the LAN. No TLS, no `serve.sh`, no container.
 #### What it detects
 
 **Cats by default, any of the 80 COCO classes on request** (2026-10-14). `classes` in
-`catcam.toml` names them (`["cat"]` unless set), and the Camera page's "What it detects"
+`observant.toml` names them (`["cat"]` unless set), and the Camera page's "What it detects"
 adds one from a menu that filters as you type, or removes one by its chip; the last cannot
 go. A change applies at the next model run and stays across restarts. Everything that
 counts a cat counts any of them: visits, the webhook events, the arrival photos and clips,
@@ -795,7 +795,7 @@ people.
 #### Stats for developers
 
 **A "Stats" button under the camera's name** (2026-10-14) opens a panel that refreshes every
-2 s while open: what the cat cam delivers and costs (`/healthz`'s `stats`: frames per second
+2 s while open: what ObservANT delivers and costs (`/healthz`'s `stats`: frames per second
 against the configured rate, the model's time per run and runs per second, its CPU share of
 one core, the cores, memory, the 1-minute load, the board's temperature, how long it has
 run, the viewers) and what this browser makes of the stream (frames per second received,
@@ -803,39 +803,39 @@ the picture's size, frames dropped so far). Closed, it polls nothing.
 
 #### The privacy filter
 
-**For showing the cat cam in public without showing the home** (2026-10-14). With
-`privacy = "pixelate"` in `catcam.toml`, everything but the detected animals leaves the
+**For showing ObservANT in public without showing the home** (2026-10-14). With
+`privacy = "pixelate"` in `observant.toml`, everything but the detected animals leaves the
 camera as coarse blocks: 32 pixels at 640 wide, each its own mean colour. Only the boxes
 stay sharp, each grown by 15 % on every side, since the model's boxes are up to half a
 second old. With no box the whole picture is blocks, people included.
 - It applies to everything that leaves the camera: the live stream, `/snapshot.jpg`, the
   arrival photos and the clips. The model still sees the whole picture, so detection works
   as before.
-- Only the settings file sets it, then `sudo systemctl restart omni-catcam`. No page can
+- Only the settings file sets it, then `sudo systemctl restart omni-observant`. No page can
   turn it off, so a visitor at a demo cannot either. `/healthz` says `"privacy": "pixelate"`;
   the Stream page shows "Privacy filter on" under the camera's name, and the Camera page
   names it in its table.
 - Arrival photos and clips recorded before it was turned on stay as they were. The other
-  cat cams in `peers` show their own pictures, filtered only where they set it too.
+  ObservANT cameras in `peers` show their own pictures, filtered only where they set it too.
 - It costs little: one pass over each frame, no second model.
 
 #### Tests
 
-**`test-catcam-package.sh` checks all three packages, and CI runs it.** `web.yml`'s
-`catcam` jobs run it on x64 and arm64 right after packaging. It runs as root in a
+**`test-observant-package.sh` checks all three packages, and CI runs it.** `web.yml`'s
+`observant` jobs run it on x64 and arm64 right after packaging. It runs as root in a
 privileged `:latest`, prints one PASS or FAIL per check, and exits with the number of
 failures.
 A package without `debugutilsbad` reds five of its checks. Locally:
 
 ```bash
-bash scripts/linux/cat-stream/test-catcam-package.sh   # root, inside :latest; finds out/'s packages
+bash scripts/linux/observant/test-observant-package.sh   # root, inside :latest; finds out/'s packages
 ```
 
 **What it checks**, for the .deb and the AppImage each installed in `:latest`
-and run as the unit runs it, with a scrubbed environment as `omni-catcam`:
+and run as the unit runs it, with a scrubbed environment as `omni-observant`:
 - no shared object maps from outside the bundle, idle or with a viewer connected;
 - the package's own files: the service user is in the `video` group, the settings file is
-  `640 root:omni-catcam` (an older world-readable one is made private), and the unit
+  `640 root:omni-observant` (an older world-readable one is made private), and the unit
   restarts whatever ended it and starts once the clock is set;
 - `/healthz` says `ok` with no `problem` while frames come, and names the installed
   package's version;
@@ -846,7 +846,7 @@ and run as the unit runs it, with a scrubbed environment as `omni-catcam`:
   starts none;
 - `apt remove` masks the unit and a reinstall unmasks and enables it; the AppImage's
   `--install` refuses a non-root caller, and its installed copy refuses `--install`;
-- every setting the shipped `catcam.toml` documents, uncommented, is one the service
+- every setting the shipped `observant.toml` documents, uncommented, is one the service
   reads (`--print-config` takes them all);
 - the installed unit loads without a warning (`systemd-analyze verify`) and keeps its
   sandbox: `systemd-analyze security` rates it 2.5 or less (1.8 on 2026-10-12, 8.7
@@ -872,7 +872,7 @@ and run as the unit runs it, with a scrubbed environment as `omni-catcam`:
 - SIGTERM exits 0, and no inference fails on the way out;
 - the AppImage's `--install`, a second `--install` over it, and `--uninstall --purge`
   left the expected files, and then none;
-- the .deb installed over an edited `catcam.toml` with no terminal, kept the edit, and
+- the .deb installed over an edited `observant.toml` with no terminal, kept the edit, and
   `dpkg --purge` removed it;
 - the flatpak, installed system-wide, answered `/healthz` from its sandbox, kept the
   cat's visits in its own state directory, and headless Chrome played its stream over
@@ -905,18 +905,18 @@ The arm64 packages were built natively on the board in `:latest`, and CI's
   camera again, and the browser played about 30 fps.
 
 Two notes from that board:
-- **A firewall needs rules.** If ufw is active, `sudo ufw allow OmniCatCam` opens
+- **A firewall needs rules.** If ufw is active, `sudo ufw allow OmniObservANT` opens
   8080 and the WebRTC UDP range. himbeere2's existing rules already covered both.
 - **A dark room is a black stream.** The imx219 has no IR, and the sensor itself
   read a mean Y of 0.5 out of 255 at night.
 
 **On a SpacemiT riscv64 board (mintberrycrunch: Ubuntu 26.04, 8 cores, 16 GB, Logitech C270),
-2026-10-13.** `package-catcam.sh` built the riscv64 `.deb` natively on the board in the riscv64
+2026-10-13.** `package-observant.sh` built the riscv64 `.deb` natively on the board in the riscv64
 `:latest`, in 7 min 53 s (the producer's cargo build 6 min 10 s); a Raspberry Pi 5 cannot emulate
 it, because its 16 KiB pages break QEMU on the image's libraries. The unit:
 - found the webcam on its own (`v4l2src /dev/video9 (C270 HD WEBCAM)`) among the SoC's
   codec and ISP nodes;
-- needed `sudo ufw allow OmniCatCam`, as the package says, before the LAN reached it;
+- needed `sudo ufw allow OmniObservANT`, as the package says, before the LAN reached it;
 - streamed to headless Chrome on himbeere2 at about 24 fps (767 frames in 35 s);
 - used 15 % of one core and 282 MB with the room empty, the model running every 5 s.
 
@@ -929,7 +929,7 @@ it, because its 16 KiB pages break QEMU on the image's libraries. The unit:
 - `--install` wrote a unit byte-identical to the .deb's.
 
 Making that switch work took two fixes:
-- `catcam-install` treats the removed .deb's mask as a first install.
+- `observant-install` treats the removed .deb's mask as a first install.
 - It clears that package's `deb-systemd-helper` record, setting
   `DPKG_MAINTSCRIPT_PACKAGE`, since the tool refuses to run outside dpkg otherwise.
   Without that, the returning .deb read the AppImage's `--uninstall` as the admin's
@@ -939,31 +939,31 @@ Making that switch work took two fixes:
 37664412593 installed as a **user** install. `flatpak install --user` fetched its runtime
 from Flathub: freedesktop 24.08, which Flathub marks end-of-life, because that run's
 `:latest` predates the 26.08 refs (hub CON82). Its first run seeded the per-user
-`catcam.toml`, wrote `~/.config/autostart/org.kataglyphis.omni-accelerant-catcam.desktop`,
-loaded the chain ORT and the model from `/app/catcam`, and answered `/healthz` (test
+`observant.toml`, wrote `~/.config/autostart/org.kataglyphis.omni-observant.desktop`,
+loaded the chain ORT and the model from `/app/observant`, and answered `/healthz` (test
 pattern, no camera on that host). The host's Chrome played 582 frames from the LAN address.
 
 **Not verified yet:** the flatpak's start at a real sign-in, and a USB webcam on an amd64
 or arm64 board (mintberrycrunch's C270 above is riscv64).
 
-### The Windows cat cam
+### The Windows ObservANT
 
-`scripts/windows/cat-stream/Package-CatCam.ps1` is the Windows twin of the
-package above. Like `package-catcam.sh` it stamps the build into the exe as `CATCAM_VERSION`
+`scripts/windows/observant/Package-ObservANT.ps1` is the Windows twin of the
+package above. Like `package-observant.sh` it stamps the build into the exe as `OBSERVANT_VERSION`
 (the version and the short commit), which `/healthz` and the Camera page show. Run it inside
 `:winamd64` with the web lane's build:
 
 ```powershell
-pwsh -File scripts\windows\cat-stream\Package-CatCam.ps1 -WebRoot <build\web>
-# out\omni-accelerant-catcam-<version>-windows-x64.msi   (one click: double-click it)
-# out\omni-accelerant-catcam-<version>-windows-x64.zip   (the same folder, portable)
+pwsh -File scripts\windows\observant\Package-ObservANT.ps1 -WebRoot <build\web>
+# out\omni-observant-<version>-windows-x64.msi   (one click: double-click it)
+# out\omni-observant-<version>-windows-x64.zip   (the same folder, portable)
 # with -Msix also:
-# out\omni-accelerant-catcam-<version>-windows-x64.msix           (signed; see "The MSIX" below)
-# out\omni-accelerant-catcam-<version>-windows-x64-testcert.cer   (only without -MsixPfx)
+# out\omni-observant-<version>-windows-x64.msix           (signed; see "The MSIX" below)
+# out\omni-observant-<version>-windows-x64-testcert.cer   (only without -MsixPfx)
 ```
 
 **One folder.** `C:\Program Files\OmniAccelerANT Cat Cam` holds:
-- `kataglyphis_cat_webrtc.exe`;
+- `kataglyphis_observant.exe`;
 - the DLLs it and its plugins import (`Copy-PeImportClosure`), plus the VC++ runtime,
   which a clean Windows lacks;
 - the GStreamer plugin subset in `lib\gstreamer-1.0`, with Media Foundation and kernel
@@ -978,22 +978,22 @@ The exe points GStreamer, ONNX Runtime and the model at that folder itself (Oxid
 
 **The MSI** installs per machine. It adds:
 - a Start menu folder, with **Cat Cam** and **Cat Cam page**;
-- an entry in the all-users Startup folder, so the cat cam starts minimized at every
+- an entry in the all-users Startup folder, so ObservANT starts minimized at every
   logon. That's a logon task, by owner decision on 2026-10-06. A boot-time service would
   run in Session 0, and nobody has yet shown that a service can open a webcam there.
 
 Both entries are features: you can deselect them in the installer, or switch autostart
 off later in Task Manager under *Startup apps*. Settings go in
-`%ProgramData%\omni-accelerant\catcam.toml`; the template ships in
-`share\omni-accelerant-catcam`.
+`%ProgramData%\omni-accelerant\observant.toml`; the template ships in
+`share\omni-observant`.
 
 **The MSI opens Windows Firewall to the local subnet**, so Windows does not ask. The
 rule is bound to the exe, not to ports, so a changed `http_port` or ICE range in
-`catcam.toml` stays covered. It carries `IgnoreFailure`: a Windows without the firewall
+`observant.toml` stays covered. It carries `IgnoreFailure`: a Windows without the firewall
 service, such as the image's process-isolated container, still installs. Packaging needs
 WiX's firewall extension, which the hub's final stage installs (`WIX_FIREWALL_EXT_VERSION`).
 
-**`Test-CatCamWindows.ps1` checks the MSI** inside `:winamd64` as admin. In the image,
+**`Test-ObservANTWindows.ps1` checks the MSI** inside `:winamd64` as admin. In the image,
 14 checks passed on 2026-10-06:
 - the MSI's firewall rule: LAN-only, bound to the exe, installing where it cannot apply;
 - the silent install, its files, the Startup entry and the shortcuts;
@@ -1005,7 +1005,7 @@ WiX's firewall extension, which the hub's final stage installs (`WIX_FIREWALL_EX
 
 The container has no firewall service, so the test prints `SKIP` for the rule itself. On
 a host whose firewall runs, two more checks run: the rule exists after the install and is
-gone after the uninstall. `web.yml`'s `catcam-windows` job packages and tests the MSI
+gone after the uninstall. `web.yml`'s `observant-windows` job packages and tests the MSI
 around each run's web build.
 
 **On a real Windows 11 host** (the dev box, no camera, 2026-10-06), the MSI installed
@@ -1018,7 +1018,7 @@ and uninstalled cleanly through UAC:
 **The MSIX** (`-Msix`) packs the same folder, which G6 has already proved, with
 `AppxManifest.xml`. It installs per user, needs no admin, and adds three things:
 - a `desktop:StartupTask` for the logon start, which *Startup apps* turns off;
-- the `omni-catcam` alias, the Linux packages' command name;
+- the `omni-observant` alias, the Linux packages' command name;
 - two firewall rules, TCP 8080 and UDP 40000-40099, on private and domain networks.
 
   MSIX rules take ports and profiles but no remote scope. So unlike the MSI's rule they
@@ -1031,10 +1031,10 @@ An MSIX installs only when Windows trusts its signer:
 - Without it, a certificate made for that build signs, and its `.cer` lands beside the
   package. Import it into `LocalMachine\TrustedPeople` (admin), then double-click the
   `.msix`.
-- `Package-CatCam.ps1` refuses an unsigned result. The hub's signing step only warns when
+- `Package-ObservANT.ps1` refuses an unsigned result. The hub's signing step only warns when
   it fails.
 
-**`Test-CatCamMsix.ps1` checks the MSIX.**
+**`Test-ObservANTMsix.ps1` checks the MSIX.**
 - **Everywhere, in CI too:** the signature against the publisher, the manifest's startup
   task, alias and firewall rules, and the payload. These are six checks.
 - **With `-Install`, on a desktop host:** it installs for the current user, finds the
@@ -1052,7 +1052,7 @@ entry and the MSIX's startup task), and arm64.
 
 ### Cat detection stream (Rust, native)
 
-`third_party/OxidANT/crates/cat_webrtc` (`kataglyphis_cat_webrtc`) is the
+`third_party/OxidANT/crates/observant` (`kataglyphis_observant`) is the
 maintained producer: V4L2 or libcamera capture → YOLO ONNX (cats = COCO class
 15) → boxes burned into the RGBA frames → `webrtcsink`. It runs its own
 signalling server (`run-signalling-server=true`, plain `ws://`, default port
@@ -1060,11 +1060,11 @@ signalling server (`run-signalling-server=true`, plain `ws://`, default port
 
 ```bash
 cd third_party/OxidANT
-cargo build --release -p kataglyphis_cat_webrtc
+cargo build --release -p kataglyphis_observant
 # The image's chain ONNX Runtime - OxidANT's loader refuses any other (2026-09-23),
 # so this runs in the :latest image, where the path is the loader's fallback too.
 ORT_DYLIB_PATH=/usr/local/lib/onnxruntime-cpu/lib/libonnxruntime.so \
-  target/release/kataglyphis_cat_webrtc --v4l2 /dev/video0
+  target/release/kataglyphis_observant --v4l2 /dev/video0
 ```
 
 Since OxidANT dd496dc this binary is the service the package above installs:
@@ -1110,13 +1110,13 @@ cargo install --locked --version 2.13.0 flutter_rust_bridge_codegen  # the pin i
 flutter_rust_bridge_codegen build-web --release --rust-root third_party/OxidANT
 flutter build web --release --wasm --no-web-resources-cdn
 
-scripts/linux/cat-stream/serve.sh          # :8444 TLS, proxies to :8443
-scripts/linux/cat-stream/serve.sh --http   # :8444 plain HTTP, no certificate
+scripts/linux/observant/serve.sh          # :8444 TLS, proxies to :8443
+scripts/linux/observant/serve.sh --http   # :8444 plain HTTP, no certificate
 ```
 
 `serve.sh` also takes `--producer-host`/`--producer-port` to front a producer
 on another board, and `--state-dir` so several instances (one per producer)
-can run side by side. **The boards run the cat cam package** (himbeere2, tabblscatcam,
+can run side by side. **The boards run ObservANT package** (himbeere2, tabblscatcam,
 mintberrycrunch): producer, web build and page together on `http://<board>:8080/`. The
 producer on `:8443` with `serve.sh` + the web build on `:8444` is the manual shape, for a
 board without the package or an ad-hoc look at another board via `--producer-host`.
@@ -1154,9 +1154,9 @@ USB cameras work with `--v4l2 /dev/videoX`. For a Pi's CSI camera use
 container route is:
 
 ```bash
-# The producer runner lives in OxidANT, which owns crates/cat_webrtc.
-third_party/OxidANT/scripts/linux/cat-stream/run-producer-pi.sh --build
-scripts/linux/cat-stream/serve.sh   # :8444 TLS, proxies to :8443
+# The producer runner lives in OxidANT, which owns crates/observant.
+third_party/OxidANT/scripts/linux/observant/run-producer-pi.sh --build
+scripts/linux/observant/serve.sh   # :8444 TLS, proxies to :8443
 ```
 
 **Why the Pi 5 needs a runner script.** The image ships upstream libcamera
@@ -1168,12 +1168,12 @@ and the upstream IPA segfaults when isolation is forced. Build with the runner
 superproject layout instead carries a compiled-in model path pointing at
 `/workspace/third_party/OxidANT/resources/...`, which does not exist under that
 mount — the producer then dies with `No ONNX backend available`. Cargo caches
-by source mtime, so after switching contexts `touch crates/cat_webrtc/src/main.rs`
+by source mtime, so after switching contexts `touch crates/observant/src/main.rs`
 forces the recompile.
-`third_party/OxidANT/scripts/linux/cat-stream/run-producer-pi.sh` collects the
+`third_party/OxidANT/scripts/linux/observant/run-producer-pi.sh` collects the
 host's Raspberry Pi OS libcamera stack (0.7.2+rpt, which matches the kernel)
 plus its library closure into OxidANT's own
-`third_party/OxidANT/build/cat-stream/hostlibs`, mounts that ahead of
+`third_party/OxidANT/build/observant/hostlibs`, mounts that ahead of
 the image's copy, grants the rootless container ACL access to
 `/dev/{video,media,dma_heap}*`, and runs with `seccomp=unconfined` (the IPA
 proxy forks). GStreamer 1.29, `webrtcsink`, ONNX Runtime and the Rust binary
@@ -1186,12 +1186,12 @@ imx708 its isolated IPA process worker dies on start (`Failed to call start:
 -110`, then the socket is unreachable), while the host's rpt build runs the
 threaded proxy and works. The working no-AI recipe is the container plus the
 *same* host-libcamera swap, driven by `gst-launch`. Copy the closure collected
-by OxidANT's `third_party/OxidANT/scripts/linux/cat-stream/run-producer-pi.sh`
+by OxidANT's `third_party/OxidANT/scripts/linux/observant/run-producer-pi.sh`
 (or refresh it there with `--libs-only`) to the Zero, then:
 
 ```bash
 # On the Zero. ~/cat-cam/hostlibs is the dev host's
-# third_party/OxidANT/build/cat-stream/hostlibs, and IMAGE is the family CI
+# third_party/OxidANT/build/observant/hostlibs, and IMAGE is the family CI
 # reference — composed on the dev host by
 #   bash third_party/ANTfrastructure/linux/scripts/ci-image-ref.sh
 # and carried over, never typed out, so a tag bump in the hub's versions.env
@@ -1228,15 +1228,15 @@ WebRTC UDP range), copy the web build and `serve.sh` over, and run it there:
 ```bash
 # from the dev host (<board> is the target's ssh name)
 rsync -a build/web/ <board>:cat-cam/build/web/
-rsync -a scripts/linux/cat-stream/serve.sh \
-  <board>:cat-cam/scripts/linux/cat-stream/serve.sh
+rsync -a scripts/linux/observant/serve.sh \
+  <board>:cat-cam/scripts/linux/observant/serve.sh
 # on the Zero (serve.sh derives its repo root from its own path, so the
-# scripts/linux/cat-stream/ layout under ~/cat-cam is deliberate)
-cd ~/cat-cam && PATH=/usr/sbin:$PATH bash scripts/linux/cat-stream/serve.sh
+# scripts/linux/observant/ layout under ~/cat-cam is deliberate)
+cd ~/cat-cam && PATH=/usr/sbin:$PATH bash scripts/linux/observant/serve.sh
 ```
 
 Media is WebRTC UDP, browser ↔ Zero, direct on the LAN. If the container is
-too heavy for the board, `scripts/linux/cat-stream/package-producer-bundle.sh`
+too heavy for the board, `scripts/linux/observant/package-producer-bundle.sh`
 exports a container-less aarch64 bundle (producer + pruned GStreamer + the
 image's glibc, ~180 MB) that runs against the host's libcamera with no
 container and no toolchain; and `--no-inference` is the next step up from this
@@ -1258,7 +1258,7 @@ found` otherwise).
 The Pi 4's camera here is mounted upside down, so:
 
 ```bash
-third_party/OxidANT/scripts/linux/cat-stream/run-producer-pi.sh --build --rotate 180
+third_party/OxidANT/scripts/linux/observant/run-producer-pi.sh --build --rotate 180
 ```
 
 Its homepage works like the Zero's: nginx is preinstalled on Pi OS, `serve.sh`
@@ -1294,14 +1294,14 @@ nerdctl run --rm --user 0:0 --network host -v "$HOME/OxidANT":/workspace \
   -v kataglyphis-cat-target:/cargo-target -v kataglyphis-cat-cargo:/cargo-home \
   -e CARGO_TARGET_DIR=/cargo-target -e CARGO_HOME=/cargo-home \
   --entrypoint bash "$IMAGE" -lc \
-  'cd /workspace && cargo build --release --locked -p kataglyphis_cat_webrtc'
+  'cd /workspace && cargo build --release --locked -p kataglyphis_observant'
 
 # run (detached; the board's wrapper is ~/x100-producer.sh)
 nerdctl run -d --rm --name x100-producer --user 0:0 --privileged --network host \
   -v /dev:/dev -v "$HOME/OxidANT":/workspace \
   -v kataglyphis-cat-target:/cargo-target \
   -e ORT_DYLIB_PATH=/usr/local/lib/onnxruntime-cpu/lib/libonnxruntime.so -e RUST_LOG=info \
-  --entrypoint /cargo-target/release/kataglyphis_cat_webrtc "$IMAGE" \
+  --entrypoint /cargo-target/release/kataglyphis_observant "$IMAGE" \
   --v4l2 /dev/video9 --listen-port 8443 --name "Cat Cam"
 ```
 
@@ -1364,8 +1364,8 @@ flutter run -d web-server --profile --web-port 8080 --web-hostname 0.0.0.0
 
 ## Troubleshooting
 
-- **A cat cam reports cats that are not there.** Open its page, *Camera* in the bottom
-  bar. While the false box shows in the preview, press "Not a cat": the cat cam ignores
+- **An ObservANT camera reports cats that are not there.** Open its page, *Camera* in the bottom
+  bar. While the false box shows in the preview, press "Not a cat": ObservANT ignores
   that spot for good. A false arrival from earlier is under "Recent detections", with the
   same button. Since 2026-10-14 only a detection where something moved starts a visit,
   so a still object rarely does. For a false cat that moves, the line under the detection
@@ -1393,7 +1393,7 @@ flutter run -d web-server --profile --web-port 8080 --web-hostname 0.0.0.0
   click-through is holding a certificate generated before `serve.sh` started
   writing a `subjectAltName`. The cert is cached in `--state-dir`, and `serve.sh`
   now regenerates a CN-only one on sight — but if you pinned or exported the old
-  one, delete `build/cat-stream/tls/` and let it rebuild.
+  one, delete `build/observant/tls/` and let it rebuild.
 - On a host firewall (e.g. UFW on Raspberry Pi OS), allow `8444/tcp` and the
   WebRTC media UDP range (`32768:60999/udp`, LAN-scoped is enough) — the
   browser otherwise connects for signalling but ICE never completes.

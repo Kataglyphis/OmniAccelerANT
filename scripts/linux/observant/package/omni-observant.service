@@ -1,5 +1,5 @@
 [Unit]
-Description=OmniAccelerANT cat cam (camera, YOLO cat boxes, WebRTC, web page on :8080)
+Description=ObservANT (camera, YOLO cat boxes, WebRTC, web page on :8080)
 Documentation=https://github.com/Kataglyphis/OmniAccelerANT
 # Visit times need a set clock on a board without an RTC; the target is passive, so it is not pulled in.
 After=network-online.target time-sync.target
@@ -7,14 +7,14 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-User=omni-catcam
-ExecStart=/opt/omni-accelerant-catcam/catcam
-# A clean exit is no reason to stay down either: an admin stops a cat cam with systemctl.
+User=omni-observant
+ExecStart=/opt/omni-observant/observant
+# A clean exit is no reason to stay down either: an admin stops an ObservANT with systemctl.
 Restart=always
 RestartSec=5
-StateDirectory=omni-accelerant-catcam
-Environment=HOME=/var/lib/omni-accelerant-catcam
-Environment=GST_REGISTRY=/var/lib/omni-accelerant-catcam/gst-registry.bin
+StateDirectory=omni-observant
+Environment=HOME=/var/lib/omni-observant
+Environment=GST_REGISTRY=/var/lib/omni-observant/gst-registry.bin
 NoNewPrivileges=yes
 PrivateTmp=yes
 # Only what the camera, the model and WebRTC need: systemd-analyze security 8.7 -> 1.8 (2026-10-12).

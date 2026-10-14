@@ -254,7 +254,7 @@ page's Rust demo goes dark.
 
 | Where | Config |
 | --- | --- |
-| The cat-stream demo, any board | `scripts/linux/cat-stream/serve.sh` (generates its own nginx.conf) |
+| The ObservANT demo, any board | `scripts/linux/observant/serve.sh` (generates its own nginx.conf) |
 | The hosted site | [`nginx.conf`](../../third_party/ANTfrastructure/linux/webserver/nginx.conf) + [`security-headers.conf`](../../third_party/ANTfrastructure/linux/webserver/security-headers.conf) |
 
 **There is no `web/.htaccess` any more.** It was deleted on 2026-09-16: the site
@@ -285,7 +285,7 @@ into two independent places:
 2. the `FLUTTER_WEB_CANVASKIT_URL` dart-define compiled into the app.
 
 The renderer files ship in `build/web/canvaskit/` either way, so the default
-buys nothing but a CDN round trip — and the whole point of the cat-stream
+buys nothing but a CDN round trip — and the whole point of the ObservANT
 runbook is a Raspberry Pi serving `build/web` on a LAN. A host with no route to
 `gstatic.com` renders a blank page with nothing in the console.
 

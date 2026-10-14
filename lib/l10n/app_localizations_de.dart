@@ -67,24 +67,26 @@ class AppLocalizationsDe extends AppLocalizations {
       'Hinweis: Im Web muss sqlite3.wasm neben der Seite liegen (der Build kopiert web/sqlite3.wasm dorthin).';
 
   @override
-  String get catInView => 'Katze im Bild';
-
-  @override
-  String catLastSeen(String when) {
-    return 'Katze zuletzt gesehen: $when';
+  String detectionInView(String what) {
+    return '$what im Bild';
   }
 
   @override
-  String get catNotSeenYet => 'Noch keine Katze gesehen';
+  String detectionLastSeen(String when) {
+    return 'Zuletzt gesehen: $when';
+  }
 
   @override
-  String get catLastArrival => 'Die letzte Ankunft der Katze';
+  String get detectionNotSeenYet => 'Noch nichts gesehen';
 
   @override
-  String get catArrivalVideo => 'Ankunft als Video ansehen';
+  String get detectionLastArrival => 'Die letzte Ankunft';
 
   @override
-  String get catEarlierVideos => 'Frühere Videos:';
+  String get detectionArrivalVideo => 'Ankunft als Video ansehen';
+
+  @override
+  String get detectionEarlierVideos => 'Frühere Videos:';
 
   @override
   String get cameraSettingsNav => 'Kamera';
@@ -94,17 +96,17 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get cameraNotReachable =>
-      'Hier antwortet keine Cat Cam. Diese Einstellungen gibt es auf der Seite einer Cat Cam.';
+      'Hier antwortet keine ObservANT-Kamera. Diese Einstellungen gibt es auf der Seite einer ObservANT-Kamera.';
 
   @override
   String get cameraRotation => 'Drehung';
 
   @override
-  String get cameraSensitivity => 'Empfindlichkeit der Katzenerkennung';
+  String get cameraSensitivity => 'Empfindlichkeit der Erkennung';
 
   @override
   String get cameraSensitivityHelp =>
-      'Höher heißt weniger Fehlalarme; niedriger erkennt eine Katze auch bei schlechtem Licht.';
+      'Höher heißt weniger Fehlalarme; niedriger erkennt auch bei schlechtem Licht.';
 
   @override
   String get cameraName => 'Name';
@@ -131,7 +133,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get cameraFrameRate => 'Bildrate';
 
   @override
-  String get cameraDetection => 'Katzenerkennung';
+  String get cameraDetection => 'Erkennung';
 
   @override
   String get cameraOn => 'an';
@@ -151,7 +153,7 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
-  String catCamProblem(String problem) {
+  String observantProblem(String problem) {
     return 'Die Kamera hat ein Problem: $problem';
   }
 
@@ -159,10 +161,10 @@ class AppLocalizationsDe extends AppLocalizations {
   String get cameraProblem => 'Problem';
 
   @override
-  String get cameraNotACat => 'Das ist keine Katze';
+  String get cameraFalseAlarm => 'Fehlalarm';
 
   @override
-  String get cameraNotACatHelp =>
+  String get cameraFalseAlarmHelp =>
       'Die markierte Stelle wird ab jetzt ignoriert, etwa ein Wäscheständer, den die Kamera für eine Katze hält.';
 
   @override
@@ -180,23 +182,23 @@ class AppLocalizationsDe extends AppLocalizations {
   String get cameraWatchAgain => 'Wieder beachten';
 
   @override
-  String catCamUnreachable(String time) {
+  String observantUnreachable(String time) {
     return 'Kamera nicht erreichbar seit $time';
   }
 
   @override
-  String catAllVisits(int count) {
+  String detectionAllVisits(int count) {
     return 'Alle $count Besuche';
   }
 
   @override
-  String get catFewerVisits => 'Weniger Besuche';
+  String get detectionFewerVisits => 'Weniger Besuche';
 
   @override
-  String get catOtherCameras => 'Andere Katzenkameras';
+  String get observantOthers => 'Andere Kameras';
 
   @override
-  String get catPeerUnreachable => 'Nicht erreichbar';
+  String get observantPeerUnreachable => 'Nicht erreichbar';
 
   @override
   String get cameraVersion => 'Version';
@@ -278,7 +280,7 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
-  String get catCamPixelated =>
+  String get observantPixelated =>
       'Privatsphäre-Filter an: alles außer den erkannten Tieren ist verpixelt';
 
   @override
@@ -286,37 +288,37 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get cameraRecentDetectionsHelp =>
-      'War eine davon keine Katze? Markieren Sie sie, und die Kamera ignoriert diese Stelle ab jetzt.';
+      'War eine davon ein Fehlalarm? Markieren Sie sie, und die Kamera ignoriert diese Stelle ab jetzt.';
 
   @override
-  String get cameraWasNotACat => 'Keine Katze';
+  String get cameraWasFalseAlarm => 'Fehlalarm';
 
   @override
   String get cameraSpotIgnored => 'Wird ignoriert';
 
   @override
   String cameraScoreValue(int percent) {
-    return 'Eine Katze zählt ab $percent % Sicherheit';
+    return 'Eine Erkennung zählt ab $percent % Sicherheit';
   }
 
   @override
-  String get catRotateLeft => 'Bild nach links drehen';
+  String get cameraRotateLeft => 'Bild nach links drehen';
 
   @override
-  String get catRotateRight => 'Bild nach rechts drehen';
+  String get cameraRotateRight => 'Bild nach rechts drehen';
 
   @override
-  String catVideoFrom(String time) {
+  String detectionVideoFrom(String time) {
     return 'Video von $time';
   }
 
   @override
-  String catRecentVisits(String visits) {
+  String detectionRecentVisits(String visits) {
     return 'Letzte Besuche: $visits';
   }
 
   @override
-  String catVisitStay(String time, String minutes) {
+  String detectionVisitStay(String time, String minutes) {
     return '$time ($minutes Min.)';
   }
 
@@ -358,7 +360,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get webrtcNoCamera =>
-      'Der Signalisierungsserver läuft, aber keine Kamera hat sich gemeldet. Starten Sie kataglyphis_cat_webrtc auf dem Kamerarechner.';
+      'Der Signalisierungsserver läuft, aber keine Kamera hat sich gemeldet. Starten Sie kataglyphis_observant auf dem Kamerarechner.';
 
   @override
   String get webrtcExchangingCandidates =>

@@ -3,10 +3,10 @@ import 'package:anthology/Layout/ResponsiveDesign/single_page.dart';
 import 'package:anthology/Pages/Footer/footer.dart';
 import 'package:anthology/app_attributes.dart';
 import 'package:omni_accelerant/Pages/CameraSettingsPage/camera_settings.dart';
-import 'package:omni_accelerant/Pages/StreamPage/cat_cam_api_stub.dart'
-    if (dart.library.js_interop) 'package:omni_accelerant/Pages/StreamPage/cat_cam_api_web.dart';
+import 'package:omni_accelerant/Pages/StreamPage/observant_api_stub.dart'
+    if (dart.library.js_interop) 'package:omni_accelerant/Pages/StreamPage/observant_api_web.dart';
 
-/// The cat cam's settings, on a page of their own: only a cat cam's own page has them to change.
+/// ObservANT's settings, on a page of their own: only an ObservANT camera's own page has them to change.
 class CameraSettingsPage extends StatelessWidget {
   const CameraSettingsPage({
     super.key,
@@ -29,8 +29,8 @@ class CameraSettingsPage extends StatelessWidget {
           padding: EdgeInsets.all(16),
           child: Center(
             child: CameraSettingsPanel(
-              fetchSettings: fetchCatCamSettings,
-              saveSettings: saveCatCamSettings,
+              fetchSettings: fetchObservantSettings,
+              saveSettings: saveObservantSettings,
               fetchHealthz: fetchHealthz,
             ),
           ),

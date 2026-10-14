@@ -17,25 +17,29 @@
   "rerunSqliteHealthcheck": "Re-run SQLite Healthcheck",
   "sqliteError": "SQLite Error",
   "sqliteWebHint": "Note: on the web, sqlite3.wasm must be served beside the page (the build copies web/sqlite3.wasm there).",
-  "catInView": "Cat in view",
-  "catLastSeen": "Cat last seen: {when}",
-  "@catLastSeen": {
+  "detectionInView": "{what} in view",
+  "@detectionInView": {
+    "description": "Status line while something it watches is in view; what is the watched classes, e.g. \"Cat\" or \"Cat / dog\".",
+    "placeholders": { "what": { "type": "String" } }
+  },
+  "detectionLastSeen": "Last seen: {when}",
+  "@detectionLastSeen": {
     "placeholders": {
       "when": {
         "type": "String"
       }
     }
   },
-  "catNotSeenYet": "No cat seen yet",
-  "catLastArrival": "The cat's last arrival",
-  "catArrivalVideo": "Watch the arrival",
-  "catEarlierVideos": "Earlier videos:",
+  "detectionNotSeenYet": "Nothing seen yet",
+  "detectionLastArrival": "The last arrival",
+  "detectionArrivalVideo": "Watch the arrival",
+  "detectionEarlierVideos": "Earlier videos:",
   "cameraSettingsNav": "Camera",
   "cameraSettingsTitle": "Camera settings",
-  "cameraNotReachable": "No cat cam answers here. These settings live on a cat cam's own page.",
+  "cameraNotReachable": "No ObservANT camera answers here. These settings live on an ObservANT camera's own page.",
   "cameraRotation": "Rotation",
   "cameraSensitivity": "Detection sensitivity",
-  "cameraSensitivityHelp": "Higher means fewer false alarms; lower spots a cat in poor light too.",
+  "cameraSensitivityHelp": "Higher means fewer false alarms; lower finds one in poor light too.",
   "cameraName": "Name",
   "cameraSave": "Save",
   "cameraSaved": "Saved",
@@ -44,7 +48,7 @@
   "cameraDevice": "Camera",
   "cameraResolution": "Resolution",
   "cameraFrameRate": "Frame rate",
-  "cameraDetection": "Cat detection",
+  "cameraDetection": "Detection",
   "cameraOn": "on",
   "cameraOff": "off",
   "cameraModelRuns": "Model runs",
@@ -54,17 +58,17 @@
     "description": "Under the detection slider: the best score of the last detection, real or false, to set the slider just above a false one.",
     "placeholders": { "percent": { "type": "int" } }
   },
-  "catCamProblem": "The camera has a problem: {problem}",
-  "@catCamProblem": {
-    "description": "Under the cat cam name when its /healthz says it is not ok; the problem is the cat cam's own English text.",
+  "observantProblem": "The camera has a problem: {problem}",
+  "@observantProblem": {
+    "description": "Under the camera name when its /healthz says it is not ok; the problem is ObservANT's own English text.",
     "placeholders": { "problem": { "type": "String" } }
   },
   "cameraProblem": "Problem",
-  "cameraNotACat": "Not a cat",
-  "@cameraNotACat": {
+  "cameraFalseAlarm": "False alarm",
+  "@cameraFalseAlarm": {
     "description": "Button under the camera preview: the boxed spots are no cat and are ignored from now on."
   },
-  "cameraNotACatHelp": "Ignores the boxed spot from now on, such as a drying rack the camera takes for a cat.",
+  "cameraFalseAlarmHelp": "Ignores the boxed spot from now on, such as a drying rack the camera takes for a cat.",
   "cameraIgnoredSpots": "{count, plural, =1{1 spot is ignored (grey on the preview)} other{{count} spots are ignored (grey on the preview)}}",
   "@cameraIgnoredSpots": {
     "description": "How many spots were marked \"not a cat\"; they show grey over the preview.",
@@ -74,35 +78,35 @@
   "@cameraWatchAgain": {
     "description": "Button beside the ignored spots: forget them all."
   },
-  "catCamUnreachable": "Camera unreachable since {time}",
-  "@catCamUnreachable": {
-    "description": "Under the cat cam name once its /healthz stopped answering; time is when it stopped.",
+  "observantUnreachable": "Camera unreachable since {time}",
+  "@observantUnreachable": {
+    "description": "Under the camera name once its /healthz stopped answering; time is when it stopped.",
     "placeholders": { "time": { "type": "String" } }
   },
-  "catAllVisits": "All {count} visits",
-  "@catAllVisits": {
+  "detectionAllVisits": "All {count} visits",
+  "@detectionAllVisits": {
     "description": "Button under the three latest visits: shows the whole visit log.",
     "placeholders": { "count": { "type": "int" } }
   },
-  "catFewerVisits": "Fewer visits",
-  "@catFewerVisits": {
+  "detectionFewerVisits": "Fewer visits",
+  "@detectionFewerVisits": {
     "description": "Button under the whole visit log: back to the three latest."
   },
-  "catOtherCameras": "Other cat cams",
-  "@catOtherCameras": {
-    "description": "Heading over the other cat cams this one lists as peers."
+  "observantOthers": "Other cameras",
+  "@observantOthers": {
+    "description": "Heading over the other ObservANT cameras this one lists as peers."
   },
-  "catPeerUnreachable": "Not reachable",
-  "@catPeerUnreachable": {
-    "description": "Under another cat cam that does not answer this page."
+  "observantPeerUnreachable": "Not reachable",
+  "@observantPeerUnreachable": {
+    "description": "Under another ObservANT camera that does not answer this page."
   },
   "cameraVersion": "Version",
   "@cameraVersion": {
-    "description": "Row of the camera info table: the cat cam build."
+    "description": "Row of the camera info table: the ObservANT build."
   },
   "cameraPrivacy": "Privacy filter",
   "@cameraPrivacy": {
-    "description": "Row of the camera info table: whether the cat cam pixelates all but the detected animals."
+    "description": "Row of the camera info table: whether ObservANT pixelates all but the detected animals."
   },
   "cameraPrivacyPixelate": "pixelates all but the detected animals (set in the settings file)",
   "@cameraPrivacyPixelate": {
@@ -137,18 +141,18 @@
     "placeholders": { "ms": { "type": "String" }, "rate": { "type": "String" } }
   },
   "devStatsCpu": "CPU",
-  "@devStatsCpu": { "description": "Stats row: the cat cam's CPU use and the system load." },
+  "@devStatsCpu": { "description": "Stats row: ObservANT's CPU use and the system load." },
   "devStatsCpuValue": "{percent} % of one core, {cores} cores, load {load}",
   "@devStatsCpuValue": {
     "description": "Process CPU in percent of one core, the core count, the 1-minute load average.",
     "placeholders": { "percent": { "type": "String" }, "cores": { "type": "String" }, "load": { "type": "String" } }
   },
   "devStatsMemory": "Memory",
-  "@devStatsMemory": { "description": "Stats row: the cat cam's resident memory." },
+  "@devStatsMemory": { "description": "Stats row: ObservANT's resident memory." },
   "devStatsTemperature": "Temperature",
   "@devStatsTemperature": { "description": "Stats row: the board's CPU temperature." },
   "devStatsUptime": "Running for",
-  "@devStatsUptime": { "description": "Stats row: how long the cat cam has run." },
+  "@devStatsUptime": { "description": "Stats row: how long ObservANT has run." },
   "devStatsUptimeValue": "{hours} h {minutes} min",
   "@devStatsUptimeValue": {
     "description": "Uptime in hours and minutes.",
@@ -163,45 +167,45 @@
     "description": "Frames per second received, picture size, frames dropped so far.",
     "placeholders": { "fps": { "type": "String" }, "size": { "type": "String" }, "dropped": { "type": "String" } }
   },
-  "catCamPixelated": "Privacy filter on: everything but the detected animals is pixelated",
-  "@catCamPixelated": {
-    "description": "Under the cat cam name when its /healthz says privacy is pixelate."
+  "observantPixelated": "Privacy filter on: everything but the detected animals is pixelated",
+  "@observantPixelated": {
+    "description": "Under the camera name when its /healthz says privacy is pixelate."
   },
   "cameraRecentDetections": "Recent detections",
   "@cameraRecentDetections": {
     "description": "Heading over the pictures of the latest arrivals on the Camera page."
   },
-  "cameraRecentDetectionsHelp": "Was one of them not a cat? Mark it, and the camera ignores that spot from now on.",
-  "cameraWasNotACat": "Not a cat",
-  "@cameraWasNotACat": {
+  "cameraRecentDetectionsHelp": "Was one of them a false alarm? Mark it, and the camera ignores that spot from now on.",
+  "cameraWasFalseAlarm": "False alarm",
+  "@cameraWasFalseAlarm": {
     "description": "Button under a recent arrival: its boxes become spots the camera ignores."
   },
   "cameraSpotIgnored": "Ignored",
   "@cameraSpotIgnored": {
     "description": "Under a recent arrival whose spots are already ignored."
   },
-  "cameraScoreValue": "A cat counts from {percent} % certainty",
+  "cameraScoreValue": "A detection counts from {percent} % certainty",
   "@cameraScoreValue": {
     "description": "Text under the detection sensitivity slider.",
     "placeholders": { "percent": { "type": "int" } }
   },
-  "catRotateLeft": "Turn the picture left",
-  "catRotateRight": "Turn the picture right",
-  "catVideoFrom": "Video from {time}",
-  "@catVideoFrom": {
+  "cameraRotateLeft": "Turn the picture left",
+  "cameraRotateRight": "Turn the picture right",
+  "detectionVideoFrom": "Video from {time}",
+  "@detectionVideoFrom": {
     "description": "What a screen reader says for an earlier video's play link.",
     "placeholders": { "time": { "type": "String" } }
   },
-  "catRecentVisits": "Recent visits: {visits}",
-  "@catRecentVisits": {
+  "detectionRecentVisits": "Recent visits: {visits}",
+  "@detectionRecentVisits": {
     "placeholders": {
       "visits": {
         "type": "String"
       }
     }
   },
-  "catVisitStay": "{time} ({minutes} min)",
-  "@catVisitStay": {
+  "detectionVisitStay": "{time} ({minutes} min)",
+  "@detectionVisitStay": {
     "placeholders": {
       "time": {
         "type": "String"
@@ -235,7 +239,7 @@
   },
   "webrtcPeerError": "The connection reported an error. If the camera is another device, check that the WebRTC UDP range reaches it.",
   "webrtcPeerNotStarted": "Could not start the connection.",
-  "webrtcNoCamera": "Signalling is up, but no camera has announced itself. Start kataglyphis_cat_webrtc on the camera host.",
+  "webrtcNoCamera": "Signalling is up, but no camera has announced itself. Start kataglyphis_observant on the camera host.",
   "webrtcExchangingCandidates": "Exchanging ICE candidates.",
   "webrtcSeeConsole": "See the browser console for the underlying error."
 }

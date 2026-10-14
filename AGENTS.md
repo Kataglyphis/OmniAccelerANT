@@ -62,23 +62,23 @@ GStreamer/ONNX Runtime/model closure, so the featureless app is no longer the
 only Linux product.
 
 **Linux/web cat detection stream.** The same Stream page consumes a WebRTC
-stream produced by `third_party/OxidANT/crates/cat_webrtc`
-(`kataglyphis_cat_webrtc`): V4L2/libcamera → ONNX (cat = COCO class 15) → boxes
+stream produced by `third_party/OxidANT/crates/observant`
+(`kataglyphis_observant`): V4L2/libcamera → ONNX (cat = COCO class 15) → boxes
 burned into the RGBA frames → `webrtcsink` with its own signalling server.
-`scripts/linux/cat-stream/serve.sh` puts HTTPS (or, with `--http`, plain HTTP)
+`scripts/linux/observant/serve.sh` puts HTTPS (or, with `--http`, plain HTTP)
 + COOP/COEP + a `/webrtc-ws` proxy in front of it, so one build works on localhost, a LAN IP or a
 Raspberry Pi; on a Pi 5 CSI camera the producer half is **OxidANT's**
-`third_party/OxidANT/scripts/linux/cat-stream/run-producer-pi.sh`, a Pi Zero
+`third_party/OxidANT/scripts/linux/observant/run-producer-pi.sh`, a Pi Zero
 2 W runs the image with the same host-libcamera swap plus a `gst-launch` no-AI
 pipeline (the Rust producer does not fit 512 MB), and a RISC-V SoC runs the
 riscv64 variant natively with a USB webcam (`--v4l2`) — see § 2's glue list.
-**The boards now run the installable cat cam** (§ 2's glue list): producer, web build
+**The boards now run the installable ObservANT** (§ 2's glue list): producer, web build
 and page together on `http://<board>:8080/`, under the package's systemd unit. The
 container + `serve.sh` shape on `https://<board>:8444/` is the manual one, which the
 Zero keeps; `serve.sh --producer-host` is only for looking at one board from another host.
 Runbook: README § *Live cat detection stream*.
 
-**`cat_webrtc` is this app's only WebRTC producer.** AccelerANTgine carries a
+**`observant` is this app's only WebRTC producer.** AccelerANTgine carries a
 second, unrelated one — `Src/webrtc_streamer.{ixx,cpp}`, reached only through
 `cli_main.cpp`'s `--webrtc` flag, with its own GStreamer signalling on
 `ws://127.0.0.1:8443`. It compiles into the `AccelerANTgine` shared library that
@@ -151,41 +151,41 @@ Two upstream facts repeated here only because they bite before you reach a doc:
   runner wrappers, prompt overlays. Engine `opencode` (**v2 only**), executor
   `opencode-go/deepseek-v4.1-flash`. Its Windows build/test driver is
   `scripts/windows/Build-Windows-Container.ps1`. Rules and commands: § 5.
-- `scripts/linux/cat-stream/serve.sh` — serves the web build over TLS (`--http`:
+- `scripts/linux/observant/serve.sh` — serves the web build over TLS (`--http`:
   plain HTTP, no certificate) with COOP/COEP for the Rust core and proxies `/webrtc-ws` to the cat producer.
   No container involved; it is the deployment half of the demo.
   `--producer-host`/`--producer-port` front a producer on another board and
   `--state-dir` keeps concurrent instances apart.
-- `third_party/OxidANT/scripts/linux/cat-stream/run-producer-pi.sh` — **not in
+- `third_party/OxidANT/scripts/linux/observant/run-producer-pi.sh` — **not in
   this repo.** It moved to OxidANT under decision D12, which owns the
-  `cat_webrtc` crate it builds and starts; this repo keeps the pointer, not a
+  `observant` crate it builds and starts; this repo keeps the pointer, not a
   copy. It runs the cat producer from the image against a Pi 5 CSI camera
   (`--libcamera`), bind-mounting the host's Raspberry Pi OS libcamera stack
   ahead of the image's outdated upstream copy (the kernel 6.18 `rp1-cfe`
   entity rename + libpisp 1.7). `--build` builds the producer first;
   `--libs-only` refreshes the cached library closure. `serve.sh` above is the
   half that stays here, because the Flutter web build is this repo's.
-- `scripts/linux/cat-stream/package-producer-bundle.sh` — container-less
+- `scripts/linux/observant/package-producer-bundle.sh` — container-less
   fallback for boards that cannot run the image comfortably (Pi Zero 2 W):
   exports the producer, a pruned GStreamer subset, the image's glibc (invoked
   through the bundled loader) and the library closure into
-  `build/cat-stream/pi-bundle/` (~180 MB, aarch64). The target only needs
+  `build/observant/pi-bundle/` (~180 MB, aarch64). The target only needs
   libcamera installed; `--deploy HOST` rsyncs it there. Its ONNX Runtime is the
   image's chain copy, and the same image run proves the finished bundle with
   ANTfrastructure's G6 census before anything leaves the container.
-- `scripts/linux/cat-stream/package-catcam.sh` + `catcam/` — the installable
-  cat cam (2026-10-05). It packs the producer, its GStreamer plugins, the chain
+- `scripts/linux/observant/package-observant.sh` + `package/` — the installable
+  ObservANT (2026-10-05). It packs the producer, its GStreamer plugins, the chain
   ORT (G6-proved), the model, the web build and the image's loader, glibc and
-  libstdc++ into `/opt/omni-accelerant-catcam`, and wraps that in a `.deb` and
+  libstdc++ into `/opt/omni-observant`, and wraps that in a `.deb` and
   an AppImage. The web build goes in without the `wimp` and `webparagraph`
   renderers and the `*.symbols` maps, which no browser fetches from it (the script
   stops if `flutter_bootstrap.js`'s load call ever asks for either), and the
   producer's `--precompress` puts a zopfli `.gz` beside each file the server gzips
   (2026-10-12). The `.deb` carries a systemd unit, enabled at install, and a ufw
   profile. The AppImage's `--install` sets up the same through
-  `catcam/catcam-install`, whose `setup` step the `.deb`'s `postinst` calls too.
-  **`/etc/omni-accelerant/catcam.toml` is not a conffile, on purpose.** `setup`
-  writes it only when it is absent, `640 root:omni-catcam`, since a `notify_url` can hold a
+  `package/observant-install`, whose `setup` step the `.deb`'s `postinst` calls too.
+  **`/etc/omni-accelerant/observant.toml` is not a conffile, on purpose.** `setup`
+  writes it only when it is absent, `640 root:omni-observant`, since a `notify_url` can hold a
   webhook secret, and takes other users' read off an older, world-readable one. As a conffile, an edited copy stopped the
   next upgrade at dpkg's keep-or-replace prompt, which hangs over SSH. The unit is
   sandboxed (`systemd-analyze security` 1.8, from 8.7); its comment names what stays open
@@ -193,39 +193,39 @@ Two upstream facts repeated here only because they bite before you reach a doc:
   It runs in `:latest`
   with `--web-root` naming the web lane's `build/web`, **privileged**, because it also
   builds a flatpak and `flatpak-builder` needs bubblewrap.
-  - The flatpak puts the same bundle in `/app/catcam` on the image's freedesktop runtime.
-  - Its command is `catcam/flatpak-omni-catcam`: a per-user `catcam.toml`, and a sign-in
+  - The flatpak puts the same bundle in `/app/observant` on the image's freedesktop runtime.
+  - Its command is `package/flatpak-omni-observant`: a per-user `observant.toml`, and a sign-in
     autostart entry that `--autostart off|on` switches.
   - It has no boot service and no Pi camera, since the sandbox cannot see `rpicam-vid`.
-  - `test-catcam-package.sh` installs it system-wide as root, because a user install
+  - `test-observant-package.sh` installs it system-wide as root, because a user install
     needs a D-Bus the container lacks.
   - On riscv64 it builds the `.deb` and the tarball only, natively on the board in the
     riscv64 `:latest` (a 16 KiB-page Pi cannot emulate it): the freedesktop runtime has no
     riscv64 build and no AppImage runtime is staged for one. No CI lane builds it.
 
-  `catcam/*` is pinned to LF in `.gitattributes`, because those files land on the
+  `package/*` is pinned to LF in `.gitattributes`, because those files land on the
   target verbatim.
-  Detail: `docs/source/camera-streaming.md` § *The cat cam package*.
-- `scripts/windows/cat-stream/` — the Windows cat cam, built and tested in `:winamd64`
+  Detail: `docs/source/camera-streaming.md` § *The ObservANT package*.
+- `scripts/windows/observant/` — the Windows ObservANT, built and tested in `:winamd64`
   (2026-10-06).
-  - `Package-CatCam.ps1` builds one install folder, the zip and the MSI around it
-    (`catcam.wxs` through the hub's `Invoke-MsiPackage`).
+  - `Package-ObservANT.ps1` builds one install folder, the zip and the MSI around it
+    (`observant.wxs` through the hub's `Invoke-MsiPackage`).
     - Its DLL closure comes from the hub's `Copy-PeImportClosure`, plus the VC++ runtime.
     - The ORT comes from `Copy-ChainOrtBeside`, and `New-OrtProvenPayload` proves it.
     - The MSI's logon autostart is an all-users Startup-folder shortcut.
     - Its firewall rule is LAN-only and bound to the exe. It needs WiX's firewall
       extension, which the hub's final stage installs.
     - `-Msix` packs the same folder as an MSIX (`AppxManifest.xml`): a startup task, the
-      `omni-catcam` alias, and port rules for private and domain networks. It is signed
+      `omni-observant` alias, and port rules for private and domain networks. It is signed
       by `-MsixPfx`, or else by a per-build test certificate whose `.cer` lands beside
       it. An unsigned result fails the build, because the hub's signing step only warns.
-  - `Test-CatCamMsix.ps1` reads the MSIX anywhere. With `-Install` it deploys and runs
+  - `Test-ObservANTMsix.ps1` reads the MSIX anywhere. With `-Install` it deploys and runs
     the package on a desktop host, which Server Core cannot do (`0x80073D19`).
-  - `Test-CatCamWindows.ps1` installs the MSI and runs the exe with a scrubbed
+  - `Test-ObservANTWindows.ps1` installs the MSI and runs the exe with a scrubbed
     environment.
   - On Windows the exe finds its plugins, ORT and model itself (OxidANT `install.rs`).
   - **openh264 is a required plugin on Windows**, because the image builds no `vpx`.
-  - Detail: `docs/source/camera-streaming.md` § *The Windows cat cam*.
+  - Detail: `docs/source/camera-streaming.md` § *The Windows ObservANT*.
 
 **Deliberately not reused.** Two upstream Windows pieces were evaluated and
 rejected — `WindowsAppRunner.Common` (its executable probe would launch the
@@ -290,8 +290,8 @@ Everything here is false or meaningless in another repo — that is why it is
 written out rather than linked.
 
 - **Three scripts print a fixed line range of their own header as `--help`.**
-  `scripts/linux/cat-stream/package-producer-bundle.sh` (`sed -n '2,22p'`),
-  `scripts/linux/cat-stream/package-catcam.sh` (`sed -n '2,15p'`) and
+  `scripts/linux/observant/package-producer-bundle.sh` (`sed -n '2,22p'`),
+  `scripts/linux/observant/package-observant.sh` (`sed -n '2,15p'`) and
   `scripts/agentic-loop/Run-AgenticLoop.sh` (`head -30 | tail -28`): edit the
   header and the range together.
 - **The two bootstrap copies are body-mode assets.** Below their header,
@@ -400,12 +400,12 @@ written out rather than linked.
   importers.** OxidANT's loader (`ort_runtime.rs`) keeps
   `/opt/onnxruntime/onnxruntime/core/` (Windows: `C:\temp\onnx-src\onnxruntime\core\`)
   as a string, to check the ORT it loads. So `liboxidant.so`, `oxidant.dll` and
-  the cat producer `kataglyphis_cat_webrtc` carry it, and G6 must take only a
+  the cat producer `kataglyphis_observant` carry it, and G6 must take only a
   whole NUL-terminated `__FILE__` source path as an ORT fingerprint. A hub census
   that counts the bare directory calls them ORT builds and fails correct output:
   the native lane's bundle checks (`UNPROVEN /lib/liboxidant.so -- an ORT-named
   binary with no source fingerprint`, run 35928030957), the Pi bundle's G6 in
-  `scripts/linux/cat-stream/package-producer-bundle.sh`, and the Windows runner's
+  `scripts/linux/observant/package-producer-bundle.sh`, and the Windows runner's
   G6 at build and at launch (there `oxidant.dll` reads as a `STALE` chain-rooted
   ORT). All three run **this
   repo's** hub pin, so the cure is the pin, never OxidANT: the classifier was
@@ -775,7 +775,7 @@ written out rather than linked.
   each board carries a local `~/cat-cam.sh start|stop|status` for that. A board
   that should come up on boot gets a systemd unit whose `ExecStart` is the
   script (the Zero has `cat-cam.service`, oneshot + `RemainAfterExit`); the
-  boards that run the cat cam package use its own unit instead. `start` removes a stale container first — one
+  boards that run ObservANT package use its own unit instead. `start` removes a stale container first — one
   left in `Created` state after a crash blocks the named run with
   `name-store error` and would fail the boot start. Hand-set ACLs die with
   re-enumerated device nodes (the X100's C270 re-plug did exactly that), so
@@ -1046,15 +1046,15 @@ cell is a test that cannot run there, and the reason is under the table.
 | APK ABI gate (`check-apk-abi.sh`) and its synthetic-APK suite | | | | yes | |
 | `liboxidant`'s rustc stamp (`check-rust-toolchain.sh`) and its suite | yes | | | yes, in the APK | |
 | APK on the emulator, 20 s (`check-apk-on-emulator.sh`) and its stub suite | | | | yes, API 35 x86_64 + ARM translation, on KVM | |
-| Cat cam .deb, AppImage and flatpak install checks (`test-catcam-package.sh`) | | | | | in `web.yml`'s `catcam` jobs, x64 and arm64 |
-| Cat cam MSI install checks (`Test-CatCamWindows.ps1`) | | | | | in `web.yml`'s `catcam-windows` job, in `:winamd64` |
-| Cat cam MSIX package checks (`Test-CatCamMsix.ps1`, without `-Install`) | | | | | in `web.yml`'s `catcam-windows` job, in `:winamd64` |
+| ObservANT .deb, AppImage and flatpak install checks (`test-observant-package.sh`) | | | | | in `web.yml`'s `observant` jobs, x64 and arm64 |
+| ObservANT MSI install checks (`Test-ObservANTWindows.ps1`) | | | | | in `web.yml`'s `observant-windows` job, in `:winamd64` |
+| ObservANT MSIX package checks (`Test-ObservANTMsix.ps1`, without `-Install`) | | | | | in `web.yml`'s `observant-windows` job, in `:winamd64` |
 
 - Android and Web build no desktop runner, so the desktop rows do not apply
   there; Android adds the plugin's JVM test and the emulator run. The image carries
   the emulator and Chrome (hub CON50, owner 2026-10-01); `android.yml` opens
   `/dev/kvm` to the container and boots the AVD with `android-avd.sh` (since 2026-10-06).
-- The cat cam checks live with the cat cam packages, which only `web.yml` builds,
+- ObservANT checks live with ObservANT packages, which only `web.yml` builds,
   since they wrap its web build. They run as root in `:latest` and drive headless
   Chrome against the installed service. The MSI's run in `:winamd64` as
   ContainerAdministrator, where a `webrtcsrc` viewer plays the installed exe.

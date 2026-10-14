@@ -1,13 +1,13 @@
 #requires -Version 7.0
 <#
 .SYNOPSIS
-    Installs the Windows cat cam MSI the way a user does and checks what it promises; inside :winamd64, as admin.
+    Installs the Windows ObservANT MSI the way a user does and checks what it promises; inside :winamd64, as admin.
 .DESCRIPTION
     Each check prints PASS or FAIL; the exit code is the number of failures. The installed exe runs with a scrubbed
     environment (System32 on PATH, no GST_*, ORT_* or KATAGLYPHIS_*) and must load every module from its install
     folder or Windows itself, idle and while a webrtcsrc viewer decodes its stream.
 .PARAMETER Msi
-    The omni-accelerant-catcam-<version>-windows-<arch>.msi to test; a wildcard naming exactly one file works too.
+    The omni-observant-<version>-windows-<arch>.msi to test; a wildcard naming exactly one file works too.
 .PARAMETER Photo
     A photo with a cat in it, for the model check.
 #>
@@ -18,11 +18,11 @@ param(
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 
-$product = 'OmniAccelerANT Cat Cam'
+$product = 'ObservANT'
 $prefix = Join-Path $env:ProgramFiles $product
-$exe = Join-Path $prefix 'kataglyphis_cat_webrtc.exe'
+$exe = Join-Path $prefix 'kataglyphis_observant.exe'
 $startup = Join-Path $env:ProgramData "Microsoft\Windows\Start Menu\Programs\StartUp\$product.lnk"
-$work = Join-Path $env:TEMP "catcam-test-$PID"
+$work = Join-Path $env:TEMP "observant-test-$PID"
 $null = New-Item -ItemType Directory -Force -Path $work
 $script:failures = 0
 $msis = @(Get-ChildItem -Path $Msi -File)
@@ -123,8 +123,8 @@ Test-Check 'the exe, its plugins, the model and the page are installed' {
     (Test-Path (Join-Path $prefix 'onnxruntime.dll'))
 }
 Test-Check 'the all-users Startup folder starts it at logon' { Test-Path $startup }
-Test-Check 'the Start menu has Cat Cam and its page' {
-    Test-Path (Join-Path $env:ProgramData "Microsoft\Windows\Start Menu\Programs\$product\Cat Cam page.lnk")
+Test-Check 'the Start menu has ObservANT and its page' {
+    Test-Path (Join-Path $env:ProgramData "Microsoft\Windows\Start Menu\Programs\$product\ObservANT page.lnk")
 }
 if ($firewallOn) {
     Test-Check 'Windows Firewall lets the local subnet reach the exe' {
@@ -143,7 +143,7 @@ $foreign = @(Get-ForeignModule -Process $svc.Process)
 if ($foreign) { Write-Host "      outside: $($foreign -join ', ')" }
 Test-Check 'idle, it loads modules only from the install and Windows' { $foreign.Count -eq 0 }
 
-# The image's GStreamer plays the viewer; only the cat cam side runs from the install.
+# The image's GStreamer plays the viewer; only ObservANT side runs from the install.
 $viewer = Start-Process gst-launch-1.0 -ArgumentList '-e', 'webrtcsrc', 'signaller::uri=ws://127.0.0.1:8443', 'connect-to-first-producer=true', '!', 'video/x-raw', '!', 'queue', '!', 'identity', 'eos-after=60', '!', 'fakesink' `
     -PassThru -NoNewWindow -RedirectStandardOutput (Join-Path $work 'viewer-out.log') -RedirectStandardError (Join-Path $work 'viewer-err.log')
 $null = $viewer.Handle

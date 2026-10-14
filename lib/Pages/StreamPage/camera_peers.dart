@@ -2,11 +2,11 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:omni_accelerant/l10n/app_localizations.dart';
-import 'package:omni_accelerant/Pages/StreamPage/cat_status.dart';
+import 'package:omni_accelerant/Pages/StreamPage/detection_status.dart';
 import 'package:omni_accelerant/utils/json_utils.dart';
 import 'package:url_launcher/link.dart';
 
-/// [url]'s picture, 160 px wide; nothing while the other cat cam does not answer.
+/// [url]'s picture, 160 px wide; nothing while the other ObservANT does not answer.
 Widget peerPicture(String url) => Image.network(
   url,
   width: 160,
@@ -14,9 +14,9 @@ Widget peerPicture(String url) => Image.network(
   errorBuilder: (_, _, _) => const SizedBox.shrink(),
 );
 
-/// The other cat cams this one names in `/healthz` (`peers`), each with its picture and its cat.
-class CatCamPeers extends StatefulWidget {
-  const CatCamPeers({
+/// The other ObservANT cameras this one names in `/healthz` (`peers`), each with its picture and its cat.
+class CameraPeers extends StatefulWidget {
+  const CameraPeers({
     super.key,
     required this.fetchOwn,
     required this.fetchFrom,
@@ -24,24 +24,24 @@ class CatCamPeers extends StatefulWidget {
     this.picture = peerPicture,
   });
 
-  /// This cat cam's `/healthz`, which names the others.
+  /// This ObservANT's `/healthz`, which names the others.
   final Future<String?> Function() fetchOwn;
 
-  /// A GET to another cat cam; it answers this page only when it lists this one as a peer too.
+  /// A GET to another ObservANT; it answers this page only when it lists this one as a peer too.
   final Future<String?> Function(String url) fetchFrom;
   final Duration interval;
   final Widget Function(String url) picture;
 
   @override
-  State<CatCamPeers> createState() => _CatCamPeersState();
+  State<CameraPeers> createState() => _CameraPeersState();
 }
 
-class _CatCamPeersState extends State<CatCamPeers> {
+class _CameraPeersState extends State<CameraPeers> {
   List<String> _peers = const <String>[];
 
-  /// The own cat cam answered: its peers come from its config, so it is not asked again.
+  /// The own ObservANT answered: its peers come from its config, so it is not asked again.
   bool _knowsPeers = false;
-  final Map<String, CatStatus?> _status = <String, CatStatus?>{};
+  final Map<String, DetectionStatus?> _status = <String, DetectionStatus?>{};
   int _tick = 0;
   Timer? _timer;
 
@@ -69,12 +69,12 @@ class _CatCamPeersState extends State<CatCamPeers> {
     var peers = _peers;
     if (!_knowsPeers) {
       final own = await fetchOrNull(widget.fetchOwn);
-      final status = own == null ? null : CatStatus.fromHealthz(own);
+      final status = own == null ? null : DetectionStatus.fromHealthz(own);
       if (status != null) {
         _knowsPeers = true;
         peers = status.peers;
         if (peers.isEmpty) {
-          // A cat cam without peers has no overview to refresh.
+          // An ObservANT camera without peers has no overview to refresh.
           _timer?.cancel();
         }
       }
@@ -95,7 +95,7 @@ class _CatCamPeersState extends State<CatCamPeers> {
           for (final (i, peer) in peers.indexed)
             peer: answers[i] == null
                 ? null
-                : CatStatus.fromHealthz(answers[i]!),
+                : DetectionStatus.fromHealthz(answers[i]!),
         });
     });
   }
@@ -118,7 +118,7 @@ class _CatCamPeersState extends State<CatCamPeers> {
       spacing: 8,
       children: [
         Text(
-          l10n.catOtherCameras,
+          l10n.observantOthers,
           style: Theme.of(context).textTheme.titleMedium,
         ),
         Wrap(
@@ -134,11 +134,11 @@ class _CatCamPeersState extends State<CatCamPeers> {
                   '${_origin(peer)}/snapshot.jpg?n=$_tick',
                 ),
                 line: switch (_status[peer]) {
-                  final status? => catLine(l10n, status, now, locale),
+                  final status? => detectionLine(l10n, status, now, locale),
                   null => (
                     Icons.cloud_off,
                     Colors.orange,
-                    l10n.catPeerUnreachable,
+                    l10n.observantPeerUnreachable,
                   ),
                 },
               ),
@@ -158,7 +158,7 @@ class _PeerCard extends StatelessWidget {
   });
 
   final String origin;
-  final CatStatus? status;
+  final DetectionStatus? status;
   final Widget picture;
   final (IconData, Color?, String) line;
 

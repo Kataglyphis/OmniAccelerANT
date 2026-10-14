@@ -2,7 +2,7 @@
 
 This guide takes you from clone to a working local setup.
 
-Only want the cat cam? It comes as a package (`.deb`, AppImage, flatpak, Windows MSI): take
+Only want ObservANT? It comes as a package (`.deb`, AppImage, flatpak, Windows MSI): take
 one from a `web.yml` run's artifacts (GitHub sign-in needed) or build it with one script,
 [README](../../README.md#live-cat-detection-stream-linux--raspberry-pi).
 

@@ -1,4 +1,4 @@
-/// The 80 COCO classes the cat cam's models detect, in their class-id order; the Camera page offers them.
+/// The 80 COCO classes ObservANT's models detect, in their class-id order; the Camera page offers them.
 const List<String> cocoClasses = <String>[
   'person',
   'bicycle',
@@ -81,3 +81,99 @@ const List<String> cocoClasses = <String>[
   'hair drier',
   'toothbrush',
 ];
+
+/// [cocoClasses] in German, in the same order.
+const List<String> _cocoClassesDe = <String>[
+  'Person',
+  'Fahrrad',
+  'Auto',
+  'Motorrad',
+  'Flugzeug',
+  'Bus',
+  'Zug',
+  'Lastwagen',
+  'Boot',
+  'Ampel',
+  'Hydrant',
+  'Stoppschild',
+  'Parkuhr',
+  'Bank',
+  'Vogel',
+  'Katze',
+  'Hund',
+  'Pferd',
+  'Schaf',
+  'Kuh',
+  'Elefant',
+  'Bär',
+  'Zebra',
+  'Giraffe',
+  'Rucksack',
+  'Regenschirm',
+  'Handtasche',
+  'Krawatte',
+  'Koffer',
+  'Frisbee',
+  'Ski',
+  'Snowboard',
+  'Ball',
+  'Drachen',
+  'Baseballschläger',
+  'Baseballhandschuh',
+  'Skateboard',
+  'Surfbrett',
+  'Tennisschläger',
+  'Flasche',
+  'Weinglas',
+  'Tasse',
+  'Gabel',
+  'Messer',
+  'Löffel',
+  'Schüssel',
+  'Banane',
+  'Apfel',
+  'Sandwich',
+  'Orange',
+  'Brokkoli',
+  'Karotte',
+  'Hotdog',
+  'Pizza',
+  'Donut',
+  'Kuchen',
+  'Stuhl',
+  'Sofa',
+  'Topfpflanze',
+  'Bett',
+  'Esstisch',
+  'Toilette',
+  'Fernseher',
+  'Laptop',
+  'Maus',
+  'Fernbedienung',
+  'Tastatur',
+  'Handy',
+  'Mikrowelle',
+  'Ofen',
+  'Toaster',
+  'Spüle',
+  'Kühlschrank',
+  'Buch',
+  'Uhr',
+  'Vase',
+  'Schere',
+  'Teddybär',
+  'Föhn',
+  'Zahnbürste',
+];
+
+/// How the page names COCO class [coco]: German where [languageCode] is `de`, else the COCO name.
+String classLabel(String coco, String languageCode) {
+  final i = cocoClasses.indexOf(coco);
+  return languageCode == 'de' && i >= 0 ? _cocoClassesDe[i] : coco;
+}
+
+/// The watched [classes] as one label, `Katze / Hund`, its first letter upper case.
+String watchedLabel(List<String> classes, String languageCode) {
+  final label = classes.map((c) => classLabel(c, languageCode)).join(' / ');
+  return label.isEmpty ? label : label[0].toUpperCase() + label.substring(1);
+}

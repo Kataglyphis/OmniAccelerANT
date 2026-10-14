@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='utf-8'?>
-<!-- The Windows cat cam MSI; Package-CatCam.ps1 builds it through the hub's Invoke-MsiPackage, which passes every moving value with -d. -->
+<!-- The Windows ObservANT MSI; Package-ObservANT.ps1 builds it through the hub's Invoke-MsiPackage, which passes every moving value with -d. -->
 <Wix xmlns='http://wixtoolset.org/schemas/v4/wxs'
      xmlns:fw='http://wixtoolset.org/schemas/v4/wxs/firewall'
      xmlns:ui='http://wixtoolset.org/schemas/v4/wxs/ui'>
@@ -17,7 +17,7 @@
         Scope='perMachine'>
 
         <SummaryInformation
-            Description='The cat cam: camera, YOLO cat boxes and a WebRTC stream for any browser on the network'
+            Description='ObservANT: camera, YOLO boxes (cats by default) and a WebRTC stream for any browser on the network'
             Manufacturer='$(var.Manufacturer)'
             Codepage='1252'/>
 
@@ -36,46 +36,46 @@
                 <File Id='LicenseFile' Name='License.rtf' Source='$(var.LicenseRtf)' KeyPath='yes'/>
             </Component>
             <Component Id='Exe' Bitness='always64'>
-                <File Id='exe0' Name='kataglyphis_cat_webrtc.exe' Source='$(var.ExeSource)' KeyPath='yes'>
-                    <!-- Bound to the exe, not to ports, so http_port and the ICE range follow catcam.toml; IgnoreFailure keeps a host without the firewall service installable. -->
-                    <fw:FirewallException Id='CatCamFirewall' Name='$(var.ProductName)' Scope='localSubnet' IgnoreFailure='yes'
-                        Description='The cat cam page and its WebRTC media, for browsers on the local network'/>
+                <File Id='exe0' Name='kataglyphis_observant.exe' Source='$(var.ExeSource)' KeyPath='yes'>
+                    <!-- Bound to the exe, not to ports, so http_port and the ICE range follow observant.toml; IgnoreFailure keeps a host without the firewall service installable. -->
+                    <fw:FirewallException Id='ObservANTFirewall' Name='$(var.ProductName)' Scope='localSubnet' IgnoreFailure='yes'
+                        Description='ObservANT page and its WebRTC media, for browsers on the local network'/>
                 </File>
             </Component>
         </DirectoryRef>
 
         <DirectoryRef Id='ApplicationProgramsFolder'>
             <Component Id='StartMenu' Bitness='always64'>
-                <Shortcut Id='StartMenuCatCam' Name='Cat Cam' Description='Starts the cat cam; its page is http://localhost:8080/'
+                <Shortcut Id='StartMenuObservANT' Name='ObservANT' Description='Starts ObservANT; its page is http://localhost:8080/'
                     Target='[!exe0]' WorkingDirectory='APPLICATIONFOLDER' Show='minimized'/>
-                <Shortcut Id='StartMenuPage' Name='Cat Cam page' Description='Opens the cat cam in the browser'
+                <Shortcut Id='StartMenuPage' Name='ObservANT page' Description='Opens ObservANT in the browser'
                     Target='[WindowsFolder]explorer.exe' Arguments='http://localhost:8080/'/>
                 <RemoveFolder Id='RemoveStartMenuFolder' On='uninstall'/>
-                <RegistryValue Root='HKLM' Key='Software\Kataglyphis\OmniAccelerANT Cat Cam' Name='StartMenu' Type='integer' Value='1' KeyPath='yes'/>
+                <RegistryValue Root='HKLM' Key='Software\Kataglyphis\ObservANT' Name='StartMenu' Type='integer' Value='1' KeyPath='yes'/>
             </Component>
         </DirectoryRef>
 
-        <!-- With Scope perMachine (ALLUSERS=1) this is the all-users Startup folder: every logon starts the cat cam, in that user's session. -->
+        <!-- With Scope perMachine (ALLUSERS=1) this is the all-users Startup folder: every logon starts ObservANT, in that user's session. -->
         <StandardDirectory Id='StartupFolder'>
             <Component Id='StartAtLogon' Bitness='always64'>
-                <Shortcut Id='StartupCatCam' Name='$(var.ProductName)' Description='Starts the cat cam at logon'
+                <Shortcut Id='StartupObservANT' Name='$(var.ProductName)' Description='Starts ObservANT at logon'
                     Target='[!exe0]' WorkingDirectory='APPLICATIONFOLDER' Show='minimized'/>
-                <RegistryValue Root='HKLM' Key='Software\Kataglyphis\OmniAccelerANT Cat Cam' Name='StartAtLogon' Type='integer' Value='1' KeyPath='yes'/>
+                <RegistryValue Root='HKLM' Key='Software\Kataglyphis\ObservANT' Name='StartAtLogon' Type='integer' Value='1' KeyPath='yes'/>
             </Component>
         </StandardDirectory>
 
-        <Feature Id='CatCam' Title='Cat cam' Description='The cat cam and everything it runs on.' Level='1'
+        <Feature Id='ObservANT' Title='ObservANT' Description='ObservANT and everything it runs on.' Level='1'
             ConfigurableDirectory='APPLICATIONFOLDER' AllowAdvertise='no' Display='expand' AllowAbsent='no'>
             <ComponentRef Id='License'/>
             <ComponentRef Id='Exe'/>
             <?ifdef PayloadFiles?>
             <ComponentGroupRef Id='PayloadFiles'/>
             <?endif?>
-            <Feature Id='StartMenuFeature' Title='Start menu shortcuts' Description='Cat Cam, and Cat Cam page for the browser.' Level='1' AllowAbsent='yes'>
+            <Feature Id='StartMenuFeature' Title='Start menu shortcuts' Description='ObservANT, and ObservANT page for the browser.' Level='1' AllowAbsent='yes'>
                 <ComponentRef Id='StartMenu'/>
             </Feature>
             <Feature Id='StartAtLogonFeature' Title='Start at logon'
-                Description='Starts the cat cam at every logon. Turn it off here, or later in Task Manager under Startup apps.' Level='1' AllowAbsent='yes'>
+                Description='Starts ObservANT at every logon. Turn it off here, or later in Task Manager under Startup apps.' Level='1' AllowAbsent='yes'>
                 <ComponentRef Id='StartAtLogon'/>
             </Feature>
         </Feature>

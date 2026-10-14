@@ -12,17 +12,17 @@
 
 scripts/linux/lib/container-steps.sh	maybe_truthy
 
-# test-catcam-package.sh: pure predicates, each called only as `check NAME <predicate>`, i.e. `if "$@"`,
+# test-observant-package.sh: pure predicates, each called only as `check NAME <predicate>`, i.e. `if "$@"`,
 # in a script without set -e. Their false answer is a FAIL line the script counts; returning 1 is the contract.
-scripts/linux/cat-stream/test-catcam-package.sh	log_lacks
-scripts/linux/cat-stream/test-catcam-package.sh	purged
-scripts/linux/cat-stream/test-catcam-package.sh	unit_masked
-scripts/linux/cat-stream/test-catcam-package.sh	unit_enabled_unmasked
-scripts/linux/cat-stream/test-catcam-package.sh	plain_install_refused
-scripts/linux/cat-stream/test-catcam-package.sh	appimage_installed
-scripts/linux/cat-stream/test-catcam-package.sh	installed_copy_refuses
-scripts/linux/cat-stream/test-catcam-package.sh	uninstalled
-scripts/linux/cat-stream/test-catcam-package.sh	flatpak_gone
-scripts/linux/cat-stream/test-catcam-package.sh	jpeg_at
-scripts/linux/cat-stream/test-catcam-package.sh	template_keys_parse
-scripts/linux/cat-stream/test-catcam-package.sh	unit_verifies
+scripts/linux/observant/test-observant-package.sh	log_lacks
+scripts/linux/observant/test-observant-package.sh	purged
+scripts/linux/observant/test-observant-package.sh	unit_masked
+scripts/linux/observant/test-observant-package.sh	unit_enabled_unmasked
+scripts/linux/observant/test-observant-package.sh	plain_install_refused
+scripts/linux/observant/test-observant-package.sh	appimage_installed
+scripts/linux/observant/test-observant-package.sh	installed_copy_refuses
+scripts/linux/observant/test-observant-package.sh	uninstalled
+scripts/linux/observant/test-observant-package.sh	flatpak_gone
+scripts/linux/observant/test-observant-package.sh	jpeg_at
+scripts/linux/observant/test-observant-package.sh	template_keys_parse
+scripts/linux/observant/test-observant-package.sh	unit_verifies

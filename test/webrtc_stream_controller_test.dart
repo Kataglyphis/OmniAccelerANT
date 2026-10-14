@@ -256,7 +256,7 @@ void main() {
       controller.pageHidden(false);
       await tester.pump(const Duration(seconds: 60));
       expect(client.sessions.single.closed, isFalse);
-      // A minute away closes it, so the cat cam stops encoding for nobody.
+      // A minute away closes it, so ObservANT stops encoding for nobody.
       controller.pageHidden(true);
       await tester.pump(const Duration(seconds: 61));
       expect(client.sessions.single.closed, isTrue);

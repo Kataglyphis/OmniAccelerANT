@@ -3,5 +3,5 @@
 # third_party/ANTfrastructure/docs/code-quality-tooling.md#comment-size-comment-size
 
 scripts/agentic-loop/Run-AgenticLoop.sh	# ──────────────────────────────────────────────────────────
-scripts/linux/cat-stream/package-producer-bundle.sh	# Packages a self-contained aarch64 runtime bundle of the ca
-scripts/linux/cat-stream/package-catcam.sh	# Packages the cat cam: a self-contained bundle (its own GSt
+scripts/linux/observant/package-producer-bundle.sh	# Packages a self-contained aarch64 runtime bundle of the ca
+scripts/linux/observant/package-observant.sh	# Packages ObservANT: a self-contained bundle (its own GStre

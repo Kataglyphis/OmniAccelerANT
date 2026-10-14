@@ -7,7 +7,7 @@ import 'package:omni_accelerant/l10n/app_localizations.dart';
 import 'package:omni_accelerant/utils/json_utils.dart';
 import 'package:omni_accelerant/Pages/StreamPage/stream_controller.dart';
 
-/// The cat cam's own numbers, from `/healthz`'s `stats`; a field it cannot measure is `null`.
+/// ObservANT's own numbers, from `/healthz`'s `stats`; a field it cannot measure is `null`.
 @immutable
 class ServerStats {
   const ServerStats({
@@ -38,7 +38,7 @@ class ServerStats {
   final Duration? uptime;
   final int? viewers;
 
-  /// `null` for anything but a cat cam's `/healthz` that carries `stats`.
+  /// `null` for anything but an ObservANT camera's `/healthz` that carries `stats`.
   static ServerStats? fromHealthz(String? body) {
     final json = decodeJsonObject(body);
     final stats = json?['stats'];
@@ -65,7 +65,7 @@ class ServerStats {
   }
 }
 
-/// A "Stats" button that opens a panel of geeky numbers: the cat cam's from `/healthz`, refreshed
+/// A "Stats" button that opens a panel of geeky numbers: ObservANT's from `/healthz`, refreshed
 /// every [interval] while open, and the browser's own from [playback].
 class DevStatsPanel extends StatefulWidget {
   const DevStatsPanel({

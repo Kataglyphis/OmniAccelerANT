@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- The cat cam's MSIX; Package-CatCam.ps1 -Msix fills the __TOKENS__ through the hub's Invoke-MsixPackage. -->
+<!-- ObservANT's MSIX; Package-ObservANT.ps1 -Msix fills the __TOKENS__ through the hub's Invoke-MsixPackage. -->
 <Package
   xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
   xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
@@ -9,10 +9,10 @@
   xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
   IgnorableNamespaces="uap uap3 desktop desktop2 rescap">
 
-  <Identity Name="Kataglyphis.OmniAccelerANTCatCam" Publisher="__PUBLISHER__" Version="__VERSION__" ProcessorArchitecture="__ARCH__"/>
+  <Identity Name="Kataglyphis.OmniAccelerANTObservANT" Publisher="__PUBLISHER__" Version="__VERSION__" ProcessorArchitecture="__ARCH__"/>
 
   <Properties>
-    <DisplayName>OmniAccelerANT Cat Cam</DisplayName>
+    <DisplayName>ObservANT</DisplayName>
     <PublisherDisplayName>Kataglyphis</PublisherDisplayName>
     <Logo>Assets\StoreLogo.png</Logo>
   </Properties>
@@ -26,20 +26,20 @@
   </Resources>
 
   <Applications>
-    <Application Id="CatCam" Executable="kataglyphis_cat_webrtc.exe" EntryPoint="Windows.FullTrustApplication">
-      <uap:VisualElements DisplayName="Cat Cam" Description="Camera, YOLO cat boxes and a WebRTC stream for any browser on the network; the page is http://localhost:8080/"
+    <Application Id="ObservANT" Executable="kataglyphis_observant.exe" EntryPoint="Windows.FullTrustApplication">
+      <uap:VisualElements DisplayName="ObservANT" Description="Camera, YOLO boxes (cats by default) and a WebRTC stream for any browser on the network; the page is http://localhost:8080/"
         BackgroundColor="transparent" Square150x150Logo="Assets\Square150x150Logo.png" Square44x44Logo="Assets\Square44x44Logo.png">
         <uap:DefaultTile Wide310x150Logo="Assets\Wide310x150Logo.png"/>
       </uap:VisualElements>
       <Extensions>
         <!-- The MSI's Startup-folder entry, as Windows' own startup task; Task Manager's Startup apps turns it off. -->
-        <desktop:Extension Category="windows.startupTask" Executable="kataglyphis_cat_webrtc.exe" EntryPoint="Windows.FullTrustApplication">
-          <desktop:StartupTask TaskId="CatCamAtLogon" Enabled="true" DisplayName="OmniAccelerANT Cat Cam"/>
+        <desktop:Extension Category="windows.startupTask" Executable="kataglyphis_observant.exe" EntryPoint="Windows.FullTrustApplication">
+          <desktop:StartupTask TaskId="ObservANTAtLogon" Enabled="true" DisplayName="ObservANT"/>
         </desktop:Extension>
-        <!-- The Linux packages' command name, so omni-catcam and its flags work from any shell. -->
-        <uap3:Extension Category="windows.appExecutionAlias" Executable="kataglyphis_cat_webrtc.exe" EntryPoint="Windows.FullTrustApplication">
+        <!-- The Linux packages' command name, so omni-observant and its flags work from any shell. -->
+        <uap3:Extension Category="windows.appExecutionAlias" Executable="kataglyphis_observant.exe" EntryPoint="Windows.FullTrustApplication">
           <uap3:AppExecutionAlias>
-            <desktop:ExecutionAlias Alias="omni-catcam.exe"/>
+            <desktop:ExecutionAlias Alias="omni-observant.exe"/>
           </uap3:AppExecutionAlias>
         </uap3:Extension>
       </Extensions>
@@ -49,7 +49,7 @@
   <!-- MSIX rules take ports and profiles, not a remote scope: the default http_port and ICE range on private and domain networks, where the MSI says LocalSubnet. -->
   <Extensions>
     <desktop2:Extension Category="windows.firewallRules">
-      <desktop2:FirewallRules Executable="kataglyphis_cat_webrtc.exe">
+      <desktop2:FirewallRules Executable="kataglyphis_observant.exe">
         <desktop2:Rule Direction="in" IPProtocol="TCP" Profile="domainAndPrivate" LocalPortMin="8080" LocalPortMax="8080"/>
         <desktop2:Rule Direction="in" IPProtocol="UDP" Profile="domainAndPrivate" LocalPortMin="40000" LocalPortMax="40099"/>
       </desktop2:FirewallRules>

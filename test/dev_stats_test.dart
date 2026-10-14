@@ -30,7 +30,7 @@ Future<void> _pumpPanel(
 
 void main() {
   group('ServerStats.fromHealthz', () {
-    test('reads every number the cat cam reports', () {
+    test('reads every number ObservANT reports', () {
       final stats = ServerStats.fromHealthz(_healthz)!;
       expect(stats.captureFps, 29.8);
       expect(stats.configuredFps, 30);
@@ -45,7 +45,7 @@ void main() {
       expect(stats.viewers, 1);
     });
 
-    test('a number the cat cam cannot measure stays null', () {
+    test('a number ObservANT cannot measure stays null', () {
       final stats = ServerStats.fromHealthz(
         '{"ok":true,"stats":{"capture_fps":30,"temperature_c":null}}',
       )!;

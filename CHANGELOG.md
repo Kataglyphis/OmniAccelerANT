@@ -114,6 +114,24 @@ What landed on `develop` after 2.0.0+2. Most of it is the cat cam, whose guide i
 
 ### Changed
 
+- **The cat cam is ObservANT** (2026-10-14, the owner's name): a general detector for which
+  cats are the default (`classes`, the Camera page's "What it detects"). The package is
+  `omni-observant` in `/opt/omni-observant`, the service and user `omni-observant`, the
+  settings `/etc/omni-accelerant/observant.toml`, the state `/var/lib/omni-observant`, the
+  firewall profile `OmniObservANT`, the flatpak `org.kataglyphis.omni-observant`, the Windows
+  MSI and MSIX `ObservANT` (the MSI keeps its upgrade code). Scripts moved to
+  `scripts/linux/observant/` (`package-observant.sh`, `test-observant-package.sh`,
+  `package/`) and `scripts/windows/observant/`; `web.yml`'s jobs are `observant` and
+  `observant-windows`. `/healthz`'s `cat` is `detection`; the page reads both.
+  - **The upgrade is in place.** The .deb replaces and conflicts with
+    `omni-accelerant-catcam`, so `dpkg -i` removes the old package, and its setup takes over
+    `catcam.toml`, `/var/lib/omni-accelerant-catcam` (visits, photos, clips, page settings)
+    and an allowed `OmniCatCam` firewall rule; the old copies stay. An AppImage install from
+    before is stopped and removed. The package test plants such an install and checks it.
+  - **The page speaks of what it watches:** "Katze / Hund im Bild", "Zuletzt gesehen",
+    "Fehlalarm" instead of "Keine Katze", "Andere Kameras"; the class names in German on the
+    German page.
+
 - **The cat cam needs a fraction of the CPU** (2026-10-11/12, measured on a Pi 5).
   - ONNX Runtime runs on two threads that sleep between runs, not four that spin: 131 %
     to 70 % of a core on the live camera.

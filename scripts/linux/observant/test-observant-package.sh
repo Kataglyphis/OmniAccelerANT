@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Installs the cat cam .deb, AppImage and flatpak the way a user does and checks what each promises; privileged root in :latest.
+# Installs ObservANT .deb, AppImage and flatpak the way a user does and checks what each promises; privileged root in :latest.
 set -uo pipefail
 
 script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
@@ -11,11 +11,11 @@ photo="${repo_root}/third_party/ANThology/assets/images/cats/Summy&Thundy_compre
 
 usage() {
   cat <<'EOF'
-usage: test-catcam-package.sh [--deb FILE] [--appimage FILE] [--flatpak FILE] [--photo FILE]
+usage: test-observant-package.sh [--deb FILE] [--appimage FILE] [--flatpak FILE] [--photo FILE]
 
 Runs as root in a privileged family image (dpkg, a service user, bubblewrap, headless
 Chrome). Each check prints PASS or FAIL; the exit code is the number of failures.
-  --deb FILE       the .deb (default: this machine's in out/, as package-catcam.sh names it)
+  --deb FILE       the .deb (default: this machine's in out/, as package-observant.sh names it)
   --appimage FILE  the AppImage (default: this machine's in out/)
   --flatpak FILE   the flatpak bundle (default: this machine's in out/)
   --photo FILE     a photo with a cat in it (default: ANThology's Summy & Thundy)
@@ -38,9 +38,9 @@ case "$(uname -m)" in
   *) deb_arch="$(uname -m)" ;;
 esac
 shopt -s nullglob
-debs=("${repo_root}"/out/omni-accelerant-catcam_*_"${deb_arch}".deb)
-appimages=("${repo_root}"/out/omni-accelerant-catcam-*-"$(uname -m)".AppImage)
-flatpaks=("${repo_root}"/out/omni-accelerant-catcam-*-"$(uname -m)".flatpak)
+debs=("${repo_root}"/out/omni-observant_*_"${deb_arch}".deb)
+appimages=("${repo_root}"/out/omni-observant-*-"$(uname -m)".AppImage)
+flatpaks=("${repo_root}"/out/omni-observant-*-"$(uname -m)".flatpak)
 shopt -u nullglob
 [ -n "${deb}" ] || deb="${debs[0]:-}"
 [ -n "${appimage}" ] || appimage="${appimages[0]:-}"
@@ -51,11 +51,11 @@ printf 'testing %s, %s and %s\n' "$(basename "${deb}")" "$(basename "${appimage}
 [ -f "${photo}" ] || { printf 'no photo at %s\n' "${photo}" >&2; exit 2; }
 [ "$(id -u)" -eq 0 ] || { printf 'run as root: dpkg and the service user need it\n' >&2; exit 2; }
 
-prefix=/opt/omni-accelerant-catcam
-state=/var/lib/omni-accelerant-catcam
-config=/etc/omni-accelerant/catcam.toml
-user=omni-catcam
-work="$(mktemp -d /tmp/catcam-test.XXXXXX)"
+prefix=/opt/omni-observant
+state=/var/lib/omni-observant
+config=/etc/omni-accelerant/observant.toml
+user=omni-observant
+work="$(mktemp -d /tmp/observant-test.XXXXXX)"
 failures=0
 
 # Each line names its seconds, so the slow checks show in a CI log.
@@ -136,7 +136,7 @@ tab_returns_after_silence() {
 wait_cat() {
   local _
   for _ in $(seq 1 120); do
-    curl -sf "http://$1:8080/healthz" 2>/dev/null | jq -e '.cat.in_view and .cat.visits >= 1' >/dev/null 2>&1 && return 0
+    curl -sf "http://$1:8080/healthz" 2>/dev/null | jq -e '.detection.in_view and .detection.visits >= 1' >/dev/null 2>&1 && return 0
     sleep 0.25
   done
   return 1
@@ -156,7 +156,7 @@ packaged_gz_served() {
   gzip -dc "${file}.gz" | cmp -s - "${file}"
 }
 
-# package-catcam.sh leaves out the renderers this build's loader never asks for and the debug maps.
+# package-observant.sh leaves out the renderers this build's loader never asks for and the debug maps.
 web_pruned() {
   local web="${prefix}/web"
   test -f "${web}/canvaskit/skwasm.wasm" || return 1
@@ -209,7 +209,7 @@ settings_refuse_bad_posts() {
   if healthz_holds "$1" '.rotate == 180'; then return 1; fi
 }
 
-# Another site's page may not change a setting; the cat cam's own page, by IP and port, may.
+# Another site's page may not change a setting; ObservANT's own page, by IP and port, may.
 own_page_only() {
   local post=(-s -o /dev/null -w '%{http_code}' -X POST -H 'content-type: application/json' -d '{"name": "Paket-Test"}')
   [ "$(curl "${post[@]}" -H 'Origin: http://evil.example' "http://$1:8080/settings")" = 403 ] || return 1
@@ -220,7 +220,7 @@ own_page_only() {
 # Each arrival keeps its own picture, named by its time as the clips are.
 picture_by_arrival() {
   local t
-  t="$(curl -sf "http://$1:8080/healthz" | jq -r '.cat.recent[0].arrived')" || return 1
+  t="$(curl -sf "http://$1:8080/healthz" | jq -r '.detection.recent[0].arrived')" || return 1
   jpeg_at "$1" "/arrival.jpg?t=${t}" || return 1
   [ "$(curl -s -o /dev/null -w '%{http_code}' "http://$1:8080/arrival.jpg?t=1")" = 404 ] || return 1
   return 0
@@ -229,11 +229,11 @@ picture_by_arrival() {
 # "Not a cat" over the boxes the photo shows ends the visit, as the page's button does.
 not_a_cat_ends_the_visit() {
   local boxes _
-  boxes="$(curl -sf "http://$1:8080/healthz" | jq -c '.cat.boxes')" || return 1
+  boxes="$(curl -sf "http://$1:8080/healthz" | jq -c '.detection.boxes')" || return 1
   [ "$(jq length <<<"${boxes}")" -ge 1 ] || return 1
   curl -sf -X POST -H 'content-type: application/json' -d "{\"ignore\": ${boxes}}" "http://$1:8080/settings" >/dev/null || return 1
   for _ in $(seq 1 40); do
-    healthz_holds "$1" '.cat.in_view == false and .cat.boxes == []' && return 0
+    healthz_holds "$1" '.detection.in_view == false and .detection.boxes == []' && return 0
     sleep 0.25
   done
   return 1
@@ -243,17 +243,17 @@ not_a_cat_ends_the_visit() {
 still_cat_starts_no_visit() {
   local visits
   while [ $(($(date +%s) - $2)) -lt 20 ]; do sleep 1; done
-  visits="$(curl -sf "http://$1:8080/healthz" | jq '.cat.visits')" || return 1
+  visits="$(curl -sf "http://$1:8080/healthz" | jq '.detection.visits')" || return 1
   curl -sf -X POST -H 'content-type: application/json' -d '{"ignore": []}' "http://$1:8080/settings" >/dev/null || return 1
   sleep 12
-  healthz_holds "$1" ".cat.in_view == false and .cat.visits == ${visits}" || return 1
+  healthz_holds "$1" ".detection.in_view == false and .detection.visits == ${visits}" || return 1
   return 0
 }
 
-# The build /healthz names is the installed package's: package-catcam.sh stamps it into the binary.
+# The build /healthz names is the installed package's: package-observant.sh stamps it into the binary.
 names_its_package() {
   local v
-  v="$(dpkg-query -W -f='${Version}' omni-accelerant-catcam)" || return 1
+  v="$(dpkg-query -W -f='${Version}' omni-observant)" || return 1
   curl -sf "http://$1:8080/healthz" | jq -e --arg v "${v}" '.version | startswith($v)' >/dev/null || return 1
   return 0
 }
@@ -268,7 +268,7 @@ config_private() {
 old_config_tightened() {
   chmod 644 "${config}" && chgrp root "${config}" || return 1
   cp "${config}" "${work}/config.before"
-  "${prefix}/libexec/catcam-install" setup || return 1
+  "${prefix}/libexec/observant-install" setup || return 1
   config_private || return 1
   cmp -s "${config}" "${work}/config.before" || return 1
   return 0
@@ -288,7 +288,7 @@ http.server.HTTPServer(("127.0.0.1", int(sys.argv[1])), H).serve_forever()
 }
 
 visit_remembered() {
-  curl -sf "http://$1:8080/healthz" | jq -e '.cat.visits >= 1 and .cat.last_seen != null' >/dev/null
+  curl -sf "http://$1:8080/healthz" | jq -e '.detection.visits >= 1 and .detection.last_seen != null' >/dev/null
 }
 
 # The live service has seen the cat for $2 s of its current visit; up to 10 s.
@@ -296,7 +296,7 @@ seen_for() {
   local _
   for _ in $(seq 1 40); do
     curl -sf "http://$1:8080/healthz" 2>/dev/null \
-      | jq -e --argjson s "$2" '.cat.last_seen - .cat.recent[0].arrived >= $s' >/dev/null 2>&1 && return 0
+      | jq -e --argjson s "$2" '.detection.last_seen - .detection.recent[0].arrived >= $s' >/dev/null 2>&1 && return 0
     sleep 0.25
   done
   return 1
@@ -307,7 +307,7 @@ clip_ready() {
   local _
   for _ in $(seq 1 120); do
     curl -sf "http://$1:8080/healthz" 2>/dev/null \
-      | jq -e '.cat.clip != null and .cat.clip == .cat.recent[0].arrived and .cat.clips[0] == .cat.clip' >/dev/null 2>&1 && return 0
+      | jq -e '.detection.clip != null and .detection.clip == .detection.recent[0].arrived and .detection.clips[0] == .detection.clip' >/dev/null 2>&1 && return 0
     sleep 0.25
   done
   return 1
@@ -324,14 +324,14 @@ mp4_at() {
 # /arrival.mp4?t= serves the clip of that arrival, and 404 for one it never recorded.
 clip_by_arrival() {
   local t
-  t="$(curl -sf "http://$1:8080/healthz" | jq -r '.cat.clip')" || return 1
+  t="$(curl -sf "http://$1:8080/healthz" | jq -r '.detection.clip')" || return 1
   [ "$(curl -s -o /dev/null -w '%{http_code}' "http://$1:8080/arrival.mp4?t=${t}")" = 200 ] || return 1
   [ "$(curl -s -o /dev/null -w '%{http_code}' "http://$1:8080/arrival.mp4?t=1")" = 404 ] || return 1
   return 0
 }
 
 visit_closed() {
-  curl -sf "http://$1:8080/healthz" | jq -e --argjson s "$2" '.cat.recent[0].stayed_s >= $s' >/dev/null
+  curl -sf "http://$1:8080/healthz" | jq -e --argjson s "$2" '.detection.recent[0].stayed_s >= $s' >/dev/null
 }
 
 webhook_got_arrival() {
@@ -348,11 +348,11 @@ webhook_got() {
   return 1
 }
 
-# Every setting the shipped catcam.toml documents, uncommented: an unknown key is an error, so this reads them all.
+# Every setting the shipped observant.toml documents, uncommented: an unknown key is an error, so this reads them all.
 template_keys_parse() {
-  sed -E 's/^# ([a-z_]+ = )/\1/' "${prefix}/share/omni-accelerant-catcam/catcam.toml" >"${work}/all-keys.toml" &&
+  sed -E 's/^# ([a-z_]+ = )/\1/' "${prefix}/share/omni-observant/observant.toml" >"${work}/all-keys.toml" &&
     test "$(grep -cE '^[a-z_]+ = ' "${work}/all-keys.toml")" -ge 15 &&
-    "${prefix}/catcam" --config "${work}/all-keys.toml" --print-config >/dev/null
+    "${prefix}/observant" --config "${work}/all-keys.toml" --print-config >/dev/null
 }
 
 # The unit loads without warnings and keeps its sandbox: systemd-analyze rates it 1.8 (2026-10-12).
@@ -362,44 +362,55 @@ unit_sandboxed() { systemd-analyze security --offline=true --threshold=25 "$1" >
 in_video_group() { id -nG "${user}" | grep -qw video; }
 log_lacks() { ! grep -q "$1" "$2"; }
 purged() { ! test -e "${config}" && ! test -e "${prefix}"; }
-unit_masked() { test "$(readlink /etc/systemd/system/omni-catcam.service)" = /dev/null; }
+unit_masked() { test "$(readlink /etc/systemd/system/omni-observant.service)" = /dev/null; }
 unit_enabled_unmasked() {
-  ! unit_masked && test -e /etc/systemd/system/multi-user.target.wants/omni-catcam.service
+  ! unit_masked && test -e /etc/systemd/system/multi-user.target.wants/omni-observant.service
 }
 as_plain() {
   setpriv --reuid=1001 --regid=1001 --clear-groups \
     env -i HOME="${work}/home" PATH=/usr/bin:/bin APPIMAGE_EXTRACT_AND_RUN=1 "$@"
 }
-plain_foreground() { as_plain "${work}/catcam.AppImage" --print-config | grep -q '^camera = '; }
-plain_install_refused() { ! as_plain "${work}/catcam.AppImage" --install >/dev/null 2>&1; }
+plain_foreground() { as_plain "${work}/observant.AppImage" --print-config | grep -q '^camera = '; }
+plain_install_refused() { ! as_plain "${work}/observant.AppImage" --install >/dev/null 2>&1; }
 appimage_installed() {
-  test -f /etc/systemd/system/omni-catcam.service && test -f "${config}" &&
-    test "$(readlink -f /usr/local/bin/omni-catcam)" = "${prefix}/catcam"
+  test -f /etc/systemd/system/omni-observant.service && test -f "${config}" &&
+    test "$(readlink -f /usr/local/bin/omni-observant)" = "${prefix}/observant"
 }
-installed_copy_refuses() { ! /usr/local/bin/omni-catcam --install >/dev/null 2>&1; }
+legacy_visits_moved() {
+  test -f "${state}/cat.json" && test "$(stat -c %U "${state}/cat.json")" = "${user}" || return 1
+  grep -q '"visits":7' "${state}/cat.json" || return 1
+  return 0
+}
+installed_copy_refuses() { ! /usr/local/bin/omni-observant --install >/dev/null 2>&1; }
 flatpak_gone() { ! flatpak info --system "$1" >/dev/null 2>&1; }
 uninstalled() {
-  ! test -e "${prefix}" && ! test -e /etc/systemd/system/omni-catcam.service &&
+  ! test -e "${prefix}" && ! test -e /etc/systemd/system/omni-observant.service &&
     ! test -e "${config}" && ! id "${user}" >/dev/null 2>&1
 }
 
 printf '=== the .deb ===\n'
+# An install from before ObservANT: its settings and visits must carry over.
+mkdir -p /etc/omni-accelerant /var/lib/omni-accelerant-catcam
+printf 'name = "Vor ObservANT"\n' >/etc/omni-accelerant/catcam.toml
+printf '{"last_seen":5,"visits":7,"last_score":0.5,"recent":[{"arrived":4,"stayed_s":1}]}' >/var/lib/omni-accelerant-catcam/cat.json
 dpkg -i "${deb}" </dev/null >"${work}/install.log" 2>&1
-check "dpkg installs it with no terminal" grep -q '^Setting up omni-accelerant-catcam' "${work}/install.log"
+check "dpkg installs it with no terminal" grep -q '^Setting up omni-observant' "${work}/install.log"
+check "an install from before ObservANT hands over its settings" grep -qx 'name = "Vor ObservANT"' "${config}"
+check "and its visits, owned by the service" legacy_visits_moved
 check "the service user is in the video group" in_video_group
-check "the unit is installed and enabled" test -e /etc/systemd/system/multi-user.target.wants/omni-catcam.service
+check "the unit is installed and enabled" test -e /etc/systemd/system/multi-user.target.wants/omni-observant.service
 check "postinst wrote the settings file" test -f "${config}"
 check "only root and the service's group read it" config_private
 check "an older version's world-readable settings file is made private" old_config_tightened
-check "omni-catcam is on PATH" test "$(readlink -f /usr/bin/omni-catcam)" = "${prefix}/catcam"
-check "every setting catcam.toml documents is one the service reads" template_keys_parse
-check "the unit loads without a warning" unit_verifies /usr/lib/systemd/system/omni-catcam.service
-check "the unit keeps its sandbox (exposure 2.5 or less)" unit_sandboxed /usr/lib/systemd/system/omni-catcam.service
-check "the unit brings the service back whatever ended it" grep -qx 'Restart=always' /usr/lib/systemd/system/omni-catcam.service
-check "the unit starts once the clock is set" grep -qE '^After=.* time-sync\.target' /usr/lib/systemd/system/omni-catcam.service
+check "omni-observant is on PATH" test "$(readlink -f /usr/bin/omni-observant)" = "${prefix}/observant"
+check "every setting observant.toml documents is one the service reads" template_keys_parse
+check "the unit loads without a warning" unit_verifies /usr/lib/systemd/system/omni-observant.service
+check "the unit keeps its sandbox (exposure 2.5 or less)" unit_sandboxed /usr/lib/systemd/system/omni-observant.service
+check "the unit brings the service back whatever ended it" grep -qx 'Restart=always' /usr/lib/systemd/system/omni-observant.service
+check "the unit starts once the clock is set" grep -qE '^After=.* time-sync\.target' /usr/lib/systemd/system/omni-observant.service
 mkdir -p "${state}" && chown "${user}:" "${state}"
 
-start_service "${work}/idle.log" "${prefix}/catcam" --camera test --inference on --http-port 0
+start_service "${work}/idle.log" "${prefix}/observant" --camera test --inference on --http-port 0
 pid=$!
 sleep 8
 check "idle, it maps nothing from outside the bundle" nothing_outside_bundle "${pid}"
@@ -410,7 +421,7 @@ check "no inference failed at shutdown" log_lacks 'inference failed' "${work}/id
 ip="$(hostname -I | awk '{print $1}')"
 webhook_receiver 18999 "${work}/webhook.jsonl" &
 receiver=$!
-start_service "${work}/photo.log" "${prefix}/catcam" --camera "image:${photo}" --inference on --fps 5 \
+start_service "${work}/photo.log" "${prefix}/observant" --camera "image:${photo}" --inference on --fps 5 \
   --notify-url "http://127.0.0.1:18999/api/webhook/test"
 pid=$!
 check "/healthz reports the cat in the photo as a visit" wait_cat "${ip}"
@@ -429,12 +440,12 @@ check "the finished clip is POSTed to notify_url as JSON" webhook_got clip "${wo
 check "the page's rotate button turns the picture and the setting is kept" set_from_page "${ip}" '{"rotate": 90}' '.rotate == 90'
 check "the settings page sets the detection score and the name" set_from_page "${ip}" '{"score": 0.6, "name": "Paket-Test"}' '.score == 0.6 and .name == "Paket-Test"'
 check "/settings refuses a form post and a bad value changes nothing" settings_refuse_bad_posts "${ip}"
-check "/settings refuses another site's page and takes the cat cam's own" own_page_only "${ip}"
+check "/settings refuses another site's page and takes ObservANT's own" own_page_only "${ip}"
 stop_service "${pid}"
 kill "${receiver}" 2>/dev/null
 check "the bundled model finds a cat in the photo" grep -q 'cat in view' "${work}/photo.log"
 
-start_service "${work}/stream.log" "${prefix}/catcam" --camera test --inference off
+start_service "${work}/stream.log" "${prefix}/observant" --camera test --inference off
 pid=$!
 check "the page and /healthz answer on :8080" wait_healthz "${ip}"
 check "main.dart.wasm goes out as the packaged zopfli .gz" packaged_gz_served "${ip}" main.dart.wasm
@@ -455,7 +466,7 @@ check "a tab back after its connections went silent plays again" tab_returns_aft
 stop_service "${pid}"
 
 started="$(date +%s)"
-start_service "${work}/ignore.log" "${prefix}/catcam" --camera "image:${photo}" --inference on --fps 5
+start_service "${work}/ignore.log" "${prefix}/observant" --camera "image:${photo}" --inference on --fps 5
 pid=$!
 check "the photo's cat arrives as the camera starts" wait_cat "${ip}"
 check "marking it not a cat ends its visit" not_a_cat_ends_the_visit "${ip}"
@@ -464,55 +475,55 @@ stop_service "${pid}"
 
 echo 'rotate = 180' >>"${config}"
 dpkg -i "${deb}" </dev/null >"${work}/upgrade.log" 2>&1
-check "an upgrade over an edited settings file needs no terminal" grep -q '^Setting up omni-accelerant-catcam' "${work}/upgrade.log"
+check "an upgrade over an edited settings file needs no terminal" grep -q '^Setting up omni-observant' "${work}/upgrade.log"
 check "the upgrade keeps the edit" grep -q '^rotate = 180' "${config}"
-dpkg -r omni-accelerant-catcam >"${work}/remove.log" 2>&1
+dpkg -r omni-observant >"${work}/remove.log" 2>&1
 check "remove masks the unit, so nothing starts it" unit_masked
 dpkg -i "${deb}" </dev/null >"${work}/reinstall.log" 2>&1
 check "a reinstall after remove unmasks and enables it again" unit_enabled_unmasked
-dpkg --purge omni-accelerant-catcam >"${work}/purge.log" 2>&1
+dpkg --purge omni-observant >"${work}/purge.log" 2>&1
 check "purge removes the settings and ${prefix}" purged
 
 printf '=== the AppImage ===\n'
 # No FUSE in a container; the runtime extracts instead and runs the same AppRun.
 export APPIMAGE_EXTRACT_AND_RUN=1
-install -m 755 "${appimage}" "${work}/catcam.AppImage"
+install -m 755 "${appimage}" "${work}/observant.AppImage"
 mkdir -p "${work}/home" && chown 1001:1001 "${work}/home" "${work}"
 check "it runs in the foreground as a plain user" plain_foreground
 check "--install refuses a non-root caller" plain_install_refused
-"${work}/catcam.AppImage" --install >"${work}/ai-install.log" 2>&1
+"${work}/observant.AppImage" --install >"${work}/ai-install.log" 2>&1
 check "--install sets up the unit, the settings and the launcher" appimage_installed
 check "--install leaves nothing under ${prefix} owned by the builder" test -z "$(find "${prefix}" ! -user root -print -quit)"
 mkdir -p "${state}" && chown "${user}:" "${state}"
-start_service "${work}/ai-stream.log" "${prefix}/catcam" --camera test --inference off
+start_service "${work}/ai-stream.log" "${prefix}/observant" --camera test --inference off
 pid=$!
 check "the installed copy answers /healthz" wait_healthz "${ip}"
 stop_service "${pid}"
 echo 'rotate = 180' >>"${config}"
-"${work}/catcam.AppImage" --install >/dev/null 2>&1
+"${work}/observant.AppImage" --install >/dev/null 2>&1
 check "a second --install keeps the edit" grep -q '^rotate = 180' "${config}"
 check "the installed copy refuses --install" installed_copy_refuses
-/usr/local/bin/omni-catcam --uninstall --purge >/dev/null 2>&1
+/usr/local/bin/omni-observant --uninstall --purge >/dev/null 2>&1
 check "--uninstall --purge leaves nothing" uninstalled
 
 printf '=== the flatpak ===\n'
 # A system install: root needs no D-Bus for it, and a user install does.
-flatpak_id=org.kataglyphis.omni-accelerant-catcam
+flatpak_id=org.kataglyphis.omni-observant
 autostart_entry="${HOME}/.config/autostart/${flatpak_id}.desktop"
 flatpak install --system -y --noninteractive "${flatpak_bundle}" >"${work}/fp-install.log" 2>&1
 check "flatpak installs it" flatpak info --system "${flatpak_id}"
-flatpak run --command=omni-catcam "${flatpak_id}" --camera test --inference off >"${work}/fp-stream.log" 2>&1 &
+flatpak run --command=omni-observant "${flatpak_id}" --camera test --inference off >"${work}/fp-stream.log" 2>&1 &
 pid=$!
 check "in its sandbox it answers /healthz" wait_healthz "${ip}"
 check "it keeps the cat's visits in its own state directory" grep -q "state: .*/\.var/app/${flatpak_id}/" "${work}/fp-stream.log"
 frames="$(chrome_frames "http://${ip}:8080/" 20000)"
 printf '      Chrome played %s frame(s) over %s\n' "${frames}" "${ip}"
 check "headless Chrome plays the sandboxed stream from the LAN address" test "${frames:-0}" -ge 200
-check "its first start set up the sign-in autostart" grep -q "^Exec=flatpak run --command=omni-catcam ${flatpak_id}$" "${autostart_entry}"
+check "its first start set up the sign-in autostart" grep -q "^Exec=flatpak run --command=omni-observant ${flatpak_id}$" "${autostart_entry}"
 kill "${pid}" 2>/dev/null
 flatpak kill "${flatpak_id}" >/dev/null 2>&1
 wait "${pid}" 2>/dev/null
-flatpak run --command=omni-catcam "${flatpak_id}" --autostart off >/dev/null 2>&1
+flatpak run --command=omni-observant "${flatpak_id}" --autostart off >/dev/null 2>&1
 check "--autostart off removes the sign-in entry" test ! -e "${autostart_entry}"
 flatpak uninstall --system -y --noninteractive "${flatpak_id}" >/dev/null 2>&1
 check "flatpak uninstall leaves no app" flatpak_gone "${flatpak_id}"

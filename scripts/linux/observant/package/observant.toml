@@ -1,6 +1,6 @@
-# OmniAccelerANT cat cam. Uncomment a setting to change it, then: sudo systemctl restart omni-catcam
+# ObservANT. Uncomment a setting to change it, then: sudo systemctl restart omni-observant
 
-# `omni-catcam --print-config` prints the settings in effect; `systemctl disable --now omni-catcam` stops autostart.
+# `omni-observant --print-config` prints the settings in effect; `systemctl disable --now omni-observant` stops autostart.
 
 # camera = "auto"          # a Raspberry Pi camera if attached, else a USB webcam; or rpicam | libcamera | v4l2 | v4l2:/dev/video0 | test | image:FILE
 
@@ -12,11 +12,11 @@
 
 # fps = 30
 
-# name = "Trouble Tabbls Cat Cam"   # what viewers see
+# name = "ObservANT"       # what viewers see
 
 # inference = "auto"       # auto | on | off; auto skips the model below 1 GiB of RAM or when it fails to load
 
-# model = "/opt/omni-accelerant-catcam/models/yolo26n.onnx"
+# model = "/opt/omni-observant/models/yolo26n.onnx"
 
 # score = 0.25
 
@@ -36,7 +36,7 @@
 
 # http_host = "0.0.0.0"
 
-# ice_port_min = 40000     # WebRTC media's UDP range; `sudo ufw allow OmniCatCam` opens it and http_port
+# ice_port_min = 40000     # WebRTC media's UDP range; `sudo ufw allow OmniObservANT` opens it and http_port
 
 # ice_port_max = 40099
 
@@ -46,8 +46,8 @@
 
 # allowed_hosts = []       # names besides IPs and local ones (.local, .fritz.box, ...) the page may act under, e.g. a reverse proxy's
 
-# max_viewers = 8          # browser tabs on the stream at once; the cat cam encodes for each; 0 is no limit
+# max_viewers = 8          # browser tabs on the stream at once; ObservANT encodes for each; 0 is no limit
 
-# peers = []               # the other cat cams' origins, e.g. ["http://192.168.1.20:8080"]: the Stream page shows them, and they may read this one
+# peers = []               # the other ObservANT cameras' origins, e.g. ["http://192.168.1.20:8080"]: the Stream page shows them, and they may read this one
 
 # clip_seconds = 10        # seconds of H.264 video per arrival at /arrival.mp4, 3 of them before it; 0 records none
