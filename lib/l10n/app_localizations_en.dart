@@ -230,6 +230,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get cameraRetry => 'Try again';
 
   @override
+  String get detectionTooDark =>
+      'Too dark: the camera sees black and detects nothing';
+
+  @override
   String get devStats => 'Stats';
 
   @override

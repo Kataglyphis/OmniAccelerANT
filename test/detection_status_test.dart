@@ -496,6 +496,21 @@ void main() {
     },
   );
 
+  testWidgets('a black picture says it is too dark rather than look healthy', (
+    tester,
+  ) async {
+    const dark =
+        '{"ok":true,"name":"A","dark":true,'
+        '"detection":{"in_view":false,"last_seen":1791763273,"visits":1}}';
+    expect(DetectionStatus.fromHealthz(dark)!.dark, isTrue);
+    expect(DetectionStatus.fromHealthz(_inView)!.dark, isFalse);
+    await _pumpLine(tester, () async => dark);
+    await tester.pump();
+    expect(find.textContaining('Too dark'), findsOneWidget);
+    expect(find.byIcon(Icons.nights_stay), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+  });
+
   testWidgets('the line names what is in view, in the page\'s language', (
     tester,
   ) async {

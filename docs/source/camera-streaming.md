@@ -21,6 +21,7 @@ app on port 8080.
   change; what the page changes wins over it.
 
 - [The detection model](#the-detection-model)
+- [Measuring performance](#measuring-performance)
 - [Rust-owned webcam inference (local, no WebRTC)](#rust-owned-webcam-inference-local-no-webrtc)
   - [Checking the knt ABI](#checking-the-knt-abi)
   - [Relocatable Linux bundles](#relocatable-linux-bundles)
@@ -72,6 +73,53 @@ parameters, 7 GFLOPs, 43.0 AP, a 640x640 input and a 15 MB file.
 - **Another model.** Put it into ModelANT and move the lock's lines. For a one-off,
   `model = "..."` in `observant.toml` or `KATAGLYPHIS_ONNX_MODEL` names any `[1, N, 6]` ONNX
   file. The old models stay in the repositories' history; nothing was rewritten.
+
+## Measuring performance
+
+**Three tools measure what the boards really do** (2026-10-14). Repeat them after a change
+that could cost time, and compare with the baseline below.
+
+- `scripts/linux/observant/bench/model.sh PICTURE MODEL.onnx...`, on a board: the installed
+  service runs each model nonstop on a still picture, on a spare port (no camera, no state, the
+  live service untouched), and prints its time per run, runs per second, CPU and memory.
+- `scripts/linux/observant/bench/viewer.sh BOARD [SECONDS]`, from another host: the API's
+  response times, the service idle and while one phone-sized headless Chrome plays the stream,
+  and that page's cold load: the files on the boot path with their times, the renderer the
+  browser got, the first Flutter frame and the first video frame, and the requests and main-
+  thread time once it runs.
+- OxidANT's `stage_costs_per_frame` and `stage_costs_on_a_real_model` tests, run with
+  `cargo test --release -- --ignored --nocapture stage_costs` (the second needs
+  `KATAGLYPHIS_BENCH_MODEL`): each per-frame step, and a model run's preprocessing, model
+  and postprocessing apart.
+
+**The baseline, 2026-10-14** (Pi 5 boards, the SpacemiT K3 board, the web client a headless
+Chrome on a Pi 5):
+
+| What | Pi 5 | SpacemiT K3 (riscv64) |
+| --- | --- | --- |
+| A model run in the service, DEIM-D-FINE-N / YOLO26n | 332 / 233 ms | 592 / 404 ms |
+| The model alone at 1 / 2 / 4 threads (DEIM-D-FINE-N) | 420 / 258 / 265 ms | |
+| Preprocessing, postprocessing per run | 3 ms, < 0.01 ms | |
+| Per frame: I420 to RGBA, pixelation, motion thumbnail | 1.7, 0.7, 0.5 ms | |
+| A snapshot JPEG | 10.7 ms | |
+| The service idle, with one viewer (% of one core) | 3 to 4.5 %, 18 to 19 % | 1 %, 49 % |
+| Memory idle, with one viewer | 180 to 190 MB, +30 MB | 245 MB, +27 MB |
+| `/healthz`, `/snapshot.jpg` over the LAN | 0.3 to 4 ms, 0.3 to 19 ms | 3 ms, 38 ms |
+
+The cold page is 4.9 MB in 105 to 112 requests: the renderer `skwasm_heavy.wasm` (2.2 MB)
+and `main.dart.wasm` (1.5 MB) on the boot path, then six font files (0.5 MB), then the Rust
+core (65 kB). The first Flutter frame came after 4.5 to 6.4 s on the board with Wi-Fi at
+0.7 MB/s, the first video frame 3 to 3.5 s later. An open page then makes 48 requests a
+minute and keeps the main thread 1.9 % busy.
+
+What it says:
+- **The model is 99 % of a detection.** Two threads are the fastest setting on a Pi 5; four
+  are no faster.
+- **Every viewer costs an encoder**: webrtcsink encodes once per viewer, about 15 % of a Pi 5
+  core and half a K3 core each.
+- **Plain HTTP costs 0.75 MB a visit.** Without a secure context the browser has no
+  `ImageDecoder`, so Flutter loads `skwasm_heavy` (2.29 MB compressed) instead of `skwasm`
+  (1.54 MB), and without cross-origin isolation it renders on one thread.
 
 ## Rust-owned webcam inference (local, no WebRTC)
 
@@ -296,7 +344,7 @@ Everything it serves is on that one port, plain HTTP:
 | Path | Answers |
 | --- | --- |
 | `/` | the web app; its Stream page plays the camera and shows the cat's status, visits and last arrival |
-| `/healthz` | JSON: `ok`, or `false` with the `problem`; the seconds since the last frame and model run (`frame_age_s`, `model_age_s`); the build (`version`), the browser tabs on the stream (`viewers`), the other ObservANT cameras (`peers`), the privacy filter (`privacy`: `off` or `pixelate`) and `stats`, sampled every 2 s: `capture_fps`, `model_ms` per run, `model_runs_per_s`, `cpu_percent` of one core, `cores`, `rss_mb`, `load_1m`, `temperature_c` and `uptime_s` (the CPU, memory, load and temperature from `/proc` and `/sys`, so `null` off Linux); the live camera, its `frame` size and rate, `model_runs`, `rotate`, `score`, and under `detection` the watched `in_view`, `last_seen`, `visits`, `last_score`, `recent` visits, the newest `clip`'s arrival and every kept one's (`clips`), and the `boxes` drawn now, as fractions of the picture |
+| `/healthz` | JSON: `ok`, or `false` with the `problem`; the seconds since the last frame and model run (`frame_age_s`, `model_age_s`); the build (`version`), the browser tabs on the stream (`viewers`), the other ObservANT cameras (`peers`), the privacy filter (`privacy`: `off` or `pixelate`), whether the picture is too dark to detect anything (`dark`: the model then idles, and `ok` stays) and `stats`, sampled every 2 s: `capture_fps`, `model_ms` per run, `model_runs_per_s`, `cpu_percent` of one core, `cores`, `rss_mb`, `load_1m`, `temperature_c` and `uptime_s` (the CPU, memory, load and temperature from `/proc` and `/sys`, so `null` off Linux); the live camera, its `frame` size and rate, `model_runs`, `rotate`, `score`, and under `detection` the watched `in_view`, `last_seen`, `visits`, `last_score`, `recent` visits, the newest `clip`'s arrival and every kept one's (`clips`), and the `boxes` drawn now, as fractions of the picture |
 | `/snapshot.jpg` | the latest frame, boxes drawn; encoded once per frame however many ask |
 | `/arrival.jpg` | the frame the last arrival was confirmed on; `?t=<arrival time>` that arrival's own, of the last five; `404` until a cat has come, or once that arrival's is dropped |
 | `/arrival.mp4` | the last arrival as an H.264 clip, 3 s before it to 7 s after; `?t=<arrival time>` that arrival's own, of the last five; byte ranges answered; `404` until one is encoded, or once that arrival's is dropped |

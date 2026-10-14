@@ -126,6 +126,8 @@
   "@cameraClassesLocked": { "description": "Shown instead of the class editor's help while ObservANT's privacy filter is on." },
   "cameraRetry": "Try again",
   "@cameraRetry": { "description": "Button under the Camera page's not-reachable text that asks the camera again." },
+  "detectionTooDark": "Too dark: the camera sees black and detects nothing",
+  "@detectionTooDark": { "description": "Status line on the Stream page while ObservANT's picture is black, as at night without IR." },
   "devStats": "Stats",
   "@devStats": { "description": "Button on the Stream page that opens the panel of performance numbers." },
   "devStatsNone": "No numbers yet: the camera reports none, and the browser plays nothing.",

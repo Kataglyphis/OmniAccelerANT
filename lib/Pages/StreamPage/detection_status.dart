@@ -32,7 +32,11 @@ class DetectionStatus {
     this.peers = const <String>[],
     this.pixelated = false,
     this.classes = const <String>['cat'],
+    this.dark = false,
   });
+
+  /// The camera sees black, so nothing can be detected: no IR at night.
+  final bool dark;
 
   /// The COCO classes it watches; an older camera that names none watches cats.
   final List<String> classes;
@@ -89,6 +93,7 @@ class DetectionStatus {
     final problem = json['problem'];
     final peers = json['peers'];
     return DetectionStatus(
+      dark: json['dark'] == true,
       pixelated: json['privacy'] == 'pixelate',
       peers: <String>[
         if (peers is List)
@@ -152,6 +157,9 @@ class DetectionStatus {
       locale.split(RegExp('[_-]')).first,
     );
     return (Icons.pets, Colors.green, l10n.detectionInView(what));
+  }
+  if (status.dark) {
+    return (Icons.nights_stay, Colors.blueGrey, l10n.detectionTooDark);
   }
   if (lastSeen != null) {
     final when = formatLastSeen(lastSeen, now, locale);

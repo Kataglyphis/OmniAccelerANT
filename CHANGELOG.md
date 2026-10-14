@@ -10,6 +10,16 @@ What landed on `develop` after 2.0.0+2. Most of it is the cat cam, whose guide i
 
 ### Added
 
+- **Performance tools and a baseline** (2026-10-14, the owner's benchmark).
+  `scripts/linux/observant/bench/model.sh` times models in the installed service on a board,
+  `viewer.sh` measures a board idle and with one viewer plus the page's cold load
+  (`page-perf.mjs`), and camera-streaming.md § *Measuring performance* keeps the numbers: the
+  model is 99 % of a detection, every viewer costs an encoder, and plain HTTP makes browsers
+  load the 0.75 MB larger renderer.
+- **"Too dark" on the Stream page** (2026-10-14). ObservANT's `/healthz` says `dark` while
+  its picture is black, as a camera without IR is at night and the model idles; the status
+  line says so instead of looking like a quiet camera.
+
 - **"Recent detections" on the Camera page** (2026-10-14): the last five arrivals with their
   pictures, each with "Not a cat", which ignores the spot it was seen at. A false arrival is
   seldom on screen when it happens, so the live button alone rarely caught one.
