@@ -23,4 +23,10 @@ void main() {
       expect(decodeJsonObject(body), isNull, reason: body);
     }
   });
+
+  test('fetchOrNull passes an answer on and turns a throw into null', () async {
+    expect(await fetchOrNull(() async => '{"ok":true}'), '{"ok":true}');
+    expect(await fetchOrNull(() async => null), isNull);
+    expect(await fetchOrNull(() async => throw StateError('offline')), isNull);
+  });
 }

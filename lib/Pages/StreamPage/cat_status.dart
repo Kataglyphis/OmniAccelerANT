@@ -211,12 +211,7 @@ class _CatStatusLineState extends State<CatStatusLine> {
   }
 
   Future<void> _poll() async {
-    String? body;
-    try {
-      body = await widget.fetch();
-    } on Object {
-      body = null;
-    }
+    final body = await fetchOrNull(widget.fetch);
     if (!mounted) {
       return;
     }

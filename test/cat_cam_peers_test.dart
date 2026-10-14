@@ -107,4 +107,58 @@ void main() {
     expect(find.text('Futtertrog'), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
   });
+
+  testWidgets(
+    'the own cat cam is asked once, and one without peers stops asking',
+    (tester) async {
+      var own = 0;
+      var others = 0;
+      Future<void> pump(String body) => tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: Scaffold(
+            body: CatCamPeers(
+              fetchOwn: () async {
+                own++;
+                return body;
+              },
+              fetchFrom: (url) async {
+                others++;
+                return _trough;
+              },
+              picture: _fakePicture,
+            ),
+          ),
+        ),
+      );
+      await pump(_own);
+      await tester.pump(const Duration(seconds: 30));
+      // Its peers come from its config: asked once, while the peers are asked every 10 s.
+      expect(own, 1);
+      expect(others, 2 * 4);
+      await tester.pumpWidget(const SizedBox());
+      own = 0;
+      others = 0;
+      await pump(_trough);
+      await tester.pump(const Duration(seconds: 30));
+      expect(own, 1);
+      expect(others, 0);
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
+
+  testWidgets('an own cat cam that does not answer yet is asked again', (
+    tester,
+  ) async {
+    String? body;
+    await _pump(tester, () async => body, const {});
+    await tester.pump();
+    expect(find.text('Other cat cams'), findsNothing);
+    body = _own;
+    await tester.pump(const Duration(seconds: 10));
+    await tester.pump();
+    expect(find.text('Other cat cams'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+  });
 }

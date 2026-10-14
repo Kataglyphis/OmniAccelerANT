@@ -12,3 +12,12 @@ Map<String, dynamic>? decodeJsonObject(String? body) {
     return null;
   }
 }
+
+/// What [fetch] returns, or `null` when it throws: a cat cam that cannot be reached answers nothing.
+Future<String?> fetchOrNull(Future<String?> Function() fetch) async {
+  try {
+    return await fetch();
+  } on Object {
+    return null;
+  }
+}

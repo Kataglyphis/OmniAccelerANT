@@ -201,19 +201,10 @@ class _CameraSettingsPanelState extends State<CameraSettingsPanel> {
     super.dispose();
   }
 
-  /// A fetch that throws reads as no cat cam, like one that answers nothing.
-  static Future<String?> _quietly(Future<String?> Function() fetch) async {
-    try {
-      return await fetch();
-    } on Object {
-      return null;
-    }
-  }
-
   Future<void> _load() async {
     final results = await Future.wait([
-      _quietly(widget.fetchSettings),
-      _quietly(widget.fetchHealthz),
+      fetchOrNull(widget.fetchSettings),
+      fetchOrNull(widget.fetchHealthz),
     ]);
     if (!mounted) {
       return;
@@ -232,7 +223,7 @@ class _CameraSettingsPanelState extends State<CameraSettingsPanel> {
   }
 
   Future<void> _refreshInfo() async {
-    final info = CatCamInfo.parse(await _quietly(widget.fetchHealthz));
+    final info = CatCamInfo.parse(await fetchOrNull(widget.fetchHealthz));
     if (mounted && info != null) {
       setState(() => _info = info);
     }

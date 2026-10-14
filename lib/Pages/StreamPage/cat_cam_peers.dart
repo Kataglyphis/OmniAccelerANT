@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:omni_accelerant/l10n/app_localizations.dart';
 import 'package:omni_accelerant/Pages/StreamPage/cat_status.dart';
+import 'package:omni_accelerant/utils/json_utils.dart';
 import 'package:url_launcher/link.dart';
 
 /// [url]'s picture, 160 px wide; nothing while the other cat cam does not answer.
@@ -37,6 +38,9 @@ class CatCamPeers extends StatefulWidget {
 
 class _CatCamPeersState extends State<CatCamPeers> {
   List<String> _peers = const <String>[];
+
+  /// The own cat cam answered: its peers come from its config, so it is not asked again.
+  bool _knowsPeers = false;
   final Map<String, CatStatus?> _status = <String, CatStatus?>{};
   int _tick = 0;
   Timer? _timer;
@@ -61,22 +65,23 @@ class _CatCamPeersState extends State<CatCamPeers> {
     super.dispose();
   }
 
-  static Future<String?> _quietly(Future<String?> Function() fetch) async {
-    try {
-      return await fetch();
-    } on Object {
-      return null;
-    }
-  }
-
   Future<void> _poll() async {
-    final own = await _quietly(widget.fetchOwn);
-    final peers = own == null
-        ? _peers
-        : (CatStatus.fromHealthz(own)?.peers ?? const <String>[]);
+    var peers = _peers;
+    if (!_knowsPeers) {
+      final own = await fetchOrNull(widget.fetchOwn);
+      final status = own == null ? null : CatStatus.fromHealthz(own);
+      if (status != null) {
+        _knowsPeers = true;
+        peers = status.peers;
+        if (peers.isEmpty) {
+          // A cat cam without peers has no overview to refresh.
+          _timer?.cancel();
+        }
+      }
+    }
     final answers = await Future.wait([
       for (final peer in peers)
-        _quietly(() => widget.fetchFrom('${_origin(peer)}/healthz')),
+        fetchOrNull(() => widget.fetchFrom('${_origin(peer)}/healthz')),
     ]);
     if (!mounted) {
       return;
