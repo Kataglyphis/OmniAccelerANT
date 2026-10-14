@@ -28,6 +28,8 @@
 
 # all_classes = false      # true boxes every COCO class, not only cats
 
+# privacy = "off"          # "pixelate" blocks out all but the detected animals in the stream, snapshot, photos and clips; only this file turns it on or off
+
 # http_port = 8080         # the page is http://<this-host>:8080/; 0 turns the web server off
 
 # http_host = "0.0.0.0"

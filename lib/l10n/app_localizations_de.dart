@@ -202,6 +202,20 @@ class AppLocalizationsDe extends AppLocalizations {
   String get cameraVersion => 'Version';
 
   @override
+  String get cameraPrivacy => 'Privatsphäre-Filter';
+
+  @override
+  String get cameraPrivacyPixelate =>
+      'verpixelt alles außer den erkannten Tieren (in der Einstellungsdatei gesetzt)';
+
+  @override
+  String get cameraPrivacyOff => 'aus (in der Einstellungsdatei gesetzt)';
+
+  @override
+  String get catCamPixelated =>
+      'Privatsphäre-Filter an: alles außer den erkannten Tieren ist verpixelt';
+
+  @override
   String get cameraRecentDetections => 'Letzte Erkennungen';
 
   @override

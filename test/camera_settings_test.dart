@@ -137,6 +137,14 @@ void main() {
       expect(info.version, '2.0.0 (cac26d4)');
       expect(CatCamInfo.parse(_healthz)!.version, isEmpty);
     });
+
+    test('knows whether the privacy filter is on', () {
+      final info = CatCamInfo.parse(
+        _healthz.replaceFirst('"ok":true', '"ok":true,"privacy":"pixelate"'),
+      )!;
+      expect(info.pixelated, isTrue);
+      expect(CatCamInfo.parse(_healthz)!.pixelated, isFalse);
+    });
   });
 
   testWidgets(

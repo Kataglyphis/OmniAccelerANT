@@ -28,6 +28,8 @@
 
 # all_classes = false      # true boxes every COCO class, not only cats
 
+# privacy = "off"          # "pixelate" blocks out all but the detected animals in the stream, snapshot, photos and clips; only this file turns it on or off
+
 # http_port = 8080         # the page is http://<this-pc>:8080/; 0 turns the web server off
 
 # ice_port_min = 40000     # WebRTC media's UDP range; the installer's firewall rule lets the local network in

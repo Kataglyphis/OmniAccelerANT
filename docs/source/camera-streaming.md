@@ -266,7 +266,7 @@ Everything it serves is on that one port, plain HTTP:
 | Path | Answers |
 | --- | --- |
 | `/` | the web app; its Stream page plays the camera and shows the cat's status, visits and last arrival |
-| `/healthz` | JSON: `ok`, or `false` with the `problem`; the seconds since the last frame and model run (`frame_age_s`, `model_age_s`); the build (`version`), the browser tabs on the stream (`viewers`) and the other cat cams (`peers`); the live camera, its `frame` size and rate, `model_runs`, `rotate`, `score`, and the cat's `in_view`, `last_seen`, `visits`, `last_score`, `recent` visits, the newest `clip`'s arrival and every kept one's (`clips`), and the `boxes` drawn now, as fractions of the picture |
+| `/healthz` | JSON: `ok`, or `false` with the `problem`; the seconds since the last frame and model run (`frame_age_s`, `model_age_s`); the build (`version`), the browser tabs on the stream (`viewers`), the other cat cams (`peers`) and the privacy filter (`privacy`: `off` or `pixelate`); the live camera, its `frame` size and rate, `model_runs`, `rotate`, `score`, and the cat's `in_view`, `last_seen`, `visits`, `last_score`, `recent` visits, the newest `clip`'s arrival and every kept one's (`clips`), and the `boxes` drawn now, as fractions of the picture |
 | `/snapshot.jpg` | the latest frame, boxes drawn; encoded once per frame however many ask |
 | `/arrival.jpg` | the frame the last arrival was confirmed on; `?t=<arrival time>` that arrival's own, of the last five; `404` until a cat has come, or once that arrival's is dropped |
 | `/arrival.mp4` | the last arrival as an H.264 clip, 3 s before it to 7 s after; `?t=<arrival time>` that arrival's own, of the last five; byte ranges answered; `404` until one is encoded, or once that arrival's is dropped |
@@ -779,6 +779,24 @@ the six Roboto files about 0.5 MB.
 the service forwards the WebSocket upgrade to its own signalling server on
 loopback `:8443`. Media goes over host candidates only unless `stun_server` is
 set, so the stream stays on the LAN. No TLS, no `serve.sh`, no container.
+
+#### The privacy filter
+
+**For showing the cat cam in public without showing the home** (2026-10-14). With
+`privacy = "pixelate"` in `catcam.toml`, everything but the detected animals leaves the
+camera as coarse blocks: 32 pixels at 640 wide, each its own mean colour. Only the boxes
+stay sharp, each grown by 15 % on every side, since the model's boxes are up to half a
+second old. With no box the whole picture is blocks, people included.
+- It applies to everything that leaves the camera: the live stream, `/snapshot.jpg`, the
+  arrival photos and the clips. The model still sees the whole picture, so detection works
+  as before.
+- Only the settings file sets it, then `sudo systemctl restart omni-catcam`. No page can
+  turn it off, so a visitor at a demo cannot either. `/healthz` says `"privacy": "pixelate"`;
+  the Stream page shows "Privacy filter on" under the camera's name, and the Camera page
+  names it in its table.
+- Arrival photos and clips recorded before it was turned on stay as they were. The other
+  cat cams in `peers` show their own pictures, filtered only where they set it too.
+- It costs little: one pass over each frame, no second model.
 
 #### Tests
 

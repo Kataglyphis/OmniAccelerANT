@@ -102,6 +102,18 @@ void main() {
       expect(sick.name, 'Garden Cam');
       expect(CatStatus.fromHealthz(_inView)!.problem, isNull);
     });
+
+    test('knows when the privacy filter pixelates the picture', () {
+      final private = CatStatus.fromHealthz(
+        _inView.replaceFirst('"ok":true', '"ok":true,"privacy":"pixelate"'),
+      )!;
+      expect(private.pixelated, isTrue);
+      expect(CatStatus.fromHealthz(_inView)!.pixelated, isFalse);
+      final off = CatStatus.fromHealthz(
+        _inView.replaceFirst('"ok":true', '"ok":true,"privacy":"off"'),
+      )!;
+      expect(off.pixelated, isFalse);
+    });
   });
 
   test('last seen is a time today and a date before', () {
@@ -343,6 +355,23 @@ void main() {
       await tester.pumpWidget(const SizedBox());
     },
   );
+
+  testWidgets('a pixelating camera says so above the cat', (tester) async {
+    await _pumpLine(
+      tester,
+      () async =>
+          _inView.replaceFirst('"ok":true', '"ok":true,"privacy":"pixelate"'),
+    );
+    await tester.pump();
+    expect(
+      find.text(
+        'Privacy filter on: everything but the detected animals is pixelated',
+      ),
+      findsOneWidget,
+    );
+    expect(find.byIcon(Icons.blur_on), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+  });
 
   testWidgets('a camera with a problem says so above the cat', (tester) async {
     await _pumpLine(

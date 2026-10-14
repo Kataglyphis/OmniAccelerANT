@@ -434,6 +434,30 @@ abstract class AppLocalizations {
   /// **'Version'**
   String get cameraVersion;
 
+  /// Row of the camera info table: whether the cat cam pixelates all but the detected animals.
+  ///
+  /// In en, this message translates to:
+  /// **'Privacy filter'**
+  String get cameraPrivacy;
+
+  /// Value of the privacy filter row when privacy = "pixelate".
+  ///
+  /// In en, this message translates to:
+  /// **'pixelates all but the detected animals (set in the settings file)'**
+  String get cameraPrivacyPixelate;
+
+  /// Value of the privacy filter row when the filter is off.
+  ///
+  /// In en, this message translates to:
+  /// **'off (set in the settings file)'**
+  String get cameraPrivacyOff;
+
+  /// Under the cat cam name when its /healthz says privacy is pixelate.
+  ///
+  /// In en, this message translates to:
+  /// **'Privacy filter on: everything but the detected animals is pixelated'**
+  String get catCamPixelated;
+
   /// Heading over the pictures of the latest arrivals on the Camera page.
   ///
   /// In en, this message translates to:

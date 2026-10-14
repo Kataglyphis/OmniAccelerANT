@@ -178,6 +178,9 @@ no riscv64 runtime.
   false one is seldom on screen when it happens. The cat cam keeps all of it across
   restarts, and counts a cat only once something moved where it is seen. A cat that walks
   out of the picture and back within a minute stays one visit.
+- **Showing it in public?** `privacy = "pixelate"` in the settings file turns everything but
+  the detected animals into coarse blocks, in the stream, the snapshots, the photos and the
+  clips, so nobody sees the room. Only the file switches it, no page.
 - Several cat cams can show each other: list the others as `peers` in each
   `catcam.toml`, and the Stream page shows a card per camera with its picture and cat.
 - `http://<host>:8080/healthz` says whether the camera delivers (`ok`, else the `problem`), which camera is live, when a cat was last seen,

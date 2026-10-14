@@ -26,7 +26,11 @@ class CatStatus {
     this.clips = const <DateTime>[],
     this.problem,
     this.peers = const <String>[],
+    this.pixelated = false,
   });
+
+  /// The cat cam blocks out all but the detected animals (`privacy = "pixelate"`).
+  final bool pixelated;
 
   /// The other cat cams' origins, as `catcam.toml` lists them, for the overview.
   final List<String> peers;
@@ -75,6 +79,7 @@ class CatStatus {
     final problem = json['problem'];
     final peers = json['peers'];
     return CatStatus(
+      pixelated: json['privacy'] == 'pixelate',
       peers: <String>[
         if (peers is List)
           for (final peer in peers)
@@ -276,6 +281,15 @@ class _CatStatusLineState extends State<CatStatusLine> {
             children: [
               const Icon(Icons.warning_amber, size: 18, color: Colors.orange),
               Flexible(child: Text(l10n.catCamProblem(problem))),
+            ],
+          ),
+        if (status.pixelated)
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            spacing: 6,
+            children: [
+              const Icon(Icons.blur_on, size: 18),
+              Flexible(child: Text(l10n.catCamPixelated)),
             ],
           ),
         Row(

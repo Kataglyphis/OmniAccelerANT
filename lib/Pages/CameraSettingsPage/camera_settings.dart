@@ -97,7 +97,11 @@ class CatCamInfo {
     this.boxes = const <Rect>[],
     this.version = '',
     this.detections = const <CatDetection>[],
+    this.pixelated = false,
   });
+
+  /// The privacy filter blocks out all but the detected animals; only the settings file sets it.
+  final bool pixelated;
 
   /// The latest arrivals that came with boxes, newest first.
   final List<CatDetection> detections;
@@ -135,6 +139,7 @@ class CatCamInfo {
     return CatCamInfo(
       camera: json['camera'] is String ? json['camera'] as String : '',
       version: json['version'] is String ? json['version'] as String : '',
+      pixelated: json['privacy'] == 'pixelate',
       width: field(frame, 'width'),
       height: field(frame, 'height'),
       fps: field(frame, 'fps'),
@@ -562,6 +567,10 @@ class _InfoTable extends StatelessWidget {
       if (info.fps case final fps? when fps > 0)
         (l10n.cameraFrameRate, '$fps fps'),
       (l10n.cameraDetection, info.inference ? l10n.cameraOn : l10n.cameraOff),
+      (
+        l10n.cameraPrivacy,
+        info.pixelated ? l10n.cameraPrivacyPixelate : l10n.cameraPrivacyOff,
+      ),
       (l10n.cameraModelRuns, '${info.modelRuns}'),
       (l10n.cameraVisits, '${info.visits}'),
       if (info.version.isNotEmpty) (l10n.cameraVersion, info.version),
