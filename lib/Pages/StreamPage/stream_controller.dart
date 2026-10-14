@@ -22,6 +22,23 @@ enum WebRTCStage {
 }
 
 /// What the signalling server reports; gstwebrtc-api implements it on web, fakes in tests.
+/// What the browser made of the stream over the last report: frames per second, dropped
+/// frames so far and the picture's size. The page's stats panel shows it.
+@immutable
+class PlaybackStats {
+  const PlaybackStats({
+    required this.fps,
+    required this.dropped,
+    required this.width,
+    required this.height,
+  });
+
+  final double fps;
+  final int dropped;
+  final int width;
+  final int height;
+}
+
 abstract class SignallingClient {
   /// Registers the callbacks, once per client, for the page's lifetime.
   void listen({
@@ -107,6 +124,12 @@ class WebRTCStreamController extends ChangeNotifier {
   /// The tab stayed hidden past [hiddenGrace], which closed the session; its socket may be dead since.
   bool _closedWhileHidden = false;
 
+  /// The latest [PlaybackStats], from [reportPlayback]; `null` before two reports.
+  final ValueNotifier<PlaybackStats?> playback = ValueNotifier<PlaybackStats?>(
+    null,
+  );
+  (int, DateTime)? _lastPlayback;
+
   /// Frame counts in a row, one every [WebRTCStreamController.reportFrames] call, that did not move.
   static const int _stalledReports = 5;
   int? _lastFrames;
@@ -165,6 +188,29 @@ class WebRTCStreamController extends ChangeNotifier {
     _unchangedReports = 0;
     _closeSession();
     _client.reconnect();
+  }
+
+  /// The video's counters at [at]: two reports give the frames per second between them.
+  void reportPlayback({
+    required int totalFrames,
+    required int droppedFrames,
+    required int width,
+    required int height,
+    required DateTime at,
+  }) {
+    final previous = _lastPlayback;
+    _lastPlayback = (totalFrames, at);
+    final elapsed = previous == null
+        ? 0
+        : at.difference(previous.$2).inMilliseconds;
+    // A new session restarts the counters; a negative difference is that, not a rate.
+    if (previous == null || elapsed <= 0 || totalFrames < previous.$1) return;
+    playback.value = PlaybackStats(
+      fps: (totalFrames - previous.$1) * 1000 / elapsed,
+      dropped: droppedFrames,
+      width: width,
+      height: height,
+    );
   }
 
   /// A view shows the stream in a tab the user can see.
@@ -304,6 +350,7 @@ class WebRTCStreamController extends ChangeNotifier {
     _negotiationTimer?.cancel();
     _retryTimer?.cancel();
     _closeSession();
+    playback.dispose();
     super.dispose();
   }
 }

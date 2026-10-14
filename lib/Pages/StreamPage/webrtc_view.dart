@@ -3,6 +3,7 @@ import 'dart:js_interop';
 import 'dart:ui_web' as ui_web;
 
 import 'package:web/web.dart' as web;
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import 'package:omni_accelerant/js/gstwebrtc_api_interop.dart';
@@ -35,6 +36,9 @@ WebRTCStreamController? _sharedController;
 String? _sharedSignalingUrl;
 
 const String _kViewType = 'omni-accelerant-webrtc-video';
+
+/// What the browser makes of the stream, for the stats panel; `null` before the first view.
+ValueListenable<PlaybackStats?>? playbackStats() => _sharedController?.playback;
 bool _viewFactoryRegistered = false;
 
 /// The `RTCPeerConnection` config; without ICE servers nothing beyond one LAN segment connects.
@@ -95,7 +99,15 @@ WebRTCStreamController _ensureSharedObjects(WebRTCView widget) {
     ((web.Event _) => controller.pageHidden(web.document.hidden)).toJS,
   );
   Timer.periodic(const Duration(seconds: 2), (_) {
-    controller.reportFrames(video.getVideoPlaybackQuality().totalVideoFrames);
+    final quality = video.getVideoPlaybackQuality();
+    controller.reportFrames(quality.totalVideoFrames);
+    controller.reportPlayback(
+      totalFrames: quality.totalVideoFrames,
+      droppedFrames: quality.droppedVideoFrames,
+      width: video.videoWidth,
+      height: video.videoHeight,
+      at: DateTime.now(),
+    );
   });
   return _sharedController = controller;
 }

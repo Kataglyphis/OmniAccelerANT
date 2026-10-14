@@ -16,6 +16,7 @@ import 'package:omni_accelerant/Pages/StreamPage/webrtc_view_stub.dart'
 import 'package:omni_accelerant/Pages/StreamPage/rust_webcam_view.dart';
 import 'package:omni_accelerant/Pages/StreamPage/cat_status.dart';
 import 'package:omni_accelerant/Pages/StreamPage/cat_cam_peers.dart';
+import 'package:omni_accelerant/Pages/StreamPage/dev_stats.dart';
 // Nothing on native; on web the cat cam that serves the page (its /healthz, here).
 import 'package:omni_accelerant/Pages/StreamPage/cat_cam_api_stub.dart'
     if (dart.library.js_interop) 'package:omni_accelerant/Pages/StreamPage/cat_cam_api_web.dart';
@@ -380,6 +381,10 @@ class StreamPageState extends State<StreamPage> {
               const CatStatusLine(
                 fetch: fetchHealthz,
                 fallbackName: 'Trouble Tabbls Cat Cam',
+              ),
+              const DevStatsPanel(
+                fetch: fetchHealthz,
+                playback: webrtc_import.playbackStats,
               ),
               const SizedBox(height: 20),
               const CatCamPeers(fetchOwn: fetchHealthz, fetchFrom: fetchFrom),

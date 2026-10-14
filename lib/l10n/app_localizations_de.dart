@@ -212,6 +212,62 @@ class AppLocalizationsDe extends AppLocalizations {
   String get cameraPrivacyOff => 'aus (in der Einstellungsdatei gesetzt)';
 
   @override
+  String get devStats => 'Statistik';
+
+  @override
+  String get devStatsNone =>
+      'Noch keine Zahlen: die Kamera meldet keine, und der Browser spielt nichts ab.';
+
+  @override
+  String get devStatsCamera => 'Kamera';
+
+  @override
+  String devStatsCameraValue(String fps, String configured) {
+    return '$fps von $configured fps';
+  }
+
+  @override
+  String get devStatsModel => 'Erkennung';
+
+  @override
+  String devStatsModelValue(String ms, String rate) {
+    return '$ms ms pro Lauf, $rate Läufe/s';
+  }
+
+  @override
+  String get devStatsCpu => 'CPU';
+
+  @override
+  String devStatsCpuValue(String percent, String cores, String load) {
+    return '$percent % eines Kerns, $cores Kerne, Last $load';
+  }
+
+  @override
+  String get devStatsMemory => 'Arbeitsspeicher';
+
+  @override
+  String get devStatsTemperature => 'Temperatur';
+
+  @override
+  String get devStatsUptime => 'Läuft seit';
+
+  @override
+  String devStatsUptimeValue(String hours, String minutes) {
+    return '$hours h $minutes min';
+  }
+
+  @override
+  String get devStatsViewers => 'Zuschauer';
+
+  @override
+  String get devStatsBrowser => 'Dieser Browser';
+
+  @override
+  String devStatsBrowserValue(String fps, String size, String dropped) {
+    return '$fps fps, $size, $dropped verworfen';
+  }
+
+  @override
   String get catCamPixelated =>
       'Privatsphäre-Filter an: alles außer den erkannten Tieren ist verpixelt';
 

@@ -399,4 +399,37 @@ void main() {
       negotiating.dispose();
     },
   );
+
+  test('two playback reports give the frames per second between them', () {
+    final (WebRTCStreamController controller, _) = _streaming();
+    final DateTime t = DateTime(2026, 10, 14, 16);
+    controller.reportPlayback(
+      totalFrames: 300,
+      droppedFrames: 0,
+      width: 640,
+      height: 480,
+      at: t,
+    );
+    expect(controller.playback.value, isNull);
+    controller.reportPlayback(
+      totalFrames: 359,
+      droppedFrames: 2,
+      width: 640,
+      height: 480,
+      at: t.add(const Duration(seconds: 2)),
+    );
+    final PlaybackStats stats = controller.playback.value!;
+    expect(stats.fps, closeTo(29.5, 0.01));
+    expect((stats.dropped, stats.width, stats.height), (2, 640, 480));
+    // A new session restarts the count: no rate from that, the last one stands.
+    controller.reportPlayback(
+      totalFrames: 10,
+      droppedFrames: 0,
+      width: 640,
+      height: 480,
+      at: t.add(const Duration(seconds: 4)),
+    );
+    expect(controller.playback.value, same(stats));
+    controller.dispose();
+  });
 }

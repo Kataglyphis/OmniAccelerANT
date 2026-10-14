@@ -1,6 +1,11 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+import 'package:omni_accelerant/Pages/StreamPage/stream_controller.dart';
 import 'package:omni_accelerant/settings/webrtc_settings.dart';
+
+/// Native plays no WebRTC stream, so the stats panel has no browser numbers.
+ValueListenable<PlaybackStats?>? playbackStats() => null;
 
 /// Non-web stand-in; keep its constructor in step with `webrtc_view.dart`, or only the web lane breaks.
 class WebRTCView extends StatelessWidget {

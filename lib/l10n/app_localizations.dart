@@ -452,6 +452,96 @@ abstract class AppLocalizations {
   /// **'off (set in the settings file)'**
   String get cameraPrivacyOff;
 
+  /// Button on the Stream page that opens the panel of performance numbers.
+  ///
+  /// In en, this message translates to:
+  /// **'Stats'**
+  String get devStats;
+
+  /// The stats panel before any number arrived.
+  ///
+  /// In en, this message translates to:
+  /// **'No numbers yet: the camera reports none, and the browser plays nothing.'**
+  String get devStatsNone;
+
+  /// Stats row: frames the camera delivers per second.
+  ///
+  /// In en, this message translates to:
+  /// **'Camera'**
+  String get devStatsCamera;
+
+  /// Measured frames per second of the configured rate.
+  ///
+  /// In en, this message translates to:
+  /// **'{fps} of {configured} fps'**
+  String devStatsCameraValue(String fps, String configured);
+
+  /// Stats row: the model's time per run and its runs per second.
+  ///
+  /// In en, this message translates to:
+  /// **'Detection'**
+  String get devStatsModel;
+
+  /// Milliseconds per model run and runs per second.
+  ///
+  /// In en, this message translates to:
+  /// **'{ms} ms per run, {rate} runs/s'**
+  String devStatsModelValue(String ms, String rate);
+
+  /// Stats row: the cat cam's CPU use and the system load.
+  ///
+  /// In en, this message translates to:
+  /// **'CPU'**
+  String get devStatsCpu;
+
+  /// Process CPU in percent of one core, the core count, the 1-minute load average.
+  ///
+  /// In en, this message translates to:
+  /// **'{percent} % of one core, {cores} cores, load {load}'**
+  String devStatsCpuValue(String percent, String cores, String load);
+
+  /// Stats row: the cat cam's resident memory.
+  ///
+  /// In en, this message translates to:
+  /// **'Memory'**
+  String get devStatsMemory;
+
+  /// Stats row: the board's CPU temperature.
+  ///
+  /// In en, this message translates to:
+  /// **'Temperature'**
+  String get devStatsTemperature;
+
+  /// Stats row: how long the cat cam has run.
+  ///
+  /// In en, this message translates to:
+  /// **'Running for'**
+  String get devStatsUptime;
+
+  /// Uptime in hours and minutes.
+  ///
+  /// In en, this message translates to:
+  /// **'{hours} h {minutes} min'**
+  String devStatsUptimeValue(String hours, String minutes);
+
+  /// Stats row: browser tabs on the stream.
+  ///
+  /// In en, this message translates to:
+  /// **'Viewers'**
+  String get devStatsViewers;
+
+  /// Stats row: what this browser plays.
+  ///
+  /// In en, this message translates to:
+  /// **'This browser'**
+  String get devStatsBrowser;
+
+  /// Frames per second received, picture size, frames dropped so far.
+  ///
+  /// In en, this message translates to:
+  /// **'{fps} fps, {size}, {dropped} dropped'**
+  String devStatsBrowserValue(String fps, String size, String dropped);
+
   /// Under the cat cam name when its /healthz says privacy is pixelate.
   ///
   /// In en, this message translates to:

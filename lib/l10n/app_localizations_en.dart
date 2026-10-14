@@ -211,6 +211,62 @@ class AppLocalizationsEn extends AppLocalizations {
   String get cameraPrivacyOff => 'off (set in the settings file)';
 
   @override
+  String get devStats => 'Stats';
+
+  @override
+  String get devStatsNone =>
+      'No numbers yet: the camera reports none, and the browser plays nothing.';
+
+  @override
+  String get devStatsCamera => 'Camera';
+
+  @override
+  String devStatsCameraValue(String fps, String configured) {
+    return '$fps of $configured fps';
+  }
+
+  @override
+  String get devStatsModel => 'Detection';
+
+  @override
+  String devStatsModelValue(String ms, String rate) {
+    return '$ms ms per run, $rate runs/s';
+  }
+
+  @override
+  String get devStatsCpu => 'CPU';
+
+  @override
+  String devStatsCpuValue(String percent, String cores, String load) {
+    return '$percent % of one core, $cores cores, load $load';
+  }
+
+  @override
+  String get devStatsMemory => 'Memory';
+
+  @override
+  String get devStatsTemperature => 'Temperature';
+
+  @override
+  String get devStatsUptime => 'Running for';
+
+  @override
+  String devStatsUptimeValue(String hours, String minutes) {
+    return '$hours h $minutes min';
+  }
+
+  @override
+  String get devStatsViewers => 'Viewers';
+
+  @override
+  String get devStatsBrowser => 'This browser';
+
+  @override
+  String devStatsBrowserValue(String fps, String size, String dropped) {
+    return '$fps fps, $size, $dropped dropped';
+  }
+
+  @override
   String get catCamPixelated =>
       'Privacy filter on: everything but the detected animals is pixelated';
 

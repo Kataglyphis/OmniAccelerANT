@@ -112,6 +112,51 @@
   "@cameraPrivacyOff": {
     "description": "Value of the privacy filter row when the filter is off."
   },
+  "devStats": "Stats",
+  "@devStats": { "description": "Button on the Stream page that opens the panel of performance numbers." },
+  "devStatsNone": "No numbers yet: the camera reports none, and the browser plays nothing.",
+  "@devStatsNone": { "description": "The stats panel before any number arrived." },
+  "devStatsCamera": "Camera",
+  "@devStatsCamera": { "description": "Stats row: frames the camera delivers per second." },
+  "devStatsCameraValue": "{fps} of {configured} fps",
+  "@devStatsCameraValue": {
+    "description": "Measured frames per second of the configured rate.",
+    "placeholders": { "fps": { "type": "String" }, "configured": { "type": "String" } }
+  },
+  "devStatsModel": "Detection",
+  "@devStatsModel": { "description": "Stats row: the model's time per run and its runs per second." },
+  "devStatsModelValue": "{ms} ms per run, {rate} runs/s",
+  "@devStatsModelValue": {
+    "description": "Milliseconds per model run and runs per second.",
+    "placeholders": { "ms": { "type": "String" }, "rate": { "type": "String" } }
+  },
+  "devStatsCpu": "CPU",
+  "@devStatsCpu": { "description": "Stats row: the cat cam's CPU use and the system load." },
+  "devStatsCpuValue": "{percent} % of one core, {cores} cores, load {load}",
+  "@devStatsCpuValue": {
+    "description": "Process CPU in percent of one core, the core count, the 1-minute load average.",
+    "placeholders": { "percent": { "type": "String" }, "cores": { "type": "String" }, "load": { "type": "String" } }
+  },
+  "devStatsMemory": "Memory",
+  "@devStatsMemory": { "description": "Stats row: the cat cam's resident memory." },
+  "devStatsTemperature": "Temperature",
+  "@devStatsTemperature": { "description": "Stats row: the board's CPU temperature." },
+  "devStatsUptime": "Running for",
+  "@devStatsUptime": { "description": "Stats row: how long the cat cam has run." },
+  "devStatsUptimeValue": "{hours} h {minutes} min",
+  "@devStatsUptimeValue": {
+    "description": "Uptime in hours and minutes.",
+    "placeholders": { "hours": { "type": "String" }, "minutes": { "type": "String" } }
+  },
+  "devStatsViewers": "Viewers",
+  "@devStatsViewers": { "description": "Stats row: browser tabs on the stream." },
+  "devStatsBrowser": "This browser",
+  "@devStatsBrowser": { "description": "Stats row: what this browser plays." },
+  "devStatsBrowserValue": "{fps} fps, {size}, {dropped} dropped",
+  "@devStatsBrowserValue": {
+    "description": "Frames per second received, picture size, frames dropped so far.",
+    "placeholders": { "fps": { "type": "String" }, "size": { "type": "String" }, "dropped": { "type": "String" } }
+  },
   "catCamPixelated": "Privacy filter on: everything but the detected animals is pixelated",
   "@catCamPixelated": {
     "description": "Under the cat cam name when its /healthz says privacy is pixelate."

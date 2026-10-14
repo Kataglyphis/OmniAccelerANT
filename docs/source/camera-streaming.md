@@ -266,7 +266,7 @@ Everything it serves is on that one port, plain HTTP:
 | Path | Answers |
 | --- | --- |
 | `/` | the web app; its Stream page plays the camera and shows the cat's status, visits and last arrival |
-| `/healthz` | JSON: `ok`, or `false` with the `problem`; the seconds since the last frame and model run (`frame_age_s`, `model_age_s`); the build (`version`), the browser tabs on the stream (`viewers`), the other cat cams (`peers`) and the privacy filter (`privacy`: `off` or `pixelate`); the live camera, its `frame` size and rate, `model_runs`, `rotate`, `score`, and the cat's `in_view`, `last_seen`, `visits`, `last_score`, `recent` visits, the newest `clip`'s arrival and every kept one's (`clips`), and the `boxes` drawn now, as fractions of the picture |
+| `/healthz` | JSON: `ok`, or `false` with the `problem`; the seconds since the last frame and model run (`frame_age_s`, `model_age_s`); the build (`version`), the browser tabs on the stream (`viewers`), the other cat cams (`peers`), the privacy filter (`privacy`: `off` or `pixelate`) and `stats`, sampled every 2 s: `capture_fps`, `model_ms` per run, `model_runs_per_s`, `cpu_percent` of one core, `cores`, `rss_mb`, `load_1m`, `temperature_c` and `uptime_s` (the CPU, memory, load and temperature from `/proc` and `/sys`, so `null` off Linux); the live camera, its `frame` size and rate, `model_runs`, `rotate`, `score`, and the cat's `in_view`, `last_seen`, `visits`, `last_score`, `recent` visits, the newest `clip`'s arrival and every kept one's (`clips`), and the `boxes` drawn now, as fractions of the picture |
 | `/snapshot.jpg` | the latest frame, boxes drawn; encoded once per frame however many ask |
 | `/arrival.jpg` | the frame the last arrival was confirmed on; `?t=<arrival time>` that arrival's own, of the last five; `404` until a cat has come, or once that arrival's is dropped |
 | `/arrival.mp4` | the last arrival as an H.264 clip, 3 s before it to 7 s after; `?t=<arrival time>` that arrival's own, of the last five; byte ranges answered; `404` until one is encoded, or once that arrival's is dropped |
@@ -779,6 +779,15 @@ the six Roboto files about 0.5 MB.
 the service forwards the WebSocket upgrade to its own signalling server on
 loopback `:8443`. Media goes over host candidates only unless `stun_server` is
 set, so the stream stays on the LAN. No TLS, no `serve.sh`, no container.
+
+#### Stats for developers
+
+**A "Stats" button under the camera's name** (2026-10-14) opens a panel that refreshes every
+2 s while open: what the cat cam delivers and costs (`/healthz`'s `stats`: frames per second
+against the configured rate, the model's time per run and runs per second, its CPU share of
+one core, the cores, memory, the 1-minute load, the board's temperature, how long it has
+run, the viewers) and what this browser makes of the stream (frames per second received,
+the picture's size, frames dropped so far). Closed, it polls nothing.
 
 #### The privacy filter
 

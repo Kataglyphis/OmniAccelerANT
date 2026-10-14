@@ -189,6 +189,16 @@ healthz_holds() {
   curl -sf "http://$1:8080/healthz" | jq -e "$2" >/dev/null
 }
 
+# The sampler needs two looks, 2 s apart, before it has rates; up to 10 s.
+stats_measured() {
+  local _
+  for _ in $(seq 1 20); do
+    healthz_holds "$1" '.stats.capture_fps > 0 and .stats.model_ms > 0 and .stats.rss_mb > 0 and .stats.cores >= 1' && return 0
+    sleep 0.5
+  done
+  return 1
+}
+
 # Another site's form post is refused, and a bad value refuses the whole post.
 settings_refuse_bad_posts() {
   local code
@@ -405,6 +415,7 @@ start_service "${work}/photo.log" "${prefix}/catcam" --camera "image:${photo}" -
 pid=$!
 check "/healthz reports the cat in the photo as a visit" wait_cat "${ip}"
 check "/healthz says ok while the camera delivers frames" healthz_holds "${ip}" '.ok and .problem == null and .frame_age_s <= 2 and .model_age_s <= 10'
+check "/healthz's stats measure the frame rate, the model's time and the memory" stats_measured "${ip}"
 check "/healthz names the installed package's version as its build" names_its_package "${ip}"
 check "/snapshot.jpg serves the boxed frame as a JPEG" jpeg_at "${ip}" /snapshot.jpg
 check "the arrival is POSTed to notify_url as JSON" webhook_got_arrival "${work}/webhook.jsonl"
