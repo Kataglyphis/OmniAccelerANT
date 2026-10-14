@@ -108,7 +108,8 @@ Linux amd64/arm64 ship as a .deb and an AppImage, proven on himbeere2 (Pi 5) on
   - himbeere2 (Pi 5, imx219, rotate 180, dark): 3 % of a core, no model run;
   - tabblscatcam (imx708, rotate 270): 21 %, no model run: resampling the turned picture,
     not the model. Since the camera captures 480x360 when turned a quarter (OxidANT
-    `capture_size`, 2026-10-14) it is 4 %; a daylight look at its turned picture is still due;
+    `capture_size`, 2026-10-14) it is 4 % at night and 10 % by day with 11 model runs a
+    minute; by daylight its turned picture is upright, undistorted and bordered as before;
   - mintberrycrunch (riscv64, C270, lit): 16 % of one of 8 cores, 12 model runs a minute.
 
   The model runs at 640x640, fixed in `yolo26n.onnx`; a 320 export would cost about a
