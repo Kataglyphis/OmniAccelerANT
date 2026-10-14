@@ -712,6 +712,17 @@ fired. A failed session is retried after 3 s. In headless Chrome on a test patte
 and back, a theme toggle and two page changes. Before, a language switch left the box at
 "Connecting to the signalling server".
 
+**What a browser downloads** (measured on himbeere2, 2026-10-14, Chrome 154 on the LAN):
+the first visit 4.5 MB in about 60 requests, the video playing after 3.6 s; every later
+visit 0.11 MB, the video after 2.9 s, because the server answers each file with an ETag and
+`Cache-Control: no-cache`, and an unchanged one costs a `304` without a body. Half of the
+first visit is Flutter's renderer, `skwasm_heavy.wasm` (2.2 MB gzipped): Flutter takes the
+heavy one when the browser has no native image decoder, and Chrome offers WebCodecs'
+`ImageDecoder` only in a secure context, which plain HTTP on a LAN address is not. So over
+`http://<board>:8080` every browser gets it; served over HTTPS or from `localhost`, Chrome
+would take the lighter `skwasm.wasm`. The app itself, `main.dart.wasm`, is 1.5 MB, and
+the six Roboto files about 0.5 MB.
+
 **One port reaches it.** The page and the `/webrtc-ws` signalling share `:8080`:
 the service forwards the WebSocket upgrade to its own signalling server on
 loopback `:8443`. Media goes over host candidates only unless `stun_server` is
