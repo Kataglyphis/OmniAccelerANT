@@ -61,6 +61,7 @@
   "cameraClasses": "Was erkannt wird",
   "cameraAddClass": "Klasse hinzufügen",
   "cameraClassesHelp": "Besuche, Benachrichtigungen und Rahmen zählen diese Objekte (COCO-Klassen; Katze ist der Standard). Eine Änderung gilt ab dem nächsten Modelllauf. Der Privatsphäre-Filter lässt jedes davon scharf, auch Personen.",
+  "cameraClassesLocked": "Der Privatsphäre-Filter ist an, darum lässt sich das nur in der Einstellungsdatei (observant.toml) ändern.",
   "devStats": "Statistik",
   "devStatsNone": "Noch keine Zahlen: die Kamera meldet keine, und der Browser spielt nichts ab.",
   "devStatsCamera": "Kamera",

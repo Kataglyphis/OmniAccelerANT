@@ -522,6 +522,18 @@ void main() {
         ObservantSettings.parse('{"name":"A","rotate":0,"score":0.3}')!.classes,
         isNull,
       );
+      expect(
+        ObservantSettings.parse(
+          '{"name":"A","rotate":0,"score":0.3,"privacy":"pixelate"}',
+        )!.classesLocked,
+        isTrue,
+      );
+      expect(
+        ObservantSettings.parse(
+          '{"name":"A","rotate":0,"score":0.3,"privacy":"off"}',
+        )!.classesLocked,
+        isFalse,
+      );
     },
   );
 
@@ -563,6 +575,29 @@ void main() {
     });
     expect(find.widgetWithText(InputChip, 'cat'), findsNothing);
   });
+
+  testWidgets(
+    'with the privacy filter on, the classes show but no page changes them',
+    (tester) async {
+      final cam = _FakeObservant()
+        ..settings = {
+          'name': 'Cat Cam Futtertrog',
+          'rotate': 270,
+          'score': 0.45,
+          'classes': ['cat', 'dog'],
+          'privacy': 'pixelate',
+        };
+      await _pump(tester, fetchSettings: cam.fetchSettings, save: cam.save);
+      await tester.pump();
+      expect(find.widgetWithText(InputChip, 'dog'), findsOneWidget);
+      for (final chip in tester.widgetList<InputChip>(find.byType(InputChip))) {
+        expect(chip.onDeleted, isNull);
+      }
+      expect(find.byKey(const ValueKey('add-class')), findsNothing);
+      expect(find.textContaining('observant.toml'), findsOneWidget);
+      expect(cam.posts, isEmpty);
+    },
+  );
 
   testWidgets(
     'an ObservANT camera that cannot change its classes shows no editor',

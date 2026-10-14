@@ -39,6 +39,7 @@ class ObservantSettings {
     required this.score,
     this.ignore = const <Rect>[],
     this.classes,
+    this.classesLocked = false,
   });
 
   /// Spots marked "not a cat"; an ObservANT camera before them sends none.
@@ -46,6 +47,9 @@ class ObservantSettings {
 
   /// The COCO classes it watches; `null` for an ObservANT camera that watches only cats and cannot change it.
   final List<String>? classes;
+
+  /// The privacy filter is on, so only observant.toml sets [classes]: a page could otherwise unblur people.
+  final bool classesLocked;
 
   final String name;
 
@@ -78,6 +82,7 @@ class ObservantSettings {
                 if (c is String) c,
             ]
           : null,
+      classesLocked: json['privacy'] == 'pixelate',
     );
   }
 }
@@ -484,6 +489,7 @@ class _CameraSettingsPanelState extends State<CameraSettingsPanel> {
           Text(l10n.cameraClasses, style: heading),
           _ClassesEditor(
             classes: classes,
+            locked: settings.classesLocked,
             onChanged: (next) => _save({'classes': next}),
           ),
         ],
@@ -493,12 +499,17 @@ class _CameraSettingsPanelState extends State<CameraSettingsPanel> {
   }
 }
 
-/// The watched classes as chips, each removable while another stays, and a menu to add one.
+/// The watched classes as chips, each removable while another stays, and a menu to add one; [locked], only shown.
 class _ClassesEditor extends StatelessWidget {
-  const _ClassesEditor({required this.classes, required this.onChanged});
+  const _ClassesEditor({
+    required this.classes,
+    required this.onChanged,
+    this.locked = false,
+  });
 
   final List<String> classes;
   final void Function(List<String> classes) onChanged;
+  final bool locked;
 
   @override
   Widget build(BuildContext context) {
@@ -518,7 +529,7 @@ class _ClassesEditor extends StatelessWidget {
               for (final c in classes)
                 InputChip(
                   label: Text(classLabel(c, language)),
-                  onDeleted: classes.length > 1
+                  onDeleted: !locked && classes.length > 1
                       ? () => onChanged([
                           for (final other in classes)
                             if (other != c) other,
@@ -527,26 +538,27 @@ class _ClassesEditor extends StatelessWidget {
                 ),
             ],
           ),
-          DropdownMenu<String>(
-            key: const ValueKey('add-class'),
-            hintText: l10n.cameraAddClass,
-            enableFilter: true,
-            requestFocusOnTap: true,
-            dropdownMenuEntries: [
-              for (final c in addable)
-                DropdownMenuEntry<String>(
-                  value: c,
-                  label: classLabel(c, language),
-                ),
-            ],
-            onSelected: (c) {
-              if (c != null && !classes.contains(c)) {
-                onChanged([...classes, c]);
-              }
-            },
-          ),
+          if (!locked)
+            DropdownMenu<String>(
+              key: const ValueKey('add-class'),
+              hintText: l10n.cameraAddClass,
+              enableFilter: true,
+              requestFocusOnTap: true,
+              dropdownMenuEntries: [
+                for (final c in addable)
+                  DropdownMenuEntry<String>(
+                    value: c,
+                    label: classLabel(c, language),
+                  ),
+              ],
+              onSelected: (c) {
+                if (c != null && !classes.contains(c)) {
+                  onChanged([...classes, c]);
+                }
+              },
+            ),
           Text(
-            l10n.cameraClassesHelp,
+            locked ? l10n.cameraClassesLocked : l10n.cameraClassesHelp,
             style: Theme.of(context).textTheme.bodySmall,
             textAlign: TextAlign.center,
           ),

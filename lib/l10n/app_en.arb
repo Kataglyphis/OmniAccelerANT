@@ -122,6 +122,8 @@
   "@cameraAddClass": { "description": "Hint of the menu that adds a watched class." },
   "cameraClassesHelp": "Visits, notifications and boxes count these objects (COCO classes; cat is the default). A change applies at the next model run. The privacy filter keeps every one of them sharp, people too.",
   "@cameraClassesHelp": { "description": "Help under the watched classes on the Camera page." },
+  "cameraClassesLocked": "The privacy filter is on, so only the settings file (observant.toml) can change these.",
+  "@cameraClassesLocked": { "description": "Shown instead of the class editor's help while ObservANT's privacy filter is on." },
   "devStats": "Stats",
   "@devStats": { "description": "Button on the Stream page that opens the panel of performance numbers." },
   "devStatsNone": "No numbers yet: the camera reports none, and the browser plays nothing.",

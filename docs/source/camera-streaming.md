@@ -300,16 +300,28 @@ Everything it serves is on that one port, plain HTTP:
 | `/snapshot.jpg` | the latest frame, boxes drawn; encoded once per frame however many ask |
 | `/arrival.jpg` | the frame the last arrival was confirmed on; `?t=<arrival time>` that arrival's own, of the last five; `404` until a cat has come, or once that arrival's is dropped |
 | `/arrival.mp4` | the last arrival as an H.264 clip, 3 s before it to 7 s after; `?t=<arrival time>` that arrival's own, of the last five; byte ranges answered; `404` until one is encoded, or once that arrival's is dropped |
-| `/settings` | `GET`: the `name`, `rotate`, `score`, `ignore` and `classes` the settings page can change. `POST` any of them as JSON (`application/json` only), e.g. `{"rotate": 90}`: 0, 90, 180 or 270 degrees clockwise, a `score` from 0.05 to 0.95, a name of up to 64 characters, up to 16 spots marked "not a cat" as `[x1, y1, x2, y2]` fractions of the picture (`{"ignore": []}` forgets them), and the watched `classes`, one to all 80 COCO names (`{"classes": ["cat", "dog"]}`) |
+| `/settings` | `GET`: the `name`, `rotate`, `score`, `ignore` and `classes` the settings page can change, and the `privacy` filter, which locks `classes`. `POST` any of them as JSON (`application/json` only), e.g. `{"rotate": 90}`: 0, 90, 180 or 270 degrees clockwise, a `score` from 0.05 to 0.95, a name of up to 64 characters, up to 16 spots marked "not a cat" as `[x1, y1, x2, y2]` fractions of the picture (`{"ignore": []}` forgets them), and the watched `classes`, one to all 80 COCO names (`{"classes": ["cat", "dog"]}`) |
 | `/webrtc-ws` | the WebRTC signalling, forwarded to the producer's own server on loopback `:8443`; at most `max_viewers` tabs at once (8), `503` for one more; a tab that vanished without closing, a laptop asleep, frees its place within about 2.5 min (TCP keepalive, 2026-10-14) |
 
 **Only ObservANT's own page may act** (2026-10-13). `/webrtc-ws` and a `POST /settings`
 answer `403` when a browser's `Origin` is not the address the request was sent to, so
-another site's page cannot open the camera or change it. The address must also be an IP,
-a name without a dot, or one ending in `.local`, `.lan`, `.home`, `.internal`, `.home.arpa`
-or `.fritz.box`, which keeps out a public name pointed at the board (DNS rebinding). A
-reverse proxy under a public name is added to `allowed_hosts` in `observant.toml`. Everything
-else stays readable on the LAN, and a tool such as curl, which sends no `Origin`, passes.
+another site's page cannot open the camera or change it. A tool such as curl, which sends
+no `Origin`, passes, and reads stay open to the other ObservANT cameras' pages.
+
+**Every request must name the board by a local address** (2026-10-14): an IP, a name without
+a dot, or one ending in `.local`, `.lan`, `.home`, `.internal`, `.home.arpa` or
+`.fritz.box`, else `403`. Before, only acting requests were checked, so a website that pointed
+a public name at the board (DNS rebinding) could read `/snapshot.jpg` and the clips as its
+own. A reverse proxy under a public name is added to `allowed_hosts` in `observant.toml`.
+
+**At most 128 connections at once, and a request head within 10 s** (2026-10-14). A device
+that opens more, or holds sockets without sending, no longer uses up the service's files;
+the 129th is closed unanswered until one frees.
+
+**A model that keeps failing shows** (2026-10-14). After three failed runs in a row
+`/healthz` says `ok: false` with `problem: "the model fails: …"`, so the Home Assistant
+outage alert fires. Each failed run clears the drawn boxes, so none stays sharp under the
+privacy filter, and the journal gets the first failure and then one line a minute.
 
 **The Camera page changes ObservANT while it runs** (2026-10-13). It is the web app's
 own page in the bottom bar, for a board that is easily moved or a spot with false alarms:
@@ -820,7 +832,9 @@ counts a cat counts any of them: visits, the webhook events, the arrival photos 
 the boxes. Each visit in `/healthz`'s `recent` and each `arrived` event names its `class`,
 the class of its best detection; `/healthz` lists `classes`. `all_classes = true` still counts
 every class. The privacy filter keeps every watched class sharp, so watching `person` shows
-people.
+people. While it is on, only `observant.toml` sets the classes: the Camera page shows them
+without the editor, `POST /settings` refuses other ones, and classes a page saved earlier
+give way at the next start (2026-10-14).
 
 #### Stats for developers
 
@@ -842,7 +856,8 @@ second old. With no box the whole picture is blocks, people included.
   arrival photos and the clips. The model still sees the whole picture, so detection works
   as before.
 - Only the settings file sets it, then `sudo systemctl restart omni-observant`. No page can
-  turn it off, so a visitor at a demo cannot either. `/healthz` says `"privacy": "pixelate"`;
+  turn it off, so a visitor at a demo cannot either; nor can one unblur people by watching
+  `person`, since the filter locks the classes to `observant.toml`'s. `/healthz` says `"privacy": "pixelate"`;
   the Stream page shows "Privacy filter on" under the camera's name, and the Camera page
   names it in its table.
 - Arrival photos and clips recorded before it was turned on stay as they were. The other

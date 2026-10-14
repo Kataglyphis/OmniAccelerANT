@@ -6,7 +6,7 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 ## Unreleased
 
 What landed on `develop` after 2.0.0+2. Most of it is the cat cam, whose guide is
-`docs/source/camera-streaming.md` § *The cat cam package*.
+`docs/source/camera-streaming.md` § *The ObservANT package*.
 
 ### Added
 
@@ -62,6 +62,14 @@ What landed on `develop` after 2.0.0+2. Most of it is the cat cam, whose guide i
   the clang-cl app (2026-10-04/05).
 
 ### Fixed
+
+- **ObservANT is harder to misuse from the LAN** (2026-10-14, the deep review). Reads now
+  need a local host name too, so a website using DNS rebinding cannot fetch the camera's
+  pictures; 128 connections at most and a 10 s limit for a request head keep one device from
+  exhausting the service; a model that keeps failing turns `/healthz` to `ok: false`; and
+  with the privacy filter on, the classes are locked to `observant.toml`, since watching
+  `person` from the page would have shown people unblurred. The Camera page then shows the
+  classes without the editor. Detail: OxidANT's CHANGELOG and camera-streaming.md.
 
 - **The app no longer calls itself "Blog von Jonas Heinle"** (2026-10-14, owner). The app
   bar showed `appNameDe`/`appNameEn` and the browser tab `appTitleDe`/`appTitleEn` from
