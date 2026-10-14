@@ -92,6 +92,18 @@ run on that arch, and warns above +25 %. A shared runner is noisy, so nothing fa
   runs it under Xvfb on x64 (`run_frontend_performance`); `reusable-linux.yml` keeps the
   default branch's last result in `.perf-baseline/`.
 
+**When a frame is slow, find what it builds.** The report says *that* a scenario got slower; a
+profile timeline says *where*. With an entry point outside the tree, say `build/probe/main.dart`,
+that sets `debugProfileBuildsEnabled = true` (and `debugProfileBuildsEnabledUserWidgets`) before
+calling the app's `main()`, run `flutter run --profile --trace-startup -d linux -t
+build/probe/main.dart` under Xvfb, then
+`python3 scripts/linux/flutter-trace-summary.py build/start_up_timeline.json`. It lists the
+slowest UI and raster frames and the slowest UI frame's self time per event, which with that
+flag is per widget. That is how the 2026-10-15 start-up fix was found: `StreamPage` held 938 ms
+of a 963 ms build, because its `initState` enumerated cameras synchronously. Without the flag
+the same command still splits a frame into BUILD, LAYOUT, PAINT, SEMANTICS and garbage
+collection. A DevTools *Export timeline* file reads the same way.
+
 **Two tools measure what the boards really do**, which no runner can: repeat them after a change
 that could cost time there, and compare with the baseline below.
 
