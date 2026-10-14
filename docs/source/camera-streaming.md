@@ -656,6 +656,19 @@ sensors, and with the cat cam unreachable they all turn `unavailable`. On himbee
   offline", and its return after such an outage sends "Cat cam wieder da"; a Home
   Assistant restart's few seconds stay quiet. Stopping `omni-catcam` for 5 min 45 s sent
   the first at 5 min, on the dot.
+- **Off and unavailable say different things** (2026-10-14). Since `/healthz` reports
+  `ok: false` for a camera without a picture, the online sensor is off while the cat cam
+  answers but sees nothing, and unavailable only when it does not answer. A sensor per
+  camera keeps the reason, and the alert names it: "hat seit 5 Minuten kein Bild (no frame
+  for 300 s)" for the first, "antwortet seit 5 Minuten nicht" for the second.
+
+  ```yaml
+      sensor:
+        - name: Cat cam Problem
+          unique_id: catcam_problem
+          icon: mdi:camera-off
+          value_template: "{{ value_json.problem or 'ok' }}"
+  ```
 - **A sensor that has no value yet needs `availability`, not `none`.** A `rest` template
   that returns `none` renders the text "None", which a timestamp sensor logs as an invalid
   timestamp on every poll and a duration sensor refuses at load (`ValueError: ... has the
