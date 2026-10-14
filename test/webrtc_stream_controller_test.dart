@@ -46,6 +46,15 @@ class _FakeClient implements SignallingClient {
   @override
   List<String> availableProducers() => List<String>.of(producers);
 
+  int reconnects = 0;
+
+  /// As gstwebrtc-api does: the old channel's end is announced at once, the new one's start later.
+  @override
+  void reconnect() {
+    reconnects++;
+    disconnected();
+  }
+
   @override
   ConsumerSessionHandle? openSession(
     String producerId, {
@@ -256,7 +265,10 @@ void main() {
       controller.attach();
       expect(client.sessions, hasLength(1));
       controller.detach();
+      // Back after so long, it first rebuilds the signalling connection, then opens the session on it.
       controller.pageHidden(false);
+      expect(client.reconnects, 1);
+      client.connected();
       expect(client.sessions, hasLength(2));
       expect(controller.stage, WebRTCStage.negotiating);
       controller.dispose();
@@ -277,4 +289,114 @@ void main() {
     expect(client.sessions.single.closed, isTrue);
     controller.dispose();
   });
+
+  testWidgets(
+    'a session that gets no answer rebuilds the signalling connection',
+    (WidgetTester tester) async {
+      final _FakeClient client = _FakeClient();
+      final WebRTCStreamController controller = WebRTCStreamController(
+        client,
+        reconnectionTimeoutMs: 5000,
+      );
+      controller.attach();
+      client.connected();
+      client.announce('cam');
+      expect(controller.stage, WebRTCStage.negotiating);
+      // The socket died unnoticed: the request went out, nothing comes back.
+      await tester.pump(const Duration(seconds: 14));
+      expect(client.reconnects, 0);
+      await tester.pump(const Duration(seconds: 2));
+      expect(client.reconnects, 1);
+      expect(client.sessions.single.closed, isTrue);
+      expect(controller.stage, WebRTCStage.connecting);
+      // The new channel connects and names the camera again: a new session starts at once.
+      client.connected();
+      expect(client.sessions, hasLength(2));
+      client.sessions.last.streaming();
+      expect(controller.stage, WebRTCStage.streaming);
+      // Streaming in time: no rebuild.
+      await tester.pump(const Duration(seconds: 30));
+      expect(client.reconnects, 1);
+      controller.dispose();
+    },
+  );
+
+  testWidgets(
+    'back from a long absence, the tab starts on a fresh signalling connection',
+    (WidgetTester tester) async {
+      final (WebRTCStreamController controller, _FakeClient client) =
+          _streaming();
+      // A glance away keeps the session and the socket.
+      controller.pageHidden(true);
+      await tester.pump(const Duration(seconds: 20));
+      controller.pageHidden(false);
+      expect(client.reconnects, 0);
+      // Hours away, a laptop asleep in between: the old socket may carry nothing any more.
+      controller.pageHidden(true);
+      await tester.pump(const Duration(minutes: 3));
+      expect(client.sessions.single.closed, isTrue);
+      controller.pageHidden(false);
+      expect(client.reconnects, 1);
+      expect(controller.stage, WebRTCStage.connecting);
+      client.connected();
+      expect(client.sessions, hasLength(2));
+      expect(controller.stage, WebRTCStage.negotiating);
+      controller.dispose();
+    },
+  );
+
+  test(
+    'a picture that stops moving while streaming rebuilds the connection',
+    () {
+      final (WebRTCStreamController controller, _FakeClient client) =
+          _streaming();
+      // Moving frames: nothing happens, however long.
+      for (var frames = 60; frames <= 600; frames += 60) {
+        controller.reportFrames(frames);
+      }
+      expect(client.reconnects, 0);
+      // The camera restarted behind a dead socket: the fifth unchanged count, 10 s on, acts.
+      for (var i = 0; i < 4; i++) {
+        controller.reportFrames(600);
+      }
+      expect(client.reconnects, 0);
+      controller.reportFrames(600);
+      expect(client.reconnects, 1);
+      expect(client.sessions.single.closed, isTrue);
+      expect(controller.stage, WebRTCStage.connecting);
+      client.connected();
+      expect(client.sessions, hasLength(2));
+      controller.dispose();
+    },
+  );
+
+  test(
+    'a hidden tab or a stream not playing yet is not judged by its frames',
+    () {
+      final (WebRTCStreamController controller, _FakeClient client) =
+          _streaming();
+      // A hidden tab may not decode at all.
+      controller.pageHidden(true);
+      for (var i = 0; i < 10; i++) {
+        controller.reportFrames(100);
+      }
+      controller.pageHidden(false);
+      expect(client.reconnects, 0);
+      // Nor a session still negotiating, whose count stays at 0.
+      final _FakeClient fresh = _FakeClient();
+      final WebRTCStreamController negotiating = WebRTCStreamController(
+        fresh,
+        reconnectionTimeoutMs: 5000,
+      );
+      negotiating.attach();
+      fresh.connected();
+      fresh.announce('cam');
+      for (var i = 0; i < 10; i++) {
+        negotiating.reportFrames(0);
+      }
+      expect(fresh.reconnects, 0);
+      controller.dispose();
+      negotiating.dispose();
+    },
+  );
 }

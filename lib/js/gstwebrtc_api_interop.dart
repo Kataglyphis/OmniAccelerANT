@@ -21,6 +21,9 @@ extension GstWebRTCAPIMembers on GstWebRTCAPI {
   );
 
   external JSArray<JSObject> getAvailableProducers();
+
+  /// Drops the signalling socket and opens a new one, announcing a disconnect and then a connect.
+  external void connectChannel();
   external JSArray<JSObject> getAvailableConsumers();
 
   external void unregisterAllConnectionListeners();

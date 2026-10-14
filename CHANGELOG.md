@@ -59,6 +59,13 @@ What landed on `develop` after 2.0.0+2. Most of it is the cat cam, whose guide i
 
 ### Fixed
 
+- **Coming back to an open cat cam tab plays again** (2026-10-14). After a sleep or a Wi-Fi
+  change the page could keep a signalling socket that looked open and carried nothing, and
+  stayed on "Der Videostream wird ausgehandelt" while a new tab played. The page now
+  rebuilds that connection when it returns from a long absence, when a session gets no
+  answer for 15 s, and when the picture stops moving for 10 s; its status requests give up
+  after 8 s.
+
 - **The cat cam review's fixes** (2026-10-13; OxidANT's changelog has the detail).
   - Each of the last five arrivals keeps its own picture (`/arrival.jpg?t=`), so a false
     visit no longer swaps the picture in the cat's phone notification.

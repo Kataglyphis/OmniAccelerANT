@@ -94,6 +94,9 @@ WebRTCStreamController _ensureSharedObjects(WebRTCView widget) {
     'visibilitychange',
     ((web.Event _) => controller.pageHidden(web.document.hidden)).toJS,
   );
+  Timer.periodic(const Duration(seconds: 2), (_) {
+    controller.reportFrames(video.getVideoPlaybackQuality().totalVideoFrames);
+  });
   return _sharedController = controller;
 }
 
@@ -103,6 +106,9 @@ class _GstSignallingClient implements SignallingClient {
 
   final GstWebRTCAPI _api;
   final web.HTMLVideoElement _video;
+
+  @override
+  void reconnect() => _api.connectChannel();
 
   @override
   void listen({

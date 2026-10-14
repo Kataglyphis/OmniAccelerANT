@@ -491,8 +491,23 @@ Since 2026-10-14 the page also:
   one is found at a glance;
 - **closes the video in a tab hidden for a minute.** The cat cam encodes for each viewer,
   so a forgotten tab cost a core's share all night; a glance at another tab keeps the
-  picture, and showing the tab again opens a new session at once. The signalling socket
-  stays, so the cat line and the overview keep updating.
+  picture, and showing the tab again opens a new session at once.
+
+**A tab you come back to plays again** (2026-10-14). The owner's old tab stayed on "Der
+Videostream wird ausgehandelt" while a new one played. After a laptop sleeps or the Wi-Fi
+changes, the browser can hold a signalling socket that looks open and carries nothing;
+gstwebrtc-api reconnects only on a close event, which never came, so the page asked a dead
+socket for a stream. Reproduced in headless Chrome through a proxy that silences the
+page's open connections and keeps new ones working. Three guards now:
+- a tab that was hidden long enough to close its session rebuilds the signalling
+  connection when it shows again, before it asks for a stream;
+- a session that gets no answer within 15 s rebuilds it too;
+- a picture whose decoded-frame count stands still for 10 s while streaming in a visible
+  tab (the camera restarted behind the dead socket) closes the session and rebuilds it.
+
+  The cat line's and the overview's requests give up after 8 s, so one on a dead connection
+  no longer waits for minutes. Measured: back after 75 s with the socket silenced, the video
+  played again within 3 s; with the service restarted after the return, 9 s after it.
 
 **An overview of the other cat cams** (2026-10-14). List them in `catcam.toml` as
 `peers`, each one's origin, on every cat cam:

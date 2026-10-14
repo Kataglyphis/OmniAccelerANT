@@ -34,6 +34,9 @@ abstract class SignallingClient {
   /// The producers announced so far.
   List<String> availableProducers();
 
+  /// Drops the signalling connection and opens a new one; `disconnected`, then `connected`, follow.
+  void reconnect();
+
   /// A session on [producerId], or `null` when the client refuses one.
   ConsumerSessionHandle? openSession(
     String producerId, {
@@ -65,6 +68,7 @@ class WebRTCStreamController extends ChangeNotifier {
     this.keepAlive = const Duration(seconds: 30),
     this.retryAfter = const Duration(seconds: 3),
     this.hiddenGrace = const Duration(seconds: 60),
+    this.negotiationTimeout = const Duration(seconds: 15),
   }) {
     _client.listen(
       connected: _onConnected,
@@ -91,11 +95,23 @@ class WebRTCStreamController extends ChangeNotifier {
   /// How long the browser tab may be hidden before the session closes; the cat cam encodes per viewer.
   final Duration hiddenGrace;
 
+  /// A session that is not streaming after this rebuilds the signalling connection.
+  final Duration negotiationTimeout;
+
   WebRTCStage _stage = WebRTCStage.connecting;
   String Function(AppLocalizations l10n)? _detail;
   bool _connected = false;
   int _views = 0;
   bool _hidden = false;
+
+  /// The tab stayed hidden past [hiddenGrace], which closed the session; its socket may be dead since.
+  bool _closedWhileHidden = false;
+
+  /// Frame counts in a row, one every [WebRTCStreamController.reportFrames] call, that did not move.
+  static const int _stalledReports = 5;
+  int? _lastFrames;
+  int _unchangedReports = 0;
+  Timer? _negotiationTimer;
   ConsumerSessionHandle? _session;
   String? _sessionProducer;
   Object? _sessionToken;
@@ -124,7 +140,31 @@ class WebRTCStreamController extends ChangeNotifier {
     _hidden = hidden;
     _closeTimer?.cancel();
     _closeTimer = hidden ? Timer(hiddenGrace, _closeIdleSession) : null;
-    if (!hidden) _ensureSession();
+    if (hidden) return;
+    // A sleeping laptop or a changed Wi-Fi leaves a socket that looks open and carries nothing.
+    if (_closedWhileHidden) {
+      _closedWhileHidden = false;
+      _client.reconnect();
+      return;
+    }
+    _ensureSession();
+  }
+
+  /// The video's decoded-frame count, which the view reports every 2 s. A count that stops while
+  /// streaming is media that died unnoticed, with the camera restarted behind a dead socket.
+  void reportFrames(int total) {
+    if (_stage != WebRTCStage.streaming || _hidden) {
+      _lastFrames = null;
+      _unchangedReports = 0;
+      return;
+    }
+    _unchangedReports = total == _lastFrames ? _unchangedReports + 1 : 0;
+    _lastFrames = total;
+    if (_unchangedReports < _stalledReports) return;
+    _lastFrames = null;
+    _unchangedReports = 0;
+    _closeSession();
+    _client.reconnect();
   }
 
   /// A view shows the stream in a tab the user can see.
@@ -143,6 +183,7 @@ class WebRTCStreamController extends ChangeNotifier {
   void _closeIdleSession() {
     _closeTimer = null;
     if (_wanted) return;
+    _closedWhileHidden = _hidden;
     _retryTimer?.cancel();
     _retryTimer = null;
     _closeSession();
@@ -189,7 +230,10 @@ class WebRTCStreamController extends ChangeNotifier {
     final ConsumerSessionHandle? session = _client.openSession(
       target,
       streaming: () {
-        if (identical(_sessionToken, token)) _set(WebRTCStage.streaming);
+        if (identical(_sessionToken, token)) {
+          _negotiationTimer?.cancel();
+          _set(WebRTCStage.streaming);
+        }
       },
       failed: () {
         if (identical(_sessionToken, token)) {
@@ -205,6 +249,13 @@ class WebRTCStreamController extends ChangeNotifier {
     _session = session;
     _sessionProducer = target;
     _set(WebRTCStage.negotiating);
+    _negotiationTimer?.cancel();
+    _negotiationTimer = Timer(negotiationTimeout, () {
+      if (!identical(_sessionToken, token)) return;
+      // No answer at all: the signalling socket is dead without knowing it, so build a new one.
+      _closeSession();
+      _client.reconnect();
+    });
     if (!session.connect()) {
       _failAndRetry((l10n) => l10n.webrtcPeerNotStarted);
     }
@@ -228,6 +279,8 @@ class WebRTCStreamController extends ChangeNotifier {
   }
 
   void _closeSession() {
+    _negotiationTimer?.cancel();
+    _negotiationTimer = null;
     _sessionToken = null;
     final ConsumerSessionHandle? session = _session;
     _session = null;
@@ -248,6 +301,7 @@ class WebRTCStreamController extends ChangeNotifier {
   @override
   void dispose() {
     _closeTimer?.cancel();
+    _negotiationTimer?.cancel();
     _retryTimer?.cancel();
     _closeSession();
     super.dispose();
