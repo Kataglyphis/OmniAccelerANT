@@ -2,6 +2,24 @@
 
 Practical WebRTC streaming and inference pipelines for Kataglyphis.
 
+**The cat cam in one minute.** A board with a camera runs the `omni-accelerant-catcam`
+service, which finds the camera, looks for cats with a YOLO model and serves the web app
+on port 8080.
+- **Install:** `sudo dpkg -i omni-accelerant-catcam_<version>_<arch>.deb` on Debian or
+  Raspberry Pi OS (amd64, arm64, riscv64). It starts at once and at every boot
+  ([Installing it](#installing-it)).
+- **Watch:** `http://<board>:8080/`. The Stream page plays the camera, says whether a cat
+  is there, lists the visits with their pictures and videos, and shows the other cat cams
+  ([The Stream page](#the-stream-page)).
+- **Adjust:** the Camera page turns the picture, sets how sure detection must be, renames
+  the camera and marks a spot as "not a cat" ([The cat cam package](#the-cat-cam-package)).
+- **Get told:** `notify_url` sends each arrival to a webhook; Home Assistant turns it into
+  a phone notification with the picture and the video ([Home Assistant](#home-assistant)).
+- **Check:** `/healthz` says whether the camera delivers, and what it saw
+  ([Detection, visits and `/healthz`](#detection-visits-and-healthz)).
+- **Configure:** `/etc/omni-accelerant/catcam.toml` documents every setting; what the
+  page changes wins over it.
+
 - [Rust-owned webcam inference (local, no WebRTC)](#rust-owned-webcam-inference-local-no-webrtc)
   - [Checking the knt ABI](#checking-the-knt-abi)
   - [Relocatable Linux bundles](#relocatable-linux-bundles)
