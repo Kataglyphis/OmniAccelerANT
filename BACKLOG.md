@@ -35,6 +35,11 @@ Linux amd64/arm64 ship as a .deb and an AppImage, proven on himbeere2 (Pi 5) on
   finished without an error, and a test departure set the stay. Blocked on a cat. Done
   when one's arrival lands on the phone with its picture, a tap plays its video, and its
   departure adds the stay.
+  - 2026-10-14: real cats at the feeding trough and in the living room, 58 arrivals at 0.45
+    or more counted by 12:26. Home Assistant's side ran, but many pushes failed with `not
+    connected to local push notifications` (the minimal app was not connected; its
+    *Persistent connection* wants *Always*), and 30 events were dropped at the
+    automation's `max: 10`, now 40. Whether one reached the phone needs the owner's look.
 - [ ] **The Windows cat cam with a camera, at a real logon, then on arm64.** The MSI works
   in the image and on a real Windows 11 host (`scripts/windows/cat-stream/`, 2026-10-06),
   and `web.yml`'s `catcam-windows` job packages and tests it around every web build.

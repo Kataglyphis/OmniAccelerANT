@@ -654,6 +654,10 @@ live page behind a tap. Running on himbeere2 since 2026-10-12 (Home Assistant 20
   and is gone; himbeere2's automations therefore send each notification three times a
   minute apart under one `tag` with `alert_once: true`, and `continue_on_error` on the call,
   so a repeat replaces a delivered one silently and reaches a phone that reconnected.
+  Each run then lasts about two minutes, so give `mode: parallel` a `max` well above its
+  default of 10: on the morning of 2026-10-14 three cameras' arrivals, clips and departures
+  overran it and Home Assistant dropped 30 events (`Maximum number of runs exceeded`),
+  their counts included. himbeere2 runs `max: 40`.
 - **The picture loads from the phone,** so `catcam_base_url` must be an address the phone
   can reach: an IP or a name its network resolves, not loopback.
 
