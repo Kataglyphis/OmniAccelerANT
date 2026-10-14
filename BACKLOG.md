@@ -142,8 +142,13 @@ Linux amd64/arm64 ship as a .deb and an AppImage, proven on himbeere2 (Pi 5) on
   a detection starts a visit only where something moved in the last 10 s, and the Camera
   page's "Not a cat" makes the cat cam ignore a boxed spot for good
   (`docs/source/camera-streaming.md`, *Detection, visits and /healthz* and the Camera page).
-  Blocked on a day of himbeere2's visit log with the rack in view. Done when that day
-  counts no visit the rack made, while a real cat still arrives.
+  - 2026-10-14 by 09:30: one rack visit (09:09, score 0.36, 172 s, as morning light or a
+    hand on the laundry moved near it), against 33 by noon on 2026-10-12. Motion alone
+    narrows it; the spot needs "Not a cat" once, which the owner presses on the Camera page
+    while its box shows.
+
+  Blocked on the owner marking the rack. Done when a day counts no visit the rack made,
+  while a real cat still arrives.
 
 ## Agentic loop
 
