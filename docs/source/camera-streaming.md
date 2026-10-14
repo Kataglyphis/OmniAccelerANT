@@ -265,7 +265,11 @@ own page in the bottom bar, for a board that is easily moved or a spot with fals
   running capture follows on its next frame, with no restart and no reconnect. At 90 and
   270 the upright picture is bordered into the frame, black at its sides, instead of
   stretched: until then a quarter turn squeezed a 4:3 picture into 4:3 the other way round,
-  and a cupboard looked square.
+  and a cupboard looked square. A Pi camera turned a quarter (`rpicam-vid` or libcamera)
+  captures at 480x360, which its ISP scales for free, so only the borders are added
+  (2026-10-14): resampling the turned 480x640 cost a Pi 20 % of a core, the borders 3 %.
+  Turning such a camera between landscape and portrait restarts its capture once, about a
+  second; a USB webcam keeps its size and turns live.
 - A slider sets the detection score, how sure the model must be before a cat counts. The
   next model run uses it. Higher means fewer false alarms, lower finds a cat in poor light.
   Under it the page names the last detection's score ("Last detection: 34 %"), real or
