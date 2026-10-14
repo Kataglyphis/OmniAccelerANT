@@ -28,7 +28,7 @@ OmniAccelerANT bundles a Flutter/Dart frontend, a Rust/C++ inference core, and a
 ### 🌟 Highlights
 
 - 🎨 **GStreamer native GTK integration** – Leveraging users to write beautiful Linux AI inference apps.
-- 🐱 **An installable ObservANT** – a `.deb`, AppImage, flatpak or Windows MSI that streams a camera to any browser, spots cats with a YOLO model on a Raspberry Pi 4 or 5 or a SpacemiT X100 (riscv64), logs their visits, and keeps a picture and a 10 s video of each arrival; Home Assistant can put those on a phone ([Live cat detection stream](#live-cat-detection-stream-linux--raspberry-pi)).
+- 🐱 **An installable ObservANT** – a `.deb`, AppImage, flatpak or Windows MSI that streams a camera to any browser, spots cats with an Apache-2.0 detection model (DEIM-D-FINE-N) on a Raspberry Pi 4 or 5 or a SpacemiT X100 (riscv64), logs their visits, and keeps a picture and a 10 s video of each arrival; Home Assistant can put those on a phone ([Live cat detection stream](#live-cat-detection-stream-linux--raspberry-pi)).
 - 📹 **GStreamer WebRTC livestreaming** with ready-to-use pipelines for USB and Raspberry Pi cameras.
 - 🌉 **flutter_rust_bridge integration** – Ensures a seamless API boundary between Dart UI and Rust logic.
 - 🐳 **Containerized development flow** plus native instructions for Windows, Linux, web. For details in my build environment look into [ANTfrastructure](https://github.com/Kataglyphis/ANTfrastructure). On Windows the container engine is [Stevedore](https://github.com/slonopotamus/stevedore) and build containers run with `--isolation process` (full host CPU count) — see [docs/source/platforms.md](docs/source/platforms.md).
@@ -152,7 +152,7 @@ Refer to the detailed docs below for platform-specific requirements, camera stre
 ### Live cat detection stream (Linux / Raspberry Pi)
 
 `third_party/OxidANT`'s `kataglyphis_observant` captures a camera, runs the
-YOLO ONNX model for cats (COCO class 15), burns the boxes into the frames and
+ONNX detection model for cats (COCO class 15), burns the boxes into the frames and
 publishes them as a WebRTC stream that the Flutter web app's **Stream** page
 consumes.
 

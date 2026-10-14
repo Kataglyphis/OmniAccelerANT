@@ -16,7 +16,7 @@
 
 # inference = "auto"       # auto | on | off; auto skips the model below 1 GiB of RAM or when it fails to load
 
-# model = "/opt/omni-observant/models/yolo26n.onnx"
+# model = "/opt/omni-observant/models/deim_dfine_n_coco.onnx"
 
 # score = 0.25
 

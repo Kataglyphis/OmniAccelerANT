@@ -3,8 +3,8 @@
 Practical WebRTC streaming and inference pipelines for Kataglyphis.
 
 **The ObservANT in one minute.** A board with a camera runs the `omni-observant`
-service, which finds the camera, looks for cats with a YOLO model and serves the web app
-on port 8080.
+service, which finds the camera, looks for cats with a detection model and serves the web
+app on port 8080.
 - **Install:** `sudo dpkg -i omni-observant_<version>_<arch>.deb` on Debian or
   Raspberry Pi OS (amd64, arm64, riscv64). It starts at once and at every boot
   ([Installing it](#installing-it)).
@@ -20,6 +20,7 @@ on port 8080.
 - **Configure:** `/etc/omni-accelerant/observant.toml` documents every setting you would
   change; what the page changes wins over it.
 
+- [The detection model](#the-detection-model)
 - [Rust-owned webcam inference (local, no WebRTC)](#rust-owned-webcam-inference-local-no-webrtc)
   - [Checking the knt ABI](#checking-the-knt-abi)
   - [Relocatable Linux bundles](#relocatable-linux-bundles)
@@ -43,6 +44,34 @@ on port 8080.
   - [Raspberry Pi (libcamera, example)](#raspberry-pi-libcamera-example)
 - [4) Run the web frontend](#4-run-the-web-frontend)
 - [Troubleshooting](#troubleshooting)
+
+## The detection model
+
+**DEIM-D-FINE-N, licensed Apache-2.0, fetched by checksum and never tracked** (owner,
+2026-10-14). It replaced YOLO26n and YOLOv10m, both AGPL-3.0, which sat in AccelerANTgine's
+and OxidANT's git trees. DEIM-D-FINE-N is DEIM's COCO checkpoint: 80 classes, 4 M
+parameters, 7 GFLOPs, 43.0 AP, a 640x640 input and a 15 MB file.
+
+- **Where it comes from.** [ModelANT](https://github.com/Kataglyphis/ModelANT) builds it
+  from DEIM's pinned commit and checkpoint, exports it with its post-processing into the
+  `[1, 300, 6]` layout the Rust parser already read (x1, y1, x2, y2, score, class) and
+  releases it with its license and notice. Its preprocessing is a plain resize, which is the
+  Rust default; the ONNX names it in its metadata (`kataglyphis.preprocess`).
+- **How a build gets it.** `third_party/OxidANT/resources/models/models.lock` names each
+  file with its URL and SHA-256. `third_party/OxidANT/scripts/linux/fetch-models.sh` puts
+  them into `resources/models` (or `--dest DIR`) and fails on any other bytes, through a
+  cache in `~/.cache/kataglyphis-models`. On Windows, `scripts\windows\Get-Models.ps1`
+  does the same. The native lane, the Linux bundle, the ObservANT packages and OxidANT's
+  Windows build all call it, so a fresh clone needs the network once. After that, run
+  it once yourself before you start the app from a checkout.
+- **What it changed on the boards.** Measured on 2026-10-14 against YOLO26n, with 2
+  threads of ONNX Runtime on a Pi 5, over 12 arrival pictures from the three ObservANT
+  cameras and one cat photo. It found the cats more often and more surely: a cat at the
+  feeding trough went from 0.42 to 0.63, and a cat lying on the sofa, which YOLO26n missed, was
+  found at 0.64. It found no new false cats. A run costs about 260 ms instead of 190 ms.
+- **Another model.** Put it into ModelANT and move the lock's lines. For a one-off,
+  `model = "..."` in `observant.toml` or `KATAGLYPHIS_ONNX_MODEL` names any `[1, N, 6]` ONNX
+  file. The old models stay in the repositories' history; nothing was rewritten.
 
 ## Rust-owned webcam inference (local, no WebRTC)
 
@@ -180,9 +209,10 @@ the lane for release builds, before packaging):
   sonames from the same chain directory during `flutter build linux`. The packer
   then copies nothing for it and prints `Kept (already in bundle/lib, not
   copied)` with each file's sha256, so its `N file(s) copied` list never shows
-  ORT in that case. Plus the 59 MB detector model at
-  `data/resources/models/yolov10m.onnx` — the standard model, bundled by default
-  (owner decision 2026-10-01); `KATAGLYPHIS_BUNDLE_MODEL=0` drops it for an
+  ORT in that case. Plus the 15 MB detector model at
+  `data/resources/models/deim_dfine_n_coco.onnx`, with its license and notice, fetched
+  and checked from OxidANT's `models.lock` ([The detection model](#the-detection-model))
+  — the standard model, bundled by default (owner decision 2026-10-01); `KATAGLYPHIS_BUNDLE_MODEL=0` drops it for an
   artifact that then needs `KATAGLYPHIS_ONNX_MODEL` at run time;
 - **an `$ORIGIN` rpath on every bundled ELF.** RUNPATH is not transitive: a
   dlopen'd plugin cannot reach a sibling through the runner's `$ORIGIN/lib`
@@ -369,7 +399,7 @@ without the freedesktop runtime it names fetches that from Flathub. Start it wit
 - the GStreamer plugins it uses (`rswebrtc` and its WebRTC/DTLS/SRTP stack
   included), and NSS's crypto modules beside `libnss3`;
 - the image's chain ONNX Runtime, proved by the hub's G6 census before packaging;
-- `yolo26n.onnx` (AGPL-3.0, see `share/doc/…/NOTICE-model`);
+- `deim_dfine_n_coco.onnx` (Apache-2.0; its license and notice in `share/doc/omni-observant/`);
 - the web build;
 - the image's own loader, glibc and GCC 16 `libstdc++`. The chain ORT needs
   `GLIBC_2.43` and `GLIBCXX_3.4.36`, which no current distro ships.
@@ -540,7 +570,7 @@ page's open connections and keeps new ones working. Three guards now:
 `peers`, each one's origin, on every ObservANT:
 
 ```toml
-peers = ["http://192.168.188.151:8080", "http://192.168.188.145:8080"]
+peers = ["http://192.168.1.51:8080", "http://192.168.1.45:8080"]
 ```
 
 The Stream page then shows a card per peer under its own cat: the peer's name, a picture
@@ -971,7 +1001,7 @@ pwsh -File scripts\windows\observant\Package-ObservANT.ps1 -WebRoot <build\web>
   no `vpx`;
 - the plugin scanner;
 - the chain ONNX Runtime, proved by the hub's G6 census before packaging;
-- `models\yolo26n.onnx` and the web build.
+- `models\deim_dfine_n_coco.onnx` (its license and notice in `share\omni-observant\`) and the web build.
 
 The exe points GStreamer, ONNX Runtime and the model at that folder itself (OxidANT's
 `install.rs`), so it needs no launcher and nothing on PATH.
@@ -1053,7 +1083,7 @@ entry and the MSIX's startup task), and arm64.
 ### Cat detection stream (Rust, native)
 
 `third_party/OxidANT/crates/observant` (`kataglyphis_observant`) is the
-maintained producer: V4L2 or libcamera capture → YOLO ONNX (cats = COCO class
+maintained producer: V4L2 or libcamera capture → ONNX detector (cats = COCO class
 15) → boxes burned into the RGBA frames → `webrtcsink`. It runs its own
 signalling server (`run-signalling-server=true`, plain `ws://`, default port
 8443), so no separate signalling process is needed.
@@ -1093,7 +1123,7 @@ the Raspberry Pi CSI camera, whose `rp1-cfe` V4L2 nodes carry raw Bayer that
 WebRTC stream keeps camera rate while the boxes lag one inference behind
 (seconds per frame on a Pi 5 CPU). `--no-inference` skips the model entirely —
 no ORT, no detector, frames published unannotated — for camera/WebRTC bring-up
-and for hosts too weak to run YOLO. `--rotate 90|180|270` turns the stream clockwise with
+and for hosts too weak to run the model. `--rotate 90|180|270` turns the stream clockwise with
 `videoflip` (180 for a camera mounted upside down), and so do the page's ⟲ and ⟳ while it
 runs; inference sees the turned frame, so the boxes still line up.
 

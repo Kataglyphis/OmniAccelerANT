@@ -462,6 +462,16 @@ written out rather than linked.
   `scripts/windows/Get-WindowsBuildConfig.ps1` (`RustDllName`,
   `RustPluginSubDir`). Change all three together.
 
+- **Models are fetched, never tracked** (owner, 2026-10-14). The detector is DEIM-D-FINE-N
+  (Apache-2.0), released by [ModelANT](https://github.com/Kataglyphis/ModelANT);
+  `third_party/OxidANT/resources/models/models.lock` pins each file's URL and SHA-256, and
+  `third_party/OxidANT/scripts/linux/fetch-models.sh` (`--dest DIR`; Windows:
+  `scripts\windows\Get-Models.ps1`) is the only way in. A checkout has no model until it
+  runs, so the Rust webcam view on a dev build fails to load one: the native lane runs it
+  before the build, the bundle and package scripts call it themselves. A new model goes
+  into ModelANT and only the lock moves here; the old AGPL files stay in the history.
+  Detail: `docs/source/camera-streaming.md` § *The detection model*.
+
 - **The app version is written twice, and both move together.** `version:` in
   `pubspec.yaml` stamps the `.deb`, AppImage and flatpak names;
   `msix_config.msix_version` is the MSIX's, with its fourth field held at 0 for

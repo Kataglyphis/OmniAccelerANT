@@ -7,7 +7,7 @@
 #   bash scripts/linux/observant/package-observant.sh --web-root build/web [options]
 #
 #   --web-root DIR   the Flutter web build (the web lane's build/web); required
-#   --model FILE     ONNX model to ship (default: AccelerANTgine's yolo26n.onnx)
+#   --model FILE     ONNX model to ship (default: OxidANT's models.lock, fetched and checked)
 #   --producer FILE  a built kataglyphis_observant (default: cargo build --release here)
 #   --out DIR        where the packages and the bundle tarball land (default: out/)
 #   --version X.Y.Z  package version (default: pubspec.yaml's, without +build)
@@ -23,7 +23,8 @@ source "${script_dir}/../lib/antfrastructure.sh"
 package=omni-observant
 prefix="/opt/${package}"
 web_root=""
-model="${repo_root}/third_party/AccelerANTgine/models/yolo26n.onnx"
+model=""
+models_lock="${repo_root}/third_party/OxidANT/resources/models/models.lock"
 producer=""
 out_dir="${repo_root}/out"
 version=""
@@ -42,7 +43,7 @@ done
 
 [ -n "${web_root}" ] || { printf -- '--web-root is required\n' >&2; exit 2; }
 [ -f "${web_root}/index.html" ] || { printf 'no index.html in %s\n' "${web_root}" >&2; exit 1; }
-[ -f "${model}" ] || { printf 'model not found: %s\n' "${model}" >&2; exit 1; }
+[ -z "${model}" ] || [ -f "${model}" ] || { printf 'model not found: %s\n' "${model}" >&2; exit 1; }
 # The freedesktop flatpak runtime has no riscv64 build, and no AppImage runtime is staged for it.
 desktop_formats=1
 case "$(uname -m)" in
@@ -91,8 +92,14 @@ rm -rf "${bundle}/web/canvaskit/webparagraph" "${bundle}/web/canvaskit"/wimp.*
 find "${bundle}/web" -name '*.symbols' -delete
 # Zopfli .gz beside each file the server gzips: smaller than its own gzip, and nothing to compress on the board.
 "${producer}" --precompress "${bundle}/web"
-install -m 644 "${model}" "${bundle}/models/$(basename "${model}")"
-model_name="$(basename "${model}")"
+if [ -n "${model}" ]; then
+  install -m 644 "${model}" "${bundle}/models/$(basename "${model}")"
+  model_name="$(basename "${model}")"
+else
+  bash "${repo_root}/third_party/OxidANT/scripts/linux/fetch-models.sh" --lock "${models_lock}" --dest "${bundle}/models"
+  model_name="$(awk '$2 ~ /\.onnx$/ { print $2; exit }' "${models_lock}")"
+  mv "${bundle}/models/${model_name%.onnx}.LICENSE" "${bundle}/models/${model_name%.onnx}.NOTICE" "${bundle}/share/doc/${package}/"
+fi
 
 # The service's pipelines and webrtcsink's own; without debugutilsbad's errorignore its codec discovery finds none.
 gst_plugin_dir=/opt/gstreamer/lib/multiarch/gstreamer-1.0
@@ -225,11 +232,16 @@ for file in omni-observant.service observant.toml ufw-omni-observant; do
   install -m 644 "${script_dir}/package/${file}" "${bundle}/share/${package}/${file}"
 done
 
+if [ -n "${model}" ]; then
+  model_notice="It was chosen at package time (--model) and carries its own license."
+else
+  model_notice="It is DEIM-D-FINE-N, licensed Apache-2.0; ${model_name%.onnx}.LICENSE and ${model_name%.onnx}.NOTICE
+beside this file name the license, its authors and what ModelANT changed."
+fi
 cat > "${bundle}/share/doc/${package}/NOTICE-model" <<NOTICE
-${model_name} is an Ultralytics YOLO model, licensed AGPL-3.0
-(https://www.gnu.org/licenses/agpl-3.0.html; https://ultralytics.com/license).
-It is a separate work shipped beside the MIT-licensed OmniAccelerANT code; replace it
-with a model of your choice through 'model' in /etc/omni-accelerant/observant.toml.
+models/${model_name} is a separate work shipped beside the MIT-licensed OmniAccelerANT code.
+${model_notice}
+Replace it with a model of your choice through 'model' in /etc/omni-accelerant/observant.toml.
 NOTICE
 
 # --- the .deb --------------------------------------------------------------------------------

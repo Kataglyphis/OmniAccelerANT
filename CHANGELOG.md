@@ -114,6 +114,17 @@ What landed on `develop` after 2.0.0+2. Most of it is the cat cam, whose guide i
 
 ### Changed
 
+- **The detection model is DEIM-D-FINE-N (Apache-2.0), fetched by checksum instead of
+  tracked** (2026-10-14, owner). It replaces the AGPL-3.0 YOLO26n (ObservANT) and YOLOv10m
+  (the Linux bundle), whose files sat in AccelerANTgine's and OxidANT's trees. The new
+  repository [ModelANT](https://github.com/Kataglyphis/ModelANT) builds it from DEIM's
+  pinned checkpoint and releases it; OxidANT's `resources/models/models.lock` pins its URL
+  and SHA-256, and its `fetch-models.sh` / `Get-Models.ps1` put it, its license and notice
+  where the native lane, the Linux bundle and the ObservANT `.deb`, AppImage, flatpak, MSI
+  and MSIX expect them. The packages ship the license and notice in `share/doc`, and the
+  MSI's license page names Apache-2.0 instead of AGPL-3.0. On 12 arrival pictures of the
+  three boards it found the cats more often and more surely than YOLO26n, at about 260 ms a
+  run instead of 190 ms on a Pi 5. Docs: camera-streaming.md § *The detection model*.
 - **The cat cam is ObservANT** (2026-10-14, the owner's name): a general detector for which
   cats are the default (`classes`, the Camera page's "What it detects"). The package is
   `omni-observant` in `/opt/omni-observant`, the service and user `omni-observant`, the

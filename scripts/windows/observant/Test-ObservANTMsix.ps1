@@ -64,7 +64,7 @@ Test-Check 'it opens 8080/tcp and the ICE range on private and domain networks o
 }
 Test-Check 'it carries the exe, its plugins, the scanner, ORT, the model and the page' {
     foreach ($e in 'kataglyphis_observant.exe', 'onnxruntime.dll', 'lib/gstreamer-1.0/gstrswebrtc.dll',
-        'libexec/gstreamer-1.0/gst-plugin-scanner.exe', 'models/yolo26n.onnx', 'web/index.html') {
+        'libexec/gstreamer-1.0/gst-plugin-scanner.exe', 'models/deim_dfine_n_coco.onnx', 'web/index.html') {
         if ($entries -notcontains $e) { throw "missing from the package: $e" }
     }
     $true

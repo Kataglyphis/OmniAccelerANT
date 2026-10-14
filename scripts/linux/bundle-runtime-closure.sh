@@ -13,7 +13,7 @@ BUILD_MODE="release"
 BUNDLE_DIR=""
 WITH_MODEL=1
 
-# KATAGLYPHIS_BUNDLE_MODEL=0 drops the 59 MB model (the UI then needs KATAGLYPHIS_ONNX_MODEL); --no-model wins.
+# KATAGLYPHIS_BUNDLE_MODEL=0 drops the 15 MB model (the UI then needs KATAGLYPHIS_ONNX_MODEL); --no-model wins.
 case "${KATAGLYPHIS_BUNDLE_MODEL:-1}" in
   0|false|no|off) WITH_MODEL=0 ;;
 esac
@@ -27,7 +27,7 @@ Options:
   -a, --arch <x64|arm64>      Target architecture (default: auto-detect)
       --build-mode <mode>     debug|profile|release (default: release)
       --bundle-dir <path>     Bundle root (default: build/linux/<arch>/<mode>/bundle)
-      --no-model              Do not bundle resources/models/yolov10m.onnx
+      --no-model              Do not fetch and bundle OxidANT's models.lock models
   -h, --help                  Show this help
 EOF
 }
@@ -209,15 +209,9 @@ for file in "$bundle_lib"/gstreamer-1.0/*.so; do
 done
 
 if [[ "$WITH_MODEL" -eq 1 ]]; then
-  model_src="$REPO_ROOT/third_party/OxidANT/resources/models/yolov10m.onnx"
-  if [[ ! -s "$model_src" ]]; then
-    printf 'Error: model not found at %s (use --no-model to build without it)\n' "$model_src" >&2
-    exit 1
-  fi
-  mkdir -p "$BUNDLE_DIR/data/resources/models"
-  cp -L "$model_src" "$BUNDLE_DIR/data/resources/models/yolov10m.onnx"
-  printf 'Bundled model: data/resources/models/yolov10m.onnx (%s)\n' \
-    "$(du -h "$BUNDLE_DIR/data/resources/models/yolov10m.onnx" | cut -f1)"
+  # The model, its license and notice, checked against OxidANT's models.lock.
+  bash "$REPO_ROOT/third_party/OxidANT/scripts/linux/fetch-models.sh" --dest "$BUNDLE_DIR/data/resources/models"
+  printf 'Bundled models: data/resources/models (%s)\n' "$(du -sh "$BUNDLE_DIR/data/resources/models" | cut -f1)"
 else
   printf 'Info: model not bundled (--no-model); KATAGLYPHIS_ONNX_MODEL must be set at runtime.\n'
 fi

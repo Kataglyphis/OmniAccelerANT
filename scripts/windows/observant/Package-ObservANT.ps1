@@ -10,6 +10,8 @@
     the Startup folder; docs/source/camera-streaming.md § The Windows ObservANT has the rest.
 .PARAMETER WebRoot
     The Flutter web build (the web lane's build\web). Required.
+.PARAMETER Model
+    An ONNX model to ship instead; default: what OxidANT's resources\models\models.lock names, fetched and checked.
 .PARAMETER Producer
     A built kataglyphis_observant.exe; default: cargo build --release in third_party\OxidANT.
 .PARAMETER Msix
@@ -41,10 +43,10 @@ Import-BuildModule @('WindowsBuild.Common', 'WindowsTargetArch.Common', 'Windows
     'WindowsOrtProvenance.Common', 'WindowsOrtPayload.Common', 'WindowsMsix.Common')
 
 $package = 'omni-observant'
-if (-not $Model) { $Model = Join-Path $repoRoot 'third_party\AccelerANTgine\models\yolo26n.onnx' }
+$modelsLock = Join-Path $repoRoot 'third_party\OxidANT\resources\models\models.lock'
 if (-not $OutDir) { $OutDir = Join-Path $repoRoot 'out' }
 if (-not (Test-Path -LiteralPath (Join-Path $WebRoot 'index.html'))) { throw "no index.html in $WebRoot" }
-if (-not (Test-Path -LiteralPath $Model)) { throw "model not found: $Model" }
+if ($Model -and -not (Test-Path -LiteralPath $Model)) { throw "model not found: $Model" }
 if (-not $Version) {
     $line = Select-String -Path (Join-Path $repoRoot 'pubspec.yaml') -Pattern '^version:\s*([0-9]+\.[0-9]+\.[0-9]+)' | Select-Object -First 1
     if (-not $line) { throw 'no version in pubspec.yaml' }
@@ -114,14 +116,24 @@ foreach ($name in $vcNames) {
 Write-Host "VC++ runtime: $(@($vcNames) -join ', ')"
 
 Copy-ChainOrtBeside -OnnxRoot $env:ONNX_ROOT -Destination $stage | Out-Null
-Copy-Item -LiteralPath $Model -Destination (Join-Path $stage 'models')
+$modelDir = Join-Path $stage 'models'
+if ($Model) {
+    Copy-Item -LiteralPath $Model -Destination $modelDir
+    $modelName = Split-Path $Model -Leaf
+    $modelNotice = 'It was chosen at package time (-Model) and carries its own license.'
+} else {
+    & (Join-Path $repoRoot 'third_party\OxidANT\scripts\windows\Get-Models.ps1') -Lock $modelsLock -Destination $modelDir
+    $modelName = (Get-ChildItem -LiteralPath $modelDir -Filter '*.onnx' | Select-Object -First 1).Name
+    $base = [IO.Path]::GetFileNameWithoutExtension($modelName)
+    Move-Item -LiteralPath (Join-Path $modelDir "$base.LICENSE"), (Join-Path $modelDir "$base.NOTICE") -Destination $shareDir
+    $modelNotice = "It is DEIM-D-FINE-N, licensed Apache-2.0; $base.LICENSE and $base.NOTICE beside this file`nname the license, its authors and what ModelANT changed."
+}
 Copy-Item -LiteralPath $WebRoot -Destination (Join-Path $stage 'web') -Recurse
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'observant.toml') -Destination $shareDir
 @"
-$(Split-Path $Model -Leaf) is an Ultralytics YOLO model, licensed AGPL-3.0
-(https://www.gnu.org/licenses/agpl-3.0.html; https://ultralytics.com/license).
-It is a separate work shipped beside the MIT-licensed OmniAccelerANT code; replace it
-with a model of your choice through 'model' in %ProgramData%\omni-accelerant\observant.toml.
+models\$modelName is a separate work shipped beside the MIT-licensed OmniAccelerANT code.
+$modelNotice
+Replace it with a model of your choice through 'model' in %ProgramData%\omni-accelerant\observant.toml.
 "@ | Set-Content -LiteralPath (Join-Path $shareDir 'NOTICE-model.txt') -Encoding utf8
 
 # The copy G6 proves is the copy that ships.

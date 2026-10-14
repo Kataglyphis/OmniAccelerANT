@@ -118,9 +118,9 @@ Linux amd64/arm64 ship as a .deb and an AppImage, proven on himbeere2 (Pi 5) on
     minute; by daylight its turned picture is upright, undistorted and bordered as before;
   - mintberrycrunch (riscv64, C270, lit): 16 % of one of 8 cores, 12 model runs a minute.
 
-  The model runs at 640x640, fixed in `yolo26n.onnx`; a 320 export would cost about a
-  quarter per run, but needs an Ultralytics re-export (PyTorch, several GB) and real cat
-  frames from the boards to prove it still finds the cats, of which there is one photo.
+  The model runs at 640x640, fixed in `deim_dfine_n_coco.onnx`; a 320 export would cost
+  about a quarter per run. ModelANT's `export_deim.py --size 320` makes one, and the 12
+  arrival pictures of 2026-10-14 can prove whether it still finds the cats.
   `fps = 15` in a board's `observant.toml` halves the capture cost at once, at a less smooth
   stream. Blocked on the owner: 15 fps or not, and real cat frames to compare models on.
 

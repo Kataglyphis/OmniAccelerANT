@@ -46,7 +46,7 @@ PY
 CHAIN_SRC=/opt/onnxruntime/onnxruntime/core/session/inference_session.cc
 WINML_SRC='C:\__w\1\s\onnxruntime\core\session\inference_session.cc'
 # Real liboxidant.so bytes: rustc packs &str literals without NULs, so the marker sits inside other text.
-OXIDANT_RUN='Failed to run ONNX model (ort)internal error: entered unreachable code: invalid Once state/opt/onnxruntime/onnxruntime/core//workspace/third_party/OxidANT/crates/inferenceresourcesmodelsyolov10m.onnxModel returned no outputs'
+OXIDANT_RUN='Failed to run ONNX model (ort)internal error: entered unreachable code: invalid Once state/opt/onnxruntime/onnxruntime/core//workspace/third_party/OxidANT/crates/inferenceresourcesmodelsdeim_dfine_n_coco.onnxModel returned no outputs'
 
 # _bundle <name> : a bundle holding only the GStreamer plugins the gate requires; prints its root.
 _bundle() {

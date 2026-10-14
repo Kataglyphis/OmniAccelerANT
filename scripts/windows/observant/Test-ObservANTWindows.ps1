@@ -119,7 +119,7 @@ $p = Start-Process msiexec.exe -ArgumentList '/i', "`"$Msi`"", '/qn', '/l*v', "`
 Test-Check 'msiexec installs it silently' { $p.ExitCode -eq 0 }
 Test-Check 'the exe, its plugins, the model and the page are installed' {
     (Test-Path $exe) -and (Test-Path (Join-Path $prefix 'lib\gstreamer-1.0\gstrswebrtc.dll')) -and
-    (Test-Path (Join-Path $prefix 'models\yolo26n.onnx')) -and (Test-Path (Join-Path $prefix 'web\index.html')) -and
+    (Test-Path (Join-Path $prefix 'models\deim_dfine_n_coco.onnx')) -and (Test-Path (Join-Path $prefix 'web\index.html')) -and
     (Test-Path (Join-Path $prefix 'onnxruntime.dll'))
 }
 Test-Check 'the all-users Startup folder starts it at logon' { Test-Path $startup }
@@ -167,7 +167,7 @@ $infer.Process.WaitForExit()
 Get-Content -LiteralPath $infer.Log -ErrorAction SilentlyContinue | Select-String -Pattern 'model:|ONNX Runtime loaded|ORT session|ERROR|cat in view' | Select-Object -First 5 | ForEach-Object { Write-Host "      $($_.Line)" }
 Test-Check 'it runs its own model on its own ONNX Runtime and finds a cat' {
     $log = Get-Content -LiteralPath $infer.Log -Raw
-    $log -match [regex]::Escape("$prefix\models\yolo26n.onnx") -and $log -match [regex]::Escape("$prefix\onnxruntime.dll") -and $log -match 'cat in view'
+    $log -match [regex]::Escape("$prefix\models\deim_dfine_n_coco.onnx") -and $log -match [regex]::Escape("$prefix\onnxruntime.dll") -and $log -match 'cat in view'
 }
 
 Write-Host '=== uninstall ==='

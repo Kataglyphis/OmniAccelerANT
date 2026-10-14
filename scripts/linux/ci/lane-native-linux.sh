@@ -126,6 +126,9 @@ assert_gates
 
 flutter config --enable-linux-desktop
 
+# Models are not tracked; the debug app the integration tests build loads OxidANT's checkout copy.
+bash third_party/OxidANT/scripts/linux/fetch-models.sh
+
 # The Rust webcam path by default; KATAGLYPHIS_RUST_FEATURES="" builds featureless (no DirectML off Windows).
 if [[ -z "${KATAGLYPHIS_RUST_FEATURES+x}" ]]; then
   export KATAGLYPHIS_RUST_FEATURES="gstreamer,onnxruntime_dynamic"

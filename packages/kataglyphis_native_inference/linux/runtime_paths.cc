@@ -39,7 +39,7 @@ void configure_bundle_paths()
     if (path_exists(gst_plugins)) { set_if_present("GST_PLUGIN_PATH", gst_plugins); }
     const std::string onnxruntime = dir + "/libonnxruntime.so";
     if (path_exists(onnxruntime)) { set_if_present("ORT_DYLIB_PATH", onnxruntime); }
-    const std::string model = dir + "/../data/resources/models/yolov10m.onnx";
+    const std::string model = dir + "/../data/resources/models/deim_dfine_n_coco.onnx";
     if (path_exists(model)) { set_if_present("KATAGLYPHIS_ONNX_MODEL", model); }
 }
 
