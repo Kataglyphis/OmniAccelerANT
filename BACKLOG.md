@@ -18,10 +18,11 @@ Linux amd64/arm64 ship as a .deb and an AppImage, proven on himbeere2 (Pi 5) on
 2026-10-05, and as a flatpak, proven in `:latest` on 2026-10-06. Windows x64 ships as an MSI and an MSIX, proven on a Windows 11 host on
 2026-10-06. These rows are what the owner's goal still lacks.
 
-- [b] **A USB webcam through `camera = "auto"`.** The UVC branch (`uvcvideo`, MJPEG when
-  no raw format) has run only in unit tests: himbeere2 has no USB camera, and the C270
-  sits on the riscv64 X100, which the package does not build for. Blocked on a UVC camera
-  at an amd64 or arm64 board. Done when `/healthz` names it and a browser plays it.
+- [b] **A USB webcam through `camera = "auto"` on amd64 or arm64.** Proven on riscv64:
+  on 2026-10-13 mintberrycrunch's unit found its C270 by itself (`v4l2src /dev/video9 (C270
+  HD WEBCAM)`), `/healthz` named it and headless Chrome played 767 frames. himbeere2 and
+  tabblscatcam have Pi cameras only. Blocked on a UVC camera at an amd64 or arm64 board.
+  Done when `/healthz` names it there and a browser plays it.
 - [b] **A real cat's arrival on the owner's phone, picture first and video after.** Since
   2026-10-12 himbeere2's cat cam posts to the owner's Home Assistant, whose automation
   (`docs/source/camera-streaming.md`, *A phone notification with the picture*) sends
@@ -73,7 +74,7 @@ Linux amd64/arm64 ship as a .deb and an AppImage, proven on himbeere2 (Pi 5) on
     copies `build\web` whole, and the Windows service still gzips at run time: the same
     steps after its `Copy-Item ... web`, and `Test-CatCamWindows.ps1` comparing a served
     file against its `.gz`, want a `:winamd64` run, which himbeere2 cannot make.
-  - **Then:** arm64, after the hub's CON63.
+  - **Then:** arm64; the hub's CON63, which it waited on, is done since 2026-10-11.
   - Autostart is a logon task by owner decision. A boot-time service would run in
     Session 0, and on a PC with a webcam it first needs proof that LocalSystem or
     LocalService can open the camera there at all.
@@ -102,7 +103,7 @@ Linux amd64/arm64 ship as a .deb and an AppImage, proven on himbeere2 (Pi 5) on
   pages, `third_party/OxidANT/AGENTS.md` § *The riscv64 lane*). A 4 KiB-page host could run
   `package-catcam.sh` in the riscv64 `:latest` under QEMU, 20 to 30 times slower than the
   board's 8 min. Blocked on a runner, or on the hub making that QEMU path a lane.
-- [b] **Hub: `riscv64-sysroot.sh` without `--image` stops at once.** Its line 84 calls
+- [b] **Hub: `riscv64-sysroot.sh` without `--image` stops at once.** Its line 115 calls
   `ci-image-ref.sh linux`, which takes `--linux` only (`unknown argument "linux"`); CI always
   passes `--image`, so only the documented local run hits it. Found 2026-10-13 reproducing
   OxidANT's riscv64 lane; worked around with `--image`. Blocked on the hub, where this repo
@@ -136,12 +137,12 @@ Linux amd64/arm64 ship as a .deb and an AppImage, proven on himbeere2 (Pi 5) on
 ## Open — waiting on the owner
 
 - [b] **The legal pages carry placeholders.** ANThology's `imprintDe.md` says itself that
-  it holds dummy data (Elchwinkel 42, 12345 Bärstadt), and both privacy policies name
-  Elchwinkel 1, 10117 Bärstadt, a placeholder phone number and the e-mail `XX`. Both
+  it holds dummy data (Elchwinkel 42, 12345 Bärstadt), and the privacy policies name
+  Elchwinkel 1 (German) and 13 (English), 10117 Bärstadt, a placeholder phone number and the e-mail `XX`. Both
   OmniAccelerANT and jotrockenmitlocken show them. Blocked on the owner's postal address
   (a c/o service address works) and the e-mail to publish. Done when both pages name them
   in German and English.
-- [b] **False arrivals: proven gone on himbeere2.** On 2026-10-12 and 13 a drying rack at
+- [b] **False arrivals on himbeere2: nearly gone, one mark left.** On 2026-10-12 and 13 a drying rack at
   the bottom edge of himbeere2's frame made dozens of "visits" a day at 0.26 to 0.65, each
   with a clip encode, and one reached the phone. Since 2026-10-14 two fixes are in place:
   a detection starts a visit only where something moved in the last 10 s, and the Camera

@@ -72,9 +72,10 @@ Raspberry Pi; on a Pi 5 CSI camera the producer half is **OxidANT's**
 2 W runs the image with the same host-libcamera swap plus a `gst-launch` no-AI
 pipeline (the Rust producer does not fit 512 MB), and a RISC-V SoC runs the
 riscv64 variant natively with a USB webcam (`--v4l2`) — see § 2's glue list.
-In the deployed shape **each board serves its own homepage** — producer,
-`serve.sh` and the web build all on the board, all on `https://<board>:8444/`;
-`serve.sh --producer-host` is only for looking at one board from another host.
+**The boards now run the installable cat cam** (§ 2's glue list): producer, web build
+and page together on `http://<board>:8080/`, under the package's systemd unit. The
+container + `serve.sh` shape on `https://<board>:8444/` is the manual one, which the
+Zero keeps; `serve.sh --producer-host` is only for looking at one board from another host.
 Runbook: README § *Live cat detection stream*.
 
 **`cat_webrtc` is this app's only WebRTC producer.** AccelerANTgine carries a
@@ -132,9 +133,12 @@ Two upstream facts repeated here only because they bite before you reach a doc:
   upstream, because it is what *finds* the submodule. `Import-BuildModule <Name>`
   checks ANTfrastructure first, then `scripts/windows/modules/`, which holds only
   genuinely project-specific modules (today: `WindowsPaths.Common`, encoding this
-  repo's Flutter `build/windows/x64/{runner,plugins}` layout, and
+  repo's Flutter `build/windows/x64/{runner,plugins}` layout;
   `WindowsOrtRunner.Common`, which stamps the hub's G6 verdict on the chain ONNX
-  Runtime the hub's `WindowsOrtPayload.Common` stages into that runner — § 4).
+  Runtime the hub's `WindowsOrtPayload.Common` stages into that runner — § 4;
+  `WindowsLaneGuard.Common`, one lane at a time per checkout — § 5; and
+  `WindowsFlutterAot.Common`, which catches a stale AOT target that `assemble` calls up
+  to date).
 - `scripts/linux/lib/antfrastructure.sh` — the bash twin: `antfrastructure_source`
   and `antfrastructure_path`, resolved from `${BASH_SOURCE[0]}` so they work from
   any working directory.
@@ -673,7 +677,8 @@ written out rather than linked.
   pin lags the newest stable, a floating `stable` downloads again. A
   local patch in `rust_builder/cargokit/build_tool/lib/src/` fixes it; keep both
   halves when bumping the vendored copy:
-  - `builder.dart` asks `rustup show active-toolchain` in the crate dir, which
+  - `builder.dart` asks `rustup show active-toolchain` (through `rustup.dart`'s
+    `activeToolchain`) in the crate dir, which
     follows `RUSTUP_TOOLCHAIN`, then a `rust-toolchain.toml`, then the default.
   - `rustup.dart` counts a version pin such as `1.98.1-<host>` as installed.
     Upstream lists only channel names, so a pin would read as missing.
@@ -770,7 +775,7 @@ written out rather than linked.
   each board carries a local `~/cat-cam.sh start|stop|status` for that. A board
   that should come up on boot gets a systemd unit whose `ExecStart` is the
   script (the Zero has `cat-cam.service`, oneshot + `RemainAfterExit`); the
-  others have none on purpose. `start` removes a stale container first — one
+  boards that run the cat cam package use its own unit instead. `start` removes a stale container first — one
   left in `Created` state after a crash blocks the named run with
   `name-store error` and would fail the boot start. Hand-set ACLs die with
   re-enumerated device nodes (the X100's C270 re-plug did exactly that), so
@@ -975,7 +980,8 @@ locally, and runs the launch smoke against it; the Release job keeps the lane's 
 
 **The Windows arm64 lane is a hybrid** ([`windows-arm64.yml`](.github/workflows/windows-arm64.yml),
 2026-09-27). Flutter cannot cross-build `windows-arm64` from an x64 host
-(flutter/flutter#62597), so the lane has three jobs:
+(flutter/flutter#62597), so the lane has three build jobs (and the `ort-runner-suite`
+Pester job, below):
 - `natives` runs `scripts/windows/Build-WindowsArm64Natives.ps1` in the hub's arm64 container
   lane. It cross-builds AccelerANTgine and `oxidant.dll`, without DirectML, because the arm64
   ORT has no DirectML EP.
@@ -1268,7 +1274,8 @@ translates it itself and handing it the already-translated `/mnt/d/…` binds
 nothing. A `wsl: Failed to translate '<cwd>'` line in the output is noise, not a
 failed mount.
 
-No lane installs Flutter. ANTfrastructure's `flutter_lane_prepare_env`
+No Linux lane installs Flutter (the Windows workflows clone it onto the runner for
+`flutter drive`). ANTfrastructure's `flutter_lane_prepare_env`
 ([`05-frameworks/flutter/lane-prologue.sh`](third_party/ANTfrastructure/linux/scripts/05-frameworks/flutter/lane-prologue.sh))
 checks that one exists at `--flutter-dir`, puts it on `PATH`, registers the
 workspace `safe.directory`, points `PUB_CACHE` at `.pub-cache` and reports the
@@ -1383,8 +1390,8 @@ gone along with the installer.
 `git config core.hooksPath scripts/git-hooks`. It runs `scripts/linux/run-lint-gates.sh`,
 the same lint gates `lint-gates.yml` runs (about 10 s on the Windows box). When a staged
 file is a `scripts/**/*.ps1` or `.psm1`, it also runs the hub's `Invoke-Lint.ps1 -Path
-scripts`, the step `windows-x64.yml` and `windows-arm64.yml` stop on before their image
-pull. That step once reached CI uncaught: e904182's chained `[switch]` assignment failed
+scripts`, the step `windows-x64.yml` stops on before its image pull (`windows-arm64.yml`
+has no such step). That step once reached CI uncaught: e904182's chained `[switch]` assignment failed
 windows-x64 run 37324782889. It grades the working tree, like the hub's hook.
 `--no-verify` skips it.
 
