@@ -86,7 +86,7 @@ run on that arch, and warns above +25 %. A shared runner is noisy, so nothing fa
   `flutter drive --profile -d linux --driver=test_driver/perf_driver.dart
   --target=integration_test/performance_test.dart`. Flutter's `watchPerformance` times the
   frames of the app's start, three rounds through every tab, and resizes across both layout
-  breakpoints; the driver keeps them in `build/perf/frontend.json`, and
+  breakpoints; the driver keeps them in `out/perf/frontend.json`, and
   `scripts/linux/frontend-perf-report.py` turns them into the table (frames, build and raster
   time on average, at the 90th percentile and at worst, missed build budgets). The native lane
   runs it under Xvfb on x64 (`run_frontend_performance`); `reusable-linux.yml` keeps the

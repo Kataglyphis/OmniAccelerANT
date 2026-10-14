@@ -1,4 +1,4 @@
-// Keeps integration_test/performance_test.dart's frame timings in build/perf/frontend.json for scripts/linux/frontend-perf-report.py.
+// Keeps integration_test/performance_test.dart's frame timings in out/perf/frontend.json for scripts/linux/frontend-perf-report.py.
 import 'dart:convert';
 import 'dart:io';
 
@@ -9,7 +9,7 @@ Future<void> main() => integrationDriver(
     if (data == null) {
       return;
     }
-    final out = File('build/perf/frontend.json')..createSync(recursive: true);
+    final out = File('out/perf/frontend.json')..createSync(recursive: true);
     out.writeAsStringSync(const JsonEncoder.withIndent('  ').convert(data));
     stdout.writeln('frame timings: ${out.path}');
   },

@@ -1090,7 +1090,7 @@ cell is a test that cannot run there, and the reason is under the table.
   Cargokit.
 - The frame timings run on Linux x64 alone: a profile build costs minutes, and one arch is enough
   to see the Dart side get slower. `reusable-linux.yml` restores the default branch's last
-  `build/perf/frontend.json` into `.perf-baseline/` and writes the comparison into the run's
+  `out/perf/frontend.json` into `.perf-baseline/` and writes the comparison into the run's
   summary; above +25 % it warns, and nothing fails on time (camera-streaming.md § *Measuring
   performance*).
 - The webcam frame test is Linux-only: `hasPushedFrame` is the Linux plugin's, and

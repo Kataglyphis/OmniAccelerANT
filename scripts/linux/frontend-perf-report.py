@@ -20,7 +20,7 @@ def load(path):
 
 
 def main():
-    current = load(sys.argv[1] if len(sys.argv) > 1 else "build/perf/frontend.json")
+    current = load(sys.argv[1] if len(sys.argv) > 1 else "out/perf/frontend.json")
     baseline = load(sys.argv[2]) if len(sys.argv) > 2 else {}
     threshold = float(sys.argv[3]) if len(sys.argv) > 3 else 0.25
     if not current:
