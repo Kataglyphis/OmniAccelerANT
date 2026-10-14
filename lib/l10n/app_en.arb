@@ -112,6 +112,12 @@
   "@cameraPrivacyOff": {
     "description": "Value of the privacy filter row when the filter is off."
   },
+  "cameraClasses": "What it detects",
+  "@cameraClasses": { "description": "Heading on the Camera page above the watched object classes." },
+  "cameraAddClass": "Add a class",
+  "@cameraAddClass": { "description": "Hint of the menu that adds a watched class." },
+  "cameraClassesHelp": "Visits, notifications and boxes count these objects (COCO classes; cat is the default). A change applies at the next model run. The privacy filter keeps every one of them sharp, people too.",
+  "@cameraClassesHelp": { "description": "Help under the watched classes on the Camera page." },
   "devStats": "Stats",
   "@devStats": { "description": "Button on the Stream page that opens the panel of performance numbers." },
   "devStatsNone": "No numbers yet: the camera reports none, and the browser plays nothing.",

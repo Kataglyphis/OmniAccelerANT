@@ -26,7 +26,9 @@
 
 # idle_inference_fps = 0.2 # the model's rate while nothing moves and no cat is in sight (none while the picture is black); inference_fps or more turns that off
 
-# all_classes = false      # true boxes every COCO class, not only cats
+# classes = ["cat"]        # the COCO classes that count, e.g. ["cat", "dog", "bird"]; the Camera page changes them too
+
+# all_classes = false      # true counts every COCO class, whatever classes says
 
 # privacy = "off"          # "pixelate" blocks out all but the detected animals in the stream, snapshot, photos and clips; only this file turns it on or off
 

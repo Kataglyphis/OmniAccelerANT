@@ -452,6 +452,24 @@ abstract class AppLocalizations {
   /// **'off (set in the settings file)'**
   String get cameraPrivacyOff;
 
+  /// Heading on the Camera page above the watched object classes.
+  ///
+  /// In en, this message translates to:
+  /// **'What it detects'**
+  String get cameraClasses;
+
+  /// Hint of the menu that adds a watched class.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a class'**
+  String get cameraAddClass;
+
+  /// Help under the watched classes on the Camera page.
+  ///
+  /// In en, this message translates to:
+  /// **'Visits, notifications and boxes count these objects (COCO classes; cat is the default). A change applies at the next model run. The privacy filter keeps every one of them sharp, people too.'**
+  String get cameraClassesHelp;
+
   /// Button on the Stream page that opens the panel of performance numbers.
   ///
   /// In en, this message translates to:

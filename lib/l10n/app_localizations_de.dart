@@ -212,6 +212,16 @@ class AppLocalizationsDe extends AppLocalizations {
   String get cameraPrivacyOff => 'aus (in der Einstellungsdatei gesetzt)';
 
   @override
+  String get cameraClasses => 'Was erkannt wird';
+
+  @override
+  String get cameraAddClass => 'Klasse hinzufügen';
+
+  @override
+  String get cameraClassesHelp =>
+      'Besuche, Benachrichtigungen und Rahmen zählen diese Objekte (COCO-Klassen; Katze ist der Standard). Eine Änderung gilt ab dem nächsten Modelllauf. Der Privatsphäre-Filter lässt jedes davon scharf, auch Personen.';
+
+  @override
   String get devStats => 'Statistik';
 
   @override

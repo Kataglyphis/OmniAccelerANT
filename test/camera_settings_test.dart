@@ -499,4 +499,66 @@ void main() {
       await tester.pumpWidget(const SizedBox());
     },
   );
+
+  test('reads the watched classes, and none from a cat cam before them', () {
+    expect(
+      CatCamSettings.parse(
+        '{"name":"A","rotate":0,"score":0.3,"classes":["cat","dog"]}',
+      )!.classes,
+      ['cat', 'dog'],
+    );
+    expect(
+      CatCamSettings.parse('{"name":"A","rotate":0,"score":0.3}')!.classes,
+      isNull,
+    );
+  });
+
+  testWidgets('a class is added from the menu and removed by its chip', (
+    tester,
+  ) async {
+    final cam = _FakeCatCam()
+      ..settings = {
+        'name': 'Cat Cam Futtertrog',
+        'rotate': 270,
+        'score': 0.45,
+        'classes': ['cat'],
+      };
+    await _pump(tester, fetchSettings: cam.fetchSettings, save: cam.save);
+    await tester.pump();
+    expect(find.text('What it detects'), findsOneWidget);
+    // The only class cannot go: a cat cam always watches something.
+    final onlyChip = tester.widget<InputChip>(find.byType(InputChip));
+    expect(onlyChip.onDeleted, isNull);
+
+    await tester.ensureVisible(find.byKey(const ValueKey('add-class')));
+    await tester.tap(find.byKey(const ValueKey('add-class')));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const ValueKey('add-class')), 'dog');
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('dog').last);
+    await tester.pumpAndSettle();
+    expect(cam.posts.last, {
+      'classes': ['cat', 'dog'],
+    });
+    expect(find.widgetWithText(InputChip, 'dog'), findsOneWidget);
+
+    tester
+        .widget<InputChip>(find.widgetWithText(InputChip, 'cat'))
+        .onDeleted!();
+    await tester.pumpAndSettle();
+    expect(cam.posts.last, {
+      'classes': ['dog'],
+    });
+    expect(find.widgetWithText(InputChip, 'cat'), findsNothing);
+  });
+
+  testWidgets('a cat cam that cannot change its classes shows no editor', (
+    tester,
+  ) async {
+    final cam = _FakeCatCam();
+    await _pump(tester, fetchSettings: cam.fetchSettings, save: cam.save);
+    await tester.pump();
+    expect(find.text('What it detects'), findsNothing);
+    expect(find.byType(InputChip), findsNothing);
+  });
 }

@@ -211,6 +211,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get cameraPrivacyOff => 'off (set in the settings file)';
 
   @override
+  String get cameraClasses => 'What it detects';
+
+  @override
+  String get cameraAddClass => 'Add a class';
+
+  @override
+  String get cameraClassesHelp =>
+      'Visits, notifications and boxes count these objects (COCO classes; cat is the default). A change applies at the next model run. The privacy filter keeps every one of them sharp, people too.';
+
+  @override
   String get devStats => 'Stats';
 
   @override

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter/material.dart';
 import 'package:omni_accelerant/l10n/app_localizations.dart';
+import 'package:omni_accelerant/Pages/CameraSettingsPage/coco_classes.dart';
 import 'package:omni_accelerant/Pages/StreamPage/cat_status.dart'
     show formatLastSeen;
 import 'package:omni_accelerant/utils/json_utils.dart';
@@ -37,10 +38,14 @@ class CatCamSettings {
     required this.rotate,
     required this.score,
     this.ignore = const <Rect>[],
+    this.classes,
   });
 
   /// Spots marked "not a cat"; a cat cam before them sends none.
   final List<Rect> ignore;
+
+  /// The COCO classes it watches; `null` for a cat cam that watches only cats and cannot change it.
+  final List<String>? classes;
 
   final String name;
 
@@ -67,6 +72,12 @@ class CatCamSettings {
       rotate: rotate,
       score: score.toDouble(),
       ignore: parseZones(json['ignore']),
+      classes: json['classes'] is List
+          ? <String>[
+              for (final c in json['classes'] as List)
+                if (c is String) c,
+            ]
+          : null,
     );
   }
 }
@@ -468,8 +479,74 @@ class _CameraSettingsPanelState extends State<CameraSettingsPanel> {
             ],
           ),
         ),
+        if (settings.classes case final classes?) ...[
+          Text(l10n.cameraClasses, style: heading),
+          _ClassesEditor(
+            classes: classes,
+            onChanged: (next) => _save({'classes': next}),
+          ),
+        ],
         if (_info case final info?) _InfoTable(info: info),
       ],
+    );
+  }
+}
+
+/// The watched classes as chips, each removable while another stays, and a menu to add one.
+class _ClassesEditor extends StatelessWidget {
+  const _ClassesEditor({required this.classes, required this.onChanged});
+
+  final List<String> classes;
+  final void Function(List<String> classes) onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final addable = cocoClasses.where((c) => !classes.contains(c)).toList();
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 560),
+      child: Column(
+        spacing: 8,
+        children: [
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            alignment: WrapAlignment.center,
+            children: [
+              for (final c in classes)
+                InputChip(
+                  label: Text(c),
+                  onDeleted: classes.length > 1
+                      ? () => onChanged([
+                          for (final other in classes)
+                            if (other != c) other,
+                        ])
+                      : null,
+                ),
+            ],
+          ),
+          DropdownMenu<String>(
+            key: const ValueKey('add-class'),
+            hintText: l10n.cameraAddClass,
+            enableFilter: true,
+            requestFocusOnTap: true,
+            dropdownMenuEntries: [
+              for (final c in addable)
+                DropdownMenuEntry<String>(value: c, label: c),
+            ],
+            onSelected: (c) {
+              if (c != null && !classes.contains(c)) {
+                onChanged([...classes, c]);
+              }
+            },
+          ),
+          Text(
+            l10n.cameraClassesHelp,
+            style: Theme.of(context).textTheme.bodySmall,
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
     );
   }
 }

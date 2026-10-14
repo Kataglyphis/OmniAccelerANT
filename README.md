@@ -178,6 +178,8 @@ no riscv64 runtime.
   false one is seldom on screen when it happens. The cat cam keeps all of it across
   restarts, and counts a cat only once something moved where it is seen. A cat that walks
   out of the picture and back within a minute stays one visit.
+- **Not only cats:** cats are the default, and the Camera page adds or removes any of the 80
+  COCO classes (dog, bird, person, …); visits, notifications and boxes count them all.
 - **Stats for developers:** a "Stats" button under the camera's name shows the frames per
   second, the model's time per run, CPU, memory, load and temperature, and what the browser
   receives, refreshed every 2 s.

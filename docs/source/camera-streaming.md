@@ -270,7 +270,7 @@ Everything it serves is on that one port, plain HTTP:
 | `/snapshot.jpg` | the latest frame, boxes drawn; encoded once per frame however many ask |
 | `/arrival.jpg` | the frame the last arrival was confirmed on; `?t=<arrival time>` that arrival's own, of the last five; `404` until a cat has come, or once that arrival's is dropped |
 | `/arrival.mp4` | the last arrival as an H.264 clip, 3 s before it to 7 s after; `?t=<arrival time>` that arrival's own, of the last five; byte ranges answered; `404` until one is encoded, or once that arrival's is dropped |
-| `/settings` | `GET`: the `name`, `rotate`, `score` and `ignore` the settings page can change. `POST` any of them as JSON (`application/json` only), e.g. `{"rotate": 90}`: 0, 90, 180 or 270 degrees clockwise, a `score` from 0.05 to 0.95, a name of up to 64 characters, and up to 16 spots marked "not a cat" as `[x1, y1, x2, y2]` fractions of the picture (`{"ignore": []}` forgets them) |
+| `/settings` | `GET`: the `name`, `rotate`, `score`, `ignore` and `classes` the settings page can change. `POST` any of them as JSON (`application/json` only), e.g. `{"rotate": 90}`: 0, 90, 180 or 270 degrees clockwise, a `score` from 0.05 to 0.95, a name of up to 64 characters, up to 16 spots marked "not a cat" as `[x1, y1, x2, y2]` fractions of the picture (`{"ignore": []}` forgets them), and the watched `classes`, one to all 80 COCO names (`{"classes": ["cat", "dog"]}`) |
 | `/webrtc-ws` | the WebRTC signalling, forwarded to the producer's own server on loopback `:8443`; at most `max_viewers` tabs at once (8), `503` for one more; a tab that vanished without closing, a laptop asleep, frees its place within about 2.5 min (TCP keepalive, 2026-10-14) |
 
 **Only the cat cam's own page may act** (2026-10-13). `/webrtc-ws` and a `POST /settings`
@@ -557,7 +557,7 @@ address the browser uses.
 POSTs a JSON event there whenever a cat arrives or leaves:
 
 ```json
-{"event": "arrived", "name": "Trouble Tabbls Cat Cam", "time": 1791763273,
+{"event": "arrived", "name": "Trouble Tabbls Cat Cam", "time": 1791763273, "class": "cat",
  "detections": 2, "best_score": 0.76, "snapshot": "/arrival.jpg"}
 {"event": "clip", "name": "Trouble Tabbls Cat Cam", "time": 1791763273,
  "best_score": 0.76, "clip": "/arrival.mp4", "snapshot": "/arrival.jpg"}
@@ -779,6 +779,18 @@ the six Roboto files about 0.5 MB.
 the service forwards the WebSocket upgrade to its own signalling server on
 loopback `:8443`. Media goes over host candidates only unless `stun_server` is
 set, so the stream stays on the LAN. No TLS, no `serve.sh`, no container.
+
+#### What it detects
+
+**Cats by default, any of the 80 COCO classes on request** (2026-10-14). `classes` in
+`catcam.toml` names them (`["cat"]` unless set), and the Camera page's "What it detects"
+adds one from a menu that filters as you type, or removes one by its chip; the last cannot
+go. A change applies at the next model run and stays across restarts. Everything that
+counts a cat counts any of them: visits, the webhook events, the arrival photos and clips,
+the boxes. Each visit in `/healthz`'s `recent` and each `arrived` event names its `class`,
+the class of its best detection; `/healthz` lists `classes`. `all_classes = true` still counts
+every class. The privacy filter keeps every watched class sharp, so watching `person` shows
+people.
 
 #### Stats for developers
 
