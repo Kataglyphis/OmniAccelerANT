@@ -419,8 +419,12 @@ since the last frame and the last model run. The Stream page and the Camera page
 problem in orange above the cat.
 `/snapshot.jpg` is the latest frame, boxes included, for a quick look without
 WebRTC: `curl -o cat.jpg http://<host>:8080/snapshot.jpg`. A cat counts after two
-detections in a row and leaves after about 3 s without one, so a lone hit near the
-score threshold draws no box and logs nothing. While nothing moves and no cat is in
+detections in a row and is out of view after about 3 s without one, so a lone hit near the
+score threshold draws no box and logs nothing. Its visit ends a minute after its last
+sighting (2026-10-14): a cat back sooner, from behind the sofa or the feeding bowl, continues
+the visit and is not announced again. At the feeding trough one cat walking about had made
+21 visits in an hour, 10 to 90 s apart; the departure event and `stayed_s` come a minute
+later now, and `stayed_s` counts from the first sighting to the last. While nothing moves and no cat is in
 sight the model runs only every 5 s (`idle_inference_fps`), and not at all while the
 picture is black; motion brings back `inference_fps`, and `/healthz` counts the
 runs (`model_runs`). On a Pi 5 that took a still, empty scene from 74 % to 12 % of a
