@@ -219,6 +219,14 @@ still_cat_starts_no_visit() {
   return 0
 }
 
+# The build /healthz names is the installed package's: package-catcam.sh stamps it into the binary.
+names_its_package() {
+  local v
+  v="$(dpkg-query -W -f='${Version}' omni-accelerant-catcam)" || return 1
+  curl -sf "http://$1:8080/healthz" | jq -e --arg v "${v}" '.version | startswith($v)' >/dev/null || return 1
+  return 0
+}
+
 # Only root and the service's group read the settings, which a webhook secret may be part of.
 config_private() {
   [ "$(stat -c '%a %U %G' "${config}")" = "640 root $(id -gn "${user}")" ] || return 1
@@ -376,6 +384,7 @@ start_service "${work}/photo.log" "${prefix}/catcam" --camera "image:${photo}" -
 pid=$!
 check "/healthz reports the cat in the photo as a visit" wait_cat "${ip}"
 check "/healthz says ok while the camera delivers frames" healthz_holds "${ip}" '.ok and .problem == null and .frame_age_s <= 2 and .model_age_s <= 10'
+check "/healthz names the installed package's version as its build" names_its_package "${ip}"
 check "/snapshot.jpg serves the boxed frame as a JPEG" jpeg_at "${ip}" /snapshot.jpg
 check "the arrival is POSTed to notify_url as JSON" webhook_got_arrival "${work}/webhook.jsonl"
 check "/arrival.jpg serves the frame the arrival was seen on" jpeg_at "${ip}" /arrival.jpg
