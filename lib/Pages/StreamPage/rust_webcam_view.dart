@@ -36,6 +36,7 @@ class _RustWebcamViewState extends State<RustWebcamView> {
   bool _useTestSource = true;
   List<CameraDesc> _cameras = const [];
   int? _selectedCameraIndex;
+  bool _listing = false;
 
   final TextEditingController _modelPathController = TextEditingController();
   double _scoreThreshold = 0.5;
@@ -60,9 +61,11 @@ class _RustWebcamViewState extends State<RustWebcamView> {
     }
   }
 
-  void _refreshCameras() {
+  Future<void> _refreshCameras() async {
+    setState(() => _listing = true);
     try {
-      final cameras = listCameras();
+      final cameras = await listCameras();
+      if (!mounted) return;
       setState(() {
         _cameras = cameras;
         _error = null;
@@ -72,7 +75,10 @@ class _RustWebcamViewState extends State<RustWebcamView> {
         }
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() => _error = 'Camera enumeration failed: $e');
+    } finally {
+      if (mounted) setState(() => _listing = false);
     }
   }
 
@@ -223,7 +229,7 @@ class _RustWebcamViewState extends State<RustWebcamView> {
               selected: !_useTestSource,
               onSelected: (v) {
                 if (_cameras.isEmpty) {
-                  _refreshCameras();
+                  if (!_listing) unawaited(_refreshCameras());
                 } else {
                   setState(() => _useTestSource = false);
                 }
@@ -245,7 +251,8 @@ class _RustWebcamViewState extends State<RustWebcamView> {
             IconButton(
               tooltip: 'Refresh cameras',
               icon: const Icon(Icons.refresh),
-              onPressed: _refreshCameras,
+              // One device monitor at a time; a listing takes about a second.
+              onPressed: _listing ? null : _refreshCameras,
             ),
           ],
         ),

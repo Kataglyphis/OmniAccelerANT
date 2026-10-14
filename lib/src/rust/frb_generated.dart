@@ -69,7 +69,7 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
   String get codegenVersion => '2.13.0';
 
   @override
-  int get rustContentHash => -447940740;
+  int get rustContentHash => -247470261;
 
   static const kDefaultExternalLibraryLoaderConfig =
       ExternalLibraryLoaderConfig(
@@ -97,13 +97,15 @@ abstract class RustLibApi extends BaseApi {
 
   Future<void> crateApiSimpleInitApp();
 
-  List<CameraDesc> crateApiWebcamListCameras();
+  Future<List<CameraDesc>> crateApiWebcamListCameras();
 
   Stream<DetectionEvent> crateApiWebcamStartWebcamInference({
     required WebcamStreamConfig config,
   });
 
   void crateApiWebcamStopWebcamInference();
+
+  bool crateApiWebcamWebcamInferenceAvailable();
 
   RustArcIncrementStrongCountFnType
   get rust_arc_increment_strong_count_Detection;
@@ -261,12 +263,17 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       const TaskConstMeta(debugName: "init_app", argNames: []);
 
   @override
-  List<CameraDesc> crateApiWebcamListCameras() {
-    return handler.executeSync(
-      SyncTask(
-        callFfi: () {
+  Future<List<CameraDesc>> crateApiWebcamListCameras() {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 6)!;
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 6,
+            port: port_,
+          );
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_list_camera_desc,
@@ -341,6 +348,31 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 
   TaskConstMeta get kCrateApiWebcamStopWebcamInferenceConstMeta =>
       const TaskConstMeta(debugName: "stop_webcam_inference", argNames: []);
+
+  @override
+  bool crateApiWebcamWebcamInferenceAvailable() {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 9)!;
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bool,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiWebcamWebcamInferenceAvailableConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiWebcamWebcamInferenceAvailableConstMeta =>
+      const TaskConstMeta(
+        debugName: "webcam_inference_available",
+        argNames: [],
+      );
 
   RustArcIncrementStrongCountFnType
   get rust_arc_increment_strong_count_Detection => wire

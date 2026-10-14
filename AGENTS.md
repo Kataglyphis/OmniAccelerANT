@@ -43,8 +43,10 @@ falls back to `ksvideosrc`. Details in
 links are in the tree: the `knt_push_frame`/`knt_api_version` C ABI exported
 from the Linux plugin, `KATAGLYPHIS_RUST_FEATURES` forwarding, ONNX Runtime
 bundling, and a Dart branch that routes Linux to `RustWebcamView` behind a
-runtime `listCameras()` probe — so a build with no features set keeps the C++
-GStreamer MethodChannel path unchanged. **This is an addition, not a
+runtime `webcamInferenceAvailable()` probe — so a build with no features set keeps the C++
+GStreamer MethodChannel path unchanged. The probe is a compile-time answer; never put
+`listCameras()` back on that path, which starts libcamera and held the first frame 0.94 s
+(2026-10-15). **This is an addition, not a
 replacement**: the two paragraphs below stay true.
 
 **A test-pattern frame travels Rust → `knt_push_frame` → texture on every native

@@ -19,8 +19,9 @@ void main() {
   testWidgets('a test-pattern frame reaches the native texture', (
     WidgetTester tester,
   ) async {
-    // The lane runs this only with the Rust webcam features; a featureless build throws here, loudly.
-    listCameras();
+    // The lane runs this only with the Rust webcam features, and the listing must work without a camera.
+    expect(webcamInferenceAvailable(), isTrue);
+    await listCameras();
 
     await tester.pumpWidget(
       const MaterialApp(

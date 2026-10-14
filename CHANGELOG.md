@@ -81,6 +81,14 @@ What landed on `develop` after 2.0.0+2. Most of it is the cat cam, whose guide i
 
 ### Fixed
 
+- **The native app's first frame no longer waits for libcamera** (2026-10-15). The Stream page
+  probed the Rust core with `listCameras()`, a synchronous bridge call that starts the GStreamer
+  device monitor, so the first frame's build took 963 ms of which `StreamPage` held 938 ms
+  (profile build, Pi 5, `debugProfileBuildsEnabled`). The probe is now OxidANT's compile-time
+  `webcamInferenceAvailable()`, and `listCameras()` is async, run only from the camera list.
+  `integration_test/performance_test.dart` measured the start's worst frame at 1,895 ms before
+  and 25.5 ms after; `test/stream_page_rust_test.dart` fails if the page enumerates again.
+
 - **The app keeps its state, the Camera page recovers, and the Stream page names the animal**
   (2026-10-14, the deep review).
   - ANThology's app shell no longer rebuilds the app and its router on every resize or open

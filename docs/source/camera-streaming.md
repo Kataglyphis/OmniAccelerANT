@@ -144,7 +144,10 @@ cross the Dart bridge; only detection metadata does.
 > no `KATAGLYPHIS_RUST_FEATURES` keeps the C++ GStreamer MethodChannel path
 > exactly as it is. All four links are in the tree — the `knt_push_frame` C ABI,
 > the feature forwarding, ONNX Runtime bundling, and the Dart branch behind a
-> runtime `listCameras()` probe.
+> runtime `webcamInferenceAvailable()` probe: a compile-time answer, because
+> `listCameras()` starts libcamera's device monitor. While the page probed with it,
+> that held the app's first frame 0.94 s on a Pi 5 (2026-10-15); it is async now and
+> runs only when someone asks for the camera list.
 >
 > As of 2026-09-17 the **native lane** sets
 > `KATAGLYPHIS_RUST_FEATURES=gstreamer,onnxruntime_dynamic` by default — **not**
@@ -163,7 +166,8 @@ cross the Dart bridge; only detection metadata does.
 
 ```
 crates/media (gstreamer-rs)     src/webcam_engine.rs            src/api/webcam.rs (frb)
-  mfvideosrc → ksvideosrc     ┌ pushes RGBA into the Flutter   ┌ list_cameras()
+                                                              ┌ webcam_inference_available()
+  mfvideosrc → ksvideosrc     ┌ pushes RGBA into the Flutter   │ list_cameras() (async)
   → videoconvert → videoscale │ texture via the native plugin's│ start_webcam_inference()
   → RGBA appsink  ───────────►│ knt_push_frame C ABI           │   → Stream<DetectionEvent>
   (latest-frame slot)         └ runs PersonDetector (ONNX/ort) ─┘ stop_webcam_inference()

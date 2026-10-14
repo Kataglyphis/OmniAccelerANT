@@ -126,18 +126,20 @@ class StreamPageState extends State<StreamPage> {
     textureId = _initNativeIfNeeded();
   }
 
-  /// Probes the webcam features: a featureless build's `listCameras()` throws, an empty list still counts.
+  /// Asks the core for its webcam features: a compile-time answer, where enumerating cameras here blocked the first frame ~1 s.
   bool _probeRustWebcam() {
     try {
-      listCameras();
-      return true;
-    } catch (e) {
+      if (webcamInferenceAvailable()) return true;
       debugPrint(
-        'Rust webcam features not available in this build ($e); '
+        'This build has no Rust webcam features; '
         'falling back to the GStreamer MethodChannel view.',
       );
-      return false;
+    } catch (e) {
+      debugPrint(
+        'No Rust core ($e); falling back to the GStreamer MethodChannel view.',
+      );
     }
+    return false;
   }
 
   String _pickDefaultSource() => _sourceCandidates.first;

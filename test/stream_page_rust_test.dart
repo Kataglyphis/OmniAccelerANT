@@ -14,11 +14,18 @@ import 'support/stream_page_app.dart';
 
 /// The Rust core of a build with the webcam features: no camera attached.
 class _FakeRustApi extends Fake implements RustLibApi {
+  int probed = 0;
   int listed = 0;
   int stops = 0;
 
   @override
-  List<CameraDesc> crateApiWebcamListCameras() {
+  bool crateApiWebcamWebcamInferenceAvailable() {
+    probed++;
+    return true;
+  }
+
+  @override
+  Future<List<CameraDesc>> crateApiWebcamListCameras() async {
     listed++;
     return const <CameraDesc>[];
   }
@@ -52,8 +59,10 @@ void main() {
         // One create, the view's: a second from the page would race it for the plugin's single texture.
         expect(calls.map((MethodCall c) => c.method), <String>['create']);
         if (platform == TargetPlatform.linux) {
-          expect(rust.listed, greaterThan(0), reason: 'Linux probes the core');
+          expect(rust.probed, greaterThan(0), reason: 'Linux probes the core');
         }
+        // Enumerating cameras starts libcamera, which held the first frame ~1 s while the page did it.
+        expect(rust.listed, 0, reason: 'the page enumerated cameras');
 
         await unmountApp(tester);
       },
