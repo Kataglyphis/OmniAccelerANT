@@ -17,8 +17,8 @@ on port 8080.
   a phone notification with the picture and the video ([Home Assistant](#home-assistant)).
 - **Check:** `/healthz` says whether the camera delivers, and what it saw
   ([Detection, visits and `/healthz`](#detection-visits-and-healthz)).
-- **Configure:** `/etc/omni-accelerant/catcam.toml` documents every setting; what the
-  page changes wins over it.
+- **Configure:** `/etc/omni-accelerant/catcam.toml` documents every setting you would
+  change; what the page changes wins over it.
 
 - [Rust-owned webcam inference (local, no WebRTC)](#rust-owned-webcam-inference-local-no-webrtc)
   - [Checking the knt ABI](#checking-the-knt-abi)
@@ -126,9 +126,11 @@ Rust would also hit.
 
 It does not, and cannot, check that a real frame reaches the screen: frames end
 in a GTK texture. The native lane has a display since 2026-10-01 — it starts the
-bundle and drives the integration test under the image's `xvfb-run` — but no
-camera, so nothing there pushes a frame. Seeing one needs a camera — on the
-Windows dev box that means the `usbipd attach --wsl` route in AGENTS.md § 4.
+bundle and drives the integration test under the image's `xvfb-run` — and since
+2026-10-05 `integration_test/webcam_frame_test.dart` pushes a test-pattern frame through
+`knt_push_frame` there and polls the plugin's `hasPushedFrame`. A real camera's frame on
+screen is still a manual check — on the Windows dev box that means the `usbipd attach
+--wsl` route in AGENTS.md § 4.
 
 Run it after a native build. The artefact is an ELF `.so`, so on a Windows host
 it goes through a container, with the lane's build volume mounted:
@@ -249,6 +251,9 @@ bash scripts/linux/cat-stream/package-catcam.sh --web-root build/web
 # out/omni-accelerant-catcam-<version>-linux-<deb-arch>.tar.gz   the same bundle, unpacked
 ```
 
+On riscv64 it writes the `.deb` and the tarball only: no freedesktop runtime and no AppImage
+runtime exist for it.
+
 The flatpak's `flatpak-builder` runs in bubblewrap, so the script needs a privileged
 container (`nerdctl run --privileged`).
 
@@ -266,7 +271,7 @@ Everything it serves is on that one port, plain HTTP:
 | `/arrival.jpg` | the frame the last arrival was confirmed on; `?t=<arrival time>` that arrival's own, of the last five; `404` until a cat has come, or once that arrival's is dropped |
 | `/arrival.mp4` | the last arrival as an H.264 clip, 3 s before it to 7 s after; `?t=<arrival time>` that arrival's own, of the last five; byte ranges answered; `404` until one is encoded, or once that arrival's is dropped |
 | `/settings` | `GET`: the `name`, `rotate`, `score` and `ignore` the settings page can change. `POST` any of them as JSON (`application/json` only), e.g. `{"rotate": 90}`: 0, 90, 180 or 270 degrees clockwise, a `score` from 0.05 to 0.95, a name of up to 64 characters, and up to 16 spots marked "not a cat" as `[x1, y1, x2, y2]` fractions of the picture (`{"ignore": []}` forgets them) |
-| `/webrtc-ws` | the WebRTC signalling, forwarded to the producer's own server on loopback `:8443`; at most `max_viewers` tabs at once (8), `503` for one more |
+| `/webrtc-ws` | the WebRTC signalling, forwarded to the producer's own server on loopback `:8443`; at most `max_viewers` tabs at once (8), `503` for one more; a tab that vanished without closing, a laptop asleep, frees its place within about 2.5 min (TCP keepalive, 2026-10-14) |
 
 **Only the cat cam's own page may act** (2026-10-13). `/webrtc-ws` and a `POST /settings`
 answer `403` when a browser's `Origin` is not the address the request was sent to, so
@@ -303,8 +308,9 @@ own page in the bottom bar, for a board that is easily moved or a spot with fals
   drying rack counted once at 09:09 for under three minutes. Each visit in `/healthz`'s
   `recent` keeps the `boxes` it arrived with, and the button adds those as ignored spots; one
   already ignored reads "Ignored". Visits from before that keep no boxes and are not listed.
-- A field renames the camera. The next webhook event and the next `/healthz` carry the new
-  name; a viewer that is already connected keeps the old one until it reconnects.
+- A field renames the camera. The next webhook event, `/healthz` and the web page (within
+  5 s) carry the new name; the WebRTC stream's own name, which a GStreamer viewer shows, stays
+  the one `catcam.toml` gave it at start.
 - A preview of `/snapshot.jpg`, reloaded every 3 s, shows the result, and a table what the
   camera runs: its sensor, frame size and rate, whether detection runs, the model's runs and
   the visits counted.
@@ -437,7 +443,7 @@ out of view as fast as before. `inference = "auto"` turns the model
 off below 1 GiB of RAM.
 
 **A cat must move to arrive** (2026-10-14). A detection starts a visit only where the picture
-changed in the last 10 s, inside its box or one 8-pixel block around it: a still object the
+changed in the last 10 s, in at least two 8-pixel blocks inside its box or one block around it: a still object the
 model takes for a cat, like himbeere2's drying rack (92 "visits" by 13:40 on 2026-10-13),
 can no longer start one. Once a cat is in view, every detection keeps its visit going, so a
 cat that sits down or falls asleep stays counted. What the camera sees as it starts counts
@@ -446,28 +452,38 @@ comes from the same 2 Hz looks that pace the model; with that pacing off
 (`idle_inference_fps` at or above `inference_fps`, or `inference_fps = 0`), every detection
 may start a visit, as before.
 
-A live `/healthz` from mintberrycrunch, the riscv64 board, on its first afternoon
-(2026-10-13), its lists cut to two entries each:
+A live `/healthz` from himbeere2 (2026-10-14), its lists cut to two entries each and the
+peers' addresses left out:
 
 ```json
 {
-  "camera": "v4l2src /dev/video9 (C270 HD WEBCAM)",
+  "camera": "Raspberry Pi camera via rpicam-vid (imx219 [3280x2464 10-bit RGGB] (...))",
   "cat": {
-    "clip": 1791909397,
-    "clips": [1791909397, 1791908969],
+    "boxes": [],
+    "clip": 1791965878,
+    "clips": [1791965878, 1791961744],
     "in_view": false,
-    "last_score": 0.5225493311882019,
-    "last_seen": 1791909401,
-    "recent": [{ "arrived": 1791909397, "stayed_s": 1 }, { "arrived": 1791908975, "stayed_s": 2 }],
-    "visits": 20
+    "last_score": 0.6694751977920532,
+    "last_seen": 1791965880,
+    "recent": [
+      { "arrived": 1791965878, "boxes": [[0.001, 0.693, 0.608, 1.0]], "stayed_s": 0 },
+      { "arrived": 1791961744, "stayed_s": 172 }
+    ],
+    "visits": 154
   },
   "frame": { "fps": 30, "height": 480, "width": 640 },
+  "frame_age_s": 0,
   "inference": true,
-  "model_runs": 4073,
-  "name": "Mintberry Cat Cam",
+  "model_age_s": 0,
+  "model_runs": 2146,
+  "name": "Cat Cam Büro",
   "ok": true,
-  "rotate": 0,
-  "score": 0.25
+  "peers": ["http://<other-cat-cam>:8080", "http://<third-cat-cam>:8080"],
+  "problem": null,
+  "rotate": 180,
+  "score": 0.25,
+  "version": "2.0.0 (b8e1ee5)",
+  "viewers": 0
 }
 ```
 
@@ -545,9 +561,12 @@ POSTs a JSON event there whenever a cat arrives or leaves:
  "detections": 2, "best_score": 0.76, "snapshot": "/arrival.jpg"}
 {"event": "clip", "name": "Trouble Tabbls Cat Cam", "time": 1791763273,
  "best_score": 0.76, "clip": "/arrival.mp4", "snapshot": "/arrival.jpg"}
-{"event": "left", "name": "Trouble Tabbls Cat Cam", "time": 1791763315, "stayed_s": 42,
+{"event": "left", "name": "Trouble Tabbls Cat Cam", "time": 1791763375, "stayed_s": 42,
  "arrived": 1791763273, "best_score": 0.76}
 ```
+
+The departure is posted a minute after the cat was last seen, so its `time` lies that much
+after `arrived` plus `stayed_s`.
 
 `/arrival.jpg` is the frame the arrival was confirmed on, boxes included, so a
 notification can show what triggered it. Each of the last five arrivals keeps its own,
@@ -642,8 +661,8 @@ live page behind a tap. Running on himbeere2 since 2026-10-12 (Home Assistant 20
 - **A webhook id is a password.** Generate it (`python3 -c 'import secrets;
   print("catcam-" + secrets.token_urlsafe(24))'`) and keep it out of git.
 - **Notify above 0.45, count from `score`.** On 2026-10-12 a white object at the bottom of
-  himbeere2's frame made 33 "visits" between 0.26 and 0.44, and a cat in the bundled photo
-  scores 0.76. The condition keeps those off the phone while the visit log still counts
+  himbeere2's frame made 33 "visits" between 0.26 and 0.44, and a real cat at the feeding
+  trough scored 0.72 (2026-10-14). The condition keeps those off the phone while the visit log still counts
   them; raising `score` instead would drop them from both. It is not enough on its own:
   at 21:57 the same object scored 0.65 and reached the phone (BACKLOG, *False arrivals*).
   For a spot like that, raise that one camera's `score` above the false object's on the
@@ -667,9 +686,11 @@ A test arrival posted to that webhook reached the owner's phone on 2026-10-12.
 
 **The same notification learns when the cat left.** The departure comes a minute after
 the cat was last seen, since a cat back sooner continues its visit. It names the arrival it
-ends (`arrived`) and that arrival's `best_score`, so the automation above takes it under
-the same 0.45 and updates the notification by its `tag`: "Katze war da … War 4 Min. da."
-A clip event carries `stayed_s` too when the visit was over before its clip was encoded.
+ends (`arrived`) and that arrival's `best_score`, so an automation that lets `left` through
+its condition too (himbeere2's does; the one above does not) takes it under the same 0.45
+and updates the notification by its `tag`: "Katze war da … War 4 Min. da." A clip event
+carries `stayed_s` too when the visit was over before its clip was encoded; with a visit
+lasting a minute past the last sighting and a clip of at most 60 s, that hardly happens.
 himbeere2's automation keeps the last departure in an `input_text`
 (`"<arrival time> <seconds>"`), so its minute-apart tries of an arrival keep the stay a
 departure in between added.
@@ -774,6 +795,18 @@ bash scripts/linux/cat-stream/test-catcam-package.sh   # root, inside :latest; f
 **What it checks**, for the .deb and the AppImage each installed in `:latest`
 and run as the unit runs it, with a scrubbed environment as `omni-catcam`:
 - no shared object maps from outside the bundle, idle or with a viewer connected;
+- the package's own files: the service user is in the `video` group, the settings file is
+  `640 root:omni-catcam` (an older world-readable one is made private), and the unit
+  restarts whatever ended it and starts once the clock is set;
+- `/healthz` says `ok` with no `problem` while frames come, and names the installed
+  package's version;
+- the Camera page's settings: `/settings` turns the picture and sets the score and the
+  name, a restart keeps them, and it refuses a form post, a bad value and another site's
+  page;
+- "Not a cat" over the photo's boxes ends its visit, and the still photo watched again
+  starts none;
+- `apt remove` masks the unit and a reinstall unmasks and enables it; the AppImage's
+  `--install` refuses a non-root caller, and its installed copy refuses `--install`;
 - every setting the shipped `catcam.toml` documents, uncommented, is one the service
   reads (`--print-config` takes them all);
 - the installed unit loads without a warning (`systemd-analyze verify`) and keeps its
@@ -812,7 +845,8 @@ On amd64 in `:latest` (2026-10-06), all 32 checks passed, and Chrome played 572 
 from the sandboxed stream. The flatpak bundle is 63 MB. On arm64 on himbeere2
 (2026-10-12) all 43 checks passed, with about 510 frames to Chrome each time, and all 47
 once the arrival clip added four; all 51 on 2026-10-13, three of them on the
-precompressed web build. CI passed the 41 from before the visit log on both
+precompressed web build; all 69 on 2026-10-14, in 244 s (each line names its seconds; the
+tab that comes back takes 113 of them, as it must stay hidden past the page's 60 s). CI passed the 41 from before the visit log on both
 architectures (`web.yml` run 38197312619).
 
 #### Where it ran
@@ -847,7 +881,7 @@ it, because its 16 KiB pages break QEMU on the image's libraries. The unit:
 - streamed to headless Chrome on himbeere2 at about 24 fps (767 frames in 35 s);
 - used 15 % of one core and 282 MB with the room empty, the model running every 5 s.
 
-**The AppImage on that board, 2026-10-06:**
+**The AppImage on himbeere2, 2026-10-06:**
 - run plainly as the login user, it mounted through FUSE, and Chrome on another host
   played 844 frames in 28 s;
 - the switch a user might make, `.deb` → `apt remove` → AppImage `--install` →
@@ -870,7 +904,8 @@ from Flathub: freedesktop 24.08, which Flathub marks end-of-life, because that r
 loaded the chain ORT and the model from `/app/catcam`, and answered `/healthz` (test
 pattern, no camera on that host). The host's Chrome played 582 frames from the LAN address.
 
-**Not verified yet:** a USB webcam, and the flatpak's start at a real sign-in.
+**Not verified yet:** the flatpak's start at a real sign-in, and a USB webcam on an amd64
+or arm64 board (mintberrycrunch's C270 above is riscv64).
 
 ### The Windows cat cam
 
@@ -1006,7 +1041,8 @@ Since OxidANT dd496dc this binary is the service the package above installs:
 `--test` streams a `videotestsrc` pattern, `--image <file>` (or
 `$KATAGLYPHIS_CAT_IMAGE`) loops a still image — there is no default picture any
 more (OxidANT deaea88, 2026-09-15; ANThology's `Thundy.jpg` is only named in the
-error hint), and without one of these a live-source flag is required. The model
+error hint); without one of these the producer takes `camera` from its settings, `"auto"`
+by default: a Raspberry Pi camera if attached, else a USB webcam. The model
 default still resolves relative to the crate, so any checkout works. `--score`, `--width/--height/--fps`,
 `--all-classes` and `--name` tune the stream. `--cert/--key` enable WSS on the
 built-in server, but the signaller's rustls rejects self-signed CA certificates
@@ -1041,10 +1077,10 @@ scripts/linux/cat-stream/serve.sh --http   # :8444 plain HTTP, no certificate
 
 `serve.sh` also takes `--producer-host`/`--producer-port` to front a producer
 on another board, and `--state-dir` so several instances (one per producer)
-can run side by side. In the **deployed shape every board serves its own
-homepage**: producer on `:8443` and `serve.sh` + the web build on `:8444`, both
-on the board — the dev host's `serve.sh` is for its own camera, or for an
-ad-hoc look at another board via `--producer-host`.
+can run side by side. **The boards run the cat cam package** (himbeere2, tabblscatcam,
+mintberrycrunch): producer, web build and page together on `http://<board>:8080/`. The
+producer on `:8443` with `serve.sh` + the web build on `:8444` is the manual shape, for a
+board without the package or an ad-hoc look at another board via `--producer-host`.
 
 The boards this repo has been deployed on:
 
@@ -1278,7 +1314,7 @@ GST_DEBUG=3 gst-launch-1.0 \
   libcamerasrc ! video/x-raw,format=RGB,width=640,height=360,framerate=30/1 ! \
   videoconvert ! video/x-raw,format=I420 ! queue ! \
   vp8enc deadline=1 threads=2 ! queue ! \
-  webrtcsink signaller::uri="ws://0.0.0.0:8443" name=ws meta="meta,name=gst-stream"
+  webrtcsink signaller::uri="ws://127.0.0.1:8444" name=ws meta="meta,name=gst-stream"
 ```
 
 ## 4) Run the web frontend
@@ -1290,10 +1326,13 @@ flutter run -d web-server --profile --web-port 8080 --web-hostname 0.0.0.0
 ## Troubleshooting
 
 - **A cat cam reports cats that are not there.** Open its page, *Camera* in the bottom
-  bar. The preview shows the boxes the model drew, and the line under the detection slider
-  the score of the last arrival. Move the slider above that score; the next model run
-  uses it, and the cat cam keeps it across restarts. Too high and a cat in poor light
-  is missed too: a real cat scored 0.76 in the bundled photo, the drying rack 0.26 to 0.65.
+  bar. While the false box shows in the preview, press "Not a cat": the cat cam ignores
+  that spot for good. A false arrival from earlier is under "Recent detections", with the
+  same button. Since 2026-10-14 only a detection where something moved starts a visit,
+  so a still object rarely does. For a false cat that moves, the line under the detection
+  slider names the last detection's score: move the slider above it. Too high and a cat
+  in poor light is missed too: a real cat at the feeding trough scored 0.72, the drying
+  rack 0.26 to 0.65.
 - **The picture is sideways after the board was moved.** ⟲ and ⟳ on the same page turn
   it a quarter at a time; detection, the arrival picture and the clips turn with it.
 - Use `GST_DEBUG=2` or `GST_DEBUG=3` to inspect pipeline performance and caps negotiation.
