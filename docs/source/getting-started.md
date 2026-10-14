@@ -2,14 +2,15 @@
 
 This guide takes you from clone to a working local setup.
 
-Only want the cat cam? It installs as a package, with nothing to build:
+Only want the cat cam? It comes as a package (`.deb`, AppImage, flatpak, Windows MSI): take
+one from a `web.yml` run's artifacts (GitHub sign-in needed) or build it with one script,
 [README](../../README.md#live-cat-detection-stream-linux--raspberry-pi).
 
 ## 1) Prerequisites
 
-**Or skip them:** every CI lane runs in the family image
+**Or skip them:** every Linux CI lane runs in the family image
 `ghcr.io/kataglyphis/kataglyphis_beschleuniger:latest`, which carries Flutter, Rust,
-GStreamer and ONNX Runtime. [AGENTS.md § 5](../../AGENTS.md#5-build-run-test), *The Dart
+GStreamer and ONNX Runtime (the Windows lanes use its `:winamd64` twin). [AGENTS.md § 5](../../AGENTS.md#5-build-run-test), *The Dart
 gate in 23 seconds*, runs the tests in it with nothing installed on the host. The clone
 below works without a GitHub account: every URL is HTTPS.
 
@@ -51,9 +52,11 @@ List available camera devices:
 ```bash
 for dev in /dev/video*; do
   echo "Testing $dev"
-  gst-launch-1.0 -v v4l2src device=$dev ! fakesink
+  gst-launch-1.0 -q v4l2src device="$dev" num-buffers=1 ! fakesink && echo "  delivers frames"
 done
 ```
+
+A Raspberry Pi camera does not show up this way; `rpicam-hello --list-cameras` lists it.
 
 Inspect resolutions/framerates:
 
@@ -108,11 +111,16 @@ dhttpd --path doc/api --host 127.0.0.1 --port 8080
 
 ## 6) WSL2 USB passthrough (if needed)
 
-```bash
+In Windows PowerShell (bus ids change between plug-ins):
+
+```powershell
 usbipd list
 usbipd attach --wsl --busid 1-1.2
-lsusb
 ```
+
+Then in WSL, `sudo modprobe uvcvideo` makes it `/dev/video0` (`lsusb` shows it). WebRTC to
+a browser also needs `networkingMode=mirrored` in `%USERPROFILE%\.wslconfig`; both are
+gone after a WSL restart ([AGENTS.md § 4](../../AGENTS.md#4-pitfalls-specific-to-this-project)).
 
 ## Next Steps
 

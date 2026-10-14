@@ -40,7 +40,7 @@ OmniAccelerANT bundles a Flutter/Dart frontend, a Rust/C++ inference core, and a
 | Category | Feature | Win x64 | Linux x64 | Linux ARM64 | Linux RISC-V | Android |
 |----------|---------|:-------:|:---------:|:-----------:|:------------:|:-------:|
 | **Camera Streaming** | 📹 GStreamer WebRTC Livestream | ✔️ | ✔️ | ✔️ | ✔️ | N/A |
-| | 🧠 Local Webcam ONNX Inference (Rust) | ✔️ | 🔶 | 🔶 | 🔶 | 🔶 |
+| | 🧠 Local Webcam ONNX Inference (Rust) | ✔️ | 🔶 | 🔶 | ❌ | ❌ |
 | **Supported Cameras** | 🔌 USB Devices | ✔️ | ✔️ | ✔️ | ✔️ | N/A |
 | | 🍓 Raspberry Pi Camera | N/A | N/A | ✔️ | N/A | N/A |
 | | 📱 Native Camera API | N/A | N/A | N/A | N/A | ✔️ |
@@ -50,10 +50,10 @@ OmniAccelerANT bundles a Flutter/Dart frontend, a Rust/C++ inference core, and a
 | Category | Feature | Win x64 | Linux x64 | Linux ARM64 | Linux RISC-V | Android |
 |----------|---------|:-------:|:---------:|:-----------:|:------------:|:-------:|
 | **Containerization** | 🐳 Builds in ANTfrastructure `:latest` (linux) / `:winamd64` (windows) images; the Windows arm64 app cross-builds its natives in the hub's `:winarm64` bundle and its Flutter part natively on `windows-11-arm` | ✔️ | ✔️ | ✔️ | ✔️ | ✔️ |
-| **Native Integration** | 🎨 GTK Integration | N/A | ✔️ | ✔️ | ✔️ | N/A |
+| **Native Integration** | 🎨 GTK Integration | N/A | ✔️ | ✔️ | ❌ | N/A |
 | | 🪟 Win32 API | ✔️ | N/A | N/A | N/A | N/A |
 | | 🤖 Android NDK | N/A | N/A | N/A | N/A | ✔️ |
-| **Bridge Layer** | 🌉 flutter_rust_bridge | ✔️ | ✔️ | ✔️ | ✔️ | ✔️ |
+| **Bridge Layer** | 🌉 flutter_rust_bridge | ✔️ | ✔️ | ✔️ | ❌ | ✔️ |
 | **Compiler** | 🔧 Clang-CL | ✔️ | N/A | N/A | N/A | N/A |
 | | 🔧 GCC/Clang | N/A | ✔️ | ✔️ | ✔️ | ✔️ |
 
@@ -70,10 +70,14 @@ OmniAccelerANT bundles a Flutter/Dart frontend, a Rust/C++ inference core, and a
 | Category | Feature | Win x64 | Linux x64 | Linux ARM64 | Linux RISC-V | Android |
 |----------|---------|:-------:|:---------:|:-----------:|:------------:|:-------:|
 | **Flutter UI** | 🦋 Flutter Web Support | ✔️ | ✔️ | ✔️ | ✔️ | ✔️ |
-| | 💻 Flutter Desktop | ✔️ | ✔️ | ✔️ | ✔️ | N/A |
+| | 💻 Flutter Desktop | ✔️ | ✔️ | ✔️ | ❌ | N/A |
 | | 📱 Flutter Mobile | N/A | N/A | N/A | N/A | ✔️ |
 
 ---
+
+On RISC-V only the cat cam builds (its `.deb`, natively on the X100); no lane builds the
+Flutter app for it, so the app-side rows read ❌ there. The Rust camera view runs on
+Windows and Linux only.
 
 #### Platform Summary
 
@@ -113,8 +117,8 @@ OmniAccelerANT bundles a Flutter/Dart frontend, a Rust/C++ inference core, and a
 
 Refer to the detailed docs below for platform-specific requirements, camera streaming pipelines, and deployment workflows.
 
-3. Build the app. **Every lane runs containerized, and local runs invoke the
-   same script CI invokes** — the exact commands, presets and switches are in
+3. Build the app. **Every lane runs containerized but the Windows arm64 app build, which
+   runs natively on `windows-11-arm`, and local runs invoke the same script CI invokes** — the exact commands, presets and switches are in
    [AGENTS.md § 5](AGENTS.md#5-build-run-test):
 
    | Lane | What CI runs | Locally |
@@ -155,7 +159,7 @@ consumes.
 **The installable cat cam (Linux .deb, AppImage or flatpak).** In a privileged
 `:latest`, with the web lane's `build/web`, run `scripts/linux/cat-stream/package-catcam.sh
 --web-root build/web`. That builds `out/omni-accelerant-catcam_<version>_<arch>.deb`, an
-`.AppImage` and a `.flatpak`; `web.yml` uploads all three for x64 and arm64. On a riscv64
+`.AppImage`, a `.flatpak` and a tarball; `web.yml` uploads all four for x64 and arm64. On a riscv64
 board, run it in that board's own `:latest`: it builds the `.deb` and a tarball, as flatpak has
 no riscv64 runtime.
 - `sudo apt install ./omni-accelerant-catcam_*.deb`, or `sudo ./omni-accelerant-catcam-*.AppImage
@@ -214,11 +218,14 @@ cargo build --release -p kataglyphis_cat_webrtc
 ORT_DYLIB_PATH=/usr/local/lib/onnxruntime-cpu/lib/libonnxruntime.so \
   target/release/kataglyphis_cat_webrtc --v4l2 /dev/video0
 
-# 2. once: the web frontend. web/pkg/ is a generated frb artefact (gitignored),
-#    so this is the same sequence the web CI lane runs.
-rustup toolchain install nightly --component rust-src --target wasm32-unknown-unknown
-cargo install --locked --version 2.13.0 flutter_rust_bridge_codegen  # the pin in third_party/OxidANT/Cargo.toml
-flutter_rust_bridge_codegen build-web --release --rust-root third_party/OxidANT
+# 2. once, back in the repo root: the web frontend. web/pkg/ is a generated frb
+#    artefact (gitignored); this is what ci-container-run-web-linux.sh runs, with the
+#    image's dated nightly (the floating one breaks in :latest, AGENTS.md § 4)
+cd ../..
+nightly="$(sed -n 's/^RUST_NIGHTLY_TOOLCHAIN=//p' third_party/ANTfrastructure/linux/scripts/01-core/versions.env)"
+rustup toolchain install "$nightly" --component rust-src --target wasm32-unknown-unknown  # :latest has it
+command -v flutter_rust_bridge_codegen || cargo install --locked --version 2.13.0 flutter_rust_bridge_codegen
+flutter_rust_bridge_codegen build-web --release --rust-root third_party/OxidANT --wasm-pack-rustup-toolchain "$nightly"
 flutter build web --release --wasm --no-web-resources-cdn
 
 # 3. HTTPS + COOP/COEP + the /webrtc-ws proxy in front of both (:8444);
@@ -240,14 +247,13 @@ Pi Zero 2 W runs the same image with that swap and a `gst-launch` no-AI stream
 on top of it (512 MB is not enough for the Rust producer), and a RISC-V SoC
 runs the riscv64 variant natively with a USB webcam via `--v4l2`. A Raspberry
 Pi 4 (or any VC4/unicam Pi) runs the same host-libcamera swap with the Rust
-producer and inference; a camera mounted upside down is `--rotate 180`. In the
-deployed shape each board runs its own copy of this web build and `serve.sh`,
-so its own camera appears on `https://<board>:8444/` (the per-board recipes are
-in the doc below) — and a board is started with one command, its local
-`~/cat-cam.sh start` (autostart is opt-in: only the Zero has a systemd unit); `serve.sh --producer-host
-<board-ip>` is only for looking at another board from the dev host — use its IP
-(nginx resolves the name once at startup) and open that instance's port there
-too. Pipeline details, flags and troubleshooting:
+producer and inference; a camera mounted upside down is `--rotate 180`. The boards that
+run the cat cam package need none of this: its unit starts at boot and serves
+`http://<board>:8080/`. This manual shape serves `https://<board>:8444/`; a board run that
+way starts with its local `~/cat-cam.sh start` (only the Zero has a systemd unit for
+it). `serve.sh --producer-host <board-ip>` is for looking at another board from the dev
+host — use its IP (nginx resolves the name once at startup) and open that instance's
+port there too. Pipeline details, flags and troubleshooting:
 [docs/source/camera-streaming.md](docs/source/camera-streaming.md).
 
 ### Browse the API docs locally
@@ -256,8 +262,9 @@ Generate the site into `doc/api`, then serve it. Use the pub-activated
 `dartdoc`, **not** the SDK-bundled `dart doc`: dartdoc 9.0.4 (bundled with
 several Flutter SDKs, the Windows build image's among them before it moved to
 Flutter 3.47.4) crashes on any Flutter app with a `_stripDocImports` RangeError;
-≥ 9.0.9 fixes it. Both images carry Flutter 3.47.4 now (CI, 2026-09-25), whose
-bundled `dart doc` the Linux lane's `generate-docs.sh` runs without trouble.
+≥ 9.0.9 fixes it. Both images now carry the Flutter the hub pins (`FLUTTER_VERSION` in
+its `versions.env`, 3.47.7 at this pin), whose bundled `dart doc` the Linux lane's
+`generate-docs.sh` runs without trouble.
 
 `scripts/windows/Build-Windows.ps1` already does this for you as its
 "Generate API Docs" step (skip it with `-SkipDocs`); the commands below are for
@@ -298,8 +305,8 @@ The site CI publishes — the API docs plus every guide in `docs/source` — com
 
 Every test runs on every lane that can host it: the app's and the plugin's Dart
 suites, the plugin's gtest and C ABI check, the bundle's runtime closure and
-ONNX Runtime proof, a 20 s launch smoke and, on Linux, the integration test under
-Xvfb. The per-lane table is [AGENTS.md § 5](AGENTS.md#5-build-run-test), *What
+ONNX Runtime proof, a 20 s launch smoke and the integration test: under Xvfb on Linux,
+through `flutter drive` on both Windows architectures. The per-lane table is [AGENTS.md § 5](AGENTS.md#5-build-run-test), *What
 each lane tests*; the open gaps are tracked in [BACKLOG.md](BACKLOG.md).
 
 The app's own Dart suite (`test/`) checks, among the rest:
@@ -326,8 +333,9 @@ The app's own Dart suite (`test/`) checks, among the rest:
 - what no build step checks: the bridge's versions, the sqlite3 wasm, 8-bit icons
   (`pinned_artefacts_test.dart`), and that every social link has an icon.
 
-The native Linux lane measures how much of `lib/` these reach and fails below a floor
-(96.5 % on 2026-10-13; `check-dart-coverage.sh`).
+The native Linux lane measures how much of `lib/` these reach and fails below a floor of
+95 % (`--min` in `lane-native-linux.sh`; 96.8 % measured on 2026-10-14;
+`check-dart-coverage.sh`).
 
 `flutter test` in the `:latest` image runs it in under a minute
 ([AGENTS.md § 5](AGENTS.md#5-build-run-test), *The Dart gate in 23 seconds*).

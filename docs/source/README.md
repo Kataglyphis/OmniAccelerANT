@@ -22,7 +22,7 @@
 
 | Topic | Description |
 |-------|-------------|
-| [Overview](overview.md) | High-level summary, key features, dependencies, and toolchain. |
+| [Overview](overview.md) | High-level summary, the cat cam, targets, the repository's structure and design goals. |
 | [Getting Started](getting-started.md) | Environment prerequisites, installation steps, and run commands. |
 | [Platforms](platforms.md) | Container, Windows, Raspberry Pi, and Web build guides. |
 | [Camera Streaming](camera-streaming.md) | The installable cat cam (packages, endpoints, arrival picture and video, [Home Assistant](camera-streaming.md#home-assistant) notifications and statistics, its tests), the Rust webcam inference, and the GStreamer WebRTC pipelines. |

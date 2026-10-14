@@ -23,7 +23,7 @@ OmniAccelerANT combines a Flutter frontend with native Rust/C++ inference and GS
 | `android/`, `linux/`, `windows/`, `web/` | Platform integration layers (`ios/` and `macos/` hold only generated plugin registrants — neither is a target) |
 | `scripts/` | Build, tooling, and documentation automation |
 | `docs/source/` | Human-authored guide pages included in generated docs |
-| `doc/api/` | Generated API and guide output (pub-activated `dartdoc`, not the SDK-bundled `dart doc` — see the README) |
+| `doc/api/` | Generated API and guide output: `scripts/linux/generate-docs.sh` runs the SDK's `dart doc`, `Build-Windows.ps1` a pub-activated `dartdoc` (see the README) |
 | `packages/kataglyphis_native_inference` | Flutter plugin (Android, Linux, Windows) that bridges the native GStreamer/inference code to Dart — on Linux and Windows it links the C++ inference core — plain files and a `pubspec.yaml` path dependency, not a submodule |
 | `third_party/OxidANT` | Rust core (`oxidant` crate), bridged into `lib/src/rust/` by `flutter_rust_bridge` |
 | `third_party/AccelerANTgine` | The C++ inference core the plugin builds against |

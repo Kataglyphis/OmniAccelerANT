@@ -11,9 +11,9 @@ Curated README navigation for the most relevant project areas.
 
 - [Rust Builder README](../../rust_builder/README.md)
 
-## Content/Data
+## Native plugin
 
-- [Assets Documents README](../../assets/documents/README.md)
+- [kataglyphis_native_inference README](../../packages/kataglyphis_native_inference/README.md)
 
 ## Notes
 
