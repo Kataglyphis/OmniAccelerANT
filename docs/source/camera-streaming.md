@@ -77,8 +77,11 @@ parameters, 7 GFLOPs, 43.0 AP, a 640x640 input and a 15 MB file.
 ## Measuring performance
 
 **The code's benchmarks live in each project's own tooling, and CI tracks them** (2026-10-14,
-owner): a change that costs time shows in the run's summary, against the default branch's last
-run on that arch, and warns above +25 %. A shared runner is noisy, so nothing fails on time.
+owner): a change that costs time shows in the run's summary. The yardstick is the **median** of
+the default branch's last 20 runs on that arch, not the run before, so a slowdown that creeps in
+a few per cent per commit still shows (2026-10-15). Above +25 % a run warns; a gated value at
+more than double the median fails it, once 3 earlier runs exist. A shared runner is noisy, so
+only stable values are gated, and a run the report failed never joins the history.
 
 - **Rust:** OxidANT's Criterion benches under `cargo bench`, run by its Linux lanes: what a frame
   pays before the model, and a whole detection on the real model (OxidANT's AGENTS.md).
@@ -90,7 +93,8 @@ run on that arch, and warns above +25 %. A shared runner is noisy, so nothing fa
   `scripts/linux/frontend-perf-report.py` turns them into the table (frames, build and raster
   time on average, at the 90th percentile and at worst, missed build budgets). The native lane
   runs it under Xvfb on x64 (`run_frontend_performance`); `reusable-linux.yml` keeps the
-  default branch's last result in `.perf-baseline/`.
+  default branch's last 20 results in `.perf-baseline/`. Gated: the average and the
+  90th-percentile build time; the worst frame is one frame and only warns.
 
 **When a frame is slow, find what it builds.** The report says *that* a scenario got slower; a
 profile timeline says *where*. With an entry point outside the tree, say `build/probe/main.dart`,

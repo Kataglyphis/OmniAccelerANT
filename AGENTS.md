@@ -1089,10 +1089,11 @@ cell is a test that cannot run there, and the reason is under the table.
   web lane builds its wasm with `build-web` and the dated nightly it names (§ 4), not
   Cargokit.
 - The frame timings run on Linux x64 alone: a profile build costs minutes, and one arch is enough
-  to see the Dart side get slower. `reusable-linux.yml` restores the default branch's last
-  `out/perf/frontend.json` into `.perf-baseline/` and writes the comparison into the run's
-  summary; above +25 % it warns, and nothing fails on time (camera-streaming.md § *Measuring
-  performance*).
+  to see the Dart side get slower. `reusable-linux.yml` keeps the default branch's last 20
+  `out/perf/frontend.json` in `.perf-baseline/` and writes the comparison with their median into
+  the run's summary: above +25 % it warns, and an average or 90th-percentile build time at more
+  than double the median fails the lane, once 3 earlier runs exist (camera-streaming.md
+  § *Measuring performance*).
 - The webcam frame test is Linux-only: `hasPushedFrame` is the Linux plugin's, and
   the Windows drives run `simple_test.dart`.
 - The web lane runs both Dart suites in Chrome since 2026-10-05 (`--test-platform chrome`

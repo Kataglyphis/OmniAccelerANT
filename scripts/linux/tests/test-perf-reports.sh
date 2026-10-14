@@ -31,22 +31,51 @@ timings() {
   printf '{"start":{"frame_count":3,"average_frame_build_time_millis":%s,"90th_percentile_frame_build_time_millis":6.0,"worst_frame_build_time_millis":%s,"missed_frame_build_budget_count":1,"old_gen_gc_count":0}}\n' "$2" "$3" > "$1"
 }
 
-timings "${work}/base.json" 10.0 20.0
+# report <current> <history> -> rc in ${work}/rc, table in ${work}/out, annotations in ${work}/err.
+report() {
+  local rc=0
+  python3 "$report" "$@" > "${work}/out" 2> "${work}/err" || rc=$?
+  printf '%s\n' "$rc" > "${work}/rc"
+}
+
+mkdir -p "${work}/history" "${work}/two"
+timings "${work}/history/00000001-a.json" 10.0 20.0
+timings "${work}/history/00000002-b.json" 9.0 30.0
+timings "${work}/history/00000003-c.json" 11.0 20.0
+cp "${work}/history/00000001-a.json" "${work}/history/00000002-b.json" "${work}/two/"
 timings "${work}/slower.json" 14.0 21.0
+timings "${work}/far.json" 25.0 21.0
+timings "${work}/spiky.json" 10.0 150.0
 timings "${work}/same.json" 11.0 20.0
 
-python3 "$report" "${work}/slower.json" "${work}/base.json" 0.25 > "${work}/out" 2> "${work}/err"
-check "the table compares each value" "${work}/out" '^\| `start` \| 3 \| 14\.0 \(\+40 %\) \| 6\.0 \(\+0 %\) \| 21\.0 \(\+5 %\) \| 1 \| 0 \|$'
-check "a slowdown over the threshold warns" "${work}/err" '^::warning title=Frontend slower::start build avg ms \+40 %'
-check "a slowdown under the threshold does not" "${work}/err" 'build worst ms' absent
+report "${work}/slower.json" "${work}/history"
+check "the table compares with the median" "${work}/out" '^\| `start` \| 3 \| 14\.0 \(\+40 %\) \| 6\.0 \(\+0 %\) \| 21\.0 \(\+5 %\) \| 1 \| 0 \|$'
+check "it names how many runs the median spans" "${work}/out" '^Against the median of 3 earlier run\(s\)\.$'
+check "a slowdown over the warning threshold warns" "${work}/err" '^::warning title=Frontend slower::start build avg ms \+40 % against the median of 3 runs$'
+check "a slowdown under it does not" "${work}/err" 'build worst ms' absent
+check "a warning alone passes" "${work}/rc" '^0$'
 
-python3 "$report" "${work}/same.json" "${work}/base.json" 0.25 > "${work}/out" 2> "${work}/err"
-check "within the threshold, no warning at all" "${work}/err" 'warning' absent
+report "${work}/far.json" "${work}/history"
+check "a doubling of a gated metric fails" "${work}/rc" '^1$'
+check "and says so as an error" "${work}/err" '^::error title=Frontend far slower::start build avg ms \+150 %'
 
-python3 "$report" "${work}/slower.json" "${work}/missing.json" > "${work}/out" 2> "${work}/err"
-check "no baseline: plain values" "${work}/out" '^\| `start` \| 3 \| 14\.0 \| 6\.0 \| 21\.0 \| 1 \| 0 \|$'
+report "${work}/far.json" "${work}/two"
+check "two earlier runs are not enough to fail" "${work}/rc" '^0$'
+check "but still warn" "${work}/err" '^::warning title=Frontend slower::start build avg ms \+163 % against the median of 2 runs$'
 
-python3 "$report" "${work}/missing.json" > "${work}/out"
+report "${work}/spiky.json" "${work}/history"
+check "a spike in the worst frame only warns" "${work}/rc" '^0$'
+
+report "${work}/same.json" "${work}/history"
+check "within the threshold, no annotation at all" "${work}/err" '::' absent
+
+report "${work}/slower.json" "${work}/missing"
+check "no history: plain values" "${work}/out" '^\| `start` \| 3 \| 14\.0 \| 6\.0 \| 21\.0 \| 1 \| 0 \|$'
+
+report "${work}/slower.json" "${work}/history/00000001-a.json"
+check "one earlier file stands in for a history" "${work}/out" '^\| `start` \| 3 \| 14\.0 \(\+40 %\)'
+
+report "${work}/missing.json"
 check "no timings: says so" "${work}/out" '^No frame timings found\.$'
 
 # Two UI frames; the slow one holds a 900 ms widget build and a zero-length span, whose B and E share a timestamp.
