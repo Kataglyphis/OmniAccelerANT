@@ -73,7 +73,9 @@ The notes under AGENTS.md's lane table, moved here on 2026-10-15.
   no ELF and no such gate. Pester tests PowerShell that only Windows lanes run.
 - The plugin's C++ format gate needs only the sources, so one lane grades them for
   every platform; Windows has no C++ format step. The coverage floor is the same kind of
-  check: one lane's `flutter test --coverage` measures the same Dart everywhere. It counts
+  check: one lane's `flutter test --coverage` measures the same Dart everywhere. Since
+  2026-10-15 that is the Dart gate's own test run (the hub's `flutter_checks.sh --coverage`),
+  not a second one, which had cost 55 s on every push. It counts
   `lib/` without the generated bridge and localizations, was 96.5 % on 2026-10-13 (62 %
   the morning before, ahead of the native Stream page and Rust camera view tests), and fails the
   batch below the `--min` in `lane-native-linux.sh`, which states it once and moves up

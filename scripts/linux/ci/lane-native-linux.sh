@@ -111,7 +111,10 @@ require_cmd dart
 
 # One batch: every gate runs and assert_gates fails once; --strict-checks governs only the Dart half.
 gate_reset "code quality (${MATRIX_ARCH})"
-run_gate "flutter checks" run_flutter_common_checks "$STRICT_CHECKS"
+# The checks' one test run writes the coverage the floor below reads; a second run cost 55 s.
+dart_lcov="build/coverage/lcov.info"
+rm -f "$dart_lcov"
+run_gate "flutter checks" run_flutter_common_checks "$STRICT_CHECKS" --coverage "$dart_lcov"
 run_gate "cmake-format --check" run_cmake_format_check
 # The plugin's C++ against its .clang-format, graded only by LLVM_RELEASE's clang-format; its suite plants a deviation.
 run_gate "plugin clang-format --check" bash scripts/linux/check-plugin-cpp-format.sh
@@ -120,7 +123,7 @@ run_gate "plugin format gate tests" bash scripts/linux/tests/test-check-plugin-c
 run_gate "bundle gate tests" bash scripts/linux/tests/test-check-bundle-closure.sh
 run_gate "rust toolchain gate tests" bash scripts/linux/tests/test-check-rust-toolchain.sh
 # lib/ was 96.5 % covered on 2026-10-13 (87.4 % on 2026-10-12); raise the floor as it climbs.
-run_gate "dart coverage" bash scripts/linux/check-dart-coverage.sh --min 95
+run_gate "dart coverage" bash scripts/linux/check-dart-coverage.sh --min 95 --lcov "$dart_lcov"
 run_gate "dart coverage gate tests" bash scripts/linux/tests/test-check-dart-coverage.sh
 run_gate "frontend performance script tests" bash scripts/linux/tests/test-perf-reports.sh
 run_gate "release script tests" bash scripts/linux/tests/test-publish-release.sh
