@@ -63,12 +63,15 @@ function Start-Installed {
     [pscustomobject]@{ Process = $proc; Log = $log }
 }
 
+# Microsoft's own Store packages (its publisher ID 8wekyb3d8bbwe): a desktop's Media Foundation codecs, such as HEVC and VP9.
+$microsoftStore = '^' + [regex]::Escape("$env:ProgramFiles\WindowsApps\") + 'Microsoft\.[^\\]+_8wekyb3d8bbwe\\'
 function Get-ForeignModule {
     param([System.Diagnostics.Process]$Process)
     $Process.Refresh()
     @($Process.Modules | ForEach-Object FileName | Where-Object {
             -not $_.StartsWith($prefix, [StringComparison]::OrdinalIgnoreCase) -and
-            -not $_.StartsWith($env:SystemRoot, [StringComparison]::OrdinalIgnoreCase)
+            -not $_.StartsWith($env:SystemRoot, [StringComparison]::OrdinalIgnoreCase) -and
+            $_ -notmatch $microsoftStore
         })
 }
 
