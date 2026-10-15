@@ -43,8 +43,10 @@ falls back to `ksvideosrc`. Details in
 links are in the tree: the `knt_push_frame`/`knt_api_version` C ABI exported
 from the Linux plugin, `KATAGLYPHIS_RUST_FEATURES` forwarding, ONNX Runtime
 bundling, and a Dart branch that routes Linux to `RustWebcamView` behind a
-runtime `listCameras()` probe — so a build with no features set keeps the C++
-GStreamer MethodChannel path unchanged. **This is an addition, not a
+runtime `webcamInferenceAvailable()` probe — so a build with no features set keeps the C++
+GStreamer MethodChannel path unchanged. The probe is a compile-time answer; never put
+`listCameras()` back on that path, which starts libcamera and held the first frame 0.94 s
+(2026-10-15). **This is an addition, not a
 replacement**: the two paragraphs below stay true.
 
 **A test-pattern frame travels Rust → `knt_push_frame` → texture on every native
@@ -1052,6 +1054,7 @@ cell is a test that cannot run there, and the reason is under the table.
 | Launch smoke, 20 s | under Xvfb | host | device | | |
 | Integration test (`integration_test/simple_test.dart`) | under Xvfb | `flutter drive` against the clang-cl app | `flutter drive` (the Debug app) | | |
 | Webcam frame through `knt_push_frame` (`integration_test/webcam_frame_test.dart`) | under Xvfb, test pattern | | | | |
+| Frame timings in profile mode (`integration_test/performance_test.dart`, `flutter drive --profile`), against the last default-branch run, and its scripts' suite (`test-perf-reports.sh`) | x64, under Xvfb | | | | |
 | Pester (`scripts/windows/tests`) | | `windows-2025` | `windows-11-arm` | | |
 | Plugin JVM test | | | | yes | |
 | APK ABI gate (`check-apk-abi.sh`) and its synthetic-APK suite | | | | yes | |
@@ -1085,6 +1088,12 @@ cell is a test that cannot run there, and the reason is under the table.
 - The rustc stamp lives in an ELF `.comment`, which a Windows PE does not have. The
   web lane builds its wasm with `build-web` and the dated nightly it names (§ 4), not
   Cargokit.
+- The frame timings run on Linux x64 alone: a profile build costs minutes, and one arch is enough
+  to see the Dart side get slower. `reusable-linux.yml` keeps the default branch's last 20
+  `out/perf/frontend.json` in `.perf-baseline/` and writes the comparison with their median into
+  the run's summary: above +25 % it warns, and an average or 90th-percentile build time at more
+  than double the median fails the lane, once 3 earlier runs exist (camera-streaming.md
+  § *Measuring performance*).
 - The webcam frame test is Linux-only: `hasPushedFrame` is the Linux plugin's, and
   the Windows drives run `simple_test.dart`.
 - The web lane runs both Dart suites in Chrome since 2026-10-05 (`--test-platform chrome`

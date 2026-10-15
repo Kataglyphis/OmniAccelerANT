@@ -21,6 +21,7 @@ app on port 8080.
   change; what the page changes wins over it.
 
 - [The detection model](#the-detection-model)
+- [Measuring performance](#measuring-performance)
 - [Rust-owned webcam inference (local, no WebRTC)](#rust-owned-webcam-inference-local-no-webrtc)
   - [Checking the knt ABI](#checking-the-knt-abi)
   - [Relocatable Linux bundles](#relocatable-linux-bundles)
@@ -73,6 +74,81 @@ parameters, 7 GFLOPs, 43.0 AP, a 640x640 input and a 15 MB file.
   `model = "..."` in `observant.toml` or `KATAGLYPHIS_ONNX_MODEL` names any `[1, N, 6]` ONNX
   file. The old models stay in the repositories' history; nothing was rewritten.
 
+## Measuring performance
+
+**The code's benchmarks live in each project's own tooling, and CI tracks them** (2026-10-14,
+owner): a change that costs time shows in the run's summary. The yardstick is the **median** of
+the default branch's last 20 runs on that arch, not the run before, so a slowdown that creeps in
+a few per cent per commit still shows (2026-10-15). Above +25 % a run warns; a gated value at
+more than double the median fails it, once 3 earlier runs exist. A shared runner is noisy, so
+only stable values are gated, and a run the report failed never joins the history.
+
+- **Rust:** OxidANT's Criterion benches under `cargo bench`, run by its Linux lanes: what a frame
+  pays before the model, and a whole detection on the real model (OxidANT's AGENTS.md).
+- **Flutter:** `integration_test/performance_test.dart`, driven in profile mode by
+  `flutter drive --profile -d linux --driver=test_driver/perf_driver.dart
+  --target=integration_test/performance_test.dart`. Flutter's `watchPerformance` times the
+  frames of the app's start, three rounds through every tab, and resizes across both layout
+  breakpoints; the driver keeps them in `out/perf/frontend.json`, and
+  `scripts/linux/frontend-perf-report.py` turns them into the table (frames, build and raster
+  time on average, at the 90th percentile and at worst, missed build budgets). The native lane
+  runs it under Xvfb on x64 (`run_frontend_performance`); `reusable-linux.yml` keeps the
+  default branch's last 20 results in `.perf-baseline/`. Gated: the average and the
+  90th-percentile build time; the worst frame is one frame and only warns.
+
+**When a frame is slow, find what it builds.** The report says *that* a scenario got slower; a
+profile timeline says *where*. With an entry point outside the tree, say `build/probe/main.dart`,
+that sets `debugProfileBuildsEnabled = true` (and `debugProfileBuildsEnabledUserWidgets`) before
+calling the app's `main()`, run `flutter run --profile --trace-startup -d linux -t
+build/probe/main.dart` under Xvfb, then
+`python3 scripts/linux/flutter-trace-summary.py build/start_up_timeline.json`. It lists the
+slowest UI and raster frames and the slowest UI frame's self time per event, which with that
+flag is per widget. That is how the 2026-10-15 start-up fix was found: `StreamPage` held 938 ms
+of a 963 ms build, because its `initState` enumerated cameras synchronously. Without the flag
+the same command still splits a frame into BUILD, LAYOUT, PAINT, SEMANTICS and garbage
+collection. A DevTools *Export timeline* file reads the same way.
+
+**Two tools measure what the boards really do**, which no runner can: repeat them after a change
+that could cost time there, and compare with the baseline below.
+
+- `scripts/linux/observant/bench/model.sh PICTURE MODEL.onnx...`, on a board: the installed
+  service runs each model nonstop on a still picture, on a spare port (no camera, no state, the
+  live service untouched), and prints its time per run, runs per second, CPU and memory.
+- `scripts/linux/observant/bench/viewer.sh BOARD [SECONDS]`, from another host: the API's
+  response times, the service idle and while one phone-sized headless Chrome plays the stream,
+  and that page's cold load: the files on the boot path with their times, the renderer the
+  browser got, the first Flutter frame and the first video frame, and the requests and main-
+  thread time once it runs, and when the signalling socket opened and answered.
+
+**The baseline, 2026-10-14** (Pi 5 boards, the SpacemiT K3 board, the web client a headless
+Chrome on a Pi 5):
+
+| What | Pi 5 | SpacemiT K3 (riscv64) |
+| --- | --- | --- |
+| A model run in the service, DEIM-D-FINE-N / YOLO26n | 332 / 233 ms | 592 / 404 ms |
+| The model alone at 1 / 2 / 4 threads (DEIM-D-FINE-N) | 420 / 258 / 265 ms | |
+| Preprocessing, postprocessing per run | 3 ms, < 0.01 ms | |
+| Per frame: I420 to RGBA, pixelation, motion thumbnail | 1.7, 0.7, 0.5 ms | |
+| A snapshot JPEG | 10.7 ms | |
+| The service idle, with one viewer (% of one core) | 3 to 4.5 %, 18 to 19 % | 1 %, 49 % |
+| Memory idle, with one viewer | 180 to 190 MB, +30 MB | 245 MB, +27 MB |
+| `/healthz`, `/snapshot.jpg` over the LAN | 0.3 to 4 ms, 0.3 to 19 ms | 3 ms, 38 ms |
+
+The cold page is 4.9 MB in 105 to 112 requests: the renderer `skwasm_heavy.wasm` (2.2 MB)
+and `main.dart.wasm` (1.5 MB) on the boot path, then six font files (0.5 MB), then the Rust
+core (65 kB). The first Flutter frame came after 4.5 to 6.4 s on the board with Wi-Fi at
+0.7 MB/s, the first video frame 3 to 3.5 s later. An open page then makes 48 requests a
+minute and keeps the main thread 1.9 % busy.
+
+What it says:
+- **The model is 99 % of a detection.** Two threads are the fastest setting on a Pi 5; four
+  are no faster.
+- **Every viewer costs an encoder**: webrtcsink encodes once per viewer, about 15 % of a Pi 5
+  core and half a K3 core each.
+- **Plain HTTP costs 0.75 MB a visit.** Without a secure context the browser has no
+  `ImageDecoder`, so Flutter loads `skwasm_heavy` (2.29 MB compressed) instead of `skwasm`
+  (1.54 MB), and without cross-origin isolation it renders on one thread.
+
 ## Rust-owned webcam inference (local, no WebRTC)
 
 On Windows the **Stream** page runs a fully local webcam → ONNX → texture pipeline
@@ -84,7 +160,10 @@ cross the Dart bridge; only detection metadata does.
 > no `KATAGLYPHIS_RUST_FEATURES` keeps the C++ GStreamer MethodChannel path
 > exactly as it is. All four links are in the tree — the `knt_push_frame` C ABI,
 > the feature forwarding, ONNX Runtime bundling, and the Dart branch behind a
-> runtime `listCameras()` probe.
+> runtime `webcamInferenceAvailable()` probe: a compile-time answer, because
+> `listCameras()` starts libcamera's device monitor. While the page probed with it,
+> that held the app's first frame 0.94 s on a Pi 5 (2026-10-15); it is async now and
+> runs only when someone asks for the camera list.
 >
 > As of 2026-09-17 the **native lane** sets
 > `KATAGLYPHIS_RUST_FEATURES=gstreamer,onnxruntime_dynamic` by default — **not**
@@ -103,7 +182,8 @@ cross the Dart bridge; only detection metadata does.
 
 ```
 crates/media (gstreamer-rs)     src/webcam_engine.rs            src/api/webcam.rs (frb)
-  mfvideosrc → ksvideosrc     ┌ pushes RGBA into the Flutter   ┌ list_cameras()
+                                                              ┌ webcam_inference_available()
+  mfvideosrc → ksvideosrc     ┌ pushes RGBA into the Flutter   │ list_cameras() (async)
   → videoconvert → videoscale │ texture via the native plugin's│ start_webcam_inference()
   → RGBA appsink  ───────────►│ knt_push_frame C ABI           │   → Stream<DetectionEvent>
   (latest-frame slot)         └ runs PersonDetector (ONNX/ort) ─┘ stop_webcam_inference()
@@ -296,20 +376,32 @@ Everything it serves is on that one port, plain HTTP:
 | Path | Answers |
 | --- | --- |
 | `/` | the web app; its Stream page plays the camera and shows the cat's status, visits and last arrival |
-| `/healthz` | JSON: `ok`, or `false` with the `problem`; the seconds since the last frame and model run (`frame_age_s`, `model_age_s`); the build (`version`), the browser tabs on the stream (`viewers`), the other ObservANT cameras (`peers`), the privacy filter (`privacy`: `off` or `pixelate`) and `stats`, sampled every 2 s: `capture_fps`, `model_ms` per run, `model_runs_per_s`, `cpu_percent` of one core, `cores`, `rss_mb`, `load_1m`, `temperature_c` and `uptime_s` (the CPU, memory, load and temperature from `/proc` and `/sys`, so `null` off Linux); the live camera, its `frame` size and rate, `model_runs`, `rotate`, `score`, and under `detection` the watched `in_view`, `last_seen`, `visits`, `last_score`, `recent` visits, the newest `clip`'s arrival and every kept one's (`clips`), and the `boxes` drawn now, as fractions of the picture |
+| `/healthz` | JSON: `ok`, or `false` with the `problem`; the seconds since the last frame and model run (`frame_age_s`, `model_age_s`); the build (`version`), the browser tabs on the stream (`viewers`), the other ObservANT cameras (`peers`), the privacy filter (`privacy`: `off` or `pixelate`), whether the picture is too dark to detect anything (`dark`: the model then idles, and `ok` stays) and `stats`, sampled every 2 s: `capture_fps`, `model_ms` per run, `model_runs_per_s`, `cpu_percent` of one core, `cores`, `rss_mb`, `load_1m`, `temperature_c` and `uptime_s` (the CPU, memory, load and temperature from `/proc` and `/sys`, so `null` off Linux); the live camera, its `frame` size and rate, `model_runs`, `rotate`, `score`, and under `detection` the watched `in_view`, `last_seen`, `visits`, `last_score`, `recent` visits, the newest `clip`'s arrival and every kept one's (`clips`), and the `boxes` drawn now, as fractions of the picture |
 | `/snapshot.jpg` | the latest frame, boxes drawn; encoded once per frame however many ask |
 | `/arrival.jpg` | the frame the last arrival was confirmed on; `?t=<arrival time>` that arrival's own, of the last five; `404` until a cat has come, or once that arrival's is dropped |
 | `/arrival.mp4` | the last arrival as an H.264 clip, 3 s before it to 7 s after; `?t=<arrival time>` that arrival's own, of the last five; byte ranges answered; `404` until one is encoded, or once that arrival's is dropped |
-| `/settings` | `GET`: the `name`, `rotate`, `score`, `ignore` and `classes` the settings page can change. `POST` any of them as JSON (`application/json` only), e.g. `{"rotate": 90}`: 0, 90, 180 or 270 degrees clockwise, a `score` from 0.05 to 0.95, a name of up to 64 characters, up to 16 spots marked "not a cat" as `[x1, y1, x2, y2]` fractions of the picture (`{"ignore": []}` forgets them), and the watched `classes`, one to all 80 COCO names (`{"classes": ["cat", "dog"]}`) |
+| `/settings` | `GET`: the `name`, `rotate`, `score`, `ignore` and `classes` the settings page can change, and the `privacy` filter, which locks `classes`. `POST` any of them as JSON (`application/json` only), e.g. `{"rotate": 90}`: 0, 90, 180 or 270 degrees clockwise, a `score` from 0.05 to 0.95, a name of up to 64 characters, up to 16 spots marked "not a cat" as `[x1, y1, x2, y2]` fractions of the picture (`{"ignore": []}` forgets them), and the watched `classes`, one to all 80 COCO names (`{"classes": ["cat", "dog"]}`) |
 | `/webrtc-ws` | the WebRTC signalling, forwarded to the producer's own server on loopback `:8443`; at most `max_viewers` tabs at once (8), `503` for one more; a tab that vanished without closing, a laptop asleep, frees its place within about 2.5 min (TCP keepalive, 2026-10-14) |
 
 **Only ObservANT's own page may act** (2026-10-13). `/webrtc-ws` and a `POST /settings`
 answer `403` when a browser's `Origin` is not the address the request was sent to, so
-another site's page cannot open the camera or change it. The address must also be an IP,
-a name without a dot, or one ending in `.local`, `.lan`, `.home`, `.internal`, `.home.arpa`
-or `.fritz.box`, which keeps out a public name pointed at the board (DNS rebinding). A
-reverse proxy under a public name is added to `allowed_hosts` in `observant.toml`. Everything
-else stays readable on the LAN, and a tool such as curl, which sends no `Origin`, passes.
+another site's page cannot open the camera or change it. A tool such as curl, which sends
+no `Origin`, passes, and reads stay open to the other ObservANT cameras' pages.
+
+**Every request must name the board by a local address** (2026-10-14): an IP, a name without
+a dot, or one ending in `.local`, `.lan`, `.home`, `.internal`, `.home.arpa` or
+`.fritz.box`, else `403`. Before, only acting requests were checked, so a website that pointed
+a public name at the board (DNS rebinding) could read `/snapshot.jpg` and the clips as its
+own. A reverse proxy under a public name is added to `allowed_hosts` in `observant.toml`.
+
+**At most 128 connections at once, and a request head within 10 s** (2026-10-14). A device
+that opens more, or holds sockets without sending, no longer uses up the service's files;
+the 129th is closed unanswered until one frees.
+
+**A model that keeps failing shows** (2026-10-14). After three failed runs in a row
+`/healthz` says `ok: false` with `problem: "the model fails: …"`, so the Home Assistant
+outage alert fires. Each failed run clears the drawn boxes, so none stays sharp under the
+privacy filter, and the journal gets the first failure and then one line a minute.
 
 **The Camera page changes ObservANT while it runs** (2026-10-13). It is the web app's
 own page in the bottom bar, for a board that is easily moved or a spot with false alarms:
@@ -820,7 +912,9 @@ counts a cat counts any of them: visits, the webhook events, the arrival photos 
 the boxes. Each visit in `/healthz`'s `recent` and each `arrived` event names its `class`,
 the class of its best detection; `/healthz` lists `classes`. `all_classes = true` still counts
 every class. The privacy filter keeps every watched class sharp, so watching `person` shows
-people.
+people. While it is on, only `observant.toml` sets the classes: the Camera page shows them
+without the editor, `POST /settings` refuses other ones, and classes a page saved earlier
+give way at the next start (2026-10-14).
 
 #### Stats for developers
 
@@ -842,7 +936,8 @@ second old. With no box the whole picture is blocks, people included.
   arrival photos and the clips. The model still sees the whole picture, so detection works
   as before.
 - Only the settings file sets it, then `sudo systemctl restart omni-observant`. No page can
-  turn it off, so a visitor at a demo cannot either. `/healthz` says `"privacy": "pixelate"`;
+  turn it off, so a visitor at a demo cannot either; nor can one unblur people by watching
+  `person`, since the filter locks the classes to `observant.toml`'s. `/healthz` says `"privacy": "pixelate"`;
   the Stream page shows "Privacy filter on" under the camera's name, and the Camera page
   names it in its table.
 - Arrival photos and clips recorded before it was turned on stay as they were. The other

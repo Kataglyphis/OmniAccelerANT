@@ -82,6 +82,14 @@ jobs:
           mounts: 'sccache:/var/cache/sccache'
           env: 'SCCACHE_CACHE_SIZE=1500M'
 
+      # The frontend's frame timings compare against the median of the default branch's last 20 runs on this arch.
+      - name: Restore the frontend performance baseline
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .perf-baseline
+          key: frontend-perf-${{ inputs.arch }}-${{ github.sha }}
+          restore-keys: frontend-perf-${{ inputs.arch }}-
+
       # -e CI=true lets generate-docs.sh chown doc/api/ back; Invoke-LinuxLane.ps1 -CheckParity parses extra-args and script.
       - name: Run container
         uses: Kataglyphis/ANTfrastructure/.github/actions/run-in-linux-container@develop
@@ -98,6 +106,26 @@ jobs:
             --strict-checks true
             --run-codeql false
             --run-docs "${{ inputs.run-docs }}"
+
+      - name: Frontend performance report
+        if: always() && hashFiles('out/perf/frontend.json') != ''
+        run: python3 scripts/linux/frontend-perf-report.py out/perf/frontend.json .perf-baseline >> "$GITHUB_STEP_SUMMARY"
+
+      # Not always(): a run the report failed must not pull the median towards its own slowdown.
+      - name: Keep the frontend performance baseline
+        id: perf-baseline
+        if: github.event_name == 'push' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch) && hashFiles('out/perf/frontend.json') != ''
+        run: |
+          mkdir -p .perf-baseline
+          cp out/perf/frontend.json ".perf-baseline/$(printf '%08d' "$GITHUB_RUN_NUMBER")-${GITHUB_SHA::7}.json"
+          find .perf-baseline -name '*.json' | sort | head -n -20 | xargs -r rm -f
+
+      - name: Save the frontend performance baseline
+        if: steps.perf-baseline.outcome == 'success'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .perf-baseline
+          key: frontend-perf-${{ inputs.arch }}-${{ github.sha }}
 
       - name: Save compiler cache
         if: always() && steps.cc.outputs.path != ''

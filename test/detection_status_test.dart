@@ -464,6 +464,53 @@ void main() {
     expect(older.classes, ['cat']);
   });
 
+  testWidgets(
+    'it names what is there now, and each visit once more than one class counts',
+    (tester) async {
+      const dogNow =
+          '{"ok":true,"name":"A","classes":["cat","dog"],'
+          '"detection":{"in_view":true,"visits":2,"recent":['
+          '{"arrived":1791763200,"stayed_s":null,"class":"dog"},'
+          '{"arrived":1791760000,"stayed_s":120,"class":"cat"}]}}';
+      await _pumpLine(tester, () async => dogNow);
+      await tester.pump();
+      expect(find.text('Dog in view'), findsOneWidget);
+      final visits = find.textContaining('Recent visits: Dog ');
+      expect(visits, findsOneWidget);
+      expect(
+        tester.widget<Text>(visits).data,
+        matches(RegExp(r'^Recent visits: Dog .+ · Cat .+ \(2 min\)$')),
+      );
+      await tester.pumpWidget(const SizedBox());
+
+      // Cats only: the name on every visit would say nothing.
+      const catsOnly =
+          '{"ok":true,"name":"A","classes":["cat"],'
+          '"detection":{"in_view":false,"visits":1,"recent":['
+          '{"arrived":1791760000,"stayed_s":120,"class":"cat"}]}}';
+      await _pumpLine(tester, () async => catsOnly);
+      await tester.pump();
+      expect(find.textContaining('Recent visits: Cat'), findsNothing);
+      expect(find.textContaining('Recent visits: '), findsOneWidget);
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
+
+  testWidgets('a black picture says it is too dark rather than look healthy', (
+    tester,
+  ) async {
+    const dark =
+        '{"ok":true,"name":"A","dark":true,'
+        '"detection":{"in_view":false,"last_seen":1791763273,"visits":1}}';
+    expect(DetectionStatus.fromHealthz(dark)!.dark, isTrue);
+    expect(DetectionStatus.fromHealthz(_inView)!.dark, isFalse);
+    await _pumpLine(tester, () async => dark);
+    await tester.pump();
+    expect(find.textContaining('Too dark'), findsOneWidget);
+    expect(find.byIcon(Icons.nights_stay), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+  });
+
   testWidgets('the line names what is in view, in the page\'s language', (
     tester,
   ) async {

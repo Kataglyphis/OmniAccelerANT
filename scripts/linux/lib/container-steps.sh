@@ -84,6 +84,12 @@ run_integration_test() {
   CARGO_INCREMENTAL=0 xvfb-run -a flutter test "$target" -d linux
 }
 
+# Frame timings in profile mode, kept in out/perf/frontend.json: the docs step's flutter clean empties build/ afterwards.
+run_frontend_performance() {
+  CARGO_INCREMENTAL=0 xvfb-run -a flutter drive --profile -d linux \
+    --driver=test_driver/perf_driver.dart --target=integration_test/performance_test.dart
+}
+
 _cmake_format_venv_create() {
   antfrastructure_source linux/scripts/01-core/python_uv.sh
   # Empty python version: honour UV_PYTHON, which the CI images export.

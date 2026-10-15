@@ -124,3 +124,6 @@ docs/build/*
 # ANTfrastructure's shared system prompt + scripts/agentic-loop/prompts/*-overlay.md.
 # A build artefact - edit the overlay, never this.
 .opencode/agents/
+
+# The frontend performance baseline CI restores from its cache.
+/.perf-baseline/

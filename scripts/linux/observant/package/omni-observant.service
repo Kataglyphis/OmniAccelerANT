@@ -1,5 +1,5 @@
 [Unit]
-Description=ObservANT (camera, YOLO cat boxes, WebRTC, web page on :8080)
+Description=ObservANT (camera, cat detection, WebRTC, web page on :8080)
 Documentation=https://github.com/Kataglyphis/OmniAccelerANT
 # Visit times need a set clock on a board without an RTC; the target is passive, so it is not pulled in.
 After=network-online.target time-sync.target

@@ -6,9 +6,27 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 ## Unreleased
 
 What landed on `develop` after 2.0.0+2. Most of it is the cat cam, whose guide is
-`docs/source/camera-streaming.md` § *The cat cam package*.
+`docs/source/camera-streaming.md` § *The ObservANT package*.
 
 ### Added
+
+- **Benchmarks in the projects' own tooling, tracked in CI** (2026-10-14, owner). The Flutter side
+  is `integration_test/performance_test.dart` under `flutter drive --profile` with
+  `test_driver/perf_driver.dart`: `watchPerformance` times the start, three rounds through every
+  tab and resizes across both breakpoints. The native lane runs it on x64 under Xvfb, and
+  `scripts/linux/frontend-perf-report.py` compares it with the default branch's last run in the
+  run's summary, warning above +25 %. The Rust side is OxidANT's Criterion benches under `cargo
+  bench`, tracked the same way. `bench/page-perf.mjs` also times the signalling socket now.
+
+- **Performance tools and a baseline** (2026-10-14, the owner's benchmark).
+  `scripts/linux/observant/bench/model.sh` times models in the installed service on a board,
+  `viewer.sh` measures a board idle and with one viewer plus the page's cold load
+  (`page-perf.mjs`), and camera-streaming.md § *Measuring performance* keeps the numbers: the
+  model is 99 % of a detection, every viewer costs an encoder, and plain HTTP makes browsers
+  load the 0.75 MB larger renderer.
+- **"Too dark" on the Stream page** (2026-10-14). ObservANT's `/healthz` says `dark` while
+  its picture is black, as a camera without IR is at night and the model idles; the status
+  line says so instead of looking like a quiet camera.
 
 - **"Recent detections" on the Camera page** (2026-10-14): the last five arrivals with their
   pictures, each with "Not a cat", which ignores the spot it was seen at. A false arrival is
@@ -62,6 +80,39 @@ What landed on `develop` after 2.0.0+2. Most of it is the cat cam, whose guide i
   the clang-cl app (2026-10-04/05).
 
 ### Fixed
+
+- **The native app's first frame no longer waits for libcamera** (2026-10-15). The Stream page
+  probed the Rust core with `listCameras()`, a synchronous bridge call that starts the GStreamer
+  device monitor, so the first frame's build took 963 ms of which `StreamPage` held 938 ms
+  (profile build, Pi 5, `debugProfileBuildsEnabled`). The probe is now OxidANT's compile-time
+  `webcamInferenceAvailable()`, and `listCameras()` is async, run only from the camera list.
+  `integration_test/performance_test.dart` measured the start's worst frame at 1,895 ms before
+  and 25.5 ms after; `test/stream_page_rust_test.dart` fails if the page enumerates again.
+
+- **The app keeps its state, the Camera page recovers, and the Stream page names the animal**
+  (2026-10-14, the deep review).
+  - ANThology's app shell no longer rebuilds the app and its router on every resize or open
+    keyboard, which closed panels and could close a phone's keyboard while typing a name.
+  - The Camera page keeps a camera's last answer while it restarts, says "Camera unreachable
+    since …", asks again every 3 s, and offers "Try again" when the first look fails; before,
+    one failed load left it on "not reachable" until the tab was switched.
+  - The Stream page says "Dog in view" for the open visit's class instead of the watch list,
+    and names each visit's class once more than one is watched.
+
+- **ObservANT is harder to misuse from the LAN** (2026-10-14, the deep review). Reads now
+  need a local host name too, so a website using DNS rebinding cannot fetch the camera's
+  pictures; 128 connections at most and a 10 s limit for a request head keep one device from
+  exhausting the service; a model that keeps failing turns `/healthz` to `ok: false`; and
+  with the privacy filter on, the classes are locked to `observant.toml`, since watching
+  `person` from the page would have shown people unblurred. The Camera page then shows the
+  classes without the editor. Detail: OxidANT's CHANGELOG and camera-streaming.md.
+
+- **The app no longer calls itself "Blog von Jonas Heinle"** (2026-10-14, owner). The app
+  bar showed `appNameDe`/`appNameEn` and the browser tab `appTitleDe`/`appTitleEn` from
+  `assets/settings/app_settings.json`, which still held the old blog's name and slogan;
+  `onGenerateTitle` even overrode `web/index.html`'s `<title>`. All four are
+  `OmniAccelerANT` now, and `test/pinned_artefacts_test.dart` fails when they, the
+  `<title>` and the manifest's `name` drift apart.
 
 - **Coming back to an open cat cam tab plays again** (2026-10-14). After a sleep or a Wi-Fi
   change the page could keep a signalling socket that looked open and carried nothing, and

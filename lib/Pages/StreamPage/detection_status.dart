@@ -7,12 +7,15 @@ import 'package:omni_accelerant/Pages/CameraSettingsPage/coco_classes.dart';
 import 'package:omni_accelerant/utils/json_utils.dart';
 import 'package:url_launcher/link.dart';
 
-/// One visit from `/healthz`'s `cat.recent`: when ObservANTe, and how long it stayed once it had left.
+/// One visit from `/healthz`'s `detection.recent`: when it arrived, how long it stayed once it had left, and as what.
 class Visit {
-  const Visit(this.arrived, [this.stayed]);
+  const Visit(this.arrived, [this.stayed, this.what]);
 
   final DateTime arrived;
   final Duration? stayed;
+
+  /// The COCO class it arrived as; a camera before classes names none.
+  final String? what;
 }
 
 /// What ObservANT's `/healthz` says: its name, whether and when a cat was in view, and its visits.
@@ -29,7 +32,11 @@ class DetectionStatus {
     this.peers = const <String>[],
     this.pixelated = false,
     this.classes = const <String>['cat'],
+    this.dark = false,
   });
+
+  /// The camera sees black, so nothing can be detected: no IR at night.
+  final bool dark;
 
   /// The COCO classes it watches; an older camera that names none watches cats.
   final List<String> classes;
@@ -86,6 +93,7 @@ class DetectionStatus {
     final problem = json['problem'];
     final peers = json['peers'];
     return DetectionStatus(
+      dark: json['dark'] == true,
       pixelated: json['privacy'] == 'pixelate',
       peers: <String>[
         if (peers is List)
@@ -124,6 +132,7 @@ class DetectionStatus {
                 visit['stayed_s'] is int
                     ? Duration(seconds: visit['stayed_s'] as int)
                     : null,
+                visit['class'] is String ? visit['class'] as String : null,
               ),
       ],
     );
@@ -139,11 +148,18 @@ class DetectionStatus {
 ) {
   final lastSeen = status.lastSeen;
   if (status.inView) {
+    // The open visit names what is there; "Cat / Dog in view" only when it does not.
+    final open = status.recent.isNotEmpty && status.recent.first.stayed == null
+        ? status.recent.first.what
+        : null;
     final what = watchedLabel(
-      status.classes,
+      open == null ? status.classes : <String>[open],
       locale.split(RegExp('[_-]')).first,
     );
     return (Icons.pets, Colors.green, l10n.detectionInView(what));
+  }
+  if (status.dark) {
+    return (Icons.nights_stay, Colors.blueGrey, l10n.detectionTooDark);
   }
   if (lastSeen != null) {
     final when = formatLastSeen(lastSeen, now, locale);
@@ -161,18 +177,24 @@ String formatLastSeen(DateTime when, DateTime now, String locale) {
       : DateFormat.MMMd(locale).add_Hm().format(when);
 }
 
-/// One visit as the status line lists it: `14:32 (3 min)`, or the time alone while it goes on.
+/// One visit as the status line lists it: `14:32 (3 min)`, or the time alone while it goes on; [named], what came first.
 String visitText(
   AppLocalizations l10n,
   Visit visit,
   DateTime now,
-  String locale,
-) {
+  String locale, {
+  bool named = false,
+}) {
   final time = formatLastSeen(visit.arrived, now, locale);
   final stayed = visit.stayed;
-  return stayed == null
+  final text = stayed == null
       ? time
       : l10n.detectionVisitStay(time, stayMinutes(stayed));
+  final what = visit.what;
+  if (!named || what == null) {
+    return text;
+  }
+  return '${watchedLabel(<String>[what], locale.split(RegExp('[_-]')).first)} $text';
 }
 
 /// A stay in whole minutes, `<1` below one.
@@ -325,7 +347,16 @@ class _DetectionStatusLineState extends State<DetectionStatusLine> {
             l10n.detectionRecentVisits(
               status.recent
                   .take(_allVisits ? status.recent.length : 3)
-                  .map((visit) => visitText(l10n, visit, now, locale))
+                  .map(
+                    (visit) => visitText(
+                      l10n,
+                      visit,
+                      now,
+                      locale,
+                      // With one class watched, its name on every visit says nothing.
+                      named: status.classes.length > 1,
+                    ),
+                  )
                   .join(' · '),
             ),
             style: Theme.of(context).textTheme.bodySmall,

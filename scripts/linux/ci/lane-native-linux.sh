@@ -122,6 +122,7 @@ run_gate "rust toolchain gate tests" bash scripts/linux/tests/test-check-rust-to
 # lib/ was 96.5 % covered on 2026-10-13 (87.4 % on 2026-10-12); raise the floor as it climbs.
 run_gate "dart coverage" bash scripts/linux/check-dart-coverage.sh --min 95
 run_gate "dart coverage gate tests" bash scripts/linux/tests/test-check-dart-coverage.sh
+run_gate "frontend performance script tests" bash scripts/linux/tests/test-perf-reports.sh
 assert_gates
 
 flutter config --enable-linux-desktop
@@ -160,6 +161,10 @@ if [[ "$BUILD_MODE" == "release" ]]; then
   # Rust -> knt_push_frame -> texture with a test pattern: CI has no camera, and the push path needs none.
   if [[ -n "${KATAGLYPHIS_RUST_FEATURES}" ]]; then
     run_gate "webcam frame test" run_integration_test integration_test/webcam_frame_test.dart
+  fi
+  # One arch is enough to track the Dart side, and a profile build costs minutes.
+  if [[ "$MATRIX_ARCH" == "x64" ]]; then
+    run_gate "frontend performance" run_frontend_performance
   fi
   assert_gates
 else

@@ -39,6 +39,7 @@ class ObservantSettings {
     required this.score,
     this.ignore = const <Rect>[],
     this.classes,
+    this.classesLocked = false,
   });
 
   /// Spots marked "not a cat"; an ObservANT camera before them sends none.
@@ -46,6 +47,9 @@ class ObservantSettings {
 
   /// The COCO classes it watches; `null` for an ObservANT camera that watches only cats and cannot change it.
   final List<String>? classes;
+
+  /// The privacy filter is on, so only observant.toml sets [classes]: a page could otherwise unblur people.
+  final bool classesLocked;
 
   final String name;
 
@@ -78,6 +82,7 @@ class ObservantSettings {
                 if (c is String) c,
             ]
           : null,
+      classesLocked: json['privacy'] == 'pixelate',
     );
   }
 }
@@ -236,6 +241,9 @@ class _CameraSettingsPanelState extends State<CameraSettingsPanel> {
   int _frame = 0;
   Timer? _timer;
 
+  /// Since when the camera, which answered before, no longer does; its last answer stays shown.
+  DateTime? _lostSince;
+
   /// False while another tab of the bottom bar shows: go_router keeps this page alive behind it.
   bool _visible = true;
   final TextEditingController _name = TextEditingController();
@@ -245,11 +253,17 @@ class _CameraSettingsPanelState extends State<CameraSettingsPanel> {
     super.initState();
     _load();
     _timer = Timer.periodic(widget.previewInterval, (_) {
-      if (mounted && _visible && _settings != null) {
-        setState(() => _frame++);
-        // With the picture, so "not a cat" offers the boxes it shows.
-        unawaited(_refreshInfo());
+      if (!mounted || !_visible) {
+        return;
       }
+      if (_settings == null || _lostSince != null) {
+        // A camera restarting after an upgrade is back within seconds; ask again rather than stay dead.
+        unawaited(_load());
+        return;
+      }
+      setState(() => _frame++);
+      // With the picture, so "not a cat" offers the boxes it shows.
+      unawaited(_refreshInfo());
     });
   }
 
@@ -271,20 +285,34 @@ class _CameraSettingsPanelState extends State<CameraSettingsPanel> {
     final settings = ObservantSettings.parse(results[0]);
     setState(() {
       _loaded = true;
+      if (settings == null) {
+        if (_settings != null) {
+          _lostSince ??= DateTime.now();
+        }
+        return;
+      }
+      _lostSince = null;
       _settings = settings;
-      _info = ObservantInfo.parse(results[1]);
-      _score = settings?.score;
+      _info = ObservantInfo.parse(results[1]) ?? _info;
+      _score = settings.score;
       _frame++;
-      if (settings != null && _name.text.isEmpty) {
+      if (_name.text.isEmpty) {
         _name.text = settings.name;
       }
     });
   }
 
   Future<void> _refreshInfo() async {
-    final info = ObservantInfo.parse(await fetchOrNull(widget.fetchHealthz));
-    if (mounted && info != null) {
+    final body = await fetchOrNull(widget.fetchHealthz);
+    if (!mounted) {
+      return;
+    }
+    final info = ObservantInfo.parse(body);
+    if (info != null) {
       setState(() => _info = info);
+    } else if (body == null) {
+      // Gone, perhaps restarting: say so, and let the next tick ask for everything again.
+      setState(() => _lostSince ??= DateTime.now());
     }
   }
 
@@ -321,10 +349,21 @@ class _CameraSettingsPanelState extends State<CameraSettingsPanel> {
       return const Center(child: CircularProgressIndicator());
     }
     if (settings == null) {
-      return Text(l10n.cameraNotReachable, textAlign: TextAlign.center);
+      return Column(
+        spacing: 8,
+        children: [
+          Text(l10n.cameraNotReachable, textAlign: TextAlign.center),
+          TextButton.icon(
+            onPressed: _load,
+            icon: const Icon(Icons.refresh),
+            label: Text(l10n.cameraRetry),
+          ),
+        ],
+      );
     }
     final score = _score ?? settings.score;
     final heading = Theme.of(context).textTheme.titleMedium;
+    final lostSince = _lostSince;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.center,
       spacing: 12,
@@ -333,6 +372,26 @@ class _CameraSettingsPanelState extends State<CameraSettingsPanel> {
           l10n.cameraSettingsTitle,
           style: Theme.of(context).textTheme.headlineSmall,
         ),
+        if (lostSince != null)
+          Row(
+            key: const ValueKey('camera-lost'),
+            mainAxisSize: MainAxisSize.min,
+            spacing: 6,
+            children: [
+              const Icon(Icons.cloud_off, color: Colors.orange),
+              Flexible(
+                child: Text(
+                  l10n.observantUnreachable(
+                    formatLastSeen(
+                      lostSince,
+                      DateTime.now(),
+                      Localizations.localeOf(context).toString(),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ClipRRect(
           borderRadius: BorderRadius.circular(6),
           child: CustomPaint(
@@ -484,6 +543,7 @@ class _CameraSettingsPanelState extends State<CameraSettingsPanel> {
           Text(l10n.cameraClasses, style: heading),
           _ClassesEditor(
             classes: classes,
+            locked: settings.classesLocked,
             onChanged: (next) => _save({'classes': next}),
           ),
         ],
@@ -493,12 +553,17 @@ class _CameraSettingsPanelState extends State<CameraSettingsPanel> {
   }
 }
 
-/// The watched classes as chips, each removable while another stays, and a menu to add one.
+/// The watched classes as chips, each removable while another stays, and a menu to add one; [locked], only shown.
 class _ClassesEditor extends StatelessWidget {
-  const _ClassesEditor({required this.classes, required this.onChanged});
+  const _ClassesEditor({
+    required this.classes,
+    required this.onChanged,
+    this.locked = false,
+  });
 
   final List<String> classes;
   final void Function(List<String> classes) onChanged;
+  final bool locked;
 
   @override
   Widget build(BuildContext context) {
@@ -518,7 +583,7 @@ class _ClassesEditor extends StatelessWidget {
               for (final c in classes)
                 InputChip(
                   label: Text(classLabel(c, language)),
-                  onDeleted: classes.length > 1
+                  onDeleted: !locked && classes.length > 1
                       ? () => onChanged([
                           for (final other in classes)
                             if (other != c) other,
@@ -527,26 +592,27 @@ class _ClassesEditor extends StatelessWidget {
                 ),
             ],
           ),
-          DropdownMenu<String>(
-            key: const ValueKey('add-class'),
-            hintText: l10n.cameraAddClass,
-            enableFilter: true,
-            requestFocusOnTap: true,
-            dropdownMenuEntries: [
-              for (final c in addable)
-                DropdownMenuEntry<String>(
-                  value: c,
-                  label: classLabel(c, language),
-                ),
-            ],
-            onSelected: (c) {
-              if (c != null && !classes.contains(c)) {
-                onChanged([...classes, c]);
-              }
-            },
-          ),
+          if (!locked)
+            DropdownMenu<String>(
+              key: const ValueKey('add-class'),
+              hintText: l10n.cameraAddClass,
+              enableFilter: true,
+              requestFocusOnTap: true,
+              dropdownMenuEntries: [
+                for (final c in addable)
+                  DropdownMenuEntry<String>(
+                    value: c,
+                    label: classLabel(c, language),
+                  ),
+              ],
+              onSelected: (c) {
+                if (c != null && !classes.contains(c)) {
+                  onChanged([...classes, c]);
+                }
+              },
+            ),
           Text(
-            l10n.cameraClassesHelp,
+            locked ? l10n.cameraClassesLocked : l10n.cameraClassesHelp,
             style: Theme.of(context).textTheme.bodySmall,
             textAlign: TextAlign.center,
           ),

@@ -25,13 +25,18 @@ class _FakeRustApi extends Fake implements RustLibApi {
   void reset() {
     cameras = const <CameraDesc>[];
     listError = null;
+    listingGate = null;
     started.clear();
     stops = 0;
     session = null;
   }
 
+  /// Holds the next listing until completed, as the core's device monitor takes about a second.
+  Completer<void>? listingGate;
+
   @override
-  List<CameraDesc> crateApiWebcamListCameras() {
+  Future<List<CameraDesc>> crateApiWebcamListCameras() async {
+    await listingGate?.future;
     final Object? error = listError;
     if (error != null) throw error;
     return cameras;
@@ -164,6 +169,26 @@ void main() {
     await tester.pump();
     expect(rust.started.single.useTestSource, isFalse);
     expect(rust.started.single.deviceIndex, 2);
+  });
+
+  testWidgets('a listing in progress keeps the refresh button off', (
+    WidgetTester tester,
+  ) async {
+    rust.cameras = const <CameraDesc>[CameraDesc(index: 0, name: 'C270')];
+    rust.listingGate = Completer<void>();
+    await _pump(tester);
+
+    IconButton refresh() => tester.widget<IconButton>(
+      find.widgetWithIcon(IconButton, Icons.refresh),
+    );
+    await tester.tap(find.byTooltip('Refresh cameras'));
+    await tester.pump();
+    expect(refresh().onPressed, isNull);
+
+    rust.listingGate!.complete();
+    await tester.pump();
+    expect(refresh().onPressed, isNotNull);
+    expect(find.text('0: C270'), findsOneWidget);
   });
 
   testWidgets('a failed enumeration and a failed session show their error', (

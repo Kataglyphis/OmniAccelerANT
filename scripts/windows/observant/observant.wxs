@@ -17,7 +17,7 @@
         Scope='perMachine'>
 
         <SummaryInformation
-            Description='ObservANT: camera, YOLO boxes (cats by default) and a WebRTC stream for any browser on the network'
+            Description='ObservANT: camera, detection boxes (cats by default) and a WebRTC stream for any browser on the network'
             Manufacturer='$(var.Manufacturer)'
             Codepage='1252'/>
 

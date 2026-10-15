@@ -470,6 +470,24 @@ abstract class AppLocalizations {
   /// **'Visits, notifications and boxes count these objects (COCO classes; cat is the default). A change applies at the next model run. The privacy filter keeps every one of them sharp, people too.'**
   String get cameraClassesHelp;
 
+  /// Shown instead of the class editor's help while ObservANT's privacy filter is on.
+  ///
+  /// In en, this message translates to:
+  /// **'The privacy filter is on, so only the settings file (observant.toml) can change these.'**
+  String get cameraClassesLocked;
+
+  /// Button under the Camera page's not-reachable text that asks the camera again.
+  ///
+  /// In en, this message translates to:
+  /// **'Try again'**
+  String get cameraRetry;
+
+  /// Status line on the Stream page while ObservANT's picture is black, as at night without IR.
+  ///
+  /// In en, this message translates to:
+  /// **'Too dark: the camera sees black and detects nothing'**
+  String get detectionTooDark;
+
   /// Button on the Stream page that opens the panel of performance numbers.
   ///
   /// In en, this message translates to:

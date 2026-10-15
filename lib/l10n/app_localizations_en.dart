@@ -223,6 +223,17 @@ class AppLocalizationsEn extends AppLocalizations {
       'Visits, notifications and boxes count these objects (COCO classes; cat is the default). A change applies at the next model run. The privacy filter keeps every one of them sharp, people too.';
 
   @override
+  String get cameraClassesLocked =>
+      'The privacy filter is on, so only the settings file (observant.toml) can change these.';
+
+  @override
+  String get cameraRetry => 'Try again';
+
+  @override
+  String get detectionTooDark =>
+      'Too dark: the camera sees black and detects nothing';
+
+  @override
   String get devStats => 'Stats';
 
   @override

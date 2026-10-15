@@ -7,7 +7,12 @@ import '../frb_generated.dart';
 
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-List<CameraDesc> listCameras() =>
+/// Whether this build can run the webcam pipeline: a compile-time answer, cheap enough for a widget's build.
+bool webcamInferenceAvailable() =>
+    RustLib.instance.api.crateApiWebcamWebcamInferenceAvailable();
+
+/// Not sync on purpose: the device monitor starts libcamera, about a second the UI thread must not wait out.
+Future<List<CameraDesc>> listCameras() =>
     RustLib.instance.api.crateApiWebcamListCameras();
 
 /// Streams capture + inference events to `sink` until [`stop_webcam_inference`]; errors if running.

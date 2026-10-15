@@ -2,6 +2,7 @@
 @TestOn('vm')
 library;
 
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:crypto/crypto.dart';
@@ -57,6 +58,32 @@ String _extract(String relative, RegExp pattern, String what) {
 }
 
 void main() {
+  test(
+    'the app bar, the tab title, index.html and the manifest name the same app',
+    () {
+      // onGenerateTitle overrides index.html's <title>, so a stale setting showed the old blog's name.
+      final Map<String, dynamic> settings = jsonDecode(
+        _read('assets/settings/app_settings.json'),
+      ) as Map<String, dynamic>;
+      final String title = _extract(
+        'web/index.html',
+        RegExp(r'<title>([^<]+)</title>'),
+        'the <title>',
+      );
+      final Map<String, dynamic> manifest =
+          jsonDecode(_read('web/manifest.json')) as Map<String, dynamic>;
+      for (final String key in <String>[
+        'appNameDe',
+        'appNameEn',
+        'appTitleDe',
+        'appTitleEn',
+      ]) {
+        expect(settings[key], title, reason: 'app_settings.json $key');
+      }
+      expect(manifest['name'], title, reason: 'web/manifest.json name');
+    },
+  );
+
   group('flutter_rust_bridge version pins agree', () {
     // The Rust side's exact `=` pin is the source of truth.
     late final String rustPin = _extract(

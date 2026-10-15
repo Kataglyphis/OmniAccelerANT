@@ -2,6 +2,7 @@
 @TestOn('vm')
 library;
 
+import 'package:anthology/Pages/ErrorPage/error_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
@@ -51,7 +52,10 @@ void main() {
         }
         expect(find.byType(Scaffold), findsWidgets);
         for (final String route in _routes) {
-          GoRouter.of(tester.element(find.byType(Scaffold).first)).go(route);
+          final GoRouter router = GoRouter.of(
+            tester.element(find.byType(Scaffold).first),
+          );
+          router.go(route);
           // Pages read markdown and JSON off the asset bundle too.
           await tester.runAsync(
             () => Future<void>.delayed(const Duration(milliseconds: 500)),
@@ -60,6 +64,13 @@ void main() {
             await tester.pump(const Duration(milliseconds: 100));
           }
           expect(tester.takeException(), isNull, reason: route);
+          // A route that no page answers lands on the error page, which lays out fine too.
+          expect(
+            router.routerDelegate.currentConfiguration.uri.path,
+            route,
+            reason: 'redirected away from $route',
+          );
+          expect(find.byType(ErrorPage), findsNothing, reason: route);
         }
         // markdown_widget's VisibilityDetector re-arms a 500 ms timer while its pages live: unmount them, then let it run out.
         await tester.pumpWidget(const SizedBox());

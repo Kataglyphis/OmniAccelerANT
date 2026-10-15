@@ -20,7 +20,12 @@ class _FakeObservant {
   final posts = <Map<String, Object>>[];
   bool accept = true;
 
-  Future<String?> fetchSettings() async => jsonEncode(settings);
+  /// Restarting, say after an upgrade: nothing answers.
+  bool down = false;
+
+  Future<String?> fetchSettings() async => down ? null : jsonEncode(settings);
+
+  Future<String?> fetchHealthz() async => down ? null : _healthz;
 
   Future<bool> save(Map<String, Object> update) async {
     posts.add(update);
@@ -158,6 +163,72 @@ void main() {
       );
       expect(find.byType(Slider), findsNothing);
       expect(find.byKey(const Key('preview')), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'a camera that goes away keeps its settings shown and is picked up again',
+    (tester) async {
+      final cam = _FakeObservant();
+      await _pump(
+        tester,
+        fetchSettings: cam.fetchSettings,
+        fetchHealthz: cam.fetchHealthz,
+        save: cam.save,
+      );
+      await tester.pump();
+      expect(find.byType(Slider), findsOneWidget);
+
+      cam.down = true;
+      await tester.pump(const Duration(seconds: 3));
+      await tester.pump();
+      expect(find.byKey(const ValueKey('camera-lost')), findsOneWidget);
+      expect(find.textContaining('unreachable since'), findsOneWidget);
+      expect(
+        find.byType(Slider),
+        findsOneWidget,
+        reason: 'its last answer stays',
+      );
+
+      cam.down = false;
+      await tester.pump(const Duration(seconds: 3));
+      await tester.pump();
+      expect(find.byKey(const ValueKey('camera-lost')), findsNothing);
+      expect(find.byType(Slider), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'a camera down at the first look is asked again, by itself or the button',
+    (tester) async {
+      final cam = _FakeObservant()..down = true;
+      await _pump(
+        tester,
+        fetchSettings: cam.fetchSettings,
+        fetchHealthz: cam.fetchHealthz,
+      );
+      await tester.pump();
+      expect(find.text('Try again'), findsOneWidget);
+
+      cam.down = false;
+      await tester.tap(find.text('Try again'));
+      await tester.pump();
+      await tester.pump();
+      expect(find.byType(Slider), findsOneWidget);
+
+      // And without the button: the next tick asks again.
+      await tester.pumpWidget(const SizedBox());
+      cam.down = true;
+      await _pump(
+        tester,
+        fetchSettings: cam.fetchSettings,
+        fetchHealthz: cam.fetchHealthz,
+      );
+      await tester.pump();
+      cam.down = false;
+      await tester.pump(const Duration(seconds: 3));
+      await tester.pump();
+      expect(find.byType(Slider), findsOneWidget);
     },
   );
 
@@ -522,6 +593,18 @@ void main() {
         ObservantSettings.parse('{"name":"A","rotate":0,"score":0.3}')!.classes,
         isNull,
       );
+      expect(
+        ObservantSettings.parse(
+          '{"name":"A","rotate":0,"score":0.3,"privacy":"pixelate"}',
+        )!.classesLocked,
+        isTrue,
+      );
+      expect(
+        ObservantSettings.parse(
+          '{"name":"A","rotate":0,"score":0.3,"privacy":"off"}',
+        )!.classesLocked,
+        isFalse,
+      );
     },
   );
 
@@ -563,6 +646,29 @@ void main() {
     });
     expect(find.widgetWithText(InputChip, 'cat'), findsNothing);
   });
+
+  testWidgets(
+    'with the privacy filter on, the classes show but no page changes them',
+    (tester) async {
+      final cam = _FakeObservant()
+        ..settings = {
+          'name': 'Cat Cam Futtertrog',
+          'rotate': 270,
+          'score': 0.45,
+          'classes': ['cat', 'dog'],
+          'privacy': 'pixelate',
+        };
+      await _pump(tester, fetchSettings: cam.fetchSettings, save: cam.save);
+      await tester.pump();
+      expect(find.widgetWithText(InputChip, 'dog'), findsOneWidget);
+      for (final chip in tester.widgetList<InputChip>(find.byType(InputChip))) {
+        expect(chip.onDeleted, isNull);
+      }
+      expect(find.byKey(const ValueKey('add-class')), findsNothing);
+      expect(find.textContaining('observant.toml'), findsOneWidget);
+      expect(cam.posts, isEmpty);
+    },
+  );
 
   testWidgets(
     'an ObservANT camera that cannot change its classes shows no editor',
