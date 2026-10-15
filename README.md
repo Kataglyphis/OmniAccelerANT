@@ -162,8 +162,13 @@ consumes.
 `.AppImage`, a `.flatpak` and a tarball; `web.yml` uploads all four for x64 and arm64. On a riscv64
 board, run it in that board's own `:latest`: it builds the `.deb` and a tarball, as flatpak has
 no riscv64 runtime.
+- A release on the [GitHub releases page](https://github.com/Kataglyphis/OmniAccelerANT/releases)
+  carries every package ready-made, with a `SHA256SUMS` beside them.
 - `sudo apt install ./omni-observant_*.deb`, or `sudo ./omni-observant-*.AppImage
   --install` on any other distro, installs a systemd service that starts at boot.
+- **The `.deb` keeps itself up to date:** every night it installs a newer release's package
+  once it matches the release's checksum; `sudo systemctl disable --now
+  omni-observant-update.timer` turns that off.
 - `flatpak install ./omni-observant-*.flatpak` runs in a sandbox instead. It
   starts at sign-in once you have run it, and takes USB cameras only.
 - Open `http://<host>:8080/` from a browser on the network. Under the video the page
@@ -180,6 +185,8 @@ no riscv64 runtime.
   out of the picture and back within a minute stays one visit.
 - **Not only cats:** cats are the default, and the Camera page adds or removes any of the 80
   COCO classes (dog, bird, person, …); visits, notifications and boxes count them all.
+- **Visit statistics:** a "Visits" button shows the visits of the last two weeks, today's
+  count, the average stay, and bars per day and per hour of the day.
 - **Stats for developers:** a "Stats" button under the camera's name shows the frames per
   second, the model's time per run, CPU, memory, load and temperature, and what the browser
   receives, refreshed every 2 s.
@@ -315,7 +322,9 @@ Every test runs on every lane that can host it: the app's and the plugin's Dart
 suites, the plugin's gtest and C ABI check, the bundle's runtime closure and
 ONNX Runtime proof, a 20 s launch smoke and the integration test: under Xvfb on Linux,
 through `flutter drive` on both Windows architectures. The per-lane table is [AGENTS.md § 5](AGENTS.md#5-build-run-test), *What
-each lane tests*; the open gaps are tracked in [BACKLOG.md](BACKLOG.md).
+each lane tests*; the open gaps are tracked in [BACKLOG.md](BACKLOG.md). What each kind of
+test proves, how mutation testing checks the tests themselves, and what is not covered yet:
+[docs/source/testing.md](docs/source/testing.md).
 
 The app's own Dart suite (`test/`) checks, among the rest:
 - every main page laid out at phone, tablet and desktop size, on a phone with its system
@@ -324,7 +333,8 @@ The app's own Dart suite (`test/`) checks, among the rest:
 - the camera stream's state across remounts, page changes, lost signalling and failed
   sessions (`webrtc_stream_controller_test.dart`);
 - the cat status line, its visits, its arrival picture and video, and the earlier videos
-  (`cat_status_test.dart`);
+  (`detection_status_test.dart`), and the visit statistics per day and hour (`visit_stats_test.dart`);
+- in Chrome, the requests the Camera page sends ObservANT (`observant_api_web_test.dart`);
 - the Camera page: what it reads from an ObservANT camera, what each button, the slider and the
   name field send, a refused change, and the page off an ObservANT camera (`camera_settings_test.dart`);
 - the native Stream page's calls to the C++ plugin, its camera fallback, its buttons and
