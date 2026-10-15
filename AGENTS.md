@@ -75,7 +75,9 @@ Raspberry Pi; on a Pi 5 CSI camera the producer half is **OxidANT's**
 pipeline (the Rust producer does not fit 512 MB), and a RISC-V SoC runs the
 riscv64 variant natively with a USB webcam (`--v4l2`) — see § 2's glue list.
 **The boards now run the installable ObservANT** (§ 2's glue list): producer, web build
-and page together on `http://<board>:8080/`, under the package's systemd unit. The
+and page together on `http://<board>:8080/`, under the package's systemd unit. Which camera
+runs where, and on which version: [`docs/source/camera-streaming.md` § *Where it runs*](docs/source/camera-streaming.md#where-it-runs);
+a camera added or moved goes into that table. The
 container + `serve.sh` shape on `https://<board>:8444/` is the manual one, which the
 Zero keeps; `serve.sh --producer-host` is only for looking at one board from another host.
 Runbook: README § *Live cat detection stream*.

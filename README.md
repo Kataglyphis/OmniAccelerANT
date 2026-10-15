@@ -162,6 +162,8 @@ consumes.
 `.AppImage`, a `.flatpak` and a tarball; `web.yml` uploads all four for x64 and arm64. On a riscv64
 board, run it in that board's own `:latest`: it builds the `.deb` and a tarball, as flatpak has
 no riscv64 runtime.
+- The owner's cameras running it today, with their boards, cameras and versions:
+  [docs/source/camera-streaming.md § Where it runs](docs/source/camera-streaming.md#where-it-runs).
 - A release on the [GitHub releases page](https://github.com/Kataglyphis/OmniAccelerANT/releases)
   carries every package ready-made, with a `SHA256SUMS` beside them.
 - `sudo apt install ./omni-observant_*.deb`, or `sudo ./omni-observant-*.AppImage
