@@ -144,25 +144,31 @@ if ($foreign) { Write-Host "      outside: $($foreign -join ', ')" }
 Test-Check 'idle, it loads modules only from the install and Windows' { $foreign.Count -eq 0 }
 
 # The image's GStreamer plays the viewer; only ObservANT side runs from the install.
-$viewer = Start-Process gst-launch-1.0 -ArgumentList '-e', 'webrtcsrc', 'signaller::uri=ws://127.0.0.1:8443', 'connect-to-first-producer=true', '!', 'video/x-raw', '!', 'queue', '!', 'identity', 'eos-after=60', '!', 'fakesink' `
-    -PassThru -NoNewWindow -RedirectStandardOutput (Join-Path $work 'viewer-out.log') -RedirectStandardError (Join-Path $work 'viewer-err.log')
-$null = $viewer.Handle
-Start-Sleep -Seconds 4
-$foreignLive = @(Get-ForeignModule -Process $svc.Process)
-if ($foreignLive) { Write-Host "      outside: $($foreignLive -join ', ')" }
-Test-Check 'with a viewer, it loads modules only from the install and Windows' { $foreignLive.Count -eq 0 }
-$done = $viewer.WaitForExit(90000)
-Test-Check 'a webrtcsrc viewer decodes 60 frames from it' {
-    $done -and $viewer.ExitCode -eq 0 -and (Select-String -Path (Join-Path $work 'viewer-out.log') -Pattern 'Got EOS' -Quiet)
-}
-if (-not $done) { $viewer.Kill($true) }
-# A failed viewer otherwise leaves only its verdict: its exit code and the end of both logs say why.
-if (-not ($done -and $viewer.ExitCode -eq 0)) {
-    Write-Host "      viewer: $(if ($done) { "exit $($viewer.ExitCode)" } else { 'still running after 90 s' })"
-    foreach ($log in 'viewer-out.log', 'viewer-err.log') {
-        Get-Content -LiteralPath (Join-Path $work $log) -Tail 15 -ErrorAction SilentlyContinue | ForEach-Object { Write-Host "      ${log}: $_" }
+function Test-Viewer {
+    param($Process)
+    $viewer = Start-Process gst-launch-1.0 -ArgumentList '-e', 'webrtcsrc', 'signaller::uri=ws://127.0.0.1:8443', 'connect-to-first-producer=true', '!', 'video/x-raw', '!', 'queue', '!', 'identity', 'eos-after=60', '!', 'fakesink' `
+        -PassThru -NoNewWindow -RedirectStandardOutput (Join-Path $work 'viewer-out.log') -RedirectStandardError (Join-Path $work 'viewer-err.log')
+    $null = $viewer.Handle
+    Start-Sleep -Seconds 4
+    $foreignLive = @(Get-ForeignModule -Process $Process)
+    if ($foreignLive) { Write-Host "      outside: $($foreignLive -join ', ')" }
+    Test-Check 'with a viewer, it loads modules only from the install and Windows' { $foreignLive.Count -eq 0 }
+    $done = $viewer.WaitForExit(90000)
+    Test-Check 'a webrtcsrc viewer decodes 60 frames from it' {
+        $done -and $viewer.ExitCode -eq 0 -and (Select-String -Path (Join-Path $work 'viewer-out.log') -Pattern 'Got EOS' -Quiet)
+    }
+    if (-not $done) { $viewer.Kill($true) }
+    # A failed viewer otherwise leaves only its verdict: its exit code and the end of both logs say why.
+    if (-not ($done -and $viewer.ExitCode -eq 0)) {
+        Write-Host "      viewer: $(if ($done) { "exit $($viewer.ExitCode)" } else { 'still running after 90 s' })"
+        foreach ($log in 'viewer-out.log', 'viewer-err.log') {
+            Get-Content -LiteralPath (Join-Path $work $log) -Tail 15 -ErrorAction SilentlyContinue | ForEach-Object { Write-Host "      ${log}: $_" }
+        }
     }
 }
+# A host without GStreamer of its own (windows-11-arm) cannot play one; the :winamd64 run does.
+if (Get-Command gst-launch-1.0 -ErrorAction SilentlyContinue) { Test-Viewer -Process $svc.Process }
+else { Write-Host 'SKIP  a webrtcsrc viewer decodes 60 frames from it: no gst-launch-1.0 on this host' }
 $svc.Process.Kill($true)
 $svc.Process.WaitForExit()
 

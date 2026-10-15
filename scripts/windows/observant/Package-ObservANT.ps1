@@ -3,7 +3,7 @@
 .SYNOPSIS
     Packages the Windows ObservANT: one self-contained install folder, a zip of it, and an MSI around it.
 .DESCRIPTION
-    Runs inside the family image (:winamd64). The folder holds kataglyphis_observant.exe, the DLLs it and its
+    Runs inside the family image (:winamd64, or its arm64 bundle with -Arch arm64). The folder holds kataglyphis_observant.exe, the DLLs it and its
     GStreamer plugins import (VC++ runtime included), the plugin subset in lib\gstreamer-1.0, the plugin scanner,
     the chain ONNX Runtime (proved by the hub's G6 census), the model and the web build. The exe finds all of it
     beside itself (OxidANT's install.rs). The MSI installs it per machine and starts it at every logon through
@@ -21,6 +21,9 @@
     .cer lands beside the package for a tester to trust.
 .PARAMETER MsixPublisher
     The MSIX publisher, which must equal the signing certificate's subject.
+.PARAMETER Arch
+    amd64 (default, or WINDOWS_TARGET_ARCH) or arm64: the producer is then cross-built for aarch64-pc-windows-msvc,
+    and its DLLs, VC++ runtime included, come from the arm64 runtime and Visual Studio's arm64 redist.
 #>
 [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingConvertToSecureStringWithPlainText', '', Justification = 'a throwaway password for the per-build test certificate')]
 param(
@@ -32,7 +35,8 @@ param(
     [switch]$SkipMsi,
     [switch]$Msix,
     [string]$MsixPfx = '',
-    [string]$MsixPublisher = 'CN=Kataglyphis'
+    [string]$MsixPublisher = 'CN=Kataglyphis',
+    [string]$Arch = ''
 )
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
@@ -53,7 +57,7 @@ if (-not $Version) {
     $Version = $line.Matches[0].Groups[1].Value
 }
 $runtime = 'C:\runtime'
-$arch = Get-WindowsTargetArch
+$arch = Get-WindowsTargetArch -Arch $Arch
 $packageArch = Get-WindowsPackageArch -Arch $arch
 
 if (-not $Producer) {
@@ -67,10 +71,18 @@ if (-not $Producer) {
     }
     Push-Location (Join-Path $repoRoot 'third_party\OxidANT')
     try {
-        cargo build --release --locked -p kataglyphis_observant
+        $cargoArgs = @('build', '--release', '--locked', '-p', 'kataglyphis_observant')
+        $releaseDir = 'release'
+        if ($arch -eq 'arm64') {
+            # The arm64 bundle's .pc files describe the target, which pkg-config refuses for a cross build unless told.
+            $env:PKG_CONFIG_ALLOW_CROSS = '1'
+            $cargoArgs += @('--target', 'aarch64-pc-windows-msvc')
+            $releaseDir = 'aarch64-pc-windows-msvc\release'
+        }
+        cargo @cargoArgs
         if ($LASTEXITCODE -ne 0) { throw "cargo build failed ($LASTEXITCODE)" }
     } finally { Pop-Location }
-    $Producer = Join-Path $env:CARGO_TARGET_DIR 'release\kataglyphis_observant.exe'
+    $Producer = Join-Path $env:CARGO_TARGET_DIR "$releaseDir\kataglyphis_observant.exe"
 }
 if (-not (Test-Path -LiteralPath $Producer)) { throw "producer not found: $Producer" }
 
@@ -98,7 +110,9 @@ Copy-Item -LiteralPath (Join-Path $runtime 'libexec\gstreamer-1.0\gst-plugin-sca
 
 # Imports, transitively, from the image's runtime; plugins and the scanner resolve against the exe's folder too.
 $roots = @(Join-Path $stage (Split-Path $Producer -Leaf)) + @(Get-ChildItem $plugDir, $scanDir -File | ForEach-Object FullName)
-$closure = Copy-PeImportClosure -Path $roots -SearchDirectory @(Join-Path $runtime 'bin') -Destination $stage -Arch $arch
+# arm64 also searches Visual Studio's arm64 redist, since this x64 container's System32 holds x64 DLLs only.
+$searchDirs = if ($arch -eq 'arm64') { @(Get-ProductDllSearchPath -Arch $arch) } else { @(Join-Path $runtime 'bin') }
+$closure = Copy-PeImportClosure -Path $roots -SearchDirectory $searchDirs -Destination $stage -Arch $arch
 Write-Host "DLL closure: $($closure.Count) file(s) from $runtime\bin"
 
 # A clean Windows has no VC++ runtime, and the closure leaves System32's names to the OS.
@@ -109,6 +123,11 @@ foreach ($bin in @(Get-ChildItem $stage -Recurse -Include '*.dll', '*.exe' -File
     }
 }
 foreach ($name in $vcNames) {
+    if ($arch -eq 'arm64') {
+        # The closure took it from the arm64 redist; System32's would be x64.
+        if (-not (Test-Path -LiteralPath (Join-Path $stage $name))) { throw "arm64 VC++ runtime $name is not in the redist the closure searched" }
+        continue
+    }
     $src = Join-Path $env:SystemRoot "System32\$name"
     if (-not (Test-Path -LiteralPath $src)) { throw "VC++ runtime $name is imported but not in System32" }
     Copy-Item -LiteralPath $src -Destination $stage

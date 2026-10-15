@@ -214,3 +214,106 @@ jobs:
           file-args: |
             -Msix
             C:\ws\out\omni-observant-*-windows-x64.msix
+
+  # Cross-built in the image's arm64 bundle; this x64 host cannot run it, so windows-11-arm installs and tests it.
+  observant-windows-arm64:
+    name: ObservANT package (windows arm64)
+    needs: build
+    runs-on: windows-2025
+    # The arm64 bundle's pull and the producer's cross build take most of it.
+    timeout-minutes: 150
+    permissions:
+      contents: read
+    defaults:
+      run:
+        shell: pwsh
+
+    steps:
+      - name: Prepare Windows container host
+        id: prep
+        uses: Kataglyphis/ANTfrastructure/.github/actions/prepare-windows-container-host@develop
+        with:
+          target-arch: arm64
+          registry-password: ${{ secrets.GHCR_PAT }}
+          short-path-target: /d/ws
+          exclude-submodules: |
+            third_party/DocumANTation
+
+      - name: Download the web build
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: gstreamer-ai-web-frontend
+          path: ${{ steps.prep.outputs.workspace }}/${{ env.BUILD_DIR_RELEASE }}
+
+      - name: Package
+        uses: Kataglyphis/ANTfrastructure/.github/actions/run-in-windows-container@develop
+        with:
+          target-arch: arm64
+          file: C:\ws\scripts\windows\observant\Package-ObservANT.ps1
+          file-args: |
+            -WebRoot
+            C:\ws\build\web
+            -Msix
+            -Arch
+            arm64
+
+      - name: Upload the ObservANT packages
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: omni-observant-windows-arm64
+          path: |
+            ${{ steps.prep.outputs.workspace }}/out/omni-observant-*-windows-*.msi
+            ${{ steps.prep.outputs.workspace }}/out/omni-observant-*-windows-*.msix
+            ${{ steps.prep.outputs.workspace }}/out/omni-observant-*-windows-*-testcert.cer
+            ${{ steps.prep.outputs.workspace }}/out/omni-observant-*-windows-*.zip
+          if-no-files-found: error
+
+      # Server Core cannot deploy an MSIX, so CI reads the package: signature, startup task, alias, firewall rules, payload.
+      - name: Check the MSIX
+        uses: Kataglyphis/ANTfrastructure/.github/actions/run-in-windows-container@develop
+        with:
+          target-arch: arm64
+          file: C:\ws\scripts\windows\observant\Test-ObservANTMsix.ps1
+          file-args: |
+            -Msix
+            C:\ws\out\omni-observant-*-windows-arm64.msix
+
+  # On real arm64 Windows: every binary arm64, then the MSI test the x64 package passes in :winamd64.
+  observant-windows-arm64-test:
+    name: ObservANT install test (windows-11-arm)
+    needs: observant-windows-arm64
+    runs-on: windows-11-arm
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    defaults:
+      run:
+        shell: pwsh
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      # The hub for its arch gate, ANThology for the cat photos the model check reads.
+      - name: Fetch the hub and ANThology
+        run: git submodule update --init --depth 1 third_party/ANTfrastructure third_party/ANThology
+
+      - name: Download the packages
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: omni-observant-windows-arm64
+          path: out
+
+      - name: Arch gate (every binary in the zip)
+        run: |
+          Expand-Archive -Path (Get-Item out\omni-observant-*-windows-arm64.zip).FullName -DestinationPath out\unzipped
+          & third_party\ANTfrastructure\windows\scripts\build\Test-TargetArch.ps1 -Path out\unzipped -Arch arm64 -MinInspected 20 -ImportWalk
+          if ($LASTEXITCODE) { throw "the arch gate failed (exit $LASTEXITCODE)" }
+
+      - name: Test the MSI
+        run: |
+          & ./scripts/windows/observant/Test-ObservANTWindows.ps1 -Msi 'out\omni-observant-*-windows-arm64.msi' -Photo 'third_party\ANThology\assets\images\cats\*.png'
+          if ($LASTEXITCODE) { throw "$LASTEXITCODE install check(s) failed" }
