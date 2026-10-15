@@ -5,6 +5,23 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ## Unreleased
 
+### Added
+
+- **The Raspberry Pi 3 runs ObservANT** (2026-10-15, owner). himbeerGsaelz, a Pi 3 Model B with a
+  Camera Module 3 Wide, runs the arm64 `.deb` at about 2 s per detection, 226 MB of memory;
+  `docs/source/camera-streaming.md` § *Where it runs* lists every camera now.
+
+### Fixed
+
+- **`inference = "auto"` runs the model on 1 GB boards** (OxidANT 5898e42). It skipped the model
+  below 1024 MiB, but a 1 GB Pi 3 reports 905 MiB, so it streamed without detection; the line is
+  768 MiB, above a 512 MB Pi Zero 2 W's ~430.
+
+### Changed
+
+- **The native lane's Dart tests run once**, coverage included (hub `flutter_checks.sh
+  --coverage`): about 42 s less on every push to `develop`.
+
 ## 2.1.0+3 — 2026-10-15
 
 The first release made by a merge into `main`, and the first the ObservANT cameras update

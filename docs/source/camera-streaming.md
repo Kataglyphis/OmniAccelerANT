@@ -366,9 +366,10 @@ Each serves its page on `http://<host>:8080/`.
   downloaded its `.deb`, checked it against `SHA256SUMS` and installed it over 2.0.0, and the
   service came back with its 155 visits; a second run said "2.1.0 is up to date".
   tabblscatcam is left on 2.0.0 for its timer to take at night.
-- **himbeerGsaelz's config says `inference = "on"`.** A 1 GB Pi 3 reports 905 MiB, and in
-  2.1.0 `auto` skips the model below 1024 MiB; a fix lowering that to 768 MiB is on its way in
-  OxidANT. Its model runs at 2 s, about seven times the Pi 5's, but only while something moves.
+- **himbeerGsaelz's config says `inference = "on"`.** A 1 GB Pi 3 reports 905 MiB, and 2.1.0's
+  `auto` skips the model below 1024 MiB; the next release's `auto` takes 768 MiB (OxidANT
+  5898e42), so a new Pi 3 detects without the setting. Its model runs at 2 s, about seven times
+  the Pi 5's, but only while something moves.
 - A Pi Zero 2 W and a Pi 4 ran the earlier container shape, not this package
   ([the board table](#cat-detection-stream-rust-native) under *Cat detection stream*).
 - **A camera added or moved goes into this table**, with what its `/healthz` says.
@@ -623,7 +624,8 @@ core, and a dark room at night to 2 %. A cat in view that does not move, asleep 
 one, is looked at half as often (2026-10-13): himbeere2's drying rack, counted as a cat at
 0.34 all afternoon, went from 69 % to 36 % of a core. Leaving is motion, so the cat is
 out of view as fast as before. `inference = "auto"` turns the model
-off below 1 GiB of RAM.
+off below 768 MiB of RAM: a 512 MB Pi Zero 2 W reports about 430 MiB, a 1 GB Pi 3 905 MiB. It
+was 1 GiB until 2026-10-15, which kept the Pi 3 from detecting at all.
 
 **A cat must move to arrive** (2026-10-14). A detection starts a visit only where the picture
 changed in the last 10 s, in at least two 8-pixel blocks inside its box or one block around it: a still object the

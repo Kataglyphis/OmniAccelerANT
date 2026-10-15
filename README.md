@@ -28,7 +28,7 @@ OmniAccelerANT bundles a Flutter/Dart frontend, a Rust/C++ inference core, and a
 ### 🌟 Highlights
 
 - 🎨 **GStreamer native GTK integration** – Leveraging users to write beautiful Linux AI inference apps.
-- 🐱 **An installable ObservANT** – a `.deb`, AppImage, flatpak or Windows MSI that streams a camera to any browser, spots cats with an Apache-2.0 detection model (DEIM-D-FINE-N) on a Raspberry Pi 4 or 5 or a SpacemiT X100 (riscv64), logs their visits, and keeps a picture and a 10 s video of each arrival; Home Assistant can put those on a phone ([Live cat detection stream](#live-cat-detection-stream-linux--raspberry-pi)).
+- 🐱 **An installable ObservANT** – a `.deb`, AppImage, flatpak or Windows MSI that streams a camera to any browser, spots cats with an Apache-2.0 detection model (DEIM-D-FINE-N) on a Raspberry Pi 3, 4 or 5 or a SpacemiT X100 (riscv64), logs their visits, and keeps a picture and a 10 s video of each arrival; Home Assistant can put those on a phone ([Live cat detection stream](#live-cat-detection-stream-linux--raspberry-pi)).
 - 📹 **GStreamer WebRTC livestreaming** with ready-to-use pipelines for USB and Raspberry Pi cameras.
 - 🌉 **flutter_rust_bridge integration** – Ensures a seamless API boundary between Dart UI and Rust logic.
 - 🐳 **Containerized development flow** plus native instructions for Windows, Linux, web. For details in my build environment look into [ANTfrastructure](https://github.com/Kataglyphis/ANTfrastructure). On Windows the container engine is [Stevedore](https://github.com/slonopotamus/stevedore) and build containers run with `--isolation process` (full host CPU count) — see [docs/source/platforms.md](docs/source/platforms.md).
@@ -86,7 +86,7 @@ Windows and Linux only.
 | 🪟 **Windows** | x86-64 | ✔️ | Built with clang-cl, Win32 integration |
 | 🪟 **Windows** | ARM64 | 🔶 | Hybrid lane (`windows-arm64.yml`): natives cross-built in `:winarm64`, the Flutter app built natively on `windows-11-arm`. On the device every import resolves and the app starts with a window; no camera frame or inference has run on arm64 yet |
 | 🐧 **Linux** | x86-64 | ✔️ | Full GTK support, Docker ready |
-| 🐧 **Linux** | ARM64 | ✔️ | Raspberry Pi 4, 5 and Zero 2 W; the Zero streams without detection, since 512 MB is not enough for the Rust producer |
+| 🐧 **Linux** | ARM64 | ✔️ | Raspberry Pi 3, 4, 5 and Zero 2 W; the Zero streams without detection, since 512 MB is not enough for the Rust producer, and a Pi 3 detects at about 2 s per look |
 | 🐧 **Linux** | RISC-V | 🔶 | Emerging architecture support. No CI lane in this repo — the `:latest` image index carries a riscv64 variant, and OxidANT tests its crates under QEMU. ObservANT `.deb` builds natively on a SpacemiT X100 and runs there with a USB webcam (2026-10-13). |
 | 🤖 **Android** | ARM64 | 🔶 | Native camera, NDK integration. The app targets `arm64-v8a` only. The image's Android GStreamer/ONNX/OpenCV prebuilts became `arm64-v8a` on 2026-09-11, so the old `incompatible with aarch64linux` link failure is gone, and since CI stopped running CodeQL (2026-09-17) the lane builds the plain APK — native link and the plugin's JVM test included (AGENTS.md § 4). |
 

@@ -12,7 +12,7 @@ OmniAccelerANT combines a Flutter frontend with native Rust/C++ inference and GS
   any browser, spots cats with a detection model, logs their visits, keeps a picture and a
   10 s video of each arrival, and posts them to a webhook such as Home Assistant's. Its
   web page has a Camera page that turns the picture, sets how sure detection must be and
-  renames the camera while it runs. It runs on x64 PCs, the Raspberry Pi 4 and 5, and the
+  renames the camera while it runs. It runs on x64 PCs, the Raspberry Pi 3, 4 and 5, and the
   SpacemiT X100 (riscv64).
 
 ## Repository Structure
