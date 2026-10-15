@@ -36,6 +36,12 @@ the why behind that table (written after the test audit of 2026-10-15).
   +25 % the run warns, and a stable value at double the median fails it once 3 earlier
   runs exist. A run that failed never joins the history (camera-streaming.md § *Measuring
   performance*).
+- **Mutation testing checks the checks.** Coverage says a line ran, not that a test would
+  notice it change. cargo-mutants plants small bugs one at a time (a flipped comparison, a
+  deleted branch, a constant return) and reruns the tests: on ObservANT's network-facing code
+  (`web.rs`, `static_files.rs`) they caught about 84 % of 145 compiling mutants on 2026-10-15,
+  and 142 after tests for every gap it named. The 3 left change nothing a client can see.
+  How to run it: OxidANT's AGENTS.md.
 - **A new test proves it can fail.** Each gate and property added on 2026-10-15 was run
   against a planted bug first: `..` let through the path check, an unclamped range end, a
   route no page answers, a skipped ctest test, a slowdown in the perf reports. A test that
