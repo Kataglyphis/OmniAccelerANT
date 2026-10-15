@@ -1,16 +1,16 @@
 #!/usr/bin/env bash
-# publish-release.sh <tag> <dir>: the packages in <dir> as GitHub release <tag>, with SHA256SUMS and the tag's CHANGELOG.md section as notes.
+# publish-release.sh --check | <dir>: release v<pubspec version> at HEAD with <dir>'s packages, a SHA256SUMS and the version's CHANGELOG section.
 set -euo pipefail
 
-tag="${1:?usage: publish-release.sh <tag> <dir>}"
-dir="${2:?usage: publish-release.sh <tag> <dir>}"
+mode="${1:?usage: publish-release.sh --check | publish-release.sh <dir>}"
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 
 version="$(sed -n 's/^version:[[:space:]]*\([0-9][0-9.]*\).*/\1/p' "${root}/pubspec.yaml" | head -1)"
-if [ -z "${version}" ] || [ "${tag}" != "v${version}" ]; then
-  printf 'tag %s is not v%s, the version pubspec.yaml carries\n' "${tag}" "${version:-?}" >&2
+if [ -z "${version}" ]; then
+  printf 'pubspec.yaml has no version\n' >&2
   exit 1
 fi
+tag="v${version}"
 
 # The section headed "## <version>", a "+build" or " — date" after it, up to the next "## ".
 notes="$(awk -v v="${version}" '
@@ -27,6 +27,20 @@ if [ -z "$(printf '%s' "${notes}" | tr -d '[:space:]')" ]; then
   exit 1
 fi
 
+# Every merge into main is a release, so a version may be released once; any other gh error is not "not released".
+if view="$(gh release view "${tag}" --json tagName 2>&1)"; then
+  printf '%s is already released: raise version: in pubspec.yaml and give it a CHANGELOG section\n' "${tag}" >&2
+  exit 1
+elif [[ "${view}" != *"not found"* ]]; then
+  printf 'could not ask GitHub about %s: %s\n' "${tag}" "${view}" >&2
+  exit 1
+fi
+if [ "${mode}" = --check ]; then
+  printf '%s is not released yet and has its CHANGELOG section\n' "${tag}"
+  exit 0
+fi
+
+dir="${mode}"
 rm -f "${dir}/SHA256SUMS"
 shopt -s nullglob
 packages=("${dir}"/*)
@@ -40,5 +54,5 @@ fi
 notes_file="$(mktemp)"
 trap 'rm -f "${notes_file}"' EXIT
 printf '%s\n' "${notes}" > "${notes_file}"
-gh release create "${tag}" --verify-tag --title "OmniAccelerANT ${version}" \
+gh release create "${tag}" --target "$(git -C "${root}" rev-parse HEAD)" --title "OmniAccelerANT ${version}" \
   --notes-file "${notes_file}" "${packages[@]}" "${dir}/SHA256SUMS"

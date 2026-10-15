@@ -119,6 +119,7 @@ reorganisation.
 | The CMake gate's machinery — `code_quality_find_cmake_files` + `CODE_QUALITY_CMAKE_EXCLUDE_PATHS` on Linux, `Initialize-UvVenv` + `Install-UvRequirements` on Windows | `linux/scripts/lib/code-quality.sh`, `windows/scripts/modules/WindowsUv.Common.psm1` |
 | The canonical `.cmake-format.yaml` this repo's root copy syncs from, and the drift check | `shared/config/README.md` |
 | **Image and tag naming** — one published tag = one manifest over every arch of its variant; `:latest` (linux) / `:winamd64` (windows), variants `:latest-<variant>` (`nvidia`, `rocm`) only for a stack that cannot ship in `:latest`, per-arch tags are internal wrappers; Windows' arm64 output is a bundle, not a `windows/arm64` platform | `third_party/ANTfrastructure/AGENTS.md` § *Image and tag naming* |
+| **Branches, CI rounds and releases** — Linux x64 on every push to `develop`; `[ci <lane>]` in a commit message, or *Run workflow*, for every other lane; `main` only by the owner's fast-forward to a fully green commit; every push to `main` releases only when every lane is green | [`docs/branch-and-release-strategy.md`](third_party/ANTfrastructure/docs/branch-and-release-strategy.md) |
 | **Every checkout on its branch tip** — this repo and every submodule, third-party ones included, recursively, fast-forward only; no gitlink is committed (`linux/scripts/git-sync-branches.sh`) | `docs/adopting-in-a-new-project.md` § *Putting every checkout on its branch* |
 | Dependency upgrades — Renovate as a local CLI, why `--platform=local` only detects, the pinned Node/Renovate bootstrap, why `--apply` refuses a branchless submodule | `docs/dependency-updates.md` |
 
@@ -611,12 +612,20 @@ cell is a test that cannot run there, and the reason is under the table.
 | ObservANT MSIX package checks (`Test-ObservANTMsix.ps1`, without `-Install`) | | | | | in `web.yml`'s `observant-windows` job, in `:winamd64` |
 
 A blank cell is a test that cannot run there; why, lane by lane: [`docs/source/testing.md`](docs/source/testing.md) § *Why a lane
-cannot run a test*. Two rules from there bite on every push:
+cannot run a test*.
 
-- **A docs-only push** (`docs/**`, root `*.md`) runs Linux x64 alone, which deploys the docs; pull
-  requests always run everything.
-- **A push to `develop` cancels the round in flight**, so batch: commit locally and push when the
-  round on `origin/develop` has finished (`gh run list --branch develop --limit 8`).
+**When the lanes run** is the family's rule, [ANTfrastructure's
+`branch-and-release-strategy.md`](third_party/ANTfrastructure/docs/branch-and-release-strategy.md)
+(owner, 2026-10-15):
+
+- **A push to `develop` runs Linux x64 alone.** The other columns run when a commit message asks:
+  `[ci windows]`, `[ci arm64]`, `[ci android]`, `[ci web]`, `[ci all]` (`on-request.yml`), or by
+  hand: `gh workflow run windows-x64.yml --ref develop`. A change to Windows-, arm64-, Android- or
+  web-only code asks for its lane in its commit message.
+- **`main` moves only by the owner's fast-forward** to a `develop` commit whose full round
+  (`[ci all]`) is green. Agents never push `main`.
+- **Every push to `main` is a release:** `release.yml` runs every lane again and publishes
+  `v<version>` only when all are green. Steps: project-operations.md § *Release Hygiene*.
 
 ### The Dart gate in 23 seconds, without a lane
 

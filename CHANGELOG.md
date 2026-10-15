@@ -7,16 +7,24 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ## 2.1.0+3 — 2026-10-15
 
-The first release cut by a `v<version>` tag, and the first the ObservANT cameras update
+The first release made by a merge into `main`, and the first the ObservANT cameras update
 themselves from. Most of it is the cat cam, ObservANT since 2026-10-14, whose guide is
 `docs/source/camera-streaming.md` § *The ObservANT package*.
 
 ### Added
 
-- **Releases, and cameras that update themselves** (2026-10-15, owner). A tag `v<version>` now
-  publishes `web.yml`'s tested ObservANT packages as a GitHub release, with a `SHA256SUMS` and
-  the version's CHANGELOG section as notes (`scripts/linux/publish-release.sh`, refusing a tag
-  that is not pubspec's version). The `.deb` brings `omni-observant-update.timer`: every night
+- **Branches, CI rounds and releases** (2026-10-15, owner; the family's rule in
+  ANTfrastructure's `docs/branch-and-release-strategy.md`). A push to `develop` runs Linux x64
+  alone; the Linux arm64, Windows x64 and arm64, Android and web lanes run when a commit message
+  asks with `[ci <lane>]` (`[ci windows]`, `[ci arm64]`, `[ci all]`), read by the new
+  `on-request.yml`, or by hand, since every lane has *Run workflow* now. `main` moves only
+  by the owner's fast-forward to a fully green `develop` commit.
+- **Releases, and cameras that update themselves** (2026-10-15, owner). Every push to `main`
+  runs the new `release.yml`: every lane once more, then the tag `v<version>` and a GitHub
+  release with `web.yml`'s tested ObservANT packages, a `SHA256SUMS` and the version's
+  CHANGELOG section as notes, only when every lane is green. A version that is released
+  already, or has no CHANGELOG section, stops it within a minute
+  (`scripts/linux/publish-release.sh --check`). The `.deb` brings `omni-observant-update.timer`: every night
   it installs a newer release's package for the camera's architecture once it matches the
   release's checksum, and leaves the camera alone otherwise; `systemctl disable --now
   omni-observant-update.timer` turns it off. Both are tested: the release script against a

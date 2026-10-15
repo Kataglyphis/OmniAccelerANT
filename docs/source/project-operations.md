@@ -314,32 +314,40 @@ check would fail forever and teach the next reader that the flag does not work.
 
 ## Release Hygiene
 
-**Branches.** `develop` is the default branch and the only one work lands on. `main` is the
-release branch: it moves only when the owner merges a release (tagged `v<version>` since 2.1.0,
-`1.1.0+1` before), so
-between releases it trails `develop` by design (416 commits on 2026-10-05). Nothing deploys from
-`main` alone. Every lane runs on pushes to either branch, except that a push touching only
-`docs/**` or root-level `*.md` runs Linux x64 alone (`paths-ignore`, 2026-10-12), and the API
-docs deploy over FTP on any push. Neither branch is protected, by the owner's decision of 2026-10-05.
+**Branches and CI rounds** follow the family's rule, [ANTfrastructure's
+`branch-and-release-strategy.md`](../../third_party/ANTfrastructure/docs/branch-and-release-strategy.md) (owner, 2026-10-15). `develop` is the
+default branch and the only one work lands on; every push to it runs `linux-x64.yml`, which
+also deploys the API docs over FTP. The other lanes run on request: `[ci <lane>]` in a commit
+message, read by `on-request.yml`, or *Run workflow*. `main` is the release branch: it moves
+only by the owner's fast-forward to a `develop` commit whose full round is green, so between
+releases it trails `develop` by design (416 commits on 2026-10-05). Neither branch is protected,
+by the owner's decision of 2026-10-05.
 
 - Keep dependency upgrades and feature changes in separate pull requests.
 - Regenerate bridge code when Rust API signatures change.
 - Update docs in the same pull request for any user-facing behavior changes.
 
-**Publishing a release** (2026-10-15). A tag `v<version>`, the version `pubspec.yaml` carries
-without its `+build`, runs `web.yml` like any push, and its `release` job publishes that run's
-ObservANT packages once both package jobs and their install tests are green: the `.deb`,
-AppImage, flatpak and tarball for x64 and arm64, and the Windows MSI, MSIX (with its test
-certificate) and zip, plus a `SHA256SUMS` over them. The release notes are `CHANGELOG.md`'s
-section headed `## <version>`. `scripts/linux/publish-release.sh` does it and refuses a tag that
-is not pubspec's version, a version without a CHANGELOG section, or a run without packages;
-`scripts/linux/tests/test-publish-release.sh` checks each of those in the native lane. riscv64
-has no package in a release, since no CI lane builds one.
+**Publishing a release** (2026-10-15). Every push to `main` starts `release.yml`:
 
-1. Bump `version:` in `pubspec.yaml` and `msix_config.msix_version` together (AGENTS.md § 4).
-2. Turn `## Unreleased` into `## <version> — <date>` and open a new, empty `## Unreleased`.
-3. Merge `develop` into `main`, then tag the merge: `git tag v<version> && git push origin
-   v<version>`. The owner moves `main`.
+1. Its `version` job runs `scripts/linux/publish-release.sh --check` and stops within a minute
+   unless `v<version>` (the version `pubspec.yaml` carries, without its `+build`) has a
+   `CHANGELOG.md` section headed `## <version>` and no GitHub release yet.
+2. It calls all six lanes on that commit, as reusable workflows in the same run.
+3. Its `release` job `needs:` all six, so it runs only when every one is green. It tags the
+   commit `v<version>` and publishes the ObservANT packages `web.yml` built and install-tested
+   in that run: the `.deb`, AppImage, flatpak and tarball for x64 and arm64, and the Windows
+   MSI, MSIX (with its test certificate) and zip, plus a `SHA256SUMS` over them, with the
+   CHANGELOG section as notes.
+
+`scripts/linux/tests/test-publish-release.sh` runs in the native lane and checks that the script
+refuses a released version, a version without a CHANGELOG section, a run without packages and
+a GitHub that does not answer. riscv64 has no package in a release, since no CI lane builds one.
+
+1. On `develop`: bump `version:` in `pubspec.yaml` and `msix_config.msix_version` together
+   (AGENTS.md § 4), turn `## Unreleased` into `## <version> — <date>` and open a new, empty
+   `## Unreleased`. Commit with `[ci all]` in the message.
+2. Wait until every run on that commit is green, `on-request.yml`'s six lanes included.
+3. The owner fast-forwards `main` to that commit: `git push origin <sha>:main`.
 
 ## Dependency upgrades, in detail
 

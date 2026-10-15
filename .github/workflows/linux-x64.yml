@@ -2,12 +2,14 @@
 
 name: Linux x64 · build + test
 
+# The one lane every push to develop runs; release.yml calls it on main (third_party/ANTfrastructure/docs/branch-and-release-strategy.md).
 on:
   push:
-    branches: ["main", "develop"]
+    branches: ["develop"]
   pull_request:
     branches: ["main", "develop"]
   workflow_dispatch:
+  workflow_call:
 
 # Its own group, so neither architecture cancels the other.
 concurrency:

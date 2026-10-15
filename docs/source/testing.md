@@ -97,18 +97,19 @@ The notes under AGENTS.md's lane table, moved here on 2026-10-15.
 - Every lane runs the plugin's Dart tests through the same strict gate as the
   app's: `run_flutter_common_checks` on Linux, *Plugin Flutter Tests* in
   `Build-Windows.ps1`, `Invoke-FlutterTests.ps1` on arm64.
-- A push that touches only `docs/**` or root-level `*.md` runs Linux x64 alone, which
-  builds and deploys the docs (and Submodule pins when a gitlink moved). The other five
-  build workflows skip it through `paths-ignore` on `push` (2026-10-12), so a docs commit
-  neither queues two hour-long Windows lanes nor cancels the ones in flight. Pull
-  requests always run everything, so no required check waits on a skipped workflow.
-- **A push to `develop` cancels the round in flight,** on purpose: every workflow's
-  `concurrency` has `cancel-in-progress: true`, because a superseded verdict is not worth an
-  hour of Windows runner. Sessions that push every twenty minutes therefore finish no round:
-  on 2026-10-12, 77 of the day's 142 push runs were cancelled, about 18 hours of runner
-  wall time, 28 of them Windows lanes. So batch: commit locally, and push when the round on
-  `origin/develop` has finished, or while it is still queued (it then reruns with your
-  commit in it). `gh run list --branch develop --limit 8` shows where it stands.
+- **A push to `develop` runs Linux x64 alone** (since 2026-10-15, the family's rule in
+  [ANTfrastructure's `branch-and-release-strategy.md`](../../third_party/ANTfrastructure/docs/branch-and-release-strategy.md)). The
+  other five lanes run when a commit message asks, with `[ci windows]`, `[ci arm64]`,
+  `[ci android]`, `[ci web]` or `[ci all]`; `on-request.yml` reads the tokens and calls those
+  lanes. Every lane also has *Run workflow* (`gh workflow run windows-x64.yml --ref develop`).
+  So a change to Windows-only code carries `[ci windows]`, and a test that only one of the
+  columns above runs is proved by asking for that lane.
+- **Every push to `main` runs every lane** through `release.yml`, and releases only when all
+  are green (project-operations.md § *Release Hygiene*).
+- **A newer request for a lane cancels its older run on the same branch** (each lane's
+  `concurrency` has `cancel-in-progress: true`); a push without a token cancels nothing.
+  Before 2026-10-15 every push started every lane, and on 2026-10-12 that cancelled 77 of
+  the day's 142 push runs, about 18 hours of runner wall time.
 
 ## Running them
 
