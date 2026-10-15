@@ -108,8 +108,10 @@ foreach ($name in $plugins + $optional) {
 }
 Copy-Item -LiteralPath (Join-Path $runtime 'libexec\gstreamer-1.0\gst-plugin-scanner.exe') -Destination $scanDir
 
+# Before the closure: the producer loads ORT at run time, so only ORT's own imports name what it needs (msvcp140_1.dll).
+Copy-ChainOrtBeside -OnnxRoot $env:ONNX_ROOT -Destination $stage | Out-Null
 # Imports, transitively, from the image's runtime; plugins and the scanner resolve against the exe's folder too.
-$roots = @(Join-Path $stage (Split-Path $Producer -Leaf)) + @(Get-ChildItem $plugDir, $scanDir -File | ForEach-Object FullName)
+$roots = @(Get-ChildItem $stage -File | Where-Object Extension -In '.exe', '.dll' | ForEach-Object FullName) + @(Get-ChildItem $plugDir, $scanDir -File | ForEach-Object FullName)
 # arm64 also searches Visual Studio's arm64 redist, since this x64 container's System32 holds x64 DLLs only.
 $searchDirs = if ($arch -eq 'arm64') { @(Get-ProductDllSearchPath -Arch $arch) } else { @(Join-Path $runtime 'bin') }
 $closure = Copy-PeImportClosure -Path $roots -SearchDirectory $searchDirs -Destination $stage -Arch $arch
@@ -134,7 +136,6 @@ foreach ($name in $vcNames) {
 }
 Write-Host "VC++ runtime: $(@($vcNames) -join ', ')"
 
-Copy-ChainOrtBeside -OnnxRoot $env:ONNX_ROOT -Destination $stage | Out-Null
 $modelDir = Join-Path $stage 'models'
 if ($Model) {
     Copy-Item -LiteralPath $Model -Destination $modelDir
