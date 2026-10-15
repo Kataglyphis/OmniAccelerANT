@@ -325,6 +325,21 @@ docs deploy over FTP on any push. Neither branch is protected, by the owner's de
 - Regenerate bridge code when Rust API signatures change.
 - Update docs in the same pull request for any user-facing behavior changes.
 
+**Publishing a release** (2026-10-15). A tag `v<version>`, the version `pubspec.yaml` carries
+without its `+build`, runs `web.yml` like any push, and its `release` job publishes that run's
+ObservANT packages once both package jobs and their install tests are green: the `.deb`,
+AppImage, flatpak and tarball for x64 and arm64, and the Windows MSI, MSIX (with its test
+certificate) and zip, plus a `SHA256SUMS` over them. The release notes are `CHANGELOG.md`'s
+section headed `## <version>`. `scripts/linux/publish-release.sh` does it and refuses a tag that
+is not pubspec's version, a version without a CHANGELOG section, or a run without packages;
+`scripts/linux/tests/test-publish-release.sh` checks each of those in the native lane. riscv64
+has no package in a release, since no CI lane builds one.
+
+1. Bump `version:` in `pubspec.yaml` and `msix_config.msix_version` together (AGENTS.md § 4).
+2. Turn `## Unreleased` into `## <version> — <date>` and open a new, empty `## Unreleased`.
+3. Merge `develop` into `main`, then tag the merge: `git tag v<version> && git push origin
+   v<version>`. The owner moves `main`.
+
 ## Dependency upgrades, in detail
 
 AGENTS.md § 5 (Build, run, test) has the commands and the report-first rule. These are the
