@@ -697,3 +697,210 @@ both reproduced in `:latest` (2026-10-01):
 Release builds lost AccelerANTgine's googletest headers and archives from the
 bundle as a side effect. The plugin's gtest fetches its own googletest.
 Windows is unchanged, since its Debug preset ships ASan on purpose.
+
+## The Windows lanes in detail
+
+Moved here from AGENTS.md on 2026-10-15, which keeps the rules and links this detail.
+
+Windows builds run containerized, and **CI runs the exact same script** — the
+workflow [`windows-x64.yml`](../../.github/workflows/windows-x64.yml)
+calls `Build-Windows.ps1` through ANTfrastructure's `run-in-windows-container`
+action, so "works locally" and "works in CI" are the same steps by construction.
+Locally:
+
+```powershell
+& "$env:ProgramFiles\Stevedore\bin\docker.exe" run --rm --isolation process `
+  --mount "type=bind,source=$PWD,target=C:\ws-mnt" -w C:\ws-mnt `
+  ghcr.io/kataglyphis/kataglyphis_beschleuniger:winamd64 `
+  pwsh -NoProfile -ExecutionPolicy Bypass -File C:\ws-mnt\scripts\windows\Build-Windows.ps1 `
+    -SkipMsixPackaging
+```
+
+`-SkipMsixPackaging` alone is exactly what the workflow passes; adding
+`-Configurations` is a deliberate deviation, not the parity run. **Run it in the
+container, not on the host** — the Windows engine is Stevedore's, not Rancher
+Desktop's, whose `docker`/`nerdctl` shims are first on `PATH`, and the host's
+`cmake` is Strawberry Perl's 3.29.2, too old for
+`cmake_minimum_required(VERSION 3.31.6)`. The 2026-09-06 parity run, what it
+produced and which stale pre-rename artifacts sit beside it:
+[`docs/source/platforms.md`](platforms.md) § *Windows build-step
+traps and MSIX packaging*.
+
+**The mount target must not already exist in the image.** `target=C:\workspace`
+fails at container creation with `hcs::CreateComputeSystem ... The request is not
+supported` on hosts whose Docker/hcsshim is version-skewed from the image —
+`C:\workspace` is a baked image dir. Use a fresh target (`C:\ws-mnt` above; CI
+mounts `D:\ws → C:\ws`). ANTfrastructure owns the why (AGENTS.md § 2).
+
+**On the dev box the command above fails as written; junction first.** On this
+skewed host, Dart's and CMake's write-then-rename steps fail on the bind mount
+under a real build (AGENTS.md § 4). The command then reds up to ten steps: `PathNotFoundException`
+on Flutter's `sqlite3.dll` copy, and a `GOOGLE_BENCHMARK` `try_run` that cannot
+find its own `cmTC_*Targets.cmake`. Two things fix it:
+- Start from a checkout with no root or plugin `.dart_tool`/`build`. A Linux
+  lane's plugin `package_config.json` reds *Dart Analysis* on its own.
+- Inside the container, junction those four directories to container-local
+  ones before `Build-Windows.ps1`: [`docs/source/platforms.md`](platforms.md)
+  § *Containerized build (Stevedore, recommended)*.
+
+With both, all three of `windows-x64.yml`'s container steps passed locally on
+2026-10-05 (27/27, 24/24, 20/20 steps). CI's fresh clone on `windows-2025` needs
+neither. `Build-Windows-Container.ps1` avoids both by construction: it streams
+the sources into the container instead of mounting them, and leaves the root
+`build` and every `.dart_tool` out.
+
+Six quality/output steps run before the native build (`-CodeQL` short-circuits
+before them), each skippable with the paired switch: **Dart format + CMake
+format** (`-SkipFormat`), **Dart analyze + Flutter tests + Plugin Flutter tests**
+(`-SkipTests`), **API docs generation** (`-SkipDocs`). `-SkipTests` also skips
+**Build Native Plugin Tests (gtest)**, which builds the plugin's gtest after each
+preset's runner is staged; `windows-x64.yml` runs it on the host, since
+`flutter_windows.dll` does not load in the Server Core image (0xC0000135).
+
+**A failed step does not abort the run.** None of them is declared `-Critical`,
+and `-StopOnError` is off by default, so the step is recorded and the build
+carries on — the log still ends with `=== Build Complete ===` even when
+something failed, and the script only exits 1 from its `finally` block. A real
+run shows both lines together (`FAILED: MSIX Packaging` … `=== Build Complete ===`).
+**Trust the process exit code and `failedSteps` in `logs/build-summary-*.json`,
+never the log tail.**
+
+Two Windows-specific traps these steps carry: the format gate hands `dart
+format` the tracked file list (`Get-ProjectDartFiles`, the list of AGENTS.md § 4)
+rather than `.` (the recursive walk reaches the vendored submodule gitdir and
+exceeds MAX_PATH), and docs generation
+runs a `pub global activate dartdoc` (≥ 9.0.9) instead of the SDK-bundled
+`dart doc`, whose 9.0.4 crashes on any Flutter app. Both:
+[`docs/source/platforms.md`](platforms.md) § *Windows build-step
+traps and MSIX packaging*.
+
+- Preset aliases: `clangcl-{debug,profile,release}`, `msvc-{debug,release}`,
+  `clang-{debug,profile,release}` → `x64-ClangCL-Windows-Debug` etc.
+- Switches: `-SkipTests`, `-SkipFormat`, `-SkipDocs`, `-CleanBuild`, `-SkipMsixPackaging`,
+  `-SkipBootstrapFlutterBuild`, `-ContinueOnError`/`-StopOnError`, `-CodeQL`. The
+  closing **Delivery Check** cannot be skipped.
+- Logs land in `logs/` (`build-windows-*.log` + `build-summary-*.json`); API
+  docs in `doc/api` (git-ignored).
+
+**The agentic loop (adopted 2026-09-13).** `scripts/agentic-loop/` holds the
+config, both runner wrappers and the project prompt overlays. Engine `opencode`,
+executor `opencode-go/deepseek-v4.1-flash`, planner `opencode-go/glm-5.2`. It
+runs on the host and builds through `scripts/windows/Build-Windows-Container.ps1`,
+which drives `Build-Windows.ps1` in a **reused** Stevedore container (tar-pipe
+transport, `WindowsContainerBuild.Reuse`, so Cargo/sccache/pub caches survive)
+and always skips docs and MSIX. Tests are `-TestsOnly` — the Dart gates in the
+same container. The config contract and build-matrix semantics are owned by
+[`third_party/ANTfrastructure/docs/windows-agentic-loop.md`](../../third_party/ANTfrastructure/docs/windows-agentic-loop.md);
+`.opencode/agents/` is generated and gitignored — edit the overlays, never it.
+
+**The engine is opencode v2, on Windows and Linux alike (owner directive
+2026-09-28).** Never install or run opencode v1 for this loop. v2 is the npm
+package `@opencode/cli`. Install it with `curl -fsSL https://opencode.ai/v2/install | bash`
+into `~/.opencode/bin`; on Windows run that from Git Bash with
+`--no-modify-path`, then put `%USERPROFILE%\.opencode\bin` first on the user
+`PATH`. Scoop and GitHub releases still ship 1.x. v2 does not read v1's saved
+login, so run `opencode auth login` once more under v2, then check `opencode
+models` for both model IDs above. The loop passes `--standalone` (both roles)
+and `--auto` (executor), and the pinned hub refuses a v1 on `PATH` with a
+FATAL. Why each flag, and what v1 did instead:
+[`windows-agentic-loop.md` § *opencode v2*](../../third_party/ANTfrastructure/docs/windows-agentic-loop.md#opencode-v2).
+
+```powershell
+pwsh -File scripts/agentic-loop/Invoke-AgenticLoop.ps1            # planner + executor
+pwsh -File scripts/agentic-loop/Invoke-AgenticLoop.ps1 -DryRun    # wiring check
+pwsh -File scripts/agentic-loop/Invoke-AgenticLoop.ps1 -PlannerOnly
+pwsh -File scripts/agentic-loop/Invoke-AgenticLoop.ps1 -ExecutorOnly
+```
+
+The loop does not watch CI and auto-commits with `git add -A`; do not run
+interactive work in the same tree without checking whether it is live. The loop
+itself is ANTfrastructure's —
+[`docs/adopting-in-a-new-project.md` § 4](../../third_party/ANTfrastructure/docs/adopting-in-a-new-project.md#4-the-agentic-loop).
+
+**MSIX packaging.** `msix_config.build_windows` is `false` on purpose — this
+script owns the build — and the **MSIX Compatibility Layout** step copies the
+preset's output into the flat `runner\Release\` directory that msix looks for.
+CI passes `-SkipMsixPackaging`, so packaging is exercised only locally, which is
+how both halves stayed broken unnoticed until 2026-09-03:
+[`docs/source/platforms.md`](platforms.md) § *Windows build-step
+traps and MSIX packaging*.
+
+**The CI lane** ([`windows-x64.yml`](../../.github/workflows/windows-x64.yml))
+is three ANTfrastructure actions, one hub script and GitHub's
+`actions/upload-artifact`: `prepare-windows-container-host`,
+the hub's `windows/scripts/Invoke-Lint.ps1 -Path scripts` (a PowerShell parse
+gate on the host, before the ~54 GB image pull), `run-in-windows-container`,
+`actions/upload-artifact` and `upload-codeql-sarif` (plus the `ort-runner-suite`
+job: a checkout and `run-pester-suite` over `scripts/windows/tests`, no
+container). After the upload, four host steps test the runner outside the image,
+as the arm64 lane does: `Test-KntAbi.ps1`, `Invoke-PluginGTest.ps1`, the hub's
+`Test-TargetArch.ps1 -ImportWalk -Standalone`, and `Test-LaunchSmoke.ps1
+-OrtStamp`. Three consequences, each easy to undo by accident:
+
+- It prunes `third_party/DocumANTation` from the recursive checkout. Without
+  that, the nested `.git/modules/<name>/` chain makes git abort with
+  `fatal: '$GIT_DIR' too big` — git's own limit, not MAX_PATH, so no clone root
+  is short enough.
+- `mount-source`/`mount-target` stay unset, because the action already defaults
+  to `D:\ws` → `C:\ws`, which is where the short-path clone put the tree.
+- Artifact paths — and the lint step's `working-directory` — are therefore
+  **absolute under the short-path clone** (`steps.prep.outputs.workspace`),
+  never relative to `github.workspace`.
+
+The measurements behind all three — the gitdir-length table, the two directory
+renames that fixed it, and why a local checkout is the worst case — are in
+[`docs/source/platforms.md`](platforms.md) § *The Windows CI lane
+and the `$GIT_DIR` limit*.
+
+CI passes `-SkipMsixPackaging`, and `-CodeQL` is off there because of runtimes.
+
+A second job, `build-clang-debug`, builds the `clangcl-debug` preset (ASan + UBSan) and its
+integration-test twin in one container (`Build-WindowsDebugApps.ps1`, since 2026-10-15): the
+twin reuses the first build's tree, where a container of its own rebuilt all 520 targets
+(11:45 of 14.9 min). The plain app is kept as `…-Debug-app` for the launch smoke, the twin
+stays at `…-Debug` for the integration test, and both carry Microsoft's ASan runtime as
+`Start-Windows.ps1` stages it locally; the Release job keeps the lane's quality gates.
+
+**The Windows arm64 lane is a hybrid** ([`windows-arm64.yml`](../../.github/workflows/windows-arm64.yml),
+2026-09-27). Flutter cannot cross-build `windows-arm64` from an x64 host
+(flutter/flutter#62597), so the lane has three build jobs (and the `ort-runner-suite`
+Pester job, below):
+- `natives` runs `scripts/windows/Build-WindowsArm64Natives.ps1` in the hub's arm64 container
+  lane. It cross-builds AccelerANTgine and `oxidant.dll`, without DirectML, because the arm64
+  ORT has no DirectML EP.
+- `app` builds the Flutter part natively on `windows-11-arm` against those, with clang-cl like
+  every other Windows build here: `scripts/windows/Build-WindowsArm64App.ps1`. Two environment
+  switches do it. `CARGOKIT_PREBUILT_DIR` is a local Cargokit patch that copies the DLL and
+  skips cargo. `KATAGLYPHIS_ACCELERANTGINE_PREBUILT` makes the plugin link an imported
+  AccelerANTgine instead of `add_subdirectory`.
+- `app-debug` builds the same app as a Debug (ASan) one: `Build-WindowsArm64App.ps1
+  -Configuration Debug`, /MD like the natives (clang-cl strips /MDd under ASan, so no debug
+  CRT), the aarch64 ASan runtime staged from the runner's own VS, and the launch smoke proves
+  the instrumented app starts.
+
+With both switches unset, x64 builds exactly as before.
+
+The lane went green in run 36322839058 and has built with clang-cl since test run 36622834879
+(2026-09-29). On the device, the app tree passes the hub's import walk (40 files, 0
+unresolved), and the app stays up 20 s at 147 MB with a real window. Two traps surfaced on the
+way there:
+- **Never a plain `flutter build windows` there.** Flutter hands CMake the Visual Studio
+  generator without a toolset, so MSVC's `cl` compiled the whole app. First it stopped at
+  clang-cl's `-Wno-…` flags (D8021). Then, once the runner moved to VS 2026
+  (`windows-11-vs2026-arm64`, MSVC 14.51, 2026-09-29), it stopped at permission_handler_windows'
+  `/await` (STL1011). The script builds the way x64 does:
+  - Flutter's `--config-only` runs under the ClangCL toolset, through a toolchain file in
+    `CMAKE_TOOLCHAIN_FILE`.
+  - Then Ninja and VS's own clang-cl build the app.
+  - It fails when either build tree recorded any other compiler.
+
+  `APPLY_STANDARD_SETTINGS` still gives the `-Wno-…` flags to clang only; that guard is for the
+  MSVC presets.
+- `.plugin_symlinks` is a junction there that `REALPATH` leaves unresolved. That is why the
+  cross-built AccelerANTgine brings its own C API headers.
+
+The app job tests what it built, with the scripts the x64 lane uses:
+`Invoke-FlutterTests.ps1` (the app's and the plugin's Dart suites on the arm64
+Dart VM, one `TESTS:` line), `Test-KntAbi.ps1`, `Invoke-PluginGTest.ps1` (the
+target `Build-WindowsArm64App.ps1` builds), and `Test-LaunchSmoke.ps1 -OrtStamp`.
+Its `ort-runner-suite` job runs the Pester suite on `windows-11-arm`.

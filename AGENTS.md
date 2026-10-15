@@ -564,23 +564,13 @@ written out rather than linked.
 
 ## 5. Build, run, test
 
-**Both lanes run the same thing locally and in CI. Reproduce locally first —
-CI is not a debugger.**
+**Both lanes run the same thing locally and in CI; reproduce locally first, CI is not a
+debugger.** **Run one lane at a time**: every local lane bind-mounts the same checkout and its
+per-host generated files (`android/local.properties`, `.dart_tool`, the plugin symlinks), so two
+at once break each other with errors that name neither. CI never sees this.
 
-**Run one lane at a time.** Every local lane bind-mounts the *same* checkout,
-and the generated files at its root are per-host, not per-lane
-(`android/local.properties`, the ephemeral plugin symlinks, `.dart_tool`, the
-iOS/macOS `Generated.*`). Two lanes running together overwrite each other
-mid-build and the failure names neither of them — a Windows container run
-beside a Linux Android run left `flutter.sdk=C:\ProgramData\...` next to
-`sdk.dir=/opt/android-sdk`, and Gradle stopped on a path that was both. CI never
-sees this: each lane is its own runner with its own clone.
-
-Windows builds run containerized, and **CI runs the exact same script** — the
-workflow [`windows-x64.yml`](.github/workflows/windows-x64.yml)
-calls `Build-Windows.ps1` through ANTfrastructure's `run-in-windows-container`
-action, so "works locally" and "works in CI" are the same steps by construction.
-Locally:
+Windows builds run in the `:winamd64` container, and **CI runs the exact same
+`Build-Windows.ps1`** through the hub's `run-in-windows-container`. Locally:
 
 ```powershell
 & "$env:ProgramFiles\Stevedore\bin\docker.exe" run --rm --isolation process `
@@ -590,94 +580,39 @@ Locally:
     -SkipMsixPackaging
 ```
 
-`-SkipMsixPackaging` alone is exactly what the workflow passes; adding
-`-Configurations` is a deliberate deviation, not the parity run. **Run it in the
-container, not on the host** — the Windows engine is Stevedore's, not Rancher
-Desktop's, whose `docker`/`nerdctl` shims are first on `PATH`, and the host's
-`cmake` is Strawberry Perl's 3.29.2, too old for
-`cmake_minimum_required(VERSION 3.31.6)`. The 2026-09-06 parity run, what it
-produced and which stale pre-rename artifacts sit beside it:
-[`docs/source/platforms.md`](docs/source/platforms.md) § *Windows build-step
-traps and MSIX packaging*.
+- **In the container with Stevedore's `docker.exe`**, never on the host (Rancher's shims come
+  first on `PATH`, and the host's CMake is too old), and **never mounted at a path the image
+  has** (`C:\workspace` fails with `hcs::CreateComputeSystem`).
+- **On the dev box, junction first**: start without the root and plugin `.dart_tool`/`build` and
+  junction those four to container-local directories, or Dart's and CMake's write-then-rename
+  steps fail on the mount. `Build-Windows-Container.ps1` streams the sources in and needs neither.
+- **A failed step does not abort the run**, and the log still ends with `=== Build Complete ===`:
+  trust the exit code and `failedSteps` in `logs/build-summary-*.json`, never the log tail.
+- Presets `clangcl-{debug,profile,release}`, `msvc-{debug,release}`, `clang-{debug,profile,release}`;
+  switches `-SkipTests`, `-SkipFormat`, `-SkipDocs`, `-CleanBuild`, `-SkipMsixPackaging`,
+  `-SkipBootstrapFlutterBuild`, `-ContinueOnError`/`-StopOnError`, `-CodeQL` (the closing
+  Delivery Check cannot be skipped). Logs in `logs/`, API docs in `doc/api`.
+- **MSIX packaging runs only locally**: CI passes `-SkipMsixPackaging`, and `runner\Release` is the
+  flat copy of the first preset that msix reads.
+- **CI** ([`windows-x64.yml`](.github/workflows/windows-x64.yml)): the hub's PowerShell lint on the
+  host before the ~54 GB image pull, the Release build with the lane's quality gates, four host
+  checks of the runner (C ABI, plugin gtest, import walk, launch smoke with the ORT stamp), and
+  `build-clang-debug`, which builds the ASan Debug app and its integration twin in one container
+  (`Build-WindowsDebugApps.ps1`) for the launch smoke and `flutter drive`. The checkout prunes
+  `third_party/DocumANTation` (`'$GIT_DIR' too big`), so every path is absolute under the
+  short-path clone.
+- **Windows arm64** ([`windows-arm64.yml`](.github/workflows/windows-arm64.yml)) is a hybrid,
+  since Flutter cannot cross-build `windows-arm64`: the natives cross-build in the hub's arm64
+  container, the app builds on `windows-11-arm` with clang-cl through `Build-WindowsArm64App.ps1`
+  (never a plain `flutter build windows`, which picks MSVC), and the device runs x64's tests.
 
-**The mount target must not already exist in the image.** `target=C:\workspace`
-fails at container creation with `hcs::CreateComputeSystem ... The request is not
-supported` on hosts whose Docker/hcsshim is version-skewed from the image —
-`C:\workspace` is a baked image dir. Use a fresh target (`C:\ws-mnt` above; CI
-mounts `D:\ws → C:\ws`). ANTfrastructure owns the why — see § 2.
+All of it, with the measurements: [`docs/source/platforms.md`](docs/source/platforms.md) § *The Windows lanes in detail*.
 
-**On the dev box the command above fails as written; junction first.** On this
-skewed host, Dart's and CMake's write-then-rename steps fail on the bind mount
-under a real build (§ 4). The command then reds up to ten steps: `PathNotFoundException`
-on Flutter's `sqlite3.dll` copy, and a `GOOGLE_BENCHMARK` `try_run` that cannot
-find its own `cmTC_*Targets.cmake`. Two things fix it:
-- Start from a checkout with no root or plugin `.dart_tool`/`build`. A Linux
-  lane's plugin `package_config.json` reds *Dart Analysis* on its own.
-- Inside the container, junction those four directories to container-local
-  ones before `Build-Windows.ps1`: [`docs/source/platforms.md`](docs/source/platforms.md)
-  § *Containerized build (Stevedore, recommended)*.
-
-With both, all three of `windows-x64.yml`'s container steps passed locally on
-2026-10-05 (27/27, 24/24, 20/20 steps). CI's fresh clone on `windows-2025` needs
-neither. `Build-Windows-Container.ps1` avoids both by construction: it streams
-the sources into the container instead of mounting them, and leaves the root
-`build` and every `.dart_tool` out.
-
-Six quality/output steps run before the native build (`-CodeQL` short-circuits
-before them), each skippable with the paired switch: **Dart format + CMake
-format** (`-SkipFormat`), **Dart analyze + Flutter tests + Plugin Flutter tests**
-(`-SkipTests`), **API docs generation** (`-SkipDocs`). `-SkipTests` also skips
-**Build Native Plugin Tests (gtest)**, which builds the plugin's gtest after each
-preset's runner is staged; `windows-x64.yml` runs it on the host, since
-`flutter_windows.dll` does not load in the Server Core image (0xC0000135).
-
-**A failed step does not abort the run.** None of them is declared `-Critical`,
-and `-StopOnError` is off by default, so the step is recorded and the build
-carries on — the log still ends with `=== Build Complete ===` even when
-something failed, and the script only exits 1 from its `finally` block. A real
-run shows both lines together (`FAILED: MSIX Packaging` … `=== Build Complete ===`).
-**Trust the process exit code and `failedSteps` in `logs/build-summary-*.json`,
-never the log tail.**
-
-Two Windows-specific traps these steps carry: the format gate hands `dart
-format` the tracked file list (`Get-ProjectDartFiles`, the list of § 4)
-rather than `.` (the recursive walk reaches the vendored submodule gitdir and
-exceeds MAX_PATH), and docs generation
-runs a `pub global activate dartdoc` (≥ 9.0.9) instead of the SDK-bundled
-`dart doc`, whose 9.0.4 crashes on any Flutter app. Both:
-[`docs/source/platforms.md`](docs/source/platforms.md) § *Windows build-step
-traps and MSIX packaging*.
-
-- Preset aliases: `clangcl-{debug,profile,release}`, `msvc-{debug,release}`,
-  `clang-{debug,profile,release}` → `x64-ClangCL-Windows-Debug` etc.
-- Switches: `-SkipTests`, `-SkipFormat`, `-SkipDocs`, `-CleanBuild`, `-SkipMsixPackaging`,
-  `-SkipBootstrapFlutterBuild`, `-ContinueOnError`/`-StopOnError`, `-CodeQL`. The
-  closing **Delivery Check** cannot be skipped.
-- Logs land in `logs/` (`build-windows-*.log` + `build-summary-*.json`); API
-  docs in `doc/api` (git-ignored).
-
-**The agentic loop (adopted 2026-09-13).** `scripts/agentic-loop/` holds the
-config, both runner wrappers and the project prompt overlays. Engine `opencode`,
-executor `opencode-go/deepseek-v4.1-flash`, planner `opencode-go/glm-5.2`. It
-runs on the host and builds through `scripts/windows/Build-Windows-Container.ps1`,
-which drives `Build-Windows.ps1` in a **reused** Stevedore container (tar-pipe
-transport, `WindowsContainerBuild.Reuse`, so Cargo/sccache/pub caches survive)
-and always skips docs and MSIX. Tests are `-TestsOnly` — the Dart gates in the
-same container. The config contract and build-matrix semantics are owned by
-[`third_party/ANTfrastructure/docs/windows-agentic-loop.md`](third_party/ANTfrastructure/docs/windows-agentic-loop.md);
-`.opencode/agents/` is generated and gitignored — edit the overlays, never it.
-
-**The engine is opencode v2, on Windows and Linux alike (owner directive
-2026-09-28).** Never install or run opencode v1 for this loop. v2 is the npm
-package `@opencode/cli`. Install it with `curl -fsSL https://opencode.ai/v2/install | bash`
-into `~/.opencode/bin`; on Windows run that from Git Bash with
-`--no-modify-path`, then put `%USERPROFILE%\.opencode\bin` first on the user
-`PATH`. Scoop and GitHub releases still ship 1.x. v2 does not read v1's saved
-login, so run `opencode auth login` once more under v2, then check `opencode
-models` for both model IDs above. The loop passes `--standalone` (both roles)
-and `--auto` (executor), and the pinned hub refuses a v1 on `PATH` with a
-FATAL. Why each flag, and what v1 did instead:
-[`windows-agentic-loop.md` § *opencode v2*](third_party/ANTfrastructure/docs/windows-agentic-loop.md#opencode-v2).
+**The agentic loop** (`scripts/agentic-loop/`, adopted 2026-09-13) runs opencode **v2 only**
+(owner directive 2026-09-28), executor `opencode-go/deepseek-v4.1-flash` and planner
+`opencode-go/glm-5.2`, builds through `Build-Windows-Container.ps1`, and auto-commits with `git
+add -A`: check whether it is live before working in the same tree. Edit its overlays, never the
+generated `.opencode/agents/`. Installing v2 and its flags: [`docs/source/platforms.md`](docs/source/platforms.md) § *The Windows lanes in detail*.
 
 ```powershell
 pwsh -File scripts/agentic-loop/Invoke-AgenticLoop.ps1            # planner + executor
@@ -685,99 +620,6 @@ pwsh -File scripts/agentic-loop/Invoke-AgenticLoop.ps1 -DryRun    # wiring check
 pwsh -File scripts/agentic-loop/Invoke-AgenticLoop.ps1 -PlannerOnly
 pwsh -File scripts/agentic-loop/Invoke-AgenticLoop.ps1 -ExecutorOnly
 ```
-
-The loop does not watch CI and auto-commits with `git add -A`; do not run
-interactive work in the same tree without checking whether it is live. The loop
-itself is ANTfrastructure's —
-[`docs/adopting-in-a-new-project.md` § 4](third_party/ANTfrastructure/docs/adopting-in-a-new-project.md#4-the-agentic-loop).
-
-**MSIX packaging.** `msix_config.build_windows` is `false` on purpose — this
-script owns the build — and the **MSIX Compatibility Layout** step copies the
-preset's output into the flat `runner\Release\` directory that msix looks for.
-CI passes `-SkipMsixPackaging`, so packaging is exercised only locally, which is
-how both halves stayed broken unnoticed until 2026-09-03:
-[`docs/source/platforms.md`](docs/source/platforms.md) § *Windows build-step
-traps and MSIX packaging*.
-
-**The CI lane** ([`windows-x64.yml`](.github/workflows/windows-x64.yml))
-is three ANTfrastructure actions, one hub script and GitHub's
-`actions/upload-artifact`: `prepare-windows-container-host`,
-the hub's `windows/scripts/Invoke-Lint.ps1 -Path scripts` (a PowerShell parse
-gate on the host, before the ~54 GB image pull), `run-in-windows-container`,
-`actions/upload-artifact` and `upload-codeql-sarif` (plus the `ort-runner-suite`
-job: a checkout and `run-pester-suite` over `scripts/windows/tests`, no
-container). After the upload, four host steps test the runner outside the image,
-as the arm64 lane does: `Test-KntAbi.ps1`, `Invoke-PluginGTest.ps1`, the hub's
-`Test-TargetArch.ps1 -ImportWalk -Standalone`, and `Test-LaunchSmoke.ps1
--OrtStamp`. Three consequences, each easy to undo by accident:
-
-- It prunes `third_party/DocumANTation` from the recursive checkout. Without
-  that, the nested `.git/modules/<name>/` chain makes git abort with
-  `fatal: '$GIT_DIR' too big` — git's own limit, not MAX_PATH, so no clone root
-  is short enough.
-- `mount-source`/`mount-target` stay unset, because the action already defaults
-  to `D:\ws` → `C:\ws`, which is where the short-path clone put the tree.
-- Artifact paths — and the lint step's `working-directory` — are therefore
-  **absolute under the short-path clone** (`steps.prep.outputs.workspace`),
-  never relative to `github.workspace`.
-
-The measurements behind all three — the gitdir-length table, the two directory
-renames that fixed it, and why a local checkout is the worst case — are in
-[`docs/source/platforms.md`](docs/source/platforms.md) § *The Windows CI lane
-and the `$GIT_DIR` limit*.
-
-CI passes `-SkipMsixPackaging`, and `-CodeQL` is off there because of runtimes.
-
-A second job, `build-clang-debug`, builds the `clangcl-debug` preset (ASan + UBSan) and its
-integration-test twin in one container (`Build-WindowsDebugApps.ps1`, since 2026-10-15): the
-twin reuses the first build's tree, where a container of its own rebuilt all 520 targets
-(11:45 of 14.9 min). The plain app is kept as `…-Debug-app` for the launch smoke, the twin
-stays at `…-Debug` for the integration test, and both carry Microsoft's ASan runtime as
-`Start-Windows.ps1` stages it locally; the Release job keeps the lane's quality gates.
-
-**The Windows arm64 lane is a hybrid** ([`windows-arm64.yml`](.github/workflows/windows-arm64.yml),
-2026-09-27). Flutter cannot cross-build `windows-arm64` from an x64 host
-(flutter/flutter#62597), so the lane has three build jobs (and the `ort-runner-suite`
-Pester job, below):
-- `natives` runs `scripts/windows/Build-WindowsArm64Natives.ps1` in the hub's arm64 container
-  lane. It cross-builds AccelerANTgine and `oxidant.dll`, without DirectML, because the arm64
-  ORT has no DirectML EP.
-- `app` builds the Flutter part natively on `windows-11-arm` against those, with clang-cl like
-  every other Windows build here: `scripts/windows/Build-WindowsArm64App.ps1`. Two environment
-  switches do it. `CARGOKIT_PREBUILT_DIR` is a local Cargokit patch that copies the DLL and
-  skips cargo. `KATAGLYPHIS_ACCELERANTGINE_PREBUILT` makes the plugin link an imported
-  AccelerANTgine instead of `add_subdirectory`.
-- `app-debug` builds the same app as a Debug (ASan) one: `Build-WindowsArm64App.ps1
-  -Configuration Debug`, /MD like the natives (clang-cl strips /MDd under ASan, so no debug
-  CRT), the aarch64 ASan runtime staged from the runner's own VS, and the launch smoke proves
-  the instrumented app starts.
-
-With both switches unset, x64 builds exactly as before.
-
-The lane went green in run 36322839058 and has built with clang-cl since test run 36622834879
-(2026-09-29). On the device, the app tree passes the hub's import walk (40 files, 0
-unresolved), and the app stays up 20 s at 147 MB with a real window. Two traps surfaced on the
-way there:
-- **Never a plain `flutter build windows` there.** Flutter hands CMake the Visual Studio
-  generator without a toolset, so MSVC's `cl` compiled the whole app. First it stopped at
-  clang-cl's `-Wno-…` flags (D8021). Then, once the runner moved to VS 2026
-  (`windows-11-vs2026-arm64`, MSVC 14.51, 2026-09-29), it stopped at permission_handler_windows'
-  `/await` (STL1011). The script builds the way x64 does:
-  - Flutter's `--config-only` runs under the ClangCL toolset, through a toolchain file in
-    `CMAKE_TOOLCHAIN_FILE`.
-  - Then Ninja and VS's own clang-cl build the app.
-  - It fails when either build tree recorded any other compiler.
-
-  `APPLY_STANDARD_SETTINGS` still gives the `-Wno-…` flags to clang only; that guard is for the
-  MSVC presets.
-- `.plugin_symlinks` is a junction there that `REALPATH` leaves unresolved. That is why the
-  cross-built AccelerANTgine brings its own C API headers.
-
-The app job tests what it built, with the scripts the x64 lane uses:
-`Invoke-FlutterTests.ps1` (the app's and the plugin's Dart suites on the arm64
-Dart VM, one `TESTS:` line), `Test-KntAbi.ps1`, `Invoke-PluginGTest.ps1` (the
-target `Build-WindowsArm64App.ps1` builds), and `Test-LaunchSmoke.ps1 -OrtStamp`.
-Its `ort-runner-suite` job runs the Pester suite on `windows-11-arm`.
 
 ### What each lane tests
 
@@ -808,67 +650,19 @@ cell is a test that cannot run there, and the reason is under the table.
 | ObservANT MSI install checks (`Test-ObservANTWindows.ps1`) | | | | | in `web.yml`'s `observant-windows` job, in `:winamd64` |
 | ObservANT MSIX package checks (`Test-ObservANTMsix.ps1`, without `-Install`) | | | | | in `web.yml`'s `observant-windows` job, in `:winamd64` |
 
-- Android and Web build no desktop runner, so the desktop rows do not apply
-  there; Android adds the plugin's JVM test and the emulator run. The image carries
-  the emulator and Chrome (hub CON50, owner 2026-10-01); `android.yml` opens
-  `/dev/kvm` to the container and boots the AVD with `android-avd.sh` (since 2026-10-06).
-- ObservANT checks live with ObservANT packages, which only `web.yml` builds,
-  since they wrap its web build. They run as root in `:latest` and drive headless
-  Chrome against the installed service. The MSI's run in `:winamd64` as
-  ContainerAdministrator, where a `webrtcsrc` viewer plays the installed exe.
-- The integration test runs on both Windows architectures by driving the app the
-  build made (`flutter drive --use-application-binary`) — x64 from the `-FlutterTarget` build
-  `Build-WindowsDebugApps.ps1` makes on the Debug tree, arm64 from `Build-WindowsArm64App.ps1 -FlutterTarget` —
-  because `flutter test -d windows` would build with Flutter's MSVC default.
-- The mutation suite builds synthetic ELFs for the Linux closure gate; Windows has
-  no ELF and no such gate. Pester tests PowerShell that only Windows lanes run.
-- The plugin's C++ format gate needs only the sources, so one lane grades them for
-  every platform; Windows has no C++ format step. The coverage floor is the same kind of
-  check: one lane's `flutter test --coverage` measures the same Dart everywhere. It counts
-  `lib/` without the generated bridge and localizations, was 96.5 % on 2026-10-13 (62 %
-  the morning before, ahead of the native Stream page and Rust camera view tests), and fails the
-  batch below the `--min` in `lane-native-linux.sh`, which states it once and moves up
-  as tests are added; a file no test imports is not in the report at all.
-- The rustc stamp lives in an ELF `.comment`, which a Windows PE does not have. The
-  web lane builds its wasm with `build-web` and the dated nightly it names (§ 4), not
-  Cargokit.
-- The frame timings run on Linux x64 alone: a profile build costs minutes, and one arch is enough
-  to see the Dart side get slower. `reusable-linux.yml` keeps the default branch's last 20
-  `out/perf/frontend.json` in `.perf-baseline/` and writes the comparison with their median into
-  the run's summary: above +25 % it warns, and an average or 90th-percentile build time at more
-  than double the median fails the lane, once 3 earlier runs exist (camera-streaming.md
-  § *Measuring performance*).
-- The webcam frame test is Linux-only: `hasPushedFrame` is the Linux plugin's, and
-  the Windows drives run `simple_test.dart`.
-- The web lane runs both Dart suites in Chrome since 2026-10-05 (`--test-platform chrome`
-  to the hub's gate); the VM-only files are `@TestOn('vm')` and still run on every native
-  lane. Chrome still *compiles* them, so a VM-only test must compile for web too: a plain
-  `int` for a Rust `i64` field failed web run 38255398872 (§ 4, `PlatformInt64Util.from`).
-  `flutter test --platform chrome` in `:latest` shows it before a push.
-- Every lane runs the plugin's Dart tests through the same strict gate as the
-  app's: `run_flutter_common_checks` on Linux, *Plugin Flutter Tests* in
-  `Build-Windows.ps1`, `Invoke-FlutterTests.ps1` on arm64.
-- A push that touches only `docs/**` or root-level `*.md` runs Linux x64 alone, which
-  builds and deploys the docs (and Submodule pins when a gitlink moved). The other five
-  build workflows skip it through `paths-ignore` on `push` (2026-10-12), so a docs commit
-  neither queues two hour-long Windows lanes nor cancels the ones in flight. Pull
-  requests always run everything, so no required check waits on a skipped workflow.
-- **A push to `develop` cancels the round in flight,** on purpose: every workflow's
-  `concurrency` has `cancel-in-progress: true`, because a superseded verdict is not worth an
-  hour of Windows runner. Sessions that push every twenty minutes therefore finish no round:
-  on 2026-10-12, 77 of the day's 142 push runs were cancelled, about 18 hours of runner
-  wall time, 28 of them Windows lanes. So batch: commit locally, and push when the round on
-  `origin/develop` has finished, or while it is still queued (it then reruns with your
-  commit in it). `gh run list --branch develop --limit 8` shows where it stands.
+A blank cell is a test that cannot run there; why, lane by lane: [`docs/source/testing.md`](docs/source/testing.md) § *Why a lane
+cannot run a test*. Two rules from there bite on every push:
+
+- **A docs-only push** (`docs/**`, root `*.md`) runs Linux x64 alone, which deploys the docs; pull
+  requests always run everything.
+- **A push to `develop` cancels the round in flight**, so batch: commit locally and push when the
+  round on `origin/develop` has finished (`gh run list --branch develop --limit 8`).
 
 ### The Dart gate in 23 seconds, without a lane
 
-**There is no Flutter or Dart SDK on the Windows dev box** — `flutter` is not on
-`PATH` and there is no host SDK to put there. That makes it look as though the
-smallest unit of feedback is a whole container lane. It is not: the image
-carries the SDK at `/opt/flutter`, and running *only* the Dart gate against a
-bind-mounted checkout costs **23 s warm** (measured 2026-09-16; 214 s the first
-time, which is `flutter pub get` populating the cache volume).
+The Windows dev box has no Flutter SDK, but the image has one: the Dart gate alone against a
+bind-mounted checkout takes 23 s warm. It is not the lane (no build, no CMake gate, no Rust or
+C++); use it to iterate, and the lane to believe the result.
 
 ```powershell
 # once: the cache volume must belong to the container's uid, like every other
@@ -886,27 +680,8 @@ nerdctl run --rm --platform linux/amd64 `
   bash -lc 'export PATH=/opt/flutter/bin:$PATH; git config --global --add safe.directory "*"; flutter test'
 ```
 
-Swap `flutter test` for `flutter analyze` (~164 s — it analyses the whole
-workspace) or for both. `PUB_CACHE` on a named volume is what makes the second
-run cheap, and it is also the rule from § 5: write-heavy paths stay off the host
-mount.
-
-`scripts/windows/Invoke-DartChecks.ps1` is the same loop as a script
-(`-SkipFormat`, `-SkipAnalyze`, `-SkipTest`, `-Fix`; its pub cache is the
-`omni-dart-checks-pubcache` volume). Its format step covers `lib test
-integration_test test_driver` — every tracked file the lanes grade but the plugin's
-under `packages/`; its test step runs the plugin's suite too.
-`-Engine wslc` runs it in WSL 3's `wslc` instead of nerdctl (hub CON62's pilot,
-2026-10-06). Measured warm on this box: format + test 23 s against nerdctl's
-32 s, analyze 146 s against 371 s. The first run pulls `:latest` into wslc's own
-image store, about 30 GB and 554 s. wslc has no `--platform`, so the switch
-refuses any `-Platform` but `linux/amd64`.
-
-**This is not a substitute for the lane.** It runs the Dart gate and nothing
-else — no `dart format` file listing, no CMake gate, no build, no packaging, and
-it never touches the C++ or Rust. Use it to iterate; use `Invoke-LinuxLane.ps1`
-to believe the result. It is also why "add a test" is a cheap proposal in this
-repo and not an expensive one.
+`scripts/windows/Invoke-DartChecks.ps1` is the same loop as a script (`-SkipFormat`,
+`-SkipAnalyze`, `-SkipTest`, `-Fix`, `-Engine wslc`). Detail: [`docs/source/project-operations.md`](docs/source/project-operations.md) § *The Dart gate without a lane*.
 
 ### The Linux lane, locally
 
@@ -966,13 +741,9 @@ and the pre-commit hook*, § *The CMake format gate*, § *The plugin's C++ forma
 
 ### Dependency upgrades
 
-**Submodule upgrades go through this, not by hand.** Nothing in
-`.github/workflows/` runs it; it blocks no commit.
-
-**Report-first (owner directive 2026-09-11): a run reports. `-Apply` only when the
-owner explicitly asked for it in that turn.**
-
-On this host, run it in the family Linux image (`:latest`):
+**Submodule and package upgrades go through Renovate as a local CLI, never by hand, and a run
+only reports** (owner directive 2026-09-11): `-Apply` only when the owner asked for it in that
+turn. Nothing in CI runs it. On this host, in the family Linux image:
 
 ```powershell
 .\scripts\windows\Invoke-Renovate.ps1                      # what is behind
@@ -982,40 +753,9 @@ On this host, run it in the family Linux image (`:latest`):
 .\scripts\windows\Invoke-Renovate.ps1 -Recurse             # owned submodules, in place
 ```
 
-`scripts/linux/renovate-local.sh` remains the language-independent entry point
-(a Linux host calls it directly; nothing in CI does); the PowerShell runner only
-runs it inside the container through `nerdctl`: it mounts the repo at
-`/workspace`, adds the `safe.directory`
-entries the root-owned bind mount needs (`/workspace` and `/workspace/*` for the
-submodule worktrees), and forwards `-Apply`/`-DryRun`/`-Refresh`/
-`-Managers`/`-PrintBin`.
-
-Two runner behaviours worth knowing before a run surprises you: the container
-downloads its own checksum-pinned Node onto the `kataglyphis-renovate-cache`
-volume, and the runner passes `gh`'s token as `GITHUB_COM_TOKEN`. What each is
-for, and what goes wrong without it:
-[`docs/source/project-operations.md`](docs/source/project-operations.md)
-§ *Dependency upgrades, in detail*.
-
-`-Recurse` runs ANTfrastructure's `renovate-fleet.sh --vendored`. The fleet
-driver finds the repos BESIDE the superproject, dedups by remote identity and
-orders them dependencies-first; `--vendored` then appends the vendored
-checkouts of identities that have no own checkout, which inside this container
-is all of them — the mount is one superproject and there is nothing beside it.
-This repo carried its own 135-line submodule walker until 2026-09-15 because
-the fleet driver refused to write in place at all; that refusal is now an
-opt-in, and writing into a vendored worktree still means: after an `-Apply`,
-commit and push each submodule, then move the gitlinks in every superproject
-that vendors it.
-
-Renovate is a local CLI and only **detects** — `--platform=local` cannot write
-— so the `--apply` half is the family's own code (ANTfrastructure's
-`renovate-local.sh`, which this repo's wrapper calls): it moves gitlinks and
-rewrites the manifests Renovate reported, `pubspec.yaml` included, and
-`--managers` narrows a run rather than enabling it. The mechanics, including why `--apply` needs the git
-that *wrote* the working tree:
-[`docs/source/project-operations.md`](docs/source/project-operations.md)
-§ *Dependency upgrades, in detail*.
+`-Recurse` writes into the vendored submodules in place: commit and push each, then move the
+gitlinks in every superproject that vendors it. The runner, its Node and token, and how
+`--apply` writes what Renovate only detects: [`docs/source/project-operations.md`](docs/source/project-operations.md) § *Dependency upgrades, in detail*.
 
 ## 6. Docs owned by this repo
 

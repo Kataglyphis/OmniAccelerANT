@@ -53,6 +53,63 @@ the why behind that table (written after the test audit of 2026-10-15).
   route no page answers, a skipped ctest test, a slowdown in the perf reports. A test that
   stays green against its own bug is not added.
 
+## Why a lane cannot run a test
+
+The notes under AGENTS.md's lane table, moved here on 2026-10-15.
+
+- Android and Web build no desktop runner, so the desktop rows do not apply
+  there; Android adds the plugin's JVM test and the emulator run. The image carries
+  the emulator and Chrome (hub CON50, owner 2026-10-01); `android.yml` opens
+  `/dev/kvm` to the container and boots the AVD with `android-avd.sh` (since 2026-10-06).
+- ObservANT checks live with ObservANT packages, which only `web.yml` builds,
+  since they wrap its web build. They run as root in `:latest` and drive headless
+  Chrome against the installed service. The MSI's run in `:winamd64` as
+  ContainerAdministrator, where a `webrtcsrc` viewer plays the installed exe.
+- The integration test runs on both Windows architectures by driving the app the
+  build made (`flutter drive --use-application-binary`) — x64 from the `-FlutterTarget` build
+  `Build-WindowsDebugApps.ps1` makes on the Debug tree, arm64 from `Build-WindowsArm64App.ps1 -FlutterTarget` —
+  because `flutter test -d windows` would build with Flutter's MSVC default.
+- The mutation suite builds synthetic ELFs for the Linux closure gate; Windows has
+  no ELF and no such gate. Pester tests PowerShell that only Windows lanes run.
+- The plugin's C++ format gate needs only the sources, so one lane grades them for
+  every platform; Windows has no C++ format step. The coverage floor is the same kind of
+  check: one lane's `flutter test --coverage` measures the same Dart everywhere. It counts
+  `lib/` without the generated bridge and localizations, was 96.5 % on 2026-10-13 (62 %
+  the morning before, ahead of the native Stream page and Rust camera view tests), and fails the
+  batch below the `--min` in `lane-native-linux.sh`, which states it once and moves up
+  as tests are added; a file no test imports is not in the report at all.
+- The rustc stamp lives in an ELF `.comment`, which a Windows PE does not have. The
+  web lane builds its wasm with `build-web` and the dated nightly it names (AGENTS.md § 4), not
+  Cargokit.
+- The frame timings run on Linux x64 alone: a profile build costs minutes, and one arch is enough
+  to see the Dart side get slower. `reusable-linux.yml` keeps the default branch's last 20
+  `out/perf/frontend.json` in `.perf-baseline/` and writes the comparison with their median into
+  the run's summary: above +25 % it warns, and an average or 90th-percentile build time at more
+  than double the median fails the lane, once 3 earlier runs exist (camera-streaming.md
+  § *Measuring performance*).
+- The webcam frame test is Linux-only: `hasPushedFrame` is the Linux plugin's, and
+  the Windows drives run `simple_test.dart`.
+- The web lane runs both Dart suites in Chrome since 2026-10-05 (`--test-platform chrome`
+  to the hub's gate); the VM-only files are `@TestOn('vm')` and still run on every native
+  lane. Chrome still *compiles* them, so a VM-only test must compile for web too: a plain
+  `int` for a Rust `i64` field failed web run 38255398872 (AGENTS.md § 4, `PlatformInt64Util.from`).
+  `flutter test --platform chrome` in `:latest` shows it before a push.
+- Every lane runs the plugin's Dart tests through the same strict gate as the
+  app's: `run_flutter_common_checks` on Linux, *Plugin Flutter Tests* in
+  `Build-Windows.ps1`, `Invoke-FlutterTests.ps1` on arm64.
+- A push that touches only `docs/**` or root-level `*.md` runs Linux x64 alone, which
+  builds and deploys the docs (and Submodule pins when a gitlink moved). The other five
+  build workflows skip it through `paths-ignore` on `push` (2026-10-12), so a docs commit
+  neither queues two hour-long Windows lanes nor cancels the ones in flight. Pull
+  requests always run everything, so no required check waits on a skipped workflow.
+- **A push to `develop` cancels the round in flight,** on purpose: every workflow's
+  `concurrency` has `cancel-in-progress: true`, because a superseded verdict is not worth an
+  hour of Windows runner. Sessions that push every twenty minutes therefore finish no round:
+  on 2026-10-12, 77 of the day's 142 push runs were cancelled, about 18 hours of runner
+  wall time, 28 of them Windows lanes. So batch: commit locally, and push when the round on
+  `origin/develop` has finished, or while it is still queued (it then reruns with your
+  commit in it). `gh run list --branch develop --limit 8` shows where it stands.
+
 ## Running them
 
 ```bash

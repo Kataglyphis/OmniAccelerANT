@@ -352,6 +352,62 @@ tree; the script sorts that out itself and refuses up front rather than
 half-applying. Why any of it —
 [`third_party/ANTfrastructure/docs/dependency-updates.md`](../../third_party/ANTfrastructure/docs/dependency-updates.md).
 
+
+### The runner and `-Recurse`
+
+Moved here from AGENTS.md on 2026-10-15, which keeps the rules and links this detail.
+
+**Submodule upgrades go through this, not by hand.** Nothing in
+`.github/workflows/` runs it; it blocks no commit.
+
+**Report-first (owner directive 2026-09-11): a run reports. `-Apply` only when the
+owner explicitly asked for it in that turn.**
+
+On this host, run it in the family Linux image (`:latest`):
+
+```powershell
+.\scripts\windows\Invoke-Renovate.ps1                      # what is behind
+.\scripts\windows\Invoke-Renovate.ps1 -Apply -DryRun       # the plan
+.\scripts\windows\Invoke-Renovate.ps1 -Apply               # apply the plan
+.\scripts\windows\Invoke-Renovate.ps1 -Managers pub        # narrow the managers
+.\scripts\windows\Invoke-Renovate.ps1 -Recurse             # owned submodules, in place
+```
+
+`scripts/linux/renovate-local.sh` remains the language-independent entry point
+(a Linux host calls it directly; nothing in CI does); the PowerShell runner only
+runs it inside the container through `nerdctl`: it mounts the repo at
+`/workspace`, adds the `safe.directory`
+entries the root-owned bind mount needs (`/workspace` and `/workspace/*` for the
+submodule worktrees), and forwards `-Apply`/`-DryRun`/`-Refresh`/
+`-Managers`/`-PrintBin`.
+
+Two runner behaviours worth knowing before a run surprises you: the container
+downloads its own checksum-pinned Node onto the `kataglyphis-renovate-cache`
+volume, and the runner passes `gh`'s token as `GITHUB_COM_TOKEN`. What each is
+for, and what goes wrong without it:
+[`docs/source/project-operations.md`](project-operations.md)
+§ *Dependency upgrades, in detail*.
+
+`-Recurse` runs ANTfrastructure's `renovate-fleet.sh --vendored`. The fleet
+driver finds the repos BESIDE the superproject, dedups by remote identity and
+orders them dependencies-first; `--vendored` then appends the vendored
+checkouts of identities that have no own checkout, which inside this container
+is all of them — the mount is one superproject and there is nothing beside it.
+This repo carried its own 135-line submodule walker until 2026-09-15 because
+the fleet driver refused to write in place at all; that refusal is now an
+opt-in, and writing into a vendored worktree still means: after an `-Apply`,
+commit and push each submodule, then move the gitlinks in every superproject
+that vendors it.
+
+Renovate is a local CLI and only **detects** — `--platform=local` cannot write
+— so the `--apply` half is the family's own code (ANTfrastructure's
+`renovate-local.sh`, which this repo's wrapper calls): it moves gitlinks and
+rewrites the manifests Renovate reported, `pubspec.yaml` included, and
+`--managers` narrows a run rather than enabling it. The mechanics, including why `--apply` needs the git
+that *wrote* the working tree:
+[`docs/source/project-operations.md`](project-operations.md)
+§ *Dependency upgrades, in detail*.
+
 ## The Linux lanes, run locally
 
 The detail behind the rules in AGENTS.md's § 5, moved here on 2026-10-15 to keep AGENTS.md
@@ -642,6 +698,55 @@ does not exist, unable to build with the standard library`.
   with `Invalid cross-device link`.
 - **The install step stays, guarded** on the two components being absent. It covers a
   bare host, and the image's best-effort `try_rustup` install.
+
+## The Dart gate without a lane
+
+Moved here from AGENTS.md on 2026-10-15, which keeps the rules and links this detail.
+
+**There is no Flutter or Dart SDK on the Windows dev box** — `flutter` is not on
+`PATH` and there is no host SDK to put there. That makes it look as though the
+smallest unit of feedback is a whole container lane. It is not: the image
+carries the SDK at `/opt/flutter`, and running *only* the Dart gate against a
+bind-mounted checkout costs **23 s warm** (measured 2026-09-16; 214 s the first
+time, which is `flutter pub get` populating the cache volume).
+
+```powershell
+# once: the cache volume must belong to the container's uid, like every other
+# volume this repo mounts — see Invoke-LinuxLane.ps1's chown step. The image
+# does the chown itself: no stock image, not even alpine (owner rule 2026-10-05).
+nerdctl run --rm --platform linux/amd64 --user root --entrypoint chown `
+  --mount "type=volume,source=oa-fastloop-pub,target=/vol" `
+  ghcr.io/kataglyphis/kataglyphis_beschleuniger:latest -R 1001:1001 /vol
+
+# then, per edit:
+nerdctl run --rm --platform linux/amd64 `
+  -v "C:\GitHub\OmniAccelerANT:/workspace" -w /workspace `
+  --mount "type=volume,source=oa-fastloop-pub,target=/pubcache" -e PUB_CACHE=/pubcache `
+  ghcr.io/kataglyphis/kataglyphis_beschleuniger:latest `
+  bash -lc 'export PATH=/opt/flutter/bin:$PATH; git config --global --add safe.directory "*"; flutter test'
+```
+
+Swap `flutter test` for `flutter analyze` (~164 s — it analyses the whole
+workspace) or for both. `PUB_CACHE` on a named volume is what makes the second
+run cheap, and it is also the rule from AGENTS.md § 5, write-heavy paths stay off the host
+mount.
+
+`scripts/windows/Invoke-DartChecks.ps1` is the same loop as a script
+(`-SkipFormat`, `-SkipAnalyze`, `-SkipTest`, `-Fix`; its pub cache is the
+`omni-dart-checks-pubcache` volume). Its format step covers `lib test
+integration_test test_driver` — every tracked file the lanes grade but the plugin's
+under `packages/`; its test step runs the plugin's suite too.
+`-Engine wslc` runs it in WSL 3's `wslc` instead of nerdctl (hub CON62's pilot,
+2026-10-06). Measured warm on this box: format + test 23 s against nerdctl's
+32 s, analyze 146 s against 371 s. The first run pulls `:latest` into wslc's own
+image store, about 30 GB and 554 s. wslc has no `--platform`, so the switch
+refuses any `-Platform` but `linux/amd64`.
+
+**This is not a substitute for the lane.** It runs the Dart gate and nothing
+else — no `dart format` file listing, no CMake gate, no build, no packaging, and
+it never touches the C++ or Rust. Use it to iterate; use `Invoke-LinuxLane.ps1`
+to believe the result. It is also why "add a test" is a cheap proposal in this
+repo and not an expensive one.
 
 ## Troubleshooting
 
