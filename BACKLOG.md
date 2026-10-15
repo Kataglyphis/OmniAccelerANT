@@ -136,19 +136,6 @@ Linux amd64/arm64 ship as a .deb and an AppImage, proven on himbeere2 (Pi 5) on
   Debug job's 64 min, of which 31 pull the ~54 GB `:winamd64`. The pull is the hub's
   `prepare-windows-container-host`; a smaller image for these lanes, or a cache the hosted
   runners keep, would halve the round. Blocked on the hub.
-- [ ] **The Debug job builds the whole app twice.** Measured in run 38711050047 (2026-10-15):
-  *Run container (integration target)* takes 14.9 of `build-clang-debug`'s 60 min, and its
-  *CMake Build & Install* recompiles all 520 targets (11:45, the first build 11:56), although
-  only the Dart entrypoint differs. Each container starts with an empty build tree and sccache,
-  and *Reset CMake Build Directory* clears the tree in any case. Building both apps in one
-  container, keeping the CMake tree for the second, would leave it the Flutter assemble step,
-  about 13 min off every round's longest job. Needs the Windows box to reproduce first.
-  **Do not** take `-ftime-trace` out to let sccache help instead: `Build-Windows.ps1` passes it
-  to every configure, nothing reads the traces, and it is what makes all 279 C++ compiles in
-  that build uncacheable (`Non-cacheable reasons: -ftime-trace 279`). That keeps a reused
-  container safe from sccache 0.18's stale C++23 module importers on clang-cl (hub
-  `docs/windows-container-build-performance.md` § *sccache on a C++23 modules build*); without
-  it, a warm cache hands back the old object after an interface edit.
 
 ## Open — waiting on the owner
 

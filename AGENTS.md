@@ -987,9 +987,12 @@ and the `$GIT_DIR` limit*.
 
 CI passes `-SkipMsixPackaging`, and `-CodeQL` is off there because of runtimes.
 
-A second job, `build-clang-debug`, builds the `clangcl-debug` preset (ASan + UBSan) in the same
-container, stages Microsoft's ASan runtime on the runner the way `Start-Windows.ps1` does
-locally, and runs the launch smoke against it; the Release job keeps the lane's quality gates.
+A second job, `build-clang-debug`, builds the `clangcl-debug` preset (ASan + UBSan) and its
+integration-test twin in one container (`Build-WindowsDebugApps.ps1`, since 2026-10-15): the
+twin reuses the first build's tree, where a container of its own rebuilt all 520 targets
+(11:45 of 14.9 min). The plain app is kept as `…-Debug-app` for the launch smoke, the twin
+stays at `…-Debug` for the integration test, and both carry Microsoft's ASan runtime as
+`Start-Windows.ps1` stages it locally; the Release job keeps the lane's quality gates.
 
 **The Windows arm64 lane is a hybrid** ([`windows-arm64.yml`](.github/workflows/windows-arm64.yml),
 2026-09-27). Flutter cannot cross-build `windows-arm64` from an x64 host
@@ -1073,8 +1076,8 @@ cell is a test that cannot run there, and the reason is under the table.
   Chrome against the installed service. The MSI's run in `:winamd64` as
   ContainerAdministrator, where a `webrtcsrc` viewer plays the installed exe.
 - The integration test runs on both Windows architectures by driving the app the
-  build made (`flutter drive --use-application-binary`) — x64 from the container's
-  `-FlutterTarget` rebuild, arm64 from `Build-WindowsArm64App.ps1 -FlutterTarget` —
+  build made (`flutter drive --use-application-binary`) — x64 from the `-FlutterTarget` build
+  `Build-WindowsDebugApps.ps1` makes on the Debug tree, arm64 from `Build-WindowsArm64App.ps1 -FlutterTarget` —
   because `flutter test -d windows` would build with Flutter's MSVC default.
 - The mutation suite builds synthetic ELFs for the Linux closure gate; Windows has
   no ELF and no such gate. Pester tests PowerShell that only Windows lanes run.

@@ -484,7 +484,7 @@ try {
                 $cmakeArgs += "-DCMAKE_C_FLAGS_DEBUG=/MD /Zi /Ob0 /Od /RTC1 /U_DEBUG /DNDEBUG /D_ITERATOR_DEBUG_LEVEL=0"
             }
 
-            # -ftime-trace also keeps sccache off the C++ units, which would serve stale C++23 module importers (BACKLOG).
+            # -ftime-trace also keeps sccache off the C++ units, which would serve stale C++23 module importers (platforms.md).
             Write-BuildLog -Context $context -Message "Enabling CMake Configuration Profiling and Clang -ftime-trace..."
             $cmakeArgs += "--profiling-output=$currentCMakeBuildDir\cmake_configure_profile.json"
             $cmakeArgs += "--profiling-format=google-trace"

@@ -133,47 +133,17 @@ jobs:
           exclude-submodules: |
             third_party/DocumANTation
 
-      # Format, tests and docs already ran in the Release job; this one is the instrumented build and its launch.
-      - name: Run container (Debug, ASan + UBSan)
+      # One container builds both Debug apps on one tree; the plain one is kept as BUILD_DIR_DEBUG-app.
+      - name: Run container (Debug, ASan + UBSan, and its integration twin)
         uses: Kataglyphis/ANTfrastructure/.github/actions/run-in-windows-container@develop
         with:
-          file: C:\ws\scripts\windows\Build-Windows.ps1
-          file-args: |
-            -Configurations
-            clangcl-debug
-            -SkipMsixPackaging
-            -SkipFormat
-            -SkipDocs
-
-      # The runner image's VS may not carry the ASan component; the image's toolset always does, and it is what the link used.
-      - name: Stage the image's ASan runtime beside the Debug runner
-        uses: Kataglyphis/ANTfrastructure/.github/actions/run-in-windows-container@develop
-        with:
-          file: C:\ws\scripts\windows\Stage-AsanRuntime.ps1
-          file-args: |
-            -Destination
-            C:\ws\build\windows\x64\runner\x64-ClangCL-Windows-Debug
+          file: C:\ws\scripts\windows\Build-WindowsDebugApps.ps1
 
       - name: Launch smoke (x64, Debug/ASan)
         working-directory: ${{ steps.prep.outputs.workspace }}
         run: >-
           & ./scripts/windows/Test-LaunchSmoke.ps1
-          -AppDir $env:BUILD_DIR_DEBUG -SearchPath "$env:BUILD_DIR_DEBUG/bin" -OrtStamp
-
-      # The integration app: the same Debug tree, rebuilt with the test as its Dart entrypoint (FLUTTER_TARGET).
-      - name: Run container (integration target)
-        uses: Kataglyphis/ANTfrastructure/.github/actions/run-in-windows-container@develop
-        with:
-          file: C:\ws\scripts\windows\Build-Windows.ps1
-          file-args: |
-            -Configurations
-            clangcl-debug
-            -FlutterTarget
-            integration_test/simple_test.dart
-            -SkipMsixPackaging
-            -SkipFormat
-            -SkipDocs
-            -SkipTests
+          -AppDir "${env:BUILD_DIR_DEBUG}-app" -SearchPath "${env:BUILD_DIR_DEBUG}-app/bin" -OrtStamp
 
       # No Flutter SDK on the runner; the image's version, cloned as the arm64 lane does.
       - name: Flutter (the image's version)

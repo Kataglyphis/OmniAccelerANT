@@ -363,6 +363,18 @@ the hub's G6 census over it before `msix:create`.
 Both halves were broken until 2026-09-03 and nobody noticed, because CI passes
 `-SkipMsixPackaging` — packaging is only exercised locally.
 
+### `-ftime-trace` stays on, though nothing reads the traces
+
+`Build-Windows.ps1` passes `-DKATAGLYPHIS_ENABLE_TIME_TRACE=ON` and CMake's configure profile
+to every configure, and no step or workflow reads either. It looks like dead weight that also
+costs speed: sccache cannot cache a compile with `-ftime-trace`, which run 38711050047's Debug
+build reports as `Non-cacheable reasons: -ftime-trace 279`, all its C++ units. That is what
+keeps a reused container safe, though. The image's sccache 0.18 with clang-cl hashes a C++23
+module importer without the BMIs it imports, so after an interface edit a warm cache hands back
+the old object (hub `docs/windows-container-build-performance.md` § *sccache on a C++23
+modules build*). Take the flag out only once the image's sccache carries mozilla/sccache#2876,
+or with sccache off for the C++ units.
+
 ## The Windows CI lane and the `$GIT_DIR` limit
 
 **The CI lane** ([`windows-x64.yml`](../../.github/workflows/windows-x64.yml))
@@ -372,10 +384,12 @@ is three ANTfrastructure actions, one hub script and GitHub's
 disk check, GHCR login, pull), the hub's `windows/scripts/Invoke-Lint.ps1 -Path
 scripts` (parse gate plus AST traps over this repo's own PowerShell, on the host
 before the image pull), `run-in-windows-container`, `actions/upload-artifact`
-and `upload-codeql-sarif`. The workflow has two more jobs. `build-clang-debug` builds the
-`clangcl-debug` preset (ASan + UBSan) in the same container, stages Microsoft's ASan runtime
-on the runner (`Stage-AsanRuntime.ps1`), runs the launch smoke against it and drives
-`integration_test/simple_test.dart` through `Invoke-WindowsIntegrationTest.ps1`.
+and `upload-codeql-sarif`. The workflow has two more jobs. `build-clang-debug` runs
+`Build-WindowsDebugApps.ps1` in one container: the `clangcl-debug` preset (ASan + UBSan),
+copied to `…-Debug-app`, then the same preset with `-FlutterTarget
+integration_test/simple_test.dart` on the first build's tree, and Microsoft's ASan runtime
+(`Stage-AsanRuntime.ps1`) beside both. The launch smoke runs the copy, and
+`Invoke-WindowsIntegrationTest.ps1` drives the integration app.
 `ort-runner-suite` is a plain checkout plus `run-pester-suite` over `scripts/windows/tests`,
 with no container; `windows-arm64.yml` runs the same job on `windows-11-arm`. After the
 upload, four host steps test the runner outside the image: this repo's
