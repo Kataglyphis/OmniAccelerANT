@@ -14,9 +14,32 @@ What landed on `develop` after 2.0.0+2. Most of it is the cat cam, whose guide i
   is `integration_test/performance_test.dart` under `flutter drive --profile` with
   `test_driver/perf_driver.dart`: `watchPerformance` times the start, three rounds through every
   tab and resizes across both breakpoints. The native lane runs it on x64 under Xvfb, and
-  `scripts/linux/frontend-perf-report.py` compares it with the default branch's last run in the
-  run's summary, warning above +25 %. The Rust side is OxidANT's Criterion benches under `cargo
-  bench`, tracked the same way. `bench/page-perf.mjs` also times the signalling socket now.
+  `scripts/linux/frontend-perf-report.py` compares it in the run's summary with the median of
+  the default branch's last 20 runs (2026-10-15; first against the run before, which a slow
+  creep never crossed): above +25 % it warns, and an average or 90th-percentile build time at
+  double the median fails the lane once 3 earlier runs exist. The Rust side is OxidANT's
+  Criterion benches under `cargo bench`, judged the same way. `bench/page-perf.mjs` also times
+  the signalling socket now, and `scripts/linux/flutter-trace-summary.py` names what a slow
+  frame builds (how the 0.94 s start-up block below was found).
+
+- **A test audit, and tests that can fail** (2026-10-15, the owner asked whether the tests catch
+  regressions). `docs/source/testing.md` says what each kind of test proves, the rules that
+  keep a green run honest, and the gaps still open. Here:
+  - `test/widget_test.dart` asserted only that `App` existed after pumping it;
+    `test/bootstrap_settings_test.dart` reads the shipped settings files instead (locales
+    against the translations, unique blog routes, every post's markdown present).
+  - `test/app_layout_test.dart` also checks each route lands on its page, not `ErrorPage`; a
+    planted `/noSuchPage` now fails it.
+  - The plugin's Linux gtest has six tests of the texture beside `GetPlatformVersion`: pipeline
+    errors as Dart sees them, a transparent test pattern shown opaque, `knt_push_frame`'s codes
+    and registry. Each was run against a planted bug in `my_texture.cc`.
+  - The perf scripts have a 23-assertion suite in the native lane, and the frame timings are
+    kept in `out/perf/`, which the docs step's `flutter clean` no longer deletes.
+  - In the submodules: OxidANT tests its webcam engine with its real features, property-tests
+    ObservANT's network and config inputs, holds every crate to its own coverage floor, and
+    caught 142 of 145 planted bugs in ObservANT's network code (mutation testing);
+    AccelerANTgine fails its Linux lane on a skipped test or a UBSan report and keeps
+    `main()` out of its library; ANThology tests its settings readers instead of `expect(1, 1)`.
 
 - **Performance tools and a baseline** (2026-10-14, the owner's benchmark).
   `scripts/linux/observant/bench/model.sh` times models in the installed service on a board,
