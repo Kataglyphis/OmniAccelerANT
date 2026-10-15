@@ -1488,6 +1488,29 @@ GST_DEBUG=3 gst-launch-1.0 \
 flutter run -d web-server --profile --web-port 8080 --web-hostname 0.0.0.0
 ```
 
+## No secure context needed
+
+Moved here from AGENTS.md on 2026-10-15, which keeps the rule and links this detail.
+
+**The Stream page needs no secure context; only the Rust wasm core wants
+isolation, and the web boots without it.** The page is receive-only
+gstwebrtc-api JS. `pkg/oxidant_bg.wasm` is a threads build whose shared
+memory Firefox and Safari refuse unless the page is cross-origin isolated
+(COOP/COEP, honoured only on HTTPS or localhost); Chromium creates it anyway.
+On web `main()` therefore treats a failed `RustLib.init()` as optional
+(`lib/src/boot/rust_core.dart`): the app starts, and only the About page's
+Rust demo goes dark. No code ever checked `crossOriginIsolated`, whatever
+older notes said. Measured 2026-10-05 on the web lane's build with
+`:latest`'s Chrome for Testing 154, over plain HTTP from a non-loopback
+address: the app boots with the core, and boots without it when
+`oxidant_bg.wasm` is blocked — the path Firefox and Safari take, neither of
+which was run. `serve.sh --http` serves that plain-HTTP page, no certificate
+warning. Without `--http` it terminates TLS on 8444, because the GStreamer
+signalling server cannot end TLS for this repo's certificates (rustls
+rejects a self-signed one with `CaUsedAsEndEntity`); the producer's
+`--cert/--key` exist, the proxy is the supported path. Either way it proxies
+`/webrtc-ws` to the producer's plain `ws://` server (port 8443).
+
 ## Troubleshooting
 
 - **An ObservANT camera reports cats that are not there.** Open its page, *Camera* in the bottom

@@ -572,3 +572,128 @@ The rules are in AGENTS.md § 4; the measurements that produced them are here.
     13.0.1 pin went with it.** The 14.x that permission_handler 13.0.2 resolves
     needs `compileSdk 37`; the image shipped android-36 only, from a stale SDK
     cache (hub CON14), until `:latest` of 2026-09-29.
+
+## Build pitfalls in detail
+
+Moved here from AGENTS.md on 2026-10-15, which keeps the rule and links this detail.
+
+### Android SDK components pinned to the image
+
+**Every Android SDK component must be pinned to what the image ships.**
+`/opt/android-sdk` is read-only, so any component the Android Gradle Plugin
+asks for and does not find cannot be installed — Gradle stops with
+`The SDK directory is not writable`, one component per run. AGP's defaults
+(build-tools 35.x, NDK 27/28.x, cmake 3.22.1) are all
+wrong for this image, which carries 37.0.0 (and 36.0.0), 29.0.14206865 and 4.1.2. One
+place pins them (single-sourced 2026-09-17): the `extra` block in
+`android/build.gradle.kts` (`kataglyphisCompileSdk`, `kataglyphisBuildTools`,
+`kataglyphisNdk`, `kataglyphisCmake`; `kataglyphisAbi` beside them is the APK's
+one ABI, below). Its global `subprojects` override sets
+compileSdk, build-tools and NDK on every Android module — which also drags
+third-party plugins such as permission_handler up from their own
+`compileSdk 35` — so `android/app`, the native plugin's `android/` and
+`rust_builder/android/` carry no literals of their own; the plugin reads its
+CMake version from the same block. The override block has to sit **above**
+the `evaluationDependsOn(":app")` block — that one forces evaluation, and
+registering `afterEvaluate` afterwards throws `Cannot run
+Project.afterEvaluate(Action) when the project is already evaluated`.
+
+### The Rust manifest path
+
+**The Rust manifest path must be counted from the *resolved* plugin dir.**
+Cargokit builds `CARGOKIT_MANIFEST_DIR` by string-joining
+`${CMAKE_CURRENT_SOURCE_DIR}/${manifest_dir}`, and for a Flutter plugin that
+directory is the ephemeral symlink
+`linux/flutter/ephemeral/.plugin_symlinks/oxidant`
+— six levels deep, pointing at `rust_builder/`, which is two. The kernel
+resolves the symlink *before* applying the `..`, so a chain counted from the
+symlink overshoots to `/` and Dart reports
+`PathNotFoundException: … /third_party/OxidANT/Cargo.toml`.
+`rust_builder/linux/CMakeLists.txt` therefore takes `REALPATH` of
+`CMAKE_CURRENT_SOURCE_DIR` first, which yields `../..` and survives the
+resolution. Verified against a rebuilt directory tree: six `..` fails, two
+succeed. `rust_builder/windows/CMakeLists.txt` must KEEP
+`CMAKE_CURRENT_SOURCE_DIR` — the asymmetry is deliberate and was proved by a
+full container build on 2026-09-17: Windows normalizes `..` **lexically**, so
+the ups counted from the junction path land on the repo root there, and the
+REALPATH form fails with `PathNotFoundException: …\third_party\OxidANT\
+Cargo.toml`. Do not "unify" the two.
+
+### ONNX Runtime in the Windows runner
+
+**ONNX Runtime is the image's chain build, staged by the build and checked at
+launch** (owner rule 2026-09-23). `Build-Windows.ps1`'s *Stage Chain ONNX
+Runtime* step copies `onnxruntime.dll` (+ `DirectML.dll`,
+`onnxruntime_providers_shared.dll`) from `$env:ONNX_ROOT\bin` beside the exe on
+every build, whatever `KATAGLYPHIS_RUST_FEATURES` says, after the GStreamer
+glob (which skips ORT-family DLLs). ANTfrastructure's G6 census
+(`Test-OrtProvenanceTree` in `WindowsOrtProvenance.Common`) then proves the
+whole runner against the image's chain ORT, byte for byte, and that every
+importer finds it beside the exe; the pass is stamped in `ort-chain-stamp.json`.
+`Start-Windows.ps1` re-runs G6 on the host with the stamped copy as the
+reference, and refuses a runner whose ORT is missing, unstamped, changed, stray
+or foreign — Windows resolves `onnxruntime.dll` in the exe dir and then
+System32, where Windows ML ships its own 1.17. It also refuses an
+`ORT_DYLIB_PATH` that is not those same bytes, and OxidANT's loader
+(`ort_runtime.rs`) refuses a non-chain file at run time whoever names it. A
+runner built before G6 has an older stamp: rebuild it. `runner\Release`, the
+MSIX copy and `Start-Windows.ps1`'s default, is rebuilt from the first preset
+on every build (the host copy too), and *MSIX Packaging* re-runs G6 on it before
+`msix:create`. Never copy an ORT into
+the runner by hand. The staging is the hub's `Copy-ChainOrtBeside`
+(`WindowsOrtPayload.Common`, this repo's own code until 2026-09-25); the stamp
+is `scripts/windows/modules/WindowsOrtRunner.Common.psm1`, whose Pester suite
+runs in the `ort-runner-suite` job of `windows-x64.yml` and of `windows-arm64.yml`.
+The arm64 natives get the same proof and stamp in `Build-WindowsArm64Natives.ps1`,
+over a copy of `runtime\` with `AccelerANTgine.exe` standing in for the app's exe
+(G6 places ORT from a host exe's folder, and without one it calls every importer
+`UNRESOLVED`, run 36891845685); the device re-proves the stamp before the launch smoke. Every verdict is the hub's,
+so both scripts stop with the hub commit to move to when the pinned hub
+predates either module. The Linux bundle's twin is
+`check-bundle-closure.sh` (the packaged-Linux-artifact bullet above).
+
+### Cargokit's Rust toolchain
+
+**Cargokit builds `liboxidant` with the toolchain rustup resolves for OxidANT,
+never a floating `stable`** (2026-10-05). Upstream runs `rustup run stable cargo
+build` when `cargokit.yaml` names no toolchain. The Linux image then carried only
+`1.98.1` and a dated nightly, so every native and Android build downloaded the
+day's stable and shipped a `liboxidant.so` stamped `rustc version 1.99.0`. The
+`:latest` of 2026-10-10 carries 1.99.0, and the patch stays: whenever the image's
+pin lags the newest stable, a floating `stable` downloads again. A
+local patch in `rust_builder/cargokit/build_tool/lib/src/` fixes it; keep both
+halves when bumping the vendored copy:
+- `builder.dart` asks `rustup show active-toolchain` (through `rustup.dart`'s
+  `activeToolchain`) in the crate dir, which
+  follows `RUSTUP_TOOLCHAIN`, then a `rust-toolchain.toml`, then the default.
+- `rustup.dart` counts a version pin such as `1.98.1-<host>` as installed.
+  Upstream lists only channel names, so a pin would read as missing.
+
+The Windows image's default is the `stable-…` it installed at build time, so
+Windows resolves to the toolchain it already used. `scripts/linux/check-rust-toolchain.sh`
+reads the `rustc version` stamp in `.comment` and fails the native lane (bundle)
+and the Android lane (APK) on any other version. Its suite,
+`scripts/linux/tests/test-check-rust-toolchain.sh`, runs in both lanes'
+code-quality batches. The Android lane still adds `aarch64-linux-android` to the
+pinned toolchain at build time (about 4 s), because the image does not carry that
+target.
+
+### The Linux plugin's AccelerANTgine build
+
+**The Linux plugin builds AccelerANTgine without its test suites and without
+its Debug sanitizers.** `packages/kataglyphis_native_inference/linux/CMakeLists.txt`
+sets `BUILD_TESTING`, `myproject_ENABLE_SANITIZER_ADDRESS` and
+`myproject_ENABLE_SANITIZER_UNDEFINED` to OFF before `add_subdirectory`, the
+way it already set `myproject_ENABLE_CACHE`. The Debug app build that
+`flutter test integration_test/… -d linux` makes failed twice without them,
+both reproduced in `:latest` (2026-10-01):
+- AccelerANTgine's Debug default turns on ASan and UBSan, and its public
+  options target carries the flags into the plugin. The uninstrumented
+  runner then cannot link: 58 undefined `__asan_*`/`__ubsan_*` references
+  from both libraries (run 36900441698).
+- Its tests add FuzzTest in Debug, and on Linux the vendored ANTLR's install
+  rule names a `libantlr4-runtime.so.4.13.2` that is never built.
+
+Release builds lost AccelerANTgine's googletest headers and archives from the
+bundle as a side effect. The plugin's gtest fetches its own googletest.
+Windows is unchanged, since its Debug preset ships ASan on purpose.

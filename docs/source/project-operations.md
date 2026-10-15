@@ -621,6 +621,28 @@ files are already clean and the native-Linux lane has passed
 `--strict-checks true` since fc8b65c, so the Android lane can only catch drift
 that already blocks the merge elsewhere.
 
+## The web lane's nightly toolchain
+
+Moved here from AGENTS.md on 2026-10-15, which keeps the rule and links this detail.
+
+**The web lane needs the nightly toolchain's `rust-src`.**
+`flutter_rust_bridge_codegen build-web` runs `wasm-pack … -Z
+build-std=std,panic_abort`, so cargo compiles the standard library itself and
+stops without the component:
+`".../nightly-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/Cargo.lock"
+does not exist, unable to build with the standard library`.
+- **The toolchain is the image's dated nightly** (since 2026-10-01). The lane reads
+  `RUST_NIGHTLY_TOOLCHAIN` from the pinned hub's `versions.env` (`nightly-2026-06-28`
+  today) and passes it to `build-web` as `--wasm-pack-rustup-toolchain`.
+- **The image installs that toolchain with both components.** It does not export the
+  variable, hence the read from `versions.env`.
+- **The floating `nightly` is not in the image.** Naming it, as the lane did before, made
+  rustup download a fresh channel on every run (web run 36154744073). Installing it over
+  a present one updates the channel, and on the read-only image layer that update dies
+  with `Invalid cross-device link`.
+- **The install step stays, guarded** on the two components being absent. It covers a
+  bare host, and the image's best-effort `try_rustup` install.
+
 ## Troubleshooting
 
 ### The Linux lane, locally

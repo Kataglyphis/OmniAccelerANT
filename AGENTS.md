@@ -301,21 +301,10 @@ written out rather than linked.
   `scripts/linux/lib/antfrastructure.sh` and `scripts/windows/Resolve-BuildModule.ps1`
   must equal the hub templates byte for byte (`sync-shared-config.sh --check`).
   Re-copy them from the templates after an upstream change; never edit them here.
-- **Six image gaps this repo used to work around are fixed in the image
-  (2026-09-05); do not reintroduce the workarounds.** They were: a root-owned
-  `.dart_tool` inside a read-only overlay layer, a populated `/opt/android-sdk`
-  with neither `ANDROID_HOME` nor `ANDROID_SDK_ROOT` exported, `SCCACHE_DIR` and
-  `CCACHE_DIR` pointing into the mounted checkout, root-owned `RUSTUP_HOME` and
-  `CARGO_HOME` against a uid-1001 container, a single-platform `:latest` tag
-  (then `:latest-cross`), and no Java SDK. If one reappears it is an image regression, not
-  something to patch around again — every symptom, and why each obvious local
-  fix did not work, is kept in
-  [`docs/source/platforms.md`](docs/source/platforms.md)
-  § *Image gaps and image-tag history*. What remains on this side is
-  `setup_compiler_cache`, which now only calls ANTfrastructure's `setup_sccache`:
-  it points `RUSTC_WRAPPER` and both CMake compiler launchers at the **guarded**
-  `sccache-launcher.sh`, which survives sccache's own fatal errors when a CMake
-  `TryCompile` deletes the scratch directory under it.
+- **Six image gaps this repo once worked around are fixed in the image (2026-09-05); never
+  bring a workaround back.** A reappearing one is an image regression ([`docs/source/platforms.md`](docs/source/platforms.md)
+  § *Image gaps and image-tag history*). What stays here is `setup_compiler_cache`, which points
+  `RUSTC_WRAPPER` and the CMake launchers at the hub's guarded `sccache-launcher.sh`.
 
 - **The Android GStreamer SDK is in the image, and the image now announces it.**
   It sits at `/opt/android/gstreamer` as a flat prefix (`gst-android/ndk-build`,
@@ -329,24 +318,11 @@ written out rather than linked.
   2026-10-01, a no-op in CI since run 36154744222. If the configure error comes back,
   the image lost its `ENV`: fix the image, do not bring the probe back.
 
-- **Every Android SDK component must be pinned to what the image ships.**
-  `/opt/android-sdk` is read-only, so any component the Android Gradle Plugin
-  asks for and does not find cannot be installed — Gradle stops with
-  `The SDK directory is not writable`, one component per run. AGP's defaults
-  (build-tools 35.x, NDK 27/28.x, cmake 3.22.1) are all
-  wrong for this image, which carries 37.0.0 (and 36.0.0), 29.0.14206865 and 4.1.2. One
-  place pins them (single-sourced 2026-09-17): the `extra` block in
-  `android/build.gradle.kts` (`kataglyphisCompileSdk`, `kataglyphisBuildTools`,
-  `kataglyphisNdk`, `kataglyphisCmake`; `kataglyphisAbi` beside them is the APK's
-  one ABI, below). Its global `subprojects` override sets
-  compileSdk, build-tools and NDK on every Android module — which also drags
-  third-party plugins such as permission_handler up from their own
-  `compileSdk 35` — so `android/app`, the native plugin's `android/` and
-  `rust_builder/android/` carry no literals of their own; the plugin reads its
-  CMake version from the same block. The override block has to sit **above**
-  the `evaluationDependsOn(":app")` block — that one forces evaluation, and
-  registering `afterEvaluate` afterwards throws `Cannot run
-  Project.afterEvaluate(Action) when the project is already evaluated`.
+- **Every Android SDK component is pinned to what the image ships**, in one place: the `extra`
+  block of `android/build.gradle.kts` (compileSdk 37, build-tools 37.0.0, NDK 29.0.14206865, CMake
+  4.1.2, and the APK's one ABI). `/opt/android-sdk` is read-only, so anything else stops Gradle
+  with `The SDK directory is not writable`. Detail, and why the override sits above
+  `evaluationDependsOn(":app")`: [`docs/source/platforms.md`](docs/source/platforms.md) § *Android SDK components pinned to the image*.
 
 - **The image's clang selects its own GCC; nothing here injects `--gcc-toolchain`
   any more.** Since `:latest` of 2026-09-29 (hub CON16) a bare `clang`/`clang++`
@@ -373,49 +349,17 @@ written out rather than linked.
   and `package-linux.sh` prints the built app's `[Context]` and fails when an
   appended argument is missing from it. An empty value drops it.
 
-- **A packaged Linux artifact must carry its runtime closure, and the runner's
-  `$ORIGIN/lib` is not enough for a dlopen'd plugin.** RUNPATH is not transitive
-  — measured — so every bundled ELF needs its own `$ORIGIN`, the GStreamer libs
-  (resolved from DT_NEEDED against pkg-config, never `ldd`, because the image
-  also has a distro copy) and the seven pipeline plugins travel in `bundle/lib`,
-  and `runtime_paths.cc` points `GST_PLUGIN_PATH`/`ORT_DYLIB_PATH`/
-  `KATAGLYPHIS_ONNX_MODEL` at the siblings. `bundle-runtime-closure.sh` packs and
-  `check-bundle-closure.sh` grades (bundled-or-allowlisted DT_NEEDED plus a
-  reachable rpath, and ANTfrastructure's G6 census,
-  `linux/scripts/06-packaging/check-ort-provenance.sh <bundle>`: every ORT binary
-  byte-identical to the image's chain ORT and every importer's RUNPATH reaching
-  it). The packer takes `libonnxruntime*` only from `ORT_LIB_LOCATION` or
-  `/usr/local/lib/onnxruntime-cpu/lib`, a directory used only once its
-  `libonnxruntime.so` carries the chain's source path
-  `/opt/onnxruntime/onnxruntime/core/` — never `/opt/opencv5/lib`'s copy, which
-  the ld.so cache offers first — and gives a dlopen-only ORT user an `$ORIGIN`
-  RUNPATH so G6 can resolve it; both run in the native lane before packaging.
-  G6 runs whenever any bundled file is ORT-named or names the ORT ABI, so an ORT
-  user with no ORT beside it fails as well; `scripts/linux/tests/test-check-bundle-closure.sh`
-  mutation-tests that in the lane's code-quality batch. Detail:
-  `docs/source/camera-streaming.md` § *Relocatable Linux bundles*.
-  With the lane's Rust features, **ORT is already in `bundle/lib` before the
-  packer runs**: `rust_builder/linux/CMakeLists.txt` stages both sonames. The
-  packer then copies nothing for it and logs it as `Kept (already in bundle/lib,
-  not copied)` with its sha256. A `Runtime closure: N file(s) copied` list without
-  ORT is therefore not a missing ORT.
-- **The Rust binaries name the chain ORT's directory, and G6 must read them as
-  importers.** OxidANT's loader (`ort_runtime.rs`) keeps
-  `/opt/onnxruntime/onnxruntime/core/` (Windows: `C:\temp\onnx-src\onnxruntime\core\`)
-  as a string, to check the ORT it loads. So `liboxidant.so`, `oxidant.dll` and
-  the cat producer `kataglyphis_observant` carry it, and G6 must take only a
-  whole NUL-terminated `__FILE__` source path as an ORT fingerprint. A hub census
-  that counts the bare directory calls them ORT builds and fails correct output:
-  the native lane's bundle checks (`UNPROVEN /lib/liboxidant.so -- an ORT-named
-  binary with no source fingerprint`, run 35928030957), the Pi bundle's G6 in
-  `scripts/linux/observant/package-producer-bundle.sh`, and the Windows runner's
-  G6 at build and at launch (there `oxidant.dll` reads as a `STALE` chain-rooted
-  ORT). All three run **this
-  repo's** hub pin, so the cure is the pin, never OxidANT: the classifier was
-  wrong, not the loader. The pin has read whole paths only since hub e72a9a37
-  (2026-09-24), and `scripts/linux/tests/test-check-bundle-closure.sh` models the
-  real `liboxidant.so` to keep it that way. Test fixtures follow the same shape:
-  a fake ORT's source path ends in NUL (`scripts/windows/tests/OrtRunner.Tests.ps1`).
+- **A packaged Linux artifact carries its whole runtime closure**: every bundled ELF has its own
+  `$ORIGIN` RUNPATH (RUNPATH is not transitive), the GStreamer libraries and seven plugins travel
+  in `bundle/lib`, and ORT is the image's chain build, proven by the hub's G6 census in
+  `check-bundle-closure.sh`. With the lane's Rust features ORT is in `bundle/lib` before the packer
+  runs (`Kept (already in bundle/lib, not copied)`), so a copy list without ORT is not a missing
+  ORT. Detail: [`docs/source/camera-streaming.md`](docs/source/camera-streaming.md) § *Relocatable Linux bundles*.
+- **The Rust binaries name the chain ORT's directory, and G6 must read them as importers.**
+  OxidANT's loader keeps `/opt/onnxruntime/onnxruntime/core/` as a string, so only a whole
+  NUL-terminated `__FILE__` path is an ORT fingerprint. A census calling `liboxidant.so` or
+  `oxidant.dll` `UNPROVEN` or `STALE` is a hub pin older than e72a9a37: move the pin, never
+  OxidANT. Detail: [`docs/source/camera-streaming.md`](docs/source/camera-streaming.md) § *Relocatable Linux bundles*.
 
 - **Rust `i64` is `int` natively and `BigInt` on web, so only the web lane
   catches the mismatch.** flutter_rust_bridge maps it to `PlatformInt64`, a
@@ -429,23 +373,10 @@ written out rather than linked.
   the public `flutter_rust_bridge.dart`, and importing the generated binding
   does not bring it along — Dart does not re-export transitively.
 
-- **The web lane needs the nightly toolchain's `rust-src`.**
-  `flutter_rust_bridge_codegen build-web` runs `wasm-pack … -Z
-  build-std=std,panic_abort`, so cargo compiles the standard library itself and
-  stops without the component:
-  `".../nightly-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/Cargo.lock"
-  does not exist, unable to build with the standard library`.
-  - **The toolchain is the image's dated nightly** (since 2026-10-01). The lane reads
-    `RUST_NIGHTLY_TOOLCHAIN` from the pinned hub's `versions.env` (`nightly-2026-06-28`
-    today) and passes it to `build-web` as `--wasm-pack-rustup-toolchain`.
-  - **The image installs that toolchain with both components.** It does not export the
-    variable, hence the read from `versions.env`.
-  - **The floating `nightly` is not in the image.** Naming it, as the lane did before, made
-    rustup download a fresh channel on every run (web run 36154744073). Installing it over
-    a present one updates the channel, and on the read-only image layer that update dies
-    with `Invalid cross-device link`.
-  - **The install step stays, guarded** on the two components being absent. It covers a
-    bare host, and the image's best-effort `try_rustup` install.
+- **The web lane builds the wasm core with the image's dated nightly and its `rust-src`**
+  (`RUST_NIGHTLY_TOOLCHAIN` from the pinned hub's `versions.env`), never the floating `nightly`,
+  which downloads a channel each run and dies on the image's read-only layer. Detail: [`docs/source/project-operations.md`](docs/source/project-operations.md)
+  § *The web lane's nightly toolchain*.
 
 - **The web lane installs `flutter_rust_bridge_codegen` only when the image has
   none.** `:latest` ships the binary at `FLUTTER_RUST_BRIDGE_VERSION`,
@@ -495,88 +426,17 @@ written out rather than linked.
   nothing. It also happens to be what keeps that call wrapped across three
   lines; the shorter name fits on one and `dart format` then rewrites the file.
 
-- **The Android prebuilts are aarch64 now, and the lane's toolchain moved with
-  them.** Until 2026-09-11 the image carried `ELF x86-64` GStreamer/ONNX
-  Runtime/OpenCV while the app builds `arm64-v8a`, so every archive died with
-  `incompatible with aarch64linux`. The image ships only `arm64-v8a` now, so the
-  cause is gone from the image, and the lane links: the workflow has a single
-  matrix row (x64), and since 2026-09-17 that row passes `--run-codeql false`
-  (AGENTS.md § 5), so CI runs the same plain `flutter build apk` the local lane
-  does — Kotlin, the native link and the plugin's JVM test included. Every
-  completed run since 2026-09-18 is green (36154744222 on 2026-09-25: a 91.8 MB
-  `app-release.apk`, `testDebugUnitTest` passed); before the switch, the CodeQL
-  build was stopping at Kotlin compilation several steps before the native
-  link. The APK is arm64-v8a only: real phones, and the image's x86_64 emulator through its
-  ARM translation (the emulator row of § 5's lane table). AGP 9.4.1 + Gradle 9.8.1
-  builds that against five constraints, all load-bearing and none of them
-  optional:
+- **The Android lane builds an arm64-v8a APK against five load-bearing Gradle constraints**:
+  built-in Kotlin with a declared KGP 2.4.21 (so CodeQL scans c, cpp and rust only; never lower
+  the KGP for it), `android.newDsl=false`, Cargokit's Gradle 9 and API-37 patches (keep them
+  when bumping the vendored copy), `arm64-v8a` pinned in the app's `defaultConfig.ndk` and the
+  lane's `--target-platform` (`check-apk-abi.sh` fails on any other ABI), and `compileSdk` 37. Each
+  one's error and history: [`docs/source/platforms.md`](docs/source/platforms.md) § *Android and cross-toolchain constraints*.
 
-  - **Built-in Kotlin, with a declared KGP for the version check — and CodeQL
-    has a ceiling under it.** `android.builtInKotlin=true`, no `kotlin-android`
-    plugin anywhere, and `android/settings.gradle.kts` must keep
-    `id("org.jetbrains.kotlin.android") version "2.4.21" apply false`: the
-    declaration, not an application, is what raises the classpath KGP over
-    Flutter's 2.2.20 floor (AGP bundles 2.2.10). Above that floor sits a ceiling
-    belonging to a different tool — CodeQL's Java extractor refuses any KGP from
-    2.4.20 on and takes the whole Gradle build with it, so
-    `scripts/linux/codeql/codeql-android.sh` builds the cluster for **cpp, c and
-    rust only** on its manual runs. Do not "fix" the missing java rows by
-    lowering the KGP: that trades a building app for a scan of five glue files.
-    The observed run and both error messages are in that script's header comment
-    and in [`docs/source/platforms.md`](docs/source/platforms.md)
-    § *Android and cross-toolchain constraints*.
-  - **`android.newDsl=false` stays.** The Flutter Gradle plugin still needs the
-    legacy DSL types, which AGP 9.4 deprecates and Gradle 9.7's Kotlin-DSL
-    compilation turns into `Script compilation errors` — hence the
-    `@file:Suppress("DEPRECATION", "DEPRECATION_ERROR")` at the top of
-    `android/app/build.gradle.kts`.
-  - **Cargokit carries a Gradle 9 port.** `Project.exec` and `Project.buildDir`
-    are gone in Gradle 9; `rust_builder/cargokit/gradle/plugin.gradle` injects
-    `ExecOperations` and reads `project.layout.buildDirectory`. Upstream Cargokit
-    still has the old calls, so keep this patch when bumping the vendored copy.
-    The same file keeps a second one: from API 37 AGP reports the compile SDK
-    as `android-37.0`, and upstream's `substring(8) as int` dies on it with
-    `For input string: "37.0"` while configuring `:oxidant`; the patch keeps
-    the major version only.
-  - **arm64-v8a is pinned twice, because Flutter sets its own three ABIs.** The
-    native plugin's `abiFilters` only filters the plugin's own build. Flutter's
-    Gradle plugin puts all three of its ABIs into the app's `defaultConfig.ndk`
-    when it is applied, and builds `libapp`, `libflutter`, `liboxidant` and
-    `libsqlite3` for every `--target-platform`. Until 2026-10-01 the release APK
-    therefore shipped `armeabi-v7a` and `x86_64` slices without the plugin
-    (run 36891844220), which an x86_64 device or emulator would pick. Now:
-    - The app's `defaultConfig.ndk` clears that list and sets `kataglyphisAbi`
-      (`android/build.gradle.kts`), the value the plugin's `abiFilters` reads too.
-    - `lane-android.sh` and the CodeQL build pass `--target-platform android-arm64`,
-      so nothing is built for a dropped ABI.
-    - `scripts/linux/check-apk-abi.sh` fails the lane on any `lib/<abi>/` but that
-      one, or on a missing `libflutter`, `libapp`, `liboxidant` or plugin library.
-      `scripts/linux/tests/test-check-apk-abi.sh` proves it on synthetic APKs in
-      the lane's code-quality batch.
-  - **`compileSdk` is 37** (`kataglyphisCompileSdk`, build-tools 37.0.0). The
-    `permission_handler_android` 14.x that permission_handler 13.0.2 resolves
-    needs it, and the global override would otherwise pull that plugin back to
-    36. The image carries android-37 since `:latest` of 2026-09-29 (hub CON14);
-    until then a 13.0.1 pin in `pubspec_overrides.yaml` stood in for it.
-
-- **The Rust manifest path must be counted from the *resolved* plugin dir.**
-  Cargokit builds `CARGOKIT_MANIFEST_DIR` by string-joining
-  `${CMAKE_CURRENT_SOURCE_DIR}/${manifest_dir}`, and for a Flutter plugin that
-  directory is the ephemeral symlink
-  `linux/flutter/ephemeral/.plugin_symlinks/oxidant`
-  — six levels deep, pointing at `rust_builder/`, which is two. The kernel
-  resolves the symlink *before* applying the `..`, so a chain counted from the
-  symlink overshoots to `/` and Dart reports
-  `PathNotFoundException: … /third_party/OxidANT/Cargo.toml`.
-  `rust_builder/linux/CMakeLists.txt` therefore takes `REALPATH` of
-  `CMAKE_CURRENT_SOURCE_DIR` first, which yields `../..` and survives the
-  resolution. Verified against a rebuilt directory tree: six `..` fails, two
-  succeed. `rust_builder/windows/CMakeLists.txt` must KEEP
-  `CMAKE_CURRENT_SOURCE_DIR` — the asymmetry is deliberate and was proved by a
-  full container build on 2026-09-17: Windows normalizes `..` **lexically**, so
-  the ups counted from the junction path land on the repo root there, and the
-  REALPATH form fails with `PathNotFoundException: …\third_party\OxidANT\
-  Cargo.toml`. Do not "unify" the two.
+- **The Rust manifest path is counted from the resolved plugin dir on Linux and from the
+  unresolved one on Windows; do not unify them.** `rust_builder/linux/CMakeLists.txt` takes
+  `REALPATH` first, because the kernel resolves the plugin symlink before `..`; Windows
+  normalizes `..` lexically. Proof: [`docs/source/platforms.md`](docs/source/platforms.md) § *The Rust manifest path*.
 
 - **Never `dart format .` here.** It ignores `analysis_options.yaml` entirely,
   so the recursive walk reaches `flutter/`, `third_party/` and `build/` — one
@@ -611,62 +471,19 @@ written out rather than linked.
   into Flutter's `/MD` objects (`lld-link` RuntimeLibrary mismatch), and
   `kataglyphis_libfuzzer.exe` hit an `annotate_string` mismatch vs
   `clang_rt.fuzzer`.
-- **Each preset installs into its own directory** —
-  `build\windows\x64\runner\<preset>\` (and `plugins\<preset>\`), because
-  `Build-Windows.ps1` calls `Resolve-KataglyphisWindowsLayout -Configuration
-  $currentPreset` once per preset inside the `foreach ($currentPreset in
-  $presetsToRun)` loop and passes the `$currentBuildDirFull` it returns
-  (`$layout.RunnerDir`) as `-DCMAKE_INSTALL_PREFIX` on both configure paths, the
-  `--preset` one and the generator one. Grep those names rather than line
-  numbers: the refs that stood here (367/399/408) had already rotted to
-  413/445/454. `x64-ClangCL-Windows-Release` is only the fallback
-  used when no preset is named (`Get-WindowsBuildConfig.ps1`'s `CMakeConfiguration`).
-  Presets no longer clobber each other — but `Start-Windows.ps1` must then be
-  given the same preset name.
-- **ONNX Runtime is the image's chain build, staged by the build and checked at
-  launch** (owner rule 2026-09-23). `Build-Windows.ps1`'s *Stage Chain ONNX
-  Runtime* step copies `onnxruntime.dll` (+ `DirectML.dll`,
-  `onnxruntime_providers_shared.dll`) from `$env:ONNX_ROOT\bin` beside the exe on
-  every build, whatever `KATAGLYPHIS_RUST_FEATURES` says, after the GStreamer
-  glob (which skips ORT-family DLLs). ANTfrastructure's G6 census
-  (`Test-OrtProvenanceTree` in `WindowsOrtProvenance.Common`) then proves the
-  whole runner against the image's chain ORT, byte for byte, and that every
-  importer finds it beside the exe; the pass is stamped in `ort-chain-stamp.json`.
-  `Start-Windows.ps1` re-runs G6 on the host with the stamped copy as the
-  reference, and refuses a runner whose ORT is missing, unstamped, changed, stray
-  or foreign — Windows resolves `onnxruntime.dll` in the exe dir and then
-  System32, where Windows ML ships its own 1.17. It also refuses an
-  `ORT_DYLIB_PATH` that is not those same bytes, and OxidANT's loader
-  (`ort_runtime.rs`) refuses a non-chain file at run time whoever names it. A
-  runner built before G6 has an older stamp: rebuild it. `runner\Release`, the
-  MSIX copy and `Start-Windows.ps1`'s default, is rebuilt from the first preset
-  on every build (the host copy too), and *MSIX Packaging* re-runs G6 on it before
-  `msix:create`. Never copy an ORT into
-  the runner by hand. The staging is the hub's `Copy-ChainOrtBeside`
-  (`WindowsOrtPayload.Common`, this repo's own code until 2026-09-25); the stamp
-  is `scripts/windows/modules/WindowsOrtRunner.Common.psm1`, whose Pester suite
-  runs in the `ort-runner-suite` job of `windows-x64.yml` and of `windows-arm64.yml`.
-  The arm64 natives get the same proof and stamp in `Build-WindowsArm64Natives.ps1`,
-  over a copy of `runtime\` with `AccelerANTgine.exe` standing in for the app's exe
-  (G6 places ORT from a host exe's folder, and without one it calls every importer
-  `UNRESOLVED`, run 36891845685); the device re-proves the stamp before the launch smoke. Every verdict is the hub's,
-  so both scripts stop with the hub commit to move to when the pinned hub
-  predates either module. The Linux bundle's twin is
-  `check-bundle-closure.sh` (the packaged-Linux-artifact bullet above).
-- **Running on an unprovisioned host** (`STATUS_DLL_NOT_FOUND`): stage the
-  image's runtime DLLs into the runner (`C:\runtime\bin` → `runner\bin\`;
-  `C:\runtime\lib\gstreamer-1.0` → `runner\lib\gstreamer-1.0\`). ONNX Runtime is
-  already beside the exe (bullet above). Part of this is automated: whenever
-  `KATAGLYPHIS_RUST_FEATURES` names `gstreamer` (the Windows default), the
-  build's *Bundle Media Runtime DLLs* step copies `C:\runtime\bin\*.dll`
-  (ORT family excluded) beside the exe and ten capture plugins into
-  `gstreamer-1.0\` next to it.
-  Two extra gotchas: `AccelerANTgine.dll` is built into a `bin\`
-  **subdirectory** but the native plugin needs it **next to the exe** or on
-  `PATH` (`Start-Windows.ps1` prepends `runner\bin` for exactly that), and the
-  VC++ redist CRT DLLs are not bundled. A healthy launch is ~130 MB with a real
-  window; a ~6 MB process that exits means a missing dependency DLL. Full
-  symptom table in [`docs/source/platforms.md`](docs/source/platforms.md).
+- **Each Windows preset installs into its own `runner\<preset>\`** (and `plugins\<preset>\`);
+  `Start-Windows.ps1 -Configuration` must name the same preset, and
+  `x64-ClangCL-Windows-Release` is only the fallback. `runner\Release` is the MSIX copy of the
+  first preset built.
+- **ONNX Runtime in a Windows runner is the image's chain build, staged by the build and proven
+  by the hub's G6** (owner rule 2026-09-23); never copy an ORT into a runner by hand.
+  `Start-Windows.ps1` refuses a runner whose ORT is missing, unstamped, changed or foreign, since
+  Windows would otherwise load System32's Windows ML 1.17. Detail: [`docs/source/platforms.md`](docs/source/platforms.md) § *ONNX Runtime in
+  the Windows runner*.
+- **On an unprovisioned host** (`STATUS_DLL_NOT_FOUND`, or a ~6 MB process that exits) the
+  runner lacks the image's runtime DLLs: stage `C:\runtime\bin` and its GStreamer plugins, put
+  `runner\bin` (`AccelerANTgine.dll`) on `PATH` as `Start-Windows.ps1` does, and install the
+  VC++ runtime. Symptom table: [`docs/source/platforms.md`](docs/source/platforms.md) § *Troubleshooting containerized Windows builds*.
 - **Dart file ops fail on bind-mounted paths.** `copySync`/`renameSync` fail
   (plain writes and cmd `copy`/`ren` work), so junction `.dart_tool` and `build`
   from the mounted workspace to container-local dirs before building. The
@@ -681,118 +498,42 @@ written out rather than linked.
   toolchain-less rustup shims are harmful. The winamd64 image provisions exactly
   that now (hub `docs/windows-builds.md` § *Rust toolchain*), so this bites only
   outside it.
-- **Cargokit builds `liboxidant` with the toolchain rustup resolves for OxidANT,
-  never a floating `stable`** (2026-10-05). Upstream runs `rustup run stable cargo
-  build` when `cargokit.yaml` names no toolchain. The Linux image then carried only
-  `1.98.1` and a dated nightly, so every native and Android build downloaded the
-  day's stable and shipped a `liboxidant.so` stamped `rustc version 1.99.0`. The
-  `:latest` of 2026-10-10 carries 1.99.0, and the patch stays: whenever the image's
-  pin lags the newest stable, a floating `stable` downloads again. A
-  local patch in `rust_builder/cargokit/build_tool/lib/src/` fixes it; keep both
-  halves when bumping the vendored copy:
-  - `builder.dart` asks `rustup show active-toolchain` (through `rustup.dart`'s
-    `activeToolchain`) in the crate dir, which
-    follows `RUSTUP_TOOLCHAIN`, then a `rust-toolchain.toml`, then the default.
-  - `rustup.dart` counts a version pin such as `1.98.1-<host>` as installed.
-    Upstream lists only channel names, so a pin would read as missing.
-
-  The Windows image's default is the `stable-…` it installed at build time, so
-  Windows resolves to the toolchain it already used. `scripts/linux/check-rust-toolchain.sh`
-  reads the `rustc version` stamp in `.comment` and fails the native lane (bundle)
-  and the Android lane (APK) on any other version. Its suite,
-  `scripts/linux/tests/test-check-rust-toolchain.sh`, runs in both lanes'
-  code-quality batches. The Android lane still adds `aarch64-linux-android` to the
-  pinned toolchain at build time (about 4 s), because the image does not carry that
-  target.
-- **The Linux plugin builds AccelerANTgine without its test suites and without
-  its Debug sanitizers.** `packages/kataglyphis_native_inference/linux/CMakeLists.txt`
-  sets `BUILD_TESTING`, `myproject_ENABLE_SANITIZER_ADDRESS` and
-  `myproject_ENABLE_SANITIZER_UNDEFINED` to OFF before `add_subdirectory`, the
-  way it already set `myproject_ENABLE_CACHE`. The Debug app build that
-  `flutter test integration_test/… -d linux` makes failed twice without them,
-  both reproduced in `:latest` (2026-10-01):
-  - AccelerANTgine's Debug default turns on ASan and UBSan, and its public
-    options target carries the flags into the plugin. The uninstrumented
-    runner then cannot link: 58 undefined `__asan_*`/`__ubsan_*` references
-    from both libraries (run 36900441698).
-  - Its tests add FuzzTest in Debug, and on Linux the vendored ANTLR's install
-    rule names a `libantlr4-runtime.so.4.13.2` that is never built.
-
-  Release builds lost AccelerANTgine's googletest headers and archives from the
-  bundle as a side effect. The plugin's gtest fetches its own googletest.
-  Windows is unchanged, since its Debug preset ships ASan on purpose.
+- **Cargokit builds `liboxidant` with the toolchain rustup resolves for OxidANT, never a
+  floating `stable`**: a local patch in `rust_builder/cargokit/build_tool/lib/src/`
+  (`builder.dart`, `rustup.dart`), both halves kept when bumping the vendored copy.
+  `check-rust-toolchain.sh` fails the native and Android lanes on any other `rustc version`
+  stamp. Detail: [`docs/source/platforms.md`](docs/source/platforms.md) § *Cargokit's Rust toolchain*.
+- **The Linux plugin builds AccelerANTgine without its test suites and its Debug sanitizers**
+  (`BUILD_TESTING` and both `myproject_ENABLE_SANITIZER_*` OFF before `add_subdirectory`):
+  without them the Debug integration build cannot link. Windows keeps its ASan Debug preset on
+  purpose. Detail: [`docs/source/platforms.md`](docs/source/platforms.md) § *The Linux plugin's AccelerANTgine build*.
 - **Vendored ANTLR** (pulled in unconditionally by newer FUZZTEST) needs
   `WITH_STATIC_CRT OFF`, `ANTLR_BUILD_CPP_TESTS OFF`, `ANTLR_BUILD_SHARED OFF`,
   `/FIchrono`, and `LICENSE.txt` staged at the build root — its install rule
   assumes a monorepo layout. Wired up in
   `third_party/AccelerANTgine/third_party/CMakeLists.txt` — the inference core's
   own dependency list, not the plugin's.
-- **The Stream page needs no secure context; only the Rust wasm core wants
-  isolation, and the web boots without it.** The page is receive-only
-  gstwebrtc-api JS. `pkg/oxidant_bg.wasm` is a threads build whose shared
-  memory Firefox and Safari refuse unless the page is cross-origin isolated
-  (COOP/COEP, honoured only on HTTPS or localhost); Chromium creates it anyway.
-  On web `main()` therefore treats a failed `RustLib.init()` as optional
-  (`lib/src/boot/rust_core.dart`): the app starts, and only the About page's
-  Rust demo goes dark. No code ever checked `crossOriginIsolated`, whatever
-  older notes said. Measured 2026-10-05 on the web lane's build with
-  `:latest`'s Chrome for Testing 154, over plain HTTP from a non-loopback
-  address: the app boots with the core, and boots without it when
-  `oxidant_bg.wasm` is blocked — the path Firefox and Safari take, neither of
-  which was run. `serve.sh --http` serves that plain-HTTP page, no certificate
-  warning. Without `--http` it terminates TLS on 8444, because the GStreamer
-  signalling server cannot end TLS for this repo's certificates (rustls
-  rejects a self-signed one with `CaUsedAsEndEntity`); the producer's
-  `--cert/--key` exist, the proxy is the supported path. Either way it proxies
-  `/webrtc-ws` to the producer's plain `ws://` server (port 8443).
+- **The Stream page needs no secure context.** Only the Rust wasm core wants cross-origin
+  isolation, and on web `main()` treats a failed `RustLib.init()` as optional, so Firefox and
+  Safari over plain HTTP still boot; only the About page's Rust demo goes dark. `serve.sh
+  --http` serves that, and without `--http` it ends TLS on 8444 in front of the producer. Detail:
+  [`docs/source/camera-streaming.md`](docs/source/camera-streaming.md) § *No secure context needed*.
 - **`signalingServerUrl` may be host-relative, and only web resolves it.** A
   value starting with `/` (the committed `/webrtc-ws`) becomes
   `wss://<page-host>/webrtc-ws` in `WebRTCSettings.fromJsonFile`
   (`lib/settings/webrtc_settings.dart`); absolute `ws(s)://` URLs pass through
   untouched, as does everything on native, where the value is unused
   (`WebRTCView` is web-only).
-- **A Pi Zero 2 W runs the image, but only with the host libcamera stack.**
-  The image's upstream libcamera cannot drive the Zero's imx708 via `rpi/vc4`
-  either: its isolated IPA process worker dies on start (`Failed to call
-  start: -110`, then the socket is unreachable), while the host's rpt build
-  uses the threaded proxy and works. The Zero also cannot build or run the
-  Rust producer comfortably (512 MB), so the bring-up is the container +
-  hostlibs mount + a `gst-launch` pipeline, exactly like the Pi 5's swap. Two
-  traps: the image's `entrypoint.sh` sources `libcamera-env.sh`, which
-  re-prepends `/opt/libcamera/lib` and silently overrides any
-  `LD_LIBRARY_PATH` handed to `nerdctl run` (bypass it with `--entrypoint` —
-  the Pi 5 runner does the same by exec'ing the binary directly); and
-  gst-launch's `webrtcsink` `meta` must be a space-free structure
-  (`meta="meta,name=Zero-Cat-Cam"`; a name with spaces fails to parse). The
-  same swap carries any unicam/VC4 Pi (a Pi 4 runs the Rust producer with
-  inference that way); there the `/dev/dma_heap/*` nodes need the camera
-  ACLs too (`Could not open any dma-buf provider`, registration `-12`) and
-  `/opt/gcc-16.2.0/lib64` must be on `LD_LIBRARY_PATH` for the image's ONNX
-  Runtime (`GLIBCXX_3.4.36 not found` otherwise). A camera mounted upside down
-  is a producer flag (`--rotate 180`), or in the Zero's hand-written
-  gst-launch pipeline a `videoflip method=rotate-180` element.
-- **A RISC-V board runs the same image, but the host has opinions.** The
-  SpacemiT X100 runs the riscv64 variant of `:latest` natively (the
-  producer builds in the container in minutes); a USB webcam needs `--v4l2`,
-  an ACL on the camera node (it is `root:video 660` and the user is normally
-  not in `video`) and UFW rules for `8443/tcp` plus the WebRTC UDP range
-  (`32768:60999/udp`). `serve.sh --producer-host` must be given the board's
-  **IP, not its mDNS name**: nginx resolves `proxy_pass` hostnames once at
-  startup, so a DHCP or mDNS address change leaves it answering `101` while
-  nothing ever reaches the producer. Each `serve.sh` instance also needs its
-  own port opened on the **dev host** — a second board's page stays
-  unreachable while the first board's still works, which reads like a
-  producer fault but is a missing `ufw allow 8446/tcp`.
-- **Autostart is opt-in, and a boot start must clear stale containers.** A
-  producer is a `nerdctl run` container and `serve.sh` is a foreground nginx;
-  each board carries a local `~/cat-cam.sh start|stop|status` for that. A board
-  that should come up on boot gets a systemd unit whose `ExecStart` is the
-  script (the Zero has `cat-cam.service`, oneshot + `RemainAfterExit`); the
-  boards that run ObservANT package use its own unit instead. `start` removes a stale container first — one
-  left in `Created` state after a crash blocks the named run with
-  `name-store error` and would fail the boot start. Hand-set ACLs die with
-  re-enumerated device nodes (the X100's C270 re-plug did exactly that), so
-  they want a udev rule (`/etc/udev/rules.d/99-catcam-acl.rules` on the X100).
+- **A Pi Zero 2 W, or any VC4/unicam Pi, runs the image only with the host's libcamera
+  stack**: the container, a hostlibs mount and `--entrypoint` (the image's `entrypoint.sh`
+  overrides `LD_LIBRARY_PATH`); the Zero runs a `gst-launch` pipeline without the model.
+  Bring-up and traps: [`docs/source/camera-streaming.md`](docs/source/camera-streaming.md) § *Cat detection stream (Rust, native)*.
+- **A RISC-V board runs the same image natively**: a USB webcam needs `--v4l2`, a udev rule
+  for the camera node's ACL and UFW rules, and `serve.sh --producer-host` takes the board's IP,
+  never its mDNS name. Detail: [`docs/source/camera-streaming.md`](docs/source/camera-streaming.md) § *Cat detection stream (Rust, native)*.
+- **Autostart is opt-in.** Boards on the ObservANT package use its systemd unit; the manual
+  setups' `~/cat-cam.sh start` removes a stale container first, or the named run fails with
+  `name-store error`.
 - **The frb Dart bindings must match the Rust runtime's frb version.** They
   were stale at 2.12.0 against 2.13.0 and the web build died with an empty
   `Uncaught` before `pkg/oxidant.js` loaded. Regenerate both sides together:
