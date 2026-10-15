@@ -102,5 +102,11 @@
   "webrtcPeerNotStarted": "Die Verbindung konnte nicht gestartet werden.",
   "webrtcNoCamera": "Der Signalisierungsserver läuft, aber keine Kamera hat sich gemeldet. Starten Sie kataglyphis_observant auf dem Kamerarechner.",
   "webrtcExchangingCandidates": "ICE-Kandidaten werden ausgetauscht.",
-  "webrtcSeeConsole": "Den zugrunde liegenden Fehler zeigt die Browser-Konsole."
+  "webrtcSeeConsole": "Den zugrunde liegenden Fehler zeigt die Browser-Konsole.",
+  "visitStats": "Besuche",
+  "visitStatsNone": "Keine Besuche in den letzten {days} Tagen.",
+  "visitStatsSummary": "{today} heute, {total} in {days} Tagen",
+  "visitStatsAverageStay": "Im Schnitt {minutes} min geblieben",
+  "visitStatsPerDay": "Pro Tag",
+  "visitStatsPerHour": "Nach Uhrzeit"
 }

@@ -247,5 +247,41 @@
   "webrtcPeerNotStarted": "Could not start the connection.",
   "webrtcNoCamera": "Signalling is up, but no camera has announced itself. Start kataglyphis_observant on the camera host.",
   "webrtcExchangingCandidates": "Exchanging ICE candidates.",
-  "webrtcSeeConsole": "See the browser console for the underlying error."
+  "webrtcSeeConsole": "See the browser console for the underlying error.",
+  "visitStats": "Visits",
+  "@visitStats": {
+    "description": "Button on the Stream page that opens the visit statistics."
+  },
+  "visitStatsNone": "No visits in the last {days} days.",
+  "@visitStatsNone": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "visitStatsSummary": "{today} today, {total} in {days} days",
+  "@visitStatsSummary": {
+    "placeholders": {
+      "today": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      },
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "visitStatsAverageStay": "Average stay: {minutes} min",
+  "@visitStatsAverageStay": {
+    "placeholders": {
+      "minutes": {
+        "type": "String"
+      }
+    }
+  },
+  "visitStatsPerDay": "Per day",
+  "visitStatsPerHour": "By time of day"
 }

@@ -30,6 +30,9 @@ Future<String?> fetchFrom(String url) => _get(url);
 /// ObservANT's `/healthz`.
 Future<String?> fetchHealthz() => _get('/healthz');
 
+/// ObservANT's `/visits`: the last 30 days' visits, read when the statistics open.
+Future<String?> fetchVisits() => _get('/visits');
+
 /// ObservANT's `/settings`.
 Future<String?> fetchObservantSettings() => _get('/settings');
 

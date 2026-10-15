@@ -721,6 +721,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'See the browser console for the underlying error.'**
   String get webrtcSeeConsole;
+
+  /// Button on the Stream page that opens the visit statistics.
+  ///
+  /// In en, this message translates to:
+  /// **'Visits'**
+  String get visitStats;
+
+  /// No description provided for @visitStatsNone.
+  ///
+  /// In en, this message translates to:
+  /// **'No visits in the last {days} days.'**
+  String visitStatsNone(int days);
+
+  /// No description provided for @visitStatsSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'{today} today, {total} in {days} days'**
+  String visitStatsSummary(int today, int total, int days);
+
+  /// No description provided for @visitStatsAverageStay.
+  ///
+  /// In en, this message translates to:
+  /// **'Average stay: {minutes} min'**
+  String visitStatsAverageStay(String minutes);
+
+  /// No description provided for @visitStatsPerDay.
+  ///
+  /// In en, this message translates to:
+  /// **'Per day'**
+  String get visitStatsPerDay;
+
+  /// No description provided for @visitStatsPerHour.
+  ///
+  /// In en, this message translates to:
+  /// **'By time of day'**
+  String get visitStatsPerHour;
 }
 
 class _AppLocalizationsDelegate

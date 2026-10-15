@@ -10,6 +10,15 @@ What landed on `develop` after 2.0.0+2. Most of it is the cat cam, whose guide i
 
 ### Added
 
+- **Visit statistics on the Stream page** (2026-10-15, owner). A *Visits* button opens the
+  last two weeks: visits today and in all, the average stay, and bars per day and per hour of the
+  day, counted in the viewer's own time zone. They come from ObservANT's new `/visits` (OxidANT),
+  which keeps every visit of the last 30 days in `visits.json` and is read only while the panel
+  is open, every minute; `/healthz`, which the page polls, stays as small as it was.
+  `test/visit_stats_test.dart` covers the counting at the window's and midnight's edges, the
+  average over the visits that left, and the panel opening, closing and a camera that does not
+  answer.
+
 - **The Camera page's requests to ObservANT are tested in Chrome** (2026-10-15).
   `observant_api_web.dart`, which reads `/healthz` and `/settings` and saves settings, had no
   test, since it loads only in a browser. `test/observant_api_web_test.dart` runs in the web

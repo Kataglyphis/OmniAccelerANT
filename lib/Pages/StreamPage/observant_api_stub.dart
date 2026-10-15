@@ -4,6 +4,8 @@ Future<String?> fetchHealthz() async => null;
 
 Future<String?> fetchFrom(String url) async => null;
 
+Future<String?> fetchVisits() async => null;
+
 Future<String?> fetchObservantSettings() async => null;
 
 Future<bool> saveObservantSettings(Map<String, Object> update) async => false;

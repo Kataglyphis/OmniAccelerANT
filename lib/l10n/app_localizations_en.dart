@@ -377,4 +377,28 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get webrtcSeeConsole =>
       'See the browser console for the underlying error.';
+
+  @override
+  String get visitStats => 'Visits';
+
+  @override
+  String visitStatsNone(int days) {
+    return 'No visits in the last $days days.';
+  }
+
+  @override
+  String visitStatsSummary(int today, int total, int days) {
+    return '$today today, $total in $days days';
+  }
+
+  @override
+  String visitStatsAverageStay(String minutes) {
+    return 'Average stay: $minutes min';
+  }
+
+  @override
+  String get visitStatsPerDay => 'Per day';
+
+  @override
+  String get visitStatsPerHour => 'By time of day';
 }

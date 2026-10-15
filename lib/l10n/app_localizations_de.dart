@@ -380,4 +380,28 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get webrtcSeeConsole =>
       'Den zugrunde liegenden Fehler zeigt die Browser-Konsole.';
+
+  @override
+  String get visitStats => 'Besuche';
+
+  @override
+  String visitStatsNone(int days) {
+    return 'Keine Besuche in den letzten $days Tagen.';
+  }
+
+  @override
+  String visitStatsSummary(int today, int total, int days) {
+    return '$today heute, $total in $days Tagen';
+  }
+
+  @override
+  String visitStatsAverageStay(String minutes) {
+    return 'Im Schnitt $minutes min geblieben';
+  }
+
+  @override
+  String get visitStatsPerDay => 'Pro Tag';
+
+  @override
+  String get visitStatsPerHour => 'Nach Uhrzeit';
 }
