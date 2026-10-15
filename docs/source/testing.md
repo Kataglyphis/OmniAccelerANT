@@ -42,7 +42,9 @@ the why behind that table (written after the test audit of 2026-10-15).
   (`web.rs`, `static_files.rs`) they caught about 84 % of 145 compiling mutants on 2026-10-15,
   and 142 after tests for every gap it named. The arrival logic (`motion.rs`, `presence.rs`,
   `status.rs`) went from about 92 % to 375 of 379, and camera choice, config and webhook
-  (`camera.rs`, `config.rs`, `notify.rs`) from about 90 % to 134 of 145. What is left changes
+  (`camera.rs`, `config.rs`, `notify.rs`) from about 90 % to 134 of 145, and frames, clips
+  and stats (`frame.rs`, `clip.rs`, `stats.rs`, `output.rs`, `precompress.rs`) from 376 to 400
+  of 412; there the privacy filter's colour planes had never been checked. What is left changes
   nothing a client can see, or reads a real camera device, which no CI host has. How to run
   it: OxidANT's AGENTS.md.
 - **A new test proves it can fail.** Each gate and property added on 2026-10-15 was run
