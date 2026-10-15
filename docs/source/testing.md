@@ -78,9 +78,11 @@ As found on 2026-10-15, so a green run is read for what it is:
   `#[cfg(feature = …)]` is missing from its report, `crates/media` and the webcam engine
   among them, although their tests run. `cargo llvm-cov` would see them; the image does
   not carry it (OxidANT's AGENTS.md).
-- **The native plugin's C++ is barely tested:** one `GetPlatformVersion` gtest per platform.
-  The Linux texture code and the Android GStreamer glue have no tests; the integration
-  test's frame through `knt_push_frame` is their only check.
+- **The native plugin's Windows and Android C++ is barely tested:** one `GetPlatformVersion`
+  gtest on Windows, one JVM test on Android, and nothing for the Android GStreamer glue. The
+  Linux texture has six gtests since 2026-10-15 (pipeline errors as Dart sees them, a
+  transparent test pattern shown opaque, the `knt_push_frame` codes and registry), each
+  checked against a planted bug.
 - **Web-only Dart is outside the coverage figure.** `webrtc_view.dart` and the other files
   behind `dart.library.js_interop` never load on the VM, and the Chrome run measures
   nothing; the ObservANT package test's real browser is what covers them.
