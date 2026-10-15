@@ -352,6 +352,275 @@ tree; the script sorts that out itself and refuses up front rather than
 half-applying. Why any of it —
 [`third_party/ANTfrastructure/docs/dependency-updates.md`](../../third_party/ANTfrastructure/docs/dependency-updates.md).
 
+## The Linux lanes, run locally
+
+The detail behind the rules in AGENTS.md's § 5, moved here on 2026-10-15 to keep AGENTS.md
+short.
+
+Each entry mirrors its workflow's `extra-args` and `script`, so change the pair
+together. The argument sets are meant to match exactly — the android lane also
+matches in *not* passing `--privileged`. The native lane's step lives in
+`reusable-linux.yml`, and its values in the `with:` block of the per-arch
+caller; keep that block flat `key: value` lines, which is what `-CheckParity`
+reads.
+
+The native lane sets `KATAGLYPHIS_RUST_FEATURES=gstreamer,onnxruntime_dynamic`
+before `flutter build linux` — set it to the empty string to opt out — and
+`KATAGLYPHIS_PLUGIN_TESTS=1`, which `linux/CMakeLists.txt` turns into the plugin's
+gtest target. For a release build it runs `bundle-runtime-closure.sh`, then the
+`knt ABI`, `runtime closure` and `plugin gtest` gates, then the launch smoke and
+the integration test under the image's `xvfb-run`, all between the build and
+packaging.
+
+**`KATAGLYPHIS_LINKER=lld|mold` is an opt-in for the native lane** (2026-10-05):
+`.\scripts\windows\Invoke-LinuxLane.ps1 -Env KATAGLYPHIS_LINKER=lld`. `setup_linker`
+runs it after `export_toolchain_env`, so clang links the C++ and the host Rust target
+with that linker. Unset leaves GNU ld for C++ and rust-lld for x64 Rust. The switch is
+the hub's [`linker-select.sh`](../../third_party/ANTfrastructure/docs/shared-script-libraries.md#linker-selectsh--an-opt-in-linker);
+it fails rather than falls back, and it fetches the pinned mold 3.0.0 when the image has
+none. The measurement behind it is there too. lld is the useful value: about 1.3 s
+off a Debug relink, and nothing off a ~48 s release app build, which mold does not
+beat. CI never sets it, and the android and web lanes do not read it.
+
+`Invoke-LinuxLane.ps1
+-CheckParity` diffs the *values* it would send — `script` and `extra-args` —
+against the lane's workflow (change driver and workflow together); for
+`native` it grades `-Arch`'s own file, resolving `reusable-linux.yml`'s
+`${{ inputs.* }}` from it. It runs before the engine is looked up, so it needs
+no nerdctl and starts nothing. A real run refuses to start while another Linux
+lane's container is up or a Windows build is running, and
+`Build-Windows-Container.ps1` refuses while a Linux lane is up (`-Force`
+overrides both; `scripts/windows/modules/WindowsLaneGuard.Common.psm1`). The two
+lanes sit on two engines: the Windows build container is Stevedore's, idles on
+`ping` between builds, and counts as busy only while a `pwsh` runs in it.
+
+**arm64 locally needs QEMU registered once per VM boot**, and an emulated
+arm64 run produces tar and deb but never flatpak or AppImage: `qemu-user` does
+not carry `unshare(CLONE_NEWUSER)` through for bubblewrap, and cannot load the
+static-PIE `appimagetool`. Neither restriction touches CI, whose arm64 build
+(`linux-arm64.yml`) runs on a real `ubuntu-26.04-arm` runner. The `binfmt`
+registration commands, the pull sizes, and both error messages verbatim:
+[`docs/source/project-operations.md`](project-operations.md)
+§ *The Linux lane, locally*.
+
+**Everything write-heavy must stay off the host mount.** A bind-mounted Windows
+drive cannot do `utime`, `chmod` or `fchmod` for the container uid, and each of
+those surfaces as a different, misleading error:
+
+| What | Where it lives now | Symptom when it did not |
+| --- | --- | --- |
+| CMake/ninja build tree | named volume on `/workspace/build` | — |
+| pub's download cache | named volume on `/workspace/.pub-cache` | `Rename failed, path = '/workspace/.pub-cache/_temp/…' (OS Error: Permission denied, errno = 13)`, then `Failed to update packages` — **but only on a run that downloads something.** A warm cache resolves from disk and renames nothing, so the local lane passed for as long as nobody edited `pubspec.yaml` |
+| cargo's target tree | named volume on `/workspace/third_party/OxidANT/target` | `error: failed to build archive at '…/libwasm_bindgen_macro_support-*.rlib': failed to remove temporary directory: Permission denied (os error 13) at path '…/out/.tmpXXXXXX.temp-archive'`. Same class as the row above, one verb over: the mount refuses the **remove**, not the write. The web lane hits it hardest because `-Z build-std` recompiles the standard library |
+| flatpak repo, build tree, builder state, manifest staging **and the finished bundle** | `/tmp/flatpak-work` | `fchmod: Operation not permitted`, first from the OSTree repo, later from `build-bundle` |
+| ccache / sccache | `/var/cache/{ccache,sccache}`, set by the image | `Can't initialize ccache use: Failed to set permissions` |
+
+Only the finished artifacts are written into `out/`. This is ANTfrastructure's
+documented rule for build directories and caches, applied to the packaging
+steps as well.
+
+**`pubspec.lock` cannot move off the mount, so its mtime can red the web lane.**
+When a workspace member's `pubspec.yaml` is newer than the root `pubspec.lock`
+(a submodule pull does that: on 2026-10-05 ANThology's was, by 19 s), the
+`dart run` inside `flutter_rust_bridge_codegen build-web` re-validates and
+touches the lock, and the mount refuses the `utime`: `FileSystemException:
+Failed to set file modification time, path = '/workspace/pubspec.lock' (OS
+Error: Operation not permitted, errno = 1)`. Touch the lock on the host —
+`(Get-Item pubspec.lock).LastWriteTime = Get-Date` — and rerun; the next run
+passed. CI's fresh clone never has the skew.
+
+**The flatpak bundle is written under `/tmp/flatpak-work` and copied out**, and
+the step asks `ostree --repo=<repo> refs` whether the app is committed rather
+than trusting flatpak-builder's exit code. Both come out of one hunt —
+`error: fchmod` after `Pruning cache`, which is not the prune — written up in
+[`docs/source/project-operations.md`](project-operations.md)
+§ *The Linux lane, locally*. All four formats build locally on x64.
+
+It drives Rancher Desktop's `nerdctl` (found on `PATH`, else under
+`%ProgramFiles%`), because that is the local Linux engine on this box; CI uses
+`docker` through ANTfrastructure's `run-in-linux-container`. Everything inside the
+container is identical.
+
+**`-v name:/path` is not a named volume on Windows nerdctl.** It silently binds
+`$PWD/name`, so `Invoke-LinuxLane.ps1` always spells the mount
+`--mount type=volume,source=…,target=…`, which nerdctl cannot reinterpret as a
+path. CI is unaffected. The measurement that settled it, and the cosmetic
+`flutter clean … Device or resource busy (errno 16)` that mounting `build/`
+produces on every run, are in
+[`docs/source/project-operations.md`](project-operations.md)
+§ *The Linux lane, locally*.
+
+**Two traps, both of which produce a mount that resolves but is empty:** `D:`
+must exist inside *containerd's own* mount namespace, which is not the distro's
+and is gone after every VM restart — the fix is ANTfrastructure's
+[`docs/rancher-desktop-linux-containers.md` § *An empty mount is not a missing drive*](../../third_party/ANTfrastructure/docs/rancher-desktop-linux-containers.md#an-empty-mount-is-not-a-missing-drive)
+— and the path you pass must be the **Windows** one (`D:\…`), because nerdctl
+translates it itself and handing it the already-translated `/mnt/d/…` binds
+nothing. A `wsl: Failed to translate '<cwd>'` line in the output is noise, not a
+failed mount.
+
+No Linux lane installs Flutter (the Windows workflows clone it onto the runner for
+`flutter drive`). ANTfrastructure's `flutter_lane_prepare_env`
+([`05-frameworks/flutter/lane-prologue.sh`](../../third_party/ANTfrastructure/linux/scripts/05-frameworks/flutter/lane-prologue.sh))
+checks that one exists at `--flutter-dir`, puts it on `PATH`, registers the
+workspace `safe.directory`, points `PUB_CACHE` at `.pub-cache` and reports the
+version it found; whatever the image carries is what gets used. A multi-GB
+`flutter/` in the repo is a leftover from before that — git-ignored, and safe to
+remove.
+
+Linux builds run containerized. CI's path is the ANTfrastructure composite
+action `.github/actions/run-in-linux-container@develop`, which runs
+`scripts/linux/ci/ci-container-run-native-linux.sh` *inside* the container with
+CLI flags, not env vars (the *Run container* step of
+[`reusable-linux.yml`](../../.github/workflows/reusable-linux.yml), which
+`linux-x64.yml` and `linux-arm64.yml` both call). For x64 it resolves to:
+
+```bash
+bash /workspace/scripts/linux/ci/ci-container-run-native-linux.sh \
+  --arch x64 --build-mode release --flutter-dir /opt/flutter \
+  --app-name omni-accelerant \
+  --package-formats tar,deb,flatpak,appimage \
+  --install-packaging-deps true --strict-checks true \
+  --run-codeql false --run-docs true
+```
+
+`--flutter-dir` only says *where* to look; it defaults to `/opt/flutter`. There
+is no `--install-flutter` and no `--flutter-version`.
+
+**Flutter comes from the image, and this repo does not have an opinion about
+which version.** `flutter_lane_prepare_env` returns non-zero if `--flutter-dir`
+holds no `bin/flutter`, and otherwise prints the `flutter --version` this run
+got and moves on. To change the Flutter version, change the image. Why the pin-and-install
+machinery went, and what it was costing every Android run:
+[`docs/source/project-operations.md`](project-operations.md)
+§ *The Linux lane, locally*.
+
+The lane scripts take their inputs as CLI flags and exit 2 on a missing
+required one rather than guessing — `--arch` in all three, `--app-name` in the
+native and android lanes (the web lane takes none). `--package-formats` defaults
+to `tar` and `--flutter-dir` to `/opt/flutter`. The values
+CI passes are the `with:` blocks of
+[`linux-x64.yml`](../../.github/workflows/linux-x64.yml) and
+[`linux-arm64.yml`](../../.github/workflows/linux-arm64.yml).
+
+**`--app-name` derives from `pubspec.yaml`; do not hard-code it again.**
+`resolve_app_name` in `scripts/linux/lib/cli-common.sh` reads the `name:` entry
+and swaps `_` for `-`, so `omni_accelerant` yields `omni-accelerant`.
+`lane-native-linux.sh`, `lane-android.sh` (which appends `-apk`) and
+`package-linux.sh` default through it, and `Invoke-LinuxLane.ps1` reads the same
+`name:` line itself. Before
+2026-09-05 the literal sat in all four plus the workflows, seven copies that a
+rename had to find. The workflows still pass the value explicitly, which is
+what keeps CI independent of a host's `pwd`.
+
+`FLUTTER_DIR` defaults to `/opt/flutter` — the image's SDK, shared by every
+lane and never written to. It used to default inside the workspace, which made
+an x64 and an arm64 run in the same tree overwrite each other's SDK; that is
+gone along with the installer.
+
+## CodeQL, only on request
+
+**CodeQL runs only when asked for, and never in CI (owner directive
+2026-09-17).** `scripts/linux/codeql/codeql-android.sh` installs the CLI, builds
+a `--db-cluster` for **c, cpp and rust** around `flutter build apk` and runs two
+`database analyze` suites — budget hours, not minutes, which is why the android
+workflow and `Invoke-LinuxLane.ps1` both send `--run-codeql false` and the
+driver's local opt-in is `-RunCodeQL`. Java and Kotlin are deliberately not in
+that cluster: CodeQL's Java extractor refuses this repo's KGP and kills the
+Gradle build with it — AGENTS.md § 4, the built-in-Kotlin bullet. The native lane
+implements none and its driver *refuses* `--run-codeql true` with exit 2 rather
+than reporting success over a scan that never happened. So CI's android lane is
+the plain `flutter build apk` plus the plugin's JVM test, and the native build
+(both architectures) is the plain `flutter clean && flutter build linux
+--release` (its `pub get` ran in the checks batch before it).
+
+The scan is scoped by
+[`.github/codeql/codeql-config.yml`](../../.github/codeql/codeql-config.yml) —
+`paths-ignore` for build output, AccelerANTgine's vendored libraries, the
+non-inference submodules and Cargokit — passed to `database create` as
+`--codescanning-config`; the filters travel in the database to
+`database analyze`. It scopes the *analysis*, not extraction: a built
+language's extractor still sees those files, and the Rust extractor indexes the
+cargo registry under `usr/local/cargo` (21k files on the 2026-09-17 run), which
+no source-root-relative path filter can reach. What it buys is the outcome:
+that run produced 10 Rust findings, all under `third_party/OxidANT`, and none
+from an ignored path. The Windows `-CodeQL` path passes the same file since
+2026-09-28, through the hub's `Invoke-BuildCodeQL -CodeScanningConfig` (hub
+4dbf68b9); `Build-Windows.ps1` stops rather than scan unscoped on an older pin,
+because the unscoped run of 2026-09-17 indexed every vendored tree. A reused
+`codeql-db-cluster` keeps the scope it was created with: pass `-CleanCodeQLDb`.
+`database analyze` does **not** apply the config to traced C++: the first complete Windows
+run (2026-10-05) reported 39 of its 63 cpp results from the ignored
+`third_party/AccelerANTgine/third_party`. Since hub 09c3f983, `Invoke-BuildCodeQL` drops
+results under the config's `paths-ignore` from each SARIF and logs the count.
+
+`-CodeQL` starts from any tree. The untraced bootstrap runs first. Every preset's CMake
+folder and the cargo target are then cleared, and the traced build compiles cold with
+sccache off (hub `Disable-SccacheForTrace`): under the tracer, the image's never-exiting
+sccache server hangs `database create`. `Build-Windows-Container.ps1 -Configurations
+clangcl-release -CodeQL -CodeQLDownload -CleanCodeQLDb -FreshContainer` ran that way on
+2026-10-05 in about 37 min. It left 24 cpp and 10 rust results, all in owned code. The
+driver brings back only `logs` and the runner: the SARIFs stay in the container's
+`C:\ws\codeql-results`, readable with `docker exec omniaccelerant-agentic-build pwsh
+-Command "Get-Content -Raw C:\ws\codeql-results\cpp.sarif"`.
+
+## Gate strictness and the pre-commit hook
+
+**A pre-commit hook runs CI's first gates** (2026-10-05). Enable it once per clone with
+`git config core.hooksPath scripts/git-hooks`. It runs `scripts/linux/run-lint-gates.sh`,
+the same lint gates `lint-gates.yml` runs (about 10 s on the Windows box). When a staged
+file is a `scripts/**/*.ps1` or `.psm1`, it also runs the hub's `Invoke-Lint.ps1 -Path
+scripts`, the step `windows-x64.yml` stops on before its image pull (`windows-arm64.yml`
+has no such step). That step once reached CI uncaught: e904182's chained `[switch]` assignment failed
+windows-x64 run 37324782889. It grades the working tree, like the hub's hook.
+`--no-verify` skips it.
+
+Quality gates — `Build-Windows.ps1` runs these by default (skip with
+`-SkipFormat` / `-SkipTests` / `-SkipDocs`). Note the format command is **not**
+`dart format .`, the form that crashes on Windows (AGENTS.md § 4).
+
+```bash
+dart format --output=none --set-exit-if-changed $(git ls-files -- '*.dart' ':!:rust_builder/**')
+cmake-format -c .cmake-format.yaml --check <the hand-maintained CMake files>
+flutter analyze
+flutter test
+dart pub global run dartdoc --output doc/api
+```
+
+The Linux `checks` stage runs the same three (with `dart analyze` rather than
+`flutter analyze`), and **whether a failure is fatal depends on the lane**, not
+on the stage:
+
+| Lane | `--strict-checks` | A failing format/analyze/test |
+| --- | --- | --- |
+| native Linux ([`reusable-linux.yml`](../../.github/workflows/reusable-linux.yml), both architectures) | `true` | reds the lane |
+| web ([`web.yml`](../../.github/workflows/web.yml)) | `true` | reds the lane |
+| android (`ci-container-run-android.sh`) | not passed; always strict | reds the lane |
+
+Every lane is strict since 2026-10-01: the android lane was the last that
+reported a failing check and moved on, and `lane-android.sh` now calls
+`run_flutter_common_checks true` like the others. All three also run the
+plugin's own Dart tests through that function, under the same strictness. The
+`|| warn` arm still exists upstream in `flutter_checks.sh`, for a local
+`--strict-checks false` run only.
+
+`Invoke-LinuxLane.ps1` passes `-StrictChecks true` by default (since
+2026-09-16) so a local run grades exactly as CI does. It defaulted to `false`
+before that, which is the failure mode the driver exists to prevent: the lane
+you run to reproduce CI was the more forgiving of the two.
+
+The CMake gate NO LONGER follows that switch.
+`run_cmake_format_check` takes no arguments at all now: it used to accept a
+strictness flag and IGNORE its own verdict when that flag was false, so it errors
+(exit 2) if handed one rather than letting a stale caller pass silently. It runs in
+the native-Linux lane and the Android lane and is FATAL in both; the web lane builds
+no native CMake code and does not run it.
+
+That flip is safe for a measured reason, not an optimistic one — the gate's 13
+files are already clean and the native-Linux lane has passed
+`--strict-checks true` since fc8b65c, so the Android lane can only catch drift
+that already blocks the merge elsewhere.
+
 ## Troubleshooting
 
 ### The Linux lane, locally
