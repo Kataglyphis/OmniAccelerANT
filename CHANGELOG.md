@@ -112,6 +112,12 @@ What landed on `develop` after 2.0.0+2. Most of it is the cat cam, whose guide i
 
 ### Fixed
 
+- **The blog overview sorts the way its header arrow points** (2026-10-15, ANThology a87aec3).
+  Its table, ANThology's `AnthologyTable`, sorted a header tap in the direction from before the
+  tap, and since the overview sorts on load, a tap on another column only flipped the load
+  column again. Two cells with the same text in one row also both took the first one's width.
+  ANThology's first table tests found all three.
+
 - **The native app's first frame no longer waits for libcamera** (2026-10-15). The Stream page
   probed the Rust core with `listCameras()`, a synchronous bridge call that starts the GStreamer
   device monitor, so the first frame's build took 963 ms of which `StreamPage` held 938 ms
