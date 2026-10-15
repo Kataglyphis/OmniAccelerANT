@@ -118,11 +118,14 @@ Linux amd64/arm64 ship as a .deb and an AppImage, proven on himbeere2 (Pi 5) on
     minute; by daylight its turned picture is upright, undistorted and bordered as before;
   - mintberrycrunch (riscv64, C270, lit): 16 % of one of 8 cores, 12 model runs a minute.
 
-  The model runs at 640x640, fixed in `deim_dfine_n_coco.onnx`; a 320 export would cost
-  about a quarter per run. ModelANT's `export_deim.py --size 320` makes one, and the 12
-  arrival pictures of 2026-10-14 can prove whether it still finds the cats.
-  `fps = 15` in a board's `observant.toml` halves the capture cost at once, at a less smooth
-  stream. Blocked on the owner: 15 fps or not, and real cat frames to compare models on.
+  The model stays at 640x640. Measured 2026-10-15 with ModelANT c9b81a4 (whose `--size` export
+  works since) on the 11 real arrival pictures of 2026-10-14, Pi 5, 2 threads, at the
+  cameras' 0.25: 640 found the cat in 6 at 273 ms a run, 480 in 4 at 171 ms, 320 in 1 at
+  97 ms. 480 lost both small cats at the living-room picture's edge and two feeding-trough
+  scores fell from 0.86 and 0.63 to 0.40 and 0.35; with the motion gate the boards spend 2-4 %
+  of a core, so the time is not worth the cats. `fps = 15` in a board's `observant.toml`
+  still halves the capture cost at once, at a less smooth stream. Blocked on the owner: 15 fps
+  or not.
 
 ## Open — CI time
 
