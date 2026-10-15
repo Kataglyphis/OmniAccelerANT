@@ -1,0 +1,46 @@
+#!/bin/bash
+# omni-observant-update: installs the newest ObservANT release when newer; omni-observant-update.timer runs it nightly as root.
+set -euo pipefail
+
+package=omni-observant
+releases="${OMNI_OBSERVANT_RELEASES:-https://github.com/Kataglyphis/OmniAccelerANT/releases}"
+
+if ! command -v curl >/dev/null; then
+  echo "omni-observant-update needs curl" >&2
+  exit 1
+fi
+installed="$(dpkg-query -W -f='${Version}' "${package}" 2>/dev/null || true)"
+if [ -z "${installed}" ]; then
+  echo "${package} is not installed as a .deb; nothing to update"
+  exit 0
+fi
+arch="$(dpkg --print-architecture)"
+
+# releases/latest redirects to releases/tag/v<version>: no API, no rate limit and no JSON to parse.
+latest_url="$(curl -fsSL --max-time 60 -o /dev/null -w '%{url_effective}' "${releases}/latest")"
+latest="${latest_url##*/tag/v}"
+# No release yet, or one from before the v<version> tags (1.0.0+1), carries no ObservANT package.
+if [ -z "${latest}" ] || [ "${latest}" = "${latest_url}" ]; then
+  echo "no ObservANT release at ${releases}/latest yet (${latest_url}); staying on ${installed}"
+  exit 0
+fi
+if ! dpkg --compare-versions "${latest}" gt "${installed}"; then
+  echo "${package} ${installed} is up to date (latest release ${latest})"
+  exit 0
+fi
+
+deb="${package}_${latest}_${arch}.deb"
+work="$(mktemp -d)"
+trap 'rm -rf "${work}"' EXIT
+# A release without this architecture's package (riscv64 has none) is not an error.
+if ! curl -fsSL --max-time 1800 -o "${work}/${deb}" "${releases}/download/v${latest}/${deb}"; then
+  echo "release ${latest} has no ${deb}; staying on ${installed}"
+  exit 0
+fi
+curl -fsSL --max-time 60 -o "${work}/SHA256SUMS" "${releases}/download/v${latest}/SHA256SUMS"
+if ! (cd "${work}" && awk -v file="${deb}" '$2 == file' SHA256SUMS | sha256sum -c --quiet - >/dev/null 2>&1); then
+  echo "${deb} does not match the release's SHA256SUMS; not installed" >&2
+  exit 1
+fi
+echo "installing ${package} ${latest} over ${installed}"
+DEBIAN_FRONTEND=noninteractive dpkg -i "${work}/${deb}"

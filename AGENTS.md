@@ -181,7 +181,8 @@ Two upstream facts repeated here only because they bite before you reach a doc:
   in `/opt/omni-observant`, as a `.deb` (systemd unit, ufw profile), an AppImage and a flatpak;
   riscv64 gets the `.deb` and a tarball, built on the board. **`observant.toml` is not a
   conffile, on purpose**: an edited one stopped upgrades at dpkg's prompt, so `setup` writes it
-  `640 root:omni-observant` only when it is absent. `package/*` is pinned to LF. Detail:
+  `640 root:omni-observant` only when it is absent. A nightly root timer installs a newer GitHub
+  release's `.deb` after checking its `SHA256SUMS` (2026-10-15). `package/*` is pinned to LF. Detail:
   [`docs/source/camera-streaming.md`](docs/source/camera-streaming.md) § *The ObservANT package*.
 - `scripts/windows/observant/` — the Windows ObservANT, built and tested in `:winamd64`
   (2026-10-06): `Package-ObservANT.ps1` makes the install folder, the zip, the MSI and, with

@@ -1,0 +1,10 @@
+[Unit]
+Description=Install the newest ObservANT release when one is out
+Documentation=https://github.com/Kataglyphis/OmniAccelerANT/blob/develop/docs/source/camera-streaming.md
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+# Root, because dpkg installs the package; the timer starts it, never boot.
+ExecStart=/opt/omni-observant/libexec/omni-observant-update

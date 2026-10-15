@@ -1,0 +1,11 @@
+[Unit]
+Description=Look for a newer ObservANT release every night
+
+[Timer]
+OnCalendar=*-*-* 03:30
+# Spread over the night, so a release does not reach every camera in the same minute.
+RandomizedDelaySec=45min
+Persistent=true
+
+[Install]
+WantedBy=timers.target

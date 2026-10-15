@@ -227,6 +227,7 @@ chmod 755 "${bundle}/observant"
 
 # The installer the AppImage and the tarball run, and the files it installs; the .deb installs the same ones.
 install -m 755 "${script_dir}/package/observant-install" "${bundle}/libexec/observant-install"
+install -m 755 "${script_dir}/package/omni-observant-update" "${bundle}/libexec/omni-observant-update"
 mkdir -p "${bundle}/share/${package}"
 for file in omni-observant.service observant.toml ufw-omni-observant; do
   install -m 644 "${script_dir}/package/${file}" "${bundle}/share/${package}/${file}"
@@ -251,6 +252,8 @@ mkdir -p "${deb}/DEBIAN" "${deb}${prefix}" "${deb}/usr/bin" "${deb}/usr/lib/syst
 cp -a "${bundle}/." "${deb}${prefix}/"
 ln -s "${prefix}/observant" "${deb}/usr/bin/omni-observant"
 install -m 644 "${script_dir}/package/omni-observant.service" "${deb}/usr/lib/systemd/system/"
+install -m 644 "${script_dir}/package/omni-observant-update.service" "${script_dir}/package/omni-observant-update.timer" \
+  "${deb}/usr/lib/systemd/system/"
 install -m 644 "${script_dir}/package/ufw-omni-observant" "${deb}/etc/ufw/applications.d/omni-observant"
 for script in postinst prerm postrm; do
   install -m 755 "${script_dir}/package/${script}" "${deb}/DEBIAN/${script}"

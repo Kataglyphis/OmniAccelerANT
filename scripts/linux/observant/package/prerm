@@ -2,7 +2,7 @@
 set -e
 
 if [ -d /run/systemd/system ] && [ "$1" = remove ]; then
-  deb-systemd-invoke stop omni-observant.service >/dev/null || true
+  deb-systemd-invoke stop omni-observant.service omni-observant-update.timer >/dev/null || true
 fi
 
 exit 0

@@ -1108,6 +1108,22 @@ pattern, no camera on that host). The host's Chrome played 582 frames from the L
 **Not verified yet:** the flatpak's start at a real sign-in, and a USB webcam on an amd64
 or arm64 board (mintberrycrunch's C270 above is riscv64).
 
+#### Updates from the releases
+
+Since 2026-10-15 the `.deb` updates itself. `omni-observant-update.timer`, enabled at install
+like the service, runs `/opt/omni-observant/libexec/omni-observant-update` as root every night
+at 03:30, spread over 45 minutes. It follows GitHub's `releases/latest` redirect to the newest
+`v<version>` tag, and only when that version is newer than the installed one (never a
+downgrade) it downloads `omni-observant_<version>_<arch>.deb`, checks it against the release's
+`SHA256SUMS` and installs it with `dpkg -i`; the package's `postinst` restarts the service. No
+release yet, a latest release from before the `v` tags, or one without this architecture's
+package (riscv64, which no CI lane builds) leaves the camera as it is. Turn it off with `sudo
+systemctl disable --now omni-observant-update.timer`, which an upgrade respects; `sudo
+systemctl start omni-observant-update.service` checks at once, and `journalctl -u
+omni-observant-update` shows what it did. `scripts/linux/observant/test-observant-update.sh`
+runs it against a local stand-in for GitHub with fake packages in `web.yml`'s package jobs:
+an update, no downgrade, a failing checksum and a missing architecture.
+
 ### The Windows ObservANT
 
 **At a glance** (AGENTS.md § 2, until 2026-10-15):

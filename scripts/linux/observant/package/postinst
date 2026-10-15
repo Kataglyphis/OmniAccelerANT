@@ -4,6 +4,7 @@
 set -e
 
 unit=omni-observant.service
+timer=omni-observant-update.timer
 
 if [ "$1" = configure ]; then
   # The user, and the settings file if absent; as a conffile, an edited one stops every upgrade at a prompt.
@@ -27,11 +28,24 @@ case "$1" in
         deb-systemd-helper enable "$unit" >/dev/null || true
       fi
     fi
+    # The nightly update check, on by default; an admin's `systemctl disable` of it survives upgrades too.
+    if command -v deb-systemd-helper >/dev/null 2>&1; then
+      deb-systemd-helper unmask "$timer" >/dev/null || true
+      if deb-systemd-helper debian-installed "$timer"; then
+        deb-systemd-helper update-state "$timer" >/dev/null || true
+        if deb-systemd-helper --quiet was-enabled "$timer"; then
+          deb-systemd-helper enable "$timer" >/dev/null || true
+        fi
+      else
+        deb-systemd-helper enable "$timer" >/dev/null || true
+      fi
+    fi
     if [ -d /run/systemd/system ]; then
       systemctl --system daemon-reload >/dev/null || true
       if [ -n "$2" ]; then action=restart; else action=start; fi
       # deb-systemd-invoke leaves a disabled unit alone.
       deb-systemd-invoke "$action" "$unit" >/dev/null || true
+      deb-systemd-invoke start "$timer" >/dev/null || true
     fi
     ;;
 esac

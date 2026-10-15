@@ -399,6 +399,8 @@ check "an install from before ObservANT hands over its settings" grep -qx 'name 
 check "and its visits, owned by the service" legacy_visits_moved
 check "the service user is in the video group" in_video_group
 check "the unit is installed and enabled" test -e /etc/systemd/system/multi-user.target.wants/omni-observant.service
+check "the nightly update timer is installed and enabled" test -e /etc/systemd/system/timers.target.wants/omni-observant-update.timer
+check "its updater is in the package" test -x /opt/omni-observant/libexec/omni-observant-update
 check "postinst wrote the settings file" test -f "${config}"
 check "only root and the service's group read it" config_private
 check "an older version's world-readable settings file is made private" old_config_tightened

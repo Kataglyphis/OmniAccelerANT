@@ -10,6 +10,16 @@ What landed on `develop` after 2.0.0+2. Most of it is the cat cam, whose guide i
 
 ### Added
 
+- **Releases, and cameras that update themselves** (2026-10-15, owner). A tag `v<version>` now
+  publishes `web.yml`'s tested ObservANT packages as a GitHub release, with a `SHA256SUMS` and
+  the version's CHANGELOG section as notes (`scripts/linux/publish-release.sh`, refusing a tag
+  that is not pubspec's version). The `.deb` brings `omni-observant-update.timer`: every night
+  it installs a newer release's package for the camera's architecture once it matches the
+  release's checksum, and leaves the camera alone otherwise; `systemctl disable --now
+  omni-observant-update.timer` turns it off. Both are tested: the release script against a
+  stand-in `gh` in the native lane, the updater against a local stand-in for GitHub in the
+  package jobs (an update, no downgrade, a bad checksum, a missing architecture).
+
 - **Visit statistics on the Stream page** (2026-10-15, owner). A *Visits* button opens the
   last two weeks: visits today and in all, the average stay, and bars per day and per hour of the
   day, counted in the viewer's own time zone. They come from ObservANT's new `/visits` (OxidANT),

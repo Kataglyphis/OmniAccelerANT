@@ -144,6 +144,14 @@ jobs:
           script: >-
             bash /workspace/scripts/linux/observant/test-observant-package.sh
 
+      # A fresh container: the updater installs and replaces fake omni-observant packages there.
+      - name: Test the camera updater
+        uses: Kataglyphis/ANTfrastructure/.github/actions/run-in-linux-container@develop
+        with:
+          extra-args: --platform "${{ matrix.platform }}" --user 0:0
+          script: >-
+            bash /workspace/scripts/linux/observant/test-observant-update.sh
+
   # The Windows ObservANT (docs/source/camera-streaming.md § The Windows ObservANT): the MSI around this run's web build, installed in :winamd64.
   observant-windows:
     name: ObservANT package (windows x64)

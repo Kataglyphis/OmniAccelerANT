@@ -10,10 +10,10 @@ fi
 
 if command -v deb-systemd-helper >/dev/null 2>&1; then
   case "$1" in
-    remove) deb-systemd-helper mask "$unit" >/dev/null || true ;;
+    remove) deb-systemd-helper mask "$unit" omni-observant-update.timer >/dev/null || true ;;
     purge)
-      deb-systemd-helper purge "$unit" >/dev/null || true
-      deb-systemd-helper unmask "$unit" >/dev/null || true
+      deb-systemd-helper purge "$unit" omni-observant-update.timer >/dev/null || true
+      deb-systemd-helper unmask "$unit" omni-observant-update.timer >/dev/null || true
       ;;
   esac
 fi
