@@ -90,7 +90,12 @@ As found on 2026-10-15, so a green run is read for what it is:
   checked against a planted bug.
 - **Web-only Dart is outside the coverage figure.** `webrtc_view.dart` and the other files
   behind `dart.library.js_interop` never load on the VM, and the Chrome run measures
-  nothing; the ObservANT package test's real browser is what covers them.
+  nothing; the ObservANT package test's real browser is what covers them. The one with the
+  most to lose, `observant_api_web.dart`, through which the Camera page reads and saves
+  ObservANT's settings, has a Chrome-only test since 2026-10-15
+  (`observant_api_web_test.dart`, `@TestOn('browser')`): it swaps the page's `fetch` for a
+  fake and checks each request's URL, method, header, JSON body and timeout, and that an
+  error status or a failed request reads as nothing.
 - **ANThology's own tests run in its repository only**, and a third of its `lib/` files have
   none. Its sortable table, behind the blog overview here and four lists on the website, got
   its first tests on 2026-10-15, and they found three sorting bugs.

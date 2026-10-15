@@ -10,6 +10,14 @@ What landed on `develop` after 2.0.0+2. Most of it is the cat cam, whose guide i
 
 ### Added
 
+- **The Camera page's requests to ObservANT are tested in Chrome** (2026-10-15).
+  `observant_api_web.dart`, which reads `/healthz` and `/settings` and saves settings, had no
+  test, since it loads only in a browser. `test/observant_api_web_test.dart` runs in the web
+  lane's Chrome (`@TestOn('browser')`, so the VM lanes skip it), swaps the page's `fetch` for a
+  fake and checks each request's URL, method, `content-type`, JSON body and timeout, and that an
+  error status or a failed request reads as nothing. It fails against a `PUT` and against a
+  page that ignores the status.
+
 - **Benchmarks in the projects' own tooling, tracked in CI** (2026-10-14, owner). The Flutter side
   is `integration_test/performance_test.dart` under `flutter drive --profile` with
   `test_driver/perf_driver.dart`: `watchPerformance` times the start, three rounds through every
