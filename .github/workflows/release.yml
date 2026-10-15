@@ -30,11 +30,17 @@ jobs:
           fetch-depth: 1
           persist-credentials: false
 
+      # Only the hub, for its release script; the other submodules stay out.
+      - name: Fetch the hub
+        run: git submodule update --init --depth 1 third_party/ANTfrastructure
+
       - name: pubspec.yaml's version has a CHANGELOG section and no release yet
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
-        run: bash scripts/linux/publish-release.sh --check
+        run: >-
+          bash third_party/ANTfrastructure/linux/scripts/06-packaging/publish-github-release.sh
+          --version-file pubspec.yaml --changelog CHANGELOG.md --name OmniAccelerANT --check
 
   # The same lanes on-request.yml calls, plus linux-x64; each grants what its lane's jobs ask for.
   linux-x64:
@@ -99,16 +105,24 @@ jobs:
           fetch-depth: 1
           persist-credentials: false
 
-      # The ObservANT packages web.yml built and install-tested in this run, the files the cameras update from.
-      - name: Download the packages
+      - name: Fetch the hub
+        run: git submodule update --init --depth 1 third_party/ANTfrastructure
+
+      # Every lane's uploads from this run: the app for each platform and the ObservANT packages the cameras update from.
+      - name: Download every lane's uploads
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
-          pattern: omni-observant-*
-          path: release
-          merge-multiple: true
+          path: artifacts
+
+      - name: Collect the packages
+        run: >-
+          bash scripts/linux/collect-release-assets.sh artifacts release
+          "$(bash third_party/ANTfrastructure/linux/scripts/02-toolchain/rust/version_util.sh --file-version pubspec.yaml)"
 
       - name: Tag v<version> and publish
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
-        run: bash scripts/linux/publish-release.sh release
+        run: >-
+          bash third_party/ANTfrastructure/linux/scripts/06-packaging/publish-github-release.sh
+          --version-file pubspec.yaml --changelog CHANGELOG.md --name OmniAccelerANT --assets release

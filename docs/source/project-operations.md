@@ -329,19 +329,29 @@ by the owner's decision of 2026-10-05.
 
 **Publishing a release** (2026-10-15). Every push to `main` starts `release.yml`:
 
-1. Its `version` job runs `scripts/linux/publish-release.sh --check` and stops within a minute
-   unless `v<version>` (the version `pubspec.yaml` carries, without its `+build`) has a
+1. Its `version` job runs the hub's `publish-github-release.sh --check` and stops within a
+   minute unless `v<version>` (the version `pubspec.yaml` carries, without its `+build`) has a
    `CHANGELOG.md` section headed `## <version>` and no GitHub release yet.
 2. It calls all six lanes on that commit, as reusable workflows in the same run.
-3. Its `release` job `needs:` all six, so it runs only when every one is green. It tags the
-   commit `v<version>` and publishes the ObservANT packages `web.yml` built and install-tested
-   in that run: the `.deb`, AppImage, flatpak and tarball for x64 and arm64, and the Windows
-   MSI, MSIX (with its test certificate) and zip, plus a `SHA256SUMS` over them, with the
+3. Its `release` job `needs:` all six, so it runs only when every one is green. It downloads
+   every lane's uploads, `scripts/linux/collect-release-assets.sh` picks the packages, and the
+   hub's script tags the commit `v<version>` and publishes them with a `SHA256SUMS` and the
    CHANGELOG section as notes.
 
-`scripts/linux/tests/test-publish-release.sh` runs in the native lane and checks that the script
-refuses a released version, a version without a CHANGELOG section, a run without packages and
-a GitHub that does not answer. riscv64 has no package in a release, since no CI lane builds one.
+What a release carries (since 2026-10-16; 2.1.0 carried only ObservANT):
+
+| Platform | The app | ObservANT |
+| --- | --- | --- |
+| Linux x64 and arm64 | `.deb`, AppImage, flatpak (named for its arch), tarball | `.deb`, AppImage, flatpak, tarball |
+| Windows x64 | the app folder as a `.zip` | MSI, MSIX (with its test certificate), `.zip` |
+| Windows arm64 | the app folder as a `.zip` | none yet: no lane builds it (BACKLOG) |
+| Android | the arm64-v8a APK | |
+
+The collector skips logs, debug builds, the arm64 natives and the web build, and fails the
+release on an upload it has no rule for, or when a platform's package is missing.
+`scripts/linux/tests/test-collect-release-assets.sh` runs in the native lane (11 checks); the
+hub's suite tests the publishing script. riscv64 has no package in a release, since no CI lane
+builds one.
 
 1. On `develop`: bump `version:` in `pubspec.yaml` and `msix_config.msix_version` together
    (AGENTS.md § 4), turn `## Unreleased` into `## <version> — <date>` and open a new, empty

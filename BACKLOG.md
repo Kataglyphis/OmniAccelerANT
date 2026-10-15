@@ -127,6 +127,14 @@ Linux amd64/arm64 ship as a .deb and an AppImage, proven on himbeere2 (Pi 5) on
   still halves the capture cost at once, at a less smooth stream. Blocked on the owner: 15 fps
   or not.
 
+- [ ] **ObservANT for Windows arm64** (owner, 2026-10-16). `web.yml`'s `observant-windows` job
+  builds and install-tests the Windows package in `:winamd64`, x64 only, so a release has no
+  Windows arm64 ObservANT (the app itself is in it since 2026-10-16). It needs the producer
+  cross-built for `aarch64-pc-windows-msvc` as OxidANT's `windows-arm64-cross.yml` builds its
+  CLI, the arm64 GStreamer and chain ORT closure from the hub's arm64 bundle,
+  `Package-ObservANT.ps1` for arm64, an install test on `windows-11-arm`, and an
+  `omni-observant-windows-arm64` upload the release collector already takes.
+
 ## Open — CI time
 
 - [b] **Half of every Windows lane is the image pull.** Measured on 1686eae (2026-10-12):

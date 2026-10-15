@@ -19,6 +19,13 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ### Changed
 
+- **A release carries the app for every platform** (2026-10-16, owner): the Linux packages for
+  x64 and arm64, the Android APK, and the Windows x64 and arm64 apps as zips, beside the
+  ObservANT packages, which were all 2.1.0 carried. `release.yml` downloads every lane's
+  uploads and `scripts/linux/collect-release-assets.sh` picks and names them (a flatpak gets its
+  arch, the APK comes out of its tarball); it fails on an upload it has no rule for and on a
+  missing platform. Publishing moved to the hub's `publish-github-release.sh`, which OxidANT
+  shares; `scripts/linux/publish-release.sh` and its test are gone.
 - **The native lane's Dart tests run once**, coverage included (hub `flutter_checks.sh
   --coverage`): about 42 s less on every push to `develop`.
 
