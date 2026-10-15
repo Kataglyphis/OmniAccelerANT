@@ -156,6 +156,13 @@ Test-Check 'a webrtcsrc viewer decodes 60 frames from it' {
     $done -and $viewer.ExitCode -eq 0 -and (Select-String -Path (Join-Path $work 'viewer-out.log') -Pattern 'Got EOS' -Quiet)
 }
 if (-not $done) { $viewer.Kill($true) }
+# A failed viewer otherwise leaves only its verdict: its exit code and the end of both logs say why.
+if (-not ($done -and $viewer.ExitCode -eq 0)) {
+    Write-Host "      viewer: $(if ($done) { "exit $($viewer.ExitCode)" } else { 'still running after 90 s' })"
+    foreach ($log in 'viewer-out.log', 'viewer-err.log') {
+        Get-Content -LiteralPath (Join-Path $work $log) -Tail 15 -ErrorAction SilentlyContinue | ForEach-Object { Write-Host "      ${log}: $_" }
+    }
+}
 $svc.Process.Kill($true)
 $svc.Process.WaitForExit()
 
