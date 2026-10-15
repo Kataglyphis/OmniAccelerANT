@@ -152,16 +152,9 @@ The 2026-10-12 sweep is in `.git-blame-ignore-revs`.
 
 ### Tests
 
-```bash
-flutter test
-(cd packages/kataglyphis_native_inference && flutter pub get && flutter test)
-xvfb-run -a flutter test integration_test/simple_test.dart -d linux
-```
-
-The plugin is its own package with its own lock, so the root's `flutter test`
-never reaches its suite. The integration test needs a display; the native lane
-gives it the image's `xvfb-run`. Which lane runs which test is the table in
-AGENTS.md § *What each lane tests*.
+What each kind of test proves, how to run it and what is not covered yet:
+[Testing](testing.md). Which lane runs which test is the table in AGENTS.md
+§ *What each lane tests*.
 
 ## Documentation Workflow
 
