@@ -625,7 +625,8 @@ cannot run a test*.
   hand: `gh workflow run windows-x64.yml --ref develop`. A change to Windows-, arm64-, Android- or
   web-only code asks for its lane in its commit message.
 - **`main` moves only by the owner's fast-forward** to a `develop` commit whose full round
-  (`[ci all]`) is green. Agents never push `main`.
+  (`[ci all]`) is green. An agent pushes `main` only when the owner says so in that turn, and
+  checks that round first.
 - **Every push to `main` is a release:** `release.yml` runs every lane again and publishes
   `v<version>` only when all are green. Steps: project-operations.md § *Release Hygiene*.
 

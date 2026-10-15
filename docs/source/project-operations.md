@@ -347,7 +347,8 @@ a GitHub that does not answer. riscv64 has no package in a release, since no CI 
    (AGENTS.md § 4), turn `## Unreleased` into `## <version> — <date>` and open a new, empty
    `## Unreleased`. Commit with `[ci all]` in the message.
 2. Wait until every run on that commit is green, `on-request.yml`'s six lanes included.
-3. The owner fast-forwards `main` to that commit: `git push origin <sha>:main`.
+3. The owner fast-forwards `main` to that commit: `git push origin <sha>:main`. An agent does it
+   only on the owner's word in that turn, as for 2.1.0 (2026-10-15, `04365d8`).
 
 ## Dependency upgrades, in detail
 

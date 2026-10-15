@@ -137,6 +137,25 @@ Linux amd64/arm64 ship as a .deb and an AppImage, proven on himbeere2 (Pi 5) on
   `prepare-windows-container-host`; a smaller image for these lanes, or a cache the hosted
   runners keep, would halve the round. Blocked on the hub.
 
+- [ ] **Every Linux build misses the compiler cache on the same 63 C/C++ files.** Linux x64 on
+  589764b (2026-10-15): 1456 compile requests, 95 % hits, 63 C/C++ misses and 194
+  non-cacheable calls, and the lane builds three times (release, the integration test's debug,
+  the performance test's profile). The debug build alone is 93 s of the 95-s integration test.
+  Naming the missing files (`SCCACHE_LOG=debug` on two runs, or the C++20 module units)
+  could take 15-30 s off each build on every push.
+
+## Open — tests
+
+- [ ] **The Windows plugin has one trivial gtest.** `windows/test/` checks only
+  `GetPlatformVersion`; `kataglyphis_texture.cpp` is untested. Linux's `my_texture.cc` has six
+  since 2026-10-14 (a pipeline that does not parse or names no `sink`, play without a pipeline,
+  a failing source named for Dart, the test pattern's pixels opaque). The same cases for the
+  Windows texture need `[ci windows]` rounds to iterate, as no host here builds Windows.
+- [b] **`webrtc_view.dart`, about 550 web-only lines, is outside coverage.** It drives
+  gstwebrtc-api's JavaScript; testing it in Chrome needs a stand-in for that API. The stream's
+  state is tested through `webrtc_stream_controller_test.dart`, and the Camera page's requests
+  in Chrome through `observant_api_web_test.dart`. Blocked on a JS stand-in worth its upkeep.
+
 ## Open — waiting on the owner
 
 - [b] **The legal pages carry placeholders.** ANThology's `imprintDe.md` says itself that
