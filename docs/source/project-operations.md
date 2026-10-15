@@ -344,7 +344,7 @@ What a release carries (since 2026-10-16; 2.1.0 carried only ObservANT):
 | --- | --- | --- |
 | Linux x64 and arm64 | `.deb`, AppImage, flatpak (named for its arch), tarball | `.deb`, AppImage, flatpak, tarball |
 | Windows x64 | the app folder as a `.zip` | MSI, MSIX (with its test certificate), `.zip` |
-| Windows arm64 | the app folder as a `.zip` | none yet: no lane builds it (BACKLOG) |
+| Windows arm64 | the app folder as a `.zip` | MSI, MSIX (with its test certificate), `.zip` (since 2026-10-16) |
 | Android | the arm64-v8a APK | |
 
 The collector skips logs, debug builds, the arm64 natives and the web build, and fails the

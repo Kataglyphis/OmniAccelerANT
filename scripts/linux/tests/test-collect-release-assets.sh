@@ -22,6 +22,10 @@ artifacts() {
     printf 't' > "${a}/omni-accelerant-linux-${arch}-tar/omni-accelerant-linux-${arch}.tar.gz"
     printf 'o' > "${a}/omni-observant-linux-${arch}/omni-observant_2.1.0_${deb}.deb"
   done
+  for arch in x64 arm64; do
+    mkdir -p "${a}/omni-observant-windows-${arch}"
+    printf 'm' > "${a}/omni-observant-windows-${arch}/omni-observant-2.1.0-windows-${arch}.msi"
+  done
   mkdir -p "${a}/omni-accelerant-apk-linux-x64-tar/src/omni-accelerant-apk-bundle" "${a}/windows-release-files/data" \
     "${a}/omni-accelerant-windows-arm64" "${a}/build-log" "${a}/omni-accelerant-natives-windows-arm64" \
     "${a}/omni-accelerant-windows-arm64-debug" "${a}/gstreamer-ai-web-frontend"
@@ -46,6 +50,7 @@ check "the APK out of its tarball" test "$(cat "${out}/omni-accelerant-2.1.0-and
 check "each flatpak named for its arch" test -e "${out}/omni-accelerant-2.1.0-x86_64.flatpak" -a -e "${out}/omni-accelerant-2.1.0-aarch64.flatpak"
 check "each tarball named with the version" test -e "${out}/omni-accelerant-2.1.0-linux-x64.tar.gz" -a -e "${out}/omni-accelerant-2.1.0-linux-arm64.tar.gz"
 check "the ObservANT packages as they are" test -e "${out}/omni-observant_2.1.0_arm64.deb" -a -e "${out}/omni-observant_2.1.0_amd64.deb"
+check "and its MSIs for both Windows arches" test -e "${out}/omni-observant-2.1.0-windows-x64.msi" -a -e "${out}/omni-observant-2.1.0-windows-arm64.msi"
 check "no logs, natives, debug build or web build" bash -c "! ls '${out}' | grep -qE 'log|AccelerANTgine|debug|dart.js'"
 
 artifacts "${work}/b"
@@ -55,6 +60,10 @@ check "an upload nobody decided about fails the release" bash -c "bash '${collec
 artifacts "${work}/c"
 rm -rf "${work}/c/omni-accelerant-windows-arm64"
 check "a release without Windows arm64 fails" bash -c "bash '${collect}' '${work}/c' '${work}/r3' 2.1.0 2>&1 | grep -q 'would lack omni-accelerant-2.1.0-windows-arm64.zip'"
+
+artifacts "${work}/e"
+rm -rf "${work}/e/omni-observant-windows-arm64"
+check "a release without the arm64 ObservANT fails" bash -c "bash '${collect}' '${work}/e' '${work}/r5' 2.1.0 2>&1 | grep -q 'would lack omni-observant-2.1.0-windows-arm64.msi'"
 
 artifacts "${work}/d"
 mkdir -p "${work}/d/omni-observant-linux-x64-again"

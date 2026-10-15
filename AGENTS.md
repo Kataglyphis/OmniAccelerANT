@@ -188,7 +188,7 @@ Two upstream facts repeated here only because they bite before you reach a doc:
   release's `.deb` after checking its `SHA256SUMS` (2026-10-15). `package/*` is pinned to LF. Detail:
   [`docs/source/camera-streaming.md`](docs/source/camera-streaming.md) § *The ObservANT package*.
 - `scripts/windows/observant/` — the Windows ObservANT, built and tested in `:winamd64`
-  (2026-10-06): `Package-ObservANT.ps1` makes the install folder, the zip, the MSI and, with
+  (2026-10-06), and for arm64 built in `:winarm64` and tested on `windows-11-arm` (2026-10-16): `Package-ObservANT.ps1` makes the install folder, the zip, the MSI and, with
   `-Msix`, a signed MSIX (an unsigned one fails the build); `Test-ObservANTWindows.ps1` and
   `Test-ObservANTMsix.ps1` check them. **openh264 is a required plugin on Windows**, since the
   image builds no `vpx`. Detail: [`docs/source/camera-streaming.md`](docs/source/camera-streaming.md) § *The Windows ObservANT*.

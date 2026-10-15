@@ -56,7 +56,8 @@ done
 # A lane that uploaded nothing must not leave a release without its platform.
 for expected in "omni-accelerant-${version}-windows-x64.zip" "omni-accelerant-${version}-windows-arm64.zip" \
   "omni-accelerant-${version}-android-arm64-v8a.apk" "omni-accelerant_${version}_amd64.deb" \
-  "omni-accelerant_${version}_arm64.deb" "omni-observant_${version}_arm64.deb"; do
+  "omni-accelerant_${version}_arm64.deb" "omni-observant_${version}_arm64.deb" \
+  "omni-observant-${version}-windows-x64.msi" "omni-observant-${version}-windows-arm64.msi"; do
   [ -e "${out}/${expected}" ] || { printf 'the release would lack %s\n' "$expected" >&2; exit 1; }
 done
 ls -1 "$out"

@@ -1189,6 +1189,18 @@ pwsh -File scripts\windows\observant\Package-ObservANT.ps1 -WebRoot <build\web>
 # out\omni-observant-<version>-windows-x64-testcert.cer   (only without -MsixPfx)
 ```
 
+**Windows arm64 (since 2026-10-16).** `-Arch arm64` cross-builds the producer for
+`aarch64-pc-windows-msvc` inside the image's arm64 bundle (`:winarm64`), takes its DLLs from the
+arm64 runtime and the VC++ runtime from Visual Studio's arm64 redist, never the x64 container's
+`System32`, and names the files `…-windows-arm64.*`. An x64 host cannot run them, so `web.yml`'s
+`observant-windows-arm64-test` installs the MSI on `windows-11-arm`: first the hub's arch gate
+over the unzipped package (67 binaries, all arm64, every import resolved), then the same
+`Test-ObservANTWindows.ps1`, which there also checks the real firewall rule. That host has no
+GStreamer of its own, so the viewer checks say SKIP, and the x64 run plays one. Media Foundation
+on a desktop loads Microsoft's own Store codecs (HEVC, VP9), which the module check counts as
+Windows. ONNX Runtime's own imports are part of the DLL closure: its `msvcp140_1.dll` was missing
+from the first arm64 package, and from the x64 one on a PC without the VC++ redist.
+
 **One folder.** `C:\Program Files\OmniAccelerANT Cat Cam` holds:
 - `kataglyphis_observant.exe`;
 - the DLLs it and its plugins import (`Copy-PeImportClosure`), plus the VC++ runtime,
