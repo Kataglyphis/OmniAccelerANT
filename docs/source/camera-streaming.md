@@ -349,6 +349,42 @@ travels, but it means the target is assumed to have a desktop stack.
 
 ### The ObservANT package
 
+**At a glance** (AGENTS.md § 2, until 2026-10-15):
+
+`scripts/linux/observant/package-observant.sh` + `package/` — the installable
+ObservANT (2026-10-05). It packs the producer, its GStreamer plugins, the chain
+ORT (G6-proved), the model, the web build and the image's loader, glibc and
+libstdc++ into `/opt/omni-observant`, and wraps that in a `.deb` and
+an AppImage. The web build goes in without the `wimp` and `webparagraph`
+renderers and the `*.symbols` maps, which no browser fetches from it (the script
+stops if `flutter_bootstrap.js`'s load call ever asks for either), and the
+producer's `--precompress` puts a zopfli `.gz` beside each file the server gzips
+(2026-10-12). The `.deb` carries a systemd unit, enabled at install, and a ufw
+profile. The AppImage's `--install` sets up the same through
+`package/observant-install`, whose `setup` step the `.deb`'s `postinst` calls too.
+**`/etc/omni-accelerant/observant.toml` is not a conffile, on purpose.** `setup`
+writes it only when it is absent, `640 root:omni-observant`, since a `notify_url` can hold a
+webhook secret, and takes other users' read off an older, world-readable one. As a conffile, an edited copy stopped the
+next upgrade at dpkg's keep-or-replace prompt, which hangs over SSH. The unit is
+sandboxed (`systemd-analyze security` 1.8, from 8.7); its comment names what stays open
+for the camera, the RAM check and GStreamer's ORC, and the package test fails above 2.5.
+It runs in `:latest`
+with `--web-root` naming the web lane's `build/web`, **privileged**, because it also
+builds a flatpak and `flatpak-builder` needs bubblewrap.
+- The flatpak puts the same bundle in `/app/observant` on the image's freedesktop runtime.
+- Its command is `package/flatpak-omni-observant`: a per-user `observant.toml`, and a sign-in
+  autostart entry that `--autostart off|on` switches.
+- It has no boot service and no Pi camera, since the sandbox cannot see `rpicam-vid`.
+- `test-observant-package.sh` installs it system-wide as root, because a user install
+  needs a D-Bus the container lacks.
+- On riscv64 it builds the `.deb` and the tarball only, natively on the board in the
+  riscv64 `:latest` (a 16 KiB-page Pi cannot emulate it): the freedesktop runtime has no
+  riscv64 build and no AppImage runtime is staged for one. No CI lane builds it.
+
+`package/*` is pinned to LF in `.gitattributes`, because those files land on the
+target verbatim.
+Detail: `docs/source/camera-streaming.md` § *The ObservANT package*.
+
 `scripts/linux/observant/package-observant.sh` turns the producer below into one
 installable service. Run it inside `:latest`, with the web lane's `build/web` as
 its web root:
@@ -1073,6 +1109,29 @@ pattern, no camera on that host). The host's Chrome played 582 frames from the L
 or arm64 board (mintberrycrunch's C270 above is riscv64).
 
 ### The Windows ObservANT
+
+**At a glance** (AGENTS.md § 2, until 2026-10-15):
+
+`scripts/windows/observant/` — the Windows ObservANT, built and tested in `:winamd64`
+(2026-10-06).
+- `Package-ObservANT.ps1` builds one install folder, the zip and the MSI around it
+  (`observant.wxs` through the hub's `Invoke-MsiPackage`).
+  - Its DLL closure comes from the hub's `Copy-PeImportClosure`, plus the VC++ runtime.
+  - The ORT comes from `Copy-ChainOrtBeside`, and `New-OrtProvenPayload` proves it.
+  - The MSI's logon autostart is an all-users Startup-folder shortcut.
+  - Its firewall rule is LAN-only and bound to the exe. It needs WiX's firewall
+    extension, which the hub's final stage installs.
+  - `-Msix` packs the same folder as an MSIX (`AppxManifest.xml`): a startup task, the
+    `omni-observant` alias, and port rules for private and domain networks. It is signed
+    by `-MsixPfx`, or else by a per-build test certificate whose `.cer` lands beside
+    it. An unsigned result fails the build, because the hub's signing step only warns.
+- `Test-ObservANTMsix.ps1` reads the MSIX anywhere. With `-Install` it deploys and runs
+  the package on a desktop host, which Server Core cannot do (`0x80073D19`).
+- `Test-ObservANTWindows.ps1` installs the MSI and runs the exe with a scrubbed
+  environment.
+- On Windows the exe finds its plugins, ORT and model itself (OxidANT `install.rs`).
+- **openh264 is a required plugin on Windows**, because the image builds no `vpx`.
+- Detail: `docs/source/camera-streaming.md` § *The Windows ObservANT*.
 
 `scripts/windows/observant/Package-ObservANT.ps1` is the Windows twin of the
 package above. Like `package-observant.sh` it stamps the build into the exe as `OBSERVANT_VERSION`
