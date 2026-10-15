@@ -80,6 +80,8 @@ As found on 2026-10-15, so a green run is read for what it is:
   nothing; the ObservANT package test's real browser is what covers them.
 - **ANThology's own tests run in its repository only**, and a third of its `lib/` files have
   none.
-- **C++ fuzzing runs in unit mode only**, about a second per property; no job gives it a
-  time budget.
+- **C++ fuzzing runs in unit mode only**, about a second per property, without coverage
+  feedback. AccelerANTgine forces `FUZZTEST_FUZZING_MODE` off (`third_party/CMakeLists.txt`):
+  FuzzTest's coverage flags recursed with AddressSanitizer. Its targets read config files and
+  decode boxes; what a network peer sends is parsed in Rust, where the property tests above run.
 - **Windows and riscv64 do not demand the model**, so the real-model tests may skip there.
