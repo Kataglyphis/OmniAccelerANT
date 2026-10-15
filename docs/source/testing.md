@@ -90,7 +90,8 @@ As found on 2026-10-15, so a green run is read for what it is:
   behind `dart.library.js_interop` never load on the VM, and the Chrome run measures
   nothing; the ObservANT package test's real browser is what covers them.
 - **ANThology's own tests run in its repository only**, and a third of its `lib/` files have
-  none.
+  none. Its sortable table, behind the blog overview here and four lists on the website, got
+  its first tests on 2026-10-15, and they found three sorting bugs.
 - **C++ fuzzing runs in unit mode only**, about a second per property, without coverage
   feedback. AccelerANTgine forces `FUZZTEST_FUZZING_MODE` off (`third_party/CMakeLists.txt`):
   FuzzTest's coverage flags recursed with AddressSanitizer. Its targets read config files and
