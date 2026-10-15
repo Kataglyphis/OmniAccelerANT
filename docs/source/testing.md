@@ -44,9 +44,10 @@ the why behind that table (written after the test audit of 2026-10-15).
   `status.rs`) went from about 92 % to 375 of 379, and camera choice, config and webhook
   (`camera.rs`, `config.rs`, `notify.rs`) from about 90 % to 134 of 145, and frames, clips
   and stats (`frame.rs`, `clip.rs`, `stats.rs`, `output.rs`, `precompress.rs`) from 376 to 400
-  of 412; there the privacy filter's colour planes had never been checked. What is left changes
-  nothing a client can see, or reads a real camera device, which no CI host has. How to run
-  it: OxidANT's AGENTS.md.
+  of 412; there the privacy filter's colour planes had never been checked. The capture loop
+  (`capture.rs`) is the weakest, 87 of 124 at first and 98 now, because most of what is left
+  needs a real camera or a loaded model. What is left elsewhere changes nothing a client can
+  see, or reads a real camera device, which no CI host has. How to run it: OxidANT's AGENTS.md.
 - **A new test proves it can fail.** Each gate and property added on 2026-10-15 was run
   against a planted bug first: `..` let through the path check, an unclamped range end, a
   route no page answers, a skipped ctest test, a slowdown in the perf reports. A test that
@@ -103,4 +104,6 @@ As found on 2026-10-15, so a green run is read for what it is:
   feedback. AccelerANTgine forces `FUZZTEST_FUZZING_MODE` off (`third_party/CMakeLists.txt`):
   FuzzTest's coverage flags recursed with AddressSanitizer. Its targets read config files and
   decode boxes; what a network peer sends is parsed in Rust, where the property tests above run.
-- **Windows and riscv64 do not demand the model**, so the real-model tests may skip there.
+- **Windows does not demand the model**, so its real-model tests pass by skipping: its unit
+  tests run before the model is fetched (OxidANT's `BACKLOG.md`). The riscv64 lane fetches
+  and demands it since 2026-10-15.
