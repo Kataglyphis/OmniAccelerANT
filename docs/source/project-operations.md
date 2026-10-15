@@ -315,7 +315,8 @@ check would fail forever and teach the next reader that the flag does not work.
 ## Release Hygiene
 
 **Branches.** `develop` is the default branch and the only one work lands on. `main` is the
-release branch: it moves only when the owner merges a release (the latest tag is `1.1.0+1`), so
+release branch: it moves only when the owner merges a release (tagged `v<version>` since 2.1.0,
+`1.1.0+1` before), so
 between releases it trails `develop` by design (416 commits on 2026-10-05). Nothing deploys from
 `main` alone. Every lane runs on pushes to either branch, except that a push touching only
 `docs/**` or root-level `*.md` runs Linux x64 alone (`paths-ignore`, 2026-10-12), and the API

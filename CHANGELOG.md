@@ -5,7 +5,10 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ## Unreleased
 
-What landed on `develop` after 2.0.0+2. Most of it is the cat cam, whose guide is
+## 2.1.0+3 — 2026-10-15
+
+The first release cut by a `v<version>` tag, and the first the ObservANT cameras update
+themselves from. Most of it is the cat cam, ObservANT since 2026-10-14, whose guide is
 `docs/source/camera-streaming.md` § *The ObservANT package*.
 
 ### Added
