@@ -36,6 +36,10 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 - **A clean-host job proves it** after each Linux lane: a bare `ubuntu-26.04` (`-arm`) runner
   installs the `.deb` with apt and starts it, the AppImage and the unpacked tarball for 20 s
   under Xvfb, the way the lane's launch smoke does inside the image.
+- **The `.deb` declares `libegl1`, `libgles2` and `libgl1`.** That job's first run (38973418685)
+  aborted the app at once with `Couldn't open libEGL.so.1`: libepoxy loads the GL libraries at
+  run time, so no `NEEDED` names them, and GTK does not depend on them. Every desktop has them; a
+  bare Ubuntu does not.
 - **The Windows ObservANT carries ONNX Runtime's own DLLs**, the VC++ runtime included, so
   it starts on a Windows without Visual Studio's redistributable.
 - **`inference = "auto"` runs the model on 1 GB boards** (OxidANT 5898e42). It skipped the model
