@@ -103,12 +103,6 @@ Linux amd64/arm64 ship as a .deb and an AppImage, proven on himbeere2 (Pi 5) on
   pages, `third_party/OxidANT/AGENTS.md` § *The riscv64 lane*). A 4 KiB-page host could run
   `package-observant.sh` in the riscv64 `:latest` under QEMU, 20 to 30 times slower than the
   board's 8 min. Blocked on a runner, or on the hub making that QEMU path a lane.
-- [b] **Hub: `riscv64-sysroot.sh` without `--image` stops at once.** Its line 115 calls
-  `ci-image-ref.sh linux`, which takes `--linux` only (`unknown argument "linux"`); CI always
-  passes `--image`, so only the documented local run hits it. Found 2026-10-13 reproducing
-  OxidANT's riscv64 lane; worked around with `--image`. Blocked on the hub, where this repo
-  does not commit.
-
 - [b] **A cheaper model, or a cheaper picture.** Measured 2026-10-14 at 01:00, one minute
   each, CPU of the service process:
   - himbeere2 (Pi 5, imx219, rotate 180, dark): 3 % of a core, no model run;
