@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# test-observant-update.sh: the camera updater against a local stand-in for GitHub's releases and tiny fake packages; root, in a container.
+# test-observant-update.sh: the camera updater, for a .deb and (--user) for a user install, against a local stand-in for GitHub's releases and tiny fake packages; root, in a container.
 set -euo pipefail
 
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -18,10 +18,15 @@ mkdir -p /var/lib/omni-observant-update-test
 work="$(mktemp -d)"
 arch="$(dpkg --print-architecture)"
 fails=0
+# The user install's side runs as uid 1001, which cannot enter root's mktemp directories.
+user_home="$(mktemp -d)"
+user_tools="$(mktemp -d)"
+chmod 755 "${user_tools}"
+chown 1001:1001 "${user_home}"
 cleanup() {
   [ -n "${server:-}" ] && kill "${server}" 2>/dev/null
   dpkg -P omni-observant >/dev/null 2>&1 || true
-  rm -rf "${work}" /var/lib/omni-observant-update-test
+  rm -rf "${work}" "${user_home}" "${user_tools}" /var/lib/omni-observant-update-test
 }
 trap cleanup EXIT
 
@@ -42,6 +47,28 @@ publish() {
   cp "${work}/omni-observant_${version}_${2:-${arch}}.deb" "${dir}/"
   (cd "${dir}" && sha256sum -- *.deb > SHA256SUMS)
   printf '%s' "${version}" > "${work}/www/latest"
+}
+
+# A release tarball whose observant, asked for --install --user, installs the version it carries.
+fake_tar() {
+  local root="${work}/tar-$1/omni-observant"
+  mkdir -p "${root}/share/omni-observant"
+  printf '%s\n' "$1" > "${root}/share/omni-observant/version"
+  cat > "${root}/observant" <<'STUB'
+#!/bin/sh
+[ "$*" = "--install --user" ] || exit 2
+mkdir -p "$HOME/.local/opt/omni-observant" && cp -r "$(dirname "$0")/share" "$HOME/.local/opt/omni-observant/"
+STUB
+  chmod 755 "${root}/observant"
+  tar -C "${work}/tar-$1" -czf "${work}/omni-observant-$1-linux-${arch}.tar.gz" omni-observant
+}
+
+publish_tar() {
+  local dir="${work}/www/releases/download/v$1"
+  mkdir -p "${dir}"
+  cp "${work}/omni-observant-$1-linux-${arch}.tar.gz" "${dir}/"
+  (cd "${dir}" && sha256sum -- *.tar.gz > SHA256SUMS)
+  printf '%s' "$1" > "${work}/www/latest"
 }
 
 cat > "${work}/server.py" <<'EOF'
@@ -124,6 +151,41 @@ publish 1.3.0 "${other}"
 check "a release without this architecture's package is no error" update
 check "and leaves the version alone" test "$(installed)" = 1.1.0
 check "and says why" grep -q "has no omni-observant_1.3.0_${arch}.deb" "${work}/update.log"
+
+printf '=== --user, a user install ===\n'
+user_version="${user_home}/.local/opt/omni-observant/share/omni-observant/version"
+user_installed() { cat "${user_version}" 2>/dev/null; }
+user_update() {
+  setpriv --reuid=1001 --regid=1001 --clear-groups env -i HOME="${user_home}" PATH="${1:-/usr/bin:/bin}" \
+    OMNI_OBSERVANT_RELEASES="${OMNI_OBSERVANT_RELEASES}" bash "${updater}" --user >"${work}/update.log" 2>&1
+}
+user_update_fails() { ! user_update "$@"; }
+check "with no user install, it does nothing" user_update
+check "and says so" grep -q 'not installed as a user install' "${work}/update.log"
+mkdir -p "$(dirname "${user_version}")" && printf '2.0.0\n' > "${user_version}" && chown -R 1001:1001 "${user_home}"
+fake_tar 2.1.0
+publish_tar 2.1.0
+check "a newer release's tarball installs for the user" user_update
+check "and is the user's version now" test "$(user_installed)" = 2.1.0
+check "and it worked on disk, leaving no download behind" test ! -e "${user_home}/.cache/omni-observant/update"
+check "the same release again changes nothing" user_update
+check "and says it is up to date" grep -q 'is up to date' "${work}/update.log"
+fake_tar 2.2.0
+publish_tar 2.2.0
+printf '0000000000000000000000000000000000000000000000000000000000000000  omni-observant-2.2.0-linux-%s.tar.gz\n' "${arch}" \
+  > "${work}/www/releases/download/v2.2.0/SHA256SUMS"
+check "a tarball that fails its checksum is not installed" user_update_fails
+check "the user's version stays after a bad checksum" test "$(user_installed)" = 2.1.0
+# A distro without dpkg: the same tools, minus dpkg, so versions compare with sort -V.
+for tool in /usr/bin/* /bin/*; do
+  case "$(basename "${tool}")" in dpkg*) continue ;; esac
+  [ -f "${tool}" ] && ln -sfn "${tool}" "${user_tools}/$(basename "${tool}")"
+done
+printf '2.9.0\n' > "${user_version}"
+fake_tar 2.10.0
+publish_tar 2.10.0
+check "without dpkg, 2.10.0 is still newer than 2.9.0" user_update "${user_tools}"
+check "and installs" test "$(user_installed)" = 2.10.0
 
 if [ "${fails}" -gt 0 ]; then
   printf '%d of the updater checks failed\n' "${fails}"

@@ -18,13 +18,6 @@ Linux amd64/arm64 ship as a .deb and an AppImage, proven on himbeere2 (Pi 5) on
 2026-10-05, and as a flatpak, proven in `:latest` on 2026-10-06. Windows x64 ships as an MSI and an MSIX, proven on a Windows 11 host on
 2026-10-06. These rows are what the owner's goal still lacks.
 
-- [ ] **An install without sudo that updates itself.** himbeergsaelzweckle (Pi 4,
-  2026-10-16) runs the release AppImage as a user service, set up by hand without a sudo
-  password (*Without sudo* in camera-streaming.md), and so gets no nightly update:
-  `omni-observant-update` updates a `.deb` only, and the AppImage's `--install` needs root.
-  Give the AppImage `--install --user` (`~/.local/opt`, a user unit, linger) and the updater an
-  AppImage mode on a user timer, checked against `SHA256SUMS` as the `.deb` is; extend
-  `test-observant-package.sh` with it. Done when a user install reaches a new release by itself.
 - [b] **A USB webcam through `camera = "auto"` on amd64 or arm64.** Proven on riscv64:
   on 2026-10-13 mintberrycrunch's unit found its C270 by itself (`v4l2src /dev/video9 (C270
   HD WEBCAM)`), `/healthz` named it and headless Chrome played 767 frames. himbeere2 and

@@ -229,9 +229,12 @@ chmod 755 "${bundle}/observant"
 install -m 755 "${script_dir}/package/observant-install" "${bundle}/libexec/observant-install"
 install -m 755 "${script_dir}/package/omni-observant-update" "${bundle}/libexec/omni-observant-update"
 mkdir -p "${bundle}/share/${package}"
-for file in omni-observant.service observant.toml ufw-omni-observant; do
+for file in omni-observant.service observant.toml ufw-omni-observant \
+  omni-observant-user.service omni-observant-update-user.service omni-observant-update.timer; do
   install -m 644 "${script_dir}/package/${file}" "${bundle}/share/${package}/${file}"
 done
+# What a user install's updater compares with the newest release; a .deb asks dpkg instead.
+printf '%s\n' "${version}" > "${bundle}/share/${package}/version"
 
 if [ -n "${model}" ]; then
   model_notice="It was chosen at package time (--model) and carries its own license."

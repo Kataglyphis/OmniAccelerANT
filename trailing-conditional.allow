@@ -26,3 +26,10 @@ scripts/linux/observant/test-observant-package.sh	flatpak_gone
 scripts/linux/observant/test-observant-package.sh	jpeg_at
 scripts/linux/observant/test-observant-package.sh	template_keys_parse
 scripts/linux/observant/test-observant-package.sh	unit_verifies
+scripts/linux/observant/test-observant-package.sh	user_installed
+scripts/linux/observant/test-observant-package.sh	user_uninstalled
+scripts/linux/observant/test-observant-package.sh	root_user_install_refused
+scripts/linux/observant/test-observant-package.sh	user_beside_system_refused
+# test-observant-update.sh: user_update_fails is called only as `check NAME user_update_fails`, i.e. `if "${@:2}"`,
+# so set -e never sees its status; a false answer is the FAIL line, as above.
+scripts/linux/observant/test-observant-update.sh	user_update_fails

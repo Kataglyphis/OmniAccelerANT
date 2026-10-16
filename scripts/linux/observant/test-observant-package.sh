@@ -372,6 +372,20 @@ as_plain() {
 }
 plain_foreground() { as_plain "${work}/observant.AppImage" --print-config | grep -q '^camera = '; }
 plain_install_refused() { ! as_plain "${work}/observant.AppImage" --install >/dev/null 2>&1; }
+user_home_install="${work}/home/.local/opt/omni-observant"
+user_config="${work}/home/.config/omni-observant/observant.toml"
+user_units="${work}/home/.config/systemd/user"
+user_installed() {
+  test -x "${user_home_install}/observant" && test -s "${user_home_install}/share/omni-observant/version" &&
+    grep -q '^ExecStart=%h/.local/opt/omni-observant/observant$' "${user_units}/omni-observant.service" &&
+    grep -q -- '--user$' "${user_units}/omni-observant-update.service" && test -f "${user_units}/omni-observant-update.timer" &&
+    test "$(stat -c '%a %u' "${user_config}")" = '600 1001'
+}
+user_uninstalled() {
+  ! test -e "${user_home_install}" && ! test -e "${user_units}/omni-observant.service" && ! test -e "${user_config}"
+}
+root_user_install_refused() { ! "${work}/observant.AppImage" --install --user >/dev/null 2>&1; }
+user_beside_system_refused() { ! as_plain "${work}/observant.AppImage" --install --user >/dev/null 2>&1; }
 appimage_installed() {
   test -f /etc/systemd/system/omni-observant.service && test -f "${config}" &&
     test "$(readlink -f /usr/local/bin/omni-observant)" = "${prefix}/observant"
@@ -493,8 +507,22 @@ install -m 755 "${appimage}" "${work}/observant.AppImage"
 mkdir -p "${work}/home" && chown 1001:1001 "${work}/home" "${work}"
 check "it runs in the foreground as a plain user" plain_foreground
 check "--install refuses a non-root caller" plain_install_refused
+check "--install --user refuses root" root_user_install_refused
+as_plain "${work}/observant.AppImage" --install --user >"${work}/user-install.log" 2>&1
+check "--install --user sets up the user's copy, units, private settings and version" user_installed
+(exec setpriv --reuid=1001 --regid=1001 --clear-groups env -i HOME="${work}/home" PATH=/usr/bin:/bin \
+  "${user_home_install}/observant" --camera test --inference off >"${work}/user-stream.log" 2>&1) &
+pid=$!
+check "the user's copy answers /healthz" wait_healthz "${ip}"
+stop_service "${pid}"
+echo 'rotate = 90' >>"${user_config}"
+as_plain "${work}/observant.AppImage" --install --user >/dev/null 2>&1
+check "a second --install --user keeps the edit" grep -q '^rotate = 90' "${user_config}"
+as_plain "${user_home_install}/observant" --uninstall --user --purge >/dev/null 2>&1
+check "--uninstall --user --purge leaves nothing in the home" user_uninstalled
 "${work}/observant.AppImage" --install >"${work}/ai-install.log" 2>&1
 check "--install sets up the unit, the settings and the launcher" appimage_installed
+check "--install --user refuses beside a system-wide install" user_beside_system_refused
 check "--install leaves nothing under ${prefix} owned by the builder" test -z "$(find "${prefix}" ! -user root -print -quit)"
 mkdir -p "${state}" && chown "${user}:" "${state}"
 start_service "${work}/ai-stream.log" "${prefix}/observant" --camera test --inference off

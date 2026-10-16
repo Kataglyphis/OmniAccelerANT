@@ -1,0 +1,17 @@
+[Unit]
+Description=ObservANT, installed for this user (camera, cat detection, WebRTC, web page on :8080)
+Documentation=https://github.com/Kataglyphis/OmniAccelerANT/blob/develop/docs/source/camera-streaming.md
+After=network-online.target
+
+[Service]
+Type=simple
+ExecStart=%h/.local/opt/omni-observant/observant
+Environment=KATAGLYPHIS_OBSERVANT_CONFIG=%E/omni-observant/observant.toml
+# A clean exit is no reason to stay down either: the user stops it with systemctl --user.
+Restart=always
+RestartSec=5
+StateDirectory=omni-observant
+NoNewPrivileges=yes
+
+[Install]
+WantedBy=default.target

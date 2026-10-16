@@ -1,0 +1,8 @@
+[Unit]
+Description=Install the newest ObservANT release for this user when one is out
+Documentation=https://github.com/Kataglyphis/OmniAccelerANT/blob/develop/docs/source/camera-streaming.md
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=%h/.local/opt/omni-observant/libexec/omni-observant-update --user

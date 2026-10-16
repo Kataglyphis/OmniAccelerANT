@@ -362,7 +362,7 @@ the table's "turned" follows.
 | himbeere2 ("Cat Cam Büro") | Raspberry Pi 5, Debian 13 | imx219 (CSI), turned 180° | 2.1.0 | nightly, from the releases | 0.26 s |
 | tabblscatcam ("Cat Cam Futtertrog") | Raspberry Pi 5, Debian 13 | Camera Module 3, imx708 (CSI), turned 270° | 2.1.0 | nightly, from the releases | 0.30 s |
 | himbeerGsaelz (since 2026-10-15) | Raspberry Pi 3 Model B, Debian 13 | Camera Module 3 Wide, imx708_wide (CSI), turned 180° | 2.1.0 | nightly, from the releases | 2.05 s |
-| himbeergsaelzweckle (since 2026-10-16) | Raspberry Pi 4 Model B (8 GB), Debian 13 | Camera Module 3 Wide, imx708_wide (CSI), turned 180° | 2.1.0 | by hand: the AppImage as a user service, installed without sudo | 0.91 s |
+| himbeergsaelzweckle (since 2026-10-16) | Raspberry Pi 4 Model B (8 GB), Debian 13 | Camera Module 3 Wide, imx708_wide (CSI), turned 180° | 2.1.0 | nightly, from the releases, as a user install (no sudo) | 0.91 s |
 | mintberrycrunch ("Mintberry Cat Cam") | SpacemiT K3 (riscv64), Ubuntu 26.04 | Logitech C270 (USB) | 2.1.0 | by hand: built on the board, since no release carries riscv64 | 0.59 s |
 
 - **The first release reached a camera by itself.** v2.1.0 was published at 22:32 on
@@ -376,9 +376,12 @@ the table's "turned" follows.
   `auto` skips the model below 1024 MiB; the next release's `auto` takes 768 MiB (OxidANT
   5898e42), so a new Pi 3 detects without the setting. Its model runs at 2 s, about seven times
   the Pi 5's, but only while something moves.
-- **himbeergsaelzweckle runs the release AppImage under its user's systemd**, because no sudo
-  password was at hand: the steps are *Without sudo* under *Installing it*. It runs like the
-  others (30 fps, 7 % CPU, 216 MB), but no timer updates it.
+- **himbeergsaelzweckle is a user install**, because no sudo password was at hand (*Without
+  sudo* under *Installing it*). 2.1.0's tarball predates `--install --user`, so its `libexec/`
+  scripts and `share/omni-observant/` units were the repository's, plus a `version` file. It runs
+  like the others (30 fps, 7 % CPU, 216 MB), and its user timer took a local stand-in release
+  "2.1.1" through `omni-observant-update.service` on 2026-10-16: checked, installed, restarted,
+  rotation kept. The first real release to reach it will be the one after 2.1.0.
 - A Pi Zero 2 W ran the earlier container shape, not this package, and so did a Pi 4 before
   himbeergsaelzweckle ([the board table](#cat-detection-stream-rust-native) under *Cat detection stream*).
 - **A camera added or moved goes into this table**, with what its `/healthz` says.
@@ -553,34 +556,24 @@ if it ever does. The .deb is 88 MB, 81 MB before.
    and name the camera on the Camera page. Each camera keeps both in its `settings.json`.
 5. Add the camera to *Where it runs* above.
 
-**Without sudo**, the same release runs as a user service, from the AppImage beside the `.deb`
-in step 2 (`omni-observant-<version>-aarch64.AppImage`, checked by the same `SHA256SUMS`). The
-user needs the `video` group, which Raspberry Pi OS and Debian give the first user:
+**Without sudo** (from the release after 2.1.0), the tarball beside the `.deb` installs for the
+calling user instead of step 3. The user needs the `video` group, which Raspberry Pi OS and
+Debian give the first user:
 
 ```bash
-install -D -m 755 omni-observant-$v-aarch64.AppImage ~/.local/opt/omni-observant/omni-observant.AppImage
-mkdir -p ~/.config/systemd/user
-cat > ~/.config/systemd/user/omni-observant.service <<'UNIT'
-[Unit]
-Description=ObservANT camera (user install of the release AppImage)
-After=network-online.target
-
-[Service]
-ExecStart=%h/.local/opt/omni-observant/omni-observant.AppImage
-Restart=always
-RestartSec=5
-StateDirectory=omni-observant
-
-[Install]
-WantedBy=default.target
-UNIT
-systemctl --user daemon-reload && systemctl --user enable --now omni-observant
-loginctl enable-linger "$USER"    # start at boot, not at the first login
+curl -fsSLO "$base/omni-observant-${v}-linux-${arch}.tar.gz"
+sha256sum --check --ignore-missing SHA256SUMS
+tar -xzf "omni-observant-${v}-linux-${arch}.tar.gz"
+./omni-observant/observant --install --user
 ```
 
-The settings then live in `~/.local/state/omni-observant/`. No timer updates this install:
-replace the AppImage with a newer one and `systemctl --user restart omni-observant`. Moving it
-to the `.deb` later is `systemctl --user disable --now omni-observant`, step 3, and copying
+It copies the bundle to `~/.local/opt/omni-observant` and sets up `omni-observant.service` and
+the nightly `omni-observant-update.timer` under the user's systemd, with linger, so both start at
+boot without a login. The settings are the user's own `~/.config/omni-observant/observant.toml`
+(mode 600), the visits and `settings.json` live in `~/.local/state/omni-observant/`.
+`--no-autostart` and `~/.local/opt/omni-observant/observant --uninstall --user [--purge]` work as
+for the system install. It refuses root, and refuses beside a system-wide install, since both
+would serve port 8080. Moving to the `.deb` later: `--uninstall --user`, step 3, and copy
 `settings.json` and `visits.json` to `/var/lib/omni-observant/` (owner `omni-observant`).
 
 **The AppImage either runs or installs.** Started plainly, it runs ObservANT in the
@@ -590,7 +583,8 @@ to `/opt/omni-observant` and sets up the same service as the .deb:
 - `--no-autostart` leaves the service disabled;
 - running it again with a newer AppImage upgrades, keeping the settings and the
   enabled or disabled state;
-- `omni-observant --uninstall [--purge]` removes it.
+- `omni-observant --uninstall [--purge]` removes it;
+- `--install --user` installs for the calling user instead, with no root (*Without sudo* above).
 
 The installer is `libexec/observant-install` in the bundle, so the tarball's
 `sudo ./observant --install` does the same. It refuses while the .deb is installed,
@@ -1212,6 +1206,17 @@ systemctl start omni-observant-update.service` checks at once, and `journalctl -
 omni-observant-update` shows what it did. `scripts/linux/observant/test-observant-update.sh`
 runs it against a local stand-in for GitHub with fake packages in `web.yml`'s package jobs:
 an update, no downgrade, a failing checksum and a missing architecture.
+
+**A user install updates itself the same way, without root** (2026-10-16). Its user timer runs
+`~/.local/opt/omni-observant/libexec/omni-observant-update --user`, which compares the newest
+release with the bundle's `share/omni-observant/version`, downloads the release's tarball
+(`omni-observant-<version>-linux-<arch>.tar.gz`; no FUSE needed, unlike the AppImage), checks it
+against `SHA256SUMS` and runs its `observant --install --user`. The download goes to
+`~/.cache/omni-observant/update` and is removed after: `/tmp` can be RAM, and a Pi Zero 2 W has
+512 MB. Without dpkg the versions compare with `sort -V`. `systemctl --user start
+omni-observant-update.service` checks at once. `test-observant-update.sh` covers it too, as uid
+1001 and once with no dpkg on the `PATH`; `test-observant-package.sh` installs the AppImage's
+`--install --user` as a plain user, runs it, upgrades it and purges it.
 
 ### The Windows ObservANT
 

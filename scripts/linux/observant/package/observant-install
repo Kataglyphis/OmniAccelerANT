@@ -10,14 +10,22 @@ user=omni-observant
 config=/etc/omni-accelerant/observant.toml
 here="$(cd -- "$(dirname -- "$(readlink -f -- "$0")")/.." && pwd)"
 share="${here}/share/${package}"
+# --user: the same under the calling user's home and systemd, with no root at all.
+user_prefix="${HOME}/.local/opt/${package}"
+user_units="${XDG_CONFIG_HOME:-${HOME}/.config}/systemd/user"
+user_config="${XDG_CONFIG_HOME:-${HOME}/.config}/${package}/observant.toml"
+user_state="${XDG_STATE_HOME:-${HOME}/.local/state}/${package}"
 
 usage() {
   cat <<'EOF'
-usage: observant --install [--no-autostart]
-       observant --uninstall [--purge]
+usage: observant --install [--user] [--no-autostart]
+       observant --uninstall [--user] [--purge]
 
   --install       copy ObservANT to /opt/omni-observant and run it as the
                   omni-observant service from boot; again with a newer copy, it upgrades
+  --user          no root: install to ~/.local/opt/omni-observant as a systemd user
+                  service with its own settings (~/.config/omni-observant/observant.toml)
+                  and a nightly update from the releases
   --no-autostart  install, but leave the service disabled
                   (start it later with: sudo systemctl enable --now omni-observant)
   --uninstall     stop and remove the service and /opt/omni-observant;
@@ -27,6 +35,7 @@ EOF
 }
 
 have_systemd() { [ -d /run/systemd/system ]; }
+have_user_systemd() { systemctl --user show-environment >/dev/null 2>&1; }
 
 deb_installed() {
   command -v dpkg-query >/dev/null 2>&1 &&
@@ -156,6 +165,78 @@ install_bundle() {
   fi
 }
 
+install_for_user() {
+  autostart="$1"
+  # Both would serve port 8080.
+  if deb_installed || [ -e "${unit_file}" ]; then
+    printf 'a system-wide %s is installed here; use that one, or remove it first\n' "${package}" >&2
+    exit 1
+  fi
+  [ "${here}" != "${user_prefix}" ] || { printf 'this is the installed copy; run --install --user from a release\n' >&2; exit 1; }
+  fresh=true
+  [ ! -e "${user_units}/${unit}" ] || fresh=false
+
+  rm -rf "${user_prefix}.new"
+  mkdir -p "$(dirname "${user_prefix}")"
+  cp -a --no-preserve=ownership "${here}/." "${user_prefix}.new"
+  # The AppImage's mount is read-only, and so would the copy be: the next upgrade could not remove it.
+  chmod -R u+w "${user_prefix}.new"
+  if have_user_systemd; then
+    systemctl --user stop "${unit}" 2>/dev/null || true
+  fi
+  rm -rf "${user_prefix}"
+  mv "${user_prefix}.new" "${user_prefix}"
+
+  mkdir -p "${user_units}"
+  install -m 644 "${share}/omni-observant-user.service" "${user_units}/${unit}"
+  install -m 644 "${share}/omni-observant-update-user.service" "${user_units}/omni-observant-update.service"
+  install -m 644 "${share}/omni-observant-update.timer" "${user_units}/omni-observant-update.timer"
+  # Only this user reads it: a notify_url can carry a webhook secret.
+  if [ ! -e "${user_config}" ]; then
+    install -D -m 600 "${share}/observant.toml" "${user_config}"
+  fi
+
+  if have_user_systemd; then
+    systemctl --user daemon-reload
+    if [ "${autostart}" = false ]; then
+      systemctl --user disable "${unit}" 2>/dev/null || true
+    elif [ "${fresh}" = true ]; then
+      systemctl --user enable "${unit}"
+    fi
+    if systemctl --user -q is-enabled "${unit}"; then
+      systemctl --user restart "${unit}"
+    fi
+    systemctl --user enable --now omni-observant-update.timer 2>/dev/null || true
+    # Without linger the user's services wait for a login after every boot.
+    if ! loginctl enable-linger "$(id -un)" 2>/dev/null; then
+      printf 'to start at boot without a login: sudo loginctl enable-linger %s\n' "$(id -un)"
+    fi
+    printf 'installed for %s: %s\n' "$(id -un)" "$(systemctl --user is-enabled "${unit}" 2>/dev/null || true)"
+  else
+    printf 'installed; no systemd user manager here, so start it with: KATAGLYPHIS_OBSERVANT_CONFIG=%s %s/observant\n' \
+      "${user_config}" "${user_prefix}"
+  fi
+  printf 'the page: http://%s:8080/  settings: %s\n' "$(uname -n)" "${user_config}"
+}
+
+uninstall_for_user() {
+  purge="$1"
+  if have_user_systemd; then
+    systemctl --user disable --now "${unit}" omni-observant-update.timer 2>/dev/null || true
+  fi
+  rm -f "${user_units}/${unit}" "${user_units}/omni-observant-update.service" "${user_units}/omni-observant-update.timer"
+  if have_user_systemd; then
+    systemctl --user daemon-reload
+  fi
+  rm -rf "${user_prefix}"
+  if [ "${purge}" = true ]; then
+    rm -f "${user_config}"
+    rmdir "$(dirname "${user_config}")" 2>/dev/null || true
+    rm -rf "${user_state}" "${XDG_CACHE_HOME:-${HOME}/.cache}/${package}"
+  fi
+  printf 'uninstalled for %s%s\n' "$(id -un)" "$([ "${purge}" = true ] && printf ', settings and visits included')"
+}
+
 uninstall_bundle() {
   purge="$1"
   if deb_installed; then
@@ -181,26 +262,34 @@ uninstall_bundle() {
   printf 'uninstalled%s\n' "$([ "${purge}" = true ] && printf ', settings and user included')"
 }
 
-[ "$(id -u)" -eq 0 ] || { printf 'run it as root: sudo <the AppImage or observant> %s\n' "$*" >&2; exit 1; }
-case "${1:-}" in
-  setup)
+action="${1:-}"
+[ $# -eq 0 ] || shift
+for_user=false
+autostart=true
+purge=false
+for flag in "$@"; do
+  case "${action} ${flag}" in
+    "--install --user" | "--uninstall --user") for_user=true ;;
+    "--install --no-autostart") autostart=false ;;
+    "--uninstall --purge") purge=true ;;
+    *) usage >&2; exit 2 ;;
+  esac
+done
+if [ "${for_user}" = true ]; then
+  [ "$(id -u)" -ne 0 ] || { printf -- '--user installs for a plain user; as root, leave it out\n' >&2; exit 1; }
+elif [ "$(id -u)" -ne 0 ]; then
+  printf 'run it as root: sudo <the AppImage or observant> %s, or add --user\n' "${action}${*:+ $*}" >&2
+  exit 1
+fi
+case "${action} ${for_user}" in
+  "setup false")
     make_user
     migrate_legacy
     make_config
     ;;
-  --install)
-    case "${2:-}" in
-      "") install_bundle true ;;
-      --no-autostart) install_bundle false ;;
-      *) usage >&2; exit 2 ;;
-    esac
-    ;;
-  --uninstall)
-    case "${2:-}" in
-      "") uninstall_bundle false ;;
-      --purge) uninstall_bundle true ;;
-      *) usage >&2; exit 2 ;;
-    esac
-    ;;
+  "--install false") install_bundle "${autostart}" ;;
+  "--install true") install_for_user "${autostart}" ;;
+  "--uninstall false") uninstall_bundle "${purge}" ;;
+  "--uninstall true") uninstall_for_user "${purge}" ;;
   *) usage >&2; exit 2 ;;
 esac
