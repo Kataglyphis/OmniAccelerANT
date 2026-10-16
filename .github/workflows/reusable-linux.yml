@@ -73,14 +73,14 @@ jobs:
           fetch-depth: '1'
           submodules: recursive
 
-      # sccache (Rust via RUSTC_WRAPPER, C++ via the CMake launcher) outlives the container; only pushes to develop save.
+      # sccache outlives the container and only pushes to develop save it; at 1500M three builds filled it, so LRU evicted 63 entries a run.
       - name: Restore compiler cache
         id: cc
         uses: Kataglyphis/ANTfrastructure/.github/actions/compiler-cache-restore@develop
         with:
           key: ${{ inputs.arch }}-native
           mounts: 'sccache:/var/cache/sccache'
-          env: 'SCCACHE_CACHE_SIZE=1500M'
+          env: 'SCCACHE_CACHE_SIZE=2500M'
 
       # The frontend's frame timings compare against the median of the default branch's last 20 runs on this arch.
       - name: Restore the frontend performance baseline

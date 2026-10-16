@@ -137,16 +137,15 @@ Linux amd64/arm64 ship as a .deb and an AppImage, proven on himbeere2 (Pi 5) on
   `prepare-windows-container-host`; a smaller image for these lanes, or a cache the hosted
   runners keep, would halve the round. Blocked on the hub.
 
-- [ ] **Every Linux build misses the compiler cache on the same 63 C/C++ files.** Linux x64 on
-  589764b (2026-10-15): 1456 compile requests, 95 % hits, 63 C/C++ misses and 194
-  non-cacheable calls, and the lane builds three times (release, the integration test's debug,
-  the performance test's profile). The debug build alone is 93 s of the 95-s integration test.
-  Naming the missing files (`SCCACHE_LOG=debug` on two runs, or the C++20 module units)
-  could take 15-30 s off each build on every push. The modules are the likely cause: 10 module
-  interfaces (9 `.ixx` in AccelerANTgine, `my_texture.ixx` in the plugin) and 12 files importing
-  them are about 22 per build, 66 over three, against the 63 misses (counted 2026-10-16). The
-  configured `KataglyphisCppProjectConfig.ixx` holds only fixed version numbers, so it does not
-  change per commit; a BMI that differs per build would make every importer miss too.
+- [ ] **Every Linux build missed the compiler cache on the same 63 C/C++ files: the cache was full.**
+  Linux x64 on 37b0ec7 (2026-10-16): 1456 compile requests, 63 C/C++ misses, 194 non-cacheable
+  calls, from a restored cache of 1448 MB at `SCCACHE_CACHE_SIZE=1500M`; arm64's was 1457 MB. At
+  the cap, sccache's LRU evicted entries during each run's three builds (release, debug, profile),
+  and the next run missed them again. Not the C++20 modules: AccelerANTgine built twice through
+  sccache in the same path (in `:latest`, 2026-10-16) hit all 27 compiles the second time, module
+  units and importers included, 59 s down to 18 s. The native lanes' cap is 2500M since then, with
+  the repo at 3.97 of GitHub's 10 GB of caches; a restore of 1448 MB took 17 s. Done when the
+  second push after the change shows near-zero C/C++ misses, and the restore stays under 30 s.
 
 ## Open — tests
 
