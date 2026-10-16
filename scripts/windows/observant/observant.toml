@@ -14,9 +14,9 @@
 
 # fps = 30
 
-# name = "ObservANT"   # what viewers see
+# name = "Garden"      # what viewers see; unset, this machine's name
 
-# inference = "auto"       # auto | on | off; auto skips the model below 1 GiB of RAM or when it fails to load
+# inference = "auto"       # auto | on | off; auto skips the model below 768 MiB of RAM or when it fails to load
 
 # score = 0.25
 

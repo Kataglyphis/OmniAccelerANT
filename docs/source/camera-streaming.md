@@ -553,7 +553,9 @@ if it ever does. The .deb is 88 MB, 81 MB before.
    releases*). With ufw on, `sudo ufw allow OmniObservANT`.
 4. Open `http://<host>.local:8080/`. Turn the picture upright with ⟲/⟳ beside the camera's
    name on the Stream page (from the release after 2.1.0; on 2.1.0, on the Camera page),
-   and name the camera on the Camera page. Each camera keeps both in its `settings.json`.
+   and name the camera on the Camera page; until then it shows its host name (from the release
+   after 2.1.0; 2.1.0 calls every unnamed camera "ObservANT"). Each camera keeps both in its
+   `settings.json`.
 5. Add the camera to *Where it runs* above.
 
 **Without sudo** (from the release after 2.1.0), the tarball beside the `.deb` installs for the

@@ -12,7 +12,7 @@
 
 # fps = 30
 
-# name = "ObservANT"       # what viewers see
+# name = "Garden"          # what viewers see; unset, this machine's host name
 
 # inference = "auto"       # auto | on | off; auto skips the model below 768 MiB of RAM (a 512 MB board) or when it fails to load
 
