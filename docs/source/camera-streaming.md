@@ -5,9 +5,10 @@ Practical WebRTC streaming and inference pipelines for Kataglyphis.
 **The ObservANT in one minute.** A board with a camera runs the `omni-observant`
 service, which finds the camera, looks for cats with a detection model and serves the web
 app on port 8080.
-- **Install:** `sudo dpkg -i omni-observant_<version>_<arch>.deb` on Debian or
-  Raspberry Pi OS (amd64, arm64, riscv64). It starts at once and at every boot
-  ([Installing it](#installing-it)).
+- **Install:** [a new camera in five steps](#installing-it): the release's `.deb` on Debian,
+  Ubuntu or Raspberry Pi OS (amd64, arm64; riscv64 builds on the board), or without sudo the
+  tarball's `observant --install --user`. It starts at once and at every boot, and updates
+  itself from the releases every night.
 - **Watch:** `http://<board>:8080/`. The Stream page plays the camera, says whether a cat
   is there, lists the visits with their pictures and videos, and shows the other ObservANT cameras
   ([The Stream page](#the-stream-page)).
@@ -27,23 +28,22 @@ app on port 8080.
   - [Relocatable Linux bundles](#relocatable-linux-bundles)
 - [WebRTC pipelines (Linux / web)](#webrtc-pipelines-linux--web)
   - [ObservANT package](#the-observant-package)
+    - [Where it runs](#where-it-runs)
     - [Installing it](#installing-it)
     - [Cameras](#cameras)
     - [Detection, visits and /healthz](#detection-visits-and-healthz)
     - [Arrival picture, video and webhook](#arrival-picture-video-and-webhook)
     - [Home Assistant](#home-assistant)
     - [The Stream page](#the-stream-page)
+    - [What it detects](#what-it-detects)
+    - [Stats for developers](#stats-for-developers)
+    - [The privacy filter](#the-privacy-filter)
     - [Tests](#tests)
     - [Where it ran](#where-it-ran)
+    - [Updates from the releases](#updates-from-the-releases)
   - [The Windows ObservANT](#the-windows-observant)
   - [Cat detection stream (Rust, native)](#cat-detection-stream-rust-native)
-- [1) Start the signalling server](#1-start-the-signalling-server)
-- [2) Export plugin path (if required)](#2-export-plugin-path-if-required)
-- [3) Start a stream source](#3-start-a-stream-source)
-  - [USB webcam](#usb-webcam)
-  - [Pylon camera](#pylon-camera)
-  - [Raspberry Pi (libcamera, example)](#raspberry-pi-libcamera-example)
-- [4) Run the web frontend](#4-run-the-web-frontend)
+- [No secure context needed](#no-secure-context-needed)
 - [Troubleshooting](#troubleshooting)
 
 ## The detection model
@@ -1619,56 +1619,19 @@ If you front it from another host instead (`serve.sh --producer-host`), add
 startup, so a DHCP or mDNS address change leaves it proxying into the void with
 a `101` in the access log and no connection on the producer.
 
-The numbered steps below are the manual `gst-launch-1.0` pipelines, kept for
-cases the Rust producer does not cover.
-
-## 1) Start the signalling server
-
-```bash
-cd /opt/gst-plugins-rs/net/webrtc/signalling
-WEBRTCSINK_SIGNALLING_SERVER_LOG=debug cargo run --bin gst-webrtc-signalling-server -- --port 8444 --host 127.0.0.1
-```
-
-## 2) Export plugin path (if required)
+**Without the Rust producer**, any GStreamer pipeline can feed the page: `webrtcsink` runs
+the signalling server itself, and `serve.sh` proxies `/webrtc-ws` to it, as the Zero's recipe
+above does. A USB webcam, in `:latest` (checked there with `videotestsrc` on 2026-10-16):
 
 ```bash
-export GST_PLUGIN_PATH=/home/user/gst-plugins-rs/target/release:$GST_PLUGIN_PATH
+gst-launch-1.0 -e webrtcsink name=ws run-signalling-server=true signalling-server-host=127.0.0.1 \
+  signalling-server-port=8443 meta="meta,name=USB-Cam" \
+  v4l2src device=/dev/video0 ! image/jpeg,width=640,height=360,framerate=30/1 ! jpegdec ! videoconvert ! ws.
 ```
 
-## 3) Start a stream source
-
-### USB webcam
-
-```bash
-gst-launch-1.0 -e webrtcsink signaller::uri="ws://127.0.0.1:8444" name=ws \
-  meta="meta,name=kataglyphis-webfrontend-stream" \
-  v4l2src device=/dev/video0 ! image/jpeg,width=640,height=360,framerate=30/1 ! \
-  jpegdec ! videoconvert ! ws.
-```
-
-### Pylon camera
-
-```bash
-gst-launch-1.0 -e webrtcsink signaller::uri="ws://127.0.0.1:8444" name=ws \
-  meta="meta,name=kataglyphis-webfrontend-stream" \
-  pylonsrc ! videoconvert ! ws.
-```
-
-### Raspberry Pi (libcamera, example)
-
-```bash
-GST_DEBUG=3 gst-launch-1.0 \
-  libcamerasrc ! video/x-raw,format=RGB,width=640,height=360,framerate=30/1 ! \
-  videoconvert ! video/x-raw,format=I420 ! queue ! \
-  vp8enc deadline=1 threads=2 ! queue ! \
-  webrtcsink signaller::uri="ws://127.0.0.1:8444" name=ws meta="meta,name=gst-stream"
-```
-
-## 4) Run the web frontend
-
-```bash
-flutter run -d web-server --profile --web-port 8080 --web-hostname 0.0.0.0
-```
+Then `serve.sh`, or `flutter run -d web-server` as [`getting-started.md`](getting-started.md)
+shows. A standalone signalling server, if one is wanted, is the image's
+`/opt/gstreamer/bin/gst-webrtc-signalling-server`.
 
 ## No secure context needed
 
@@ -1707,7 +1670,8 @@ rejects a self-signed one with `CaUsedAsEndEntity`); the producer's
   it a quarter at a time; detection, the arrival picture and the clips turn with it.
 - Use `GST_DEBUG=2` or `GST_DEBUG=3` to inspect pipeline performance and caps negotiation.
 - Validate camera device permissions (`/dev/video*`) when streams fail to start.
-- Ensure host/port pairs in `signaller::uri` match your signalling server.
+- Ensure the port `serve.sh` proxies to (`--producer-port`, 8443 by default) is the one the
+  producer's signalling server listens on.
 - If the page loads but the app never starts, check the `main.dart.mjs`
   `Content-Type`: Flutter's wasm bootstrap loads it with a dynamic `import()`,
   which browsers reject for `application/octet-stream`. `serve.sh` maps `.mjs`
