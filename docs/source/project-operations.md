@@ -356,7 +356,12 @@ builds one.
 1. On `develop`: bump `version:` in `pubspec.yaml` and `msix_config.msix_version` together
    (AGENTS.md § 4), turn `## Unreleased` into `## <version> — <date>` and open a new, empty
    `## Unreleased`. Commit with `[ci all]` in the message.
-2. Wait until every run on that commit is green, `on-request.yml`'s six lanes included.
+2. Wait until every run on that commit is green, `on-request.yml`'s six lanes included. Or,
+   instead of the token, a **dry run**: `gh workflow run release.yml --ref develop -f
+   dry-run=true` runs every lane and the collector on `develop`'s newest commit, lists the
+   files the release would carry with their checksums in the run's summary, and tags and
+   publishes nothing; a version check that fails there is a warning, which says where the real
+   release would stop.
 3. The owner fast-forwards `main` to that commit: `git push origin <sha>:main`. An agent does it
    only on the owner's word in that turn, as for 2.1.0 (2026-10-15, `04365d8`).
 
