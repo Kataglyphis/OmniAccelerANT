@@ -302,10 +302,17 @@ the lane for release builds, before packaging):
 
 - **GCC 16.2's `libstdc++` and `libgcc_s`** (2026-10-16), from the compiler's own runtime
   directory: the image has the distro's older copy too, and the code needs `GLIBCXX_3.4.36`,
-  which no distro ships yet. Only glibc stays the system's, and the image's ORT and orc need
-  2.43, so the `.deb` declares `libc6 (>= 2.43)`: Ubuntu 26.04 and newer. Debian 13 (2.41) and
-  Ubuntu 24.04 (2.39) need the image's loader in the package, as
-  [the ObservANT package](#the-observant-package) carries it (ANTfrastructure BACKLOG CON97).
+  which no distro ships yet.
+- **The image's loader and glibc** (2026-10-17): its ORT and orc need glibc 2.43, newer than
+  Debian 13's 2.41 and Ubuntu 24.04's 2.39. The hub's `bundle-loader.sh --beside` leaves the
+  runner as `omni_accelerant.bin` with `ld-linux-*.so.1` beside it and glibc in `bundle/lib`, and
+  `omni_accelerant` becomes a launcher that starts it through that loader, as
+  [the ObservANT package](#the-observant-package) does. Beside, not in `lib/`: under the launcher
+  `/proc/self/exe` names the loader, and Flutter looks for `data/` in that directory. The closure
+  gate leaves glibc to `--library-path` and checks the `.bin` behind the launcher. GStreamer then
+  warns once, "External plugin loader failed", and scans its plugins in-process. Measured on the
+  2026-10-12 aarch64 bundle: the 20 s launch smoke holds in the image, and on a Debian 13 Pi the
+  app gets as far as GTK. The `.deb` declares only the desktop libraries.
 
 The closure gate runs inside the image, where every library is present anyway. The
 `clean-host` job after each Linux lane is the outside view: on a bare `ubuntu-26.04` (`-arm`)

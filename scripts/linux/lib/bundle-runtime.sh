@@ -6,6 +6,8 @@ SYSTEM_SONAME_ALLOWLIST=(
   'libc.so.6' 'libm.so.6'
   'libpthread.so.0' 'libdl.so.2' 'librt.so.1'
   'ld-linux*.so*'
+  # The rest of glibc: the bundled loader finds it through --library-path, never through a RUNPATH.
+  'libmvec.so.1' 'libresolv.so.2' 'libutil.so.1' 'libanl.so.1' 'libnss_*.so.2'
   'libglib-2.0.so.0' 'libgobject-2.0.so.0' 'libgio-2.0.so.0'
   'libgmodule-2.0.so.0' 'libgthread-2.0.so.0' 'libz.so.1'
   'libgtk-3.so.0' 'libgdk-3.so.0' 'libatk-1.0.so.0'

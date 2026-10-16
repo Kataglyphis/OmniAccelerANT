@@ -314,7 +314,7 @@ written out rather than linked.
   and `package-linux.sh` prints the built app's `[Context]` and fails when an
   appended argument is missing from it. An empty value drops it.
 
-- **A packaged Linux artifact carries its whole runtime closure**, GCC 16.2's `libstdc++` included (2026-10-16), and needs only glibc 2.43, so Ubuntu 26.04 and newer; a clean-host job starts it on the bare runner. Every bundled ELF has its own
+- **A packaged Linux artifact carries its whole runtime closure**, GCC 16.2's `libstdc++` and the image's loader and glibc included (2026-10-17): `omni_accelerant` is a launcher for `omni_accelerant.bin`, which runs on Debian 13's older glibc too; a clean-host job starts it on the bare runner. Every bundled ELF has its own
   `$ORIGIN` RUNPATH (RUNPATH is not transitive), the GStreamer libraries and seven plugins travel
   in `bundle/lib`, and ORT is the image's chain build, proven by the hub's G6 census in
   `check-bundle-closure.sh`. With the lane's Rust features ORT is in `bundle/lib` before the packer

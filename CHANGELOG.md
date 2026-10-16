@@ -36,6 +36,10 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 - **A clean-host job proves it** after each Linux lane: a bare `ubuntu-26.04` (`-arm`) runner
   installs the `.deb` with apt and starts it, the AppImage and the unpacked tarball for 20 s
   under Xvfb, the way the lane's launch smoke does inside the image.
+- **The image's glibc travels too** (2026-10-17), so the app starts on Debian 13 and Ubuntu 24.04:
+  `omni_accelerant` is a launcher that runs `omni_accelerant.bin` through the image's loader,
+  kept beside it because Flutter finds `data/` from `/proc/self/exe`. The `.deb` no longer asks
+  for `libc6 (>= 2.43)`. The flatpak installs the bundle whole, so its runner finds `data/` too.
 - **The `.deb` declares `libegl1`, `libgles2` and `libgl1`.** That job's first run (38973418685)
   aborted the app at once with `Couldn't open libEGL.so.1`: libepoxy loads the GL libraries at
   run time, so no `NEEDED` names them, and GTK does not depend on them. Every desktop has them; a

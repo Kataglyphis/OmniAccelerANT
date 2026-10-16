@@ -62,9 +62,12 @@ check_one_elf() {
 
   while IFS= read -r soname; do
     [[ -n "$soname" ]] || continue
-    if [[ -e "$bundle_lib/$soname" || -e "$plugin_dir/$soname" ]]; then
+    # glibc first: bundled for the loader's --library-path, it needs no RUNPATH.
+    if is_system_soname "$soname"; then
+      continue
+    elif [[ -e "$bundle_lib/$soname" || -e "$plugin_dir/$soname" ]]; then
       needed_bundled+=("$soname")
-    elif ! is_system_soname "$soname"; then
+    else
       missing+=("$soname")
     fi
   done < <(elf_needed "$file")
@@ -93,10 +96,17 @@ check_one_elf() {
 
 for file in "$BUNDLE_DIR"/*; do
   [[ -f "$file" && -x "$file" ]] || continue
+  is_system_soname "$(basename "$file")" && continue
+  # bundle-loader.sh's launcher: the program it starts is the .bin beside it, checked here too.
+  if [[ "$(head -c 2 -- "$file")" == '#!' ]] && grep -q -- '--library-path' "$file"; then
+    [[ -f "$file.bin" ]] || { printf 'FAIL %s is a launcher without %s.bin\n' "${file#"$BUNDLE_DIR"/}" "$(basename "$file")"; failures=$((failures + 1)); }
+    continue
+  fi
   check_one_elf "$file" root
 done
 for file in "$bundle_lib"/*.so*; do
   [[ -f "$file" ]] || continue
+  is_system_soname "$(basename "$file")" && continue
   check_one_elf "$file" lib
 done
 found_plugins=0

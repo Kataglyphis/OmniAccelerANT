@@ -7,6 +7,7 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 source "$SCRIPT_DIR/lib/cli-common.sh"
 # shellcheck source=scripts/linux/lib/bundle-runtime.sh
 source "$SCRIPT_DIR/lib/bundle-runtime.sh"
+source "$SCRIPT_DIR/lib/antfrastructure.sh"
 
 MATRIX_ARCH="$(detect_arch)"
 BUILD_MODE="release"
@@ -197,6 +198,8 @@ needs_sibling_rpath() {
 
 for file in "$bundle_lib"/*.so*; do
   [[ -f "$file" ]] || continue
+  # glibc stays byte for byte: the loader takes it from --library-path, and a patched loader crashes.
+  is_system_soname "$(basename "$file")" && continue
   if needs_sibling_rpath "$file"; then
     patch_origin_rpath "$file" '$ORIGIN'
   fi
@@ -205,6 +208,7 @@ done
 # flatpak puts the runner in /app/bin and the libs in /app/lib, hence $ORIGIN/../lib (AGENTS.md § 5).
 for file in "$BUNDLE_DIR"/*; do
   [[ -f "$file" && -x "$file" ]] || continue
+  is_system_soname "$(basename "$file")" && continue
   if readelf -h "$file" >/dev/null 2>&1 && ! runpath_has_token "$file" '$ORIGIN/../lib'; then
     patchelf --set-rpath "\$ORIGIN/lib:\$ORIGIN/../lib:$(elf_runpath "$file")" "$file"
   fi
@@ -214,6 +218,13 @@ done
 for file in "$bundle_lib"/gstreamer-1.0/*.so; do
   [[ -f "$file" ]] || continue
   patch_origin_rpath "$file" '$ORIGIN/..'
+done
+
+# glibc 2.43 is newer than Debian 13's: the runner starts through the image's loader, kept beside it for data/.
+for file in "$BUNDLE_DIR"/*; do
+  [[ -f "$file" && -x "$file" && "$file" != *.bin ]] || continue
+  is_system_soname "$(basename "$file")" && continue
+  bash "$(antfrastructure_path linux/scripts/06-packaging/bundle-loader.sh)" --beside "$BUNDLE_DIR" "$bundle_lib" "$(basename "$file")"
 done
 
 if [[ "$WITH_MODEL" -eq 1 ]]; then
