@@ -168,9 +168,11 @@ no riscv64 runtime.
   carries every package ready-made, with a `SHA256SUMS` beside them.
 - `sudo apt install ./omni-observant_*.deb`, or `sudo ./omni-observant-*.AppImage
   --install` on any other distro, installs a systemd service that starts at boot.
-- **The `.deb` keeps itself up to date:** every night it installs a newer release's package
-  once it matches the release's checksum; `sudo systemctl disable --now
-  omni-observant-update.timer` turns that off.
+  **Without sudo**, the tarball's `./omni-observant/observant --install --user` installs it for
+  your user instead, and starts it at boot too (from the release after 2.1.0).
+- **It keeps itself up to date:** every night it installs a newer release's package once it
+  matches the release's checksum; `sudo systemctl disable --now omni-observant-update.timer`
+  turns that off (`systemctl --user …` for a user install).
 - `flatpak install ./omni-observant-*.flatpak` runs in a sandbox instead. It
   starts at sign-in once you have run it, and takes USB cameras only.
 - Open `http://<host>:8080/` from a browser on the network. Under the video the page
@@ -208,16 +210,16 @@ no riscv64 runtime.
   [camera-streaming.md § Home Assistant](docs/source/camera-streaming.md#home-assistant) has an automation
   that sends each arrival to a phone with its picture and then its video, and sensors
   for visits per day and an alert when ObservANT stops answering.
-- A second ObservANT is another install on another board: give each its own `name` and
-  webhook, and one Home Assistant automation serves both (*More than one ObservANT* there).
+- A second ObservANT is another install on another board. Each shows its host name until you
+  name it, and one Home Assistant automation serves all of them (*More than one ObservANT* there).
 - The service picks a Raspberry Pi camera when one is attached, else a USB
   webcam.
-- The settings live in `/etc/omni-accelerant/observant.toml`, and `systemctl
-  disable --now omni-observant` turns autostart off.
+- The settings live in `/etc/omni-accelerant/observant.toml` (a user install:
+  `~/.config/omni-observant/observant.toml`), and `systemctl disable --now omni-observant`
+  turns autostart off.
 
-Verified on amd64 in `:latest`, and running on two Raspberry Pi 5s, one with a Camera
-Module 2 (imx219) and one with a Camera Module 3 (imx708), and on a SpacemiT X100 (riscv64)
-with a Logitech C270 (2026-10-13).
+Every web build packages it for amd64 and arm64 and installs each package in `:latest`; the
+boards it runs on are in *Where it runs*, linked above.
 On Windows, `scripts\windows\observant\Package-ObservANT.ps1` (in `:winamd64`) builds an
 MSI, and with `-Msix` a signed MSIX. Each installs ObservANT, starts it at every logon,
 opens the firewall to the network, and streams the same page. Both are tested in the
