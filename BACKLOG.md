@@ -142,7 +142,11 @@ Linux amd64/arm64 ship as a .deb and an AppImage, proven on himbeere2 (Pi 5) on
   non-cacheable calls, and the lane builds three times (release, the integration test's debug,
   the performance test's profile). The debug build alone is 93 s of the 95-s integration test.
   Naming the missing files (`SCCACHE_LOG=debug` on two runs, or the C++20 module units)
-  could take 15-30 s off each build on every push.
+  could take 15-30 s off each build on every push. The modules are the likely cause: 10 module
+  interfaces (9 `.ixx` in AccelerANTgine, `my_texture.ixx` in the plugin) and 12 files importing
+  them are about 22 per build, 66 over three, against the 63 misses (counted 2026-10-16). The
+  configured `KataglyphisCppProjectConfig.ixx` holds only fixed version numbers, so it does not
+  change per commit; a BMI that differs per build would make every importer miss too.
 
 ## Open — tests
 
