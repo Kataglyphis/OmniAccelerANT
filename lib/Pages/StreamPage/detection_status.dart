@@ -33,7 +33,11 @@ class DetectionStatus {
     this.pixelated = false,
     this.classes = const <String>['cat'],
     this.dark = false,
+    this.rotate,
   });
+
+  /// How far the picture is turned clockwise, 0, 90, 180 or 270; `null` from a camera that does not say.
+  final int? rotate;
 
   /// The camera sees black, so nothing can be detected: no IR at night.
   final bool dark;
@@ -94,6 +98,10 @@ class DetectionStatus {
     final peers = json['peers'];
     return DetectionStatus(
       dark: json['dark'] == true,
+      rotate: switch (json['rotate']) {
+        final int r when r % 90 == 0 && r >= 0 && r < 360 => r,
+        _ => null,
+      },
       pixelated: json['privacy'] == 'pixelate',
       peers: <String>[
         if (peers is List)
@@ -218,6 +226,7 @@ class DetectionStatusLine extends StatefulWidget {
     required this.fallbackName,
     this.interval = const Duration(seconds: 5),
     this.arrivalImage = arrivalPicture,
+    this.saveSettings,
   });
 
   /// The `/healthz` body, or `null` when nothing answers it.
@@ -227,6 +236,9 @@ class DetectionStatusLine extends StatefulWidget {
 
   /// Builds the last arrival's picture from its URL and label; tests swap the network out.
   final Widget Function(String url, String label) arrivalImage;
+
+  /// Posts to ObservANT's `/settings`; with it the picture can be turned right here, as on the Camera page.
+  final Future<bool> Function(Map<String, Object> update)? saveSettings;
 
   @override
   State<DetectionStatusLine> createState() => _DetectionStatusLineState();
@@ -272,6 +284,22 @@ class _DetectionStatusLineState extends State<DetectionStatusLine> {
     });
   }
 
+  /// Saves the camera's new rotation, kept on the device, then reads it back so the buttons show it.
+  Future<void> _rotate(int rotate) async {
+    final messenger = ScaffoldMessenger.maybeOf(context);
+    final failed = AppLocalizations.of(context)!.cameraSaveFailed;
+    final saved = await widget.saveSettings!(<String, Object>{
+      'rotate': rotate,
+    });
+    if (!mounted) {
+      return;
+    }
+    if (!saved) {
+      messenger?.showSnackBar(SnackBar(content: Text(failed)));
+    }
+    await _poll();
+  }
+
   @override
   void dispose() {
     _timer?.cancel();
@@ -310,11 +338,35 @@ class _DetectionStatusLineState extends State<DetectionStatusLine> {
       ),
       null => detectionLine(l10n, status, now, locale),
     };
+    final turned = status.rotate;
+    final turn = widget.saveSettings == null || _unreachableSince != null
+        ? null
+        : turned;
     return Column(
       mainAxisSize: MainAxisSize.min,
       spacing: 6,
       children: [
-        title,
+        if (turn == null)
+          title
+        else
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Flexible(child: title),
+              IconButton(
+                key: const Key('rotate-left'),
+                icon: const Icon(Icons.rotate_left),
+                tooltip: l10n.cameraRotateLeft,
+                onPressed: () => _rotate((turn + 270) % 360),
+              ),
+              IconButton(
+                key: const Key('rotate-right'),
+                icon: const Icon(Icons.rotate_right),
+                tooltip: l10n.cameraRotateRight,
+                onPressed: () => _rotate((turn + 90) % 360),
+              ),
+            ],
+          ),
         if (status.problem case final problem? when _unreachableSince == null)
           Row(
             mainAxisSize: MainAxisSize.min,

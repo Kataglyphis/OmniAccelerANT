@@ -352,13 +352,15 @@ travels, but it means the target is assumed to have a desktop stack.
 #### Where it runs
 
 The owner's cameras on the ObservANT package, as their `/healthz` reported them on 2026-10-15.
-Each serves its page on `http://<host>:8080/`.
+Each serves its page on `http://<host>:8080/` (`http://himbeergsaelz.local:8080/` and so on), and
+each keeps its own rotation in its `settings.json`: turn a camera with ⟲/⟳ on its own Stream page, and
+the table's "turned" follows.
 
 | Host | Board | Camera | Version | Updates | One detection |
 | --- | --- | --- | --- | --- | --- |
 | himbeere2 ("Cat Cam Büro") | Raspberry Pi 5, Debian 13 | imx219 (CSI), turned 180° | 2.1.0 | nightly, from the releases | 0.26 s |
 | tabblscatcam ("Cat Cam Futtertrog") | Raspberry Pi 5, Debian 13 | Camera Module 3, imx708 (CSI), turned 270° | 2.1.0 | nightly, from the releases | 0.30 s |
-| himbeerGsaelz (since 2026-10-15) | Raspberry Pi 3 Model B, Debian 13 | Camera Module 3 Wide, imx708_wide (CSI) | 2.1.0 | nightly, from the releases | 2.05 s |
+| himbeerGsaelz (since 2026-10-15) | Raspberry Pi 3 Model B, Debian 13 | Camera Module 3 Wide, imx708_wide (CSI), turned 180° | 2.1.0 | nightly, from the releases | 2.05 s |
 | mintberrycrunch ("Mintberry Cat Cam") | SpacemiT K3 (riscv64), Ubuntu 26.04 | Logitech C270 (USB) | 2.1.0 | by hand: built on the board, since no release carries riscv64 | 0.59 s |
 
 - **The first release reached a camera by itself.** v2.1.0 was published at 22:32 on
@@ -468,7 +470,10 @@ outage alert fires. Each failed run clears the drawn boxes, so none stays sharp 
 privacy filter, and the journal gets the first failure and then one line a minute.
 
 **The Camera page changes ObservANT while it runs** (2026-10-13). It is the web app's
-own page in the bottom bar, for a board that is easily moved or a spot with false alarms:
+own page in the bottom bar, for a board that is easily moved or a spot with false alarms.
+The Stream page carries the same ⟲ and ⟳ beside the camera's name (2026-10-16), so a
+picture on its side is turned where it is seen; both post `{"rotate": …}` to `/settings`,
+which the camera keeps in its `settings.json`, so every device keeps its own:
 - ⟲ and ⟳ turn the picture a quarter each way. ObservANT turns it itself, before the
   model sees it, so detection, `/arrival.jpg` and the clips turn with the stream. The
   running capture follows on its next frame, with no restart and no reconnect. At 90 and

@@ -41,6 +41,17 @@ void main() {
   });
 
   group('DetectionStatus.fromHealthz', () {
+    test('reads how far the picture is turned, and only a quarter turn', () {
+      String turned(Object rotate) =>
+          '{"ok":true,"name":"","rotate":$rotate,"cat":{"in_view":false,"last_seen":null,"visits":0,"recent":[]}}';
+      expect(DetectionStatus.fromHealthz(turned(180))!.rotate, 180);
+      expect(DetectionStatus.fromHealthz(turned(0))!.rotate, 0);
+      expect(DetectionStatus.fromHealthz(turned(45))!.rotate, isNull);
+      expect(DetectionStatus.fromHealthz(turned(360))!.rotate, isNull);
+      expect(DetectionStatus.fromHealthz(turned('"90"'))!.rotate, isNull);
+      expect(DetectionStatus.fromHealthz(_neverSeen)!.rotate, isNull);
+    });
+
     test('reads the name, the cat and when it was last seen', () {
       final status = DetectionStatus.fromHealthz(_seenBefore)!;
       expect(status.name, 'Garden Cam');
@@ -534,5 +545,111 @@ void main() {
     await tester.pump();
     expect(find.text('Katze / Hund im Bild'), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
+  });
+
+  group('turning the picture from the status line', () {
+    String turned(int rotate) =>
+        '{"ok":true,"name":"Garden Cam","rotate":$rotate,"cat":{"in_view":false,"last_seen":null,"visits":0,"recent":[]}}';
+
+    Widget line({
+      required Future<String?> Function() fetch,
+      Future<bool> Function(Map<String, Object> update)? save,
+    }) => MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      locale: const Locale('en'),
+      home: Scaffold(
+        body: DetectionStatusLine(
+          fetch: fetch,
+          fallbackName: 'Fallback Cam',
+          arrivalImage: _fakeArrival,
+          saveSettings: save,
+        ),
+      ),
+    );
+
+    // A camera that keeps what it is sent, as ObservANT keeps settings.json, and reports it on the next read.
+    Future<List<Map<String, Object>>> pumpCamera(
+      WidgetTester tester, {
+      required int start,
+      bool saves = true,
+    }) async {
+      final posted = <Map<String, Object>>[];
+      var rotate = start;
+      await tester.pumpWidget(
+        line(
+          fetch: () async => turned(rotate),
+          save: (update) async {
+            posted.add(update);
+            if (saves) {
+              rotate = update['rotate']! as int;
+            }
+            return saves;
+          },
+        ),
+      );
+      await tester.pump();
+      return posted;
+    }
+
+    testWidgets(
+      'a quarter turn right from 270 wraps to 0, left from 0 to 270',
+      (tester) async {
+        final posted = await pumpCamera(tester, start: 270);
+        await tester.tap(find.byKey(const Key('rotate-right')));
+        await tester.pump();
+        await tester.tap(find.byKey(const Key('rotate-left')));
+        await tester.pump();
+        expect(posted, <Map<String, Object>>[
+          <String, Object>{'rotate': 0},
+          <String, Object>{'rotate': 270},
+        ]);
+        await tester.pumpWidget(const SizedBox());
+      },
+    );
+
+    testWidgets(
+      'each turn starts from what the camera kept, so two right turns are 90 then 180',
+      (tester) async {
+        final posted = await pumpCamera(tester, start: 0);
+        for (var i = 0; i < 2; i++) {
+          await tester.tap(find.byKey(const Key('rotate-right')));
+          await tester.pump();
+        }
+        expect(posted, <Map<String, Object>>[
+          <String, Object>{'rotate': 90},
+          <String, Object>{'rotate': 180},
+        ]);
+        await tester.pumpWidget(const SizedBox());
+      },
+    );
+
+    testWidgets('a save the camera refuses says so', (tester) async {
+      await pumpCamera(tester, start: 0, saves: false);
+      await tester.tap(find.byKey(const Key('rotate-right')));
+      await tester.pump();
+      expect(find.text('Could not save'), findsOneWidget);
+      await tester.pumpWidget(const SizedBox());
+    });
+
+    testWidgets(
+      'without saveSettings, or from a camera that does not say its rotation, there is no button',
+      (tester) async {
+        await tester.pumpWidget(line(fetch: () async => turned(90)));
+        await tester.pump();
+        expect(find.byKey(const Key('rotate-left')), findsNothing);
+        // A fresh tree, or the state would keep the last camera's rotation until its next read.
+        await tester.pumpWidget(const SizedBox());
+        await tester.pumpWidget(
+          line(fetch: () async => _neverSeen, save: (_) async => true),
+        );
+        await tester.pump();
+        expect(find.byKey(const Key('rotate-left')), findsNothing);
+        await tester.pumpWidget(const SizedBox());
+        await pumpCamera(tester, start: 0);
+        expect(find.byKey(const Key('rotate-right')), findsOneWidget);
+        await tester.pumpWidget(const SizedBox());
+      },
+    );
   });
 }

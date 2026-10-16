@@ -384,6 +384,7 @@ class StreamPageState extends State<StreamPage> {
               const DetectionStatusLine(
                 fetch: fetchHealthz,
                 fallbackName: 'ObservANT',
+                saveSettings: saveObservantSettings,
               ),
               const VisitStatsPanel(fetch: fetchVisits),
               const DevStatsPanel(
