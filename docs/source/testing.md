@@ -27,7 +27,7 @@ the why behind that table (written after the test audit of 2026-10-15).
   line, so nobody would see it otherwise. AccelerANTgine's Linux lane fails on any skipped
   ctest test, since ctest reports "100% tests passed" with skips in it, and UBSan reports
   are fatal (`halt_on_error=1`).
-- **Coverage has floors, per part.** Dart `lib/` fails below 95 % (97.1 % on 2026-10-14).
+- **Coverage has floors, per part.** Dart `lib/` fails below 96 % (97.2 % on 2026-10-16).
   OxidANT's workspace fails below 70 %, and each crate below its own floor
   (`COVERAGE_FLOORS` in OxidANT's `ci-container-steps.sh`), so one well-tested crate cannot
   hide a weak one. Floors only move up.

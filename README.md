@@ -354,8 +354,9 @@ The app's own Dart suite (`test/`) checks, among the rest:
   (`pinned_artefacts_test.dart`), and that every social link has an icon.
 
 The native Linux lane measures how much of `lib/` these reach and fails below a floor of
-95 % (`--min` in `lane-native-linux.sh`; 96.8 % measured on 2026-10-14;
-`check-dart-coverage.sh`).
+96 % (`--min` in `lane-native-linux.sh`; 97.2 % measured on 2026-10-16;
+`check-dart-coverage.sh`). The web-only files (`*_web.dart`, `webrtc_view.dart`, the
+gstwebrtc interop) cannot load on the VM, so they are measured in Chrome instead.
 
 `flutter test` in the `:latest` image runs it in under a minute
 ([AGENTS.md § 5](AGENTS.md#5-build-run-test), *The Dart gate in 23 seconds*).
