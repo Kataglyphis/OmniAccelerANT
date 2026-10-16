@@ -290,6 +290,14 @@ the one-line version of each.
   that points `RUSTC_WRAPPER` and both CMake compiler launchers at the
   **guarded** `sccache-launcher.sh`, which survives sccache's own fatal errors
   when a CMake `TryCompile` deletes the scratch directory under it.
+  Those `TryCompile`s are also the 63 C/C++ misses the native lane's sccache stats
+  show on every run: the launchers are environment variables, so the configure checks
+  compile through sccache too, each in a `CMakeScratch/TryCompile-*` directory with a
+  random name that no later run repeats. AccelerANTgine configured twice in `:latest`
+  missed 21 of 32 such compiles the second time (2026-10-16), and the lane configures
+  three times (release, the integration test's debug, the performance test's profile).
+  Every real source hits, and the checks are tiny; raising `SCCACHE_CACHE_SIZE` changed
+  nothing (4cccd4e, reverted in 7242bb8).
 
 - **A single-arch image tag looks exactly like broken code.** Until 2026-09-04
   `ghcr.io/kataglyphis/kataglyphis_beschleuniger:latest-cross` was an amd64-only

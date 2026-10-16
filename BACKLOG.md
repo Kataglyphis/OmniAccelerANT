@@ -131,24 +131,6 @@ Linux amd64/arm64 ship as a .deb and an AppImage, proven on himbeere2 (Pi 5) on
   `prepare-windows-container-host`; a smaller image for these lanes, or a cache the hosted
   runners keep, would halve the round. Blocked on the hub.
 
-- [ ] **Every Linux build misses the compiler cache on the same 63 C/C++ files, and never stores
-  them.** Linux x64 on 37b0ec7, 5b8174a and aca12f3 (2026-10-16): 1456 compile requests, 63 C/C++
-  misses, 194 non-cacheable calls, each time. Three causes are ruled out:
-  - **Not the C++20 modules:** AccelerANTgine built twice through sccache in the same path in
-    `:latest` hit all 27 compiles the second time, module units and importers included (59 s,
-    then 18 s).
-  - **Not the cache's cap:** the restored cache was 1448 MB at `SCCACHE_CACHE_SIZE=1500M`, so
-    eviction looked likely, but with the cap at 2500M for 5b8174a and aca12f3 the misses stayed at
-    63 and the saved archive did not grow (1518590845, 1518582884, 1518430682 B). The 63 results
-    never land in the cache at all. The cap is back at 1500M.
-  - **Not ownership:** `compiler-cache-restore` makes the directory `a+rwX`, and one sccache
-    server (uid 1001) serves the whole run.
-
-  The lane's stats used to drop sccache's `Cache write errors` and `Cache read errors` lines; the
-  hub prints them since 244c9471, which this repo pins next. Next: read them on the following
-  Linux x64 run, and if they are zero, run once with `SCCACHE_LOG=debug` to name the 63 and why
-  each is not stored. Worth 15-30 s on each of the three builds of every push.
-
 ## Open — tests
 
 - [ ] **The Windows plugin has one trivial gtest.** `windows/test/` checks only
