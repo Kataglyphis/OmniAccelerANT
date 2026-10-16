@@ -381,6 +381,12 @@ the table's "turned" follows.
   the one after 2.1.0.
 - A Pi Zero 2 W ran the earlier container shape, not this package, and so did a Pi 4 before
   himbeergsaelzweckle ([the board table](#cat-detection-stream-rust-native) under *Cat detection stream*).
+- **Every camera lists the other four as `peers`** (2026-10-16), so each one's Stream page shows
+  all five. The list sits in each camera's `observant.toml`; a new camera goes into all of them.
+- **Two updates, two owners.** ObservANT updates itself nightly from the releases (*Updates from
+  the releases*); the boards' operating systems update weekly through ANTfrastructure's Ansible
+  run (`linux/ansible/README.md` there), which reboots a board only when its kernel asks for it.
+  The Pi 4's camera came back by itself after such a reboot on 2026-10-16.
 - **A camera added or moved goes into this table**, with what its `/healthz` says.
 
 **At a glance** (AGENTS.md § 2, until 2026-10-15):
