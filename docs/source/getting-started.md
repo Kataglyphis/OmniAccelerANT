@@ -2,8 +2,10 @@
 
 This guide takes you from clone to a working local setup.
 
-Only want ObservANT? It comes as a package (`.deb`, AppImage, flatpak, Windows MSI): take
-one from a `web.yml` run's artifacts (GitHub sign-in needed) or build it with one script,
+Only want ObservANT? It comes as a package (`.deb`, AppImage, flatpak, tarball, Windows MSI):
+every [release](https://github.com/Kataglyphis/OmniAccelerANT/releases) carries them with a
+`SHA256SUMS`, and [a new camera in five steps](camera-streaming.md#installing-it) installs one,
+with or without sudo. Building one yourself is a single script:
 [README](../../README.md#live-cat-detection-stream-linux--raspberry-pi).
 
 ## 1) Prerequisites
