@@ -351,7 +351,8 @@ travels, but it means the target is assumed to have a desktop stack.
 
 #### Where it runs
 
-The owner's cameras on the ObservANT package, as their `/healthz` reported them on 2026-10-15.
+The owner's cameras on the ObservANT package, as their `/healthz` reported them on 2026-10-15
+(himbeergsaelzweckle on 2026-10-16).
 Each serves its page on `http://<host>:8080/` (`http://himbeergsaelz.local:8080/` and so on), and
 each keeps its own rotation in its `settings.json`: turn a camera with ⟲/⟳ on its own Stream page, and
 the table's "turned" follows.
@@ -361,6 +362,7 @@ the table's "turned" follows.
 | himbeere2 ("Cat Cam Büro") | Raspberry Pi 5, Debian 13 | imx219 (CSI), turned 180° | 2.1.0 | nightly, from the releases | 0.26 s |
 | tabblscatcam ("Cat Cam Futtertrog") | Raspberry Pi 5, Debian 13 | Camera Module 3, imx708 (CSI), turned 270° | 2.1.0 | nightly, from the releases | 0.30 s |
 | himbeerGsaelz (since 2026-10-15) | Raspberry Pi 3 Model B, Debian 13 | Camera Module 3 Wide, imx708_wide (CSI), turned 180° | 2.1.0 | nightly, from the releases | 2.05 s |
+| himbeergsaelzweckle (since 2026-10-16) | Raspberry Pi 4 Model B (8 GB), Debian 13 | Camera Module 3 Wide, imx708_wide (CSI), turned 180° | 2.1.0 | by hand: the AppImage as a user service, installed without sudo | 0.91 s |
 | mintberrycrunch ("Mintberry Cat Cam") | SpacemiT K3 (riscv64), Ubuntu 26.04 | Logitech C270 (USB) | 2.1.0 | by hand: built on the board, since no release carries riscv64 | 0.59 s |
 
 - **The first release reached a camera by itself.** v2.1.0 was published at 22:32 on
@@ -374,8 +376,11 @@ the table's "turned" follows.
   `auto` skips the model below 1024 MiB; the next release's `auto` takes 768 MiB (OxidANT
   5898e42), so a new Pi 3 detects without the setting. Its model runs at 2 s, about seven times
   the Pi 5's, but only while something moves.
-- A Pi Zero 2 W and a Pi 4 ran the earlier container shape, not this package
-  ([the board table](#cat-detection-stream-rust-native) under *Cat detection stream*).
+- **himbeergsaelzweckle runs the release AppImage under its user's systemd**, because no sudo
+  password was at hand: the steps are *Without sudo* under *Installing it*. It runs like the
+  others (30 fps, 7 % CPU, 216 MB), but no timer updates it.
+- A Pi Zero 2 W ran the earlier container shape, not this package, and so did a Pi 4 before
+  himbeergsaelzweckle ([the board table](#cat-detection-stream-rust-native) under *Cat detection stream*).
 - **A camera added or moved goes into this table**, with what its `/healthz` says.
 
 **At a glance** (AGENTS.md § 2, until 2026-10-15):
@@ -526,6 +531,57 @@ leaves out what no browser fetches from this build: the `*.symbols` debug maps, 
 if it ever does. The .deb is 88 MB, 81 MB before.
 
 #### Installing it
+
+**A new camera in five steps**, on a Raspberry Pi or any Debian or Ubuntu board (arm64 or amd64):
+
+1. Flash the board, give it a name, and copy your SSH key to it
+   (`ssh-copy-id <user>@<host>.local`). Attach the camera.
+2. Fetch the newest release's package and check it, on the board:
+   ```bash
+   v=$(curl -fsSLI -o /dev/null -w '%{url_effective}' https://github.com/Kataglyphis/OmniAccelerANT/releases/latest | sed 's|.*/tag/v||')
+   arch=$(dpkg --print-architecture)
+   base=https://github.com/Kataglyphis/OmniAccelerANT/releases/download/v$v
+   curl -fsSLO "$base/omni-observant_${v}_${arch}.deb" && curl -fsSLO "$base/SHA256SUMS"
+   sha256sum --check --ignore-missing SHA256SUMS
+   ```
+3. `sudo apt install ./omni-observant_${v}_${arch}.deb`. The service starts, finds the
+   camera by itself (`camera = "auto"`, below) and comes back after every reboot; the
+   nightly update timer keeps it on the newest release from then on (*Updates from the
+   releases*). With ufw on, `sudo ufw allow OmniObservANT`.
+4. Open `http://<host>.local:8080/`. Turn the picture upright with ⟲/⟳ beside the camera's
+   name on the Stream page (from the release after 2.1.0; on 2.1.0, on the Camera page),
+   and name the camera on the Camera page. Each camera keeps both in its `settings.json`.
+5. Add the camera to *Where it runs* above.
+
+**Without sudo**, the same release runs as a user service, from the AppImage beside the `.deb`
+in step 2 (`omni-observant-<version>-aarch64.AppImage`, checked by the same `SHA256SUMS`). The
+user needs the `video` group, which Raspberry Pi OS and Debian give the first user:
+
+```bash
+install -D -m 755 omni-observant-$v-aarch64.AppImage ~/.local/opt/omni-observant/omni-observant.AppImage
+mkdir -p ~/.config/systemd/user
+cat > ~/.config/systemd/user/omni-observant.service <<'UNIT'
+[Unit]
+Description=ObservANT camera (user install of the release AppImage)
+After=network-online.target
+
+[Service]
+ExecStart=%h/.local/opt/omni-observant/omni-observant.AppImage
+Restart=always
+RestartSec=5
+StateDirectory=omni-observant
+
+[Install]
+WantedBy=default.target
+UNIT
+systemctl --user daemon-reload && systemctl --user enable --now omni-observant
+loginctl enable-linger "$USER"    # start at boot, not at the first login
+```
+
+The settings then live in `~/.local/state/omni-observant/`. No timer updates this install:
+replace the AppImage with a newer one and `systemctl --user restart omni-observant`. Moving it
+to the `.deb` later is `systemctl --user disable --now omni-observant`, step 3, and copying
+`settings.json` and `visits.json` to `/var/lib/omni-observant/` (owner `omni-observant`).
 
 **The AppImage either runs or installs.** Started plainly, it runs ObservANT in the
 foreground as the calling user, which needs the `video` group. `--install` copies it
