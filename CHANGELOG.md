@@ -7,18 +7,38 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ### Added
 
+- **Turn the picture from the Stream page** (2026-10-16, owner): ⟲ and ⟳ beside each camera's
+  name turn it a quarter each way, and the camera keeps it in its `settings.json`, so every
+  board can sit at its own angle. The Camera page could do it before; now it is one click
+  from the stream.
+- **ObservANT without sudo** (2026-10-16): the tarball's `observant --install --user` installs
+  it for the calling user, as a systemd user service with linger, its own settings in
+  `~/.config/omni-observant/observant.toml` and a nightly user timer that installs a newer
+  release's tarball once it matches `SHA256SUMS`. A Raspberry Pi 4 (himbeergsaelzweckle) runs
+  it so. `test-observant-package.sh` and `test-observant-update.sh` cover it, the latter also
+  without dpkg.
+- **A Windows arm64 ObservANT** (2026-10-16): cross-built in `:winarm64`, its MSI installed and
+  tested on `windows-11-arm`, and part of every release.
+- **A release dry run** (2026-10-16): `gh workflow run release.yml --ref develop -f dry_run=true`
+  runs every lane and the collector on `develop` and publishes nothing.
 - **The Raspberry Pi 3 runs ObservANT** (2026-10-15, owner). himbeerGsaelz, a Pi 3 Model B with a
   Camera Module 3 Wide, runs the arm64 `.deb` at about 2 s per detection, 226 MB of memory;
   `docs/source/camera-streaming.md` § *Where it runs* lists every camera now.
 
 ### Fixed
 
+- **The Windows ObservANT carries ONNX Runtime's own DLLs**, the VC++ runtime included, so
+  it starts on a Windows without Visual Studio's redistributable.
 - **`inference = "auto"` runs the model on 1 GB boards** (OxidANT 5898e42). It skipped the model
   below 1024 MiB, but a 1 GB Pi 3 reports 905 MiB, so it streamed without detection; the line is
   768 MiB, above a 512 MB Pi Zero 2 W's ~430.
 
 ### Changed
 
+- **A camera nobody named shows its host name** (OxidANT bb38e7a) instead of "ObservANT", so
+  two new cameras differ in the Stream page's list from the start; a name from the settings or
+  the Camera page still wins.
+- **The Dart coverage floor is 96 %** (97.2 % measured), up from 95.
 - **A release carries the app for every platform** (2026-10-16, owner): the Linux packages for
   x64 and arm64, the Android APK, and the Windows x64 and arm64 apps as zips, beside the
   ObservANT packages, which were all 2.1.0 carried. `release.yml` downloads every lane's
