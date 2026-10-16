@@ -39,7 +39,7 @@ app on port 8080.
     - [Stats for developers](#stats-for-developers)
     - [The privacy filter](#the-privacy-filter)
     - [Tests](#tests)
-    - [Where it ran](#where-it-ran)
+    - [Field tests on real boards](#field-tests-on-real-boards)
     - [Updates from the releases](#updates-from-the-releases)
   - [The Windows ObservANT](#the-windows-observant)
   - [Cat detection stream (Rust, native)](#cat-detection-stream-rust-native)
@@ -377,11 +377,8 @@ the table's "turned" follows.
   5898e42), so a new Pi 3 detects without the setting. Its model runs at 2 s, about seven times
   the Pi 5's, but only while something moves.
 - **himbeergsaelzweckle is a user install**, because no sudo password was at hand (*Without
-  sudo* under *Installing it*). 2.1.0's tarball predates `--install --user`, so its `libexec/`
-  scripts and `share/omni-observant/` units were the repository's, plus a `version` file. It runs
-  like the others (30 fps, 7 % CPU, 216 MB), and its user timer took a local stand-in release
-  "2.1.1" through `omni-observant-update.service` on 2026-10-16: checked, installed, restarted,
-  rotation kept. The first real release to reach it will be the one after 2.1.0.
+  sudo* under *Installing it*; its field test below). The first real release to reach it will be
+  the one after 2.1.0.
 - A Pi Zero 2 W ran the earlier container shape, not this package, and so did a Pi 4 before
   himbeergsaelzweckle ([the board table](#cat-detection-stream-rust-native) under *Cat detection stream*).
 - **A camera added or moved goes into this table**, with what its `/healthz` says.
@@ -1135,7 +1132,10 @@ precompressed web build; all 69 on 2026-10-14, in 244 s (each line names its sec
 tab that comes back takes 113 of them, as it must stay hidden past the page's 60 s). CI passed the 41 from before the visit log on both
 architectures (`web.yml` run 38197312619).
 
-#### Where it ran
+#### Field tests on real boards
+
+What each board showed when a package or install path first ran on it; the cameras in use
+today are in *Where it runs*.
 
 **On a Raspberry Pi 5 (himbeere2: imx219, Debian 13, kernel 6.18), 2026-10-05.**
 The arm64 packages were built natively on the board in `:latest`, and CI's
@@ -1190,8 +1190,18 @@ from Flathub: freedesktop 24.08, which Flathub marks end-of-life, because that r
 loaded the chain ORT and the model from `/app/observant`, and answered `/healthz` (test
 pattern, no camera on that host). The host's Chrome played 582 frames from the LAN address.
 
-**Not verified yet:** the flatpak's start at a real sign-in, and a USB webcam on an amd64
-or arm64 board (mintberrycrunch's C270 above is riscv64).
+**The user install on a Raspberry Pi 4 (himbeergsaelzweckle: 8 GB, Debian 13, Camera Module 3
+Wide), 2026-10-16.** 2.1.0's tarball predates `--install --user`, so its `libexec/` scripts and
+`share/omni-observant/` units were the repository's, plus a `version` file. Under the user's real
+systemd:
+- `--install --user` replaced a hand-written user unit, kept `rotate = 180` from
+  `settings.json`, turned linger on and armed the update timer;
+- the camera came through `rpicam-vid` at 30 fps, with 7 % CPU, 216 MB and 0.91 s per detection;
+- the timer's own `omni-observant-update.service` took a local stand-in release "2.1.1": checked
+  its tarball against `SHA256SUMS`, installed it, restarted the camera and left no download.
+
+What no board has shown yet, such as the flatpak's start at a real sign-in or a USB webcam on
+amd64 or arm64, is in `BACKLOG.md` under *Open — ObservANT*.
 
 #### Updates from the releases
 

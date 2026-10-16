@@ -97,7 +97,7 @@ Linux amd64/arm64 ship as a .deb and an AppImage, proven on himbeere2 (Pi 5) on
     AppImage.
 
 - [b] **The riscv64 `.deb` is built by hand, on the board.** mintberrycrunch built and runs it
-  (2026-10-13; camera-streaming.md § *Where it ran*), but no lane builds or install-tests it:
+  (2026-10-13; camera-streaming.md § *Field tests on real boards*), but no lane builds or install-tests it:
   GitHub has no riscv64 runner, `test-observant-package.sh` needs the AppImage, the flatpak and a
   Chrome for Testing that riscv64 lacks, and a Raspberry Pi 5 cannot emulate the image (16 KiB
   pages, `third_party/OxidANT/AGENTS.md` § *The riscv64 lane*). A 4 KiB-page host could run
