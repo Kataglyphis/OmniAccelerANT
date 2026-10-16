@@ -610,8 +610,9 @@ cell is a test that cannot run there, and the reason is under the table.
 | `liboxidant`'s rustc stamp (`check-rust-toolchain.sh`) and its suite | yes | | | yes, in the APK | |
 | APK on the emulator, 20 s (`check-apk-on-emulator.sh`) and its stub suite | | | | yes, API 35 x86_64 + ARM translation, on KVM | |
 | ObservANT .deb, AppImage and flatpak install checks (`test-observant-package.sh`) | | | | | in `web.yml`'s `observant` jobs, x64 and arm64 |
-| ObservANT MSI install checks (`Test-ObservANTWindows.ps1`) | | | | | in `web.yml`'s `observant-windows` job, in `:winamd64` |
-| ObservANT MSIX package checks (`Test-ObservANTMsix.ps1`, without `-Install`) | | | | | in `web.yml`'s `observant-windows` job, in `:winamd64` |
+| ObservANT MSI install checks (`Test-ObservANTWindows.ps1`) | | | | | x64 in `web.yml`'s `observant-windows` job, in `:winamd64`; arm64 on `windows-11-arm` after the hub's arch gate (`observant-windows-arm64-test`) |
+| ObservANT MSIX package checks (`Test-ObservANTMsix.ps1`, without `-Install`) | | | | | in `web.yml`'s `observant-windows` jobs, in `:winamd64` and `:winarm64` |
+| Release collector (`test-collect-release-assets.sh`): every platform's package, no stray upload, nothing missing | yes | | | | |
 
 A blank cell is a test that cannot run there; why, lane by lane: [`docs/source/testing.md`](docs/source/testing.md) § *Why a lane
 cannot run a test*.
