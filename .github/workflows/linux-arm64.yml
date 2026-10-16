@@ -7,9 +7,9 @@ on:
   workflow_dispatch:
   workflow_call:
 
-# Its own group, so an arm64 run can never cancel the x64 verdict.
+# Its own group per caller, so neither the x64 verdict nor another caller's run is cancelled.
 concurrency:
-  group: linux-arm64-${{ github.ref }}
+  group: linux-arm64-${{ github.ref }}-${{ github.workflow }}
   cancel-in-progress: true
 
 # Top-level, so every job below inherits it and none can be added without one.

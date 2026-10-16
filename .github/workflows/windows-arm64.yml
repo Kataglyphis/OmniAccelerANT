@@ -9,8 +9,9 @@ on:
 permissions:
   contents: read
 
+# Per lane and caller, so a release run's lane is never cancelled by a request for it.
 concurrency:
-  group: windows-arm64-${{ github.ref }}
+  group: windows-arm64-${{ github.ref }}-${{ github.workflow }}
   cancel-in-progress: true
 
 defaults:

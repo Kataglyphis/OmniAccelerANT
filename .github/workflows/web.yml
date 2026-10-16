@@ -11,9 +11,9 @@ on:
   workflow_dispatch:
   workflow_call:
 
-# The wasm build recompiles the standard library, so a superseded run is expensive.
+# Per lane and caller: a superseded run of the same caller is cancelled (the wasm build is expensive), another caller's never.
 concurrency:
-  group: web-${{ github.ref }}
+  group: web-${{ github.ref }}-${{ github.workflow }}
   cancel-in-progress: true
 
 jobs:

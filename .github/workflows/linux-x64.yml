@@ -11,9 +11,9 @@ on:
   workflow_dispatch:
   workflow_call:
 
-# Its own group, so neither architecture cancels the other.
+# Its own group per caller (github.workflow is the caller's name when called): a push cannot cancel a release run's lane.
 concurrency:
-  group: linux-x64-${{ github.ref }}
+  group: linux-x64-${{ github.ref }}-${{ github.workflow }}
   cancel-in-progress: true
 
 # Read-only: the ghcr login and the FTP deploy use their own secrets, not GITHUB_TOKEN.

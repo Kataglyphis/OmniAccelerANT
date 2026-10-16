@@ -7,9 +7,9 @@ on:
   workflow_dispatch:
   workflow_call:
 
-# A superseded run's verdict never matters, and the APK build takes minutes.
+# Per lane and caller: a superseded run's verdict never matters, but another caller's run (a release) does.
 concurrency:
-  group: android-${{ github.ref }}
+  group: android-${{ github.ref }}-${{ github.workflow }}
   cancel-in-progress: true
 
 jobs:

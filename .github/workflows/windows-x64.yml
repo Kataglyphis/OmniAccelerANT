@@ -6,9 +6,9 @@ on:
   workflow_dispatch:
   workflow_call:
 
-# Stacked Windows container builds are the most expensive way to learn the same thing twice.
+# Per lane and caller: stacked Windows builds learn the same thing twice, but a release run's must not die for a request.
 concurrency:
-  group: windows-x64-${{ github.ref }}
+  group: windows-x64-${{ github.ref }}-${{ github.workflow }}
   cancel-in-progress: true
 
 env:
