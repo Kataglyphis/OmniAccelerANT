@@ -19,7 +19,7 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
   without dpkg.
 - **A Windows arm64 ObservANT** (2026-10-16): cross-built in `:winarm64`, its MSI installed and
   tested on `windows-11-arm`, and part of every release.
-- **A release dry run** (2026-10-16): `gh workflow run release.yml --ref develop -f dry_run=true`
+- **A release dry run** (2026-10-16): `gh workflow run release.yml --ref develop -f dry-run=true`
   runs every lane and the collector on `develop` and publishes nothing.
 - **The Raspberry Pi 3 runs ObservANT** (2026-10-15, owner). himbeerGsaelz, a Pi 3 Model B with a
   Camera Module 3 Wide, runs the arm64 `.deb` at about 2 s per detection, 226 MB of memory;
