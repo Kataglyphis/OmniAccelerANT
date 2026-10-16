@@ -357,7 +357,7 @@ Each serves its page on `http://<host>:8080/`.
 | Host | Board | Camera | Version | Updates | One detection |
 | --- | --- | --- | --- | --- | --- |
 | himbeere2 ("Cat Cam Büro") | Raspberry Pi 5, Debian 13 | imx219 (CSI), turned 180° | 2.1.0 | nightly, from the releases | 0.26 s |
-| tabblscatcam ("Cat Cam Futtertrog") | Raspberry Pi 5, Debian 13 | Camera Module 3, imx708 (CSI), turned 270° | 2.0.0 | nightly, from the releases | 0.26 s |
+| tabblscatcam ("Cat Cam Futtertrog") | Raspberry Pi 5, Debian 13 | Camera Module 3, imx708 (CSI), turned 270° | 2.1.0 | nightly, from the releases | 0.30 s |
 | himbeerGsaelz (since 2026-10-15) | Raspberry Pi 3 Model B, Debian 13 | Camera Module 3 Wide, imx708_wide (CSI) | 2.1.0 | nightly, from the releases | 2.05 s |
 | mintberrycrunch ("Mintberry Cat Cam") | SpacemiT K3 (riscv64), Ubuntu 26.04 | Logitech C270 (USB) | 2.1.0 | by hand: built on the board, since no release carries riscv64 | 0.59 s |
 
@@ -365,7 +365,9 @@ Each serves its page on `http://<host>:8080/`.
   2026-10-15; himbeere2's `omni-observant-update.service`, started by hand a minute later,
   downloaded its `.deb`, checked it against `SHA256SUMS` and installed it over 2.0.0, and the
   service came back with its 155 visits; a second run said "2.1.0 is up to date".
-  tabblscatcam is left on 2.0.0 for its timer to take at night.
+  tabblscatcam got it from its timer alone: at 03:37 on 2026-10-16 it found v2.1.0, checked
+  the `.deb` against `SHA256SUMS`, installed it over 2.0.0, and the service came back with all
+  224 visits.
 - **himbeerGsaelz's config says `inference = "on"`.** A 1 GB Pi 3 reports 905 MiB, and 2.1.0's
   `auto` skips the model below 1024 MiB; the next release's `auto` takes 768 MiB (OxidANT
   5898e42), so a new Pi 3 detects without the setting. Its model runs at 2 s, about seven times
