@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # Shared by bundle-runtime-closure.sh and check-bundle-closure.sh; sourced, never run.
 
-# What the .deb's declared dependencies provide; extend only with what every GTK desktop has.
+# What the .deb's Depends provide, only what every GTK desktop has; not libstdc++, whose GCC 16.2 build no distro ships.
 SYSTEM_SONAME_ALLOWLIST=(
-  'libc.so.6' 'libm.so.6' 'libstdc++.so.6' 'libgcc_s.so.1'
+  'libc.so.6' 'libm.so.6'
   'libpthread.so.0' 'libdl.so.2' 'librt.so.1'
   'ld-linux*.so*'
   'libglib-2.0.so.0' 'libgobject-2.0.so.0' 'libgio-2.0.so.0'

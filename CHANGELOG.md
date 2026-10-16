@@ -27,6 +27,15 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ### Fixed
 
+- **The Linux app starts outside the build image.** The bundle carried GStreamer and ONNX
+  Runtime but took `libstdc++` from the system, and the image's is GCC 16.2's
+  (`GLIBCXX_3.4.36`), newer than any distro's, Ubuntu 26.04's included. It travels in
+  `bundle/lib` now, and the `.deb` declares `libc6 (>= 2.43)`: the image's ORT and orc need its
+  glibc, so the app runs on Ubuntu 26.04 and newer. Debian 13 and Ubuntu 24.04 need the image's
+  loader as ObservANT carries it (ANTfrastructure BACKLOG CON97).
+- **A clean-host job proves it** after each Linux lane: a bare `ubuntu-26.04` (`-arm`) runner
+  installs the `.deb` with apt and starts it, the AppImage and the unpacked tarball for 20 s
+  under Xvfb, the way the lane's launch smoke does inside the image.
 - **The Windows ObservANT carries ONNX Runtime's own DLLs**, the VC++ runtime included, so
   it starts on a Windows without Visual Studio's redistributable.
 - **`inference = "auto"` runs the model on 1 GB boards** (OxidANT 5898e42). It skipped the model

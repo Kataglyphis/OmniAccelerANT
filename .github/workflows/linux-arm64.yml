@@ -37,3 +37,28 @@ jobs:
       run-docs: false
     secrets:
       GHCR_PAT: ${{ secrets.GHCR_PAT }}
+
+  # Inside the image every library is present; the bare image base shows a missing one (hub linux-build-basics.md).
+  clean-host:
+    name: Packages on a clean Ubuntu 26.04 (arm64)
+    needs: build
+    runs-on: ubuntu-26.04-arm
+    timeout-minutes: 20
+    steps:
+      # 124 is timeout's: the app was still up after 20 s, as the lane's own launch smoke counts it.
+      - name: Install and start the .deb and the AppImage
+        uses: Kataglyphis/ANTfrastructure/.github/actions/clean-host-package-check@develop
+        with:
+          artifact: omni-accelerant-linux-arm64-packages
+          apt-packages: xvfb libgl1-mesa-dri libegl-mesa0
+          deb: '*.deb'
+          deb-command: rc=0; xvfb-run -a timeout 20 omni-accelerant || rc=$?; test "$rc" -eq 124
+          appimage: '*.AppImage'
+          appimage-command: rc=0; xvfb-run -a timeout 20 "$APPIMAGE" || rc=$?; test "$rc" -eq 124
+
+      - name: Unpack and start the tarball
+        uses: Kataglyphis/ANTfrastructure/.github/actions/clean-host-package-check@develop
+        with:
+          artifact: omni-accelerant-linux-arm64-tar
+          tarball: '*.tar.gz'
+          tarball-command: rc=0; xvfb-run -a timeout 20 ./omni_accelerant || rc=$?; test "$rc" -eq 124

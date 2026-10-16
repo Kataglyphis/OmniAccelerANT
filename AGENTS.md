@@ -314,7 +314,7 @@ written out rather than linked.
   and `package-linux.sh` prints the built app's `[Context]` and fails when an
   appended argument is missing from it. An empty value drops it.
 
-- **A packaged Linux artifact carries its whole runtime closure**: every bundled ELF has its own
+- **A packaged Linux artifact carries its whole runtime closure**, GCC 16.2's `libstdc++` included (2026-10-16), and needs only glibc 2.43, so Ubuntu 26.04 and newer; a clean-host job starts it on the bare runner. Every bundled ELF has its own
   `$ORIGIN` RUNPATH (RUNPATH is not transitive), the GStreamer libraries and seven plugins travel
   in `bundle/lib`, and ORT is the image's chain build, proven by the hub's G6 census in
   `check-bundle-closure.sh`. With the lane's Rust features ORT is in `bundle/lib` before the packer
@@ -615,6 +615,7 @@ cell is a test that cannot run there, and the reason is under the table.
 | ObservANT MSI install checks (`Test-ObservANTWindows.ps1`) | | | | | x64 in `web.yml`'s `observant-windows` job, in `:winamd64`; arm64 on `windows-11-arm` after the hub's arch gate (`observant-windows-arm64-test`) |
 | ObservANT MSIX package checks (`Test-ObservANTMsix.ps1`, without `-Install`) | | | | | in `web.yml`'s `observant-windows` jobs, in `:winamd64` and `:winarm64` |
 | Release collector (`test-collect-release-assets.sh`): every platform's package, no stray upload, nothing missing | yes | | | | |
+| `.deb`, AppImage and tarball on a bare `ubuntu-26.04` runner, 20 s under Xvfb (the hub's `clean-host-package-check`) | yes | | | | |
 
 A blank cell is a test that cannot run there; why, lane by lane: [`docs/source/testing.md`](docs/source/testing.md) § *Why a lane
 cannot run a test*.

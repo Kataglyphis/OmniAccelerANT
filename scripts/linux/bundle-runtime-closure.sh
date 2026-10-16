@@ -92,6 +92,14 @@ resolve_soname() {
     fi
     return 1
   fi
+  # The image has the distro's libstdc++ too; the code needs the one its compiler links.
+  if [[ "$soname" == libstdc++.so.6 || "$soname" == libgcc_s.so.1 ]]; then
+    path="$("${CXX:-clang++}" -print-file-name="$soname")"
+    if [[ "$path" == /* && -e "$path" ]]; then
+      realpath "$path"
+      return 0
+    fi
+  fi
   if [[ -e "$gst_lib_dir/$soname" ]]; then
     printf '%s\n' "$gst_lib_dir/$soname"
     return 0

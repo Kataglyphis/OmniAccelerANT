@@ -300,6 +300,19 @@ the lane for release builds, before packaging):
   rejects. The runner carries `$ORIGIN/lib:$ORIGIN/../lib` because the flatpak
   manifest installs the binary into `/app/bin` with the libraries in `/app/lib`.
 
+- **GCC 16.2's `libstdc++` and `libgcc_s`** (2026-10-16), from the compiler's own runtime
+  directory: the image has the distro's older copy too, and the code needs `GLIBCXX_3.4.36`,
+  which no distro ships yet. Only glibc stays the system's, and the image's ORT and orc need
+  2.43, so the `.deb` declares `libc6 (>= 2.43)`: Ubuntu 26.04 and newer. Debian 13 (2.41) and
+  Ubuntu 24.04 (2.39) need the image's loader in the package, as
+  [the ObservANT package](#the-observant-package) carries it (ANTfrastructure BACKLOG CON97).
+
+The closure gate runs inside the image, where every library is present anyway. The
+`clean-host` job after each Linux lane is the outside view: on a bare `ubuntu-26.04` (`-arm`)
+runner it installs the `.deb` with apt, which resolves its `Depends` as on a user's machine,
+checks every installed ELF with `ldd`, and starts the app, the AppImage and the unpacked tarball
+for 20 s under Xvfb (the hub's `clean-host-package-check` action).
+
 At runtime the plugin's ELF constructor (`runtime_paths.cc`) points
 `GST_PLUGIN_PATH`, `ORT_DYLIB_PATH` and `KATAGLYPHIS_ONNX_MODEL` at those
 siblings — each only when the file exists and the environment does not already
