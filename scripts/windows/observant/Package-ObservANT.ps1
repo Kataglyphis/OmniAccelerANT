@@ -148,6 +148,24 @@ if ($Model) {
     $modelNotice = "It is DEIM-D-FINE-N, licensed Apache-2.0; $base.LICENSE and $base.NOTICE beside this file`nname the license, its authors and what ModelANT changed."
 }
 Copy-Item -LiteralPath $WebRoot -Destination (Join-Path $stage 'web') -Recurse
+$web = Join-Path $stage 'web'
+# Only a loader config naming enableWimp or preferWebParagraph fetches those renderers, and no browser fetches *.symbols.
+$bootstrap = @(Get-Content -LiteralPath (Join-Path $web 'flutter_bootstrap.js'))
+$load = $bootstrap | Select-String -SimpleMatch '_flutter.loader.load(' | Select-Object -First 1
+if ($load -and ($bootstrap[($load.LineNumber - 1)..($bootstrap.Count - 1)] -join "`n") -match 'enableWimp|preferWebParagraph') {
+    throw 'flutter_bootstrap.js asks for the wimp or webparagraph renderer, which this package leaves out'
+}
+$webParagraph = Join-Path $web 'canvaskit\webparagraph'
+if (Test-Path -LiteralPath $webParagraph) { Remove-Item -LiteralPath $webParagraph -Recurse -Force }
+Get-ChildItem -LiteralPath (Join-Path $web 'canvaskit') -Filter 'wimp.*' -File | Remove-Item -Force
+Get-ChildItem -LiteralPath $web -Recurse -Filter '*.symbols' -File | Remove-Item -Force
+if ($arch -eq 'arm64') {
+    Write-Host 'web: no zopfli .gz for arm64, whose producer cannot run on this amd64 host; the service gzips at run time'
+} else {
+    # Zopfli .gz beside each file the server gzips: smaller than its own gzip, and nothing to compress at run time.
+    & $Producer --precompress $web
+    if ($LASTEXITCODE -ne 0) { throw "$Producer --precompress failed with $LASTEXITCODE" }
+}
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'observant.toml') -Destination $shareDir
 @"
 models\$modelName is a separate work shipped beside the MIT-licensed OmniAccelerANT code.

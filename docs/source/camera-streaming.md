@@ -1314,7 +1314,7 @@ on a desktop loads Microsoft's own Store codecs (HEVC, VP9), which the module ch
 Windows. ONNX Runtime's own imports are part of the DLL closure: its `msvcp140_1.dll` was missing
 from the first arm64 package, and from the x64 one on a PC without the VC++ redist.
 
-**One folder.** `C:\Program Files\OmniAccelerANT Cat Cam` holds:
+**One folder.** `C:\Program Files\ObservANT` holds:
 - `kataglyphis_observant.exe`;
 - the DLLs it and its plugins import (`Copy-PeImportClosure`), plus the VC++ runtime,
   which a clean Windows lacks;
@@ -1324,6 +1324,15 @@ from the first arm64 package, and from the x64 one on a PC without the VC++ redi
 - the plugin scanner;
 - the chain ONNX Runtime, proved by the hub's G6 census before packaging;
 - `models\deim_dfine_n_coco.onnx` (its license and notice in `share\omni-observant\`) and the web build.
+
+**The web build is cut and compressed as on Linux** (2026-10-17; § *The web build ships compressed*).
+`Package-ObservANT.ps1` leaves out the `wimp` and `webparagraph` renderers and the `*.symbols` maps,
+about 18 of the build's 55 MB, and stops if `flutter_bootstrap.js` ever asks for those renderers.
+On x64 it runs the producer's `--precompress` over its copy, so the service sends zopfli `.gz`
+files. The arm64 package has none: its producer cannot run on the amd64 host that packages it,
+so that service gzips at run time, as every Windows one did before. `Test-ObservANTWindows.ps1`
+checks the cut, that `main.dart.wasm` goes out gzipped and unzips to the installed file, and on
+x64 that it is the packaged `.gz` byte for byte and every file the server gzips has one.
 
 The exe points GStreamer, ONNX Runtime and the model at that folder itself (OxidANT's
 `install.rs`), so it needs no launcher and nothing on PATH.

@@ -100,6 +100,34 @@ function Get-ExeFirewallRule {
             Where-Object { $_.Enabled -eq 'True' -and $_.Direction -eq 'Inbound' -and $_.Action -eq 'Allow' })
 }
 
+# The body as a browser asking for gzip gets it, still compressed; $null when it comes unzipped.
+function Get-Gzipped {
+    param([string]$UrlPath)
+    $handler = [System.Net.Http.HttpClientHandler]::new()
+    $handler.AutomaticDecompression = [System.Net.DecompressionMethods]::None
+    $client = [System.Net.Http.HttpClient]::new($handler)
+    try {
+        $request = [System.Net.Http.HttpRequestMessage]::new([System.Net.Http.HttpMethod]::Get, "http://127.0.0.1:8080/$UrlPath")
+        $request.Headers.AcceptEncoding.ParseAdd('gzip')
+        $response = $client.Send($request)
+        if ($response.Content.Headers.ContentEncoding -notcontains 'gzip') { return $null }
+        return , $response.Content.ReadAsByteArrayAsync().GetAwaiter().GetResult()
+    } finally { $client.Dispose() }
+}
+
+function Expand-Gzip {
+    param([byte[]]$Bytes)
+    $out = [System.IO.MemoryStream]::new()
+    $gz = [System.IO.Compression.GZipStream]::new([System.IO.MemoryStream]::new($Bytes), [System.IO.Compression.CompressionMode]::Decompress)
+    try { $gz.CopyTo($out) } finally { $gz.Dispose() }
+    return , $out.ToArray()
+}
+
+function Test-SameBytes {
+    param([byte[]]$A, [byte[]]$B)
+    return $null -ne $A -and $null -ne $B -and [System.Linq.Enumerable]::SequenceEqual($A, $B)
+}
+
 function Wait-Healthz {
     $deadline = (Get-Date).AddSeconds(40)
     do {
@@ -142,6 +170,26 @@ $health = Wait-Healthz
 Write-Host "      healthz: $health"
 Test-Check '/healthz answers on :8080' { $health -match '"ok":true' }
 Test-Check 'the page is served from the install' { (Invoke-WebRequest -UseBasicParsing -TimeoutSec 5 http://127.0.0.1:8080/).Content -match '<html' }
+$web = Join-Path $prefix 'web'
+Test-Check 'the page leaves out the renderers its loader never asks for, and the debug maps' {
+    (Test-Path (Join-Path $web 'canvaskit\skwasm.wasm')) -and -not (Test-Path (Join-Path $web 'canvaskit\webparagraph')) -and
+    @(Get-ChildItem -LiteralPath $web -Recurse -File -Include 'wimp.*', '*.symbols').Count -eq 0
+}
+$wasm = Join-Path $web 'main.dart.wasm'
+$served = Get-Gzipped -UrlPath 'main.dart.wasm'
+Test-Check 'main.dart.wasm goes out gzipped and unzips to the installed file' {
+    Test-SameBytes (Expand-Gzip $served) ([System.IO.File]::ReadAllBytes($wasm))
+}
+if ([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture -eq 'X64') {
+    Test-Check 'it sends the packaged zopfli .gz, byte for byte' { Test-SameBytes $served ([System.IO.File]::ReadAllBytes("$wasm.gz")) }
+    Test-Check 'every file the server gzips (its types, 1 KiB and up) ships its zopfli .gz' {
+        $types = '.js', '.mjs', '.wasm', '.json', '.html', '.css', '.svg', '.ttf', '.otf'
+        $missing = @(Get-ChildItem -LiteralPath $web -Recurse -File | Where-Object {
+                $_.Extension -in $types -and $_.Length -ge 1024 -and -not (Test-Path -LiteralPath "$($_.FullName).gz") })
+        if ($missing) { Write-Host "      no .gz beside: $($missing.FullName -join ', ')" }
+        $missing.Count -eq 0
+    }
+} else { Write-Host 'SKIP  the packaged .gz files: an arm64 package has none, its producer cannot run where it is packaged' }
 $foreign = @(Get-ForeignModule -Process $svc.Process)
 if ($foreign) { Write-Host "      outside: $($foreign -join ', ')" }
 Test-Check 'idle, it loads modules only from the install and Windows' { $foreign.Count -eq 0 }

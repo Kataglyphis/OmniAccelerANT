@@ -68,12 +68,10 @@ Linux amd64/arm64 ship as a .deb and an AppImage, proven on himbeere2 (Pi 5) on
     - the arrival clip: `Package-ObservANT.ps1` takes `isomp4` as optional, and whether
       `:winamd64` carries it is unchecked; without it the service records no clip and says
       so at start.
-  - **The web build as Linux ships it** (2026-10-12): `package-observant.sh` leaves out the
-    `wimp` and `webparagraph` renderers and `*.symbols`, and runs the producer's
-    `--precompress` over the copy, so the board sends zopfli `.gz` files. `Package-ObservANT.ps1`
-    copies `build\web` whole, and the Windows service still gzips at run time: the same
-    steps after its `Copy-Item ... web`, and `Test-ObservANTWindows.ps1` comparing a served
-    file against its `.gz`, want a `:winamd64` run, which himbeere2 cannot make.
+  - **The web build as Linux ships it** (2026-10-17): `Package-ObservANT.ps1` cuts the same
+    renderers and maps, and on x64 runs `--precompress`, which `Test-ObservANTWindows.ps1` checks
+    (camera-streaming.md, *The Windows ObservANT*). Open: the first `web.yml` run of it, and `.gz`
+    files for arm64, whose producer cannot run on the amd64 packaging host.
   - **Then:** arm64; the hub's CON63, which it waited on, is done since 2026-10-11.
   - Autostart is a logon task by owner decision. A boot-time service would run in
     Session 0, and on a PC with a webcam it first needs proof that LocalSystem or
