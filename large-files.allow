@@ -1,0 +1,3 @@
+# Data files over 500 KiB this repo must track, frozen for ANTfrastructure's large-files gate:
+# https://github.com/Kataglyphis/ANTfrastructure/blob/develop/docs/data-repositories.md  <path> | <KiB> | <reason>
+web/sqlite3.wasm | 740 | the sqlite3 WASM build the web app loads; setup-sqlite3-wasm.sh fetches and checks it, this copy serves flutter run -d chrome

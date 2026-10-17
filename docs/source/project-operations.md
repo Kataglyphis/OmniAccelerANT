@@ -236,7 +236,10 @@ type `-f` is the whole mechanism.
 On 2026-10-17 `images/overview.gif` (1.6 MiB) and `images/Engine_logo.png` went too:
 no README or page ever showed either.
 
-What the table lists now is load-bearing.
+What the table lists now is load-bearing. Its one entry over 500 KiB is frozen in
+`large-files.allow` for ANTfrastructure's `large-files` gate, which fails on any new data file
+over 500 KiB once the hub pin moves past the gate: a new model, scene or document goes to
+ModelANT or AssetANT and is fetched by lock instead.
 
 ## Serving the web build
 
