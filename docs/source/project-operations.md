@@ -196,21 +196,23 @@ file next to a pinned shared one is exactly the drift that removal closed.
 
 ## Large tracked binaries
 
-Measured 2026-10-12: **6.6 MiB across 424 tracked files**, after that day removed
-every tracked binary nothing referenced (below); 2026-09-15 counted 148 MiB across
-451. The inventory, so nobody has to re-derive it:
+Measured 2026-10-17: **1.5 MiB in 22 tracked binary files**, after the 8-bit app
+icon and the removal of two images nothing referenced (below); 2026-10-12 counted
+4.7 MiB and 2026-09-15 148 MiB. The inventory, so nobody has to re-derive it:
 
 | What | Size | Why it is tracked |
 |------|------|-------------------|
-| `assets/icons/kataglyphis_app_icon.png` | 1.9 MiB | Load-bearing: `flutter_launcher_icons` generates every platform icon set from it (`pubspec.yaml` names it four times, one of them msix's `logo_path`), so it must stay at source resolution. |
-| `images/overview.gif` | 1.6 MiB | README illustration. |
 | `web/sqlite3.wasm` | 0.7 MiB | The sqlite3 WASM build the web app loads. Fetched and checksum-verified by ANTfrastructure's `setup-sqlite3-wasm.sh`; the committed copy is a convenience, and it has been wrong before (see [Getting Started](getting-started.md)). |
+| `assets/icons/kataglyphis_app_icon.png` | 0.26 MiB | Load-bearing: `flutter_launcher_icons` generates every platform icon set from it (`pubspec.yaml` names it four times, one of them msix's `logo_path`), so it stays at its 1024 px source resolution. It was 1.9 MiB as 16-bit RGBA until 2026-10-17; the 8-bit file is pixel-identical to what every icon tool decodes from that one. |
 
-**The history is not being rewritten.** No `git filter-repo`, no BFG, no LFS
-migration. Four repositories pin this one by gitlink or consume it in a
-recursive checkout; a rewrite changes every commit sha and every one of those
-pins, plus every clone anyone holds, to save clone time nobody has complained
-about. The decision is to document what is there and stop it growing.
+**The history is being rewritten** (owner, 2026-10-17, reversing the earlier
+"document it and stop it growing"): binary blobs of 500 KB and more that no
+branch tip holds leave the history of all ten family repositories, after the
+pending patch releases. Every commit is kept, so each old sha maps to exactly
+one new one, and the gitlinks move with them. An existing checkout moves over
+with the hub's `git-adopt-rewritten-history.sh`
+([`adopting-in-a-new-project.md` § *After a history rewrite*](https://github.com/Kataglyphis/ANTfrastructure/blob/develop/docs/adopting-in-a-new-project.md#after-a-history-rewrite)),
+which saves local work first; a plain `git pull` would merge the two histories.
 
 Stopping it growing is `.gitignore`: media, archives, documents and model
 weights are ignored by extension. Already-tracked files are unaffected —
@@ -230,6 +232,9 @@ type `-f` is the whole mechanism.
   entry with it;
 - gstwebrtc-api's demo page `web/javascript/webrtc/index.html` with the UMD build only
   it loaded. Every web build had published both; the app imports the ESM module.
+
+On 2026-10-17 `images/overview.gif` (1.6 MiB) and `images/Engine_logo.png` went too:
+no README or page ever showed either.
 
 What the table lists now is load-bearing.
 
