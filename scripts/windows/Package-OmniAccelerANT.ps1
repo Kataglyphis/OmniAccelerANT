@@ -31,7 +31,7 @@ Import-BuildModule @('WindowsBuild.Common', 'WindowsMsix.Common', 'WindowsMsix.S
 
 $AppDir = (Resolve-Path -LiteralPath $AppDir).Path
 if (-not (Test-Path -LiteralPath (Join-Path $AppDir 'omni_accelerant.exe') -PathType Leaf)) { throw "no omni_accelerant.exe in $AppDir" }
-# A runner from before 8f5ed5e kept AccelerANTgine.dll there, where the loader never looks.
+# A runner from before 9f4438e kept AccelerANTgine.dll there, where the loader never looks.
 if (Test-Path -LiteralPath (Join-Path $AppDir 'bin') -PathType Container) { throw "$AppDir has a bin\ folder; rebuild it, no installer may ship that layout" }
 $pubspec = Get-Content -LiteralPath (Join-Path $repoRoot 'pubspec.yaml') -Raw
 if ($pubspec -notmatch '(?m)^version:\s*(\d+\.\d+\.\d+)') { throw 'pubspec.yaml names no version' }

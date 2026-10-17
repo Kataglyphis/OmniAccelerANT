@@ -78,7 +78,7 @@ strictness flag and ignore its own verdict when that flag was false, so it now
 errors (exit 2) if handed one rather than letting a stale caller pass silently.
 That is safe for a measured reason, not an optimistic one — the gate's 13 files
 are already clean and the native-Linux lane has passed `--strict-checks true`
-since fc8b65c, so the Android lane can only catch drift that already blocks the
+since f2e7118, so the Android lane can only catch drift that already blocks the
 merge on the other lane. Wrap the call in `run_gate` when you want the batch to
 decide, rather than reaching for a flag. The web lane builds no native CMake
 code and does not run it.
@@ -146,7 +146,7 @@ step.
 
 To clear a red run, rewrite the named files with `clang-format -i` from the
 image (23.1.3). The canonical config leaves comments as written
-(`ReflowComments: Never` since hub 0b774f12, 2026-10-12): reflow put a comment
+(`ReflowComments: Never` since hub a5443e2c, 2026-10-12): reflow put a comment
 past 120 columns onto a second line, which the comment-size gate rejects.
 The 2026-10-12 sweep is in `.git-blame-ignore-revs`.
 
@@ -205,11 +205,11 @@ icon and the removal of two images nothing referenced (below); 2026-10-12 counte
 | `web/sqlite3.wasm` | 0.7 MiB | The sqlite3 WASM build the web app loads. Fetched and checksum-verified by ANTfrastructure's `setup-sqlite3-wasm.sh`; the committed copy is a convenience, and it has been wrong before (see [Getting Started](getting-started.md)). |
 | `assets/icons/kataglyphis_app_icon.png` | 0.26 MiB | Load-bearing: `flutter_launcher_icons` generates every platform icon set from it (`pubspec.yaml` names it four times, one of them msix's `logo_path`), so it stays at its 1024 px source resolution. It was 1.9 MiB as 16-bit RGBA until 2026-10-17; the 8-bit file is pixel-identical to what every icon tool decodes from that one. |
 
-**The history is being rewritten** (owner, 2026-10-17, reversing the earlier
+**The history was rewritten on 2026-10-17** (owner, reversing the earlier
 "document it and stop it growing"): binary blobs of 500 KB and more that no
-branch tip holds leave the history of all ten family repositories, after the
-pending patch releases. Every commit is kept, so each old sha maps to exactly
-one new one, and the gitlinks move with them. An existing checkout moves over
+branch held left the history of all ten family repositories, and this pack went
+from 167 to 12 MiB. Every commit was kept, so each old sha maps to exactly one
+new one, and the gitlinks moved with them. A checkout from before moves over
 with the hub's `git-adopt-rewritten-history.sh`
 ([`adopting-in-a-new-project.md` § *After a history rewrite*](https://github.com/Kataglyphis/ANTfrastructure/blob/develop/docs/adopting-in-a-new-project.md#after-a-history-rewrite)),
 which saves local work first; a plain `git pull` would merge the two histories.
@@ -371,7 +371,7 @@ builds one.
    publishes nothing; a version check that fails there is a warning, which says where the real
    release would stop.
 3. The owner fast-forwards `main` to that commit: `git push origin <sha>:main`. An agent does it
-   only on the owner's word in that turn, as for 2.1.0 (2026-10-15, `04365d8`).
+   only on the owner's word in that turn, as for 2.1.0 (2026-10-15, `3b4344c`).
 
 ## Dependency upgrades, in detail
 
@@ -651,12 +651,12 @@ no source-root-relative path filter can reach. What it buys is the outcome:
 that run produced 10 Rust findings, all under `third_party/OxidANT`, and none
 from an ignored path. The Windows `-CodeQL` path passes the same file since
 2026-09-28, through the hub's `Invoke-BuildCodeQL -CodeScanningConfig` (hub
-4dbf68b9); `Build-Windows.ps1` stops rather than scan unscoped on an older pin,
+56df8c81); `Build-Windows.ps1` stops rather than scan unscoped on an older pin,
 because the unscoped run of 2026-09-17 indexed every vendored tree. A reused
 `codeql-db-cluster` keeps the scope it was created with: pass `-CleanCodeQLDb`.
 `database analyze` does **not** apply the config to traced C++: the first complete Windows
 run (2026-10-05) reported 39 of its 63 cpp results from the ignored
-`third_party/AccelerANTgine/third_party`. Since hub 09c3f983, `Invoke-BuildCodeQL` drops
+`third_party/AccelerANTgine/third_party`. Since hub 92b58c8d, `Invoke-BuildCodeQL` drops
 results under the config's `paths-ignore` from each SARIF and logs the count.
 
 `-CodeQL` starts from any tree. The untraced bootstrap runs first. Every preset's CMake
@@ -676,7 +676,7 @@ driver brings back only `logs` and the runner: the SARIFs stay in the container'
 the same lint gates `lint-gates.yml` runs (about 10 s on the Windows box). When a staged
 file is a `scripts/**/*.ps1` or `.psm1`, it also runs the hub's `Invoke-Lint.ps1 -Path
 scripts`, the step `windows-x64.yml` stops on before its image pull (`windows-arm64.yml`
-has no such step). That step once reached CI uncaught: e904182's chained `[switch]` assignment failed
+has no such step). That step once reached CI uncaught: 46fe49a's chained `[switch]` assignment failed
 windows-x64 run 37324782889. It grades the working tree, like the hub's hook.
 `--no-verify` skips it.
 
@@ -723,7 +723,7 @@ no native CMake code and does not run it.
 
 That flip is safe for a measured reason, not an optimistic one — the gate's 13
 files are already clean and the native-Linux lane has passed
-`--strict-checks true` since fc8b65c, so the Android lane can only catch drift
+`--strict-checks true` since f2e7118, so the Android lane can only catch drift
 that already blocks the merge elsewhere.
 
 ## The web lane's nightly toolchain

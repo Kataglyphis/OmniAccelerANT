@@ -3,7 +3,7 @@
 # the corpus, or is deleted, is STALE and its line goes.
 # Format: <file>	<function>.
 #
-# codeql_analyze_java is CALLERLESS ON PURPOSE since 0364703 (2026-09-15).
+# codeql_analyze_java is CALLERLESS ON PURPOSE since d1c1a51 (2026-09-15).
 # codeql-android.sh stopped asking for a java/kotlin database because CodeQL's
 # Java extractor injects a Kotlin compiler plugin with a hard upper bound below
 # this repo's declared KGP, and against it the whole Gradle BUILD dies - not

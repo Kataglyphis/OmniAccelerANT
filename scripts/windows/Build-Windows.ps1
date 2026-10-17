@@ -59,7 +59,7 @@ Import-BuildModule @(
 )
 # G6 and the hub's chain-ORT staging beside the exe; an older hub pin lacks them.
 try { Import-BuildModule @('WindowsOrtProvenance.Common', 'WindowsOrtPayload.Common') } catch {
-    throw "This build needs ANTfrastructure's WindowsOrtProvenance.Common (G6) and WindowsOrtPayload.Common (hub commit ad08bc30 of 2026-09-25, third_party/ANTfrastructure/docs/onnxruntime-single-source.md § The shared Windows glue); move third_party/ANTfrastructure to it or later. ($($_.Exception.Message))"
+    throw "This build needs ANTfrastructure's WindowsOrtProvenance.Common (G6) and WindowsOrtPayload.Common (hub commit 73a8dd74 of 2026-09-25, third_party/ANTfrastructure/docs/onnxruntime-single-source.md § The shared Windows glue); move third_party/ANTfrastructure to it or later. ($($_.Exception.Message))"
 }
 
 if ($CodeQL) {
@@ -418,7 +418,7 @@ try {
         # Scoped like the android scan (AGENTS.md § 5); an older hub pin lacks the parameter.
         $codeQLConfig = Join-Path $workspace '.github\codeql\codeql-config.yml'
         if (-not (Get-Command Invoke-BuildCodeQL).Parameters.ContainsKey('CodeScanningConfig')) {
-            throw "Invoke-BuildCodeQL has no -CodeScanningConfig in this ANTfrastructure pin; move third_party/ANTfrastructure to hub commit 4dbf68b9 or later rather than scan unscoped."
+            throw "Invoke-BuildCodeQL has no -CodeScanningConfig in this ANTfrastructure pin; move third_party/ANTfrastructure to hub commit 56df8c81 or later rather than scan unscoped."
         }
         Invoke-BuildCodeQL -Context $context -Workspace $workspace -ForwardParameters $codeQLForwardParameters -BuildScriptPath $MyInvocation.MyCommand.Path -CodeScanningConfig $codeQLConfig
         exit 0

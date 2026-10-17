@@ -136,10 +136,10 @@ void main() {
       final info = ObservantInfo.parse(
         _healthz.replaceFirst(
           '"ok":true',
-          '"ok":true,"version":"2.0.0 (cac26d4)"',
+          '"ok":true,"version":"2.0.0 (481ad36)"',
         ),
       )!;
-      expect(info.version, '2.0.0 (cac26d4)');
+      expect(info.version, '2.0.0 (481ad36)');
       expect(ObservantInfo.parse(_healthz)!.version, isEmpty);
     });
 

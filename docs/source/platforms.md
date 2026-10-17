@@ -297,7 +297,7 @@ the one-line version of each.
   missed 21 of 32 such compiles the second time (2026-10-16), and the lane configures
   three times (release, the integration test's debug, the performance test's profile).
   Every real source hits, and the checks are tiny; raising `SCCACHE_CACHE_SIZE` changed
-  nothing (4cccd4e, reverted in 7242bb8).
+  nothing (d8044b1, reverted in 7badf5f).
 
 - **A single-arch image tag looks exactly like broken code.** Until 2026-09-04
   `ghcr.io/kataglyphis/kataglyphis_beschleuniger:latest-cross` was an amd64-only
@@ -481,7 +481,7 @@ the part ObservANT's packaging shares.
   as the shortcut does. For the MSIX it checks the signature, identity and architecture, trusts
   the certificate, runs `Add-AppxPackage`, starts the package through its app entry, and removes
   it again.
-- **A runner with a `bin\` folder is refused** by the packaging script: before 8f5ed5e the x64
+- **A runner with a `bin\` folder is refused** by the packaging script: before 9f4438e the x64
   build left AccelerANTgine.dll there, where the loader never looks (§ *Troubleshooting
   containerized Windows builds*).
 
@@ -512,7 +512,7 @@ The rules are in AGENTS.md § 4; the measurements that produced them are here.
 
 - **`--gcc-toolchain` was load-bearing here until 2026-09-29, and ANTfrastructure
   deleted the helper that set it.** `export_clang_gcc_toolchain_env` went away upstream on
-  2026-09-05 (`e2c63f7b`), documented as dead: *"had no caller in the build […]
+  2026-09-05 (`aabc7b6e`), documented as dead: *"had no caller in the build […]
   nothing in the tree sets a bare `CC=clang`"*. Both statements are true of
   ANTfrastructure and false of this repo — `export_toolchain_env` set exactly that
   bare `CC=clang` and called the function. Upstream names

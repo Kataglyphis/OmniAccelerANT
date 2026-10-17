@@ -350,7 +350,7 @@ census that takes a whole NUL-terminated `__FILE__` source path as the ORT
 fingerprint. A hub whose census still counts the bare directory reads the text
 rustc packs before it as a relative build root and fails the correct bundle with
 `UNPROVEN /lib/liboxidant.so` (run 35928030957, both arches). This repo's hub
-pin has read whole paths only since e72a9a37 (2026-09-24), and
+pin has read whole paths only since 502b9089 (2026-09-24), and
 `test-check-bundle-closure.sh` carries the bytes around that string in the real
 `liboxidant.so`. The census runs whenever a bundled file is ORT-named or names
 the ORT ABI (`OrtGetApiBase` and G6's other markers), not only when a
@@ -401,7 +401,7 @@ the table's "turned" follows.
   224 visits.
 - **himbeerGsaelz's config says `inference = "on"`.** A 1 GB Pi 3 reports 905 MiB, and 2.1.0's
   `auto` skips the model below 1024 MiB; the next release's `auto` takes 768 MiB (OxidANT
-  5898e42), so a new Pi 3 detects without the setting. Its model runs at 2 s, about seven times
+  f8a2dfc), so a new Pi 3 detects without the setting. Its model runs at 2 s, about seven times
   the Pi 5's, but only while something moves.
 - **himbeergsaelzweckle is a user install**, because no sudo password was at hand (*Without
   sudo* under *Installing it*; its field test below). The first real release to reach it will be
@@ -761,7 +761,7 @@ peers' addresses left out:
   "problem": null,
   "rotate": 180,
   "score": 0.25,
-  "version": "2.0.0 (b8e1ee5)",
+  "version": "2.0.0 (e7a7957)",
   "viewers": 0
 }
 ```
@@ -1433,7 +1433,7 @@ ORT_DYLIB_PATH=/usr/local/lib/onnxruntime-cpu/lib/libonnxruntime.so \
   target/release/kataglyphis_observant --v4l2 /dev/video0
 ```
 
-Since OxidANT dd496dc this binary is the service the package above installs:
+Since OxidANT d788e1a this binary is the service the package above installs:
 - **It also answers on `:8080`.** That port serves the web build from
   `--web-root`, plus `/webrtc-ws` and `/healthz`. `--http-port 0` turns it off.
 - **Its signalling server listens on loopback only.** A `serve.sh` on the same
@@ -1445,7 +1445,7 @@ Since OxidANT dd496dc this binary is the service the package above installs:
 
 `--test` streams a `videotestsrc` pattern, `--image <file>` (or
 `$KATAGLYPHIS_CAT_IMAGE`) loops a still image — there is no default picture any
-more (OxidANT deaea88, 2026-09-15; ANThology's `Thundy.jpg` is only named in the
+more (OxidANT 4e68a02, 2026-09-15; ANThology's `Thundy.jpg` is only named in the
 error hint); without one of these the producer takes `camera` from its settings, `"auto"`
 by default: a Raspberry Pi camera if attached, else a USB webcam. The model
 default still resolves relative to the crate, so any checkout works. `--score`, `--width/--height/--fps`,

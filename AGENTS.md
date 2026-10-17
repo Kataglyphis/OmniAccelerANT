@@ -324,7 +324,7 @@ written out rather than linked.
 - **The Rust binaries name the chain ORT's directory, and G6 must read them as importers.**
   OxidANT's loader keeps `/opt/onnxruntime/onnxruntime/core/` as a string, so only a whole
   NUL-terminated `__FILE__` path is an ORT fingerprint. A census calling `liboxidant.so` or
-  `oxidant.dll` `UNPROVEN` or `STALE` is a hub pin older than e72a9a37: move the pin, never
+  `oxidant.dll` `UNPROVEN` or `STALE` is a hub pin older than 502b9089: move the pin, never
   OxidANT. Detail: [`docs/source/camera-streaming.md`](docs/source/camera-streaming.md) § *Relocatable Linux bundles*.
 
 - **Rust `i64` is `int` natively and `BigInt` on web, so only the web lane
@@ -369,7 +369,7 @@ written out rather than linked.
   `scripts\windows\Get-Models.ps1`) is the only way in. A checkout has no model until it
   runs, so the Rust webcam view on a dev build fails to load one: the native lane runs it
   before the build, the bundle and package scripts call it themselves. A new model goes
-  into ModelANT and only the lock moves here; the old AGPL files stay in the history.
+  into ModelANT and only the lock moves here; the old AGPL files left the history on 2026-10-17.
   Detail: `docs/source/camera-streaming.md` § *The detection model*.
 
 - **The app version is written twice, and both move together.** `version:` in
@@ -511,7 +511,7 @@ written out rather than linked.
   generators format with it.** At language version 3.13 the formatter puts a
   blank line between import groups, so moving the floor from 3.11.4 to 3.13.0
   (2026-10-11) reformatted ten tracked files, and the lanes' format gate failed
-  until they were committed (429fef3, reverted in fafa9f3).
+  until they were committed (3e4a252, reverted in 7af04e4).
   `flutter_rust_bridge_codegen generate` and `flutter gen-l10n` run `dart
   format` on their output at that same language version. After a floor move,
   regenerate `lib/src/rust/` and `lib/l10n/` in the image rather than

@@ -84,7 +84,7 @@ Linux amd64/arm64 ship as a .deb and an AppImage, proven on himbeere2 (Pi 5) on
   - **On a real desktop** (Ubuntu GNOME, amd64, 2026-10-08): CI's bundle installed as a user
     install, fetched its runtime from Flathub (24.08, end-of-life), wrote the sign-in entry,
     and the host's Chrome played 582 frames over the LAN address.
-  - **On runtime 26.08 since 2026-10-11:** `web.yml` run 38158462452 (fafa9f3) built the bundle on
+  - **On runtime 26.08 since 2026-10-11:** `web.yml` run 38158462452 (7af04e4) built the bundle on
     `org.freedesktop.Platform/26.08` for x64 and arm64, and `test-observant-package.sh` installed and
     removed it on both (`PASS flatpak installs it`); the app flatpak of Linux x64 run 38158462860 built
     on 26.08 too.
@@ -121,7 +121,7 @@ Linux amd64/arm64 ship as a .deb and an AppImage, proven on himbeere2 (Pi 5) on
 
 ## Open — CI time
 
-- [b] **Half of every Windows lane is the image pull.** Measured on 1686eae (2026-10-12):
+- [b] **Half of every Windows lane is the image pull.** Measured on 0ca48e8 (2026-10-12):
   *Prepare Windows container host* took 27 and 31 min of `windows-x64.yml`'s 45 and 64 min
   jobs, 25 of `windows-arm64.yml`'s 35, and 30 of `web.yml`'s 37-min Windows ObservANT job;
   the Linux lanes spend 5 to 8 of 10 to 15 min there. A round's wall time is the Windows
@@ -131,7 +131,7 @@ Linux amd64/arm64 ship as a .deb and an AppImage, proven on himbeere2 (Pi 5) on
 
 ## Open — tests
 
-- [ ] **The Linux app drawn on a desktop outside the build image.** Since a7ce99e (2026-10-17) the
+- [ ] **The Linux app drawn on a desktop outside the build image.** Since ec2297c (2026-10-17) the
   bundle starts through the image's loader and glibc (camera-streaming.md § *Relocatable Linux
   bundles*).
   - Proven: the clean-host job on bare Ubuntu 26.04, x64 and arm64, keeps the app up 20 s under

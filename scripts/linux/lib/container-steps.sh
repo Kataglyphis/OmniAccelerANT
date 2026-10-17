@@ -183,7 +183,7 @@ run_cmake_format_check() {
     '*/generated_plugins.cmake' # header: "Generated file, do not edit."
     './rust_builder/cargokit/*' # vendored Cargokit (rust_builder/cargokit/README)
     './.venv/*'                 # the venv this very gate bootstraps
-    './.pub-cache/*'            # pub's download cache. fe93f5a moved PUB_CACHE to
+    './.pub-cache/*'            # pub's download cache. 5b62a5c moved PUB_CACHE to
                                 # <repo>/.pub-cache, so dependency CMake lands in-tree.
   )
   local -a cmake_files

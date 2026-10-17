@@ -82,7 +82,7 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
   bare Ubuntu does not.
 - **The Windows ObservANT carries ONNX Runtime's own DLLs**, the VC++ runtime included, so
   it starts on a Windows without Visual Studio's redistributable.
-- **`inference = "auto"` runs the model on 1 GB boards** (OxidANT 5898e42). It skipped the model
+- **`inference = "auto"` runs the model on 1 GB boards** (OxidANT f8a2dfc). It skipped the model
   below 1024 MiB, but a 1 GB Pi 3 reports 905 MiB, so it streamed without detection; the line is
   768 MiB, above a 512 MB Pi Zero 2 W's ~430.
 
@@ -97,10 +97,10 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
   which the app already used.
 - **A build report that was committed by mistake is gone** (2026-10-17):
   `android/build/reports/problems/problems-report.html` (134 KiB, Gradle's problems report)
-  came in with 0ee9ac1. `/android/build/` is ignored now, so the next one stays out.
-  OxidANT moves to ba5d8ae, whose README image is a 2.1 MiB WebP instead of a 7.5 MiB GIF.
+  came in with a47525e. `/android/build/` is ignored now, so the next one stays out.
+  OxidANT moves to 41845f9, whose README image is a 2.1 MiB WebP instead of a 7.5 MiB GIF.
 
-- **A camera nobody named shows its host name** (OxidANT bb38e7a) instead of "ObservANT", so
+- **A camera nobody named shows its host name** (OxidANT aa3e13e) instead of "ObservANT", so
   two new cameras differ in the Stream page's list from the start; a name from the settings or
   the Camera page still wins.
 - **The Dart coverage floor is 96 %** (97.2 % measured), up from 95.
@@ -251,7 +251,7 @@ themselves from. Most of it is the cat cam, ObservANT since 2026-10-14, whose gu
 
 ### Fixed
 
-- **The blog overview sorts the way its header arrow points** (2026-10-15, ANThology a87aec3).
+- **The blog overview sorts the way its header arrow points** (2026-10-15, ANThology 1f1c56b).
   Its table, ANThology's `AnthologyTable`, sorted a header tap in the direction from before the
   tap, and since the overview sorts on load, a tap on another column only flipped the load
   column again. Two cells with the same text in one row also both took the first one's width.
@@ -381,7 +381,7 @@ themselves from. Most of it is the cat cam, ObservANT since 2026-10-14, whose gu
   - The web build goes out gzipped, and a revalidation answers 304 without reading a file.
 - **92 kB less on every first visit** (2026-10-13): Roboto's Medium Italic face, which
   nothing draws, is no longer declared, so Flutter web no longer fetches it.
-- **Every build is 7.6 MB lighter** (2026-10-12, ANThology c441bb7): the 404 page's
+- **Every build is 7.6 MB lighter** (2026-10-12, ANThology 3e30917): the 404 page's
   animation is a 0.85 MB WebP instead of a 4.9 MB GIF, and the 3.6 MB GIF the landing
   page no longer shows is gone. The web, Linux, Windows and Android builds all bundle
   ANThology's images.
