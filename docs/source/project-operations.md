@@ -509,7 +509,8 @@ those surfaces as a different, misleading error:
 | pub's download cache | named volume on `/workspace/.pub-cache` | `Rename failed, path = '/workspace/.pub-cache/_temp/…' (OS Error: Permission denied, errno = 13)`, then `Failed to update packages` — **but only on a run that downloads something.** A warm cache resolves from disk and renames nothing, so the local lane passed for as long as nobody edited `pubspec.yaml` |
 | cargo's target tree | named volume on `/workspace/third_party/OxidANT/target` | `error: failed to build archive at '…/libwasm_bindgen_macro_support-*.rlib': failed to remove temporary directory: Permission denied (os error 13) at path '…/out/.tmpXXXXXX.temp-archive'`. Same class as the row above, one verb over: the mount refuses the **remove**, not the write. The web lane hits it hardest because `-Z build-std` recompiles the standard library |
 | flatpak repo, build tree, builder state, manifest staging **and the finished bundle** | `/tmp/flatpak-work` | `fchmod: Operation not permitted`, first from the OSTree repo, later from `build-bundle` |
-| ccache / sccache | `/var/cache/{ccache,sccache}`, set by the image | `Can't initialize ccache use: Failed to set permissions` |
+| ccache | `/var/cache/ccache`, set by the image | `Can't initialize ccache use: Failed to set permissions` |
+| sccache's disk level | named volume on `/var/cache/sccache` (2026-10-17) | none: it lived in the container and died with it, so every run after `flutter clean` compiled cold |
 
 Only the finished artifacts are written into `out/`. This is ANTfrastructure's
 documented rule for build directories and caches, applied to the packaging
@@ -796,6 +797,41 @@ repo and not an expensive one.
 as the Linux workflows; AGENTS.md § 5 (Build, run, test) holds the lane table and the rules. What
 follows is the evidence behind those rules — each cost at least one run to find,
 and each has a symptom that names something other than its cause.
+
+**sccache: a volume, and the shared S3 level behind it (2026-10-17).** The native lane runs
+`flutter clean` before its build, so the C++ build tree is gone on every run, and the lane's
+sccache cache, which lived in the container, went with it. It now has its own named volume.
+Behind it sits the S3 bucket the image chain and the Windows builds share:
+
+- `New-LaneSccacheS3Secret` (`scripts/windows/modules/WindowsLaneSccache.Common.psm1`) reads
+  the host's key: the `KATAGLYPHIS_SCCACHE_S3_*` variables on Windows, or
+  `~/.config/kataglyphis/sccache-s3.env` on Linux. It asks the hub's `Get-HostSccacheS3ExecEnv`
+  whether the level is complete and answers, then writes the six names to a 0644 file in a
+  0700 directory. The driver binds that file at `/run/secrets/sccache_s3`.
+- In the container, the hub's `sccache_start_server` hands the key to the server alone.
+  `setup_compiler_cache` prints the server's `Cache location` (`Multi-level (2 levels)`) and
+  waits for the uploads on exit. The container's end would otherwise drop them.
+- CI has no route to the bucket and gets none of this. Its sccache cache moves between runs
+  through `actions/cache` instead, and its native lane hits about 95 %. The rest are CMake's
+  configure probes ([`platforms.md`](platforms.md) § *Image gaps and image-tag history*).
+
+Measured on the Linux host, native lane x64, `-PackageFormats tar -SkipDocs`, 2026-10-17:
+
+| Run | sccache | Wall time |
+| --- | --- | --- |
+| Cold: empty volume, nothing in the bucket for this lane | 1,172 misses, all 1,172 uploaded, 0 failed; the drain took 15 s | 6 min 50 s |
+| The sccache and cargo-target volumes deleted | 1,232 hits of 1,235 (99.76 %), Rust 100 %, all from the bucket | 5 min 48 s |
+
+**A Linux host's rootless engine runs the lane as root.** Rootless nerdctl maps the host
+user to the container's root. The image's uid 1001 then lands on a subuid that may not write
+the bind-mounted checkout: `Cannot open file, path = '.dart_tool/package_config.json' (OS
+Error: Permission denied, errno = 13)`. The driver passes `--user 0:0` when `nerdctl info`
+reports `name=rootless` on a non-Windows host, and every file the lane writes is then the
+host user's. As root, GNU tar also restores the archive's owners. Flutter's
+`gradle-wrapper.tgz` carries uid 397546, beyond the engine's 65,536 subuids, and the
+extraction fails with `Cannot change ownership to uid 397546, gid 5000: Invalid argument`.
+`TAR_OPTIONS=--no-same-owner` goes with the user. Windows (Rancher) and CI (whose runner
+is uid 1001 itself) need neither.
 
 **The android lane needs KVM in Rancher's VM, once per VM boot.** Its emulator
 smoke boots the image's AVD, and the VM starts without the KVM module even though

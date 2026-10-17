@@ -143,7 +143,8 @@ Two upstream facts repeated here only because they bite before you reach a doc:
   repo's Flutter `build/windows/x64/{runner,plugins}` layout;
   `WindowsOrtRunner.Common`, which stamps the hub's G6 verdict on the chain ONNX
   Runtime the hub's `WindowsOrtPayload.Common` stages into that runner — § 4;
-  `WindowsLaneGuard.Common`, one lane at a time per checkout — § 5; and
+  `WindowsLaneGuard.Common`, one lane at a time per checkout — § 5;
+  `WindowsLaneSccache.Common`, the host's sccache S3 key for a local Linux lane — § 5; and
   `WindowsFlutterAot.Common`, which catches a stale AOT target that `assemble` calls up
   to date).
 - `scripts/linux/lib/antfrastructure.sh` — the bash twin: `antfrastructure_source`
@@ -685,8 +686,17 @@ the CI invocation: [`docs/source/project-operations.md`](docs/source/project-ope
   Windows build is up (`-Force` overrides; `WindowsLaneGuard.Common`).
 - **Everything write-heavy stays off the host mount.** A Windows bind mount refuses `utime`,
   `chmod` and `fchmod`, each with a different misleading error, so the build tree, pub's cache
-  and cargo's target live on named volumes, the flatpak work under `/tmp/flatpak-work`, the
-  compiler caches where the image puts them; only finished artifacts go to `out/`.
+  and cargo's target live on named volumes, the flatpak work under `/tmp/flatpak-work`;
+  only finished artifacts go to `out/`.
+- **sccache has two levels on a local lane** (2026-10-17): its own named volume on
+  `/var/cache/sccache`, since every `flutter clean` empties `build/`, and the shared S3
+  bucket. The host key (`Set-SccacheS3Level.ps1` on Windows, `set-sccache-s3-level.sh`
+  on Linux) is bound at `/run/secrets/sccache_s3` (`WindowsLaneSccache.Common`), and the
+  lane's exit waits for the uploads. With both local caches deleted, the native lane hit
+  99.76 % from the bucket. `KATAGLYPHIS_SCCACHE_S3=off` drops the S3 level; CI never has it.
+- **On a Linux host the driver runs the lane as root** when the engine is rootless: root
+  there *is* the host user, while uid 1001 could not write the checkout. `TAR_OPTIONS=--no-same-owner`
+  goes with it.
 - **`-v name:/path` is a bind mount on Windows nerdctl**: spell a volume `--mount
   type=volume,source=…,target=…`.
 - **An empty mount** means `D:` is missing from containerd's own mount namespace (gone after

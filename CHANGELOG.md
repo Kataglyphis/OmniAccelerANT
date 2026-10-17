@@ -7,6 +7,16 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ### Added
 
+- **sccache on the local Linux lanes has its own volume and the shared S3 level** (2026-10-17,
+  owner): `Invoke-LinuxLane.ps1` keeps `/var/cache/sccache` on a named volume, so `flutter
+  clean` no longer means a cold compile. It binds the host's key at `/run/secrets/sccache_s3`
+  (`WindowsLaneSccache.Common`), and the lane waits for its uploads on exit. With both local
+  caches deleted, the native lane hit 1,232 of 1,235 compiles from the bucket and took 5 min
+  48 s, against 6 min 50 s cold. The web and android lanes pass with the level too.
+- **The local Linux lanes run on a Linux host with a rootless engine** (2026-10-17): the
+  driver runs them as root there, which is the host user, with `TAR_OPTIONS=--no-same-owner`.
+  Before, uid 1001 could not write the checkout (`.dart_tool/package_config.json: Permission
+  denied`). On such a host the driver also no longer reads Windows' `ProgramFiles`.
 - **Turn the picture from the Stream page** (2026-10-16, owner): ⟲ and ⟳ beside each camera's
   name turn it a quarter each way, and the camera keeps it in its `settings.json`, so every
   board can sit at its own angle. The Camera page could do it before; now it is one click

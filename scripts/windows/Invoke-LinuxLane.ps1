@@ -35,7 +35,9 @@ param(
 	[string[]] $ContainerNativePaths = @(
 		'/workspace/build',
 		'/workspace/.pub-cache',
-		'/workspace/third_party/OxidANT/target'
+		'/workspace/third_party/OxidANT/target',
+		# sccache's disk level: `flutter clean` empties build/, so the next build recompiles from it.
+		'/var/cache/sccache'
 	),
 	# Debugging switches only; CI has no equivalent.
 	[string[]] $Env = @()
@@ -323,6 +325,9 @@ if ($CheckParity) {
 
 . (Join-Path $PSScriptRoot 'Resolve-BuildModule.ps1')
 Import-BuildModule 'WindowsLaneGuard.Common'
+Import-BuildModule 'WindowsScripts.Shared'
+Import-BuildModule 'WindowsContainerBuild.Reuse'
+Import-BuildModule 'WindowsLaneSccache.Common'
 
 $engine = Resolve-NerdctlExe
 if (-not $engine) {
@@ -349,9 +354,24 @@ foreach ($nativePath in $ContainerNativePaths) {
 	Write-Host "volume : $volumeName -> $nativePath"
 }
 
+# The shared S3 level behind that disk level, when this host has a reachable one; CI has no route to the bucket.
+$sccacheS3Secret = New-LaneSccacheS3Secret
+if ($sccacheS3Secret) {
+	$volumeArgs += @('--mount', "type=bind,source=${sccacheS3Secret},target=/run/secrets/sccache_s3,readonly")
+	Write-Host 'sccache: disk -> s3 (the host key, bound at /run/secrets/sccache_s3)'
+}
+
+# Rootless nerdctl on a Linux host maps its user to the container's root, so uid 1001 could not write the checkout.
+$userArgs = @()
+if (-not $IsWindows -and (& $engine 'info' '--format' '{{json .SecurityOptions}}' 2>$null) -match 'name=rootless') {
+	# As root, tar would restore archive owners beyond the engine's subuid range (Flutter's gradle-wrapper.tgz: uid 397546).
+	$userArgs = @('--user', '0:0', '-e', 'TAR_OPTIONS=--no-same-owner')
+	Write-Host 'user   : 0:0 (rootless engine: the host user, who owns the checkout)'
+}
+
 $engineArgs = @(
 	'run', '--name', $ContainerName
-) + $privilegedArgs + $deviceArgs + @(
+) + $userArgs + $privilegedArgs + $deviceArgs + @(
 	'--platform', $platform
 ) + $ciEnvArgs + @($Env | ForEach-Object { '-e'; $_ }) + @(
 	'-v', "${repoRoot}:/workspace"
@@ -378,6 +398,7 @@ finally {
 	if (-not $KeepContainer) {
 		& $engine 'container' 'remove' '--force' $ContainerName 2>&1 | Out-Null
 	}
+	Remove-LaneSccacheS3Secret $sccacheS3Secret
 }
 
 exit $laneExitCode

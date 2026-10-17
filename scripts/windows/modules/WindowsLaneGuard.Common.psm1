@@ -11,6 +11,8 @@ function Resolve-NerdctlExe {
     # nerdctl on PATH, else Rancher Desktop's copy; $null when neither exists.
     $onPath = (Get-Command 'nerdctl' -ErrorAction SilentlyContinue)?.Source
     if ($onPath) { return $onPath }
+    # ProgramFiles is unset off Windows, where nerdctl comes from PATH alone.
+    if (-not $env:ProgramFiles) { return $null }
     $candidate = Join-Path $env:ProgramFiles 'Rancher Desktop\resources\resources\win32\bin\nerdctl.exe'
     if (Test-Path -LiteralPath $candidate) { return $candidate }
     return $null
@@ -47,7 +49,7 @@ function Test-WindowsBuildActive {
     if (-not $DockerExe) {
         $DockerExe = @(
             $env:DOCKER_EXE,
-            (Join-Path $env:ProgramFiles 'Stevedore\bin\docker.exe')
+            $(if ($env:ProgramFiles) { Join-Path $env:ProgramFiles 'Stevedore\bin\docker.exe' })
         ) | Where-Object { $_ -and (Test-Path -LiteralPath $_) } | Select-Object -First 1
     }
     if (-not $DockerExe) { return $false }

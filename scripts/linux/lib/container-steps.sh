@@ -167,6 +167,12 @@ setup_compiler_cache() {
   antfrastructure_source linux/scripts/01-core/compiler-cache.sh
   setup_sccache
   echo "[Info] SCCACHE_DIR=${SCCACHE_DIR:-<unset>}  RUSTC_WRAPPER=${RUSTC_WRAPPER:-<unset>}"
+  # The resolver hides the start's own log, so the server says which levels it took.
+  sccache --show-stats 2>/dev/null | grep -m1 '^Cache location' | sed 's/^/[Info] sccache /' || true
+  # The container's exit kills the server with its S3 uploads still queued; without an S3 level the drain asks nothing.
+  if declare -F sccache_s3_drain >/dev/null; then
+    trap 'sccache_s3_drain || true' EXIT
+  fi
 }
 
 # The image's clang cfg selects the source-built GCC; verified, as an older image links the distro one (AGENTS.md § 4).
