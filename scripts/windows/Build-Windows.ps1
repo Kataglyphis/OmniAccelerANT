@@ -55,6 +55,7 @@ Import-BuildModule @(
     'WindowsPaths.Common'       # project-local: this repo's Flutter windows/x64 layout
     'WindowsOrtRunner.Common'   # project-local: stamp the G6 proof of the runner's chain ONNX Runtime
     'WindowsFlutterAot.Common'  # project-local: the installed AOT snapshot matches the current kernel
+    'WindowsLaneSccache.Common' # project-local: CI's sccache cache across runs
 )
 # G6 and the hub's chain-ORT staging beside the exe; an older hub pin lacks them.
 try { Import-BuildModule @('WindowsOrtProvenance.Common', 'WindowsOrtPayload.Common') } catch {
@@ -103,6 +104,22 @@ if ($buildRootCandidates.Count -eq 0) {
 
 # Caches live in container-local storage: bind mounts cost heavy I/O and break SQLite locking.
 $fastLocalCache = Initialize-BuildCacheEnvironment -Context $context
+
+# CI keeps sccache's cache across runs, but only on an sccache that keys clang-cl's module importers right; 0.18.0 serves stale objects.
+$ciSccacheDir = $null
+if ($env:CI_COMPILER_CACHE -and $env:SCCACHE_DIR) {
+    $sccacheVersion = "$(& sccache --version 2>$null)"
+    if (Test-SccacheModuleSafe $sccacheVersion) {
+        $ciSccacheDir = Join-Path $env:CI_COMPILER_CACHE 'sccache'
+        Move-CompilerCacheTree -From $ciSccacheDir -To $env:SCCACHE_DIR
+        # The disk level indexes its directory at server start, so a server that predates the move would miss every entry.
+        & sccache --stop-server 2>&1 | Out-Null
+        $global:LASTEXITCODE = 0
+        Write-BuildLog -Context $context -Message "sccache: CI cache restored into $env:SCCACHE_DIR ($sccacheVersion)"
+    } else {
+        Write-BuildLogWarning -Context $context -Message "sccache: '$sccacheVersion' serves stale clang-cl module importers (mozilla/sccache#2876); this run neither uses nor fills the CI cache"
+    }
+}
 
 $originalBuildRoot = $buildRootCandidates[0]
 $buildRoot = Join-Path $fastLocalCache "build"
@@ -717,6 +734,16 @@ try {
         Write-BuildLogError -Context $context -Message "Stack trace: $($_.ScriptStackTrace)"
     }
 } finally {
+    if ($ciSccacheDir) {
+        try {
+            & sccache --show-stats 2>&1 | Out-Host
+            & sccache --stop-server 2>&1 | Out-Null
+            Move-CompilerCacheTree -From $env:SCCACHE_DIR -To $ciSccacheDir
+        } catch {
+            Write-BuildLogWarning -Context $context -Message "sccache: the CI cache could not move back: $($_.Exception.Message)"
+        }
+        $global:LASTEXITCODE = 0
+    }
     Write-BuildSummary -Context $context
 
     try {

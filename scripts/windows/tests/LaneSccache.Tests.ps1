@@ -66,6 +66,27 @@ Describe 'WindowsLaneSccache.Common' {
         { Remove-LaneSccacheS3Secret $null } | Should Not Throw
     }
 
+    It 'keeps a CI cache only on an sccache that keys clang-cl module importers right' {
+        Test-SccacheModuleSafe 'sccache 0.18.0' | Should Be $false
+        Test-SccacheModuleSafe 'sccache 0.17.3' | Should Be $false
+        Test-SccacheModuleSafe 'sccache 0.18.0+1bd7432.pr2809' | Should Be $true
+        Test-SccacheModuleSafe 'sccache 0.19.0' | Should Be $true
+        Test-SccacheModuleSafe '' | Should Be $false
+    }
+
+    It 'moves a cache tree whole and treats a missing one as empty' {
+        if (-not $IsWindows) { return }
+        $from = Join-Path $work 'from'
+        $to = Join-Path $work 'to'
+        $null = New-Item -ItemType Directory -Force -Path (Join-Path $from 'a\b')
+        Set-Content -LiteralPath (Join-Path $from 'a\b\obj') -Value 'x'
+        Move-CompilerCacheTree -From $from -To $to
+        (Get-Content -LiteralPath (Join-Path $to 'a\b\obj')) | Should Be 'x'
+        (Test-Path -LiteralPath (Join-Path $from 'a\b\obj')) | Should Be $false
+        { Move-CompilerCacheTree -From (Join-Path $work 'absent') -To $to } | Should Not Throw
+        Remove-Item -LiteralPath $from, $to -Recurse -Force -ErrorAction SilentlyContinue
+    }
+
     $listener.Stop()
     Remove-Item -LiteralPath $work -Recurse -Force -ErrorAction SilentlyContinue
 }

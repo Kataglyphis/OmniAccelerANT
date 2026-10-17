@@ -48,6 +48,8 @@ jobs:
     permissions:
       contents: read
       security-events: write
+      # windows-x64.yml prunes its compiler cache's older entries.
+      actions: write
     uses: ./.github/workflows/windows-x64.yml
     secrets: inherit
 

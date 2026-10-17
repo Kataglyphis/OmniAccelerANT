@@ -20,6 +20,23 @@ defaults:
     shell: pwsh
 
 jobs:
+  # A key keeps one entry: the save above stores a new one per run.
+  prune-compiler-cache:
+    name: Prune the compiler cache
+    needs: build-clang
+    if: ${{ always() && github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}
+    runs-on: ubuntu-26.04
+    timeout-minutes: 5
+    permissions:
+      actions: write
+    steps:
+      - name: Delete the x64-windows entries of older runs
+        uses: Kataglyphis/ANTfrastructure/.github/actions/compiler-cache-prune@develop
+        with:
+          key: x64-windows
+          # A run whose version gate saved nothing must not delete the entries an earlier run did save.
+          require-saved: 'true'
+
   build-clang:
     runs-on: windows-2025
     # Three times the slowest green run (~58 min with the ~54 GB pull), so a hang never reaches the 6 h default.
@@ -47,12 +64,39 @@ jobs:
           pwsh -File third_party/ANTfrastructure/windows/scripts/Invoke-Lint.ps1
           -Path scripts
 
+      # sccache's cache across runs. Build-Windows.ps1 uses it only on an sccache with mozilla/sccache#2876, and develop saves it.
+      - name: Restore compiler cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ steps.prep.outputs.workspace }}\.ci-cache
+          key: compiler-cache-x64-windows-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: compiler-cache-x64-windows-
+
+      # Present on a miss too, so the build can fill it for the save.
+      - name: Compiler cache directory
+        run: New-Item -ItemType Directory -Force -Path '${{ steps.prep.outputs.workspace }}\.ci-cache' | Out-Null
+
       - name: Run container
         uses: Kataglyphis/ANTfrastructure/.github/actions/run-in-windows-container@develop
         with:
           file: C:\ws\scripts\windows\Build-Windows.ps1
           file-args: |
             -SkipMsixPackaging
+          extra-args: |
+            --env
+            CI_COMPILER_CACHE=C:\ws\.ci-cache
+            --env
+            SCCACHE_CACHE_SIZE=2500M
+
+      # Only what the version gate let the build fill; an image with an older sccache leaves .ci-cache empty.
+      - name: Save compiler cache
+        if: >-
+          ${{ always() && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+          && hashFiles(format('{0}/.ci-cache/sccache/**', steps.prep.outputs.workspace)) != '' }}
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ steps.prep.outputs.workspace }}\.ci-cache
+          key: compiler-cache-x64-windows-${{ github.run_id }}-${{ github.run_attempt }}
 
       # Absolute under the short-path clone, never relative - AGENTS.md § 5.
       - name: Upload release artifacts

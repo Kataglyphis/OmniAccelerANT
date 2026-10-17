@@ -15,7 +15,12 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
   device, starts the app from each without any PATH help and removes both. `WindowsAppInstallers.Common`
   now holds the MSI and MSIX code ObservANT's packaging used alone, and the release collector expects
   the four new files.
-
+- **Windows CI keeps sccache's cache across runs** (2026-10-17): the Release job of
+  `windows-x64.yml` restores and saves `.ci-cache`, and `Build-Windows.ps1` moves it into the
+  container's sccache directory and back. It switches itself on with the first `:winamd64`
+  that carries the hub's sccache build, `0.18.0+1bd7432.pr2809`, which fixes clang-cl's
+  module importers (mozilla/sccache#2876). On the older image it stays off and the build log
+  says why.
 - **sccache on the local Linux lanes has its own volume and the shared S3 level** (2026-10-17,
   owner): `Invoke-LinuxLane.ps1` keeps `/var/cache/sccache` on a named volume, so `flutter
   clean` no longer means a cold compile. It binds the host's key at `/run/secrets/sccache_s3`
