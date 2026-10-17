@@ -91,13 +91,13 @@ jobs:
           & ./scripts/windows/Test-LaunchSmoke.ps1
           -AppDir $env:BUILD_DIR_RELEASE -OrtStamp
 
-      # WiX 7.0.0, as the image pins it (the hub's Install-ScoopTools.ps1); the owner accepted wix7's EULA on 2026-10-01.
       # The runner images ship no .NET SDK; WiX 7 is a net8.0 dotnet tool that rolls forward to any newer one.
       - name: .NET for WiX
         uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
           dotnet-version: '10.0.x'
 
+      # WiX 7.0.0, as the image pins it (the hub's Install-ScoopTools.ps1); the owner accepted wix7's EULA on 2026-10-01.
       - name: WiX for the installers
         run: |
           $PSNativeCommandUseErrorActionPreference = $true
