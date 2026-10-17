@@ -318,8 +318,11 @@ the lane for release builds, before packaging):
   it finds the bundled plugins, and GStreamer scans in-process instead of warning "External plugin
   loader failed"; the lane's launch smokes fail on that warning. The native lane starts the bundle
   20 s on both paths (the image's glibc is the bundled one, so the second forces it) and the app
-  flatpak 20 s on its runtime; on a Debian 13 Pi the app gets as far as GTK through the bundled
-  loader. The `.deb` declares only the desktop libraries.
+  flatpak 20 s on its runtime. **On a real desktop under the bundled loader** (2026-10-17, the
+  2.2.0 dry run's arm64 tarball unpacked on himbeere2: Debian 13, glibc 2.41, labwc on Wayland)
+  the app drew its window and pages with Impeller on OpenGL ES; the process mapped the bundled
+  `libc.so.6` beside the host's `libEGL_mesa` and `libgallium-26.2.2`, so the host's Mesa runs under
+  the newer bundled glibc. The `.deb` declares only the desktop libraries.
 
 The closure gate runs inside the image, where every library is present anyway. The
 `clean-host` job after each Linux lane is the outside view: on a bare `ubuntu-26.04` (`-arm`)
