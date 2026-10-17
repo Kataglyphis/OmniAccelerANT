@@ -22,7 +22,10 @@ Describe 'WindowsLaneSccache.Common' {
         KATAGLYPHIS_SCCACHE_S3_ACCESS_KEY_ID     = 'GKtest'
         KATAGLYPHIS_SCCACHE_S3_SECRET_ACCESS_KEY = 's3cret'
     }
+    # Built here, not in an It: GetNewClosure copies only its own scope, and $settings lives in this one.
     $lookup = { param($name) "$($settings[$name])" }.GetNewClosure()
+    $noKey = { param($name) if ($name -like '*SECRET*') { '' } else { "$($settings[$name])" } }.GetNewClosure()
+    $dead = { param($name) if ($name -like '*ENDPOINT') { 'http://127.0.0.1:1' } else { "$($settings[$name])" } }.GetNewClosure()
 
     It 'writes the six names the container library passes on, and nothing else' {
         $file = New-LaneSccacheS3Secret -Directory $work -Lookup $lookup
@@ -51,9 +54,7 @@ Describe 'WindowsLaneSccache.Common' {
     }
 
     It 'writes nothing without a key, for an unreachable bucket, or when switched off' {
-        $noKey = { param($name) if ($name -like '*SECRET*') { '' } else { "$($settings[$name])" } }.GetNewClosure()
         New-LaneSccacheS3Secret -Directory $work -Lookup $noKey 3>$null | Should BeNullOrEmpty
-        $dead = { param($name) if ($name -like '*ENDPOINT') { 'http://127.0.0.1:1' } else { "$($settings[$name])" } }.GetNewClosure()
         New-LaneSccacheS3Secret -Directory $work -Lookup $dead 3>$null | Should BeNullOrEmpty
         $env:KATAGLYPHIS_SCCACHE_S3 = 'off'
         try { New-LaneSccacheS3Secret -Directory $work -Lookup $lookup | Should BeNullOrEmpty }
