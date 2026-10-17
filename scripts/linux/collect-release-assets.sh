@@ -28,7 +28,7 @@ linux_arch() { case "$1" in x64) echo x86_64 ;; arm64) echo aarch64 ;; *) printf
 collect() {
   local dir="$1" name="$2" arch file
   case "$name" in
-    omni-observant-*)
+    omni-observant-*|omni-accelerant-installers-windows-*)
       for file in "$dir"*; do [ -f "$file" ] && put "$file" "$(basename "$file")"; done ;;
     omni-accelerant-linux-*-packages)
       arch="${name#omni-accelerant-linux-}"; arch="${arch%-packages}"
@@ -57,7 +57,9 @@ done
 for expected in "omni-accelerant-${version}-windows-x64.zip" "omni-accelerant-${version}-windows-arm64.zip" \
   "omni-accelerant-${version}-android-arm64-v8a.apk" "omni-accelerant_${version}_amd64.deb" \
   "omni-accelerant_${version}_arm64.deb" "omni-observant_${version}_arm64.deb" \
-  "omni-observant-${version}-windows-x64.msi" "omni-observant-${version}-windows-arm64.msi"; do
+  "omni-observant-${version}-windows-x64.msi" "omni-observant-${version}-windows-arm64.msi" \
+  "omni-accelerant-${version}-windows-x64.msi" "omni-accelerant-${version}-windows-arm64.msi" \
+  "omni-accelerant-${version}-windows-x64.msix" "omni-accelerant-${version}-windows-arm64.msix"; do
   [ -e "${out}/${expected}" ] || { printf 'the release would lack %s\n' "$expected" >&2; exit 1; }
 done
 ls -1 "$out"

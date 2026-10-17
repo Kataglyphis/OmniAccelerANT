@@ -91,6 +91,37 @@ jobs:
           & ./scripts/windows/Test-LaunchSmoke.ps1
           -AppDir $env:BUILD_DIR_RELEASE -OrtStamp
 
+      # WiX 7.0.0, as the image pins it (the hub's Install-ScoopTools.ps1); the owner accepted wix7's EULA on 2026-10-01.
+      - name: WiX for the installers
+        run: |
+          $PSNativeCommandUseErrorActionPreference = $true
+          $wix = Join-Path $env:RUNNER_TEMP 'wix'
+          dotnet tool install --tool-path $wix wix --version 7.0.0
+          & (Join-Path $wix 'wix.exe') eula accept wix7
+          & (Join-Path $wix 'wix.exe') extension add --global WixToolset.UI.wixext/7.0.0
+          Add-Content -LiteralPath $env:GITHUB_ENV -Value "WIX=$wix"
+
+      - name: Package the app (MSI, MSIX)
+        working-directory: ${{ steps.prep.outputs.workspace }}
+        run: '& ./scripts/windows/Package-OmniAccelerANT.ps1 -AppDir $env:BUILD_DIR_RELEASE -Arch x64 -OutDir out'
+
+      # As a user does: msiexec and Add-AppxPackage, the app started from each install, then both removed.
+      - name: Install, start and remove the MSI and the MSIX (x64)
+        working-directory: ${{ steps.prep.outputs.workspace }}
+        run: |
+          & ./scripts/windows/Test-OmniAccelerANTInstallers.ps1 -Msi out/omni-accelerant-*-windows-x64.msi -Msix out/omni-accelerant-*-windows-x64.msix -Arch x64
+          if ($LASTEXITCODE) { throw "$LASTEXITCODE installer check(s) failed" }
+
+      - name: Upload the installers
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: omni-accelerant-installers-windows-x64
+          if-no-files-found: error
+          path: |
+            ${{ steps.prep.outputs.workspace }}/out/omni-accelerant-*-windows-x64.msi
+            ${{ steps.prep.outputs.workspace }}/out/omni-accelerant-*-windows-x64.msix
+            ${{ steps.prep.outputs.workspace }}/out/omni-accelerant-*-windows-x64-testcert.cer
+
       - name: Upload build log
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

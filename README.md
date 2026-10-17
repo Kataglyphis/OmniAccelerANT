@@ -83,7 +83,7 @@ Windows and Linux only.
 
 | Platform | Architecture | Status | Notes |
 |----------|-------------|:------:|-------|
-| 🪟 **Windows** | x86-64 | ✔️ | Built with clang-cl, Win32 integration |
+| 🪟 **Windows** | x86-64 | ✔️ | Built with clang-cl, Win32 integration; every release has an MSI, a signed MSIX and a zip |
 | 🪟 **Windows** | ARM64 | 🔶 | Hybrid lane (`windows-arm64.yml`): natives cross-built in `:winarm64`, the Flutter app built natively on `windows-11-arm`. On the device every import resolves and the app starts with a window. ObservANT's arm64 MSI installs there and its model finds a cat in a photo (since 2026-10-16); no camera frame has run on arm64 yet |
 | 🐧 **Linux** | x86-64 | ✔️ | Full GTK support, Docker ready |
 | 🐧 **Linux** | ARM64 | ✔️ | Raspberry Pi 3, 4, 5 and Zero 2 W; the Zero streams without detection, since 512 MB is not enough for the Rust producer, and a Pi 3 detects at about 2 s per look |

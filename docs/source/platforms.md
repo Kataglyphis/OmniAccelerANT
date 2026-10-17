@@ -453,6 +453,34 @@ the G6 stamp before it starts the app. Three consequences:
   report that as a missing build. `upload-codeql-sarif` exists for the same
   reason: `hashFiles()` only sees inside `GITHUB_WORKSPACE`.
 
+## The app's Windows installers
+
+Since 2026-10-17 every release carries the app as an MSI and a signed MSIX for x64 and arm64,
+beside the zip. `scripts/windows/Package-OmniAccelerANT.ps1` makes both from the runner folder.
+`scripts/windows/modules/WindowsAppInstallers.Common.psm1` (`New-AppMsi`, `New-AppMsix`) holds
+the part ObservANT's packaging shares.
+
+- **Built where the app is**: in the x64 lane's `build-clang` job on the `windows-2025` host, and
+  in the arm64 lane's `app` job on `windows-11-arm`. Each installs WiX 7.0.0 as a dotnet tool,
+  the version the image pins, and uses the runner's Windows SDK for `makeappx` and `signtool`.
+- **The MSI** (`scripts/windows/installer/omni-accelerant.wxs`) installs per machine into
+  `Program Files\OmniAccelerANT` with a Start menu shortcut, and upgrades in place (one
+  `UpgradeCode`). Its version is `pubspec.yaml`'s `version:`.
+- **The MSIX** (`scripts/windows/installer/AppxManifest.xml`) has the identity
+  `Kataglyphis.OmniAccelerANT` and the `msix_version` of `msix_config`. A throwaway test
+  certificate signs it, and its `-testcert.cer` ships beside it. A tester trusts that `.cer`
+  under `LocalMachine\TrustedPeople` before installing.
+- **`Test-OmniAccelerANTInstallers.ps1`** installs the MSI with `msiexec /qn` and checks:
+  `AccelerANTgine.dll` sits beside the exe with no `bin\`, the exe, the plugin and
+  AccelerANTgine.dll match the lane's architecture, and the Start menu shortcut exists. It then
+  starts the installed app through `Test-LaunchSmoke.ps1` without any `-SearchPath`, so it starts
+  as the shortcut does. For the MSIX it checks the signature, identity and architecture, trusts
+  the certificate, runs `Add-AppxPackage`, starts the package through its app entry, and removes
+  it again.
+- **A runner with a `bin\` folder is refused** by the packaging script: before 8f5ed5e the x64
+  build left AccelerANTgine.dll there, where the loader never looks (§ *Troubleshooting
+  containerized Windows builds*).
+
 ## Windows pieces deliberately not reused
 
 **Deliberately not reused.** Two upstream Windows pieces were evaluated and

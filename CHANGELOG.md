@@ -7,6 +7,15 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ### Added
 
+- **The app's Windows installers** (2026-10-17, owner): every release carries an MSI and a signed MSIX of
+  the main app for x64 and arm64, beside the zip. `Package-OmniAccelerANT.ps1` builds them from the
+  runner on each lane's own Windows runner, with WiX 7.0.0 as the image pins it. The MSI installs into
+  Program Files with a Start menu shortcut; the MSIX has `msix_config`'s identity and a test certificate,
+  whose `.cer` ships beside it. `Test-OmniAccelerANTInstallers.ps1` installs both on x64 and on the arm64
+  device, starts the app from each without any PATH help and removes both. `WindowsAppInstallers.Common`
+  now holds the MSI and MSIX code ObservANT's packaging used alone, and the release collector expects
+  the four new files.
+
 - **sccache on the local Linux lanes has its own volume and the shared S3 level** (2026-10-17,
   owner): `Invoke-LinuxLane.ps1` keeps `/var/cache/sccache` on a named volume, so `flutter
   clean` no longer means a cold compile. It binds the host's key at `/run/secrets/sccache_s3`

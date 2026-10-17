@@ -25,7 +25,6 @@
     amd64 (default, or WINDOWS_TARGET_ARCH) or arm64: the producer is then cross-built for aarch64-pc-windows-msvc,
     and its DLLs, VC++ runtime included, come from the arm64 runtime and Visual Studio's arm64 redist.
 #>
-[Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingConvertToSecureStringWithPlainText', '', Justification = 'a throwaway password for the per-build test certificate')]
 param(
     [Parameter(Mandatory)][string]$WebRoot,
     [string]$Model = '',
@@ -44,7 +43,7 @@ Set-StrictMode -Version Latest
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..\..')).Path
 . (Join-Path $PSScriptRoot '..\Resolve-BuildModule.ps1')
 Import-BuildModule @('WindowsBuild.Common', 'WindowsTargetArch.Common', 'WindowsCrossBundle.Common',
-    'WindowsOrtProvenance.Common', 'WindowsOrtPayload.Common', 'WindowsMsix.Common')
+    'WindowsOrtProvenance.Common', 'WindowsOrtPayload.Common', 'WindowsMsix.Common', 'WindowsAppInstallers.Common')
 
 $package = 'omni-observant'
 $modelsLock = Join-Path $repoRoot 'third_party\OxidANT\resources\models\models.lock'
@@ -171,48 +170,14 @@ Compress-Archive -Path $final -DestinationPath $zip
 Write-Host "wrote $zip"
 
 $context = New-BuildContext -Workspace $repoRoot -LogDir (Join-Path $OutDir 'logs')
+$msixBase = Join-Path $OutDir "$package-$Version-windows-$packageArch"
 if (-not $SkipMsi) {
-    $payloadFiles = [System.Collections.Generic.List[object]]::new()
-    foreach ($file in @(Get-ChildItem $final -Recurse -File)) {
-        if ($file.FullName -eq $payload.Exe) { continue }
-        $sub = [System.IO.Path]::GetRelativePath($final, $file.DirectoryName)
-        $payloadFiles.Add([pscustomobject]@{ Source = $file.FullName; Subdirectory = $(if ($sub -eq '.') { '' } else { $sub }) })
-    }
-    $msi = Join-Path $OutDir "$package-$Version-windows-$packageArch.msi"
-    Invoke-MsiPackage -Context $context -WxsFile (Join-Path $PSScriptRoot 'observant.wxs') -LicenseFile (Join-Path $PSScriptRoot 'License.rtf') `
-        -ProductName 'ObservANT' -Manufacturer 'Kataglyphis' -ExeSource $payload.Exe -Version $Version `
-        -OutFile $msi -Arch $packageArch -PayloadFiles $payloadFiles.ToArray() -FragmentPath 'C:\observant-out\msi-payload-files.wxs' `
-        -Extensions @('WixToolset.UI.wixext', 'WixToolset.Firewall.wixext') | Out-Null
-    Write-Host "wrote $msi ($([math]::Round((Get-Item $msi).Length / 1MB)) MB)"
+    New-AppMsi -Context $context -AppDir $final -ExeName (Split-Path $payload.Exe -Leaf) -WxsFile (Join-Path $PSScriptRoot 'observant.wxs') `
+        -LicenseFile (Join-Path $PSScriptRoot '..\installer\License.rtf') -ProductName 'ObservANT' -Version $Version -Arch $packageArch `
+        -OutFile "$msixBase.msi" -FragmentPath 'C:\observant-out\msi-payload-files.wxs' -Extensions @('WixToolset.UI.wixext', 'WixToolset.Firewall.wixext')
 }
 if (-not $Msix) { return }
 
 Import-BuildModule @('WindowsMsix.Signing')
-$msixBase = Join-Path $OutDir "$package-$Version-windows-$packageArch"
-$signing = 'C:\observant-out\msix-signing'
-foreach ($d in $signing, 'C:\observant-out\msix-stage') { if (Test-Path -LiteralPath $d) { Remove-Item -LiteralPath $d -Recurse -Force } }
-$null = New-Item -ItemType Directory -Force -Path $signing
-$passwordBefore = $env:MSIX_PFX_PASSWORD
-if ($MsixPfx) {
-    Copy-Item -LiteralPath $MsixPfx -Destination $signing
-} else {
-    $cert = New-SelfSignedCertificate -Type Custom -Subject $MsixPublisher -KeyUsage DigitalSignature -FriendlyName "$package test signing" `
-        -CertStoreLocation 'Cert:\CurrentUser\My' -TextExtension @('2.5.29.37={text}1.3.6.1.5.5.7.3.3', '2.5.29.19={text}')
-    $env:MSIX_PFX_PASSWORD = [Guid]::NewGuid().ToString('N')
-    $null = Export-PfxCertificate -Cert $cert -FilePath (Join-Path $signing 'test.pfx') -Password (ConvertTo-SecureString $env:MSIX_PFX_PASSWORD -AsPlainText -Force)
-    $null = Export-Certificate -Cert $cert -FilePath "$msixBase-testcert.cer"
-    Remove-Item -LiteralPath "Cert:\CurrentUser\My\$($cert.Thumbprint)"
-}
-$msixFile = "$msixBase.msix"
-try {
-    Invoke-MsixPackage -Context $context -StagingDir 'C:\observant-out\msix-stage' -ManifestTemplatePath (Join-Path $PSScriptRoot 'AppxManifest.xml') `
-        -TokenMap @{ '__PUBLISHER__' = $MsixPublisher; '__VERSION__' = "$Version.0"; '__ARCH__' = $packageArch } `
-        -ResourcesDir $final -LogoPath (Join-Path $WebRoot 'icons\Icon-512.png') -OutputPath $msixFile -Sign -SigningRoot $signing | Out-Null
-} finally {
-    $env:MSIX_PFX_PASSWORD = $passwordBefore
-    Remove-Item -LiteralPath $signing -Recurse -Force -ErrorAction SilentlyContinue
-}
-# Invoke-MsixSign only warns when signing fails, and an unsigned MSIX does not install.
-$signer = (Get-AuthenticodeSignature -LiteralPath $msixFile).SignerCertificate
-if (-not $signer -or $signer.Subject -ne $MsixPublisher) { throw "$msixFile is not signed by $MsixPublisher" }
-Write-Host "wrote $msixFile ($([math]::Round((Get-Item $msixFile).Length / 1MB)) MB), signed by $($signer.Subject)"
+New-AppMsix -Context $context -AppDir $final -ManifestTemplate (Join-Path $PSScriptRoot 'AppxManifest.xml') -LogoPath (Join-Path $WebRoot 'icons\Icon-512.png') `
+    -Version "$Version.0" -Arch $packageArch -OutFile "$msixBase.msix" -WorkDir 'C:\observant-out' -Publisher $MsixPublisher -Pfx $MsixPfx

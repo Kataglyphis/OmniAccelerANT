@@ -1,0 +1,73 @@
+<?xml version='1.0' encoding='utf-8'?>
+<!-- The OmniAccelerANT MSI; Package-OmniAccelerANT.ps1 builds it through the hub's Invoke-MsiPackage, which passes every moving value with -d. -->
+<Wix xmlns='http://wixtoolset.org/schemas/v4/wxs'
+     xmlns:ui='http://wixtoolset.org/schemas/v4/wxs/ui'>
+
+    <!-- InstallerVersion 500: an arm64 package needs it (WIX1143), and one value serves both arches. -->
+    <Package
+        Name='$(var.ProductName)'
+        UpgradeCode='7E6859A3-9C3F-4967-96D4-67F653221E21'
+        Manufacturer='$(var.Manufacturer)'
+        Language='1033'
+        Codepage='1252'
+        Version='$(var.Version)'
+        InstallerVersion='500'
+        Compressed='yes'
+        Scope='perMachine'>
+
+        <SummaryInformation
+            Description='OmniAccelerANT: camera inference on this machine, and the stream of an ObservANT camera on the network'
+            Manufacturer='$(var.Manufacturer)'
+            Codepage='1252'/>
+
+        <MajorUpgrade DowngradeErrorMessage='A newer version of [ProductName] is already installed. Setup will now exit.'/>
+        <MediaTemplate EmbedCab='yes'/>
+
+        <StandardDirectory Id='ProgramFiles64Folder'>
+            <Directory Id='APPLICATIONFOLDER' Name='$(var.ProductName)'/>
+        </StandardDirectory>
+        <StandardDirectory Id='ProgramMenuFolder'>
+            <Directory Id='ApplicationProgramsFolder' Name='$(var.ProductName)'/>
+        </StandardDirectory>
+
+        <DirectoryRef Id='APPLICATIONFOLDER'>
+            <Component Id='License' Bitness='always64'>
+                <File Id='LicenseFile' Name='License.rtf' Source='$(var.LicenseRtf)' KeyPath='yes'/>
+            </Component>
+            <Component Id='Exe' Bitness='always64'>
+                <File Id='exe0' Name='omni_accelerant.exe' Source='$(var.ExeSource)' KeyPath='yes'/>
+            </Component>
+        </DirectoryRef>
+
+        <DirectoryRef Id='ApplicationProgramsFolder'>
+            <Component Id='StartMenu' Bitness='always64'>
+                <Shortcut Id='StartMenuOmniAccelerANT' Name='OmniAccelerANT' Description='Starts OmniAccelerANT'
+                    Target='[!exe0]' WorkingDirectory='APPLICATIONFOLDER'/>
+                <RemoveFolder Id='RemoveStartMenuFolder' On='uninstall'/>
+                <RegistryValue Root='HKLM' Key='Software\Kataglyphis\OmniAccelerANT' Name='StartMenu' Type='integer' Value='1' KeyPath='yes'/>
+            </Component>
+        </DirectoryRef>
+
+        <Feature Id='OmniAccelerANT' Title='OmniAccelerANT' Description='OmniAccelerANT and everything it runs on.' Level='1'
+            ConfigurableDirectory='APPLICATIONFOLDER' AllowAdvertise='no' Display='expand' AllowAbsent='no'>
+            <ComponentRef Id='License'/>
+            <ComponentRef Id='Exe'/>
+            <?ifdef PayloadFiles?>
+            <ComponentGroupRef Id='PayloadFiles'/>
+            <?endif?>
+            <Feature Id='StartMenuFeature' Title='Start menu shortcut' Description='OmniAccelerANT in the Start menu.' Level='1' AllowAbsent='yes'>
+                <ComponentRef Id='StartMenu'/>
+            </Feature>
+        </Feature>
+
+        <SetProperty Id='ARPINSTALLLOCATION' Value='[APPLICATIONFOLDER]' After='CostFinalize'/>
+        <Property Id='ARPHELPLINK' Value='https://github.com/Kataglyphis/OmniAccelerANT'/>
+
+        <ui:WixUI Id='WixUI_FeatureTree'/>
+        <!-- Welcome goes straight to the feature tree; order 99 beats the extension's own license-dialog rows. -->
+        <UI>
+            <Publish Dialog='WelcomeDlg' Control='Next' Event='NewDialog' Value='CustomizeDlg' Order='99' Condition='1'/>
+            <Publish Dialog='CustomizeDlg' Control='Back' Event='NewDialog' Value='WelcomeDlg' Order='99' Condition='1'/>
+        </UI>
+    </Package>
+</Wix>

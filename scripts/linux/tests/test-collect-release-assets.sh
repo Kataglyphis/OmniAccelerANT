@@ -23,8 +23,9 @@ artifacts() {
     printf 'o' > "${a}/omni-observant-linux-${arch}/omni-observant_2.1.0_${deb}.deb"
   done
   for arch in x64 arm64; do
-    mkdir -p "${a}/omni-observant-windows-${arch}"
+    mkdir -p "${a}/omni-observant-windows-${arch}" "${a}/omni-accelerant-installers-windows-${arch}"
     printf 'm' > "${a}/omni-observant-windows-${arch}/omni-observant-2.1.0-windows-${arch}.msi"
+    for ext in .msi .msix -testcert.cer; do printf 'i' > "${a}/omni-accelerant-installers-windows-${arch}/omni-accelerant-2.1.0-windows-${arch}${ext}"; done
   done
   mkdir -p "${a}/omni-accelerant-apk-linux-x64-tar/src/omni-accelerant-apk-bundle" "${a}/windows-release-files/data" \
     "${a}/omni-accelerant-windows-arm64" "${a}/build-log" "${a}/omni-accelerant-natives-windows-arm64" \
@@ -51,6 +52,7 @@ check "each flatpak named for its arch" test -e "${out}/omni-accelerant-2.1.0-x8
 check "each tarball named with the version" test -e "${out}/omni-accelerant-2.1.0-linux-x64.tar.gz" -a -e "${out}/omni-accelerant-2.1.0-linux-arm64.tar.gz"
 check "the ObservANT packages as they are" test -e "${out}/omni-observant_2.1.0_arm64.deb" -a -e "${out}/omni-observant_2.1.0_amd64.deb"
 check "and its MSIs for both Windows arches" test -e "${out}/omni-observant-2.1.0-windows-x64.msi" -a -e "${out}/omni-observant-2.1.0-windows-arm64.msi"
+check "the app's MSI, MSIX and test certificate for both Windows arches" bash -c "for a in x64 arm64; do for e in .msi .msix -testcert.cer; do test -e '${out}/omni-accelerant-2.1.0-windows-'\$a\$e || exit 1; done; done"
 check "no logs, natives, debug build or web build" bash -c "! ls '${out}' | grep -qE 'log|AccelerANTgine|debug|dart.js'"
 
 artifacts "${work}/b"
@@ -64,6 +66,10 @@ check "a release without Windows arm64 fails" bash -c "bash '${collect}' '${work
 artifacts "${work}/e"
 rm -rf "${work}/e/omni-observant-windows-arm64"
 check "a release without the arm64 ObservANT fails" bash -c "bash '${collect}' '${work}/e' '${work}/r5' 2.1.0 2>&1 | grep -q 'would lack omni-observant-2.1.0-windows-arm64.msi'"
+
+artifacts "${work}/f"
+rm -rf "${work}/f/omni-accelerant-installers-windows-arm64"
+check "a release without the app's arm64 installers fails" bash -c "bash '${collect}' '${work}/f' '${work}/r6' 2.1.0 2>&1 | grep -q 'would lack omni-accelerant-2.1.0-windows-arm64.msi'"
 
 artifacts "${work}/d"
 mkdir -p "${work}/d/omni-observant-linux-x64-again"

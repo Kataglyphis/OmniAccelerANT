@@ -126,6 +126,37 @@ jobs:
           path: ${{ env.APP_DIR }}
           if-no-files-found: error
 
+      # WiX 7.0.0, as the image pins it (the hub's Install-ScoopTools.ps1); the owner accepted wix7's EULA on 2026-10-01.
+      - name: WiX for the installers
+        run: |
+          $PSNativeCommandUseErrorActionPreference = $true
+          $wix = Join-Path $env:RUNNER_TEMP 'wix'
+          dotnet tool install --tool-path $wix wix --version 7.0.0
+          & (Join-Path $wix 'wix.exe') eula accept wix7
+          & (Join-Path $wix 'wix.exe') extension add --global WixToolset.UI.wixext/7.0.0
+          Add-Content -LiteralPath $env:GITHUB_ENV -Value "WIX=$wix"
+
+      - name: Package the app (MSI, MSIX)
+        run: '& ./scripts/windows/Package-OmniAccelerANT.ps1 -AppDir $env:APP_DIR -Arch arm64 -OutDir out'
+
+      # As a user does: msiexec and Add-AppxPackage, the app started from each install, then both removed.
+      - name: Install, start and remove the MSI and the MSIX (arm64)
+        env:
+          WINDOWS_TARGET_ARCH: arm64
+        run: |
+          & ./scripts/windows/Test-OmniAccelerANTInstallers.ps1 -Msi out/omni-accelerant-*-windows-arm64.msi -Msix out/omni-accelerant-*-windows-arm64.msix -Arch arm64
+          if ($LASTEXITCODE) { throw "$LASTEXITCODE installer check(s) failed" }
+
+      - name: Upload the installers
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: omni-accelerant-installers-windows-arm64
+          if-no-files-found: error
+          path: |
+            out/omni-accelerant-*-windows-arm64.msi
+            out/omni-accelerant-*-windows-arm64.msix
+            out/omni-accelerant-*-windows-arm64-testcert.cer
+
   # The same app as a Debug build: ASan on, /MD like the natives (clang-cl strips /MDd under ASan), runtime staged from the runner's VS.
   app-debug:
     name: Flutter app Debug/ASan (windows-11-arm)
