@@ -72,6 +72,8 @@ jobs:
           registry-password: ${{ secrets.GHCR_PAT }}
           fetch-depth: '1'
           submodules: recursive
+          # A measurement: the 28 GiB pull took 318-325 s on x64 at docker's default of 3 (2026-10-16/17).
+          max-concurrent-downloads: '10'
 
       # sccache (Rust via RUSTC_WRAPPER, C++ via the CMake launcher) outlives the container; only pushes to develop save.
       - name: Restore compiler cache
