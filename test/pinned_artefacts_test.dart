@@ -6,7 +6,9 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:crypto/crypto.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:omni_accelerant/Pages/StreamPage/gstreamer_pipeline.dart';
 
 /// Repo root, found by walking up from this file until pubspec.yaml appears.
 Directory _repoRoot() {
@@ -218,6 +220,47 @@ void main() {
             'lock together.',
       );
     });
+  });
+
+  test('every element of the Linux pipelines travels in the bundle', () {
+    // The packaged app loads only its bundled plugins; check-bundle-gst-elements.sh proves this list there.
+    final RegExpMatch? list = RegExp(r'GST_PIPELINE_ELEMENTS=\(([^)]*)\)')
+        .firstMatch(_read('scripts/linux/lib/bundle-runtime.sh'));
+    expect(
+      list,
+      isNotNull,
+      reason: 'bundle-runtime.sh has no GST_PIPELINE_ELEMENTS',
+    );
+    final Set<String> bundled = list!
+        .group(1)!
+        .split(RegExp(r'\s+'))
+        .where((String name) => name.isNotEmpty)
+        .toSet();
+    const GStreamerPipelineBuilder builder = GStreamerPipelineBuilder(
+      width: 640,
+      height: 480,
+      fps: 30,
+      isAndroid: false,
+    );
+    for (final String source in <String>[
+      ...kSourceCandidates[TargetPlatform.linux]!,
+      'pattern-smpte',
+      'pattern-snow',
+    ]) {
+      for (final String stage in builder.build(source).split('!')) {
+        final String first = stage.trim().split(' ').first;
+        // A caps string between two elements is a capsfilter.
+        final String element = first.contains('/') ? 'capsfilter' : first;
+        expect(
+          bundled,
+          contains(element),
+          reason:
+              '$source uses $element: add it to GST_PIPELINE_ELEMENTS and '
+              'its plugin to GST_BUNDLED_PLUGIN_NAMES in '
+              'scripts/linux/lib/bundle-runtime.sh',
+        );
+      }
+    }
   });
 
   group('generated icons', () {

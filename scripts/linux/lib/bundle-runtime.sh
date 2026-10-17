@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Shared by bundle-runtime-closure.sh and check-bundle-closure.sh; sourced, never run.
+# Shared by bundle-runtime-closure.sh and the bundle gates; sourced, never run.
 
 # What the .deb's Depends provide, only what every GTK desktop has; not libstdc++, whose GCC 16.2 build no distro ships.
 SYSTEM_SONAME_ALLOWLIST=(
@@ -29,6 +29,12 @@ is_system_soname() {
 # shellcheck disable=SC2034  # read by bundle-runtime-closure.sh and check-bundle-closure.sh
 GST_BUNDLED_PLUGIN_NAMES=(
   coreelements app videoconvertscale videotestsrc autodetect jpeg video4linux2
+)
+
+# The elements those pipelines name: gstreamer_pipeline.dart's Linux sources (pinned_artefacts_test.dart) and OxidANT's capture.rs.
+# shellcheck disable=SC2034  # read by check-bundle-gst-elements.sh
+GST_PIPELINE_ELEMENTS=(
+  appsink autovideosrc capsfilter jpegdec v4l2src videoconvert videoscale videotestsrc
 )
 
 # Exact token match: `$ORIGIN/lib` must not count as `$ORIGIN`.

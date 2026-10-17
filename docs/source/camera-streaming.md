@@ -338,6 +338,12 @@ without the chain's source path.
 distro's). With the bundle's `gstreamer-1.0/` present the constructor also empties
 `GST_PLUGIN_SYSTEM_PATH` and `GST_PLUGIN_SYSTEM_PATH_1_0` unless they are set, so a host's
 `/usr/lib/*/gstreamer-1.0` plugins, built against another GStreamer, never join the bundled ones.
+The other side of that rule is a gate: `scripts/linux/check-bundle-gst-elements.sh` asks the
+image's `gst-inspect-1.0`, under exactly that environment, for every element the pipelines name
+(`GST_PIPELINE_ELEMENTS` in `scripts/linux/lib/bundle-runtime.sh`), and fails on one that no bundled
+plugin provides or that loads from elsewhere. `test/pinned_artefacts_test.dart` keeps the list in
+step with the Dart pipelines' Linux sources; OxidANT's `capture.rs` adds `videoscale`. A new
+element goes into that list and its plugin into `GST_BUNDLED_PLUGIN_NAMES`, or the lane fails.
 
 `scripts/linux/check-bundle-closure.sh` grades the result headlessly — one
 second, no display, no container-in-container: every DT_NEEDED of the runner and

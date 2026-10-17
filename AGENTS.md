@@ -604,7 +604,8 @@ cell is a test that cannot run there, and the reason is under the table.
 | Plugin gtest (`kataglyphis_native_inference_test`) | yes | built in the image, run on the host | yes, on the device | | |
 | Plugin C ABI (`knt_*`) | `check-knt-abi.sh` | `Test-KntAbi.ps1`, host | `Test-KntAbi.ps1`, device | | |
 | G6 over the shipped tree | `check-bundle-closure.sh` | at build, again on the host | at the natives build, again on the device | | |
-| Bundle gate's mutation suite | yes | | | | |
+| Every pipeline element from the bundled plugins alone (`check-bundle-gst-elements.sh`) | yes | | | | |
+| Bundle gate's mutation suite, the element gate's stub suite | yes | | | | |
 | Dart coverage of `lib/` against a floor (`check-dart-coverage.sh`), and its synthetic-lcov suite | yes | | | | |
 | Plugin C++ format (`check-plugin-cpp-format.sh`) and its planted-deviation suite | yes | | | | |
 | Import walk | (the closure gate) | host, `-Standalone` | device | | |

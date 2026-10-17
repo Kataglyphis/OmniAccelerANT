@@ -121,6 +121,7 @@ run_gate "plugin clang-format --check" bash scripts/linux/check-plugin-cpp-forma
 run_gate "plugin format gate tests" bash scripts/linux/tests/test-check-plugin-cpp-format.sh
 # The bundle gate's own mutation suite (synthetic ELFs, no build needed): when G6 runs, and that it decides.
 run_gate "bundle gate tests" bash scripts/linux/tests/test-check-bundle-closure.sh
+run_gate "bundle element gate tests" bash scripts/linux/tests/test-check-bundle-gst-elements.sh
 run_gate "rust toolchain gate tests" bash scripts/linux/tests/test-check-rust-toolchain.sh
 # lib/ was 97.2 % covered on 2026-10-16 (87.4 % on 2026-10-12); raise the floor as it climbs.
 run_gate "dart coverage" bash scripts/linux/check-dart-coverage.sh --min 96 --lcov "$dart_lcov"
@@ -154,6 +155,8 @@ if [[ "$BUILD_MODE" == "release" ]]; then
   gate_reset "bundle checks (${MATRIX_ARCH})"
   run_gate "knt ABI" bash scripts/linux/check-knt-abi.sh --arch "$MATRIX_ARCH" --build-mode "$BUILD_MODE"
   run_gate "runtime closure" bash scripts/linux/check-bundle-closure.sh --arch "$MATRIX_ARCH" --build-mode "$BUILD_MODE"
+  # The app loads no distro plugin, so an element no bundled plugin provides is missing on every user machine.
+  run_gate "bundled GStreamer elements" bash scripts/linux/check-bundle-gst-elements.sh --arch "$MATRIX_ARCH" --build-mode "$BUILD_MODE"
   run_gate "plugin gtest" run_plugin_gtest "$build_dir"
   run_gate "rust toolchain" bash scripts/linux/check-rust-toolchain.sh "${build_dir}/bundle/lib/liboxidant.so"
   assert_gates

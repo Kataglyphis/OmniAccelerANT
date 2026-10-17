@@ -71,7 +71,8 @@ The notes under AGENTS.md's lane table, moved here on 2026-10-15.
   `Build-WindowsDebugApps.ps1` makes on the Debug tree, arm64 from `Build-WindowsArm64App.ps1 -FlutterTarget` —
   because `flutter test -d windows` would build with Flutter's MSVC default.
 - The mutation suite builds synthetic ELFs for the Linux closure gate; Windows has
-  no ELF and no such gate. Pester tests PowerShell that only Windows lanes run.
+  no ELF and no such gate. The element gate asks the bundle's plugins through `gst-inspect-1.0`;
+  only a Linux bundle loads its plugins alone. Pester tests PowerShell that only Windows lanes run.
 - The plugin's C++ format gate needs only the sources, so one lane grades them for
   every platform; Windows has no C++ format step. The coverage floor is the same kind of
   check: one lane's `flutter test --coverage` measures the same Dart everywhere. Since
