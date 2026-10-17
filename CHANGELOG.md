@@ -5,6 +5,11 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ## Unreleased
 
+### Changed
+- **One icon for the family: the ant** (2026-10-17, owner). The README logos and the plugin example
+  app's Android and Windows icons are now the app's own ant (`assets/icons/kataglyphis_app_icon.png`),
+  which the app already used.
+
 ## 2.2.0+4 — 2026-10-17
 
 ### Added
