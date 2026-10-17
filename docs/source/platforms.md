@@ -463,6 +463,10 @@ the part ObservANT's packaging shares.
 - **Built where the app is**: in the x64 lane's `build-clang` job on the `windows-2025` host, and
   in the arm64 lane's `app` job on `windows-11-arm`. Each installs WiX 7.0.0 as a dotnet tool,
   the version the image pins, and uses the runner's Windows SDK for `makeappx` and `signtool`.
+  Neither runner image ships a .NET SDK, so `actions/setup-dotnet` puts 10.0 there first; WiX 7
+  is a net8.0 tool that rolls forward to it.
+- **First proof, 2.1.0 on develop** (runs 39038477716 and 39038479571): x64 MSI 46 MB and MSIX
+  54 MB, arm64 MSI 34 MB and MSIX 41 MB, all twelve installer checks passing on both.
 - **The MSI** (`scripts/windows/installer/omni-accelerant.wxs`) installs per machine into
   `Program Files\OmniAccelerANT` with a Start menu shortcut, and upgrades in place (one
   `UpgradeCode`). Its version is `pubspec.yaml`'s `version:`.
