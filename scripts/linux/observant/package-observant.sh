@@ -310,18 +310,11 @@ Icon=${package}
 Categories=AudioVideo;Video;
 Terminal=true
 DESKTOP
-# The image stages appimagetool's runtime; naming it keeps the build from downloading one.
-runtime_args=()
-for candidate in "${HOME:-/root}/.local/share/appimagekit/runtime-$(uname -m)" \
-  "/etc/skel/.local/share/appimagekit/runtime-$(uname -m)"; do
-  if [ -f "${candidate}" ]; then
-    runtime_args=(--runtime-file "${candidate}")
-    break
-  fi
-done
+antfrastructure_source linux/scripts/lib/app-packaging.sh
+runtime_file="$(app_packaging_appimage_runtime_file)"
 appimage_file="${out_dir}/${package}-${version}-$(uname -m).AppImage"
 if ! APPIMAGE_EXTRACT_AND_RUN=1 NO_APPSTREAM=1 ARCH="$(uname -m)" \
-  appimagetool "${runtime_args[@]}" "${appdir}" "${appimage_file}" >"${work}/appimagetool.log" 2>&1; then
+  appimagetool ${runtime_file:+--runtime-file "${runtime_file}"} "${appdir}" "${appimage_file}" >"${work}/appimagetool.log" 2>&1; then
   cat "${work}/appimagetool.log" >&2
   printf 'appimagetool failed for %s\n' "${appimage_file}" >&2
   exit 1
@@ -347,7 +340,6 @@ DESKTOP
 runtime_version="$(sed -n 's/^FLATPAK_RUNTIME_VERSION=//p' "$(antfrastructure_path linux/scripts/01-core/versions.env)")"
 [ -n "${runtime_version}" ] || { printf 'no FLATPAK_RUNTIME_VERSION in the hub versions.env\n' >&2; exit 1; }
 # The image may lag the hub's pin (it shipped 24.08 when the pin moved to 26.08), so fetch the pair from Flathub.
-antfrastructure_source linux/scripts/lib/app-packaging.sh
 app_packaging_ensure_flatpak_runtime "" org.freedesktop.Platform org.freedesktop.Sdk "${runtime_version}"
 cat > "${flatpak_work}/${flatpak_id}.yml" <<MANIFEST
 app-id: ${flatpak_id}

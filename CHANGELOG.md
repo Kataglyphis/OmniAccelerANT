@@ -91,6 +91,11 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 - **The Linux app loads only its bundled GStreamer plugins** (2026-10-17, owner: the family's own
   GStreamer, never a distro's). `runtime_paths.cc` empties the system plugin path when the bundle
   carries its plugins, so a host's distro plugins never load beside them.
+- **The hub at `5c65bec8`, AccelerANTgine at `24de58f`.** The app's AppImage and ObservANT's take
+  the image's pinned AppImage runtime instead of downloading `continuous` (`appimagetool` 1.9 never
+  read the staged one), and ObservANT's packager uses the hub's `app_packaging_appimage_runtime_file`
+  instead of its own copy; the bundle launcher leaves no stray child behind its `exec`; the linked
+  AccelerANTgine library gives the bundle's GStreamer a registry of its own.
 - **A gate proves every pipeline element loads from the bundle alone.**
   `check-bundle-gst-elements.sh` runs the image's `gst-inspect-1.0` under the app's plugin
   environment for each element the Linux pipelines name, after the closure gate; a stub suite

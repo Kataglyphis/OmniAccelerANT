@@ -341,6 +341,10 @@ without the chain's source path.
 distro's). With the bundle's `gstreamer-1.0/` present the constructor also empties
 `GST_PLUGIN_SYSTEM_PATH` and `GST_PLUGIN_SYSTEM_PATH_1_0` unless they are set, so a host's
 `/usr/lib/*/gstreamer-1.0` plugins, built against another GStreamer, never join the bundled ones.
+AccelerANTgine's library, which the plugin links, does the same from its own constructor
+(AccelerANTgine `24de58f`), set-unless-set, and adds a registry per installed copy under
+`$XDG_CACHE_HOME/kataglyphis-gstreamer/`, so the bundle never rescans a registry another GStreamer
+wrote.
 The other side of that rule is a gate: `scripts/linux/check-bundle-gst-elements.sh` asks the
 image's `gst-inspect-1.0`, under exactly that environment, for every element the pipelines name
 (`GST_PIPELINE_ELEMENTS` in `scripts/linux/lib/bundle-runtime.sh`), and fails on one that no bundled
