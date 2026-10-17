@@ -16,6 +16,7 @@ the why behind that table (written after the test audit of 2026-10-15).
 | C++ fuzz tests | AccelerANTgine `Test/fuzz` (FuzzTest) | The JSON and TOML config readers and the box decoder survive arbitrary input | Linux clang lane, about a second per property |
 | Integration tests | `integration_test/` | The app starts in a real window; a test-pattern frame travels Rust → `knt_push_frame` → the Linux texture | Linux under Xvfb; Windows through `flutter drive` |
 | End-to-end | `scripts/linux/observant/test-observant-package.sh`, `scripts/windows/observant/Test-ObservANTWindows.ps1` | The installed .deb, AppImage, flatpak and MSI start, answer every endpoint, detect, notify, and a real headless Chrome plays at least 200 frames of the stream | `web.yml`'s `observant` jobs; the Windows arm64 MSI on `windows-11-arm` |
+| Clean host | the `clean-host` job of `linux-x64.yml` and `linux-arm64.yml` (ANTfrastructure's `clean-host-package-check`) | The `.deb` installs with apt on a bare Ubuntu 26.04, every ELF it installs resolves, and the app stays up 20 s under Xvfb from the `.deb`, the AppImage and the unpacked tarball. Inside the image every library exists, so only a bare host shows a missing one: its first run caught the `.deb` lacking `libegl1` (2026-10-16) | Linux x64 and arm64, on the bare runner after the lane |
 | Performance | `integration_test/performance_test.dart`; OxidANT's Criterion benches | The app's frame build times at start, page switches and resizes; what a frame costs before the model, and a whole detection | Linux x64 (Flutter); OxidANT's Linux lanes |
 | Gate suites | `scripts/linux/tests/`, OxidANT's `scripts/linux/tests/`, `scripts/windows/tests/` | The CI gates themselves: each suite plants the failure its gate exists for and expects it to go red | The lanes' code-quality batches, OxidANT's lint workflow, the Pester jobs |
 
@@ -83,6 +84,10 @@ The notes under AGENTS.md's lane table, moved here on 2026-10-15.
 - The rustc stamp lives in an ELF `.comment`, which a Windows PE does not have. The
   web lane builds its wasm with `build-web` and the dated nightly it names (AGENTS.md § 4), not
   Cargokit.
+- The clean-host job is Linux's: the Windows lanes already check the runner outside
+  `:winamd64` (C ABI, import walk, launch smoke), Android's run is the emulator's, and the
+  web lane's packages are ObservANT's, whose checks install them as well. A Debian 13 start is
+  checked by hand on a Raspberry Pi (camera-streaming.md § *Relocatable Linux bundles*).
 - The frame timings run on Linux x64 alone: a profile build costs minutes, and one arch is enough
   to see the Dart side get slower. `reusable-linux.yml` keeps the default branch's last 20
   `out/perf/frontend.json` in `.perf-baseline/` and writes the comparison with their median into
