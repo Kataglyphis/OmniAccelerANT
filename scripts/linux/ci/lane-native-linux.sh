@@ -161,6 +161,7 @@ if [[ "$BUILD_MODE" == "release" ]]; then
   # Under the image's xvfb-run: the packaged bundle starts, and the app drives its integration test.
   gate_reset "app under Xvfb (${MATRIX_ARCH})"
   run_gate "launch smoke" run_launch_smoke "${build_dir}/bundle/$(linux_binary_name)"
+  run_gate "launch smoke, bundled glibc" run_bundled_glibc_launch_smoke "${build_dir}/bundle/$(linux_binary_name)"
   run_gate "integration test" run_integration_test
   # Rust -> knt_push_frame -> texture with a test pattern: CI has no camera, and the push path needs none.
   if [[ -n "${KATAGLYPHIS_RUST_FEATURES}" ]]; then
@@ -181,6 +182,11 @@ if [[ "$RUN_PACKAGING" -eq 1 && "$BUILD_MODE" == "release" ]]; then
     _strict_package_arg+=(--strict)
   fi
   bash scripts/linux/package-linux.sh --arch "$MATRIX_ARCH" --app-name "$APP_NAME" --formats "$PACKAGE_FORMATS" "${_strict_package_arg[@]}"
+  if [[ ",${PACKAGE_FORMATS}," == *,flatpak,* ]]; then
+    gate_reset "app flatpak under Xvfb (${MATRIX_ARCH})"
+    run_gate "flatpak launch smoke" run_flatpak_launch_smoke "$APP_NAME"
+    assert_gates
+  fi
 elif [[ "$RUN_PACKAGING" -eq 1 ]]; then
   echo "Info: packaging skipped because --build-mode is '$BUILD_MODE' (packaging is release-only)."
 else

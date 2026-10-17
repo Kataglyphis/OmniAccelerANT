@@ -62,29 +62,65 @@ linux_binary_name() {
   sed -n 's/^set(BINARY_NAME "\([^"]*\)")$/\1/p' linux/CMakeLists.txt
 }
 
-# A missing library or a startup crash ends the app at once; timeout's 124 means it was still up.
-run_launch_smoke() {
-  local exe="${1:?executable required}" seconds="${2:-20}" rc=0 log
-  if [[ ! -x "$exe" ]]; then
-    echo "[Error] no executable at ${exe}" >&2
-    return 1
-  fi
+# <seconds> <name> <command...>: a missing library or a startup crash ends the app at once; timeout's 124 means it was still up.
+launch_for() {
+  local seconds="$1" name="$2" rc=0 log
+  shift 2
   log="$(mktemp)"
-  xvfb-run -a timeout "$seconds" "$exe" > "$log" 2>&1 || rc=$?
+  xvfb-run -a timeout "$seconds" "$@" > "$log" 2>&1 || rc=$?
   cat "$log"
   if [[ "$rc" -ne 124 ]]; then
-    echo "[Error] $(basename "$exe") exited with ${rc} within ${seconds} s" >&2
+    echo "[Error] ${name} exited with ${rc} within ${seconds} s" >&2
     rm -f "$log"
     return 1
   fi
-  # Under the bundled loader runtime_paths.cc turns GStreamer's scanner fork off; the warning means it did not.
+  # runtime_paths.cc turns GStreamer's scanner fork off in a bundle, which ships no scanner; the warning means it did not.
   if grep -q "External plugin loader failed" "$log"; then
-    echo "[Error] GStreamer tried its external plugin scanner under the bundled loader" >&2
+    echo "[Error] GStreamer tried its external plugin scanner from the bundle" >&2
     rm -f "$log"
     return 1
   fi
   rm -f "$log"
-  echo "[Info] $(basename "$exe") still running after ${seconds} s"
+  echo "[Info] ${name} still running after ${seconds} s"
+}
+
+run_launch_smoke() {
+  local exe="${1:?executable required}"
+  if [[ ! -x "$exe" ]]; then
+    echo "[Error] no executable at ${exe}" >&2
+    return 1
+  fi
+  launch_for "${2:-20}" "$(basename "$exe")" "$exe"
+}
+
+# The image's glibc is the bundled one, so the launcher takes the host's path; this forces the bundled loader.
+run_bundled_glibc_launch_smoke() {
+  local exe="${1:?executable required}"
+  launch_for "${2:-20}" "$(basename "$exe") through the bundled glibc" env KATAGLYPHIS_BUNDLED_GLIBC=1 "$exe"
+}
+
+# <app name>: its flatpak as a user starts it, on the runtime's glibc and GL drivers, which no other check reaches.
+run_flatpak_launch_smoke() {
+  local app_name="${1:?app name required}" bundle app_id bus bus_pid rc=0
+  bundle="$(antfrastructure_source linux/scripts/lib/app-packaging.sh &&
+    printf 'out/%s-%s.flatpak' "$(app_packaging_sanitize_package_name "$app_name")" "$(app_packaging_get_pubspec_version)")"
+  # A user install asks malcontent on the system bus, which a container lacks; on an empty bus it skips the check.
+  { read -r bus && read -r bus_pid; } < <(dbus-daemon --session --address="unix:path=$(mktemp -u)" --fork --print-address 1 --print-pid 1)
+  [[ -n "${bus_pid:-}" ]] || { echo "[Error] no private D-Bus for the flatpak install" >&2; return 1; }
+  if DBUS_SYSTEM_BUS_ADDRESS="$bus" flatpak install --user -y --noninteractive "$bundle"; then
+    app_id="$(flatpak list --user --app --columns=application)"
+    if [[ -n "$app_id" && "$app_id" != *$'\n'* ]]; then
+      DBUS_SYSTEM_BUS_ADDRESS="$bus" launch_for "${2:-20}" "flatpak ${app_id}" flatpak run --user "$app_id" || rc=$?
+      flatpak uninstall --user -y --noninteractive "$app_id" > /dev/null 2>&1 || true
+    else
+      echo "[Error] expected one app in the user installation after installing ${bundle}, found: ${app_id:-none}" >&2
+      rc=1
+    fi
+  else
+    rc=1
+  fi
+  kill "$bus_pid" 2> /dev/null || true
+  return "$rc"
 }
 
 # A debug build under build/linux/<arch>/debug, so the release bundle stays as packaged; non-incremental cargo is sccache-cacheable.

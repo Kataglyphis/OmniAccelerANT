@@ -305,16 +305,21 @@ the lane for release builds, before packaging):
   which no distro ships yet.
 - **The image's loader and glibc** (2026-10-17): its ORT and orc need glibc 2.43, newer than
   Debian 13's 2.41 and Ubuntu 24.04's 2.39. The hub's `bundle-loader.sh --beside` leaves the
-  runner as `omni_accelerant.bin` with `ld-linux-*.so.1` beside it and glibc in `bundle/lib`, and
-  `omni_accelerant` becomes a launcher that starts it through that loader, as
-  [the ObservANT package](#the-observant-package) does. Beside, not in `lib/`: under the launcher
-  `/proc/self/exe` names the loader, and Flutter looks for `data/` in that directory. The closure
-  gate leaves glibc to `--library-path` and checks the `.bin` behind the launcher. GStreamer would
-  hand its plugin scanner `/proc/self/exe`, the loader, and warn "External plugin loader failed";
-  `runtime_paths.cc` sees the loader there and sets `GST_REGISTRY_FORK=no` (unless already set), so
-  it scans in-process at once, and the lane's launch smoke fails on that warning. Measured on the
-  2026-10-12 aarch64 bundle: the 20 s launch smoke holds in the image, and on a Debian 13 Pi the
-  app gets as far as GTK. The `.deb` declares only the desktop libraries.
+  runner as `omni_accelerant.bin` with `ld-linux-*.so.1` beside it and glibc in `bundle/lib/glibc`,
+  and `omni_accelerant` becomes a launcher. **It takes the bundled loader only when the host's
+  glibc is older** than the bundled one; otherwise it starts the `.bin` itself under the host's.
+  A newer host glibc must win, because the host's GL drivers are built against it: the app flatpak
+  aborted at start until then (2026-10-17), since org.freedesktop.Platform 26.08's Mesa needs
+  `GLIBC_2.44` (`No provider of eglGetPlatformDisplayEXT found`). `KATAGLYPHIS_BUNDLED_GLIBC=1`
+  forces the bundled path. Beside, not in `lib/`: under the bundled loader `/proc/self/exe` names
+  the loader, and Flutter looks for `data/` in that directory. The closure gate leaves glibc to
+  `--library-path` and checks the `.bin` behind the launcher. The bundle carries no GStreamer
+  plugin scanner, so `runtime_paths.cc` sets `GST_REGISTRY_FORK=no` (unless already set) wherever
+  it finds the bundled plugins, and GStreamer scans in-process instead of warning "External plugin
+  loader failed"; the lane's launch smokes fail on that warning. The native lane starts the bundle
+  20 s on both paths (the image's glibc is the bundled one, so the second forces it) and the app
+  flatpak 20 s on its runtime; on a Debian 13 Pi the app gets as far as GTK through the bundled
+  loader. The `.deb` declares only the desktop libraries.
 
 The closure gate runs inside the image, where every library is present anyway. The
 `clean-host` job after each Linux lane is the outside view: on a bare `ubuntu-26.04` (`-arm`)
@@ -1338,7 +1343,7 @@ The exe points GStreamer, ONNX Runtime and the model at that folder itself (Oxid
 `install.rs`), so it needs no launcher and nothing on PATH.
 
 **The MSI** installs per machine. It adds:
-- a Start menu folder, with **Cat Cam** and **Cat Cam page**;
+- a Start menu folder, **ObservANT**, with **ObservANT** and **ObservANT page**;
 - an entry in the all-users Startup folder, so ObservANT starts minimized at every
   logon. That's a logon task, by owner decision on 2026-10-06. A boot-time service would
   run in Session 0, and nobody has yet shown that a service can open a webcam there.

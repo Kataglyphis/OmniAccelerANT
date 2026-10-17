@@ -220,7 +220,7 @@ for file in "$bundle_lib"/gstreamer-1.0/*.so; do
   patch_origin_rpath "$file" '$ORIGIN/..'
 done
 
-# glibc 2.43 is newer than Debian 13's: the runner starts through the image's loader, kept beside it for data/.
+# glibc 2.43 is newer than Debian 13's: there the runner starts through the image's loader, kept beside it for data/.
 for file in "$BUNDLE_DIR"/*; do
   [[ -f "$file" && -x "$file" && "$file" != *.bin ]] || continue
   is_system_soname "$(basename "$file")" && continue

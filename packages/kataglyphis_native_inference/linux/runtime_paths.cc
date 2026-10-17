@@ -2,7 +2,6 @@
 
 #include <dlfcn.h>
 #include <sys/stat.h>
-#include <unistd.h>
 
 #include <cstdlib>
 #include <string>
@@ -32,25 +31,16 @@ std::string module_directory()
     return path.substr(0, slash);
 }
 
-// Started through bundle-loader.sh's launcher, the process image is the bundled ld.so itself.
-bool running_under_bundled_loader()
-{
-    char buffer[4096];
-    const ssize_t length = ::readlink("/proc/self/exe", buffer, sizeof(buffer) - 1);
-    if (length <= 0) { return false; }
-    const std::string exe(buffer, static_cast<std::size_t>(length));
-    return exe.find("/ld-linux") != std::string::npos;
-}
-
 void configure_bundle_paths()
 {
-    // GStreamer hands its plugin scanner /proc/self/exe, the loader here; it fails, warns, then scans in-process anyway.
-    if (running_under_bundled_loader()) { set_if_present("GST_REGISTRY_FORK", "no"); }
-
     const std::string dir = module_directory();
     if (dir.empty()) { return; }
     const std::string gst_plugins = dir + "/gstreamer-1.0";
-    if (path_exists(gst_plugins)) { set_if_present("GST_PLUGIN_PATH", gst_plugins); }
+    if (path_exists(gst_plugins)) {
+        set_if_present("GST_PLUGIN_PATH", gst_plugins);
+        // The bundle ships no plugin scanner, so a fork would fail, warn and scan in-process anyway.
+        set_if_present("GST_REGISTRY_FORK", "no");
+    }
     const std::string onnxruntime = dir + "/libonnxruntime.so";
     if (path_exists(onnxruntime)) { set_if_present("ORT_DYLIB_PATH", onnxruntime); }
     const std::string model = dir + "/../data/resources/models/deim_dfine_n_coco.onnx";

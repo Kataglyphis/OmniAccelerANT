@@ -315,7 +315,7 @@ written out rather than linked.
   and `package-linux.sh` prints the built app's `[Context]` and fails when an
   appended argument is missing from it. An empty value drops it.
 
-- **A packaged Linux artifact carries its whole runtime closure**, GCC 16.2's `libstdc++` and the image's loader and glibc included (2026-10-17): `omni_accelerant` is a launcher for `omni_accelerant.bin`, which runs on Debian 13's older glibc too; a clean-host job starts it on the bare runner. Every bundled ELF has its own
+- **A packaged Linux artifact carries its whole runtime closure**, GCC 16.2's `libstdc++` and the image's loader and glibc included (2026-10-17): `omni_accelerant` is a launcher for `omni_accelerant.bin`, which takes the bundled glibc only on an older host (Debian 13) and the host's otherwise, since a newer one's GL drivers need it (the flatpak's); a clean-host job starts it on the bare runner. Every bundled ELF has its own
   `$ORIGIN` RUNPATH (RUNPATH is not transitive), the GStreamer libraries and seven plugins travel
   in `bundle/lib`, and ORT is the image's chain build, proven by the hub's G6 census in
   `check-bundle-closure.sh`. With the lane's Rust features ORT is in `bundle/lib` before the packer
@@ -608,7 +608,7 @@ cell is a test that cannot run there, and the reason is under the table.
 | Dart coverage of `lib/` against a floor (`check-dart-coverage.sh`), and its synthetic-lcov suite | yes | | | | |
 | Plugin C++ format (`check-plugin-cpp-format.sh`) and its planted-deviation suite | yes | | | | |
 | Import walk | (the closure gate) | host, `-Standalone` | device | | |
-| Launch smoke, 20 s | under Xvfb | host | device | | |
+| Launch smoke, 20 s | under Xvfb, on the host's and the bundled glibc, and the app flatpak | host | device | | |
 | Integration test (`integration_test/simple_test.dart`) | under Xvfb | `flutter drive` against the clang-cl app | `flutter drive` (the Debug app) | | |
 | Webcam frame through `knt_push_frame` (`integration_test/webcam_frame_test.dart`) | under Xvfb, test pattern | | | | |
 | Frame timings in profile mode (`integration_test/performance_test.dart`, `flutter drive --profile`), against the last default-branch run, and its scripts' suite (`test-perf-reports.sh`) | x64, under Xvfb | | | | |

@@ -137,9 +137,10 @@ Linux amd64/arm64 ship as a .deb and an AppImage, proven on himbeere2 (Pi 5) on
   - Proven: the clean-host job on bare Ubuntu 26.04, x64 and arm64, keeps the app up 20 s under
     Xvfb from the `.deb`, the AppImage and the tarball; on himbeere2 (Debian 13) all three reach
     GTK headless with `LD_BIND_NOW=1`, and `apt-get install --simulate` takes the `.deb`.
-  - **Still unproven:** a window drawn on a real Debian 13 or Ubuntu 24.04 desktop, where GL comes
-    from the host's Mesa under the bundled glibc; and the app flatpak since it installs the bundle
-    whole under `/app/lib/omni-accelerant` (hub f0e44db7), which no lane starts.
+  - **Still unproven:** a window drawn on a real Debian 13 or Ubuntu 24.04 desktop, where the
+    host's Mesa runs under the bundled glibc. On a host with a newer glibc the launcher takes the
+    host's (2026-10-17); the app flatpak, which aborted under the bundled one until then, is that
+    case, and the native lane starts it.
 
 - [b] **`webrtc_view.dart`, about 550 web-only lines, is outside coverage.** It drives
   gstwebrtc-api's JavaScript; testing it in Chrome needs a stand-in for that API. The stream's

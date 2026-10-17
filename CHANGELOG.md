@@ -53,6 +53,13 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ### Fixed
 
+- **The app flatpak starts again** (2026-10-17): it aborted at once (`No provider of
+  eglGetPlatformDisplayEXT found`), because the launcher of the same day ran it under the bundled
+  glibc 2.43 while org.freedesktop.Platform 26.08's Mesa needs 2.44. The hub's `bundle-loader.sh` now
+  takes the bundled glibc only when the host's is older, and keeps it in `bundle/lib/glibc`;
+  `runtime_paths.cc` turns GStreamer's scanner fork off wherever the bundled plugins are, since the
+  bundle ships no scanner. The native lane starts the app flatpak for 20 s, and the bundle on both
+  glibc paths (`KATAGLYPHIS_BUNDLED_GLIBC=1` forces the bundled one).
 - **Whole-frame false visits** (2026-10-17, owner): ObservANT drops a detection covering more
   than `max_box_area` of the picture (default 0.9) before it counts. Eight of himbeere2's last
   20 visits were such boxes at scores near 0.3; `max_box_area = 1` keeps them.
