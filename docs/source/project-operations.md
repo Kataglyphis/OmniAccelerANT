@@ -346,18 +346,18 @@ by the owner's decision of 2026-10-05.
    hub's script tags the commit `v<version>` and publishes them with a `SHA256SUMS` and the
    CHANGELOG section as notes.
 
-What a release carries (since 2026-10-16; 2.1.0 carried only ObservANT):
+What a release carries (2.2.0 on; 2.1.0 carried only ObservANT):
 
 | Platform | The app | ObservANT |
 | --- | --- | --- |
 | Linux x64 and arm64 | `.deb`, AppImage, flatpak (named for its arch), tarball | `.deb`, AppImage, flatpak, tarball |
-| Windows x64 | the app folder as a `.zip` | MSI, MSIX (with its test certificate), `.zip` |
-| Windows arm64 | the app folder as a `.zip` | MSI, MSIX (with its test certificate), `.zip` (since 2026-10-16) |
+| Windows x64 | MSI, MSIX (with its test certificate), the app folder as a `.zip` | MSI, MSIX (with its test certificate), `.zip` |
+| Windows arm64 | MSI, MSIX (with its test certificate), the app folder as a `.zip` | MSI, MSIX (with its test certificate), `.zip` |
 | Android | the arm64-v8a APK | |
 
 The collector skips logs, debug builds, the arm64 natives and the web build, and fails the
 release on an upload it has no rule for, or when a platform's package is missing.
-`scripts/linux/tests/test-collect-release-assets.sh` runs in the native lane (11 checks); the
+`scripts/linux/tests/test-collect-release-assets.sh` runs in the native lane (15 checks); the
 hub's suite tests the publishing script. riscv64 has no package in a release, since no CI lane
 builds one.
 

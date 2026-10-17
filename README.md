@@ -169,7 +169,7 @@ no riscv64 runtime.
 - `sudo apt install ./omni-observant_*.deb`, or `sudo ./omni-observant-*.AppImage
   --install` on any other distro, installs a systemd service that starts at boot.
   **Without sudo**, the tarball's `./omni-observant/observant --install --user` installs it for
-  your user instead, and starts it at boot too (from the release after 2.1.0).
+  your user instead, and starts it at boot too (since 2.2.0).
 - **It keeps itself up to date:** every night it installs a newer release's package once it
   matches the release's checksum; `sudo systemctl disable --now omni-observant-update.timer`
   turns that off (`systemctl --user …` for a user install).

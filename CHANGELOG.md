@@ -5,6 +5,8 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ## Unreleased
 
+## 2.2.0+4 — 2026-10-17
+
 ### Added
 
 - **The app's Windows installers** (2026-10-17, owner): every release carries an MSI and a signed MSIX of
