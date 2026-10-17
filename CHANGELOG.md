@@ -88,6 +88,9 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ### Changed
 
+- **The Linux app loads only its bundled GStreamer plugins** (2026-10-17, owner: the family's own
+  GStreamer, never a distro's). `runtime_paths.cc` empties the system plugin path when the bundle
+  carries its plugins, so a host's distro plugins never load beside them.
 - **The Windows ObservANT ships the web build as Linux does** (2026-10-17): without the `wimp` and
   `webparagraph` renderers and the `*.symbols` maps (about 18 of 55 MB less), and on x64 with a zopfli
   `.gz` beside each file the server gzips, so the service no longer compresses them at run time.

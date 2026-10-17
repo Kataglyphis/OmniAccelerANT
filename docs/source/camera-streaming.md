@@ -334,6 +334,11 @@ name one, so a user override always wins. For ONNX Runtime that override must
 still be a chain build: OxidANT's loader (`ort_runtime.rs`) refuses any file
 without the chain's source path.
 
+**Only the bundled GStreamer plugins load** (owner, 2026-10-17: the family's own GStreamer, never a
+distro's). With the bundle's `gstreamer-1.0/` present the constructor also empties
+`GST_PLUGIN_SYSTEM_PATH` and `GST_PLUGIN_SYSTEM_PATH_1_0` unless they are set, so a host's
+`/usr/lib/*/gstreamer-1.0` plugins, built against another GStreamer, never join the bundled ones.
+
 `scripts/linux/check-bundle-closure.sh` grades the result headlessly — one
 second, no display, no container-in-container: every DT_NEEDED of the runner and
 of every bundle lib is bundled or in the documented system allowlist, every

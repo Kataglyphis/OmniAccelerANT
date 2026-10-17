@@ -38,6 +38,9 @@ void configure_bundle_paths()
     const std::string gst_plugins = dir + "/gstreamer-1.0";
     if (path_exists(gst_plugins)) {
         set_if_present("GST_PLUGIN_PATH", gst_plugins);
+        // Only the bundled plugins: a distro's are built against another GStreamer than the one bundled here.
+        if (::getenv("GST_PLUGIN_SYSTEM_PATH_1_0") == nullptr) { ::setenv("GST_PLUGIN_SYSTEM_PATH_1_0", "", 1); }
+        if (::getenv("GST_PLUGIN_SYSTEM_PATH") == nullptr) { ::setenv("GST_PLUGIN_SYSTEM_PATH", "", 1); }
         // The bundle ships no plugin scanner, so a fork would fail, warn and scan in-process anyway.
         set_if_present("GST_REGISTRY_FORK", "no");
     }
