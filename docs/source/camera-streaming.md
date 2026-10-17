@@ -691,6 +691,11 @@ found, streaming a test pattern". Until then `ok` was always `true`, so a monito
 ObservANT whose camera had gone as healthy. `frame_age_s` and `model_age_s` are the seconds
 since the last frame and the last model run. The Stream page and the Camera page show the
 problem in orange above the cat.
+**A box over nearly the whole picture is not a cat** (2026-10-17, owner): a detection that
+covers more than `max_box_area` of the frame (default 0.9) is dropped before it can count, as
+one over a "Not a cat" spot is. Eight of himbeere2's last 20 visits on 2026-10-16/17 were such
+boxes, 0.95 to 0.99 of the frame at scores near 0.3; a cat close to the lens fills about 0.7.
+`max_box_area = 1` keeps every box.
 `/snapshot.jpg` is the latest frame, boxes included, for a quick look without
 WebRTC: `curl -o cat.jpg http://<host>:8080/snapshot.jpg`. A cat counts after two
 detections in a row and is out of view after about 3 s without one, so a lone hit near the

@@ -53,6 +53,9 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ### Fixed
 
+- **Whole-frame false visits** (2026-10-17, owner): ObservANT drops a detection covering more
+  than `max_box_area` of the picture (default 0.9) before it counts. Eight of himbeere2's last
+  20 visits were such boxes at scores near 0.3; `max_box_area = 1` keeps them.
 - **The Linux app starts outside the build image.** The bundle carried GStreamer and ONNX
   Runtime but took `libstdc++` from the system, and the image's is GCC 16.2's
   (`GLIBCXX_3.4.36`), newer than any distro's, Ubuntu 26.04's included. It travels in

@@ -20,6 +20,8 @@
 
 # score = 0.25
 
+# max_box_area = 0.9      # a box over more of the picture than this is dropped before it counts (whole-frame false alarms); 1 keeps all
+
 # inference_fps = 2        # box updates per second; 0 runs the model as often as it can
 
 # inference_threads = 2    # the model's threads; 0 takes one per core, which costs more CPU per update
