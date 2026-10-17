@@ -7,7 +7,7 @@
 .PARAMETER AppDir
     The runner folder that holds the exe.
 .PARAMETER SearchPath
-    Folders the app finds on PATH, as Start-Windows.ps1 prepends them (x64: runner\bin, which holds AccelerANTgine.dll).
+    Folders the app finds on PATH, as Start-Windows.ps1 prepends them; a runner needs none, so CI passes none, as a double-click would.
 .PARAMETER OrtStamp
     Re-prove the stamped chain ONNX Runtime with G6 first, as Start-Windows.ps1 does before every launch.
 #>

@@ -142,7 +142,6 @@ try {
 	# The bundle's own directories win over anything installed on the host.
 	$pluginPathEntries.Add($pluginDir)
 	$pluginPathEntries.Add((Split-Path $pluginDll -Parent))
-	$pluginPathEntries.Add((Join-Path $buildDirReleaseFull "bin"))
 
 	# The Debug preset's ASan runtime must be Microsoft's: LLVM's aborts on pre-init COM/CRT frees (AGENTS.md § 4).
 	$asanDllName = "clang_rt.asan_dynamic-x86_64.dll"
@@ -152,11 +151,7 @@ try {
 		# vswhere-based, so every Visual Studio SKU is found; -RuntimeFlavor Msvc is load-bearing.
 		$msAsan = Get-AsanRuntimeDll -RuntimeFlavor Msvc
 		if ($null -ne $msAsan) {
-			foreach ($dest in @($buildDirReleaseFull, (Join-Path $buildDirReleaseFull "bin"))) {
-				if (Test-Path -LiteralPath $dest -PathType Container) {
-					Copy-Item -LiteralPath $msAsan -Destination (Join-Path $dest $asanDllName) -Force
-				}
-			}
+			Copy-Item -LiteralPath $msAsan -Destination (Join-Path $buildDirReleaseFull $asanDllName) -Force
 			Write-Host "[Start-Windows] Staged Microsoft ASan runtime: $msAsan"
 			# Prepend, never skip — see AGENTS.md § 4 (ASAN).
 			$repoAsanOptions = "alloc_dealloc_mismatch=0:check_malloc_usable_size=0"

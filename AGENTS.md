@@ -447,9 +447,9 @@ written out rather than linked.
   Windows would otherwise load System32's Windows ML 1.17. Detail: [`docs/source/platforms.md`](docs/source/platforms.md) § *ONNX Runtime in
   the Windows runner*.
 - **On an unprovisioned host** (`STATUS_DLL_NOT_FOUND`, or a ~6 MB process that exits) the
-  runner lacks the image's runtime DLLs: stage `C:\runtime\bin` and its GStreamer plugins, put
-  `runner\bin` (`AccelerANTgine.dll`) on `PATH` as `Start-Windows.ps1` does, and install the
-  VC++ runtime. Symptom table: [`docs/source/platforms.md`](docs/source/platforms.md) § *Troubleshooting containerized Windows builds*.
+  runner lacks the image's runtime DLLs: stage `C:\runtime\bin` and its GStreamer plugins. Since
+  2026-10-17 AccelerANTgine.dll and the VC++ runtime sit beside the exe on x64 as on arm64 (the
+  plugin's CMake installs them there); a runner with a `bin\` is from an older build. Symptom table: [`docs/source/platforms.md`](docs/source/platforms.md) § *Troubleshooting containerized Windows builds*.
 - **Dart file ops fail on bind-mounted paths.** `copySync`/`renameSync` fail
   (plain writes and cmd `copy`/`ren` work), so junction `.dart_tool` and `build`
   from the mounted workspace to container-local dirs before building. The

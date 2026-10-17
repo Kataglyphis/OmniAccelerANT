@@ -8,7 +8,7 @@
 .PARAMETER PluginDll
     kataglyphis_native_inference_plugin.dll inside an app tree, beside the exe.
 .PARAMETER SearchPath
-    Directories the app finds on PATH (x64: runner\bin, which holds AccelerANTgine.dll); searched after the plugin's own.
+    Directories the app finds on PATH, searched after the plugin's own; a runner needs none, AccelerANTgine.dll sits beside the plugin.
 #>
 [CmdletBinding()]
 param(

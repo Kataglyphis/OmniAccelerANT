@@ -8,7 +8,7 @@
 .PARAMETER BuildDir
     The app's CMake build tree, configured with -Dinclude_kataglyphis_native_inference_tests=ON.
 .PARAMETER RuntimeDir
-    Folders that hold AccelerANTgine.dll, the chain onnxruntime.dll and their closure (x64: runner and runner\bin).
+    Folders that hold AccelerANTgine.dll, the chain onnxruntime.dll and their closure (the runner folder).
 .PARAMETER Build
     Build the test target first, with the CMake that configured the tree.
 .PARAMETER NoRun

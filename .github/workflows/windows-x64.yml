@@ -69,14 +69,13 @@ jobs:
         run: >-
           & ./scripts/windows/Test-KntAbi.ps1
           -PluginDll "$env:BUILD_DIR_RELEASE/kataglyphis_native_inference_plugin.dll"
-          -SearchPath "$env:BUILD_DIR_RELEASE/bin"
 
       # Built in the image by Build-Windows.ps1, run here: flutter_windows.dll does not load in Server Core (0xC0000135).
       - name: Plugin gtest (x64)
         working-directory: ${{ steps.prep.outputs.workspace }}
         run: >-
           & ./scripts/windows/Invoke-PluginGTest.ps1 -BuildDir build/windows/x64
-          -RuntimeDir $env:BUILD_DIR_RELEASE, "$env:BUILD_DIR_RELEASE/bin"
+          -RuntimeDir $env:BUILD_DIR_RELEASE
 
       # Standalone: the runner ships without the image's PATH, so every import must resolve inside it.
       - name: Arch gate + import walk (the x64 runner)
@@ -85,12 +84,12 @@ jobs:
           & ./third_party/ANTfrastructure/windows/scripts/build/Test-TargetArch.ps1
           -Path $env:BUILD_DIR_RELEASE -Arch amd64 -MinInspected 50 -ImportWalk -Standalone
 
-      # G6 re-proves the stamped chain ORT first, as Start-Windows.ps1 does, which puts runner\bin on PATH too.
+      # G6 re-proves the stamped chain ORT first; no -SearchPath, so the app starts as a double-click starts it.
       - name: Launch smoke (x64)
         working-directory: ${{ steps.prep.outputs.workspace }}
         run: >-
           & ./scripts/windows/Test-LaunchSmoke.ps1
-          -AppDir $env:BUILD_DIR_RELEASE -SearchPath "$env:BUILD_DIR_RELEASE/bin" -OrtStamp
+          -AppDir $env:BUILD_DIR_RELEASE -OrtStamp
 
       - name: Upload build log
         if: always()
@@ -140,7 +139,7 @@ jobs:
         working-directory: ${{ steps.prep.outputs.workspace }}
         run: >-
           & ./scripts/windows/Test-LaunchSmoke.ps1
-          -AppDir "${env:BUILD_DIR_DEBUG}-app" -SearchPath "${env:BUILD_DIR_DEBUG}-app/bin" -OrtStamp
+          -AppDir "${env:BUILD_DIR_DEBUG}-app" -OrtStamp
 
       # No Flutter SDK on the runner; the image's version, cloned as the arm64 lane does.
       - name: Flutter (the image's version)
