@@ -52,6 +52,11 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ### Changed
 
+- **A build report that was committed by mistake is gone** (2026-10-17):
+  `android/build/reports/problems/problems-report.html` (134 KiB, Gradle's problems report)
+  came in with 0ee9ac1. `/android/build/` is ignored now, so the next one stays out.
+  OxidANT moves to ba5d8ae, whose README image is a 2.1 MiB WebP instead of a 7.5 MiB GIF.
+
 - **A camera nobody named shows its host name** (OxidANT bb38e7a) instead of "ObservANT", so
   two new cameras differ in the Stream page's list from the start; a name from the settings or
   the Camera page still wins.
