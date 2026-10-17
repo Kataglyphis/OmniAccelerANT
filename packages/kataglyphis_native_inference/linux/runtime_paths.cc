@@ -2,6 +2,7 @@
 
 #include <dlfcn.h>
 #include <sys/stat.h>
+#include <unistd.h>
 
 #include <cstdlib>
 #include <string>
@@ -31,8 +32,21 @@ std::string module_directory()
     return path.substr(0, slash);
 }
 
+// Started through bundle-loader.sh's launcher, the process image is the bundled ld.so itself.
+bool running_under_bundled_loader()
+{
+    char buffer[4096];
+    const ssize_t length = ::readlink("/proc/self/exe", buffer, sizeof(buffer) - 1);
+    if (length <= 0) { return false; }
+    const std::string exe(buffer, static_cast<std::size_t>(length));
+    return exe.find("/ld-linux") != std::string::npos;
+}
+
 void configure_bundle_paths()
 {
+    // GStreamer hands its plugin scanner /proc/self/exe, the loader here; it fails, warns, then scans in-process anyway.
+    if (running_under_bundled_loader()) { set_if_present("GST_REGISTRY_FORK", "no"); }
+
     const std::string dir = module_directory();
     if (dir.empty()) { return; }
     const std::string gst_plugins = dir + "/gstreamer-1.0";

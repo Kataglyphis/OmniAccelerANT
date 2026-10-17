@@ -309,8 +309,10 @@ the lane for release builds, before packaging):
   `omni_accelerant` becomes a launcher that starts it through that loader, as
   [the ObservANT package](#the-observant-package) does. Beside, not in `lib/`: under the launcher
   `/proc/self/exe` names the loader, and Flutter looks for `data/` in that directory. The closure
-  gate leaves glibc to `--library-path` and checks the `.bin` behind the launcher. GStreamer then
-  warns once, "External plugin loader failed", and scans its plugins in-process. Measured on the
+  gate leaves glibc to `--library-path` and checks the `.bin` behind the launcher. GStreamer would
+  hand its plugin scanner `/proc/self/exe`, the loader, and warn "External plugin loader failed";
+  `runtime_paths.cc` sees the loader there and sets `GST_REGISTRY_FORK=no` (unless already set), so
+  it scans in-process at once, and the lane's launch smoke fails on that warning. Measured on the
   2026-10-12 aarch64 bundle: the 20 s launch smoke holds in the image, and on a Debian 13 Pi the
   app gets as far as GTK. The `.deb` declares only the desktop libraries.
 

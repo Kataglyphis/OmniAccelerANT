@@ -64,18 +64,27 @@ linux_binary_name() {
 
 # A missing library or a startup crash ends the app at once; timeout's 124 means it was still up.
 run_launch_smoke() {
-  local exe="${1:?executable required}" seconds="${2:-20}" rc=0
+  local exe="${1:?executable required}" seconds="${2:-20}" rc=0 log
   if [[ ! -x "$exe" ]]; then
     echo "[Error] no executable at ${exe}" >&2
     return 1
   fi
-  xvfb-run -a timeout "$seconds" "$exe" || rc=$?
-  if [[ "$rc" -eq 124 ]]; then
-    echo "[Info] $(basename "$exe") still running after ${seconds} s"
-    return 0
+  log="$(mktemp)"
+  xvfb-run -a timeout "$seconds" "$exe" > "$log" 2>&1 || rc=$?
+  cat "$log"
+  if [[ "$rc" -ne 124 ]]; then
+    echo "[Error] $(basename "$exe") exited with ${rc} within ${seconds} s" >&2
+    rm -f "$log"
+    return 1
   fi
-  echo "[Error] $(basename "$exe") exited with ${rc} within ${seconds} s" >&2
-  return 1
+  # Under the bundled loader runtime_paths.cc turns GStreamer's scanner fork off; the warning means it did not.
+  if grep -q "External plugin loader failed" "$log"; then
+    echo "[Error] GStreamer tried its external plugin scanner under the bundled loader" >&2
+    rm -f "$log"
+    return 1
+  fi
+  rm -f "$log"
+  echo "[Info] $(basename "$exe") still running after ${seconds} s"
 }
 
 # A debug build under build/linux/<arch>/debug, so the release bundle stays as packaged; non-incremental cargo is sccache-cacheable.
