@@ -133,6 +133,16 @@ Linux amd64/arm64 ship as a .deb and an AppImage, proven on himbeere2 (Pi 5) on
 
 ## Open — tests
 
+- [ ] **The Linux app drawn on a desktop outside the build image.** Since a7ce99e (2026-10-17) the
+  bundle starts through the image's loader and glibc (camera-streaming.md § *Relocatable Linux
+  bundles*).
+  - Proven: the clean-host job on bare Ubuntu 26.04, x64 and arm64, keeps the app up 20 s under
+    Xvfb from the `.deb`, the AppImage and the tarball; on himbeere2 (Debian 13) all three reach
+    GTK headless with `LD_BIND_NOW=1`, and `apt-get install --simulate` takes the `.deb`.
+  - **Still unproven:** a window drawn on a real Debian 13 or Ubuntu 24.04 desktop, where GL comes
+    from the host's Mesa under the bundled glibc; and the app flatpak since it installs the bundle
+    whole under `/app/lib/omni-accelerant` (hub f0e44db7), which no lane starts.
+
 - [b] **`webrtc_view.dart`, about 550 web-only lines, is outside coverage.** It drives
   gstwebrtc-api's JavaScript; testing it in Chrome needs a stand-in for that API. The stream's
   state is tested through `webrtc_stream_controller_test.dart`, and the Camera page's requests
