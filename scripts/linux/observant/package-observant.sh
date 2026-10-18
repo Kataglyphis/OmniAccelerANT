@@ -105,26 +105,11 @@ fi
 gst_plugin_dir=/opt/gstreamer/lib/multiarch/gstreamer-1.0
 plugins=(coreelements app videoconvertscale videorate videofilter videotestsrc rawparse videoparsersbad debugutilsbad
   jpeg png multifile video4linux2 rswebrtc rsrtp webrtc nice dtls srtp sctp rtpmanager rtp vpx isomp4)
-for plugin in "${plugins[@]}"; do
-  [ -e "${gst_plugin_dir}/libgst${plugin}.so" ] || {
-    printf 'GStreamer plugin %s not in the image (%s)\n' "${plugin}" "${gst_plugin_dir}" >&2
-    exit 1
-  }
-  cp -L "${gst_plugin_dir}/libgst${plugin}.so" "${bundle}/lib/gstreamer-1.0/"
-done
-# H.264 is a second codec offer; VP8 alone streams to every browser.
-if [ -e "${gst_plugin_dir}/libgstopenh264.so" ]; then
-  cp -L "${gst_plugin_dir}/libgstopenh264.so" "${bundle}/lib/gstreamer-1.0/"
-else
-  printf 'warning: openh264 not in the image, the stream offers VP8 only\n' >&2
-fi
-# The image keeps libcamerasrc beside its libcamera, not in the GStreamer prefix.
-libcamera_plugin="${LIBCAMERA_PREFIX:-/opt/libcamera}/lib/gstreamer-1.0/libgstlibcamera.so"
-if [ -e "${libcamera_plugin}" ]; then
-  cp -L "${libcamera_plugin}" "${bundle}/lib/gstreamer-1.0/"
-else
-  printf 'warning: libcamerasrc not in the image\n' >&2
-fi
+# H.264 is a second codec offer (VP8 alone streams to every browser); libcamerasrc sits beside the image's libcamera.
+gst_copy_args=(--plugin-dir "${gst_plugin_dir}" --plugin-dir "${LIBCAMERA_PREFIX:-/opt/libcamera}/lib/gstreamer-1.0"
+  --optional openh264 --optional libcamera)
+for plugin in "${plugins[@]}"; do gst_copy_args+=(--plugin "${plugin}"); done
+bash "$(antfrastructure_path linux/scripts/06-packaging/gstreamer-bundle.sh)" copy --dest "${bundle}/lib/gstreamer-1.0" "${gst_copy_args[@]}"
 
 # webrtcsink's codec discovery needs a registry built by the scanner, under the bundled loader too.
 scanner="$(find /opt/gstreamer -name gst-plugin-scanner -type f 2>/dev/null | head -1 || true)"
