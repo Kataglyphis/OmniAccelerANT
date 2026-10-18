@@ -5,6 +5,8 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ## Unreleased
 
+## 2.2.1+5 — 2026-10-18
+
 ### Fixed
 
 - **The Windows ObservANT's viewer check judges the 60 frames, not the teardown.** The release dry
