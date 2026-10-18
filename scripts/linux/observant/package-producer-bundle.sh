@@ -30,8 +30,7 @@ repo_root="$(cd -- "${script_dir}/../../.." && pwd)"
 source "${script_dir}/../lib/antfrastructure.sh"
 _ci_image_ref_sh="$(antfrastructure_path linux/scripts/ci-image-ref.sh)"
 image="$(bash "${_ci_image_ref_sh}")"
-# The hub's G6 census, mounted into the assembling run to prove the bundle's ONNX Runtime.
-# The hub scripts the builder runs (G6, the plugin copy); 06-packaging alone misses the 01-core it sources.
+# The hub scripts the assembling run uses (G6, the plugin copy); 06-packaging alone misses the 01-core it sources.
 hub_scripts="$(dirname "$(dirname "$(antfrastructure_path linux/scripts/06-packaging/check-ort-provenance.sh)")")"
 target_volume="kataglyphis-cat-target"
 cargo_volume="kataglyphis-cat-cargo"
