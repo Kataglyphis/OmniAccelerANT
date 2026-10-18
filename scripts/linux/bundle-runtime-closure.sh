@@ -148,22 +148,15 @@ for file in "$bundle_lib"/* "$bundle_lib"/gstreamer-1.0/* "$BUNDLE_DIR"/*; do
 done
 walk_queue
 
-# Plugins are dlopen'd, never DT_NEEDED, so they come from the fixed list and their closure is walked after.
+# Plugins are dlopen'd, never DT_NEEDED: the hub copies the fixed list, a missing one fails, and their closure is walked after.
+gst_copy_args=(--plugin-dir "$gst_plugins_dir")
+for plugin in "${GST_BUNDLED_PLUGIN_NAMES[@]}"; do gst_copy_args+=(--plugin "$plugin"); done
+bash "$(antfrastructure_path linux/scripts/06-packaging/gstreamer-bundle.sh)" copy --dest "$bundle_lib/gstreamer-1.0" "${gst_copy_args[@]}"
 for plugin in "${GST_BUNDLED_PLUGIN_NAMES[@]}"; do
-  src="$gst_plugins_dir/libgst${plugin}.so"
-  dest="$bundle_lib/gstreamer-1.0/libgst${plugin}.so"
-  if [[ ! -e "$src" ]]; then
-    printf 'Warning: GStreamer plugin libgst%s.so not found in %s\n' "$plugin" "$gst_plugins_dir" >&2
-    continue
-  fi
-  if [[ ! -e "$dest" ]]; then
-    cp -L "$src" "$dest"
-    copied_count=$((copied_count + 1))
-  fi
   seen["libgst${plugin}.so"]=1
-  queue+=("$dest")
-  walk_queue
+  queue+=("$bundle_lib/gstreamer-1.0/libgst${plugin}.so")
 done
+walk_queue
 
 # Prepend $ORIGIN, keep the old entries: dead on a target, they still resolve in the image.
 patch_origin_rpath() {

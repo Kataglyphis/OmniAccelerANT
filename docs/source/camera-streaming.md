@@ -345,8 +345,9 @@ AccelerANTgine's library, which the plugin links, does the same from its own con
 (AccelerANTgine `24de58f`), set-unless-set, and adds a registry per installed copy under
 `$XDG_CACHE_HOME/kataglyphis-gstreamer/`, so the bundle never rescans a registry another GStreamer
 wrote.
-The other side of that rule is a gate: `scripts/linux/check-bundle-gst-elements.sh` asks the
-image's `gst-inspect-1.0`, under exactly that environment, for every element the pipelines name
+The other side of that rule is a gate: `scripts/linux/check-bundle-gst-elements.sh` hands the
+hub's `gstreamer-bundle.sh check` (shared with every family package since hub `67fc768e`) every
+element the pipelines name, which asks the image's `gst-inspect-1.0` under exactly that environment
 (`GST_PIPELINE_ELEMENTS` in `scripts/linux/lib/bundle-runtime.sh`), and fails on one that no bundled
 plugin provides or that loads from elsewhere. `test/pinned_artefacts_test.dart` keeps the list in
 step with the Dart pipelines' Linux sources; OxidANT's `capture.rs` adds `videoscale`. A new

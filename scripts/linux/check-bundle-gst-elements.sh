@@ -7,6 +7,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/lib/cli-common.sh"
 # shellcheck source=scripts/linux/lib/bundle-runtime.sh
 source "$SCRIPT_DIR/lib/bundle-runtime.sh"
+# shellcheck source=scripts/linux/lib/antfrastructure.sh
+source "$SCRIPT_DIR/lib/antfrastructure.sh"
 
 matrix_arch="$(detect_arch)"
 build_mode="release"
@@ -44,32 +46,6 @@ if [ ! -d "$plugin_dir" ]; then
 fi
 require_cmd "$gst_inspect" || exit 2
 
-work="$(mktemp -d)"
-trap 'rm -rf "$work"' EXIT
-
-failures=0
-for element in "${GST_PIPELINE_ELEMENTS[@]}"; do
-  rc=0
-  # runtime_paths.cc's environment: the bundle's plugins, an empty system path, no scanner fork, a fresh registry.
-  out="$(env -u GST_PLUGIN_PATH_1_0 GST_PLUGIN_PATH="$plugin_dir" \
-    GST_PLUGIN_SYSTEM_PATH= GST_PLUGIN_SYSTEM_PATH_1_0= GST_REGISTRY="$work/registry.bin" \
-    GST_REGISTRY_FORK=no LD_LIBRARY_PATH="${bundle_dir}/lib" "$gst_inspect" "$element" 2>&1)" || rc=$?
-  if [ "$rc" -ne 0 ]; then
-    printf 'FAIL %s: no bundled plugin provides it\n' "$element"
-    failures=$((failures + 1))
-    continue
-  fi
-  file="$(awk '$1 == "Filename" { print $2; exit }' <<<"$out")"
-  case "$file" in
-    "$plugin_dir"/*) printf 'ok   %s (%s)\n' "$element" "${file#"$plugin_dir"/}" ;;
-    *)
-      printf 'FAIL %s: loaded from %s, outside the bundle\n' "$element" "${file:-<no Filename>}"
-      failures=$((failures + 1))
-      ;;
-  esac
-done
-if [ "$failures" -gt 0 ]; then
-  printf '%s pipeline element(s) would be missing on a machine without the image: bundle their plugins (GST_BUNDLED_PLUGIN_NAMES)\n' "$failures"
-  exit 1
-fi
-printf 'OK   %s pipeline element(s) load from %s alone\n' "${#GST_PIPELINE_ELEMENTS[@]}" "$plugin_dir"
+# The hub's check, under runtime_paths.cc's environment; a missing element's plugin goes into GST_BUNDLED_PLUGIN_NAMES.
+GST_INSPECT="$gst_inspect" bash "$(antfrastructure_path linux/scripts/06-packaging/gstreamer-bundle.sh)" check \
+  --plugins "$plugin_dir" --lib-dir "${bundle_dir}/lib" "${GST_PIPELINE_ELEMENTS[@]}"
