@@ -24,6 +24,7 @@
   "detectionArrivalVideo": "Ankunft als Video ansehen",
   "detectionEarlierVideos": "Frühere Videos:",
   "cameraSettingsNav": "Kamera",
+  "deviceNav": "Gerät",
   "cameraSettingsTitle": "Kamera-Einstellungen",
   "cameraNotReachable": "Hier antwortet keine ObservANT-Kamera. Diese Einstellungen gibt es auf der Seite einer ObservANT-Kamera.",
   "cameraRotation": "Drehung",

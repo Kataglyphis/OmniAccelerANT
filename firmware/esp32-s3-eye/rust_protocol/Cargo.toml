@@ -1,0 +1,18 @@
+[package]
+name = "omni_esp32_eye_proto"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[lib]
+crate-type = ["staticlib"]
+
+[dependencies]
+kataglyphis_esp32_proto = { path = "../../../third_party/OxidANT/crates/esp32-protocol" }
+
+[profile.release]
+opt-level = "s"
+lto = "fat"
+codegen-units = 1
+strip = true
+panic = "abort"

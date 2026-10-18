@@ -1,0 +1,3 @@
+[toolchain]
+# espup install --targets esp32s3 names this toolchain `esp`.
+channel = "esp"

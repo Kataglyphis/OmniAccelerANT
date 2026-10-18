@@ -30,6 +30,7 @@ OmniAccelerANT bundles a Flutter/Dart frontend, a Rust/C++ inference core, and a
 - 🎨 **GStreamer native GTK integration** – Leveraging users to write beautiful Linux AI inference apps.
 - 🐱 **An installable ObservANT** – a `.deb`, AppImage, flatpak or Windows MSI (x64 and arm64) that streams a camera to any browser, spots cats with an Apache-2.0 detection model (DEIM-D-FINE-N) on a Raspberry Pi 3, 4 or 5 or a SpacemiT X100 (riscv64), logs their visits, and keeps a picture and a 10 s video of each arrival; Home Assistant can put those on a phone ([Live cat detection stream](#live-cat-detection-stream-linux--raspberry-pi)).
 - 📹 **GStreamer WebRTC livestreaming** with ready-to-use pipelines for USB and Raspberry Pi cameras.
+- 🐈 **ESP32-S3-EYE on-device cat detection** – the OV2640 and the ESP-DL `espdet_pico_224_224_cat` model run on the board; a Rust `staticlib` speaks the same USB protocol as the companion, and the Device page shows the on-device count and best score. Camera/ML are ESP-IDF/ESP-WHO (C/C++), control/protocol are Rust ([docs/source/esp32.md](docs/source/esp32.md)).
 - 🌉 **flutter_rust_bridge integration** – Ensures a seamless API boundary between Dart UI and Rust logic.
 - 🐳 **Containerized development flow** plus native instructions for Windows, Linux, web. For details in my build environment look into [ANTfrastructure](https://github.com/Kataglyphis/ANTfrastructure). On Windows the container engine is [Stevedore](https://github.com/slonopotamus/stevedore) and build containers run with `--isolation process` (full host CPU count) — see [docs/source/platforms.md](docs/source/platforms.md).
 
@@ -275,6 +276,27 @@ host — use its IP (nginx resolves the name once at startup) and open that inst
 port there too. Pipeline details, flags and troubleshooting:
 [docs/source/camera-streaming.md](docs/source/camera-streaming.md).
 
+### ESP32-S3 companion
+
+Plug an ESP32-S3 into its **native USB** port and open the **Device** page: Rust
+firmware on the board speaks a small framed protocol to `kataglyphis_esp32`, and the
+page shows telemetry, drives the status LED on GPIO2 and pings it. The webcam
+pipeline reports detections to the board on the Rust inference thread, so the LED
+reacts without a Dart round trip. The firmware lives in
+[`firmware/esp32-s3`](firmware/esp32-s3);
+`scripts/linux/esp32/build-firmware.sh [--flash]` builds it in the family `:latest`
+image with the Xtensa toolchain in a named volume. Hardware, protocol and
+troubleshooting: [docs/source/esp32.md](docs/source/esp32.md).
+
+The board on this desk is an **ESP32-S3-EYE** (OV2640, 8 MB PSRAM). The integrated
+camera + on-device cat-detection firmware is
+`scripts/linux/esp32/build-eye-demo.sh --flash`: ESP-WHO's `object_detect` with the
+`cat_detect` model **plus** the Rust USB protocol staticlib
+(`firmware/esp32-s3-eye/rust_protocol`). The C++ app runs the camera/model; the Rust
+task owns the USB protocol. The Device page shows the on-device hits, and
+`cargo run -p kataglyphis_esp32 --example probe` prints the same `hello`, `telemetry`
+and `camera` events.
+
 ### Browse the API docs locally
 
 Generate the site into `doc/api`, then serve it. Use the pub-activated
@@ -315,6 +337,7 @@ Then open <http://127.0.0.1:8080>.
 | Agent / contributor guide | [AGENTS.md](AGENTS.md) | Build workflow, container pitfalls, and quality gates for coding agents and new contributors. |
 | Known cleanups | [BACKLOG.md](BACKLOG.md) | Refactors and verification gaps this repo knows about but has not done yet, in the format ANTfrastructure's agentic loop consumes. |
 | Camera Streaming | [docs/source/camera-streaming.md](docs/source/camera-streaming.md) | The installable ObservANT and its Home Assistant notifications, the Rust webcam path (Windows and Linux; a test-pattern frame crosses it on every native lane run), and the GStreamer WebRTC pipelines. |
+| ESP32-S3 companion & camera | [docs/source/esp32.md](docs/source/esp32.md) | The Rust companion, the ESP32-S3-EYE camera + ESP-DL cat detection with a Rust protocol staticlib, the shared USB-serial protocol, the Device page, the hardware probe and troubleshooting. |
 | Upgrade guide | [docs/source/upgrade-guide.md](docs/source/upgrade-guide.md) | How to keep things up-to-date. |
 | Dependency upgrades | [third_party/ANTfrastructure/docs/dependency-updates.md](third_party/ANTfrastructure/docs/dependency-updates.md) | Renovate run as a local CLI. Submodule upgrades go through `bash scripts/linux/renovate-local.sh` (add `--apply` to move the gitlinks), not by hand; `--apply` also rewrites the manifests it reported, `pubspec.yaml` included (AGENTS.md § 5). |
 

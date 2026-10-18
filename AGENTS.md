@@ -21,6 +21,25 @@ Rust core and a C++ inference plugin underneath it.
 | `third_party/AccelerANTgine` | The inference core the plugin builds. Its own submodule, sibling to the plugin rather than nested inside it |
 | `scripts/windows/`, `scripts/linux/` | Thin wrappers over ANTfrastructure drivers + this repo's own glue |
 | `third_party/ANTfrastructure` | The submodule owning every reusable script, module and doc |
+| `firmware/esp32-s3` | Rust firmware for the ESP32-S3 companion — its own crate, `esp` toolchain and `Cargo.lock`, never a workspace member |
+| `firmware/esp32-s3-eye` | ESP32-S3-EYE camera firmware: ESP-IDF/ESP-WHO/ESP-DL (C/C++) plus the Rust USB protocol staticlib |
+| `firmware/esp32-s3-probe` | One-boot hardware probe: PSRAM and the OV2640 SCCB scan (XCLK on GPIO15) |
+
+**ESP32-S3 USB companion and camera (2026-10-18).** A board on its native USB port
+(VID:PID `303a:1001`, `/dev/ttyACM0` / `COMx`) is a physical companion: `crates/esp32-protocol`
+(shared `no_std` framing), `kataglyphis_esp32` (discovery + reader/writer threads) and
+`src/api/esp32.rs` (frb) on the host, and `firmware/esp32-s3` (`esp-hal`, own toolchain)
+on the board. The **Device** page is a view over `Esp32Controller`; the webcam engine
+forwards detections to the link on the inference thread, so the LED reacts without a
+Dart round trip. The camera variant (`firmware/esp32-s3-eye`) runs the ESP-DL cat model
+on the ESP32-S3-EYE and sends `CameraDetection` through a Rust `staticlib`; the same
+Device page shows the on-device count and best score. The bridge is a **desktop target
+dependency** — web and Android keep the stubs and never compile `serialport` — and
+`serialport` is built without its optional libudev feature, so discovery uses the sysfs
+fallback and no libudev enters the bundle. Build/flash and the protocol:
+[`docs/source/esp32.md`](docs/source/esp32.md). Tests: `cargo test -p
+kataglyphis_esp32_proto -p kataglyphis_esp32`, `flutter test test/esp32_controller_test.dart`,
+and `cargo run -p kataglyphis_esp32 --example probe` against a flashed board.
 
 **Rust-owned webcam inference (Windows, and Linux since 2026-09-16).** The Stream
 page runs a Rust-owned webcam → ONNX → Flutter-texture pipeline: `crates/media`
@@ -518,6 +537,54 @@ written out rather than linked.
   hand-format them; what they write then passes the gate unchanged. The image
   carries no `cargo-expand`, so the codegen installs it on first use and needs
   network.
+- **The ESP32-S3 bridge is desktop-only and its firmware is a separate toolchain.**
+  `kataglyphis_esp32` sits in a `[target.'cfg(any(target_os = "linux", target_os =
+  "windows", target_os = "macos"))'.dependencies]` block; moving it to `[dependencies]`
+  drags `serialport` into Android and wasm. `build.rs` sets `cfg(desktop)` from
+  `CARGO_CFG_TARGET_OS`, and `src/api/esp32.rs` has stubs for the other targets. The
+  firmware is not a workspace member: it needs the `esp` toolchain and
+  `xtensa-esp32s3-none-elf`, and its own `Cargo.lock`; the protocol crate is the only
+  shared Rust. Espup supports aarch64 Linux, but `/tmp` on the Pi is a 4 GB tmpfs —
+  install under `$HOME/.cache` or the rust-docs unpack dies with `No space left on
+  device`. `scripts/linux/esp32/build-firmware.sh` keeps the toolchain in a named
+  volume, builds as the image user, and flashes with `--before usb-reset` for the
+  native USB port, `default-reset` for a UART bridge. The flash step alone runs as
+  root: rootless nerdctl remaps the device to `nobody:nogroup`, which the image user
+  cannot open. `serialport` is built with `default-features =
+  false`: its Linux `/sys/class/tty` fallback does the discovery, no libudev enters the
+  packaged bundle, and the riscv64 cross lane is unaffected. A protocol field change
+  touches `crates/esp32-protocol`, `crates/esp32`, `src/api/esp32.rs` and
+  `firmware/esp32-s3` together.
+
+- **The ESP32-S3-EYE's OV2640 does not answer SCCB until XCLK runs.** The board is an
+  ESP32-S3-EYE: 8 MB flash, **8 MB octal PSRAM**, OV2640 at SCCB `0x30`, ES8311 codec at
+  `0x12` on the same bus (SDA GPIO4 / SCL GPIO5). A scan without XCLK finds only the
+  codec; a busy-loop clock also missed the sensor. Use **LEDC 10 MHz on GPIO15**, as
+  `firmware/esp32-s3-probe` does. DVP: VSYNC 6, HREF 7, PCLK 13, Y2…Y9 = 11, 9, 8, 10,
+  12, 18, 17, 16. The 8 MB flash is tight for ESP-DL: a 320 px YOLO11n model plus
+  ESP-IDF and the Rust app does not fit comfortably; target a 96–160 px model unless the
+  board is replaced with a 16 MB variant. The chosen camera firmware is variant A
+  (ESP-IDF + `esp32-camera`/ESP-DL with a Rust protocol layer), documented in
+  `docs/source/esp32.md` § *Camera and on-device AI*. The first bring-up is Espressif's
+  ESP-WHO `object_detect` with `cat_detect`, built by
+  `scripts/linux/esp32/build-eye-demo.sh` in `espressif/idf:release-v5.5` — a separate
+  image from the family `:latest`, which has no ESP-IDF; the first build downloads the
+  BSP and cat model through the component manager. The integrated firmware links
+  `firmware/esp32-s3-eye/rust_protocol` as a `staticlib`: the C++ detect callback calls
+  `omni_proto_on_detections`, and the Rust task owns `Hello`/`Telemetry`/`CameraDetection`
+  and the host commands. The app console must be **UART0** (`CONFIG_ESP_CONSOLE_UART_DEFAULT`);
+  on the USB port it consumed the host's `HostHello` before the Rust read. The Rust
+  archive is last on the IDF link line, so `main/CMakeLists.txt` forces
+  `esp_efuse_mac_get_default`, `xTaskCreatePinnedToCore` and
+  `usb_serial_jtag_driver_install` with `-Wl,--undefined`. The demo is pinned to ESP-WHO
+  `b6ac2be`, BSP `5.0.2` and `cat_detect` `0.3.0`: master's example code uses the BSP
+  6.0.0 `bsp_camera_cfg_t` API while its lock and sdkconfig defaults are still 5.0.2, so
+  moving the pin needs the code and defaults moved together. The script disables the
+  example's BSP LED block (absent from 5.0.2), patches the esp-dl 3.3.13 API
+  (`RGB565BE`, `img.bytes()`, two-argument `sw_decode_jpeg`, non-`caps` `cvt_pix`), and
+  runs the terminal app. `idf.py monitor` is not the view any more: the USB port carries
+  the protocol; use the host probe or the app.
+
 - **Windows host only: the webcam reaches WSL over usbipd, and WebRTC needs
   mirrored networking.** `usbipd attach --wsl --busid <id>` (bus ids change)
   plus `modprobe uvcvideo` gives the container `/dev/video0`;

@@ -14,6 +14,7 @@ import 'support/real_fonts.dart';
 const List<String> _routes = <String>[
   '/stream',
   '/cameraSettings',
+  '/device',
   '/landingPage',
   '/aboutMe',
   '/privacyPolicy',

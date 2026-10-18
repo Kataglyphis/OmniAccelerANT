@@ -91,6 +91,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get cameraSettingsNav => 'Camera';
 
   @override
+  String get deviceNav => 'Device';
+
+  @override
   String get cameraSettingsTitle => 'Camera settings';
 
   @override

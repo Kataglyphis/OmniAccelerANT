@@ -35,6 +35,7 @@
   "detectionArrivalVideo": "Watch the arrival",
   "detectionEarlierVideos": "Earlier videos:",
   "cameraSettingsNav": "Camera",
+  "deviceNav": "Device",
   "cameraSettingsTitle": "Camera settings",
   "cameraNotReachable": "No ObservANT camera answers here. These settings live on an ObservANT camera's own page.",
   "cameraRotation": "Rotation",

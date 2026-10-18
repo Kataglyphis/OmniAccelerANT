@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:omni_accelerant/Pages/AboutMePage/about_me_page.dart';
 import 'package:omni_accelerant/Pages/Blog/blog_page.dart';
 import 'package:omni_accelerant/Pages/CameraSettingsPage/camera_settings_page.dart';
+import 'package:omni_accelerant/Pages/DevicePage/device_page.dart';
 import 'package:anthology/Pages/DataPage/BlockOverviewPage/block_overview_page.dart';
 import 'package:omni_accelerant/Pages/StreamPage/stream_page.dart';
 import 'package:anthology/Pages/ErrorPage/error_page.dart';
@@ -84,6 +85,10 @@ class OmniRoutes extends RoutesCreator {
         webrtcSettings: blogDependentAppAttributes.webrtcSettings,
       ),
       CameraSettingsPage(
+        footer: getFooter(appAttributes),
+        appAttributes: appAttributes,
+      ),
+      DevicePage(
         footer: getFooter(appAttributes),
         appAttributes: appAttributes,
       ),

@@ -248,6 +248,12 @@ abstract class AppLocalizations {
   /// **'Camera'**
   String get cameraSettingsNav;
 
+  /// No description provided for @deviceNav.
+  ///
+  /// In en, this message translates to:
+  /// **'Device'**
+  String get deviceNav;
+
   /// No description provided for @cameraSettingsTitle.
   ///
   /// In en, this message translates to:
