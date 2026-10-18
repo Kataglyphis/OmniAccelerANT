@@ -43,7 +43,7 @@ what the owner's goal still lacks.
     connected to local push notifications` (the minimal app was not connected; its
     *Persistent connection* wants *Always*), and 30 events were dropped at the
     automation's `max: 10`, now 40. Whether one reached the phone needs the owner's look.
-- [ ] **The Windows ObservANT with a camera, at a real logon.** The MSI works
+- [b] **The Windows ObservANT with a camera, at a real logon.** The MSI works
   in the image and on a real Windows 11 host (`scripts/windows/observant/`, 2026-10-06),
   and `web.yml`'s `observant-windows` job packages and tests it around every web build.
   - **In the image:** `Test-ObservANTWindows.ps1` passed all 14 checks: the MSI's LAN-only
@@ -81,7 +81,7 @@ what the owner's goal still lacks.
   - Autostart is a logon task by owner decision. A boot-time service would run in
     Session 0, and on a PC with a webcam it first needs proof that LocalSystem or
     LocalService can open the camera there at all.
-- [ ] **ObservANT flatpak on a real Linux desktop.** `package-observant.sh` builds it
+- [b] **ObservANT flatpak on a real Linux desktop.** `package-observant.sh` builds it
   since 2026-10-06, and `web.yml` tests it on x64 and arm64 with the .deb and the
   AppImage.
   - In `:latest` it installed, answered `/healthz` from its sandbox, and headless Chrome
