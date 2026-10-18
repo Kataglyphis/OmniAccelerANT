@@ -1384,7 +1384,10 @@ WiX's firewall extension, which the hub's final stage installs (`WIX_FIREWALL_EX
 - the silent install, its files, the Startup entry and the shortcuts;
 - the installed exe run with only System32 on PATH: `/healthz` and the page answer, and
   every loaded module comes from the install folder or Windows, idle and with a viewer;
-- a `webrtcsrc` viewer decoding 60 frames;
+- a `webrtcsrc` viewer decoding 60 frames: its EOS, which only `identity eos-after=60` sends, is the
+  proof. After it the signaller can lose its peer before `gst-launch` tears down and exit 1 with
+  `send failed because receiver is gone` (once in the 2.2.0 dry run, 2026-10-18); that error alone
+  after the EOS still passes, any other fails;
 - the bundled model on the bundled ORT finding the cat;
 - a silent uninstall that leaves nothing.
 

@@ -91,6 +91,9 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 - **The Linux app loads only its bundled GStreamer plugins** (2026-10-17, owner: the family's own
   GStreamer, never a distro's). `runtime_paths.cc` empties the system plugin path when the bundle
   carries its plugins, so a host's distro plugins never load beside them.
+- **The Windows ObservANT's viewer check judges the 60 frames, not the teardown.** The release dry
+  run failed once after the viewer's EOS, when the signaller lost its peer and `gst-launch` exited 1;
+  that one error after the EOS passes now, any other still fails.
 - **The app bundle and ObservANT copy their GStreamer plugins through the hub's
   `gstreamer-bundle.sh`** (CON100): one shared copy with one error for a missing plugin, instead
   of three hand-written loops; the app's element gate is the hub's `check` behind a thin wrapper.
