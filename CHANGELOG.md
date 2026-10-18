@@ -5,6 +5,19 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ## Unreleased
 
+### Fixed
+
+- **The Windows ObservANT's viewer check judges the 60 frames, not the teardown.** The release dry
+  run failed once after the viewer's EOS, when the signaller lost its peer and `gst-launch` exited 1;
+  that one error after the EOS passes now, any other still fails.
+
+### Changed
+
+- **The Pi Zero bundle copies its plugins through the hub's `gstreamer-bundle.sh` too**, so a
+  missing plugin fails with the hub's one error instead of a hand-written loop's, and its list lost
+  `sdp`, a plugin the image never had (it warned on every build; `webrtcsink` needs only the
+  `libgstsdp` library, which the closure brings).
+
 ## 2.2.0+4 — 2026-10-17
 
 ### Added
@@ -91,14 +104,9 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 - **The Linux app loads only its bundled GStreamer plugins** (2026-10-17, owner: the family's own
   GStreamer, never a distro's). `runtime_paths.cc` empties the system plugin path when the bundle
   carries its plugins, so a host's distro plugins never load beside them.
-- **The Windows ObservANT's viewer check judges the 60 frames, not the teardown.** The release dry
-  run failed once after the viewer's EOS, when the signaller lost its peer and `gst-launch` exited 1;
-  that one error after the EOS passes now, any other still fails.
-- **The app bundle, ObservANT and the Pi Zero bundle copy their GStreamer plugins through the
-  hub's `gstreamer-bundle.sh`** (CON100): one shared copy with one error for a missing plugin,
-  instead of four hand-written loops; the app's element gate is the hub's `check` behind a thin
-  wrapper. The Pi Zero bundle's list lost `sdp`, a plugin the image never had (it warned on every
-  build; `webrtcsink` needs only the `libgstsdp` library, which the closure brings).
+- **The app bundle and ObservANT copy their GStreamer plugins through the hub's
+  `gstreamer-bundle.sh`** (CON100): one shared copy with one error for a missing plugin, instead
+  of three hand-written loops; the app's element gate is the hub's `check` behind a thin wrapper.
 - **The hub at `5c65bec8`, AccelerANTgine at `24de58f`.** The app's AppImage and ObservANT's take
   the image's pinned AppImage runtime instead of downloading `continuous` (`appimagetool` 1.9 never
   read the staged one), and ObservANT's packager uses the hub's `app_packaging_appimage_runtime_file`
