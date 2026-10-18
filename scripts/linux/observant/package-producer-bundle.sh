@@ -31,8 +31,8 @@ source "${script_dir}/../lib/antfrastructure.sh"
 _ci_image_ref_sh="$(antfrastructure_path linux/scripts/ci-image-ref.sh)"
 image="$(bash "${_ci_image_ref_sh}")"
 # The hub's G6 census, mounted into the assembling run to prove the bundle's ONNX Runtime.
-_ort_census_sh="$(antfrastructure_path linux/scripts/06-packaging/check-ort-provenance.sh)"
-ort_census_dir="$(dirname "${_ort_census_sh}")"
+# The hub scripts the builder runs (G6, the plugin copy); 06-packaging alone misses the 01-core it sources.
+hub_scripts="$(dirname "$(dirname "$(antfrastructure_path linux/scripts/06-packaging/check-ort-provenance.sh)")")"
 target_volume="kataglyphis-cat-target"
 cargo_volume="kataglyphis-cat-cargo"
 bundle_dir="${repo_root}/build/observant/pi-bundle"
@@ -76,7 +76,7 @@ mkdir -p "${bundle_dir}"
 nerdctl run ${platform_args[@]+"${platform_args[@]}"} --rm -i --user 0:0 \
   -v "${target_volume}":/cargo-target \
   -v "${bundle_dir}":/out \
-  -v "${ort_census_dir}":/ort-census:ro \
+  -v "${hub_scripts}":/hub-scripts:ro \
   --entrypoint bash "${image}" -s <<'BUNDLE_BUILDER'
 set -euo pipefail
 
@@ -92,21 +92,12 @@ done
 # vp8enc -> webrtcsink (which pulls in the webrtc/sdp/dtls/sctp/nice bits).
 gst_lib_dir=/opt/gstreamer/lib/multiarch
 gst_plugin_dir="${gst_lib_dir}/gstreamer-1.0"
-for plugin in coreelements app videoconvertscale videorate videofilter videotestsrc debugutilsbad vpx rswebrtc webrtc nice sdp dtls sctp rtpmanager rtp; do
-  if [ -e "${gst_plugin_dir}/libgst${plugin}.so" ]; then
-    cp -L "${gst_plugin_dir}/libgst${plugin}.so" /out/gstreamer-1.0/
-  else
-    printf 'warning: plugin %s not found in the image\n' "${plugin}" >&2
-  fi
+# libcamerasrc is optional: on Raspberry Pi OS the producer reads rpicam-vid, and this build misses its libcamera fork's ABI.
+gst_copy_args=(--plugin-dir "${gst_plugin_dir}" --plugin-dir /opt/libcamera/lib/gstreamer-1.0 --optional libcamera)
+for plugin in coreelements app videoconvertscale videorate videofilter videotestsrc debugutilsbad vpx rswebrtc webrtc nice dtls sctp rtpmanager rtp; do
+  gst_copy_args+=(--plugin "${plugin}")
 done
-
-# The image keeps the libcamera plugin next to its libcamera build, not in the
-# GStreamer prefix.
-if [ -e /opt/libcamera/lib/gstreamer-1.0/libgstlibcamera.so ]; then
-  cp -L /opt/libcamera/lib/gstreamer-1.0/libgstlibcamera.so /out/gstreamer-1.0/
-else
-  printf 'warning: libcamera plugin not found in the image\n' >&2
-fi
+bash /hub-scripts/06-packaging/gstreamer-bundle.sh copy --dest /out/gstreamer-1.0 "${gst_copy_args[@]}"
 
 # Codec discovery only finds encoders/payloaders when the registry is built by
 # the plugin scanner, and the scanner must run under the bundled glibc too -
@@ -188,7 +179,7 @@ done
 # run.sh starts the producer with --library-path lib/; its RUNPATH says the same to G6's ld.so model.
 # The verdict: every ORT binary in /out is this image's chain build and the producer resolves to it.
 patchelf --set-rpath '$ORIGIN/../lib' /out/bin/kataglyphis_observant
-bash /ort-census/check-ort-provenance.sh /out
+bash /hub-scripts/06-packaging/check-ort-provenance.sh /out
 
 printf 'bundle: %s files, %s\n' "$(find /out -type f | wc -l)" "$(du -sh /out | cut -f1)"
 BUNDLE_BUILDER
