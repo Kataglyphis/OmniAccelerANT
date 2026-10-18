@@ -15,8 +15,10 @@ consumes, so the loop this repo adopted on 2026-09-13 (`scripts/agentic-loop/`,
 
 The installable ObservANT: `docs/source/camera-streaming.md` § *The ObservANT package*.
 Linux amd64/arm64 ship as a .deb and an AppImage, proven on himbeere2 (Pi 5) on
-2026-10-05, and as a flatpak, proven in `:latest` on 2026-10-06. Windows x64 ships as an MSI and an MSIX, proven on a Windows 11 host on
-2026-10-06. These rows are what the owner's goal still lacks.
+2026-10-05, and as a flatpak, proven in `:latest` on 2026-10-06. Windows x64 ships as an MSI
+and an MSIX, proven on a Windows 11 host (2026-10-06); arm64 ships the same pair, its MSI
+installed and tested on `windows-11-arm` and its MSIX checked (2026-10-16). These rows are
+what the owner's goal still lacks.
 
 - [b] **A USB webcam through `camera = "auto"` on amd64 or arm64.** Proven on riscv64:
   on 2026-10-13 mintberrycrunch's unit found its C270 by itself (`v4l2src /dev/video9 (C270
@@ -41,7 +43,7 @@ Linux amd64/arm64 ship as a .deb and an AppImage, proven on himbeere2 (Pi 5) on
     connected to local push notifications` (the minimal app was not connected; its
     *Persistent connection* wants *Always*), and 30 events were dropped at the
     automation's `max: 10`, now 40. Whether one reached the phone needs the owner's look.
-- [ ] **The Windows ObservANT with a camera, at a real logon, then on arm64.** The MSI works
+- [ ] **The Windows ObservANT with a camera, at a real logon.** The MSI works
   in the image and on a real Windows 11 host (`scripts/windows/observant/`, 2026-10-06),
   and `web.yml`'s `observant-windows` job packages and tests it around every web build.
   - **In the image:** `Test-ObservANTWindows.ps1` passed all 14 checks: the MSI's LAN-only
@@ -70,9 +72,12 @@ Linux amd64/arm64 ship as a .deb and an AppImage, proven on himbeere2 (Pi 5) on
       so at start.
   - **The web build as Linux ships it** (2026-10-17): `Package-ObservANT.ps1` cuts the same
     renderers and maps, and on x64 runs `--precompress`, which `Test-ObservANTWindows.ps1` checks
-    (camera-streaming.md, *The Windows ObservANT*). Open: the first `web.yml` run of it, and `.gz`
-    files for arm64, whose producer cannot run on the amd64 packaging host.
-  - **Then:** arm64; the hub's CON63, which it waited on, is done since 2026-10-11.
+    (camera-streaming.md, *The Windows ObservANT*). `web.yml` has run it since (2.2.1's release
+    round, 2026-10-18); open: `.gz` files for arm64, whose producer cannot run on the amd64
+    packaging host.
+  - **arm64 ships too** (2026-10-16): cross-built in `:winarm64`, its MSI installed and tested on
+    `windows-11-arm`, its MSIX packaged and checked, in every release; the hub's CON63 it waited
+    on is done since 2026-10-11.
   - Autostart is a logon task by owner decision. A boot-time service would run in
     Session 0, and on a PC with a webcam it first needs proof that LocalSystem or
     LocalService can open the camera there at all.
