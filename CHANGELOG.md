@@ -73,6 +73,12 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
   `.antfrastructure-shared.manifest` declares `agentic-loop-sh` and `agentic-loop-ps1`, so both
   `sync-shared-config.sh --check` and `Sync-SharedConfig.ps1 -Check` now compare them; the
   `SC1090` freeze for the old `$AGENTIC_LIB` source left `shellcheck-warnings.allow`.
+- **`docs/site-links.allow` freezes nothing any more** (2026-10-19, hub c3fc7585). The hub's
+  guide renderer now sends a guide's link to any repository file to GitHub, so the 13 rows (links
+  to workflows, the manifest, hub scripts and Cargokit's README that climbed out of `doc/api`)
+  went STALE and are deleted; the file and `docs.yml`'s `link-allow` stay for the next link that
+  has to. The site rebuilt in `:latest` (909 documents): with the rows the gate fails on 13 STALE
+  entries, without them it passes with 0 findings.
 
 ### Fixed
 
