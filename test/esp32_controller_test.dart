@@ -4,103 +4,29 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:omni_accelerant/Pages/DevicePage/esp32_controller.dart';
 import 'package:omni_accelerant/src/rust/api/esp32.dart';
 
-class _FakeEsp32Api implements Esp32Api {
-  _FakeEsp32Api({this.availableValue = true});
-
-  bool availableValue;
-  List<Esp32Device> ports = const <Esp32Device>[];
-  final StreamController<Esp32Event> events =
-      StreamController<Esp32Event>.broadcast();
-
-  int connects = 0;
-  int disconnects = 0;
-  int pings = 0;
-  final List<(int, int, int, int)> leds = <(int, int, int, int)>[];
-
-  @override
-  bool get available => availableValue;
-
-  @override
-  Future<List<Esp32Device>> listDevices() async => ports;
-
-  @override
-  Stream<Esp32Event> connect(String path) {
-    connects++;
-    return events.stream;
-  }
-
-  @override
-  Future<void> disconnect() async {
-    disconnects++;
-  }
-
-  @override
-  void setLed({
-    required int red,
-    required int green,
-    required int blue,
-    required int blinkMs,
-  }) {
-    leds.add((red, green, blue, blinkMs));
-  }
-
-  @override
-  void ping() {
-    pings++;
-  }
-
-  @override
-  void setTelemetryPeriod(int ms) {}
-}
-
-Esp32Device _port(String path, {bool espressif = true}) {
-  return Esp32Device(
-    path: path,
-    serialNumber: espressif ? 'E8:06:90:9D:3E:78' : null,
-    product: espressif ? 'USB JTAG/serial debug unit' : 'FT232R USB UART',
-    manufacturer: espressif ? 'Espressif' : 'FTDI',
-    vendorId: espressif ? 0x303A : 0x0403,
-    productId: espressif ? 0x1001 : 0x6001,
-    espressif: espressif,
-  );
-}
-
-Esp32Event _event(
-  String kind, {
-  String? text,
-  int? value,
-  bool? flag,
-  String? firmware,
-  String? mac,
-  int? uptimeMs,
-  int? freeHeap,
-  int? temperatureCentiC,
-  int? detectionCount,
-  int? scorePermille,
-}) {
-  return Esp32Event(
-    kind: kind,
-    text: text,
-    value: value,
-    flag: flag,
-    firmware: firmware,
-    mac: mac,
-    uptimeMs: uptimeMs,
-    freeHeap: freeHeap,
-    temperatureCentiC: temperatureCentiC,
-    detectionCount: detectionCount,
-    scorePermille: scorePermille,
-  );
-}
+import 'support/fake_esp32_api.dart';
 
 Future<void> _settle() => Future<void>.delayed(Duration.zero);
 
+/// A controller already linked to a board on /dev/ttyACM0.
+Future<(FakeEsp32Api, Esp32Controller)> _connected() async {
+  final FakeEsp32Api api = FakeEsp32Api();
+  api.ports = <Esp32Device>[esp32Port('/dev/ttyACM0')];
+  final Esp32Controller controller = Esp32Controller(api: api);
+  addTearDown(controller.dispose);
+  await controller.refresh();
+  await controller.connect();
+  api.events.add(esp32Event('hello'));
+  await _settle();
+  return (api, controller);
+}
+
 void main() {
   test('refresh selects the first port and preselects it', () async {
-    final _FakeEsp32Api api = _FakeEsp32Api();
+    final FakeEsp32Api api = FakeEsp32Api();
     api.ports = <Esp32Device>[
-      _port('/dev/ttyUSB0', espressif: false),
-      _port('/dev/ttyACM0'),
+      esp32Port('/dev/ttyUSB0', espressif: false),
+      esp32Port('/dev/ttyACM0'),
     ];
     final Esp32Controller controller = Esp32Controller(api: api);
     addTearDown(controller.dispose);
@@ -112,8 +38,103 @@ void main() {
     expect(controller.error, isNull);
   });
 
+  test(
+    'refresh falls back to the first port when no board is Espressif',
+    () async {
+      final FakeEsp32Api api = FakeEsp32Api();
+      api.ports = <Esp32Device>[
+        esp32Port('/dev/ttyUSB0', espressif: false),
+        esp32Port('/dev/ttyUSB1', espressif: false),
+      ];
+      final Esp32Controller controller = Esp32Controller(api: api);
+      addTearDown(controller.dispose);
+
+      await controller.refresh();
+
+      expect(controller.selectedPath, '/dev/ttyUSB0');
+    },
+  );
+
+  test('refresh keeps a chosen port that is still plugged in', () async {
+    final FakeEsp32Api api = FakeEsp32Api();
+    api.ports = <Esp32Device>[
+      esp32Port('/dev/ttyUSB0', espressif: false),
+      esp32Port('/dev/ttyACM0'),
+    ];
+    final Esp32Controller controller = Esp32Controller(api: api);
+    addTearDown(controller.dispose);
+    await controller.refresh();
+    int notified = 0;
+    controller.addListener(() => notified++);
+
+    controller.select('/dev/ttyUSB0');
+    expect(controller.selectedPath, '/dev/ttyUSB0');
+    expect(notified, 1);
+
+    await controller.refresh();
+    expect(controller.selectedPath, '/dev/ttyUSB0');
+  });
+
+  test('refresh drops the selection once the last port is gone', () async {
+    final FakeEsp32Api api = FakeEsp32Api();
+    api.ports = <Esp32Device>[esp32Port('/dev/ttyACM0')];
+    final Esp32Controller controller = Esp32Controller(api: api);
+    addTearDown(controller.dispose);
+    await controller.refresh();
+    expect(controller.selectedPath, '/dev/ttyACM0');
+
+    api.ports = const <Esp32Device>[];
+    await controller.refresh();
+
+    expect(controller.devices, isEmpty);
+    expect(controller.selectedPath, isNull);
+  });
+
+  test(
+    'a failed port listing is reported and ends the loading state',
+    () async {
+      final FakeEsp32Api api = FakeEsp32Api()..listError = StateError('udev');
+      final Esp32Controller controller = Esp32Controller(api: api);
+      addTearDown(controller.dispose);
+
+      await controller.refresh();
+
+      expect(controller.error, 'Could not list serial ports: Bad state: udev');
+      expect(controller.loading, isFalse);
+    },
+  );
+
+  test('refresh is loading until the ports arrive', () async {
+    final FakeEsp32Api api = FakeEsp32Api()
+      ..pendingList = Completer<List<Esp32Device>>();
+    final Esp32Controller controller = Esp32Controller(api: api);
+    addTearDown(controller.dispose);
+
+    final Future<void> refreshing = controller.refresh();
+    expect(controller.loading, isTrue);
+
+    api.pendingList!.complete(<Esp32Device>[esp32Port('/dev/ttyACM0')]);
+    await refreshing;
+    expect(controller.loading, isFalse);
+    expect(controller.selectedPath, '/dev/ttyACM0');
+  });
+
+  test('a listing that finishes after dispose does not notify', () async {
+    final FakeEsp32Api api = FakeEsp32Api()
+      ..pendingList = Completer<List<Esp32Device>>();
+    final Esp32Controller controller = Esp32Controller(api: api);
+
+    final Future<void> refreshing = controller.refresh();
+    controller.dispose();
+    api.pendingList!.complete(<Esp32Device>[esp32Port('/dev/ttyACM0')]);
+
+    // A disposed ChangeNotifier asserts on notifyListeners, so this completes only behind the guard.
+    await expectLater(refreshing, completes);
+    expect(api.disconnects, 1);
+  });
+
   test('an unavailable bridge explains itself instead of throwing', () async {
-    final _FakeEsp32Api api = _FakeEsp32Api(availableValue: false);
+    final FakeEsp32Api api = FakeEsp32Api(availableValue: false);
     final Esp32Controller controller = Esp32Controller(api: api);
     addTearDown(controller.dispose);
 
@@ -123,19 +144,39 @@ void main() {
     expect(controller.error, contains('desktop'));
   });
 
+  test('without an injected bridge flutter test reports it unavailable', () {
+    final Esp32Controller controller = Esp32Controller();
+
+    expect(controller.available, isFalse);
+    // dispose reaches the absent RustLib too, and must swallow that.
+    expect(controller.dispose, returnsNormally);
+  });
+
+  test('connect without a port explains itself and opens nothing', () async {
+    final FakeEsp32Api api = FakeEsp32Api();
+    final Esp32Controller controller = Esp32Controller(api: api);
+    addTearDown(controller.dispose);
+
+    await controller.connect();
+
+    expect(controller.error, 'No serial port selected.');
+    expect(api.connects, 0);
+  });
+
   test('hello connects and exposes identity', () async {
-    final _FakeEsp32Api api = _FakeEsp32Api();
-    api.ports = <Esp32Device>[_port('/dev/ttyACM0')];
+    final FakeEsp32Api api = FakeEsp32Api();
+    api.ports = <Esp32Device>[esp32Port('/dev/ttyACM0')];
     final Esp32Controller controller = Esp32Controller(api: api);
     addTearDown(controller.dispose);
 
     await controller.refresh();
     await controller.connect();
     expect(api.connects, 1);
+    expect(api.connectedPath, '/dev/ttyACM0');
     expect(controller.connected, isFalse);
 
     api.events.add(
-      _event(
+      esp32Event(
         'hello',
         firmware: '0.1.0',
         mac: 'E8:06:90:9D:3E:78',
@@ -150,16 +191,58 @@ void main() {
     expect(controller.uptimeMs, 1234);
   });
 
-  test('telemetry updates the board fields and the button', () async {
-    final _FakeEsp32Api api = _FakeEsp32Api();
-    api.ports = <Esp32Device>[_port('/dev/ttyACM0')];
+  test('a port that cannot be opened is reported', () async {
+    final FakeEsp32Api api = FakeEsp32Api()
+      ..ports = <Esp32Device>[esp32Port('/dev/ttyACM0')]
+      ..connectError = StateError('busy');
     final Esp32Controller controller = Esp32Controller(api: api);
     addTearDown(controller.dispose);
     await controller.refresh();
+
     await controller.connect();
 
+    expect(controller.error, 'Could not open /dev/ttyACM0: Bad state: busy');
+    expect(controller.connected, isFalse);
+    expect(controller.loading, isFalse);
+  });
+
+  test('connecting again closes the open link first', () async {
+    final (FakeEsp32Api api, Esp32Controller controller) = await _connected();
+    expect(controller.connected, isTrue);
+
+    await controller.connect();
+
+    expect(api.disconnects, 1);
+    expect(api.connects, 2);
+    expect(controller.connected, isFalse, reason: 'waits for the new hello');
+  });
+
+  test('a stream error drops the link and names the cause', () async {
+    final (FakeEsp32Api api, Esp32Controller controller) = await _connected();
+
+    api.events.addError(StateError('port vanished'));
+    await _settle();
+
+    expect(controller.connected, isFalse);
+    expect(controller.error, 'Connection failed: Bad state: port vanished');
+  });
+
+  test('the end of the event stream drops the link', () async {
+    final (FakeEsp32Api api, Esp32Controller controller) = await _connected();
+
+    await api.events.close();
+    await _settle();
+
+    expect(controller.connected, isFalse);
+    expect(controller.loading, isFalse);
+    expect(controller.error, isNull);
+  });
+
+  test('telemetry updates the board fields and the button', () async {
+    final (FakeEsp32Api api, Esp32Controller controller) = await _connected();
+
     api.events.add(
-      _event(
+      esp32Event(
         'telemetry',
         uptimeMs: 5000,
         freeHeap: 4096,
@@ -175,17 +258,32 @@ void main() {
     expect(controller.temperatureCentiC, 4210);
     expect(controller.buttonDown, isTrue);
     expect(controller.detectionCount, 3);
+
+    api.events.add(esp32Event('telemetry'));
+    await _settle();
+    expect(controller.buttonDown, isFalse);
+    expect(controller.detectionCount, 3, reason: 'a count is kept until sent');
+  });
+
+  test('pong and button events update their fields', () async {
+    final (FakeEsp32Api api, Esp32Controller controller) = await _connected();
+
+    api.events
+      ..add(esp32Event('pong', value: 7))
+      ..add(esp32Event('button', flag: true));
+    await _settle();
+    expect(controller.lastPong, 7);
+    expect(controller.buttonDown, isTrue);
+
+    api.events.add(esp32Event('button'));
+    await _settle();
+    expect(controller.buttonDown, isFalse);
   });
 
   test('a camera event exposes on-device hits', () async {
-    final _FakeEsp32Api api = _FakeEsp32Api();
-    api.ports = <Esp32Device>[_port('/dev/ttyACM0')];
-    final Esp32Controller controller = Esp32Controller(api: api);
-    addTearDown(controller.dispose);
-    await controller.refresh();
-    await controller.connect();
+    final (FakeEsp32Api api, Esp32Controller controller) = await _connected();
 
-    api.events.add(_event('camera', value: 2, scorePermille: 934));
+    api.events.add(esp32Event('camera', value: 2, scorePermille: 934));
     await _settle();
 
     expect(controller.cameraSeen, isTrue);
@@ -194,8 +292,8 @@ void main() {
   });
 
   test('LED and ping commands are only sent while connected', () async {
-    final _FakeEsp32Api api = _FakeEsp32Api();
-    api.ports = <Esp32Device>[_port('/dev/ttyACM0')];
+    final FakeEsp32Api api = FakeEsp32Api();
+    api.ports = <Esp32Device>[esp32Port('/dev/ttyACM0')];
     final Esp32Controller controller = Esp32Controller(api: api);
     addTearDown(controller.dispose);
 
@@ -206,7 +304,7 @@ void main() {
 
     await controller.refresh();
     await controller.connect();
-    api.events.add(_event('hello'));
+    api.events.add(esp32Event('hello'));
     await _settle();
 
     controller.setLed(1, 2, 3, blinkMs: 500);
@@ -215,19 +313,24 @@ void main() {
     expect(api.pings, 1);
   });
 
+  test('a rejected LED or ping command is reported, not thrown', () async {
+    final (FakeEsp32Api api, Esp32Controller controller) = await _connected();
+    api.commandError = StateError('write timed out');
+
+    controller.setLed(1, 2, 3);
+    expect(controller.error, 'LED command failed: Bad state: write timed out');
+
+    controller.ping();
+    expect(controller.error, 'Ping failed: Bad state: write timed out');
+    expect(controller.connected, isTrue);
+  });
+
   test(
     'disconnect clears the link and a disconnect event surfaces the reason',
     () async {
-      final _FakeEsp32Api api = _FakeEsp32Api();
-      api.ports = <Esp32Device>[_port('/dev/ttyACM0')];
-      final Esp32Controller controller = Esp32Controller(api: api);
-      addTearDown(controller.dispose);
-      await controller.refresh();
-      await controller.connect();
-      api.events.add(_event('hello'));
-      await _settle();
+      final (FakeEsp32Api api, Esp32Controller controller) = await _connected();
 
-      api.events.add(_event('disconnected', text: 'board unplugged'));
+      api.events.add(esp32Event('disconnected', text: 'board unplugged'));
       await _settle();
 
       expect(controller.connected, isFalse);

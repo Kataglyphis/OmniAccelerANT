@@ -19,6 +19,12 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
   image ref from the hub's `ci-image-ref.sh` (`KATAGLYPHIS_IMAGE` still overrides), every comment
   in the ESP32 firmware and scripts is one line, and `build-eye-demo.sh --help` prints its header
   only, no longer three lines of code after it.
+- **The Linux lane's Dart coverage floor holds again.** 678b3e4 added the Device page at 31.6 %
+  and its controller at 69.6 %, which put `lib/` at 89.5 % against the floor of 96 %.
+  `device_page_test.dart` drives the page over a fake bridge (ports, loading, errors, telemetry,
+  LED sliders, ping, disconnect), `esp32_controller_test.dart` covers every failure path, and
+  `esp32_rust_api_test.dart` checks that `RustEsp32Api` hands each call to its generated binding.
+  Both files are at 100 %, `lib/` at 97.6 % (2,131 of 2,183 lines).
 
 ## 2.2.1+5 — 2026-10-18
 
