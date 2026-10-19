@@ -1071,8 +1071,9 @@ With no box the whole picture is blocks, people included.
 
 **`test-observant-package.sh` checks all three packages, and CI runs it**: `web.yml`'s
 `observant` jobs, on x64 and arm64, right after packaging. It runs as root in a privileged
-`:latest`, prints one PASS or FAIL per check, and exits with the number of failures. A package
-without `debugutilsbad` reds five of its checks. Locally:
+`:latest`, prints one PASS or FAIL per check with its seconds, counts them on the hub's
+`lib/test-harness.sh` and exits 0 only when all pass. A package without `debugutilsbad` reds
+five of its checks. Locally:
 
 ```bash
 bash scripts/linux/observant/test-observant-package.sh   # root, inside :latest; finds out/'s packages

@@ -54,6 +54,17 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
   x86-64. The one difference: the walker installs each copied library 0644, where `cp -L` kept
   0755 on the GStreamer libraries, `liborc`, `libstdc++`, `libc` and `libnice`. The ObservANT
   package suite passes on the new packages (80 of 80).
+- **Nine bash suites run on the hub's `lib/test-harness.sh`** (2026-10-19, hub c3fc7585):
+  `test-check-apk-abi`, `-apk-on-emulator`, `-dart-coverage`, `-plugin-cpp-format`,
+  `-rust-toolchain`, `-bundle-gst-elements`, `test-perf-reports` and ObservANT's
+  `test-observant-update` and `test-observant-package`. Each case is one `t_case` with one
+  assertion, and `t_summary` sets the exit code. The two ObservANT suites keep a `check` wrapper
+  over `t_assert_eq`, so a failed check still shows its command's output (the updater's log, the
+  maps outside the bundle) and the package suite still names each check's seconds; it exits 1 on
+  a failure now, not the failure count. In `:latest` every suite passes with the assertions it
+  had (5, 11, 8, 10, 12, 5, 23, 28, 80; the element suite's fifth was an uncounted check) and
+  fails when its target breaks: a gate that accepts everything, a report script that prints
+  nothing, an updater that does nothing, a `.deb` without its `libgstreamer`.
 
 ### Fixed
 

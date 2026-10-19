@@ -1,8 +1,13 @@
 #!/usr/bin/env bash
 # test-observant-update.sh: the camera updater, for a .deb and (--user) for a user install, against a local stand-in for GitHub's releases and tiny fake packages; root, in a container.
-set -euo pipefail
+set -uo pipefail
 
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=scripts/linux/lib/antfrastructure.sh
+source "${here}/../lib/antfrastructure.sh"
+_harness="$(antfrastructure_path linux/scripts/lib/test-harness.sh)" || exit 1
+# shellcheck source=third_party/ANTfrastructure/linux/scripts/lib/test-harness.sh
+source "${_harness}"
 updater="${here}/package/omni-observant-update"
 if [ "$(id -u)" -ne 0 ] || ! command -v dpkg >/dev/null || ! command -v python3 >/dev/null; then
   printf 'test-observant-update.sh needs root, dpkg and python3 (it installs fake packages)\n' >&2
@@ -17,7 +22,6 @@ mkdir -p /var/lib/omni-observant-update-test
 
 work="$(mktemp -d)"
 arch="$(dpkg --print-architecture)"
-fails=0
 # The user install's side runs as uid 1001, which cannot enter root's mktemp directories.
 user_home="$(mktemp -d)"
 user_tools="$(mktemp -d)"
@@ -109,8 +113,14 @@ export OMNI_OBSERVANT_RELEASES="http://127.0.0.1:${port}/releases"
 
 installed() { dpkg-query -W -f='${Version}' omni-observant 2>/dev/null; }
 update() { bash "${updater}" >"${work}/update.log" 2>&1; }
+# check <name> <command...>: one assertion, run in this shell; a failed one shows the updater's log.
 check() {
-  if "${@:2}"; then printf 'ok    %s\n' "$1"; else printf 'FAIL  %s\n' "$1"; fails=$((fails + 1)); sed 's/^/      /' "${work}/update.log"; fi
+  local rc=0
+  t_case "$1"
+  "${@:2}" || rc=$?
+  t_assert_eq 0 "${rc}" "exit code"
+  if [ "${rc}" -ne 0 ]; then sed 's/^/      /' "${work}/update.log"; fi
+  return 0
 }
 
 check "with nothing installed, it does nothing" bash -c "OMNI_OBSERVANT_RELEASES=http://127.0.0.1:1 bash '${updater}' >'${work}/update.log' 2>&1"
@@ -187,8 +197,4 @@ publish_tar 2.10.0
 check "without dpkg, 2.10.0 is still newer than 2.9.0" user_update "${user_tools}"
 check "and installs" test "$(user_installed)" = 2.10.0
 
-if [ "${fails}" -gt 0 ]; then
-  printf '%d of the updater checks failed\n' "${fails}"
-  exit 1
-fi
-printf 'updater: all checks passed\n'
+t_summary

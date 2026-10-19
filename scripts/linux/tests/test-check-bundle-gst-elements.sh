@@ -1,8 +1,13 @@
 #!/usr/bin/env bash
 # check-bundle-gst-elements.sh against a stub gst-inspect: one green, and each way it must go red.
-set -euo pipefail
+set -uo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=scripts/linux/lib/antfrastructure.sh
+source "${SCRIPT_DIR}/../lib/antfrastructure.sh"
+_harness="$(antfrastructure_path linux/scripts/lib/test-harness.sh)" || exit 1
+# shellcheck source=third_party/ANTfrastructure/linux/scripts/lib/test-harness.sh
+source "${_harness}"
 gate="${SCRIPT_DIR}/../check-bundle-gst-elements.sh"
 # shellcheck source=scripts/linux/lib/bundle-runtime.sh
 source "${SCRIPT_DIR}/../lib/bundle-runtime.sh"
@@ -20,27 +25,24 @@ printf 'Plugin Details:\n  Name                     stub\n  Filename            
 STUB
 chmod +x "${work}/gst-inspect"
 
-passed=0
-out=""
-# expect <rc> <name> <bundle dir> <VAR=value>...: the gate on that bundle, with the stub and this environment.
-expect() {
-  local want="$1" name="$2" bundle="$3" got=0
-  shift 3
-  out="$(env GST_INSPECT="${work}/gst-inspect" "$@" bash "${gate}" --bundle-dir "${bundle}" 2>&1)" || got=$?
-  if [ "${got}" -ne "${want}" ]; then
-    printf 'FAIL %s: expected rc %s, got %s\n%s\n' "${name}" "${want}" "${got}" "${out}" >&2
-    exit 1
-  fi
-  passed=$((passed + 1))
-  printf 'ok   %s\n' "${name}"
+# elements <bundle dir> <VAR=value>...: the gate on that bundle with the stub, its output also kept in ${work}/out.
+elements() {
+  local bundle="$1"
+  shift
+  env GST_INSPECT="${work}/gst-inspect" "$@" bash "${gate}" --bundle-dir "${bundle}" 2>&1 | tee "${work}/out"
 }
 
 all="${GST_PIPELINE_ELEMENTS[*]}"
-expect 0 "every element from the bundle, whatever the caller's plugin paths" "${work}/bundle" \
+t_case "every element from the bundle, whatever the caller's plugin paths"
+t_assert_rc 0 elements "${work}/bundle" \
   STUB_ELEMENTS="${all}" GST_PLUGIN_SYSTEM_PATH=/usr/lib/gstreamer-1.0 GST_PLUGIN_PATH_1_0=/usr/lib/gstreamer-1.0
-expect 1 "an element no bundled plugin provides" "${work}/bundle" STUB_ELEMENTS="${all/jpegdec/}"
-grep -q '^FAIL jpegdec' <<<"${out}" || { printf 'FAIL the missing element is not named:\n%s\n' "${out}" >&2; exit 1; }
-expect 1 "an element loaded from outside the bundle" "${work}/bundle" \
-  STUB_ELEMENTS="${all}" STUB_DIR=/opt/gstreamer/lib/gstreamer-1.0
-expect 2 "a bundle without plugins" "${work}/no-plugins" STUB_ELEMENTS="${all}"
-printf '%s case(s) passed\n' "${passed}"
+t_case "an element no bundled plugin provides"
+t_assert_rc 1 elements "${work}/bundle" STUB_ELEMENTS="${all/jpegdec/}"
+t_case "the missing element is named"
+t_assert_grep "${work}/out" '^FAIL jpegdec'
+t_case "an element loaded from outside the bundle"
+t_assert_rc 1 elements "${work}/bundle" STUB_ELEMENTS="${all}" STUB_DIR=/opt/gstreamer/lib/gstreamer-1.0
+t_case "a bundle without plugins"
+t_assert_rc 2 elements "${work}/no-plugins" STUB_ELEMENTS="${all}"
+
+t_summary

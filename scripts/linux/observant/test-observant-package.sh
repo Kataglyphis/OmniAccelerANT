@@ -4,6 +4,11 @@ set -uo pipefail
 
 script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 repo_root="$(cd -- "${script_dir}/../../.." && pwd)"
+# shellcheck source=scripts/linux/lib/antfrastructure.sh
+source "${script_dir}/../lib/antfrastructure.sh"
+_harness="$(antfrastructure_path linux/scripts/lib/test-harness.sh)" || exit 1
+# shellcheck source=third_party/ANTfrastructure/linux/scripts/lib/test-harness.sh
+source "${_harness}"
 deb=""
 appimage=""
 flatpak_bundle=""
@@ -14,7 +19,7 @@ usage() {
 usage: test-observant-package.sh [--deb FILE] [--appimage FILE] [--flatpak FILE] [--photo FILE]
 
 Runs as root in a privileged family image (dpkg, a service user, bubblewrap, headless
-Chrome). Each check prints PASS or FAIL; the exit code is the number of failures.
+Chrome). Each check prints PASS or FAIL and its seconds; it exits 0 only when every check passed.
   --deb FILE       the .deb (default: this machine's in out/, as package-observant.sh names it)
   --appimage FILE  the AppImage (default: this machine's in out/)
   --flatpak FILE   the flatpak bundle (default: this machine's in out/)
@@ -58,15 +63,18 @@ user=omni-observant
 work="$(mktemp -d /tmp/observant-test.XXXXXX)"
 failures=0
 
-# Each line names its seconds, so the slow checks show in a CI log.
+# One assertion, run in this shell with its output shown; each line names its seconds, so the slow checks show in a CI log.
 check() {
-  local name="$1" started="${SECONDS}"; shift
-  if "$@"; then
+  local name="$1" started="${SECONDS}" rc=0; shift
+  t_case "${name}"
+  "$@" || rc=$?
+  if [ "${rc}" -eq 0 ]; then
     printf 'PASS  %s (%d s)\n' "${name}" $((SECONDS - started))
   else
     printf 'FAIL  %s (%d s)\n' "${name}" $((SECONDS - started))
     failures=$((failures + 1))
   fi
+  t_assert_eq 0 "${rc}" "exit code"
 }
 
 # The unit's environment only (its HOME and GST_REGISTRY, systemd's STATE_DIRECTORY), exec'd so $! is the service.
@@ -565,4 +573,4 @@ if [ "${failures}" -gt 0 ]; then
     grep -vE 'webrtcsink state' "${log}" | tail -8
   done
 fi
-exit "${failures}"
+t_summary
