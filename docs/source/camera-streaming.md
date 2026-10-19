@@ -285,64 +285,49 @@ release builds, before packaging):
   ([The detection model](#the-detection-model)): the standard model, bundled by default
   (owner decision 2026-10-01). `KATAGLYPHIS_BUNDLE_MODEL=0` drops it for an artifact that then
   needs `KATAGLYPHIS_ONNX_MODEL` at run time;
-- **an `$ORIGIN` rpath on every bundled ELF.** RUNPATH is not transitive: a dlopen'd plugin
-  cannot reach a sibling through the runner's `$ORIGIN/lib` (measured), so "the file is
-  present but unreachable" is the failure the gate rejects. The runner carries
-  `$ORIGIN/lib:$ORIGIN/../lib` because the flatpak manifest installs the binary into
-  `/app/bin` with the libraries in `/app/lib`;
+- **an `$ORIGIN` rpath on every bundled ELF**, since RUNPATH is not transitive
+  ([`linux-build-basics.md` § *What a package carries*](../../third_party/ANTfrastructure/docs/linux-build-basics.md#what-a-package-carries); this
+  bundle is the measurement). The runner carries `$ORIGIN/lib:$ORIGIN/../lib` because the
+  flatpak manifest installs the binary into `/app/bin` with the libraries in `/app/lib`;
 - **GCC 16.2's `libstdc++` and `libgcc_s`** (2026-10-16), from the compiler's own runtime
   directory: the image has the distro's older copy too, and the code needs `GLIBCXX_3.4.36`,
   which no distro ships yet;
-- **the image's loader and glibc** (2026-10-17): its ORT and orc need glibc 2.43, newer than
-  Debian 13's 2.41 and Ubuntu 24.04's 2.39. The hub's `bundle-loader.sh --beside` leaves the
-  runner as `omni_accelerant.bin` with `ld-linux-*.so.1` beside it and glibc in
-  `bundle/lib/glibc`; `omni_accelerant` becomes a launcher. Beside, not in `lib/`: under the
-  bundled loader `/proc/self/exe` names the loader, and Flutter looks for `data/` in that
-  directory. The closure gate leaves glibc to `--library-path` and checks the `.bin` behind
-  the launcher.
+- **the image's loader and glibc** (2026-10-17): its ORT and orc need glibc 2.43. The hub's
+  `bundle-loader.sh --beside` leaves the runner as `omni_accelerant.bin` with `ld-linux-*.so.1`
+  beside it (so Flutter still finds `data/`), puts glibc in `bundle/lib/glibc` and makes
+  `omni_accelerant` the launcher. The closure gate leaves glibc to `--library-path` and checks
+  the `.bin` behind the launcher.
 
-**The launcher takes the bundled loader only when the host's glibc is older** than the bundled
-one; otherwise it starts the `.bin` itself under the host's. A newer host glibc must win,
-because the host's GL drivers are built against it: the app flatpak aborted at start until then
-(2026-10-17), since org.freedesktop.Platform 26.08's Mesa needs `GLIBC_2.44` (`No provider of
-eglGetPlatformDisplayEXT found`). `KATAGLYPHIS_BUNDLED_GLIBC=1` forces the bundled path. The
-native lane starts the bundle 20 s on both paths (the image's glibc is the bundled one, so the
-second forces it) and the app flatpak 20 s on its runtime. **On a real desktop under the
-bundled loader** (2026-10-17, the 2.2.0 dry run's arm64 tarball unpacked on himbeere2: Debian
-13, glibc 2.41, labwc on Wayland) the app drew its window and pages with Impeller on OpenGL ES;
-the process mapped the bundled `libc.so.6` beside the host's `libEGL_mesa` and
-`libgallium-26.2.2`, so the host's Mesa runs under the newer bundled glibc.
+**The launcher takes the bundled glibc only when the host's is older**
+([`linux-build-basics.md` § *glibc travels, and a newer host glibc wins*](../../third_party/ANTfrastructure/docs/linux-build-basics.md#glibc-travels-and-a-newer-host-glibc-wins);
+this app's flatpak is the case that forced it). The native lane starts the bundle 20 s on both
+paths (`KATAGLYPHIS_BUNDLED_GLIBC=1` forces the second) and the app flatpak 20 s on its runtime.
+**On a real desktop under the bundled loader** (2026-10-17, the 2.2.0 dry run's arm64 tarball
+unpacked on himbeere2: Debian 13, glibc 2.41, labwc on Wayland) the app drew its window and
+pages with Impeller on OpenGL ES; the process mapped the bundled `libc.so.6` beside the host's
+`libEGL_mesa` and `libgallium-26.2.2`, so the host's Mesa runs under the newer bundled glibc.
 
-The closure gate runs inside the image, where every library is present anyway. The
-`clean-host` job after each Linux lane is the outside view: on a bare `ubuntu-26.04` (`-arm`)
-runner it installs the `.deb` with apt, which resolves its `Depends` as on a user's machine,
-checks every installed ELF with `ldd`, and starts the app, the AppImage and the unpacked tarball
-for 20 s under Xvfb (the hub's `clean-host-package-check` action).
+The closure gate runs inside the image, where every library is present anyway; the outside view
+is the `clean-host` job after each Linux lane, the hub's `clean-host-package-check` on a bare
+`ubuntu-26.04` (`-arm`) runner ([§ *The proof*](../../third_party/ANTfrastructure/docs/linux-build-basics.md#the-proof)).
 
 At runtime the plugin's ELF constructor (`runtime_paths.cc`) points `GST_PLUGIN_PATH`,
 `ORT_DYLIB_PATH` and `KATAGLYPHIS_ONNX_MODEL` at those siblings, each only when the file exists
 and the environment names none, so a user override always wins. For ONNX Runtime that override
 must still be a chain build: OxidANT's loader (`ort_runtime.rs`) refuses any file without the
-chain's source path. The bundle carries no GStreamer plugin scanner, so `runtime_paths.cc` sets
-`GST_REGISTRY_FORK=no` (unless already set) wherever it finds the bundled plugins, and
-GStreamer scans in-process instead of warning "External plugin loader failed"; the lane's
-launch smokes fail on that warning.
+chain's source path.
 
-**Only the bundled GStreamer plugins load** (owner, 2026-10-17: the family's own GStreamer, never a
-distro's). With the bundle's `gstreamer-1.0/` present the constructor also empties
-`GST_PLUGIN_SYSTEM_PATH` and `GST_PLUGIN_SYSTEM_PATH_1_0` unless they are set, so a host's
-`/usr/lib/*/gstreamer-1.0` plugins, built against another GStreamer, never join the bundled ones.
-AccelerANTgine's library, which the plugin links, does the same from its own constructor
-(AccelerANTgine `24de58f`), set-unless-set, and adds a registry per installed copy under
-`$XDG_CACHE_HOME/kataglyphis-gstreamer/`, so the bundle never rescans a registry another
-GStreamer wrote. The gate for that rule: `scripts/linux/check-bundle-gst-elements.sh` hands the
-hub's `gstreamer-bundle.sh check` (shared with every family package since hub `67fc768e`) every
-element the pipelines name (`GST_PIPELINE_ELEMENTS` in `scripts/linux/lib/bundle-runtime.sh`); it
-asks the image's `gst-inspect-1.0` under exactly that environment and fails on an element no
-bundled plugin provides or that loads from elsewhere. `test/pinned_artefacts_test.dart` keeps
-the list in step with the Dart pipelines' Linux sources; OxidANT's `capture.rs` adds
-`videoscale`. A new element goes into that list and its plugin into
-`GST_BUNDLED_PLUGIN_NAMES`, or the lane fails.
+**Only the bundled GStreamer plugins load** (owner, 2026-10-17), by the hub's four settings
+([§ *GStreamer loads from the package alone*](../../third_party/ANTfrastructure/docs/linux-build-basics.md#gstreamer-loads-from-the-package-alone)):
+`runtime_paths.cc` sets the plugin paths and `GST_REGISTRY_FORK=no` wherever it finds the
+bundled plugins, each unless set; AccelerANTgine's library does the same from its own constructor
+and adds `GST_REGISTRY`, one per installed copy (AccelerANTgine `24de58f`). The lane's launch
+smokes fail on GStreamer's `External plugin loader failed` warning.
+`scripts/linux/check-bundle-gst-elements.sh` hands the hub's `gstreamer-bundle.sh check` every
+element the pipelines name (`GST_PIPELINE_ELEMENTS` in `scripts/linux/lib/bundle-runtime.sh`).
+`test/pinned_artefacts_test.dart` keeps that list in step with the Dart pipelines' Linux
+sources; OxidANT's `capture.rs` adds `videoscale`. A new element goes into that list and its
+plugin into `GST_BUNDLED_PLUGIN_NAMES`, or the lane fails.
 
 `scripts/linux/check-bundle-closure.sh` grades the result headlessly (one second, no display,
 no container-in-container):
@@ -1553,8 +1538,9 @@ cd ~/cat-cam && PATH=/usr/sbin:$PATH bash scripts/linux/observant/serve.sh
 Media is WebRTC UDP, browser ↔ Zero, direct on the LAN. `--no-inference` is the next step up
 from this `gst-launch` bring-up. If the container is too heavy for the board,
 `scripts/linux/observant/package-producer-bundle.sh` exports a container-less aarch64 bundle
-(producer + pruned GStreamer + the image's glibc, ~180 MB) that runs against the host's
-libcamera with no container and no toolchain. Its ONNX Runtime is the image's chain copy
+(producer + pruned GStreamer + the image's glibc, ~180 MB, in `build/observant/pi-bundle/`)
+that runs against the host's libcamera with no container and no toolchain; `--deploy HOST`
+rsyncs it to `HOST:observant/`. Its ONNX Runtime is the image's chain copy
 (`ORT_LIB_LOCATION`), and the assembling image run ends with ANTfrastructure's G6 census over
 the finished bundle: every ORT binary byte-identical to that image's chain ORT, and the
 producer, given an `$ORIGIN/../lib` RUNPATH (the same directory `run.sh` passes to the bundled

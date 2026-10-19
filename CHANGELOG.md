@@ -12,6 +12,16 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
   the by-hand API docs to `getting-started.md`, the app's Dart suite list to `testing.md`, and the
   ObservANT guide and by-hand runbook to `camera-streaming.md`, which already held most of it.
   Contributing, contact and licence are ANTfrastructure's `repository-family.md`.
+- **AGENTS.md and the guides link the hub instead of restating it** (2026-10-19, hub a447ef3c).
+  The family-wide procedures (branch sync, https submodule URLs, the Linux package closure with
+  its glibc and GStreamer rules, the rootless engine, Rancher's per-boot binfmt and KVM, emulated
+  arm64, `-v name:/path`, `dart format` and the SDK floor, the clang cfg pair, Dev Drive filters,
+  raw `gst-launch` pipelines, opencode v2, the CI-round rule, Renovate's mechanics, the history
+  rewrite) are links to ANTfrastructure's pages, beside this repo's own commands, numbers and
+  exceptions. AGENTS.md § 2 lists topics, not facts, and its ObservANT entries point at
+  `camera-streaming.md`. `doc-dupes-hub.allow` turns the hub's `doc-dupes --against-hub` gate on:
+  seven restated passages before, one allowed after (the owner's docs rule). The `C:\workspace`
+  mount trap is dated: images since 2026-09-26 hold no `C:\workspace` (hub CON29).
 
 ### Fixed
 

@@ -136,19 +136,12 @@ The notes under AGENTS.md's lane table, moved here on 2026-10-15.
 - Every lane runs the plugin's Dart tests through the same strict gate as the app's:
   `run_flutter_common_checks` on Linux, *Plugin Flutter Tests* in `Build-Windows.ps1`,
   `Invoke-FlutterTests.ps1` on arm64.
-- **A push to `develop` runs Linux x64 alone** (since 2026-10-15, the family's rule in
-  [ANTfrastructure's `branch-and-release-strategy.md`](../../third_party/ANTfrastructure/docs/branch-and-release-strategy.md)).
-  The other five lanes run when a commit message asks, with `[ci windows]`, `[ci arm64]`,
-  `[ci android]`, `[ci web]` or `[ci all]`; `on-request.yml` reads the tokens and calls those
-  lanes. Every lane also has *Run workflow* (`gh workflow run windows-x64.yml --ref develop`). So a
-  change to Windows-only code carries `[ci windows]`, and a test that only one of the columns
-  above runs is proved by asking for that lane.
-- **Every push to `main` runs every lane** through `release.yml`, and releases only when all are
-  green (project-operations.md § *Release Hygiene*).
-- **A newer request for a lane cancels its older run on the same branch** (each lane's
-  `concurrency` has `cancel-in-progress: true`); a push without a token cancels nothing. Before
-  2026-10-15 every push started every lane, and on 2026-10-12 that cancelled 77 of the day's 142
-  push runs, about 18 hours of runner wall time.
+- **When a lane runs** is the family's rule (owner, 2026-10-15):
+  [`branch-and-release-strategy.md`](../../third_party/ANTfrastructure/docs/branch-and-release-strategy.md).
+  A push to `develop` runs Linux x64 alone, so a test that only another column runs is proved by
+  asking for that lane: `[ci windows]`, `[ci arm64]`, `[ci android]`, `[ci web]` or `[ci all]` in
+  the commit message. `release.yml` runs every lane on each push to `main`
+  (project-operations.md § *Release Hygiene*).
 
 ## Running them
 

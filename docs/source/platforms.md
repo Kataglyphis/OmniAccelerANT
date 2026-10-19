@@ -65,56 +65,37 @@ rationale, the CPU/base-build caps and the `docker build` prohibition are ANTfra
 to the `x64-ClangCL-Windows-{Debug,Profile,Release}` CMake presets; also `msvc-*`, `clang-*`
 (full list: § *The Windows lanes in detail*).
 
-> **Dev Drive caveat:** on a Dev Drive (ReFS dev volume) the bind mount fails with
-> *"Der Dateisystem-Minifilter kann nicht an das Entwicklervolume angefügt werden"*: Dev Drives
-> block the `bindFlt`/`wcifs` container filters by default. Allow them once from an **elevated**
-> shell, then remount the volume (or reboot):
+> **The bind-mount traps are the hub's**: a Dev Drive refuses the mount until its filters are
+> allowed ([`windows-container-build-performance.md` § *Transport B*](../../third_party/ANTfrastructure/docs/windows-container-build-performance.md#transport-b--bind-mount-dev-drive-needs-setup)),
+> and on this host's version skew Dart's `copySync`/`renameSync` fail on a mounted path, a
+> target the image holds fails at `hcs::CreateComputeSystem`, and `docker cp` copies nothing
+> ([`windows-build-lanes.md` § *Run-side wcifs symptoms*](../../third_party/ANTfrastructure/docs/windows-build-lanes.md#run-side-wcifs-symptoms-process-isolation)).
+> This repo's half:
 >
-> ```powershell
-> fsutil devdrv setFiltersAllowed /volume D: "bindFlt,wcifs"
-> ```
+> - **Not admin on a Dev Drive:** mirror the repo to a plain NTFS path on `C:` and mount that:
 >
-> The filter list is **one quoted argument**: unquoted `bindFlt, wcifs` parses as two and fails
-> with a bare syntax dump. ANTfrastructure owns the procedure (the reboot requirement, "allowed vs
-> attached", reverting it):
-> `third_party/ANTfrastructure/docs/windows-container-build-performance.md` § *Transport B*.
-> Everything below is Flutter/Dart-specific.
+>   ```powershell
+>   robocopy D:\GitHub\OmniAccelerANT C:\kata-ws /E /MT:16 /XJ /XD .dart_tool build logs
+>   & $docker run --rm --isolation process `
+>     --mount "type=bind,source=C:\kata-ws,target=C:\ws-mnt" -w C:\ws-mnt `
+>     ghcr.io/kataglyphis/kataglyphis_beschleuniger:winamd64 `
+>     pwsh -NoProfile -ExecutionPolicy Bypass -File C:\ws-mnt\scripts\windows\Build-Windows.ps1 `
+>       -Configurations "clangcl-debug,clangcl-profile,clangcl-release" -SkipMsixPackaging
+>   ```
 >
-> Non-admin workaround (preferred): mirror the repo to a plain NTFS path on `C:` and bind-mount
-> that; non-Dev-Drive volumes mount fine. But **Dart's `copySync`/`renameSync` fail on
-> bind-mounted paths** on this host (plain writes and cmd copy/ren work), so after mounting,
-> junction Flutter's write dirs to container-local paths from *inside* the container before
-> building. The plugin's pair needs it too: its tests copy into
-> `packages\kataglyphis_native_inference\build\unit_test_assets` (measured 2026-10-05):
+> - **Junction the Dart write dirs** to container-local paths from inside a long-lived
+>   container before building, the plugin's pair too: its tests copy into
+>   `packages\kataglyphis_native_inference\build\unit_test_assets` (measured 2026-10-05).
+>   `mklink /J` refuses an existing directory, so move the host's four aside first, and `rmdir`
+>   the junctions before the container exits, or the host keeps four junctions to paths only
+>   the container had:
 >
-> ```powershell
-> docker exec <name> cmd /c "mkdir C:\dtool & mkdir C:\fbuild\native_assets\windows & mkdir C:\pdtool & mkdir C:\pbuild & mklink /J C:\ws-mnt\.dart_tool C:\dtool & mklink /J C:\ws-mnt\build C:\fbuild & mklink /J C:\ws-mnt\packages\kataglyphis_native_inference\.dart_tool C:\pdtool & mklink /J C:\ws-mnt\packages\kataglyphis_native_inference\build C:\pbuild"
-> ```
+>   ```powershell
+>   docker exec <name> cmd /c "mkdir C:\dtool & mkdir C:\fbuild\native_assets\windows & mkdir C:\pdtool & mkdir C:\pbuild & mklink /J C:\ws-mnt\.dart_tool C:\dtool & mklink /J C:\ws-mnt\build C:\fbuild & mklink /J C:\ws-mnt\packages\kataglyphis_native_inference\.dart_tool C:\pdtool & mklink /J C:\ws-mnt\packages\kataglyphis_native_inference\build C:\pbuild"
+>   ```
 >
-> `mklink /J` refuses an existing directory, so move the host's four aside first. Remove the
-> junctions with a plain `rmdir` before the container exits, or the host keeps four junctions to
-> paths that only existed in the container.
->
-> ```powershell
-> robocopy D:\GitHub\OmniAccelerANT C:\kata-ws /E /MT:16 /XJ /XD .dart_tool build logs
-> & $docker run --rm --isolation process `
->   --mount "type=bind,source=C:\kata-ws,target=C:\ws-mnt" -w C:\ws-mnt `
->   ghcr.io/kataglyphis/kataglyphis_beschleuniger:winamd64 `
->   pwsh -NoProfile -ExecutionPolicy Bypass -File C:\ws-mnt\scripts\windows\Build-Windows.ps1 `
->     -Configurations "clangcl-debug,clangcl-profile,clangcl-release" -SkipMsixPackaging
-> ```
->
-> **The mount target must NOT already exist in the image**: targeting the baked `C:\workspace`
-> fails at container creation with
-> `hcs::CreateComputeSystem ... Die Anforderung wird nicht unterstützt`
-> (`hcs::CreateComputeSystem ... The request is not supported`) on hosts whose Docker/hcsshim is
-> version-skewed from the image, as this one is (the 26200-host / 26100-image skew family). Use
-> a fresh target like `C:\ws-mnt`. CI on version-matched runners can mount over `C:\workspace`
-> without issue, and mounts `D:\ws → C:\ws`. ANTfrastructure owns the why (AGENTS.md § 2).
->
-> Last resort (no mount at all): tar-stream the sources into a long-lived container over
-> `docker exec -i` (`tar -cf - . | docker exec -i <name> tar -xf - -C C:\workspace`).
-> `docker cp` into a running Windows container silently copies nothing.
+> - **Mount at a fresh target, `C:\ws-mnt`**; CI mounts `D:\ws → C:\ws`. With no mount at all,
+>   `scripts/windows/Build-Windows-Container.ps1` streams the sources into a reused container.
 
 > **ANTfrastructure submodule:** `scripts/windows/Build-Windows.ps1` resolves every PowerShell
 > module through `scripts/windows/Resolve-BuildModule.ps1`:
@@ -143,7 +124,7 @@ Run the app on the host after a build:
 | Instrumented app aborts on startup with `bad-free` / `bad-malloc_usable_size` | LLVM's ASan runtime loads after ucrtbase, so CRT/COM startup allocations are unhooked and abort when freed through interceptors | Use **Microsoft's** ASan runtime (VS BuildTools), which tracks Windows heap ownership and passes foreign frees through, plus `ASAN_OPTIONS=alloc_dealloc_mismatch=0:check_malloc_usable_size=0`. This is the shipped Debug-preset config; the full app runs clean under it. |
 | App exits with `STATUS_DLL_NOT_FOUND` (−1073741515) on a host without GStreamer/ONNX installs | The native plugin links GStreamer + ONNX Runtime: `C:\runtime` in the container, `C:\Program Files\gstreamer` + `C:\onnxruntime` on a provisioned host | Stage from the image into the runner: `C:\runtime\bin\*.dll` except `onnxruntime*.dll`/`DirectML.dll` → `runner\...\bin\` (ONNX Runtime is already beside the exe: `Build-Windows.ps1` stages the chain copy and `Start-Windows.ps1` refuses any other, AGENTS.md § 4); `C:\runtime\lib\gstreamer-1.0\` → `runner\...\lib\gstreamer-1.0\` (GStreamer finds plugins relative to its core DLL). `Start-Windows.ps1` puts `runner\bin` on `PATH`. With the Rust `gstreamer` feature on (the Windows default) the build's *Bundle Media Runtime DLLs* step already copies `C:\runtime\bin\*.dll` (ORT family excluded) beside the exe and ten capture plugins into `gstreamer-1.0\`. |
 | `git init/clone/checkout` fails with `could not write config file` / `unable to write new index file` inside the container | Same `wcifs` rename/create flakiness in layer dirs | Do git surgery outside the layer zone (fresh `C:\` dirs work), or `git archive | tar -x` trees into place; a bind-mounted workspace avoids it entirely. |
-| `docker run --mount` fails: `hcs::CreateComputeSystem ... Die Anforderung wird nicht unterstützt` although the source is plain NTFS | The mount **target** already exists in the image (e.g. baked `C:\workspace`), refused on skewed hosts | Mount to a path the image lacks (e.g. `target=C:\ws-mnt`) and pass `-w C:\ws-mnt`. |
+| `docker run --mount` fails: `hcs::CreateComputeSystem ... Die Anforderung wird nicht unterstützt` although the source is plain NTFS | The mount **target** already exists in the image (`C:\workspace` before 2026-09-26), refused on skewed hosts | Mount to a path the image lacks (e.g. `target=C:\ws-mnt`) and pass `-w C:\ws-mnt`. |
 | `docker commit` (or `docker start` of a stopped container) fails `hcsshim::ActivateLayer ... (0x20)` | The container was created with `--isolation process`; on this host its writable layer stays locked after stop and cannot be snapshotted | Create any container you will **commit** with `--isolation hyperv` (kept alive + `docker exec` build + stop + commit works; that is why the ANTfrastructure orchestrator uses hyperv for run+commit). `docker export` is **not** a workaround (the daemon refuses to export Windows containers). Keep `--isolation process` for throwaway runs whose output you extract *live* via `tar` over `docker exec` before stopping. |
 | `mediafoundation` plugin registers "0 features" / `gst-inspect mfvideosrc` says "no such element"; debug shows `MFStartup` → `0x80004001` (E_NOTIMPL) | The build image's **Server Core** base ships no Media Foundation platform; copying `mfplat.dll`/`mf.dll` does not help (the `Server-Media-Foundation` feature is *Removed* with no servicing source; `Install-WindowsFeature` fails `0x800f0916`) | **Not a build defect.** `gstmediafoundation.dll` compiles, links and loads; it registers `mfvideosrc` only on a **Windows client host** (Win10/11), where MF is present. Verify the webcam source on the host, never in the container (which has no camera either). The Rust capture path falls back `mfvideosrc → ksvideosrc → autovideosrc`, so `ksvideosrc` covers hosts without MF. |
 | CMake configure: `add_subdirectory ... .plugin_symlinks/kataglyphis_native_inference/windows which is not an existing directory` (only this one plugin) | `Fix-FlutterPluginSymlinks` (now `Repair-FlutterPluginSymlink`, the old name kept as an alias) used to **copy** each plugin dir into `.plugin_symlinks`; it now makes a junction first and copies only when that does not resolve. For `kataglyphis_native_inference` the recursive copy of its deep `native/AccelerANTgine/third_party/*` tree overran the 260-char path limit and aborted before `windows\` was copied, leaving a broken junction. Since 2026-09-05 the inference core is a sibling submodule at `third_party/AccelerANTgine` and the plugin directory is about 100 files, so a copy would no longer overrun; the junction stays as the cheaper, more robust option | Use a **junction** (`mklink /J`), not a copy, for container-local workspaces: immune to MAX_PATH (the "copy avoids symlink access-denied" rationale applies only to bind-mounted paths). Clear stale `windows\flutter\ephemeral` + `.dart_tool` first: a broken junction from a prior run makes `flutter build --config-only` crash `PathExistsException` (errno 183, "already exists"). |
@@ -211,26 +192,11 @@ flutter create --platforms=android .
 
 ## Raspberry Pi
 
-Run camera pipelines on the host (outside Docker):
-
-```bash
-gst-launch-1.0 \
-  libcamerasrc ! video/x-raw,width=640,height=360,format=NV12,interlace-mode=progressive ! \
-  x264enc speed-preset=1 threads=1 byte-stream=true ! \
-  h264parse ! \
-  webrtcsink signaller::uri="ws://0.0.0.0:8444" name=ws meta="meta,name=gst-stream"
-```
-
-Rotate stream if camera orientation is inverted:
-
-```bash
-gst-launch-1.0 \
-  libcamerasrc ! video/x-raw,width=640,height=360,format=NV12,interlace-mode=progressive ! \
-  videoflip method=rotate-180 ! \
-  x264enc speed-preset=1 threads=1 byte-stream=true ! \
-  h264parse ! \
-  webrtcsink signaller::uri="ws://0.0.0.0:8444" name=ws meta="meta,name=gst-stream"
-```
+The app's Pi producer and its runbook: [camera-streaming.md](camera-streaming.md)
+§ *Cat detection stream (Rust, native)*. Raw `gst-launch-1.0` pipelines from a Pi camera to
+`webrtcsink`, for debugging below the app:
+[`runtime-services.md` § *Raw `gst-launch-1.0` pipelines*](../../third_party/ANTfrastructure/docs/runtime-services.md#raw-gst-launch-10-pipelines-debugging-below-the-app).
+An inverted camera takes `videoflip method=rotate-180 !` after the caps filter.
 
 ## Web Build (WASM)
 
@@ -497,30 +463,22 @@ not "fix" their absence:
 
 The rules are in AGENTS.md § 4; the measurements that produced them are here.
 
-- **`--gcc-toolchain` was load-bearing here until 2026-09-29, and ANTfrastructure deleted the
-  helper that set it.** `export_clang_gcc_toolchain_env` went away upstream on 2026-09-05
-  (`aabc7b6e`), documented as dead: *"had no caller in the build […] nothing in the tree sets a
-  bare `CC=clang`"*. True of ANTfrastructure, false of this repo: `export_toolchain_env` set
-  exactly that bare `CC=clang` and called the function. Upstream's replacement, the
-  `/usr/local/bin/clang-<arch>` wrappers with `--gcc-toolchain` baked in, is preferred but never
-  taken today: **`:latest` ships none of them** (`ls /usr/local/bin | grep clang` is empty). Two
-  runs differing only in this flag:
+- **`--gcc-toolchain` was load-bearing here until 2026-09-29.** A bare `clang` linked against
+  the distro GCC; two runs differing only in this flag:
 
   | `CC` | result |
   | --- | --- |
   | `clang`, no flag | `clang++: error: linker command failed with exit code 1` |
   | `clang --gcc-toolchain=/opt/gcc-16.2.0` | bundle + all four packages |
 
-  Without it clang resolves libstdc++ against the system copy, not the image's source-built GCC
-  16.2.0; `export_toolchain_env` then restored the flags through `gcc_toolchain_prefix()`, which
-  upstream kept (history now: *Retired 2026-09-29* below). The lesson for every ANTfrastructure
-  bump: upstream reasons about its own tree when it removes something. "No caller" means no
-  caller *there*.
+  So `export_toolchain_env` set the flag through `gcc_toolchain_prefix()`, also after the hub
+  deleted its own `export_clang_gcc_toolchain_env` on 2026-09-05 (`aabc7b6e`) as callerless:
+  true of the hub, false of this repo. Upstream's "no caller" means no caller *there*.
 
-  **Retired 2026-09-29.** `:latest` since then ships `<native-triple>-clang{,++}.cfg` beside the
-  compiler (hub CON16), so a bare `clang++` selects `/opt/gcc-16.2.0` by itself.
-  `export_toolchain_env` stopped injecting `--gcc-toolchain`, `-L` and `-rpath` and checks the
-  selection instead
+  **Retired 2026-09-29.** `:latest` ships the `<native-triple>-clang{,++}.cfg` pair beside the
+  compiler since then (hub CON16,
+  [`linux-cross-builds.md` § *Clang cross wrappers*](../../third_party/ANTfrastructure/docs/linux-cross-builds.md#clang-cross-wrappers)),
+  and `export_toolchain_env` checks the selection instead
   (`[Info] CC=clang CXX=clang++, selecting /opt/gcc-16.2.0/lib/gcc/x86_64-pc-linux-gnu/16.2.0`).
   The local native lane then built the bundle and passed the knt ABI and runtime closure gates
   without the rpath the flags used to add.
@@ -723,8 +681,8 @@ host**: the Windows engine is Stevedore's, not Rancher Desktop's, and the host's
 2026-09-06 parity run, what it produced, the stale pre-rename artifacts beside it and the engine
 detail: § *Windows build-step traps and MSIX packaging*.
 
-**The mount target must not already exist in the image** (`target=C:\workspace` fails at
-container creation): § *Containerized build (Stevedore, recommended)*.
+**The mount target must not already exist in the image** (it fails at container creation;
+images before 2026-09-26 held `C:\workspace`): § *Containerized build (Stevedore, recommended)*.
 
 **On the dev box the command above fails as written; junction first.** On this skewed host,
 Dart's and CMake's write-then-rename steps fail on the bind mount under a real build (AGENTS.md
@@ -776,14 +734,10 @@ gates in the same container. The config contract and build-matrix semantics are 
 `.opencode/agents/` is generated and gitignored: edit the overlays, never it.
 
 **The engine is opencode v2, on Windows and Linux alike (owner directive 2026-09-28).** Never
-install or run opencode v1 for this loop. v2 is the npm package `@opencode/cli`. Install it with
-`curl -fsSL https://opencode.ai/v2/install | bash` into `~/.opencode/bin`; on Windows run that
-from Git Bash with `--no-modify-path`, then put `%USERPROFILE%\.opencode\bin` first on the user
-`PATH`. Scoop and GitHub releases still ship 1.x. v2 does not read v1's saved login, so run
-`opencode auth login` once more under v2, then check `opencode models` for both model IDs above.
-The loop passes `--standalone` (both roles) and `--auto` (executor), and the pinned hub refuses a
-v1 on `PATH` with a FATAL. Why each flag, and what v1 did instead:
+install or run opencode v1 for this loop; the pinned hub refuses a v1 on `PATH` with a FATAL.
+Installing v2, logging in again under it, and why the loop passes `--standalone` and `--auto`:
 [`windows-agentic-loop.md` § *opencode v2*](../../third_party/ANTfrastructure/docs/windows-agentic-loop.md#opencode-v2).
+Then check `opencode models` for both model IDs above.
 
 ```powershell
 pwsh -File scripts/agentic-loop/Invoke-AgenticLoop.ps1            # planner + executor

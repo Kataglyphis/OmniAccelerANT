@@ -109,17 +109,17 @@ which maps topic → owning document, so these links survive upstream reorganisa
 | --- | --- |
 | The winamd64 image — what it carries, its entrypoint, running it with `--isolation process` | `docs/windows-builds.md` |
 | Stevedore setup and its post-install fixes | `docs/windows-host-setup.md` (Phase A), `docs/windows-stevedore-and-docker.md` |
-| The two host fixes that stop this box's Windows containers idling at teardown: the patched runhcs shim, which every Stevedore update reverts, and `TcpTimedWaitDelay` at 30 s (reboot to take effect). `Install-NewHost.ps1` sets both and `Test-HostSetup.ps1` checks both (measured 2026-10-14) | `docs/windows-host-setup.md` § R1 and § C6, `third_party/ANTfrastructure/AGENTS.md` § *Stevedore Fixes After Install* |
+| Windows containers idling at teardown: the patched runhcs shim and `TcpTimedWaitDelay` | `docs/windows-host-setup.md` § R1 and § C6, `third_party/ANTfrastructure/AGENTS.md` § *Stevedore Fixes After Install* |
 | Isolation policy, and `docker commit` needing hyperv | `docs/windows-build-lanes.md` |
 | An error message from either lane — symptom → cause → fix | `docs/failure-modes.md` |
 | Bind mount vs tar-pipe, **Dev Drive filter setup**, container reuse, measured timings | `docs/windows-container-build-performance.md` |
-| **sccache across build hosts**: this host's dufs plus a shared S3 bucket, the key as BuildKit secrets or by name on the reusable container's `docker exec`, the fallback when the bucket stalls, the client setup (`Set-SccacheS3Level.ps1`, the seed) and the bucket's server runbook; the Linux image chain's twin (one BuildKit secret, the RUN-end drain, `set-sccache-s3-level.sh`) | `docs/windows-build-resources.md` § *Two cache levels*, `docs/windows-host-setup.md` § C7, `docs/build-cache-tiers.md` § *The shared S3 level*, `docs/linux-host-setup.md` § B9, `linux/sccache-s3/README.md` |
-| sccache on a C++20/23 modules build — the released one serves stale importers on clang-cl until mozilla/sccache#2876 ships | `docs/windows-container-build-performance.md` § *sccache on a C++23 modules build* |
+| sccache across build hosts: the shared S3 level, its key and client setup, the bucket's server | `docs/windows-build-resources.md` § *Two cache levels*, `docs/windows-host-setup.md` § C7, `docs/build-cache-tiers.md` § *The shared S3 level*, `docs/linux-host-setup.md` § B9, `linux/sccache-s3/README.md` |
+| sccache on a clang-cl C++20/23 modules build | `docs/windows-container-build-performance.md` § *sccache on a C++23 modules build* |
 | The image's pkg-config and rustup provisioning | `docs/windows-builds.md` (§ *Toolchain pins and the provenance manifest*, § *Rust toolchain*) |
 | Wiring this repo to ANTfrastructure — resolver, actions, libraries | `docs/adopting-in-a-new-project.md` |
 | Linux container builds | `docs/linux-build-basics.md` |
 | Running the Linux lane locally on Windows (Rancher Desktop/nerdctl), and **a bind mount that resolves but is empty** — containerd's mount namespace, Windows vs WSL path form | [`docs/rancher-desktop-linux-containers.md` § *An empty mount is not a missing drive*](third_party/ANTfrastructure/docs/rancher-desktop-linux-containers.md#an-empty-mount-is-not-a-missing-drive) |
-| Why WSL 3's `wslc` does not replace Rancher Desktop yet: no `--privileged`, `--platform` or `--device`, measured 2026-10-05 | [`docs/rancher-desktop-linux-containers.md` § *WSL containers*](third_party/ANTfrastructure/docs/rancher-desktop-linux-containers.md#wsl-containers-wslc-are-not-a-replacement-yet) |
+| Why WSL 3's `wslc` does not replace Rancher Desktop yet | [`docs/rancher-desktop-linux-containers.md` § *WSL containers*](third_party/ANTfrastructure/docs/rancher-desktop-linux-containers.md#wsl-containers-wslc-are-not-a-replacement-yet) |
 | The five shell-safety bug classes | `third_party/ANTfrastructure/AGENTS.md` § *Shell safety conventions* |
 | Code comments: one line, only the why; API docs short; gated | `third_party/ANTfrastructure/AGENTS.md` § *Comments: one line, only the why* |
 | Searching the tree: `rg`, not `grep -r` | `third_party/ANTfrastructure/AGENTS.md` § *Searching the tree: ripgrep (`rg`)* |
@@ -128,10 +128,10 @@ which maps topic → owning document, so these links survive upstream reorganisa
 | The Dart gate for Linux lanes — deps, format, analyze, test, `--strict`/`--extra-package` | `linux/scripts/05-frameworks/flutter/flutter_checks.sh` |
 | The CMake gate's machinery — `code_quality_find_cmake_files` + `CODE_QUALITY_CMAKE_EXCLUDE_PATHS` on Linux, `Initialize-UvVenv` + `Install-UvRequirements` on Windows | `linux/scripts/lib/code-quality.sh`, `windows/scripts/modules/WindowsUv.Common.psm1` |
 | The canonical `.cmake-format.yaml` this repo's root copy syncs from, and the drift check | `shared/config/README.md` |
-| **Image and tag naming** — one published tag = one manifest over every arch of its variant; `:latest` (linux) / `:winamd64` (windows), variants `:latest-<variant>` (`nvidia`, `rocm`) only for a stack that cannot ship in `:latest`, per-arch tags are internal wrappers; Windows' arm64 output is a bundle, not a `windows/arm64` platform | `third_party/ANTfrastructure/AGENTS.md` § *Image and tag naming* |
-| **Branches, CI rounds and releases** — Linux x64 on every push to `develop`; `[ci <lane>]` in a commit message, or *Run workflow*, for every other lane; `main` only by the owner's fast-forward to a fully green commit; every push to `main` releases only when every lane is green | [`docs/branch-and-release-strategy.md`](third_party/ANTfrastructure/docs/branch-and-release-strategy.md) |
-| **Every checkout on its branch tip** — this repo and every submodule, third-party ones included, recursively, fast-forward only; no gitlink is committed (`linux/scripts/git-sync-branches.sh`) | `docs/adopting-in-a-new-project.md` § *Putting every checkout on its branch* |
-| Dependency upgrades — Renovate as a local CLI, why `--platform=local` only detects, the pinned Node/Renovate bootstrap, why `--apply` refuses a branchless submodule | `docs/dependency-updates.md` |
+| Image and tag naming: `:latest`, `:winamd64`, variants, per-arch wrappers | `third_party/ANTfrastructure/AGENTS.md` § *Image and tag naming* |
+| Branches, CI rounds (`[ci <lane>]`) and releases | [`docs/branch-and-release-strategy.md`](third_party/ANTfrastructure/docs/branch-and-release-strategy.md) |
+| Every checkout on its branch tip (`git-sync-branches.sh`) | `docs/adopting-in-a-new-project.md` § *Putting every checkout on its branch* |
+| Dependency upgrades: Renovate as a local CLI | `docs/dependency-updates.md` |
 
 Two upstream facts repeated here only because they bite before you reach a doc:
 
@@ -156,10 +156,10 @@ Two upstream facts repeated here only because they bite before you reach a doc:
   `antfrastructure_path`, resolved from `${BASH_SOURCE[0]}` so they work from any working
   directory.
 
-  Both are copies of the hub's templates (`shared/windows/templates/`,
-  `shared/linux/templates/`), declared in `.antfrastructure-shared.manifest` and compared
-  with them in `body` mode by the shared-config drift gate: a change goes into the template
-  upstream, never into the copy alone.
+  Both are body-mode copies of the hub's templates, declared in
+  `.antfrastructure-shared.manifest` and checked by `sync-shared-config.sh --check`: re-copy
+  them after an upstream change, never edit them here
+  ([`shared/config/README.md`](third_party/ANTfrastructure/shared/config/README.md#the-template-trees-are-owners-too)).
 - `scripts/agentic-loop/` — the adopted planner/executor loop: config, both runner wrappers,
   prompt overlays. Engine `opencode` (**v2 only**), executor
   `opencode-go/deepseek-v4.1-flash`, Windows build/test driver
@@ -169,37 +169,17 @@ Two upstream facts repeated here only because they bite before you reach a doc:
   producer. No container; it is the deployment half of the demo.
   `--producer-host`/`--producer-port` front a producer on another board, `--state-dir` keeps
   concurrent instances apart.
-- `third_party/OxidANT/scripts/linux/observant/run-producer-pi.sh` — **not in this repo.** It
-  moved to OxidANT under decision D12, since OxidANT owns the `observant` crate it builds and
-  starts; this repo keeps the pointer, not a copy. It runs the cat producer from the image
-  against a Pi 5 CSI camera (`--libcamera`), bind-mounting the host's Raspberry Pi OS
-  libcamera stack ahead of the image's outdated upstream copy (the kernel 6.18 `rp1-cfe`
-  entity rename + libpisp 1.7). `--build` builds the producer first; `--libs-only` refreshes
-  the cached library closure. `serve.sh` stays here because the Flutter web build is this
-  repo's.
-- `scripts/linux/observant/package-producer-bundle.sh` — container-less fallback for boards
-  that cannot run the image comfortably (Pi Zero 2 W): the producer, a pruned GStreamer
-  subset, the image's glibc (invoked through the bundled loader) and the library closure, in
-  `build/observant/pi-bundle/` (~180 MB, aarch64). The target needs only libcamera;
-  `--deploy HOST` rsyncs it there. Its ONNX Runtime is the image's chain copy, and the same
-  image run proves the finished bundle with ANTfrastructure's G6 census before anything
-  leaves the container.
+- `third_party/OxidANT/scripts/linux/observant/run-producer-pi.sh` — **not in this repo**: the
+  Pi 5 CSI producer moved to OxidANT, which owns the `observant` crate (decision D12). Why it
+  swaps in the host's libcamera: [`docs/source/camera-streaming.md`](docs/source/camera-streaming.md)
+  § *Cat detection stream (Rust, native)*.
+- `scripts/linux/observant/package-producer-bundle.sh` — the container-less aarch64 producer
+  bundle for a board too small for the image (Pi Zero 2 W); same section.
 - `scripts/linux/observant/package-observant.sh` + `package/` — the installable ObservANT
-  (2026-10-05): producer, plugins, chain ORT, model, web build and the image's loader and
-  libc in `/opt/omni-observant`, as a `.deb` (systemd unit, ufw profile), an AppImage and a
-  flatpak; riscv64 gets the `.deb` and a tarball, built on the board. **`observant.toml` is
-  not a conffile, on purpose**: an edited one stopped upgrades at dpkg's prompt, so `setup`
-  writes it `640 root:omni-observant` only when it is absent. A nightly root timer installs a
-  newer GitHub release's `.deb` after checking its `SHA256SUMS` (2026-10-15);
-  `observant --install --user` installs without root, and a user timer updates that from the
-  release's tarball (2026-10-16). `package/*` is pinned to LF. Detail:
-  [`docs/source/camera-streaming.md`](docs/source/camera-streaming.md) § *The ObservANT package*.
-- `scripts/windows/observant/` — the Windows ObservANT, built and tested in `:winamd64`
-  (2026-10-06); arm64 is built in `:winarm64` and tested on `windows-11-arm` (2026-10-16).
-  `Package-ObservANT.ps1` makes the install folder, the zip, the MSI and, with `-Msix`, a
-  signed MSIX (an unsigned one fails the build); `Test-ObservANTWindows.ps1` and
-  `Test-ObservANTMsix.ps1` check them. **openh264 is a required plugin on Windows**, since the
-  image builds no `vpx`. Detail: [`docs/source/camera-streaming.md`](docs/source/camera-streaming.md) § *The Windows ObservANT*.
+  (`.deb`, AppImage, flatpak; riscv64 `.deb` and tarball). `observant.toml` is not a conffile,
+  on purpose: [`docs/source/camera-streaming.md`](docs/source/camera-streaming.md) § *The ObservANT package*.
+- `scripts/windows/observant/` — the Windows ObservANT (MSI, zip, signed MSIX; x64 and arm64):
+  [`docs/source/camera-streaming.md`](docs/source/camera-streaming.md) § *The Windows ObservANT*.
 
 **Deliberately not reused.** Two upstream Windows pieces were evaluated and rejected:
 `WindowsAppRunner.Common` (its executable probe would launch the wrong one of this tree's
@@ -223,16 +203,12 @@ want a drifted checkout, move the gitlink **and** fix the fallout in the same ch
 that walked forward from its gitlink compiles something other than what is committed, and
 `git submodule status` marks that only with a `+`.
 
-The opposite move, for local work on the newest code, is
-`bash third_party/ANTfrastructure/linux/scripts/git-sync-branches.sh` (`--dry-run` first):
-every checkout goes to the tip of its `branch =`, the vendored third-party libraries under
-AccelerANTgine included (owner decision 2026-10-07). FUZZTEST stays on a release because
-AccelerANTgine declares `branch = release_<date>` for it; move that line to take a newer
-release. The sync leaves exactly that `+`; commit the gitlinks innermost repo first. One `+`
-cannot be committed from here: nanobind's `ext/robin_map`, which only nanobind records. The
-next `git submodule update`, or a git GUI that runs one, puts the submodules back unless the
-gitlinks are committed: on 2026-10-07 one reset three submodules two minutes after they were
-moved.
+The opposite move, for local work on the newest code, is the hub's `git-sync-branches.sh`
+([`adopting-in-a-new-project.md` § *Putting every checkout on its branch*](third_party/ANTfrastructure/docs/adopting-in-a-new-project.md#putting-every-checkout-on-its-branch)).
+Here FUZZTEST stays on a release, because AccelerANTgine declares `branch = release_<date>`
+for it (move that line for a newer one), and nanobind's `ext/robin_map` is the one `+` no repo
+of ours can record. Commit the other gitlinks innermost repo first, or the next `git submodule
+update` puts them back: on 2026-10-07 one reset three submodules two minutes after they moved.
 
 Drift is guarded by ANTfrastructure's shared Pester suite, run from
 [`.github/workflows/submodule-pins.yml`](.github/workflows/submodule-pins.yml) after any pin
@@ -240,13 +216,9 @@ bump. It checks both directions: each checkout sits at the recorded commit, and 
 commit is reachable from that submodule's remote — a gitlink bumped to a commit that was
 never pushed builds on the machine that made it and on no other.
 
-**Submodule URLs are `https://github.com/Kataglyphis/<repo>.git`, all four.** Not
-`git@github.com:`: an ssh remote needs a key, and none of the places that resolve these has
-one — a CI runner, the `:latest` container the Renovate runner starts, anyone cloning without
-a GitHub account. `git submodule update --init` then fails with `Permission denied
-(publickey)` on a public repository. Change one with
-`git config -f .gitmodules submodule.<path>.url …`, then `git submodule sync` so the
-existing checkout's remote moves too.
+**Submodule URLs are `https://github.com/Kataglyphis/<repo>.git`, all four**, never `git@`.
+Why, and how to change one:
+[`adopting-in-a-new-project.md` § *Submodule URLs are https*](third_party/ANTfrastructure/docs/adopting-in-a-new-project.md#submodule-urls-are-https-never-git).
 
 **What nothing here asserts:** `AccelerANTgine` and `OxidANT` each carry a
 `third_party/ANTfrastructure` pin of their own, free to differ from this repo's. Bumping the
@@ -265,10 +237,6 @@ rather than linked.
   `scripts/linux/esp32/build-eye-demo.sh` (`sed -n '2,7p'`) and
   `scripts/agentic-loop/Run-AgenticLoop.sh` (`head -30 | tail -28`): edit the
   header and the range together. `comment-size.allow` freezes those headers.
-- **The two bootstrap copies are body-mode assets.** Below their header,
-  `scripts/linux/lib/antfrastructure.sh` and `scripts/windows/Resolve-BuildModule.ps1`
-  must equal the hub templates byte for byte (`sync-shared-config.sh --check`).
-  Re-copy them from the templates after an upstream change; never edit them here.
 - **Six image gaps this repo once worked around are fixed in the image (2026-09-05); never
   bring a workaround back.** A reappearing one is an image regression
   ([`docs/source/platforms.md`](docs/source/platforms.md) § *Image gaps and image-tag history*).
@@ -290,14 +258,12 @@ rather than linked.
   with `The SDK directory is not writable`. Detail, and why the override sits above
   `evaluationDependsOn(":app")`: [`docs/source/platforms.md`](docs/source/platforms.md) § *Android SDK components pinned to the image*.
 - **The image's clang selects its own GCC; nothing here injects `--gcc-toolchain` any
-  more.** Since `:latest` of 2026-09-29 (hub CON16) a bare `clang`/`clang++` reads
-  `<native-triple>-clang{,++}.cfg` beside it, which names the source-built GCC 16.2.0. Before
-  that it picked the distro GCC and the link died, so `export_toolchain_env` injected the
-  flag for months. It now only sets `CC=clang CXX=clang++` and **refuses** a clang that
-  selects anything but `gcc_toolchain_resolve_prefix()`'s GCC: an image older than CON16
-  fails there, loudly, instead of at the link. Pull the image; do not put the flag back.
-  History and measurements: [`docs/source/platforms.md`](docs/source/platforms.md)
-  § *Android and cross-toolchain constraints*.
+  more** (`:latest` since 2026-09-29, hub CON16:
+  [`linux-cross-builds.md` § *Clang cross wrappers*](third_party/ANTfrastructure/docs/linux-cross-builds.md#clang-cross-wrappers)).
+  `export_toolchain_env` only sets `CC=clang CXX=clang++` and **refuses** a clang that selects
+  anything but `gcc_toolchain_resolve_prefix()`'s GCC, so an older image fails there instead of
+  at the link. Pull the image; do not put the flag back. History:
+  [`docs/source/platforms.md`](docs/source/platforms.md) § *Android and cross-toolchain constraints*.
 - **Editing a lane script while its container runs makes the log lie.** bash sources
   `container-steps.sh` once at start, so the edit does not take effect, but the log then
   contradicts the file on disk and the next reader (you, ten minutes on) draws the wrong
@@ -308,16 +274,13 @@ rather than linked.
   `KATAGLYPHIS_FLATPAK_FINISH_ARGS`, which the hub appends to its four finish-args, and
   `package-linux.sh` prints the built app's `[Context]` and fails when an appended argument is
   missing from it. An empty value drops it.
-- **A packaged Linux artifact carries its whole runtime closure**, GCC 16.2's `libstdc++` and
-  the image's loader and glibc included (2026-10-17). `omni_accelerant` is a launcher for
-  `omni_accelerant.bin`: it takes the bundled glibc only on an older host (Debian 13) and the
-  host's otherwise, since a newer host's GL drivers need it (the flatpak's); a clean-host job
-  starts it on the bare runner. Every bundled ELF has its own `$ORIGIN` RUNPATH (RUNPATH is
-  not transitive), the GStreamer libraries and seven plugins travel in `bundle/lib`, and ORT
-  is the image's chain build, proven by the hub's G6 census in `check-bundle-closure.sh`. With
-  the lane's Rust features ORT is in `bundle/lib` before the packer runs
-  (`Kept (already in bundle/lib, not copied)`), so a copy list without ORT is not a missing
-  ORT. Detail: [`docs/source/camera-streaming.md`](docs/source/camera-streaming.md) § *Relocatable Linux bundles*.
+- **A packaged Linux artifact carries its whole runtime closure** (2026-10-17), by the hub's
+  rules ([`linux-build-basics.md` § *Linux packages that run outside the image*](third_party/ANTfrastructure/docs/linux-build-basics.md#linux-packages-that-run-outside-the-image)):
+  `omni_accelerant` is the launcher of `omni_accelerant.bin`, the GStreamer libraries and seven
+  plugins travel in `bundle/lib`, and ORT is the image's chain build, proven by the hub's G6
+  census in `check-bundle-closure.sh`. With the lane's Rust features ORT is in `bundle/lib`
+  before the packer runs (`Kept (already in bundle/lib, not copied)`), so a copy list without
+  ORT is not a missing ORT. Detail: [`docs/source/camera-streaming.md`](docs/source/camera-streaming.md) § *Relocatable Linux bundles*.
 - **The Rust binaries name the chain ORT's directory, and G6 must read them as importers.**
   OxidANT's loader keeps `/opt/onnxruntime/onnxruntime/core/` as a string, so only a whole
   NUL-terminated `__FILE__` path is an ORT fingerprint. A census calling `liboxidant.so` or
@@ -385,14 +348,13 @@ rather than linked.
   unresolved one on Windows; do not unify them.** `rust_builder/linux/CMakeLists.txt` takes
   `REALPATH` first, because the kernel resolves the plugin symlink before `..`; Windows
   normalizes `..` lexically. Proof: [`docs/source/platforms.md`](docs/source/platforms.md) § *The Rust manifest path*.
-- **Never `dart format .` here.** It ignores `analysis_options.yaml`, so the recursive walk
-  reaches `flutter/`, `third_party/` and `build/` — one run reported
-  `Formatted 7404 files (627 changed)` and rewrote the Flutter SDK on disk on the way. Both
-  lanes list tracked files instead (`code_quality_find_dart_files` on Linux,
-  `Get-ProjectDartFiles` on Windows; the same list,
-  `git ls-files -- '*.dart' ':!:rust_builder/**'`); keep that listing although the SDK now
-  comes from the image. `dart analyze` is *not* affected and never was. Detail:
-  [`docs/source/project-operations.md`](docs/source/project-operations.md) § *Static checks*.
+- **Never `dart format .` here**; format the tracked files,
+  `git ls-files -- '*.dart' ':!:rust_builder/**'`, as both lanes do
+  ([`code-quality-tooling.md` § *`dart format`: the tracked files, in the floor's style*](third_party/ANTfrastructure/docs/code-quality-tooling.md#dart-format-the-tracked-files-in-the-floors-style)).
+  **The `environment: sdk:` floor picks the style**: moving it from 3.11.4 to 3.13.0
+  (2026-10-11) reformatted ten tracked files, so 3e4a252 failed every lane's format gate
+  (reverted in 7af04e4; 0ebcf43 landed it formatted). After a floor move, regenerate
+  `lib/src/rust/` and `lib/l10n/` in the image rather than hand-format them.
 - **A single-arch image tag looks exactly like broken code.** `:latest` (then
   `:latest-cross`) was an amd64-only tag until 2026-09-04, so the arm64 matrix row ran x86-64
   binaries (`rustc: 1: ELF: not found`) and nothing in this repo could work around it. The
@@ -482,15 +444,6 @@ rather than linked.
   is `FLUTTER_RUST_BRIDGE_VERSION` in the image or, off it, the `flutter_rust_bridge` version
   pinned in `third_party/OxidANT/Cargo.toml` (`=2.13.0` today) — a floating latest
   desynchronises the Dart bindings from the Rust runtime.
-- **The `environment: sdk:` floor picks `dart format`'s style, and two generators format
-  with it.** At language version 3.13 the formatter puts a blank line between import groups,
-  so moving the floor from 3.11.4 to 3.13.0 (2026-10-11) reformatted ten tracked files, and
-  the lanes' format gate failed until they were committed (3e4a252, reverted in 7af04e4).
-  `flutter_rust_bridge_codegen generate` and `flutter gen-l10n` run `dart format` on their
-  output at that language version, so after a floor move regenerate `lib/src/rust/` and
-  `lib/l10n/` in the image rather than hand-format them; their output then passes the gate
-  unchanged. The image carries no `cargo-expand`, so the codegen installs it on first use and
-  needs network.
 - **The ESP32-S3 bridge is desktop-only and its firmware is a separate toolchain.**
   `kataglyphis_esp32` sits in a `[target.'cfg(any(target_os = "linux", target_os =
   "windows", target_os = "macos"))'.dependencies]` block; moving it to `[dependencies]` drags
@@ -554,7 +507,7 @@ Windows builds run in the `:winamd64` container, and **CI runs the exact same
 
 - **In the container with Stevedore's `docker.exe`**, never on the host (Rancher's shims come
   first on `PATH`, and the host's CMake is too old), and **never mounted at a path the image
-  has** (`C:\workspace` fails with `hcs::CreateComputeSystem`).
+  has**: that fails with `hcs::CreateComputeSystem` (images before 2026-09-26 held `C:\workspace`).
 - **On the dev box, junction first**: start without the root and plugin `.dart_tool`/`build` and
   junction those four to container-local directories, or Dart's and CMake's write-then-rename
   steps fail on the mount. `Build-Windows-Container.ps1` streams the sources in and needs neither.
@@ -632,19 +585,12 @@ that cannot run there; why, lane by lane: [`docs/source/testing.md`](docs/source
 | Release collector (`test-collect-release-assets.sh`): every platform's package, no stray upload, nothing missing | yes | | | | |
 | `.deb`, AppImage and tarball on a bare `ubuntu-26.04` runner, 20 s under Xvfb (the hub's `clean-host-package-check`) | yes | | | | |
 
-**When the lanes run** is the family's rule, [ANTfrastructure's
-`branch-and-release-strategy.md`](third_party/ANTfrastructure/docs/branch-and-release-strategy.md)
-(owner, 2026-10-15):
-
-- **A push to `develop` runs Linux x64 alone.** The other columns run when a commit message asks:
-  `[ci windows]`, `[ci arm64]`, `[ci android]`, `[ci web]`, `[ci all]` (`on-request.yml`), or by
-  hand: `gh workflow run windows-x64.yml --ref develop`. A change to Windows-, arm64-, Android- or
-  web-only code asks for its lane in its commit message.
-- **`main` moves only by the owner's fast-forward** to a `develop` commit whose full round
-  (`[ci all]`) is green. An agent pushes `main` only when the owner says so in that turn, and
-  checks that round first.
-- **Every push to `main` is a release:** `release.yml` runs every lane again and publishes
-  `v<version>` only when all are green. Steps: project-operations.md § *Release Hygiene*.
+**When the lanes run** is the family's rule (owner, 2026-10-15):
+[`branch-and-release-strategy.md`](third_party/ANTfrastructure/docs/branch-and-release-strategy.md).
+A push to `develop` runs Linux x64 alone; a change to Windows-, arm64-, Android- or web-only code
+asks for its lane in its commit message (`[ci windows]`, `[ci arm64]`, `[ci android]`, `[ci web]`,
+`[ci all]`). `main` moves only by the owner's fast-forward, and every push to it is a release.
+This repo's release steps: project-operations.md § *Release Hygiene*.
 
 ### The Dart gate in 23 seconds, without a lane
 
@@ -689,18 +635,17 @@ the CI invocation: [`docs/source/project-operations.md`](docs/source/project-ope
   on Linux) is bound at `/run/secrets/sccache_s3` (`WindowsLaneSccache.Common`), and the
   lane's exit waits for the uploads. With both local caches deleted, the native lane hit
   99.76 % from the bucket. `KATAGLYPHIS_SCCACHE_S3=off` drops the S3 level; CI never has it.
-- **On a Linux host the driver runs the lane as root** when the engine is rootless: root
-  there *is* the host user, while uid 1001 could not write the checkout. `TAR_OPTIONS=--no-same-owner`
-  goes with it.
-- **`-v name:/path` is a bind mount on Windows nerdctl**: spell a volume `--mount
-  type=volume,source=…,target=…`.
-- **An empty mount** means `D:` is missing from containerd's own mount namespace (gone after
-  every VM restart) or the path was the WSL form; pass the Windows path (`D:\…`).
+- **On a Linux host the driver runs a rootless engine's lane as root**, with
+  `TAR_OPTIONS=--no-same-owner`
+  ([`linux-build-basics.md`](third_party/ANTfrastructure/docs/linux-build-basics.md#a-lane-under-a-rootless-engine-on-a-linux-host-runs-as-root)).
+- **Rancher's traps are the hub's**
+  ([`rancher-desktop-linux-containers.md`](third_party/ANTfrastructure/docs/rancher-desktop-linux-containers.md)):
+  `-v name:/path` is a bind, so the driver spells every volume `--mount type=volume,…`; an empty
+  mount is `D:` missing from containerd's namespace or a WSL path; the android lane's emulator
+  needs KVM loaded once per VM boot (or `-EmulatorSmoke false`); arm64 needs QEMU registered once
+  per VM boot, and an emulated run makes tar and deb only.
 - **A `pubspec.lock` older than a workspace member's `pubspec.yaml` reds the web lane**
   (`Failed to set file modification time`): touch the lock on the host and rerun.
-- **The android lane boots an emulator**: load KVM into Rancher's VM once per boot, or pass
-  `-EmulatorSmoke false`.
-- **arm64 needs QEMU registered once per VM boot**, and an emulated run makes tar and deb only.
 - **Flutter comes from the image** (`/opt/flutter`); no lane installs or pins it. To change
   the version, change the image.
 - **`--app-name` derives from `pubspec.yaml`** (`resolve_app_name`); never hard-code it.
@@ -735,8 +680,9 @@ turn. Nothing in CI runs it. On this host, in the family Linux image:
 ```
 
 `-Recurse` writes into the vendored submodules in place: commit and push each, then move the
-gitlinks in every superproject that vendors it. The runner, its Node and token, and how
-`--apply` writes what Renovate only detects: [`docs/source/project-operations.md`](docs/source/project-operations.md) § *Dependency upgrades, in detail*.
+gitlinks in every superproject that vendors it. How Renovate detects and `--apply` writes:
+[`dependency-updates.md`](third_party/ANTfrastructure/docs/dependency-updates.md); this repo's
+runner: [`docs/source/project-operations.md`](docs/source/project-operations.md) § *Dependency upgrades, in detail*.
 
 ## 6. Docs owned by this repo
 

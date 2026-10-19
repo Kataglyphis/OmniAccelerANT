@@ -18,23 +18,13 @@ dart analyze
 dart format --output=none --set-exit-if-changed $(git ls-files -- '*.dart' ':!:rust_builder/**')
 ```
 
-**Never `dart format .`.** It ignores `analysis_options.yaml`, so the recursive walk reaches
-`flutter/`, `third_party/` and `build/`, which `dart format` cannot be told to skip. When the
-lanes still installed the Flutter SDK *inside* the mounted workspace, run 33810449411
-(2026-09-03) reported `Formatted 7404 files (627 changed)`, 604 of them under `flutter/`: that
-alone fails `--set-exit-if-changed`, and it rewrote the SDK on disk.
-
-Both lanes list tracked files instead (`code_quality_find_dart_files` on Linux,
-`Get-ProjectDartFiles` on Windows, the same list), as the command above does: tracked files
-minus `rust_builder/` (Cargokit's 19); `flutter/` is untracked and `third_party/` holds
-gitlinks, so `git ls-files` lists neither. Keep the listing although the SDK now comes from
-`/opt/flutter` in the image: a stray `flutter/` from an older run is git-ignored and still on
-disk, and `third_party/` and `build/` would be walked regardless.
-
-`dart analyze` is **not** affected and never was: it honours the `analyzer.exclude` list in
-`analysis_options.yaml`, which names `flutter/**`, `third_party/**` and `rust_builder/**`.
-`dart format` ignores that file, which is why the file list is built outside it and the two
-helpers exclude those three trees (plus build output and the old `ExternalLib/`).
+**Never `dart format .`**: format the tracked files, as the command above and both lanes do
+(`code_quality_find_dart_files`, `Get-ProjectDartFiles`). Why, with this repo's run 33810449411
+(`Formatted 7404 files (627 changed)`):
+[`code-quality-tooling.md` § *`dart format`: the tracked files, in the floor's style*](../../third_party/ANTfrastructure/docs/code-quality-tooling.md#dart-format-the-tracked-files-in-the-floors-style).
+The list leaves out `rust_builder/` (Cargokit's 19 files); `flutter/` is untracked and
+`third_party/` holds gitlinks, so `git ls-files` lists neither. `dart analyze` honours the
+`analyzer.exclude` list in `analysis_options.yaml` and is not affected.
 
 ### Lint gates (shell, workflows, secrets)
 
@@ -181,12 +171,11 @@ removal of two images nothing referenced (below); 2026-10-12 counted 4.7 MiB and
 | `assets/icons/kataglyphis_app_icon.png` | 0.26 MiB | Load-bearing: `flutter_launcher_icons` generates every platform icon set from it (`pubspec.yaml` names it four times, one of them msix's `logo_path`), so it stays at its 1024 px source resolution. It was 1.9 MiB as 16-bit RGBA until 2026-10-17; the 8-bit file is pixel-identical to what every icon tool decodes from that one. |
 
 **The history was rewritten on 2026-10-17** (owner, reversing the earlier "document it and stop
-it growing"): binary blobs of 500 KB and more that no branch held left the history of all ten
-family repositories, and this pack went from 167 to 12 MiB. Every commit was kept, so each old
-sha maps to exactly one new one, and the gitlinks moved with them. Move a checkout from before
-with the hub's `git-adopt-rewritten-history.sh`
-([`adopting-in-a-new-project.md` § *After a history rewrite*](https://github.com/Kataglyphis/ANTfrastructure/blob/develop/docs/adopting-in-a-new-project.md#after-a-history-rewrite)),
-which saves local work first; a plain `git pull` would merge the two histories.
+it growing"), family-wide ([`data-repositories.md` § *What moved, and why*](../../third_party/ANTfrastructure/docs/data-repositories.md#what-moved-and-why)):
+this pack went from 167 to 12 MiB. Move a checkout from before with the hub's
+`git-adopt-rewritten-history.sh`
+([`adopting-in-a-new-project.md` § *After a history rewrite*](../../third_party/ANTfrastructure/docs/adopting-in-a-new-project.md#after-a-history-rewrite)),
+never a plain `git pull`.
 
 **`.gitignore` stops it growing**: media, archives, documents and model weights are ignored by
 extension. It never untracks anything, so the table above is unaffected; a new asset the app
@@ -286,31 +275,20 @@ reader that the flag does not work.
 
 ## Release Hygiene
 
-**Branches and CI rounds** follow the family's rule, [ANTfrastructure's
-`branch-and-release-strategy.md`](../../third_party/ANTfrastructure/docs/branch-and-release-strategy.md) (owner, 2026-10-15). `develop` is the
-default branch and the only one work lands on; every push to it runs `linux-x64.yml`, which
-also deploys the API docs over FTP. The other lanes run on request: `[ci <lane>]` in a commit
-message, read by `on-request.yml`, or *Run workflow*. `main` is the release branch: it moves
-only by the owner's fast-forward to a `develop` commit whose full round is green, so between
-releases it trails `develop` by design (416 commits on 2026-10-05). Neither branch is protected
-(owner, 2026-10-05).
+**Branches, CI rounds and releases** follow the family's rule (owner, 2026-10-15):
+[`branch-and-release-strategy.md`](../../third_party/ANTfrastructure/docs/branch-and-release-strategy.md).
+Here every push to `develop` runs `linux-x64.yml`, which also deploys the API docs over FTP, and
+`on-request.yml` reads the `[ci <lane>]` tokens. Between releases `main` trails `develop` by
+design (416 commits on 2026-10-05). Neither branch is protected (owner, 2026-10-05).
 
 - Keep dependency upgrades and feature changes in separate pull requests.
 - Regenerate bridge code when Rust API signatures change.
 - Update docs in the same pull request as any user-facing behaviour change.
 
-**Publishing a release** (2026-10-15). Every push to `main` starts `release.yml`:
-
-1. Its `version` job runs the hub's `publish-github-release.sh --check` and stops within a
-   minute unless `v<version>` (the version `pubspec.yaml` carries, without its `+build`) has a
-   `CHANGELOG.md` section headed `## <version>` and no GitHub release yet.
-2. It calls all six lanes on that commit, as reusable workflows in the same run.
-3. Its `release` job `needs:` all six, so it runs only when every one is green. It downloads
-   every lane's uploads, `scripts/linux/collect-release-assets.sh` picks the packages, and the
-   hub's script tags the commit `v<version>` and publishes them with a `SHA256SUMS` and the
-   CHANGELOG section as notes.
-
-What a release carries (2.2.0 on; 2.1.0 carried only ObservANT):
+**Publishing a release** (2026-10-15). A push to `main` starts `release.yml`: the version check
+(`v<version>` is `pubspec.yaml`'s version without its `+build`), all six lanes, then the release
+job, whose packages `scripts/linux/collect-release-assets.sh` picks from the lanes' uploads. What
+a release carries (2.2.0 on; 2.1.0 carried only ObservANT):
 
 | Platform | The app | ObservANT |
 | --- | --- | --- |
@@ -324,75 +302,36 @@ release on an upload it has no rule for, or when a platform's package is missing
 hub's suite tests the publishing script. riscv64 has no package in a release, since no CI lane
 builds one.
 
-**To release:**
-
-1. On `develop`: bump `version:` in `pubspec.yaml` and `msix_config.msix_version` together
-   (AGENTS.md § 4), turn `## Unreleased` into `## <version> — <date>` and open a new, empty
-   `## Unreleased`. Commit with `[ci all]` in the message.
-2. Wait until every run on that commit is green, `on-request.yml`'s six lanes included. Or,
-   instead of the token, a **dry run**: `gh workflow run release.yml --ref develop -f
-   dry-run=true` runs every lane and the collector on `develop`'s newest commit, lists the
-   files the release would carry with their checksums in the run's summary, and tags and
-   publishes nothing; a version check that fails there is a warning saying where the real
-   release would stop.
-3. The owner fast-forwards `main` to that commit: `git push origin <sha>:main`. An agent does it
-   only on the owner's word in that turn, as for 2.1.0 (2026-10-15, `3b4344c`).
+**To release**, follow the hub's
+[§ *Merging into `main`*](../../third_party/ANTfrastructure/docs/branch-and-release-strategy.md#merging-into-main)
+with this repo's version files: bump `version:` in `pubspec.yaml` and `msix_config.msix_version`
+together (AGENTS.md § 4) beside the CHANGELOG section, commit with `[ci all]`, or dry-run the
+round with `gh workflow run release.yml --ref develop -f dry-run=true`, which lists the release's
+files with their checksums in the run's summary. The owner then fast-forwards `main`
+(`git push origin <sha>:main`), as for 2.1.0 (2026-10-15, `3b4344c`).
 
 ## Dependency upgrades, in detail
 
-AGENTS.md § 5 (Build, run, test) has the commands and the report-first rule; these are the
-behaviours that surprise people.
+AGENTS.md § 5 (Build, run, test) has the commands and the report-first rule (owner directive
+2026-09-11). How Renovate detects and `--apply` writes is the hub's
+[`dependency-updates.md`](../../third_party/ANTfrastructure/docs/dependency-updates.md). This
+repo's part:
 
-**Renovate is a local CLI and only detects** (`--platform=local` cannot write), so the `--apply`
-half is the family's own code, ANTfrastructure's `renovate-local.sh` behind this repo's wrapper:
-git for gitlinks and a located line rewrite for the manifests Renovate reported (`pubspec.yaml`
-included, with its lockfile refreshed). Managers default to **every manager whose file patterns
-match this tree** (eight today), so `--managers` narrows the run rather than enabling it.
-`--apply` needs the git that *wrote* the working tree; the script sorts that out itself and
-refuses up front rather than half-applying.
-
-**The container downloads its own Node.** Renovate's `engines.node` range excludes the image's
-Node, so the bootstrap pulls a checksum-pinned one onto the `kataglyphis-renovate-cache` volume.
-
-**The runner passes `gh`'s token as `GITHUB_COM_TOKEN` when `gh` is authenticated.** Without it
-Renovate's GitHub API lookups are rate-limited and it can report stale GitHub Actions as up to
-date: DocumANTation's action majors were invisible until a token was supplied.
-
-The Node versions, and why any of it, are ANTfrastructure's:
-[`third_party/ANTfrastructure/docs/dependency-updates.md`](../../third_party/ANTfrastructure/docs/dependency-updates.md).
-
-### The runner and `-Recurse`
-
-AGENTS.md keeps the rules; this detail moved here from it on 2026-10-15.
-
-**Submodule upgrades go through this, not by hand.** Nothing in `.github/workflows/` runs it; it
-blocks no commit. **Report-first (owner directive 2026-09-11): a run reports. `-Apply` only when
-the owner explicitly asked for it in that turn.** On this host, run it in the family Linux image
-(`:latest`):
-
-```powershell
-.\scripts\windows\Invoke-Renovate.ps1                      # what is behind
-.\scripts\windows\Invoke-Renovate.ps1 -Apply -DryRun       # the plan
-.\scripts\windows\Invoke-Renovate.ps1 -Apply               # apply the plan
-.\scripts\windows\Invoke-Renovate.ps1 -Managers pub        # narrow the managers
-.\scripts\windows\Invoke-Renovate.ps1 -Recurse             # owned submodules, in place
-```
-
-`scripts/linux/renovate-local.sh` stays the language-independent entry point (a Linux host calls
-it directly; nothing in CI does). The PowerShell runner only runs it inside the container through
-`nerdctl`: it mounts the repo at `/workspace`, adds the `safe.directory` entries the root-owned
-bind mount needs (`/workspace` and `/workspace/*` for the submodule worktrees), and forwards
-`-Apply`/`-DryRun`/`-Refresh`/`-Managers`/`-PrintBin`. Its own Node, the `gh` token and the
-`--apply` mechanics: § *Dependency upgrades, in detail* above.
-
-`-Recurse` runs ANTfrastructure's `renovate-fleet.sh --vendored`. The fleet driver finds the
-repos BESIDE the superproject, dedups by remote identity and orders them dependencies-first;
-`--vendored` then appends the vendored checkouts of identities with no own checkout, which inside
-this container is all of them: the mount is one superproject with nothing beside it. This repo
-carried its own 135-line submodule walker until 2026-09-15, because the fleet driver refused to
-write in place at all; that refusal is now an opt-in. Writing into a vendored worktree still
-means: after an `-Apply`, commit and push each submodule, then move the gitlinks in every
-superproject that vendors it.
+- **`scripts/windows/Invoke-Renovate.ps1` runs `scripts/linux/renovate-local.sh` in `:latest`**
+  through `nerdctl`; a Linux host calls the wrapper directly, and nothing in CI runs either. It
+  mounts the repo at `/workspace`, adds the `safe.directory` entries the root-owned bind mount
+  needs (`/workspace` and `/workspace/*`), and forwards
+  `-Apply`/`-DryRun`/`-Refresh`/`-Managers`/`-PrintBin`.
+- **Managers default to every manager whose file patterns match this tree** (eight today), so
+  `-Managers` narrows a run rather than enabling one.
+- **Renovate's Node lives on the `kataglyphis-renovate-cache` volume**: its `engines.node` range
+  excludes the image's Node, so the bootstrap pulls a checksum-pinned one.
+- **The runner passes `gh`'s token as `GITHUB_COM_TOKEN`** when `gh` is authenticated. Without it
+  Renovate's GitHub lookups are rate-limited and can report stale GitHub Actions as up to date:
+  DocumANTation's action majors were invisible until a token was supplied.
+- **`-Recurse` runs the hub's `renovate-fleet.sh --vendored`**: in this one-superproject mount
+  every repo is vendored, so it writes into the submodule worktrees (what follows an `-Apply`:
+  AGENTS.md § 5). This repo's own 135-line submodule walker went on 2026-09-15.
 
 ## The Linux lanes, run locally
 
@@ -466,8 +405,10 @@ nothing off a ~48 s release app build, which mold does not beat. CI never sets i
 android and web lanes do not read it.
 
 **arm64 locally needs QEMU registered once per VM boot**, and an emulated arm64 run produces tar
-and deb, never flatpak or AppImage; CI's arm64 build runs on real hardware. The `binfmt`
-registration commands, the pull sizes and both error messages: § *The Linux lane, locally*.
+and deb, never flatpak or AppImage: bubblewrap and static-PIE fail under `qemu-user`. CI's arm64
+build runs on a real `ubuntu-26.04-arm` runner. The registration, the pull sizes and both error
+messages: [§ *Registering arm64 emulation*](../../third_party/ANTfrastructure/docs/rancher-desktop-linux-containers.md#registering-arm64-emulation-in-ranchers-vm-per-vm-boot)
+and [§ *Emulated arm64 cannot run bubblewrap or static-PIE*](../../third_party/ANTfrastructure/docs/rancher-desktop-linux-containers.md#emulated-arm64-cannot-run-bubblewrap-or-static-pie).
 
 **Everything write-heavy must stay off the host mount.** A bind-mounted Windows drive cannot do
 `utime`, `chmod` or `fchmod` for the container uid, and each surfaces as a different, misleading
@@ -494,19 +435,16 @@ the `utime`: `FileSystemException: Failed to set file modification time, path =
 host, `(Get-Item pubspec.lock).LastWriteTime = Get-Date`, and rerun; the next run passed. CI's
 fresh clone never has the skew.
 
-**`-v name:/path` is not a named volume on Windows nerdctl.** It silently binds `$PWD/name`, so
-`Invoke-LinuxLane.ps1` always spells the mount `--mount type=volume,source=…,target=…`, which
-nerdctl cannot reinterpret as a path. CI is unaffected. The measurement that settled it, and the
-cosmetic `flutter clean … Device or resource busy (errno 16)` that mounting `build/` produces on
-every run: § *The Linux lane, locally*.
+**`-v name:/path` is a bind under Windows nerdctl**
+([§ *`-v name:/path` is a bind*](../../third_party/ANTfrastructure/docs/rancher-desktop-linux-containers.md#-v-namepath-is-a-bind-under-windows-nerdctl); the
+measurement was this lane's), so `Invoke-LinuxLane.ps1` always spells the mount
+`--mount type=volume,source=…,target=…`. Mounting `build/` makes `flutter clean` log `Device or
+resource busy (errno 16)` on every run: cosmetic.
 
-**Two traps produce a mount that resolves but is empty.** `D:` must exist inside *containerd's
-own* mount namespace, which is not the distro's and is gone after every VM restart (the fix:
-ANTfrastructure's
-[`docs/rancher-desktop-linux-containers.md` § *An empty mount is not a missing drive*](../../third_party/ANTfrastructure/docs/rancher-desktop-linux-containers.md#an-empty-mount-is-not-a-missing-drive)).
-And the path you pass must be the **Windows** one (`D:\…`): nerdctl translates it itself, and
-handing it the already-translated `/mnt/d/…` binds nothing. A `wsl: Failed to translate
-'<cwd>'` line in the output is noise, not a failed mount.
+**A mount that resolves but is empty** is `D:` missing from containerd's own mount namespace, or
+a WSL path where nerdctl wants `D:\…`:
+[§ *An empty mount is not a missing drive*](../../third_party/ANTfrastructure/docs/rancher-desktop-linux-containers.md#an-empty-mount-is-not-a-missing-drive). A `wsl:
+Failed to translate '<cwd>'` line in the output is noise, not a failed mount.
 
 **Flutter comes from the image, and this repo does not have an opinion about which version.**
 No Linux lane installs it (the Windows workflows clone it onto the runner for `flutter drive`).
@@ -709,60 +647,15 @@ Measured on the Linux host, native lane x64, `-PackageFormats tar -SkipDocs`, 20
 | Cold: empty volume, nothing in the bucket for this lane | 1,172 misses, all 1,172 uploaded, 0 failed; the drain took 15 s | 6 min 50 s |
 | The sccache and cargo-target volumes deleted | 1,232 hits of 1,235 (99.76 %), Rust 100 %, all from the bucket | 5 min 48 s |
 
-**A Linux host's rootless engine runs the lane as root.** Rootless nerdctl maps the host user
-to the container's root, so the image's uid 1001 lands on a subuid that may not write the
-bind-mounted checkout: `Cannot open file, path = '.dart_tool/package_config.json' (OS Error:
-Permission denied, errno = 13)`. The driver passes `--user 0:0` when `nerdctl info` reports
-`name=rootless` on a non-Windows host, and every file the lane writes is then the host user's.
-As root, GNU tar also restores the archive's owners: Flutter's `gradle-wrapper.tgz` carries uid
-397546, beyond the engine's 65,536 subuids, and the extraction fails with `Cannot change
-ownership to uid 397546, gid 5000: Invalid argument`. `TAR_OPTIONS=--no-same-owner` goes with
-the user. Windows (Rancher) and CI (whose runner is uid 1001 itself) need neither.
+**A Linux host's rootless engine runs the lane as root**: the driver passes `--user 0:0` and
+`TAR_OPTIONS=--no-same-owner` when `nerdctl info` reports `name=rootless` on a non-Windows host.
+Why, with both error messages:
+[`linux-build-basics.md` § *A lane under a rootless engine*](../../third_party/ANTfrastructure/docs/linux-build-basics.md#a-lane-under-a-rootless-engine-on-a-linux-host-runs-as-root).
 
-**The android lane needs KVM in Rancher's VM, once per VM boot.** Its emulator smoke boots the
-image's AVD, and the VM starts without the KVM module even though the CPU flags (`svm`/`vmx`)
-reach it; nerdctl then refuses the run with `error stating device path: stat /dev/kvm: no such
-file or directory`. Load the module and open the node to the container's uid 1001, the mode
-GitHub's runners get from `android.yml`'s udev rule (measured 2026-10-06, AMD host: AVD boot
-20 s):
-
-```bash
-wsl -d rancher-desktop -u root -- modprobe kvm_amd    # kvm_intel on Intel
-wsl -d rancher-desktop -u root -- chmod 0666 /dev/kvm
-```
-
-**arm64 locally needs QEMU registered once per VM boot.** Rancher's VM starts with no emulators
-at all: `binfmt` reports `"emulators": null` and only `linux/amd64` variants under `supported`,
-so an arm64 container would run x86-64 binaries and die exactly as CI did before the image went
-multi-arch (`rustc: 1: ELF: not found`). Register it with:
-
-```powershell
-nerdctl run --rm --privileged tonistiigi/binfmt --install arm64
-nerdctl run --rm --privileged tonistiigi/binfmt          # verify: qemu-aarch64 listed
-nerdctl run --rm --platform linux/arm64 --entrypoint uname ghcr.io/kataglyphis/kataglyphis_beschleuniger:latest -m  # verify: aarch64
-```
-
-Like the `D:` mount in containerd's namespace, this does not survive a VM restart. The arm64
-layers are a separate pull, about 6 GB over the wire and 30 GB on disk next to the amd64 copy
-(`nerdctl pull --platform linux/arm64 …`), and every compile then runs under emulation, so expect
-it to be far slower than the native x64 lane.
-
-**Emulated arm64 produces tar and deb, never flatpak or AppImage.** Both fail inside
-`qemu-user`, for reasons that have nothing to do with this repo or the image; both were verified
-2026-09-05 after a full arm64 build that compiled Rust and C++ without a single error:
-
-- `bwrap: Creating new namespace failed, likely because the kernel does not
-  support user namespaces`: the kernel does support them
-  (`/proc/sys/user/max_user_namespaces` is 123100) and `--privileged` is passed, but qemu-user
-  does not carry `unshare(CLONE_NEWUSER)` through, and flatpak-builder sandboxes every module
-  with bubblewrap.
-- `/usr/local/bin/appimagetool: cannot execute binary file: Exec format error`: the binary is
-  the correct architecture (`ELF aarch64, static-pie linked`); qemu-user cannot load static-PIE
-  executables.
-
-CI is unaffected: its arm64 build (`linux-arm64.yml`) runs on a real `ubuntu-26.04-arm` runner.
-Locally, treat a failing flatpak/AppImage step on arm64 as expected and check the two messages
-above before investigating.
+**The android lane needs KVM in Rancher's VM, once per VM boot**
+([§ *KVM in Rancher's VM*](../../third_party/ANTfrastructure/docs/rancher-desktop-linux-containers.md#kvm-in-ranchers-vm-for-the-android-emulator-per-vm-boot));
+without it nerdctl refuses the run with `error stating device path: stat /dev/kvm`. CI's runners
+get the node's mode from `android.yml`'s udev rule; `-EmulatorSmoke false` skips the emulator.
 
 **`error: fchmod` after `Pruning cache` is not the prune.** That combination cost hours.
 `Pruning cache` is merely flatpak-builder's *last* output line; it exits 0. The error underneath
@@ -777,23 +670,6 @@ while a later stage fails. The exit code is reported in the warning, never used 
 
 All four formats build locally on x64: tar, deb, flatpak and AppImage. The appimagetool mode-711
 problem that used to break the last one is fixed in the image.
-
-**`-v name:/path` is not a named volume on Windows nerdctl.** It is a bind of `$PWD/name`,
-created silently, and `nerdctl volume create` beforehand changes nothing: the volume is made and
-never mounted. Proof: after five lane runs, `%TEMP%` held
-`kataglyphis-lane-native-x64-workspace-build/` and four siblings, 729 MB each, while the volume
-of that name mounted through `--mount type=volume,…` was empty. One run started from the repo
-root even left a 151 MB directory of that name *in the checkout*. So the volumes' whole point,
-keeping the write-heavy build tree off drvfs, was never in effect locally; the failures they
-prevent were only avoided because the packaging steps had already moved to `/tmp`.
-`Invoke-LinuxLane.ps1` now always uses `--mount type=volume,source=…,target=…`, which nerdctl
-cannot reinterpret as a path. CI is unaffected: there the Linux engine resolves the short form
-correctly.
-
-`flutter clean` then logs `Failed to remove /workspace/build … Device or
-resource busy (errno 16)` on every run and keeps going: it empties the directory but cannot
-unlink the mount point itself. Cosmetic, the direct consequence of mounting `build/`; not a
-failure to chase.
 
 **There is no separate host-side driver any more.** The legacy `ci-dart-on-native-linux.sh` /
 `ci-dart-build-android-app.sh` pair and their `ci-common.sh` were removed on 2026-09-04: no
