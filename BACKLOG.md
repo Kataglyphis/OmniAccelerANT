@@ -165,7 +165,5 @@ what the owner's goal still lacks.
 
 ## Agentic loop
 
-Adopted 2026-09-13: `scripts/agentic-loop/` (config, runner wrappers, prompt
-overlays); engine opencode **v2**, executor model `opencode-go/deepseek-v4.1-flash`. Windows builds go
-through `scripts/windows/Build-Windows-Container.ps1`. Run commands and rules:
-AGENTS.md § 5.
+Adopted 2026-09-13: `scripts/agentic-loop/` (config, runner wrappers, prompt overlays).
+Engine, models and build driver: AGENTS.md § 2. Rules and run commands: AGENTS.md § 5.

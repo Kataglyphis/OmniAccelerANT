@@ -1,7 +1,6 @@
 # AGENTS.md
 
-Guidance for coding agents (and new contributors) working in
-OmniAccelerANT.
+Guidance for coding agents (and new contributors) working in OmniAccelerANT.
 
 Laid out per ANTfrastructure's
 [`shared/templates/AGENTS.md.template`](third_party/ANTfrastructure/shared/templates/README.md).
@@ -10,13 +9,13 @@ yes, ANTfrastructure owns it and § 2 links to it. If no, it is written out in �
 
 ## 1. What this project is
 
-A Flutter/Dart app (`lib/`) targeting Windows, Linux, Android and web, with a
-Rust core and a C++ inference plugin underneath it.
+A Flutter/Dart app (`lib/`) for Windows, Linux, Android and web, over a Rust core and a C++
+inference plugin.
 
 | Path | What lives there |
 | --- | --- |
 | `lib/` | The Flutter/Dart frontend |
-| `third_party/OxidANT` | Rust core, bridged via `flutter_rust_bridge` — regenerate bindings with `flutter_rust_bridge_codegen generate` (a cargo binary baked into the build image, NOT a pub dependency; on a bare host `cargo install --locked --version <pin> flutter_rust_bridge_codegen` first, where `<pin>` is `FLUTTER_RUST_BRIDGE_VERSION` in the image or the `flutter_rust_bridge` version pinned in `third_party/OxidANT/Cargo.toml` (`=2.13.0` today) off it — a floating latest desynchronises the Dart bindings from the Rust runtime). `lib/src/rust/` is committed generated code — no build lane regenerates it |
+| `third_party/OxidANT` | Rust core, bridged via `flutter_rust_bridge`. `lib/src/rust/` is committed generated code — no build lane regenerates it; how to regenerate: § 4, *The frb Dart bindings* |
 | `packages/kataglyphis_native_inference` | C++ inference plugin — **plain files, not a submodule**; a `pubspec.yaml` path dependency. Links GStreamer + ONNX Runtime via CMake/pkg-config |
 | `third_party/AccelerANTgine` | The inference core the plugin builds. Its own submodule, sibling to the plugin rather than nested inside it |
 | `scripts/windows/`, `scripts/linux/` | Thin wrappers over ANTfrastructure drivers + this repo's own glue |
@@ -26,96 +25,85 @@ Rust core and a C++ inference plugin underneath it.
 | `firmware/esp32-s3-probe` | One-boot hardware probe: PSRAM and the OV2640 SCCB scan (XCLK on GPIO15) |
 
 **ESP32-S3 USB companion and camera (2026-10-18).** A board on its native USB port
-(VID:PID `303a:1001`, `/dev/ttyACM0` / `COMx`) is a physical companion: `crates/esp32-protocol`
-(shared `no_std` framing), `kataglyphis_esp32` (discovery + reader/writer threads) and
-`src/api/esp32.rs` (frb) on the host, and `firmware/esp32-s3` (`esp-hal`, own toolchain)
-on the board. The **Device** page is a view over `Esp32Controller`; the webcam engine
-forwards detections to the link on the inference thread, so the LED reacts without a
-Dart round trip. The camera variant (`firmware/esp32-s3-eye`) runs the ESP-DL cat model
-on the ESP32-S3-EYE and sends `CameraDetection` through a Rust `staticlib`; the same
-Device page shows the on-device count and best score. The bridge is a **desktop target
-dependency** — web and Android keep the stubs and never compile `serialport` — and
-`serialport` is built without its optional libudev feature, so discovery uses the sysfs
-fallback and no libudev enters the bundle. Build/flash and the protocol:
-[`docs/source/esp32.md`](docs/source/esp32.md). Tests: `cargo test -p
-kataglyphis_esp32_proto -p kataglyphis_esp32`, `flutter test test/esp32_controller_test.dart`,
-and `cargo run -p kataglyphis_esp32 --example probe` against a flashed board.
+(VID:PID `303a:1001`, `/dev/ttyACM0` / `COMx`) is a physical companion. Host side:
+`crates/esp32-protocol` (shared `no_std` framing), `kataglyphis_esp32` (discovery +
+reader/writer threads) and `src/api/esp32.rs` (frb). Board side: `firmware/esp32-s3`
+(`esp-hal`, own toolchain), or the camera variant `firmware/esp32-s3-eye`, which runs the
+ESP-DL cat model on the ESP32-S3-EYE and sends `CameraDetection` through a Rust `staticlib`.
+The **Device** page is a view over `Esp32Controller` and shows the on-device count and best
+score; the webcam engine forwards detections to the link on the inference thread, so the LED
+reacts without a Dart round trip. The bridge is a desktop-only dependency built without
+libudev (§ 4). Build/flash and the protocol: [`docs/source/esp32.md`](docs/source/esp32.md).
+Tests: `cargo test -p kataglyphis_esp32_proto -p kataglyphis_esp32`, `flutter test
+test/esp32_controller_test.dart`, and `cargo run -p kataglyphis_esp32 --example probe`
+against a flashed board.
 
-**Rust-owned webcam inference (Windows, and Linux since 2026-09-16).** The Stream
-page runs a Rust-owned webcam → ONNX → Flutter-texture pipeline: `crates/media`
-GStreamer capture → `src/webcam_engine.rs` → frb `src/api/webcam.rs` stream.
-Frames reach the texture through the native plugin's `knt_push_frame` C ABI;
-only detection metadata crosses the bridge. Gated by Rust features passed via
-the `KATAGLYPHIS_RUST_FEATURES` env var, read at CMake configure time by
+**Rust-owned webcam inference (Windows, and Linux since 2026-09-16).** The Stream page runs
+webcam → ONNX → Flutter texture in Rust: `crates/media` GStreamer capture →
+`src/webcam_engine.rs` → frb `src/api/webcam.rs` stream. Frames reach the texture through
+the native plugin's `knt_push_frame` C ABI; only detection metadata crosses the bridge. Rust
+features come from the `KATAGLYPHIS_RUST_FEATURES` env var, read at CMake configure time by
 `rust_builder/<platform>/CMakeLists.txt` and handed to cargo through
-`CARGOKIT_EXTRA_CARGO_FLAGS` — a local patch in `rust_builder/cargokit/`, which
-is vendored here, **not** a submodule. The fourth argument to `apply_cargokit`
-is *not* a features parameter on either platform; do not try to pass them there.
-Windows uses `gstreamer,onnxruntime_dynamic,onnxruntime_directml`; DirectML is a
-Windows-only execution provider, so Linux takes a different set. `mfvideosrc`
-needs the `mediafoundation` GStreamer plugin **and** a Windows client host; it
-falls back to `ksvideosrc`. Details in
+`CARGOKIT_EXTRA_CARGO_FLAGS` — a local patch in `rust_builder/cargokit/`, which is vendored
+here, **not** a submodule. The fourth argument to `apply_cargokit` is *not* a features
+parameter on either platform; do not pass them there. Windows uses
+`gstreamer,onnxruntime_dynamic,onnxruntime_directml`; DirectML is a Windows-only execution
+provider, so Linux takes a different set. `mfvideosrc` needs the `mediafoundation` GStreamer
+plugin **and** a Windows client host; it falls back to `ksvideosrc`. Details in
 [`docs/source/camera-streaming.md`](docs/source/camera-streaming.md)
 § *Rust-owned webcam inference*.
 
-**Linux has this too as of 2026-09-16, and a frame has crossed it since 2026-10-05.** All four
-links are in the tree: the `knt_push_frame`/`knt_api_version` C ABI exported
-from the Linux plugin, `KATAGLYPHIS_RUST_FEATURES` forwarding, ONNX Runtime
-bundling, and a Dart branch that routes Linux to `RustWebcamView` behind a
-runtime `webcamInferenceAvailable()` probe — so a build with no features set keeps the C++
-GStreamer MethodChannel path unchanged. The probe is a compile-time answer; never put
-`listCameras()` back on that path, which starts libcamera and held the first frame 0.94 s
-(2026-10-15). **This is an addition, not a
-replacement**: the two paragraphs below stay true.
+**Linux has this too as of 2026-09-16, and a frame has crossed it since 2026-10-05.** All
+four links are in the tree: the `knt_push_frame`/`knt_api_version` C ABI exported from the
+Linux plugin, `KATAGLYPHIS_RUST_FEATURES` forwarding, ONNX Runtime bundling, and a Dart
+branch that routes Linux to `RustWebcamView` behind a runtime `webcamInferenceAvailable()`
+probe, so a build with no features set keeps the C++ GStreamer MethodChannel path
+unchanged. The probe is a compile-time answer; never put `listCameras()` back on that path:
+it starts libcamera and held the first frame 0.94 s (2026-10-15). **This is an addition,
+not a replacement**: the WebRTC cat detection stream below stays.
 
-**A test-pattern frame travels Rust → `knt_push_frame` → texture on every native
-lane run** (2026-10-05). `integration_test/webcam_frame_test.dart` starts
-`RustWebcamView` on `videotestsrc` under Xvfb and polls the plugin's
-`hasPushedFrame`, which reads the flag `knt_push_frame` sets. The capture half needs
-no camera for that, since a camera only changes the source. A real camera on Linux is
-still a manual check. The ABI is verified by `scripts/linux/check-knt-abi.sh`, which
-dlopens the built plugin and checks the symbols and error codes. Since 2026-10-01 the
-lane also starts the packaged bundle under Xvfb and drives
-`integration_test/simple_test.dart` there (§ 5, *What each lane tests*). The lane sets
-`KATAGLYPHIS_RUST_FEATURES=gstreamer,onnxruntime_dynamic` by default as of
-2026-09-17 (empty string opts out), and the packaged artifacts carry their
-GStreamer/ONNX Runtime/model closure, so the featureless app is no longer the
-only Linux product.
+**A test-pattern frame travels Rust → `knt_push_frame` → texture on every native lane run**
+(2026-10-05): `integration_test/webcam_frame_test.dart` starts `RustWebcamView` on
+`videotestsrc` under Xvfb and polls the plugin's `hasPushedFrame`, the flag `knt_push_frame`
+sets. A camera only changes the source, so none is needed; a real camera on Linux is still a
+manual check. `scripts/linux/check-knt-abi.sh` dlopens the built plugin and checks the ABI's
+symbols and error codes. Since 2026-10-01 the lane also starts the packaged bundle under Xvfb
+and drives `integration_test/simple_test.dart` there (§ 5, *What each lane tests*). Since
+2026-09-17 the lane sets `KATAGLYPHIS_RUST_FEATURES=gstreamer,onnxruntime_dynamic` by default
+(an empty string opts out), and the packaged artifacts carry their GStreamer/ONNX
+Runtime/model closure, so the featureless app is no longer the only Linux product.
 
-**Linux/web cat detection stream.** The same Stream page consumes a WebRTC
-stream produced by `third_party/OxidANT/crates/observant`
-(`kataglyphis_observant`): V4L2/libcamera → ONNX (cat = COCO class 15) → boxes
-burned into the RGBA frames → `webrtcsink` with its own signalling server.
-`scripts/linux/observant/serve.sh` puts HTTPS (or, with `--http`, plain HTTP)
-+ COOP/COEP + a `/webrtc-ws` proxy in front of it, so one build works on localhost, a LAN IP or a
-Raspberry Pi; on a Pi 5 CSI camera the producer half is **OxidANT's**
-`third_party/OxidANT/scripts/linux/observant/run-producer-pi.sh`, a Pi Zero
-2 W runs the image with the same host-libcamera swap plus a `gst-launch` no-AI
-pipeline (the Rust producer does not fit 512 MB), and a RISC-V SoC runs the
-riscv64 variant natively with a USB webcam (`--v4l2`) — see § 2's glue list.
-**The boards now run the installable ObservANT** (§ 2's glue list): producer, web build
-and page together on `http://<board>:8080/`, under the package's systemd unit. Which camera
-runs where, and on which version: [`docs/source/camera-streaming.md` § *Where it runs*](docs/source/camera-streaming.md#where-it-runs);
-a camera added or moved goes into that table. The
-container + `serve.sh` shape on `https://<board>:8444/` is the manual one, which the
-Zero keeps; `serve.sh --producer-host` is only for looking at one board from another host.
-Runbook: [`docs/source/camera-streaming.md`](docs/source/camera-streaming.md) § *Cat detection stream (Rust, native)*.
+**Linux/web cat detection stream.** The same Stream page plays a WebRTC stream from
+`third_party/OxidANT/crates/observant` (`kataglyphis_observant`): V4L2/libcamera → ONNX (cat
+= COCO class 15) → boxes burned into the RGBA frames → `webrtcsink` with its own signalling
+server. `scripts/linux/observant/serve.sh` puts HTTPS (or, with `--http`, plain HTTP) +
+COOP/COEP + a `/webrtc-ws` proxy in front of it, so one build works on localhost, a LAN IP or
+a Raspberry Pi. Per board (§ 2's glue list): a Pi 5 CSI camera's producer is **OxidANT's**
+`third_party/OxidANT/scripts/linux/observant/run-producer-pi.sh`; a Pi Zero 2 W runs the
+image with the same host-libcamera swap plus a `gst-launch` no-AI pipeline (the Rust
+producer does not fit 512 MB); a RISC-V SoC runs the riscv64 variant natively with a USB
+webcam (`--v4l2`). **The boards now run the installable ObservANT** (§ 2): producer, web
+build and page together on `http://<board>:8080/`, under the package's systemd unit. Which
+camera runs where, and on which version:
+[`docs/source/camera-streaming.md` § *Where it runs*](docs/source/camera-streaming.md#where-it-runs);
+a camera added or moved goes into that table. The container + `serve.sh` shape on
+`https://<board>:8444/` is the manual one, which the Zero keeps; `serve.sh --producer-host`
+only looks at one board from another host. Runbook:
+[`docs/source/camera-streaming.md`](docs/source/camera-streaming.md) § *Cat detection stream (Rust, native)*.
 
-**`observant` is this app's only WebRTC producer.** AccelerANTgine carries a
-second, unrelated one — `Src/webrtc_streamer.{ixx,cpp}`, reached only through
-`cli_main.cpp`'s `--webrtc` flag, with its own GStreamer signalling on
-`ws://127.0.0.1:8443`. It compiles into the `AccelerANTgine` shared library that
-`packages/kataglyphis_native_inference` links, but nothing in this app calls it:
-the plugin's own sources do not mention WebRTC at all, and the Stream page's
-stream comes from the Rust crate. Two producers, one repo apart; do not wire
-them together expecting a shared signalling path.
+**`observant` is this app's only WebRTC producer.** AccelerANTgine carries a second,
+unrelated one — `Src/webrtc_streamer.{ixx,cpp}`, reached only through `cli_main.cpp`'s
+`--webrtc` flag, with its own GStreamer signalling on `ws://127.0.0.1:8443`. It compiles into
+the `AccelerANTgine` shared library that `packages/kataglyphis_native_inference` links, but
+nothing in this app calls it: the plugin's sources never mention WebRTC, and the Stream
+page's stream comes from the Rust crate. Do not wire the two together expecting a shared
+signalling path.
 
 ## 2. What ANTfrastructure owns — links only
 
 **Do not restate these procedures here.** Start at
 [`third_party/ANTfrastructure/docs/INDEX.md`](third_party/ANTfrastructure/docs/INDEX.md),
-which maps topic → owning document, so these links survive upstream
-reorganisation.
+which maps topic → owning document, so these links survive upstream reorganisation.
 
 | Topic | Where |
 | --- | --- |
@@ -150,132 +138,125 @@ Two upstream facts repeated here only because they bite before you reach a doc:
 - Every ANTfrastructure PowerShell module declares `#requires -Version 7.0`, so
   `Build-Windows.ps1` and `Start-Windows.ps1` do too — launch with `pwsh`, never
   `powershell`. Under 5.1 it fails as an opaque `Import-Module` error.
-- Composite actions resolve at `@develop`, so a ANTfrastructure change a workflow
+- Composite actions resolve at `@develop`, so an ANTfrastructure change a workflow
   depends on must be pushed **before** the consumer change.
 
 **This repo's glue** (deliberately thin):
 
-- `scripts/windows/Resolve-BuildModule.ps1` — the one file that cannot live
-  upstream, because it is what *finds* the submodule. `Import-BuildModule <Name>`
-  checks ANTfrastructure first, then `scripts/windows/modules/`, which holds only
-  genuinely project-specific modules (today: `WindowsPaths.Common`, encoding this
-  repo's Flutter `build/windows/x64/{runner,plugins}` layout;
-  `WindowsOrtRunner.Common`, which stamps the hub's G6 verdict on the chain ONNX
-  Runtime the hub's `WindowsOrtPayload.Common` stages into that runner — § 4;
-  `WindowsLaneGuard.Common`, one lane at a time per checkout — § 5;
-  `WindowsLaneSccache.Common`, the host's sccache S3 key for a local Linux lane — § 5; and
-  `WindowsFlutterAot.Common`, which catches a stale AOT target that `assemble` calls up
-  to date).
-- `scripts/linux/lib/antfrastructure.sh` — the bash twin: `antfrastructure_source`
-  and `antfrastructure_path`, resolved from `${BASH_SOURCE[0]}` so they work from
-  any working directory.
+- `scripts/windows/Resolve-BuildModule.ps1` — what *finds* the submodule, so it cannot live
+  upstream. `Import-BuildModule <Name>` checks ANTfrastructure first, then
+  `scripts/windows/modules/`, which holds only project-specific modules:
+  `WindowsPaths.Common` (this repo's Flutter `build/windows/x64/{runner,plugins}` layout),
+  `WindowsOrtRunner.Common` (stamps the hub's G6 verdict on the chain ONNX Runtime the hub's
+  `WindowsOrtPayload.Common` stages into that runner — § 4), `WindowsLaneGuard.Common` (one
+  lane at a time per checkout — § 5), `WindowsLaneSccache.Common` (the host's sccache S3 key
+  for a local Linux lane — § 5) and `WindowsFlutterAot.Common` (catches a stale AOT target
+  that `assemble` calls up to date).
+- `scripts/linux/lib/antfrastructure.sh` — the bash twin: `antfrastructure_source` and
+  `antfrastructure_path`, resolved from `${BASH_SOURCE[0]}` so they work from any working
+  directory.
 
   Both are copies of the hub's templates (`shared/windows/templates/`,
-  `shared/linux/templates/`), declared in `.antfrastructure-shared.manifest` and
-  compared with them in `body` mode by the shared-config drift gate, so a change
-  goes into the template upstream, never into the copy alone.
-- `scripts/agentic-loop/` — the adopted planner/executor loop: config, both
-  runner wrappers, prompt overlays. Engine `opencode` (**v2 only**), executor
-  `opencode-go/deepseek-v4.1-flash`. Its Windows build/test driver is
+  `shared/linux/templates/`), declared in `.antfrastructure-shared.manifest` and compared
+  with them in `body` mode by the shared-config drift gate: a change goes into the template
+  upstream, never into the copy alone.
+- `scripts/agentic-loop/` — the adopted planner/executor loop: config, both runner wrappers,
+  prompt overlays. Engine `opencode` (**v2 only**), executor
+  `opencode-go/deepseek-v4.1-flash`, Windows build/test driver
   `scripts/windows/Build-Windows-Container.ps1`. Rules and commands: § 5.
-- `scripts/linux/observant/serve.sh` — serves the web build over TLS (`--http`:
-  plain HTTP, no certificate) with COOP/COEP for the Rust core and proxies `/webrtc-ws` to the cat producer.
-  No container involved; it is the deployment half of the demo.
-  `--producer-host`/`--producer-port` front a producer on another board and
-  `--state-dir` keeps concurrent instances apart.
-- `third_party/OxidANT/scripts/linux/observant/run-producer-pi.sh` — **not in
-  this repo.** It moved to OxidANT under decision D12, which owns the
-  `observant` crate it builds and starts; this repo keeps the pointer, not a
-  copy. It runs the cat producer from the image against a Pi 5 CSI camera
-  (`--libcamera`), bind-mounting the host's Raspberry Pi OS libcamera stack
-  ahead of the image's outdated upstream copy (the kernel 6.18 `rp1-cfe`
-  entity rename + libpisp 1.7). `--build` builds the producer first;
-  `--libs-only` refreshes the cached library closure. `serve.sh` above is the
-  half that stays here, because the Flutter web build is this repo's.
-- `scripts/linux/observant/package-producer-bundle.sh` — container-less
-  fallback for boards that cannot run the image comfortably (Pi Zero 2 W):
-  exports the producer, a pruned GStreamer subset, the image's glibc (invoked
-  through the bundled loader) and the library closure into
-  `build/observant/pi-bundle/` (~180 MB, aarch64). The target only needs
-  libcamera installed; `--deploy HOST` rsyncs it there. Its ONNX Runtime is the
-  image's chain copy, and the same image run proves the finished bundle with
-  ANTfrastructure's G6 census before anything leaves the container.
+- `scripts/linux/observant/serve.sh` — serves the web build over TLS (`--http`: plain HTTP,
+  no certificate) with COOP/COEP for the Rust core and proxies `/webrtc-ws` to the cat
+  producer. No container; it is the deployment half of the demo.
+  `--producer-host`/`--producer-port` front a producer on another board, `--state-dir` keeps
+  concurrent instances apart.
+- `third_party/OxidANT/scripts/linux/observant/run-producer-pi.sh` — **not in this repo.** It
+  moved to OxidANT under decision D12, since OxidANT owns the `observant` crate it builds and
+  starts; this repo keeps the pointer, not a copy. It runs the cat producer from the image
+  against a Pi 5 CSI camera (`--libcamera`), bind-mounting the host's Raspberry Pi OS
+  libcamera stack ahead of the image's outdated upstream copy (the kernel 6.18 `rp1-cfe`
+  entity rename + libpisp 1.7). `--build` builds the producer first; `--libs-only` refreshes
+  the cached library closure. `serve.sh` stays here because the Flutter web build is this
+  repo's.
+- `scripts/linux/observant/package-producer-bundle.sh` — container-less fallback for boards
+  that cannot run the image comfortably (Pi Zero 2 W): the producer, a pruned GStreamer
+  subset, the image's glibc (invoked through the bundled loader) and the library closure, in
+  `build/observant/pi-bundle/` (~180 MB, aarch64). The target needs only libcamera;
+  `--deploy HOST` rsyncs it there. Its ONNX Runtime is the image's chain copy, and the same
+  image run proves the finished bundle with ANTfrastructure's G6 census before anything
+  leaves the container.
 - `scripts/linux/observant/package-observant.sh` + `package/` — the installable ObservANT
-  (2026-10-05): producer, plugins, chain ORT, model, web build and the image's loader and libc
-  in `/opt/omni-observant`, as a `.deb` (systemd unit, ufw profile), an AppImage and a flatpak;
-  riscv64 gets the `.deb` and a tarball, built on the board. **`observant.toml` is not a
-  conffile, on purpose**: an edited one stopped upgrades at dpkg's prompt, so `setup` writes it
-  `640 root:omni-observant` only when it is absent. A nightly root timer installs a newer GitHub
-  release's `.deb` after checking its `SHA256SUMS` (2026-10-15); `observant --install --user`
-  installs without root, and a user timer updates that from the release's tarball (2026-10-16). `package/*` is pinned to LF. Detail:
+  (2026-10-05): producer, plugins, chain ORT, model, web build and the image's loader and
+  libc in `/opt/omni-observant`, as a `.deb` (systemd unit, ufw profile), an AppImage and a
+  flatpak; riscv64 gets the `.deb` and a tarball, built on the board. **`observant.toml` is
+  not a conffile, on purpose**: an edited one stopped upgrades at dpkg's prompt, so `setup`
+  writes it `640 root:omni-observant` only when it is absent. A nightly root timer installs a
+  newer GitHub release's `.deb` after checking its `SHA256SUMS` (2026-10-15);
+  `observant --install --user` installs without root, and a user timer updates that from the
+  release's tarball (2026-10-16). `package/*` is pinned to LF. Detail:
   [`docs/source/camera-streaming.md`](docs/source/camera-streaming.md) § *The ObservANT package*.
 - `scripts/windows/observant/` — the Windows ObservANT, built and tested in `:winamd64`
-  (2026-10-06), and for arm64 built in `:winarm64` and tested on `windows-11-arm` (2026-10-16): `Package-ObservANT.ps1` makes the install folder, the zip, the MSI and, with
-  `-Msix`, a signed MSIX (an unsigned one fails the build); `Test-ObservANTWindows.ps1` and
+  (2026-10-06); arm64 is built in `:winarm64` and tested on `windows-11-arm` (2026-10-16).
+  `Package-ObservANT.ps1` makes the install folder, the zip, the MSI and, with `-Msix`, a
+  signed MSIX (an unsigned one fails the build); `Test-ObservANTWindows.ps1` and
   `Test-ObservANTMsix.ps1` check them. **openh264 is a required plugin on Windows**, since the
   image builds no `vpx`. Detail: [`docs/source/camera-streaming.md`](docs/source/camera-streaming.md) § *The Windows ObservANT*.
 
-**Deliberately not reused.** Two upstream Windows pieces were evaluated and
-rejected — `WindowsAppRunner.Common` (its executable probe would launch the
-wrong one of this tree's four runner exes and ignore `-Configuration`) and
-`Invoke-CmakeConfigureAndBuild` (mandatory `-Preset`, no `-S`, no `--target`,
-and it fuses configure and build while the `Native Assets Directory Fix` step
-must run between them). Both would be regressions here, so do not "fix" their
-absence; the full reasoning is in
+**Deliberately not reused.** Two upstream Windows pieces were evaluated and rejected:
+`WindowsAppRunner.Common` (its executable probe would launch the wrong one of this tree's
+four runner exes and ignore `-Configuration`) and `Invoke-CmakeConfigureAndBuild` (mandatory
+`-Preset`, no `-S`, no `--target`, and it fuses configure and build while the
+`Native Assets Directory Fix` step must run between them). Both would be regressions here, so
+do not "fix" their absence. Full reasoning:
 [`docs/source/platforms.md`](docs/source/platforms.md)
 § *Windows pieces deliberately not reused*.
 
 ## 3. Critical invariant: submodule pins
 
-Builds are only supported against the **recorded submodule gitlinks** — the
-commits CI builds green. There are four:
+Builds are supported only against the **recorded submodule gitlinks** — the commits CI
+builds green. There are four:
 [`third_party/ANTfrastructure`](third_party/ANTfrastructure) (the hub, § 2),
-[`third_party/OxidANT`](third_party/OxidANT) (the Rust core behind
-flutter_rust_bridge), [`third_party/AccelerANTgine`](third_party/AccelerANTgine)
-(the inference core the Windows and Linux plugin builds link) and
-[`third_party/ANThology`](third_party/ANThology) (the shared Dart package).
-`git submodule update --checkout --recursive` restores them. If a drifted
-checkout is what you actually want, move the gitlink **and** fix the fallout in
-the same change — a working tree that has quietly walked forward from its
-gitlink is compiling something other than what is committed, and `git submodule
-status` marks that only with a `+`.
+[`third_party/OxidANT`](third_party/OxidANT) (the Rust core behind flutter_rust_bridge),
+[`third_party/AccelerANTgine`](third_party/AccelerANTgine) (the inference core the Windows
+and Linux plugin builds link) and [`third_party/ANThology`](third_party/ANThology) (the
+shared Dart package). `git submodule update --checkout --recursive` restores them. If you
+want a drifted checkout, move the gitlink **and** fix the fallout in the same change: a tree
+that walked forward from its gitlink compiles something other than what is committed, and
+`git submodule status` marks that only with a `+`.
 
 The opposite move, for local work on the newest code, is
-`bash third_party/ANTfrastructure/linux/scripts/git-sync-branches.sh` (`--dry-run`
-first): every checkout goes to the tip of its `branch =`, the vendored
-third-party libraries under AccelerANTgine included (owner decision 2026-10-07).
-FUZZTEST stays on a release because AccelerANTgine declares
-`branch = release_<date>` for it; move that line to take a newer release. It
-leaves exactly that `+`; commit the gitlinks innermost repo first. One `+` cannot
-be committed from here: nanobind's `ext/robin_map`, which only nanobind records. The next `git submodule update`, or a git GUI that runs one, puts the
-submodules back unless the gitlinks are committed: on 2026-10-07 one reset three
-submodules two minutes after they were moved.
+`bash third_party/ANTfrastructure/linux/scripts/git-sync-branches.sh` (`--dry-run` first):
+every checkout goes to the tip of its `branch =`, the vendored third-party libraries under
+AccelerANTgine included (owner decision 2026-10-07). FUZZTEST stays on a release because
+AccelerANTgine declares `branch = release_<date>` for it; move that line to take a newer
+release. The sync leaves exactly that `+`; commit the gitlinks innermost repo first. One `+`
+cannot be committed from here: nanobind's `ext/robin_map`, which only nanobind records. The
+next `git submodule update`, or a git GUI that runs one, puts the submodules back unless the
+gitlinks are committed: on 2026-10-07 one reset three submodules two minutes after they were
+moved.
 
 Drift is guarded by ANTfrastructure's shared Pester suite, run from
-[`.github/workflows/submodule-pins.yml`](.github/workflows/submodule-pins.yml)
-after any pin bump. It checks both directions: each checkout sits at the
-recorded commit, and the recorded commit is reachable from that submodule's
-remote — a gitlink bumped to a commit that was never pushed builds on the
-machine that made it and on no other.
+[`.github/workflows/submodule-pins.yml`](.github/workflows/submodule-pins.yml) after any pin
+bump. It checks both directions: each checkout sits at the recorded commit, and the recorded
+commit is reachable from that submodule's remote — a gitlink bumped to a commit that was
+never pushed builds on the machine that made it and on no other.
 
-**Submodule URLs are `https://github.com/Kataglyphis/<repo>.git`, all four.**
-Not `git@github.com:`. An ssh remote needs a key, and none of the places that
-have to resolve these has one: a CI runner, the `:latest` container the
-Renovate runner starts, and anyone cloning the repo without a GitHub account.
-`git submodule update --init` then fails with `Permission denied (publickey)` on
-a repository that is public. `git config -f .gitmodules submodule.<path>.url …`
-is the way to change one; follow it with `git submodule sync` so the existing
-checkout's remote moves too.
+**Submodule URLs are `https://github.com/Kataglyphis/<repo>.git`, all four.** Not
+`git@github.com:`: an ssh remote needs a key, and none of the places that resolve these has
+one — a CI runner, the `:latest` container the Renovate runner starts, anyone cloning without
+a GitHub account. `git submodule update --init` then fails with `Permission denied
+(publickey)` on a public repository. Change one with
+`git config -f .gitmodules submodule.<path>.url …`, then `git submodule sync` so the
+existing checkout's remote moves too.
 
 **What nothing here asserts:** `AccelerANTgine` and `OxidANT` each carry a
-`third_party/ANTfrastructure` pin of their own, free to differ from this repo's.
-Bumping the hub here does not bump the hub those two build against; that has to
-happen in their own repositories.
+`third_party/ANTfrastructure` pin of their own, free to differ from this repo's. Bumping the
+hub here does not bump the hub those two build against; that happens in their own
+repositories.
 
 ## 4. Pitfalls specific to this project
 
-Everything here is false or meaningless in another repo — that is why it is
-written out rather than linked.
+Everything here is false or meaningless in another repo — that is why it is written out
+rather than linked.
 
 - **Five scripts print a fixed line range of their own header as `--help`.**
   `scripts/linux/observant/package-producer-bundle.sh` (`sed -n '2,22p'`),
@@ -289,100 +270,86 @@ written out rather than linked.
   must equal the hub templates byte for byte (`sync-shared-config.sh --check`).
   Re-copy them from the templates after an upstream change; never edit them here.
 - **Six image gaps this repo once worked around are fixed in the image (2026-09-05); never
-  bring a workaround back.** A reappearing one is an image regression ([`docs/source/platforms.md`](docs/source/platforms.md)
-  § *Image gaps and image-tag history*). What stays here is `setup_compiler_cache`, which points
-  `RUSTC_WRAPPER` and the CMake launchers at the hub's guarded `sccache-launcher.sh`.
-
-- **The Android GStreamer SDK is in the image, and the image now announces it.**
-  It sits at `/opt/android/gstreamer` as a flat prefix (`gst-android/ndk-build`,
-  `include/`, `lib/`). Without `GSTREAMER_ROOT_ANDROID` the native plugin's
-  `CMakeLists.txt` stops the Android lane at configure time with
-  `GSTREAMER_ROOT_ANDROID must be set`; the plugin accepts both the per-ABI and
-  the flat layout, so the path alone is enough. The hub's `linux/Dockerfile.package`
-  sets `ENV GSTREAMER_ROOT_ANDROID=/opt/android/gstreamer` (checked in the published
-  `:latest` amd64 config, 2026-10-01). The image used to ship the SDK without the
-  variable, and `export_android_gstreamer_env` probed and exported it here until
-  2026-10-01, a no-op in CI since run 36154744222. If the configure error comes back,
-  the image lost its `ENV`: fix the image, do not bring the probe back.
-
+  bring a workaround back.** A reappearing one is an image regression
+  ([`docs/source/platforms.md`](docs/source/platforms.md) § *Image gaps and image-tag history*).
+  What stays here is `setup_compiler_cache`, which points `RUSTC_WRAPPER` and the CMake
+  launchers at the hub's guarded `sccache-launcher.sh`.
+- **The Android GStreamer SDK is in the image, and the image announces it.** It sits at
+  `/opt/android/gstreamer` as a flat prefix (`gst-android/ndk-build`, `include/`, `lib/`);
+  the hub's `linux/Dockerfile.package` sets `ENV GSTREAMER_ROOT_ANDROID=/opt/android/gstreamer`
+  (checked in the published `:latest` amd64 config, 2026-10-01). Without `GSTREAMER_ROOT_ANDROID`
+  the native plugin's `CMakeLists.txt` stops the Android lane at configure time with
+  `GSTREAMER_ROOT_ANDROID must be set`; the plugin accepts both the per-ABI and the flat
+  layout, so the path alone is enough. While the image shipped the SDK without the variable,
+  `export_android_gstreamer_env` probed and exported it here, until 2026-10-01 (a no-op in CI
+  since run 36154744222). If the configure error comes back, the image lost its `ENV`: fix
+  the image, do not bring the probe back.
 - **Every Android SDK component is pinned to what the image ships**, in one place: the `extra`
   block of `android/build.gradle.kts` (compileSdk 37, build-tools 37.0.0, NDK 29.0.14206865, CMake
   4.1.2, and the APK's one ABI). `/opt/android-sdk` is read-only, so anything else stops Gradle
   with `The SDK directory is not writable`. Detail, and why the override sits above
   `evaluationDependsOn(":app")`: [`docs/source/platforms.md`](docs/source/platforms.md) § *Android SDK components pinned to the image*.
-
-- **The image's clang selects its own GCC; nothing here injects `--gcc-toolchain`
-  any more.** Since `:latest` of 2026-09-29 (hub CON16) a bare `clang`/`clang++`
-  reads `<native-triple>-clang{,++}.cfg` beside it, which names the source-built
-  GCC 16.2.0. Before that it picked the distro GCC and the link died, which is
-  why `export_toolchain_env` injected the flag for months. It now only sets
-  `CC=clang CXX=clang++` and **refuses** a clang that selects anything but
-  `gcc_toolchain_resolve_prefix()`'s GCC: an image older than CON16 fails there,
-  loudly, instead of at the link. Do not put the flag back to "fix" that; pull
-  the image. History and measurements:
-  [`docs/source/platforms.md`](docs/source/platforms.md)
+- **The image's clang selects its own GCC; nothing here injects `--gcc-toolchain` any
+  more.** Since `:latest` of 2026-09-29 (hub CON16) a bare `clang`/`clang++` reads
+  `<native-triple>-clang{,++}.cfg` beside it, which names the source-built GCC 16.2.0. Before
+  that it picked the distro GCC and the link died, so `export_toolchain_env` injected the
+  flag for months. It now only sets `CC=clang CXX=clang++` and **refuses** a clang that
+  selects anything but `gcc_toolchain_resolve_prefix()`'s GCC: an image older than CON16
+  fails there, loudly, instead of at the link. Pull the image; do not put the flag back.
+  History and measurements: [`docs/source/platforms.md`](docs/source/platforms.md)
   § *Android and cross-toolchain constraints*.
-
-- **Editing a lane script while its container runs makes the log lie.** bash
-  sources `container-steps.sh` once at start, so a later edit does not take
-  effect — but the log then shows behaviour that no longer matches the file on
-  disk, and the next reader (including you, ten minutes on) draws the wrong
-  conclusion. This cost one run: the log said "falling back to bare clang" while
-  the file already had the fix. Wait for the container to exit.
-
+- **Editing a lane script while its container runs makes the log lie.** bash sources
+  `container-steps.sh` once at start, so the edit does not take effect, but the log then
+  contradicts the file on disk and the next reader (you, ten minutes on) draws the wrong
+  conclusion. This cost one run: the log said "falling back to bare clang" while the file
+  already had the fix. Wait for the container to exit.
 - **The flatpak gets `--device=all`, because flatpak has no `--device=video`**
   (owner, 2026-10-01). `scripts/linux/lib/packaging-common.sh` sets
-  `KATAGLYPHIS_FLATPAK_FINISH_ARGS`, which the hub appends to its four finish-args,
-  and `package-linux.sh` prints the built app's `[Context]` and fails when an
-  appended argument is missing from it. An empty value drops it.
-
-- **A packaged Linux artifact carries its whole runtime closure**, GCC 16.2's `libstdc++` and the image's loader and glibc included (2026-10-17): `omni_accelerant` is a launcher for `omni_accelerant.bin`, which takes the bundled glibc only on an older host (Debian 13) and the host's otherwise, since a newer one's GL drivers need it (the flatpak's); a clean-host job starts it on the bare runner. Every bundled ELF has its own
-  `$ORIGIN` RUNPATH (RUNPATH is not transitive), the GStreamer libraries and seven plugins travel
-  in `bundle/lib`, and ORT is the image's chain build, proven by the hub's G6 census in
-  `check-bundle-closure.sh`. With the lane's Rust features ORT is in `bundle/lib` before the packer
-  runs (`Kept (already in bundle/lib, not copied)`), so a copy list without ORT is not a missing
+  `KATAGLYPHIS_FLATPAK_FINISH_ARGS`, which the hub appends to its four finish-args, and
+  `package-linux.sh` prints the built app's `[Context]` and fails when an appended argument is
+  missing from it. An empty value drops it.
+- **A packaged Linux artifact carries its whole runtime closure**, GCC 16.2's `libstdc++` and
+  the image's loader and glibc included (2026-10-17). `omni_accelerant` is a launcher for
+  `omni_accelerant.bin`: it takes the bundled glibc only on an older host (Debian 13) and the
+  host's otherwise, since a newer host's GL drivers need it (the flatpak's); a clean-host job
+  starts it on the bare runner. Every bundled ELF has its own `$ORIGIN` RUNPATH (RUNPATH is
+  not transitive), the GStreamer libraries and seven plugins travel in `bundle/lib`, and ORT
+  is the image's chain build, proven by the hub's G6 census in `check-bundle-closure.sh`. With
+  the lane's Rust features ORT is in `bundle/lib` before the packer runs
+  (`Kept (already in bundle/lib, not copied)`), so a copy list without ORT is not a missing
   ORT. Detail: [`docs/source/camera-streaming.md`](docs/source/camera-streaming.md) § *Relocatable Linux bundles*.
 - **The Rust binaries name the chain ORT's directory, and G6 must read them as importers.**
   OxidANT's loader keeps `/opt/onnxruntime/onnxruntime/core/` as a string, so only a whole
   NUL-terminated `__FILE__` path is an ORT fingerprint. A census calling `liboxidant.so` or
   `oxidant.dll` `UNPROVEN` or `STALE` is a hub pin older than 502b9089: move the pin, never
   OxidANT. Detail: [`docs/source/camera-streaming.md`](docs/source/camera-streaming.md) § *Relocatable Linux bundles*.
-
-- **Rust `i64` is `int` natively and `BigInt` on web, so only the web lane
-  catches the mismatch.** flutter_rust_bridge maps it to `PlatformInt64`, a
-  typedef that resolves per platform, and app code that passes a plain `int`
-  compiles everywhere except web:
+- **Rust `i64` is `int` natively and `BigInt` on web, so only the web lane catches the
+  mismatch.** flutter_rust_bridge maps it to `PlatformInt64`, a per-platform typedef, so app
+  code passing a plain `int` compiles everywhere except web:
   `Error: The argument type 'int' can't be assigned to the parameter type
-  'BigInt'` — from `rust_webcam_view.dart`, a widget for the native path (then
-  Windows only, Windows and Linux now). Wrap the value in `PlatformInt64Util.from(...)`,
-  which is the identity on native. It lives in
-  `package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart`, not in
-  the public `flutter_rust_bridge.dart`, and importing the generated binding
-  does not bring it along — Dart does not re-export transitively.
-
+  'BigInt'` — from `rust_webcam_view.dart`, a widget for the native path (then Windows only,
+  Windows and Linux now). Wrap the value in `PlatformInt64Util.from(...)`, the identity on
+  native. It lives in `package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart`,
+  not in the public `flutter_rust_bridge.dart`, and importing the generated binding does not
+  bring it along: Dart does not re-export transitively.
 - **The web lane builds the wasm core with the image's dated nightly and its `rust-src`**
   (`RUST_NIGHTLY_TOOLCHAIN` from the pinned hub's `versions.env`), never the floating `nightly`,
   which downloads a channel each run and dies on the image's read-only layer. Detail: [`docs/source/project-operations.md`](docs/source/project-operations.md)
   § *The web lane's nightly toolchain*.
-
-- **The web lane installs `flutter_rust_bridge_codegen` only when the image has
-  none.** `:latest` ships the binary at `FLUTTER_RUST_BRIDGE_VERSION`,
-  which it also exports; the unconditional `cargo install` that used to sit
-  here rebuilt 174 crates on every CI run and then failed the lane. The guard
-  is `command -v` plus `cargo install --locked --version "${FLUTTER_RUST_BRIDGE_VERSION}"`,
-  so a bare host gets the same pin the image carries — never a floating latest,
-  and never `--force`.
-
+- **The web lane installs `flutter_rust_bridge_codegen` only when the image has none.**
+  `:latest` ships the binary at `FLUTTER_RUST_BRIDGE_VERSION`, which it also exports; the
+  unconditional `cargo install` that used to sit here rebuilt 174 crates on every CI run and
+  then failed the lane. The guard is `command -v` plus
+  `cargo install --locked --version "${FLUTTER_RUST_BRIDGE_VERSION}"`, so a bare host gets the
+  pin the image carries — never a floating latest, and never `--force`.
 - **Renaming the Rust crate touches committed generated code.**
   `lib/src/rust/frb_generated.dart` hard-codes the artefact name in
   `kDefaultExternalLibraryLoaderConfig`: `stem` (`oxidant` → `oxidant.dll`,
   `liboxidant.so`, `pkg/oxidant.js`) and `ioDirectory`
-  (`third_party/OxidANT/target/release/`). No lane regenerates that file, so a
-  `[lib] name` change in `Cargo.toml` stays silent until the app fails to load
-  its library at runtime. Windows repeats the name a second time in
-  `scripts/windows/Get-WindowsBuildConfig.ps1` (`RustDllName`,
+  (`third_party/OxidANT/target/release/`). No lane regenerates that file, so a `[lib] name`
+  change in `Cargo.toml` stays silent until the app fails to load its library at runtime.
+  Windows repeats the name in `scripts/windows/Get-WindowsBuildConfig.ps1` (`RustDllName`,
   `RustPluginSubDir`). Change all three together.
-
 - **Models are fetched, never tracked** (owner, 2026-10-14). The detector is DEIM-D-FINE-N
   (Apache-2.0), released by [ModelANT](https://github.com/Kataglyphis/ModelANT);
   `third_party/OxidANT/resources/models/models.lock` pins each file's URL and SHA-256, and
@@ -392,7 +359,6 @@ written out rather than linked.
   before the build, the bundle and package scripts call it themselves. A new model goes
   into ModelANT and only the lock moves here; the old AGPL files left the history on 2026-10-17.
   Detail: `docs/source/camera-streaming.md` § *The detection model*.
-
 - **The app version is written twice, and both move together.** `version:` in
   `pubspec.yaml` stamps the `.deb`, AppImage and flatpak names;
   `msix_config.msix_version` is the MSIX's, with its fourth field held at 0 for
@@ -401,63 +367,51 @@ written out rather than linked.
   changed the package name, the executable, the Linux application id and the MSIX
   identity (`Kataglyphis.KataglyphisInferenceEngine` → `Kataglyphis.OmniAccelerANT`),
   so a 1.x install does not upgrade in place. `CHANGELOG.md` holds the rest.
-
-- **`dbName` in `lib/src/db/sqlite3_loader_web.dart` is deliberately NOT the
-  package name.** It still reads `kataglyphis_inference_engine` after the
-  2026-09-05 rename to `omni_accelerant`, because it names the **IndexedDB
-  database in the visitor's browser**, which backs the sqlite3 VFS. Changing it
-  does not rename anything — it opens a *different, empty* database and orphans
-  whatever the visitor had, with no error and no migration path. A rename here
-  is a data migration, not a naming change, and it needs a copy step first. The
-  string is invisible to everyone except the browser, so leaving it costs
-  nothing. It also happens to be what keeps that call wrapped across three
-  lines; the shorter name fits on one and `dart format` then rewrites the file.
-
+- **`dbName` in `lib/src/db/sqlite3_loader_web.dart` is deliberately NOT the package
+  name.** It still reads `kataglyphis_inference_engine` after the 2026-09-05 rename to
+  `omni_accelerant`, because it names the **IndexedDB database in the visitor's browser**,
+  which backs the sqlite3 VFS. Changing it renames nothing: it opens a *different, empty*
+  database and orphans whatever the visitor had, with no error and no migration path. A
+  rename here is a data migration and needs a copy step first; leaving it costs nothing,
+  since only the browser sees the string. It also keeps that call wrapped across three
+  lines; the shorter name fits on one, and `dart format` then rewrites the file.
 - **The Android lane builds an arm64-v8a APK against five load-bearing Gradle constraints**:
   built-in Kotlin with a declared KGP 2.4.21 (so CodeQL scans c, cpp and rust only; never lower
   the KGP for it), `android.newDsl=false`, Cargokit's Gradle 9 and API-37 patches (keep them
   when bumping the vendored copy), `arm64-v8a` pinned in the app's `defaultConfig.ndk` and the
   lane's `--target-platform` (`check-apk-abi.sh` fails on any other ABI), and `compileSdk` 37. Each
   one's error and history: [`docs/source/platforms.md`](docs/source/platforms.md) § *Android and cross-toolchain constraints*.
-
 - **The Rust manifest path is counted from the resolved plugin dir on Linux and from the
   unresolved one on Windows; do not unify them.** `rust_builder/linux/CMakeLists.txt` takes
   `REALPATH` first, because the kernel resolves the plugin symlink before `..`; Windows
   normalizes `..` lexically. Proof: [`docs/source/platforms.md`](docs/source/platforms.md) § *The Rust manifest path*.
-
-- **Never `dart format .` here.** It ignores `analysis_options.yaml` entirely,
-  so the recursive walk reaches `flutter/`, `third_party/` and `build/` — one
-  run reported `Formatted 7404 files (627 changed)` and rewrote the Flutter SDK
-  on disk on the way. Both lanes list tracked files instead
-  (`code_quality_find_dart_files` on Linux, `Get-ProjectDartFiles` on Windows;
-  the same list, `git ls-files -- '*.dart' ':!:rust_builder/**'`). Keep the tracked-file listing even though the SDK now
+- **Never `dart format .` here.** It ignores `analysis_options.yaml`, so the recursive walk
+  reaches `flutter/`, `third_party/` and `build/` — one run reported
+  `Formatted 7404 files (627 changed)` and rewrote the Flutter SDK on disk on the way. Both
+  lanes list tracked files instead (`code_quality_find_dart_files` on Linux,
+  `Get-ProjectDartFiles` on Windows; the same list,
+  `git ls-files -- '*.dart' ':!:rust_builder/**'`); keep that listing although the SDK now
   comes from the image. `dart analyze` is *not* affected and never was. Detail:
-  [`docs/source/project-operations.md`](docs/source/project-operations.md)
-  § *Static checks*.
-
-- **A single-arch image tag looks exactly like broken code.** `:latest` (then `:latest-cross`)
-  was an amd64-only tag until 2026-09-04, so the arm64 matrix row ran x86-64
-  binaries (`rustc: 1: ELF: not found`) and nothing in this repo could work
-  around it. The tag is a proper OCI index now. Two habits survive the hunt:
-  the architectures stay independent — `fail-fast: false` did that while they
-  were one matrix, and since 2026-09-24 they are two workflows
-  (`linux-x64.yml`, `linux-arm64.yml`), independent by construction — and a
-  `Failed to pull` line in a log is usually GitHub **echoing the retry
-  script's source**, not running it.
-  Write-up: [`docs/source/platforms.md`](docs/source/platforms.md)
+  [`docs/source/project-operations.md`](docs/source/project-operations.md) § *Static checks*.
+- **A single-arch image tag looks exactly like broken code.** `:latest` (then
+  `:latest-cross`) was an amd64-only tag until 2026-09-04, so the arm64 matrix row ran x86-64
+  binaries (`rustc: 1: ELF: not found`) and nothing in this repo could work around it. The
+  tag is a proper OCI index now. Two habits survive the hunt: the architectures stay
+  independent (`fail-fast: false` while they were one matrix; since 2026-09-24 two workflows,
+  `linux-x64.yml` and `linux-arm64.yml`, independent by construction), and a
+  `Failed to pull` line in a log is usually GitHub **echoing the retry script's source**, not
+  running it. Write-up: [`docs/source/platforms.md`](docs/source/platforms.md)
   § *Image gaps and image-tag history*.
-
 - **ASAN works, but only against Microsoft's runtime** — LLVM's loads after
   ucrtbase and aborts `bad-free` on the COM startup allocations a Flutter app
   makes, which is why `Start-Windows.ps1` stages the MSVC DLL and why no `/MT`
   override may exist anywhere. The runtime choice, the linked thunk pair and the
   `ASAN_OPTIONS` are ANTfrastructure's:
   [`docs/windows-clang-cl-sanitizers.md`](third_party/ANTfrastructure/docs/windows-clang-cl-sanitizers.md).
-- **The clangcl-Debug preset ships with ASAN ON** and builds + runs green (Dart
-  VM up, camera live). Historic gotchas, all fixed: naive ASAN dragged `/MT`
-  into Flutter's `/MD` objects (`lld-link` RuntimeLibrary mismatch), and
-  `kataglyphis_libfuzzer.exe` hit an `annotate_string` mismatch vs
-  `clang_rt.fuzzer`.
+- **The clangcl-Debug preset ships with ASAN ON** and builds + runs green (Dart VM up,
+  camera live). Historic gotchas, all fixed: naive ASAN dragged `/MT` into Flutter's `/MD`
+  objects (`lld-link` RuntimeLibrary mismatch), and `kataglyphis_libfuzzer.exe` hit an
+  `annotate_string` mismatch vs `clang_rt.fuzzer`.
 - **Each Windows preset installs into its own `runner\<preset>\`** (and `plugins\<preset>\`);
   `Start-Windows.ps1 -Configuration` must name the same preset, and
   `x64-ClangCL-Windows-Release` is only the fallback. `runner\Release` is the MSIX copy of the
@@ -471,20 +425,17 @@ written out rather than linked.
   runner lacks the image's runtime DLLs: stage `C:\runtime\bin` and its GStreamer plugins. Since
   2026-10-17 AccelerANTgine.dll and the VC++ runtime sit beside the exe on x64 as on arm64 (the
   plugin's CMake installs them there); a runner with a `bin\` is from an older build. Symptom table: [`docs/source/platforms.md`](docs/source/platforms.md) § *Troubleshooting containerized Windows builds*.
-- **Dart file ops fail on bind-mounted paths.** `copySync`/`renameSync` fail
-  (plain writes and cmd `copy`/`ren` work), so junction `.dart_tool` and `build`
-  from the mounted workspace to container-local dirs before building. The
-  bind-mount setup itself is upstream's — see § 2.
-- **The native plugin needs pkg-config** and the image's baked
-  `PKG_CONFIG_PATH` (GStreamer/FFmpeg/OpenCV `.pc` files under `C:\runtime`).
-  Whether the image ships a pkg-config binary is upstream's problem; needing it
-  is ours.
-- **Cargokit hard-requires rustup.** The `rust_builder` Flutter plugin builds
-  its crate via Cargokit during CMake install, and Cargokit will not use a
-  scoop-only Rust. Install rustup **with a default toolchain**; only
-  toolchain-less rustup shims are harmful. The winamd64 image provisions exactly
-  that now (hub `docs/windows-builds.md` § *Rust toolchain*), so this bites only
-  outside it.
+- **Dart file ops fail on bind-mounted paths.** `copySync`/`renameSync` fail (plain writes
+  and cmd `copy`/`ren` work), so junction `.dart_tool` and `build` from the mounted workspace
+  to container-local dirs before building. The bind-mount setup itself is upstream's (§ 2).
+- **The native plugin needs pkg-config** and the image's baked `PKG_CONFIG_PATH`
+  (GStreamer/FFmpeg/OpenCV `.pc` files under `C:\runtime`). Whether the image ships a
+  pkg-config binary is upstream's problem; needing it is ours.
+- **Cargokit hard-requires rustup.** The `rust_builder` Flutter plugin builds its crate via
+  Cargokit during CMake install, and Cargokit will not use a scoop-only Rust. Install rustup
+  **with a default toolchain**; only toolchain-less rustup shims are harmful. The winamd64
+  image provisions exactly that now (hub `docs/windows-builds.md` § *Rust toolchain*), so
+  this bites only outside it.
 - **Cargokit builds `liboxidant` with the toolchain rustup resolves for OxidANT, never a
   floating `stable`**: a local patch in `rust_builder/cargokit/build_tool/lib/src/`
   (`builder.dart`, `rustup.dart`), both halves kept when bumping the vendored copy.
@@ -495,21 +446,19 @@ written out rather than linked.
   without them the Debug integration build cannot link. Windows keeps its ASan Debug preset on
   purpose. Detail: [`docs/source/platforms.md`](docs/source/platforms.md) § *The Linux plugin's AccelerANTgine build*.
 - **Vendored ANTLR** (pulled in unconditionally by newer FUZZTEST) needs
-  `WITH_STATIC_CRT OFF`, `ANTLR_BUILD_CPP_TESTS OFF`, `ANTLR_BUILD_SHARED OFF`,
-  `/FIchrono`, and `LICENSE.txt` staged at the build root — its install rule
-  assumes a monorepo layout. Wired up in
-  `third_party/AccelerANTgine/third_party/CMakeLists.txt` — the inference core's
+  `WITH_STATIC_CRT OFF`, `ANTLR_BUILD_CPP_TESTS OFF`, `ANTLR_BUILD_SHARED OFF`, `/FIchrono`,
+  and `LICENSE.txt` staged at the build root — its install rule assumes a monorepo layout.
+  Wired up in `third_party/AccelerANTgine/third_party/CMakeLists.txt`, the inference core's
   own dependency list, not the plugin's.
 - **The Stream page needs no secure context.** Only the Rust wasm core wants cross-origin
   isolation, and on web `main()` treats a failed `RustLib.init()` as optional, so Firefox and
   Safari over plain HTTP still boot; only the About page's Rust demo goes dark. `serve.sh
   --http` serves that, and without `--http` it ends TLS on 8444 in front of the producer. Detail:
   [`docs/source/camera-streaming.md`](docs/source/camera-streaming.md) § *No secure context needed*.
-- **`signalingServerUrl` may be host-relative, and only web resolves it.** A
-  value starting with `/` (the committed `/webrtc-ws`) becomes
-  `wss://<page-host>/webrtc-ws` in `WebRTCSettings.fromJsonFile`
-  (`lib/settings/webrtc_settings.dart`); absolute `ws(s)://` URLs pass through
-  untouched, as does everything on native, where the value is unused
+- **`signalingServerUrl` may be host-relative, and only web resolves it.** A value starting
+  with `/` (the committed `/webrtc-ws`) becomes `wss://<page-host>/webrtc-ws` in
+  `WebRTCSettings.fromJsonFile` (`lib/settings/webrtc_settings.dart`); absolute `ws(s)://`
+  URLs pass through untouched, as does everything on native, where the value is unused
   (`WebRTCView` is web-only).
 - **A Pi Zero 2 W, or any VC4/unicam Pi, runs the image only with the host's libcamera
   stack**: the container, a hostlibs mount and `--entrypoint` (the image's `entrypoint.sh`
@@ -521,81 +470,69 @@ written out rather than linked.
 - **Autostart is opt-in.** Boards on the ObservANT package use its systemd unit; the manual
   setups' `~/cat-cam.sh start` removes a stale container first, or the named run fails with
   `name-store error`.
-- **The frb Dart bindings must match the Rust runtime's frb version.** They
-  were stale at 2.12.0 against 2.13.0 and the web build died with an empty
-  `Uncaught` before `pkg/oxidant.js` loaded. Regenerate both sides together:
-  `flutter_rust_bridge_codegen generate` writes `lib/src/rust/` **and**
-  OxidANT's `src/frb_generated.rs`; when the wasm artefacts are involved,
+- **The frb Dart bindings must match the Rust runtime's frb version.** They were stale at
+  2.12.0 against 2.13.0 and the web build died with an empty `Uncaught` before
+  `pkg/oxidant.js` loaded. Regenerate both sides together:
+  `flutter_rust_bridge_codegen generate` writes `lib/src/rust/` **and** OxidANT's
+  `src/frb_generated.rs`; when the wasm artefacts are involved,
   `flutter_rust_bridge_codegen build-web --release --rust-root
-  third_party/OxidANT`. `web/pkg/` is generated and gitignored.
-- **The `environment: sdk:` floor picks `dart format`'s style, and two
-  generators format with it.** At language version 3.13 the formatter puts a
-  blank line between import groups, so moving the floor from 3.11.4 to 3.13.0
-  (2026-10-11) reformatted ten tracked files, and the lanes' format gate failed
-  until they were committed (3e4a252, reverted in 7af04e4).
-  `flutter_rust_bridge_codegen generate` and `flutter gen-l10n` run `dart
-  format` on their output at that same language version. After a floor move,
-  regenerate `lib/src/rust/` and `lib/l10n/` in the image rather than
-  hand-format them; what they write then passes the gate unchanged. The image
-  carries no `cargo-expand`, so the codegen installs it on first use and needs
-  network.
+  third_party/OxidANT`. `web/pkg/` is generated and gitignored. The codegen is a cargo binary
+  baked into the build image, NOT a pub dependency; on a bare host run
+  `cargo install --locked --version <pin> flutter_rust_bridge_codegen` first, where `<pin>`
+  is `FLUTTER_RUST_BRIDGE_VERSION` in the image or, off it, the `flutter_rust_bridge` version
+  pinned in `third_party/OxidANT/Cargo.toml` (`=2.13.0` today) — a floating latest
+  desynchronises the Dart bindings from the Rust runtime.
+- **The `environment: sdk:` floor picks `dart format`'s style, and two generators format
+  with it.** At language version 3.13 the formatter puts a blank line between import groups,
+  so moving the floor from 3.11.4 to 3.13.0 (2026-10-11) reformatted ten tracked files, and
+  the lanes' format gate failed until they were committed (3e4a252, reverted in 7af04e4).
+  `flutter_rust_bridge_codegen generate` and `flutter gen-l10n` run `dart format` on their
+  output at that language version, so after a floor move regenerate `lib/src/rust/` and
+  `lib/l10n/` in the image rather than hand-format them; their output then passes the gate
+  unchanged. The image carries no `cargo-expand`, so the codegen installs it on first use and
+  needs network.
 - **The ESP32-S3 bridge is desktop-only and its firmware is a separate toolchain.**
   `kataglyphis_esp32` sits in a `[target.'cfg(any(target_os = "linux", target_os =
-  "windows", target_os = "macos"))'.dependencies]` block; moving it to `[dependencies]`
-  drags `serialport` into Android and wasm. `build.rs` sets `cfg(desktop)` from
-  `CARGO_CFG_TARGET_OS`, and `src/api/esp32.rs` has stubs for the other targets. The
-  firmware is not a workspace member: it needs the `esp` toolchain and
-  `xtensa-esp32s3-none-elf`, and its own `Cargo.lock`; the protocol crate is the only
-  shared Rust. Espup supports aarch64 Linux, but `/tmp` on the Pi is a 4 GB tmpfs —
-  install under `$HOME/.cache` or the rust-docs unpack dies with `No space left on
-  device`. `scripts/linux/esp32/build-firmware.sh` keeps the toolchain in a named
-  volume, builds as the image user, and flashes with `--before usb-reset` for the
-  native USB port, `default-reset` for a UART bridge. The flash step alone runs as
-  root: rootless nerdctl remaps the device to `nobody:nogroup`, which the image user
-  cannot open. `serialport` is built with `default-features =
-  false`: its Linux `/sys/class/tty` fallback does the discovery, no libudev enters the
-  packaged bundle, and the riscv64 cross lane is unaffected. A protocol field change
-  touches `crates/esp32-protocol`, `crates/esp32`, `src/api/esp32.rs` and
-  `firmware/esp32-s3` together.
-
-- **The ESP32-S3-EYE's OV2640 does not answer SCCB until XCLK runs.** The board is an
-  ESP32-S3-EYE: 8 MB flash, **8 MB octal PSRAM**, OV2640 at SCCB `0x30`, ES8311 codec at
-  `0x12` on the same bus (SDA GPIO4 / SCL GPIO5). A scan without XCLK finds only the
-  codec; a busy-loop clock also missed the sensor. Use **LEDC 10 MHz on GPIO15**, as
-  `firmware/esp32-s3-probe` does. DVP: VSYNC 6, HREF 7, PCLK 13, Y2…Y9 = 11, 9, 8, 10,
-  12, 18, 17, 16. The 8 MB flash is tight for ESP-DL: a 320 px YOLO11n model plus
-  ESP-IDF and the Rust app does not fit comfortably; target a 96–160 px model unless the
-  board is replaced with a 16 MB variant. The chosen camera firmware is variant A
-  (ESP-IDF + `esp32-camera`/ESP-DL with a Rust protocol layer), documented in
-  `docs/source/esp32.md` § *Camera and on-device AI*. The first bring-up is Espressif's
-  ESP-WHO `object_detect` with `cat_detect`, built by
-  `scripts/linux/esp32/build-eye-demo.sh` in `espressif/idf:release-v5.5` — a separate
-  image from the family `:latest`, which has no ESP-IDF; the first build downloads the
-  BSP and cat model through the component manager. The integrated firmware links
-  `firmware/esp32-s3-eye/rust_protocol` as a `staticlib`: the C++ detect callback calls
-  `omni_proto_on_detections`, and the Rust task owns `Hello`/`Telemetry`/`CameraDetection`
-  and the host commands. The app console must be **UART0** (`CONFIG_ESP_CONSOLE_UART_DEFAULT`);
-  on the USB port it consumed the host's `HostHello` before the Rust read. The Rust
-  archive is last on the IDF link line, so `main/CMakeLists.txt` forces
-  `esp_efuse_mac_get_default`, `xTaskCreatePinnedToCore` and
-  `usb_serial_jtag_driver_install` with `-Wl,--undefined`. The demo is pinned to ESP-WHO
-  `b6ac2be`, BSP `5.0.2` and `cat_detect` `0.3.0`: master's example code uses the BSP
-  6.0.0 `bsp_camera_cfg_t` API while its lock and sdkconfig defaults are still 5.0.2, so
-  moving the pin needs the code and defaults moved together. The script disables the
-  example's BSP LED block (absent from 5.0.2), patches the esp-dl 3.3.13 API
-  (`RGB565BE`, `img.bytes()`, two-argument `sw_decode_jpeg`, non-`caps` `cvt_pix`), and
-  runs the terminal app. `idf.py monitor` is not the view any more: the USB port carries
-  the protocol; use the host probe or the app.
-
-- **Windows host only: the webcam reaches WSL over usbipd, and WebRTC needs
-  mirrored networking.** `usbipd attach --wsl --busid <id>` (bus ids change)
-  plus `modprobe uvcvideo` gives the container `/dev/video0`;
-  `[wsl2] networkingMode=mirrored` in `%USERPROFILE%\.wslconfig` is what makes
-  UDP media work — NAT mode drops it, and the port mapping looks fine until
-  the stream never arrives. Both vanish on a WSL restart. `nerdctl pull` of a
-  Docker Hub image can also fail on credential lookup (`A specified logon
-  session does not exist`); pulling from inside the VM with an empty
-  `DOCKER_CONFIG` is the workaround that worked.
+  "windows", target_os = "macos"))'.dependencies]` block; moving it to `[dependencies]` drags
+  `serialport` into Android and wasm. `build.rs` sets `cfg(desktop)` from
+  `CARGO_CFG_TARGET_OS`, and `src/api/esp32.rs` has stubs for the other targets. `serialport`
+  is built with `default-features = false`: its Linux `/sys/class/tty` fallback does the
+  discovery, no libudev enters the packaged bundle, and the riscv64 cross lane is unaffected.
+  The firmware is not a workspace member: it needs the `esp` toolchain,
+  `xtensa-esp32s3-none-elf` and its own `Cargo.lock`; the protocol crate is the only shared
+  Rust, so a protocol field change touches `crates/esp32-protocol`, `crates/esp32`,
+  `src/api/esp32.rs` and `firmware/esp32-s3` together. Espup supports aarch64 Linux, but
+  `/tmp` on the Pi is a 4 GB tmpfs: install under `$HOME/.cache`, or the rust-docs unpack dies
+  with `No space left on device`. `scripts/linux/esp32/build-firmware.sh` flashes with
+  `--before usb-reset` for the native USB port, `default-reset` for a UART bridge, and runs
+  only the flash step as root (rootless nerdctl remaps the device to `nobody:nogroup`); its
+  named volume and the rest: `docs/source/esp32.md` § *Build and flash the companion firmware*.
+- **The ESP32-S3-EYE's OV2640 does not answer SCCB until XCLK runs:** a scan without XCLK
+  finds only the ES8311 codec at `0x12`, and a busy-loop clock also missed the sensor. Use
+  **LEDC 10 MHz on GPIO15**, as `firmware/esp32-s3-probe` does. The board's pins, the camera
+  firmware (variant A: ESP-IDF + `esp32-camera`/ESP-DL with a Rust protocol layer) and its
+  build: `docs/source/esp32.md` § *Camera and on-device AI*. The rules that bite:
+  - **The 8 MB flash is tight for ESP-DL**: a 320 px YOLO11n model plus ESP-IDF and the Rust
+    app does not fit comfortably; target a 96–160 px model unless the board is replaced with
+    a 16 MB variant.
+  - `scripts/linux/esp32/build-eye-demo.sh` builds ESP-WHO's `object_detect` with
+    `cat_detect` in `espressif/idf:release-v5.5`, a separate image from the family
+    `:latest`, which has no ESP-IDF.
+  - **The app console must be UART0** (`CONFIG_ESP_CONSOLE_UART_DEFAULT`); on the USB port it
+    consumed the host's `HostHello` before the Rust read. The USB port carries the protocol,
+    so `idf.py monitor` is not the view; use the host probe or the app.
+  - **ESP-WHO `b6ac2be`, BSP `5.0.2` and `cat_detect` `0.3.0` move only together with the
+    example code and sdkconfig defaults**: master's code uses the BSP 6.0.0
+    `bsp_camera_cfg_t` API while its lock and defaults are still 5.0.2. The script also
+    disables the example's BSP LED block (absent from 5.0.2) and patches the esp-dl 3.3.13
+    API.
+- **Windows host only: the webcam reaches WSL over usbipd, and WebRTC needs mirrored
+  networking.** `usbipd attach --wsl --busid <id>` (bus ids change) plus `modprobe uvcvideo`
+  gives the container `/dev/video0`; `[wsl2] networkingMode=mirrored` in
+  `%USERPROFILE%\.wslconfig` makes UDP media work — NAT mode drops it, and the port mapping
+  looks fine until the stream never arrives. Both vanish on a WSL restart. `nerdctl pull` of
+  a Docker Hub image can also fail on credential lookup (`A specified logon
+  session does not exist`); pulling from inside the VM with an empty `DOCKER_CONFIG` worked.
 
 ## 5. Build, run, test
 
@@ -663,8 +600,9 @@ pwsh -File scripts/agentic-loop/Invoke-AgenticLoop.ps1 -ExecutorOnly
 
 ### What each lane tests
 
-Owner goal 2026-10-01: every test runs on every lane that can host it. A blank
-cell is a test that cannot run there, and the reason is under the table.
+Owner goal 2026-10-01: every test runs on every lane that can host it. A blank cell is a test
+that cannot run there; why, lane by lane: [`docs/source/testing.md`](docs/source/testing.md)
+§ *Why a lane cannot run a test*.
 
 | Test | Linux x64 / arm64 | Windows x64 | Windows arm64 | Android | Web |
 | --- | --- | --- | --- | --- | --- |
@@ -694,9 +632,6 @@ cell is a test that cannot run there, and the reason is under the table.
 | Release collector (`test-collect-release-assets.sh`): every platform's package, no stray upload, nothing missing | yes | | | | |
 | `.deb`, AppImage and tarball on a bare `ubuntu-26.04` runner, 20 s under Xvfb (the hub's `clean-host-package-check`) | yes | | | | |
 
-A blank cell is a test that cannot run there; why, lane by lane: [`docs/source/testing.md`](docs/source/testing.md) § *Why a lane
-cannot run a test*.
-
 **When the lanes run** is the family's rule, [ANTfrastructure's
 `branch-and-release-strategy.md`](third_party/ANTfrastructure/docs/branch-and-release-strategy.md)
 (owner, 2026-10-15):
@@ -714,27 +649,11 @@ cannot run a test*.
 ### The Dart gate in 23 seconds, without a lane
 
 The Windows dev box has no Flutter SDK, but the image has one: the Dart gate alone against a
-bind-mounted checkout takes 23 s warm. It is not the lane (no build, no CMake gate, no Rust or
-C++); use it to iterate, and the lane to believe the result.
-
-```powershell
-# once: the cache volume must belong to the container's uid, like every other
-# volume this repo mounts — see Invoke-LinuxLane.ps1's chown step. The image
-# does the chown itself: no stock image, not even alpine (owner rule 2026-10-05).
-nerdctl run --rm --platform linux/amd64 --user root --entrypoint chown `
-  --mount "type=volume,source=oa-fastloop-pub,target=/vol" `
-  ghcr.io/kataglyphis/kataglyphis_beschleuniger:latest -R 1001:1001 /vol
-
-# then, per edit:
-nerdctl run --rm --platform linux/amd64 `
-  -v "C:\GitHub\OmniAccelerANT:/workspace" -w /workspace `
-  --mount "type=volume,source=oa-fastloop-pub,target=/pubcache" -e PUB_CACHE=/pubcache `
-  ghcr.io/kataglyphis/kataglyphis_beschleuniger:latest `
-  bash -lc 'export PATH=/opt/flutter/bin:$PATH; git config --global --add safe.directory "*"; flutter test'
-```
-
-`scripts/windows/Invoke-DartChecks.ps1` is the same loop as a script (`-SkipFormat`,
-`-SkipAnalyze`, `-SkipTest`, `-Fix`, `-Engine wslc`). Detail: [`docs/source/project-operations.md`](docs/source/project-operations.md) § *The Dart gate without a lane*.
+bind-mounted checkout takes 23 s warm. `scripts/windows/Invoke-DartChecks.ps1` runs it
+(`-SkipFormat`, `-SkipAnalyze`, `-SkipTest`, `-Fix`, `-Engine wslc`). It is not the lane (no
+build, no CMake gate, no Rust or C++): iterate with it, believe the lane. The raw `nerdctl`
+commands, the pub-cache volume's one-time chown and the measurements:
+[`docs/source/project-operations.md`](docs/source/project-operations.md) § *The Dart gate without a lane*.
 
 ### The Linux lane, locally
 
