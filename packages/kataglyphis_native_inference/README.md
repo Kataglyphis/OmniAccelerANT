@@ -11,22 +11,6 @@
 [![Donate](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://www.paypal.com/paypalme/JonasHeinle)
 [![Twitter](https://img.shields.io/twitter/follow/Cataglyphis_?style=social)](https://twitter.com/Cataglyphis_)
 
-## Table of Contents
-- [About The Project](#about-the-project)
-  - [Key Features](#key-features)
-  - [Dependencies](#dependencies)
-  - [Useful tools](#useful-tools)
-- [Getting Started](#getting-started)
-  - [Prerequisites](#prerequisites)
-  - [Installation](#installation)
-- [Tests](#tests)
-- [Roadmap](#roadmap)
-- [Contributing](#contributing)
-- [License](#license)
-- [Contact](#contact)
-- [Acknowledgements](#acknowledgements)
-- [Literature](#literature)
-
 ## About The Project
 
 The Flutter plugin (Android, Linux, Windows) that bridges OmniAccelerANT's native camera,
@@ -65,19 +49,8 @@ with `--recurse-submodules` instead.
 `flutter test` does not reach them. OmniAccelerANT's lanes also run the plugin's gtest, its
 `knt_*` C ABI checks and, on Android, its JVM test.
 
-## Roadmap
+## Contributing and contact
 
-## Contributing
-
-Through [OmniAccelerANT](https://github.com/Kataglyphis/OmniAccelerANT), which this package is
-part of: see its README, *Contributing and contact*.
-
-## License
-
-## Contact
-
-Jonas Heinle - [@Cataglyphis_](https://twitter.com/Cataglyphis_) - jonasheinle@googlemail.com
-
-## Acknowledgements
-
-## Literature
+Part of [OmniAccelerANT](https://github.com/Kataglyphis/OmniAccelerANT), one of the
+[Kataglyphis repositories](https://github.com/Kataglyphis/ANTfrastructure/blob/develop/docs/repository-family.md),
+which share one way to contribute and one contact. Licence: MIT, see [LICENSE](LICENSE).
