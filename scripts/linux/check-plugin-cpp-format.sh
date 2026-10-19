@@ -36,12 +36,9 @@ versions_env="$(antfrastructure_path linux/scripts/01-core/versions.env)"
 llvm_release="$(load_versions_env "${versions_env}"; printf '%s' "${LLVM_RELEASE:-}")"
 [ -n "${llvm_release}" ] || refuse "LLVM_RELEASE is unset; ${versions_env} no longer publishes it"
 
-command -v clang-format >/dev/null 2>&1 || refuse "clang-format is not on PATH"
-version="$(clang-format --version)"
-# Releases format differently, so 23.1.30 must not pass for 23.1.3.
-if ! grep -Eq -e "clang-format version ${llvm_release//./\\.}([^0-9.]|\$)" <<<"${version}"; then
-  refuse "clang-format reports '${version}', not LLVM_RELEASE ${llvm_release}"
-fi
+# The hub's pinned lookup (llvm-target, then PATH; 23.1.30 fails 23.1.3) in a subshell: its err exits 1, a refusal is 2.
+CODE_QUALITY_CLANG_FORMAT="$(LLVM_RELEASE="${llvm_release}" code_quality_require_pinned_clang_format >&2 && printf '%s' "${CODE_QUALITY_CLANG_FORMAT}")" \
+  || refuse "no clang-format ${llvm_release} (LLVM_RELEASE) in ${CODE_QUALITY_CLANG_FORMAT_CANDIDATES:-/usr/local/llvm-target/bin/clang-format} or on PATH"
 
 # The extension set code_quality_find_cpp_files uses, as pathspecs for the tracked-file walk.
 exts=("${CODE_QUALITY_CPP_FORMAT_EXTENSIONS[@]:-}")
@@ -63,7 +60,7 @@ if [ "${CODE_QUALITY_CLANG_FORMAT_DEVIATIONS}" -gt 0 ]; then
   shown=0
   for f in "${files[@]}"; do
     [ "${shown}" -lt 5 ] || break
-    out="$(clang-format --dry-run -Werror "${f}" 2>&1 || true)"
+    out="$("${CODE_QUALITY_CLANG_FORMAT}" --dry-run -Werror "${f}" 2>&1 || true)"
     if [ -n "${out}" ]; then
       head -n 12 <<<"${out}"
       shown=$((shown + 1))

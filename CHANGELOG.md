@@ -112,6 +112,13 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ### Fixed
 
+- **Three local tools no longer depend on this host's state** (2026-10-20).
+  `LaneSccache.Tests.ps1` failed two cases on a host with its own `KATAGLYPHIS_SCCACHE_S3_*` key,
+  which won over the test's file; `New-LaneSccacheS3Secret -EnvLookup` lets the test leave it out,
+  and a new case proves the environment still wins. `Invoke-DartChecks.ps1` runs the plugin's
+  `pub get` before analyze, which failed on the `package_config.json` a lane run leaves behind.
+  `check-plugin-cpp-format.sh` takes the hub's `code_quality_require_pinned_clang_format`, so the
+  image's pinned `llvm-target` clang-format wins over another release first on `PATH`.
 - **An ESP32 board found only by its udev by-id link reports its MAC** (2026-10-19, OxidANT
   20a03fb). OxidANT dcce8a3 cuts udev's interface suffix (`E8:06:90:9D:3E:78-if00`) that left the
   Device page without a MAC for that board, and db1c25f makes `esp32Connect` check and fill the

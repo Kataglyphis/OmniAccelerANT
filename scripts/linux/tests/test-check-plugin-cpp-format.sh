@@ -80,12 +80,22 @@ t_assert_rc 2 bash "${gate}" --package-dir "${work}/absent"
 t_case "a clang-format other than LLVM_RELEASE"
 LLVM_RELEASE=99.9.9 t_assert_rc 2 bash "${gate}" --package-dir "${work}/clean"
 
+# No candidate outside PATH, so each fake below is the only clang-format the gate can find.
+none="${work}/no-such-clang-format"
+pinned="$(command -v clang-format)"
+
 fake_clang_format "${work}/bin-21" "Ubuntu clang-format version 21.1.8 (6ubuntu1)"
 t_case "the distro's clang-format 21"
-PATH="${work}/bin-21:${PATH}" LLVM_RELEASE=23.1.3 t_assert_rc 2 bash "${gate}" --package-dir "${work}/clean"
+CODE_QUALITY_CLANG_FORMAT_CANDIDATES="${none}" PATH="${work}/bin-21:${PATH}" LLVM_RELEASE=23.1.3 \
+  t_assert_rc 2 bash "${gate}" --package-dir "${work}/clean"
 
 fake_clang_format "${work}/bin-prefix" "clang-format version 23.1.30 (https://github.com/llvm/llvm-project.git)"
 t_case "23.1.30 is not 23.1.3"
-PATH="${work}/bin-prefix:${PATH}" LLVM_RELEASE=23.1.3 t_assert_rc 2 bash "${gate}" --package-dir "${work}/clean"
+CODE_QUALITY_CLANG_FORMAT_CANDIDATES="${none}" PATH="${work}/bin-prefix:${PATH}" LLVM_RELEASE=23.1.3 \
+  t_assert_rc 2 bash "${gate}" --package-dir "${work}/clean"
+
+t_case "the pinned candidate wins over another release first on PATH"
+CODE_QUALITY_CLANG_FORMAT_CANDIDATES="${pinned}" PATH="${work}/bin-21:${PATH}" \
+  t_assert_rc 0 bash "${gate}" --package-dir "${work}/clean"
 
 t_summary

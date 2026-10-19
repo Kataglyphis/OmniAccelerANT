@@ -331,9 +331,6 @@ Import-BuildModule 'WindowsContainerBuild.Reuse'
 Import-BuildModule 'WindowsLaneSccache.Common'
 
 $engine = Resolve-NerdctlExe
-if (-not $engine) {
-	throw "nerdctl not found. Install Rancher Desktop, or put nerdctl on PATH."
-}
 
 # One lane at a time per checkout (AGENTS.md § 5); nerdctl cannot see the Windows build's Stevedore container.
 $busy = @(Get-RunningLinuxLane -Self $ContainerName -Nerdctl $engine)

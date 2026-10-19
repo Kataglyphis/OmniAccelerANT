@@ -83,7 +83,7 @@ $steps = @()
 if (-not $SkipFormat) { $steps += "echo '=== format ==='; $formatCmd" }
 if (-not $SkipAnalyze) { $steps += "echo '=== analyze ==='; flutter analyze" }
 # The plugin is its own package with its own lock, so the root's `flutter test` never reaches its suite.
-if (-not $SkipTest) { $steps += "echo '=== test ==='; flutter test; (cd packages/kataglyphis_native_inference && flutter pub get && flutter test)" }
+if (-not $SkipTest) { $steps += "echo '=== test ==='; flutter test; (cd packages/kataglyphis_native_inference && flutter test)" }
 if ($steps.Count -eq 0) { throw 'Nothing to do: every step was skipped.' }
 
 # The runner's set -e makes the first failing step the exit code; safe.directory, as the host user owns the checkout.
@@ -91,6 +91,8 @@ $script = @(
 	'export PATH=/opt/flutter/bin:$PATH'
 	'git config --global --add safe.directory "*" >/dev/null 2>&1 || true'
 	'flutter pub get'
+	# Before analyze too: it reads the plugin's package_config, which a lane run leaves pointing at the lane's pub cache.
+	'(cd packages/kataglyphis_native_inference && flutter pub get)'
 ) + $steps -join '; '
 
 $stepNames = @()

@@ -615,7 +615,9 @@ which keeps write-heavy paths off the host mount.
 run through the hub's `Invoke-InLinuxContainerBuild`, which creates that volume and chowns it
 with the image.
 Its format step covers `lib test integration_test test_driver`, every tracked file the lanes
-grade except the plugin's under `packages/`; its test step runs the plugin's suite too.
+grade except the plugin's under `packages/`; its test step runs the plugin's suite too. It runs
+the plugin's `pub get` before any step: analyze reads the plugin's `package_config.json`, which a
+lane run leaves pointing at the lane's pub cache.
 `-Engine wslc` runs it in WSL 3's `wslc` instead of nerdctl (hub CON62's pilot, 2026-10-06).
 Measured warm on this box: format + test 23 s against nerdctl's 32 s, analyze 146 s against
 371 s. The first run pulls `:latest` into wslc's own image store, about 30 GB and 554 s. wslc

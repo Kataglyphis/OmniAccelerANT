@@ -48,8 +48,19 @@ Describe 'WindowsLaneSccache.Common' {
         Set-Content -LiteralPath $hostFile -Value @(
             "SCCACHE_BUCKET=sccache", "SCCACHE_ENDPOINT=$endpoint", 'SCCACHE_REGION=garage',
             'SCCACHE_S3_USE_SSL=false', 'AWS_ACCESS_KEY_ID=GKfile', 'AWS_SECRET_ACCESS_KEY=fromfile')
-        $file = New-LaneSccacheS3Secret -Directory $work -HostFile $hostFile
+        $file = New-LaneSccacheS3Secret -Directory $work -HostFile $hostFile -EnvLookup { '' }
         ((Get-Content -LiteralPath $file) -join '|') | Should Match 'AWS_ACCESS_KEY_ID=GKfile\|AWS_SECRET_ACCESS_KEY=fromfile$'
+        Remove-LaneSccacheS3Secret $file
+    }
+
+    It 'prefers the host environment over the host file' {
+        $hostFile = Join-Path $work 'sccache-s3-env-wins.env'
+        Set-Content -LiteralPath $hostFile -Value @(
+            "SCCACHE_BUCKET=sccache", "SCCACHE_ENDPOINT=$endpoint", 'SCCACHE_REGION=garage',
+            'AWS_ACCESS_KEY_ID=GKfile', 'AWS_SECRET_ACCESS_KEY=fromfile')
+        $envKey = { param($name) if ($name -like '*ACCESS_KEY_ID') { 'GKenv' } else { '' } }
+        $file = New-LaneSccacheS3Secret -Directory $work -HostFile $hostFile -EnvLookup $envKey
+        ((Get-Content -LiteralPath $file) -join '|') | Should Match 'AWS_ACCESS_KEY_ID=GKenv\|AWS_SECRET_ACCESS_KEY=fromfile$'
         Remove-LaneSccacheS3Secret $file
     }
 

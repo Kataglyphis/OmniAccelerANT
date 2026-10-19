@@ -45,8 +45,10 @@ function New-LaneSccacheS3Secret {
     param(
         [string]$HostFile = (Get-SccacheS3HostFilePath),
         [string]$Directory = [IO.Path]::GetTempPath(),
-        # Reads a KATAGLYPHIS_SCCACHE_S3_* setting; the default asks the host's environment, then the host file.
-        [scriptblock]$Lookup
+        # Reads a KATAGLYPHIS_SCCACHE_S3_* setting; the default asks -EnvLookup, then the host file.
+        [scriptblock]$Lookup,
+        # The host's environment, which wins over the file; a test passes { '' } so this host's own key stays out.
+        [scriptblock]$EnvLookup = { param($name) Get-HostSettingValue $name }
     )
     if ("$env:KATAGLYPHIS_SCCACHE_S3" -in 'off', '0', 'false', 'no') { return $null }
     if (-not $Lookup) {
@@ -54,7 +56,7 @@ function New-LaneSccacheS3Secret {
         $names = $script:HostFileNames
         $Lookup = {
             param($name)
-            $value = Get-HostSettingValue $name
+            $value = & $EnvLookup $name
             if (-not $value -and $names.Contains($name)) { $value = "$($fromFile[$names[$name]])" }
             return $value
         }.GetNewClosure()
