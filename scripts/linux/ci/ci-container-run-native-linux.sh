@@ -114,7 +114,7 @@ if maybe_truthy "$RUN_CODEQL"; then
   exit 2
 fi
 
-# Only a requested flatpak needs the ~1.9 GB flathub runtimes. See docs/source/project-operations.md § The Linux lane, locally
+# Only a requested flatpak needs the ~1.9 GB flathub runtimes. See docs/source/project-operations.md § The Linux lanes, run locally
 if ! app_packaging_formats_include_flatpak "$PACKAGE_FORMATS"; then
   echo "[Info] No flatpak in --package-formats '${PACKAGE_FORMATS}'; skipping the flathub runtime install."
 elif maybe_truthy "$INSTALL_PACKAGING_DEPS"; then

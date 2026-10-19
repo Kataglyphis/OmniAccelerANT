@@ -435,7 +435,8 @@ bash /workspace/scripts/linux/ci/ci-container-run-native-linux.sh \
 
 The lane scripts take their inputs as CLI flags and exit 2 on a missing required one rather than
 guessing: `--arch` in all three, `--app-name` in the native and android lanes (the web lane takes
-none). `--package-formats` defaults to `tar`. The values CI passes are the `with:` blocks of
+none). `--package-formats` defaults to `tar`; only a requested flatpak installs the ~1.9 GB flathub
+runtimes. The values CI passes are the `with:` blocks of
 [`linux-x64.yml`](../../.github/workflows/linux-x64.yml) and
 [`linux-arm64.yml`](../../.github/workflows/linux-arm64.yml).
 
