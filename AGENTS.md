@@ -164,7 +164,8 @@ Two upstream facts repeated here only because they bite before you reach a doc:
 - `scripts/agentic-loop/` — the adopted planner/executor loop: config, both runner wrappers,
   prompt overlays. Engine `opencode` (**v2 only**), executor
   `opencode-go/deepseek-v4.1-flash`, Windows build/test driver
-  `scripts/windows/Build-Windows-Container.ps1`. Rules and commands: § 5.
+  `scripts/windows/Build-Windows-Container.ps1`. Both runners are body-mode copies too
+  (`agentic-loop-sh`, `agentic-loop-ps1`): only their header is this repo's. Rules and commands: § 5.
 - `scripts/linux/observant/serve.sh` — serves the web build over TLS (`--http`: plain HTTP,
   no certificate) with COOP/COEP for the Rust core and proxies `/webrtc-ws` to the cat
   producer. No container; it is the deployment half of the demo.
@@ -236,7 +237,7 @@ rather than linked.
   `scripts/linux/observant/package-observant.sh` (`sed -n '2,15p'`),
   `scripts/linux/esp32/build-firmware.sh` (`sed -n '2,12p'`),
   `scripts/linux/esp32/build-eye-demo.sh` (`sed -n '2,7p'`) and
-  `scripts/agentic-loop/Run-AgenticLoop.sh` (`head -30 | tail -28`): edit the
+  `scripts/agentic-loop/Run-AgenticLoop.sh` (`head -28 | tail -27`): edit the
   header and the range together. `comment-size.allow` freezes those headers.
 - **Six image gaps this repo once worked around are fixed in the image (2026-09-05); never
   bring a workaround back.** A reappearing one is an image regression

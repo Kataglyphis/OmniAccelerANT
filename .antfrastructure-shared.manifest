@@ -16,4 +16,6 @@
 cmake-format
 antfrastructure-sh
 resolve-build-module
+agentic-loop-sh
+agentic-loop-ps1
 clang-format packages/kataglyphis_native_inference/.clang-format

@@ -1,6 +1,4 @@
 #!/usr/bin/env bash
-set -euo pipefail
-
 # ─────────────────────────────────────────────────────────────────────────
 # Agentic loop (Linux). Thin wrapper: sources the reusable library from the
 # ANTfrastructure submodule, parses flags into the env vars the library reads,
@@ -28,20 +26,17 @@ set -euo pipefail
 #   --executor-only      Drain the current queue and exit
 #   --help               Show this help
 # ─────────────────────────────────────────────────────────────────────────
+set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 
-# ── Source reusable library from ANTfrastructure ───────────────────────────
-AGENTIC_LIB="${REPO_ROOT}/third_party/ANTfrastructure/linux/scripts/lib/agentic-loop.sh"
-if [[ -f "$AGENTIC_LIB" ]]; then
-    source "$AGENTIC_LIB"
-else
-    echo "FATAL: Agentic loop library not found: $AGENTIC_LIB" >&2
-    exit 1
-fi
+# Through the bootstrap, not a third_party literal, so ANTFRASTRUCTURE_DIR is honoured.
+# shellcheck source=../linux/lib/antfrastructure.sh
+source "${REPO_ROOT}/scripts/linux/lib/antfrastructure.sh"
+antfrastructure_source linux/scripts/lib/agentic-loop.sh
 
-# ── Arg parsing (exported env flags are consumed by the library) ────────
+# The library reads the exported flags.
 CONFIG_PATH="${SCRIPT_DIR}/AgenticLoop.config.json"
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -55,7 +50,7 @@ while [[ $# -gt 0 ]]; do
     --planner-only)   export PLANNER_ONLY=true; shift ;;
     --executor-only)  export EXECUTOR_ONLY=true; shift ;;
     --help|-h)
-      head -30 "$0" | tail -28
+      head -28 "$0" | tail -27
       exit 0 ;;
     *) echo "Unknown option: $1"; exit 1 ;;
   esac

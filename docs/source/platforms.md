@@ -724,7 +724,8 @@ tail.**
   (git-ignored).
 
 **The agentic loop (adopted 2026-09-13).** `scripts/agentic-loop/` holds the config, both runner
-wrappers and the project prompt overlays. Engine `opencode`, executor
+wrappers (body-mode copies of the hub's templates since 2026-10-19) and the project prompt
+overlays. Engine `opencode`, executor
 `opencode-go/deepseek-v4.1-flash`, planner `opencode-go/glm-5.2`. It runs on the host and builds
 through `scripts/windows/Build-Windows-Container.ps1`, which drives `Build-Windows.ps1` in a
 **reused** Stevedore container (tar-pipe transport, `WindowsContainerBuild.Reuse`, so

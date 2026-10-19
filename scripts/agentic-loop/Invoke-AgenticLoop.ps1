@@ -35,7 +35,7 @@ if (-not $config) { Write-Host "FATAL: Invalid JSON" -ForegroundColor Red; exit 
 
 Initialize-AgenticLoop -ConfigPath $configPath -RepoRoot $repoRoot -DryRun:$DryRun
 
-# The module supplies the build configs (the config's buildMatrix) and the default prompts.
+# Build configs and task prompts come from the module, not from this wrapper.
 try {
     Invoke-AgenticLoop -Config $config -Engine $Engine -RepoRoot $repoRoot `
         -MaxIterations:$MaxIterations -SkipBuild:$SkipBuild -SkipTests:$SkipTests `

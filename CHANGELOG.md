@@ -65,6 +65,14 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
   had (5, 11, 8, 10, 12, 5, 23, 28, 80; the element suite's fifth was an uncounted check) and
   fails when its target breaks: a gate that accepts everything, a report script that prints
   nothing, an updater that does nothing, a `.deb` without its `libgstreamer`.
+- **The agentic-loop runners are watched copies of the hub's templates** (2026-10-19, hub
+  c3fc7585). `Run-AgenticLoop.sh` and `Invoke-AgenticLoop.ps1` keep their headers and take the
+  templates' code: the bash runner sources the loop library through the bootstrap
+  `scripts/linux/lib/antfrastructure.sh`, so `ANTFRASTRUCTURE_DIR` is honoured, and its `--help`
+  range is `head -28 | tail -27`.
+  `.antfrastructure-shared.manifest` declares `agentic-loop-sh` and `agentic-loop-ps1`, so both
+  `sync-shared-config.sh --check` and `Sync-SharedConfig.ps1 -Check` now compare them; the
+  `SC1090` freeze for the old `$AGENTIC_LIB` source left `shellcheck-warnings.allow`.
 
 ### Fixed
 
