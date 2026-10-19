@@ -45,8 +45,8 @@ $ProgressPreference = 'SilentlyContinue'
 
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 
-$guardModule = Join-Path $PSScriptRoot 'modules\WindowsLaneGuard.Common.psm1'
-Import-Module $guardModule -Force
+. (Join-Path $PSScriptRoot 'Resolve-BuildModule.ps1')
+Import-BuildModule @('WindowsContainerBuild.Reuse', 'WindowsLaneGuard.Common')
 
 # One lane at a time per checkout (AGENTS.md § 5); Invoke-LinuxLane.ps1 guards the other direction.
 $linuxLanes = @(Get-RunningLinuxLane)

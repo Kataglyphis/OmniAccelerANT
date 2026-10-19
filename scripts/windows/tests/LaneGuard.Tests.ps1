@@ -1,11 +1,22 @@
 #requires -Version 7.0
 
-# Tests the pure halves; the engine calls only wrap them. Pester 3.4.0 dialect, as OrtRunner.Tests.ps1.
+# Tests the pure halves and, mocked, the hub's engine lookups; the engine calls only wrap them. Pester 3.4.0 dialect, as OrtRunner.Tests.ps1.
 
 Describe 'WindowsLaneGuard.Common' {
 
     . (Join-Path $PSScriptRoot '..\Resolve-BuildModule.ps1')
-    Import-BuildModule 'WindowsLaneGuard.Common'
+    Import-BuildModule @('WindowsContainerBuild.Reuse', 'WindowsLaneGuard.Common')
+
+    It 'asks the hub for nerdctl with -AllowMissing, and sees no Linux lane without one' {
+        Mock -ModuleName WindowsLaneGuard.Common Resolve-NerdctlExe { $null }
+        @(Get-RunningLinuxLane).Count | Should Be 0
+        Assert-MockCalled -ModuleName WindowsLaneGuard.Common Resolve-NerdctlExe -Times 1 -Exactly -ParameterFilter { $AllowMissing }
+    }
+
+    It 'sees no Windows build when the hub finds no docker.exe' {
+        Mock -ModuleName WindowsLaneGuard.Common Resolve-DockerExe { throw 'docker.exe not found.' }
+        Test-WindowsBuildActive | Should Be $false
+    }
 
     It 'reports every other Linux lane and never the caller itself' {
         $r = @(Select-LinuxLaneConflict -Self 'kataglyphis-linux-lane-native-x64' -RunningNames @(

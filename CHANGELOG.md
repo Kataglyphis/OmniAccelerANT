@@ -79,6 +79,17 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
   went STALE and are deleted; the file and `docs.yml`'s `link-allow` stay for the next link that
   has to. The site rebuilt in `:latest` (909 documents): with the rows the gate fails on 13 STALE
   entries, without them it passes with 0 findings.
+- **The Windows drivers find nerdctl and docker through the hub** (2026-10-19, hub 1a174d9c).
+  `Invoke-DartChecks.ps1` takes nerdctl from `Resolve-NerdctlExe` and runs the gate in one
+  `Invoke-InLinuxContainerBuild` call, which creates the pub-cache volume and chowns it with the
+  image (`bash -c` now, not a login shell; the script sets `PATH` itself). `Invoke-Renovate.ps1`
+  resolves nerdctl the same way and no longer passes `-DockerExe`. `WindowsLaneGuard.Common`
+  lost its own `Resolve-NerdctlExe`: the guard asks the hub's with `-AllowMissing`, and
+  `Resolve-DockerExe` (`DOCKER_EXE`, Stevedore, then `PATH`) for the Windows build container, so
+  `Build-Windows-Container.ps1` imports `WindowsContainerBuild.Reuse` first. Through Rancher's
+  nerdctl, `Invoke-DartChecks.ps1 -SkipAnalyze` formatted 91 files with 0 changed and passed 225
+  app and 4 plugin tests in 63 s; two new `LaneGuard.Tests.ps1` cases fail when the guard drops
+  `-AllowMissing` or the docker lookup's `catch`.
 
 ### Fixed
 

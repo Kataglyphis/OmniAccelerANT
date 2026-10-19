@@ -18,7 +18,7 @@ $ErrorActionPreference = 'Stop'
 
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 
-# Dot-sourced unconditionally: one of the two imports below sits outside the -Image guard.
+# Dot-sourced unconditionally: the container imports below sit outside the -Image guard.
 . (Join-Path $PSScriptRoot 'Resolve-BuildModule.ps1')
 
 if (-not $Image) {
@@ -29,14 +29,14 @@ if (-not $Image) {
 	$Image = Get-CiImageReference
 }
 
-$engine = (Get-Command 'nerdctl' -ErrorAction SilentlyContinue)?.Source
-if (-not $engine) {
-	$candidate = Join-Path $env:ProgramFiles 'Rancher Desktop\resources\resources\win32\bin\nerdctl.exe'
-	if (Test-Path -LiteralPath $candidate) { $engine = $candidate }
+# The hub's Invoke-InLinuxContainerBuild owns the run and the cache volume's chown, and finds nerdctl as Resolve-NerdctlExe does.
+Import-BuildModule @('WindowsContainerBuild.Reuse', 'WindowsBuildSweep.Common')
+if (-not (Get-Command -Name 'Invoke-InLinuxContainerBuild' -ErrorAction SilentlyContinue)) {
+	throw ("WindowsBuildSweep.Common was imported but exports no Invoke-InLinuxContainerBuild. " +
+		"The pinned ANTfrastructure predates it - bump third_party/ANTfrastructure.")
 }
-if (-not $engine) {
-	throw "nerdctl not found. Install Rancher Desktop, or put nerdctl on PATH."
-}
+# Before the token file is written, so a host without nerdctl stops with nothing to clean up.
+$engine = Resolve-NerdctlExe
 
 $renovateArgs = @()
 if ($Apply) { $renovateArgs += '--apply' }
@@ -86,18 +86,10 @@ if ($ghCmd) {
 	}
 }
 
-# The hub's Invoke-InLinuxContainerBuild owns the run and the cache volume's chown; -DockerExe wins over -Engine.
-Import-BuildModule 'WindowsBuildSweep.Common'
-if (-not (Get-Command -Name 'Invoke-InLinuxContainerBuild' -ErrorAction SilentlyContinue)) {
-	throw ("WindowsBuildSweep.Common was imported but exports no Invoke-InLinuxContainerBuild. " +
-		"The pinned ANTfrastructure predates it - bump third_party/ANTfrastructure.")
-}
-
 $runnerArgs = @{
 	RepoRoot      = $repoRoot
 	Image         = $Image
 	Command       = $inner
-	DockerExe     = $engine
 	Engine        = 'nerdctl'
 	Platform      = 'linux/amd64'
 	Name          = $ContainerName

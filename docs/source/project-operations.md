@@ -361,7 +361,8 @@ or a Windows build is running, and `Build-Windows-Container.ps1` refuses while a
 (`-Force` overrides both; `scripts/windows/modules/WindowsLaneGuard.Common.psm1`). The two sit on
 two engines: the Windows build container is Stevedore's, idles on `ping` between builds, and
 counts as busy only while a `pwsh` runs in it. The driver uses Rancher Desktop's `nerdctl`
-(found on `PATH`, else under `%ProgramFiles%`), the local Linux engine on this box; CI uses
+(the hub's `Resolve-NerdctlExe`: `NERDCTL_EXE`, `PATH` without Stevedore's copy, then
+`%ProgramFiles%`), the local Linux engine on this box; CI uses
 `docker` through ANTfrastructure's `run-in-linux-container`. Everything inside the container is
 identical.
 
@@ -610,7 +611,9 @@ both. `PUB_CACHE` on a named volume makes the second run cheap, and follows AGEN
 which keeps write-heavy paths off the host mount.
 
 `scripts/windows/Invoke-DartChecks.ps1` is the same loop as a script (`-SkipFormat`,
-`-SkipAnalyze`, `-SkipTest`, `-Fix`; its pub cache is the `omni-dart-checks-pubcache` volume).
+`-SkipAnalyze`, `-SkipTest`, `-Fix`; its pub cache is the `omni-dart-checks-pubcache` volume),
+run through the hub's `Invoke-InLinuxContainerBuild`, which creates that volume and chowns it
+with the image.
 Its format step covers `lib test integration_test test_driver`, every tracked file the lanes
 grade except the plugin's under `packages/`; its test step runs the plugin's suite too.
 `-Engine wslc` runs it in WSL 3's `wslc` instead of nerdctl (hub CON62's pilot, 2026-10-06).
