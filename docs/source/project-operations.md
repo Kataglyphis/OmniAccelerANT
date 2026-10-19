@@ -170,6 +170,10 @@ Preview docs:
 dhttpd --path doc/api --host 127.0.0.1 --port 8080
 ```
 
+**Planned work lives in [`BACKLOG.md`](../../BACKLOG.md)**, in the format ANTfrastructure's
+agentic loop consumes. The aspirational `docs/source/roadmap.md` the README's *Roadmap*
+pointed at was never filled in and was deleted on 2026-09-15; git history keeps it.
+
 ### There is no Sphinx site here
 
 `docs/source/` is Markdown source for exactly one consumer: the `dart doc` site

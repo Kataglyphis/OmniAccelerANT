@@ -20,6 +20,43 @@ the why behind that table (written after the test audit of 2026-10-15).
 | Performance | `integration_test/performance_test.dart`; OxidANT's Criterion benches | The app's frame build times at start, page switches and resizes; what a frame costs before the model, and a whole detection | Linux x64 (Flutter); OxidANT's Linux lanes |
 | Gate suites | `scripts/linux/tests/`, OxidANT's `scripts/linux/tests/`, `scripts/windows/tests/` | The CI gates themselves: each suite plants the failure its gate exists for and expects it to go red | The lanes' code-quality batches, OxidANT's lint workflow, the Pester jobs |
 
+## What the app's Dart suite checks
+
+Moved here from the README on 2026-10-19. The app's own Dart suite (`test/`) checks, among
+the rest:
+- every main page laid out at phone, tablet and desktop size, on a phone with its system
+  font at 150 % and 200 %, and on a desktop at 200 %, with the real font
+  (`app_layout_test.dart`);
+- the camera stream's state across remounts, page changes, lost signalling and failed
+  sessions (`webrtc_stream_controller_test.dart`);
+- the cat status line, its visits, its arrival picture and video, and the earlier videos
+  (`detection_status_test.dart`), and the visit statistics per day and hour (`visit_stats_test.dart`);
+- in Chrome, the requests the Camera page sends ObservANT (`observant_api_web_test.dart`);
+- the Camera page: what it reads from an ObservANT camera, what each button, the slider and the
+  name field send, a refused change, and the page off an ObservANT camera (`camera_settings_test.dart`);
+- the native Stream page's calls to the C++ plugin, its camera fallback, its buttons and
+  its error messages, on Linux, Android (camera permission included), macOS and the
+  rest, against a fake plugin (`stream_page_native_test.dart`); Windows and Linux with the
+  Rust features handing the camera to the Rust view (`stream_page_rust_test.dart`); and
+  the Rust camera view's calls to the core, against a fake core (`rust_webcam_view_test.dart`);
+- the GStreamer pipeline strings, which otherwise fail only on a machine with a camera
+  (`gstreamer_pipeline_builder_test.dart`);
+- the settings files: a malformed key named in the error, and the web's signalling URL
+  resolved against the page (`webrtc_settings_test.dart`, `settings_asset_paths_test.dart`);
+- the web booting without the Rust core, and native refusing to (`rust_core_test.dart`);
+- the About page's SQLite line and its error text (`sqlite3_healthcheck_widget_test.dart`);
+- what no build step checks: the bridge's versions, the sqlite3 wasm, 8-bit icons
+  (`pinned_artefacts_test.dart`), and that every social link has an icon (`social_icons_test.dart`).
+
+The native Linux lane measures how much of `lib/` these reach and fails below a floor of
+96 % (`--min` in `lane-native-linux.sh`; 97.2 % measured on 2026-10-16;
+`check-dart-coverage.sh`). The web-only files (`*_web.dart`, `webrtc_view.dart`, the
+gstwebrtc interop) cannot load on the VM, so they are tested in Chrome instead; `flutter test`
+collects coverage on the VM only, so they stay outside the figure (*Known gaps* below).
+
+`flutter test` in the `:latest` image runs it in under a minute
+([AGENTS.md § 5](../../AGENTS.md#5-build-run-test), *The Dart gate in 23 seconds*).
+
 ## Rules that keep a green run honest
 
 - **Nothing skips silently.** A test that cannot run (no GPU, no model, a missing

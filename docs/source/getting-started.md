@@ -6,7 +6,7 @@ Only want ObservANT? It comes as a package (`.deb`, AppImage, flatpak, tarball, 
 every [release](https://github.com/Kataglyphis/OmniAccelerANT/releases) carries them with a
 `SHA256SUMS`, and [a new camera in five steps](camera-streaming.md#installing-it) installs one,
 with or without sudo. Building one yourself is a single script:
-[README](../../README.md#live-cat-detection-stream-linux--raspberry-pi).
+[Camera Streaming](camera-streaming.md#the-observant-package), *The ObservANT package*.
 
 ## 1) Prerequisites
 
@@ -47,7 +47,40 @@ If you cloned without submodules:
 git submodule update --init --recursive
 ```
 
-## 3) Optional: camera checks on Linux
+## 3) Build the app, as CI does
+
+Moved here from the README on 2026-10-19. **Every lane runs containerized but the Windows
+arm64 app build, which runs natively on `windows-11-arm`, and local runs invoke the same
+script CI invokes** — the exact commands, presets and switches are in
+[AGENTS.md § 5](../../AGENTS.md#5-build-run-test):
+
+| Lane | What CI runs | Locally |
+|---|---|---|
+| Windows (amd64) | `scripts/windows/Build-Windows.ps1` | the same script, in the same image |
+| Linux native (amd64 / arm64) | `scripts/linux/ci/ci-container-run-native-linux.sh` | `Invoke-LinuxLane.ps1` |
+| Android | `scripts/linux/ci/ci-container-run-android.sh` | `Invoke-LinuxLane.ps1 -Lane android` |
+| Web | `scripts/linux/ci/ci-container-run-web-linux.sh` | `Invoke-LinuxLane.ps1 -Lane web` |
+
+The Linux entries go through ANTfrastructure's `run-in-linux-container` action
+in CI and Rancher Desktop's `nerdctl` locally; inside the container the two
+are identical, down to the argument list. Reproduce a CI failure locally
+before pushing — that is the whole point of the arrangement.
+
+The native Linux lane takes an opt-in linker,
+`Invoke-LinuxLane.ps1 -Env KATAGLYPHIS_LINKER=lld` (or `mold`). It is off in CI;
+what each one buys is in [`project-operations.md`](project-operations.md) § *The Linux lanes, run locally*.
+
+Building the Linux lane locally on a Windows host has host-side
+prerequisites — Rancher Desktop's engine, the drive the repo lives on being
+visible to *containerd's own* mount namespace, and QEMU binfmt registered
+for an arm64 run. The fixes are in [`project-operations.md`](project-operations.md) § *The Linux lane, locally*;
+the reasoning behind them is ANTfrastructure's, in
+[`rancher-desktop-linux-containers.md`](https://github.com/Kataglyphis/ANTfrastructure/blob/develop/docs/rancher-desktop-linux-containers.md).
+Both prerequisites are lost on a VM restart, and skipping either is silent:
+you get a bind mount that resolves and is empty, or an arm64 container
+running x86-64 binaries.
+
+## 4) Optional: camera checks on Linux
 
 List available camera devices:
 
@@ -68,7 +101,7 @@ sudo apt install -y v4l-utils
 v4l2-ctl --device=/dev/video0 --list-formats-ext
 ```
 
-## 4) Run the app (web profile)
+## 5) Run the app (web profile)
 
 The web build needs `web/sqlite3.wasm`. It is committed; this is the command that
 refreshes it. The fetcher lives in ANTfrastructure, next to the version and SHA256
@@ -97,7 +130,7 @@ flutter run -d web-server --profile --web-port 8080 --web-hostname 0.0.0.0 \
 
 Open `http://127.0.0.1:8080` in your browser.
 
-## 5) Build API docs
+## 6) Build API docs
 
 ```bash
 bash scripts/linux/generate-docs.sh
@@ -111,7 +144,32 @@ export PATH="$PATH:$HOME/.pub-cache/bin"
 dhttpd --path doc/api --host 127.0.0.1 --port 8080
 ```
 
-## 6) WSL2 USB passthrough (if needed)
+**By hand, without the script** (moved here from the README on 2026-10-19): generate the
+site into `doc/api`, then serve it. Use the pub-activated `dartdoc`, **not** the
+SDK-bundled `dart doc`: dartdoc 9.0.4 (bundled with several Flutter SDKs, the Windows
+build image's among them before it moved to Flutter 3.47.4) crashes on any Flutter app
+with a `_stripDocImports` RangeError; ≥ 9.0.9 fixes it. Both images now carry the Flutter
+the hub pins (`FLUTTER_VERSION` in its `versions.env`, 3.47.7 at this pin), whose bundled
+`dart doc` the Linux lane's `generate-docs.sh` runs without trouble.
+
+`scripts/windows/Build-Windows.ps1` already does this for you as its
+"Generate API Docs" step (skip it with `-SkipDocs`); the commands below are for
+generating the site by hand, which `dhttpd` then serves as above.
+
+```bash
+dart pub global activate dartdoc      # pulls >= 9.0.9
+dart pub global run dartdoc --output doc/api
+```
+
+On PowerShell the pub-cache `bin` goes on `PATH` differently:
+
+```powershell
+$env:Path += ";$env:USERPROFILE\AppData\Local\Pub\Cache\bin"
+```
+
+Then open <http://127.0.0.1:8080>.
+
+## 7) WSL2 USB passthrough (if needed)
 
 In Windows PowerShell (bus ids change between plug-ins):
 

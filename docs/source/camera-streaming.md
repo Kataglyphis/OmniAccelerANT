@@ -484,7 +484,8 @@ bash scripts/linux/observant/package-observant.sh --web-root build/web
 ```
 
 On riscv64 it writes the `.deb` and the tarball only: no freedesktop runtime and no AppImage
-runtime exist for it.
+runtime exist for it. Run it there in that board's own `:latest`. `web.yml` uploads all four
+for x64 and arm64.
 
 The flatpak's `flatpak-builder` runs in bubblewrap, so the script needs a privileged
 container (`nerdctl run --privileged`).
@@ -1073,6 +1074,10 @@ heavy one when the browser has no native image decoder, and Chrome offers WebCod
 would take the lighter `skwasm.wasm`. The app itself, `main.dart.wasm`, is 1.5 MB, and
 the six Roboto files about 0.5 MB.
 
+**Visit statistics** (2026-10-15). A "Visits" button shows the visits of the last two weeks,
+today's count, the average stay, and bars per day and per hour of the day, counted from
+`/visits` in the viewer's time zone (`lib/Pages/StreamPage/visit_stats.dart`).
+
 **One port reaches it.** The page and the `/webrtc-ws` signalling share `:8080`:
 the service forwards the WebSocket upgrade to its own signalling server on
 loopback `:8443`. Media goes over host candidates only unless `stun_server` is
@@ -1491,16 +1496,21 @@ Stream page streams without them, so `--http` drops TLS and the certificate
 warning with it:
 
 ```bash
-# once — web/pkg/ is a generated frb artefact (gitignored), so regenerate it
-# the way the web CI lane does before building the frontend
-rustup toolchain install nightly --component rust-src --target wasm32-unknown-unknown
-cargo install --locked --version 2.13.0 flutter_rust_bridge_codegen  # the pin in third_party/OxidANT/Cargo.toml
-flutter_rust_bridge_codegen build-web --release --rust-root third_party/OxidANT
+# once, in the repo root: the web frontend. web/pkg/ is a generated frb
+# artefact (gitignored); this is what ci-container-run-web-linux.sh runs, with the
+# image's dated nightly (the floating one breaks in :latest, AGENTS.md § 4)
+nightly="$(sed -n 's/^RUST_NIGHTLY_TOOLCHAIN=//p' third_party/ANTfrastructure/linux/scripts/01-core/versions.env)"
+rustup toolchain install "$nightly" --component rust-src --target wasm32-unknown-unknown  # :latest has it
+command -v flutter_rust_bridge_codegen || cargo install --locked --version 2.13.0 flutter_rust_bridge_codegen  # the pin in third_party/OxidANT/Cargo.toml
+flutter_rust_bridge_codegen build-web --release --rust-root third_party/OxidANT --wasm-pack-rustup-toolchain "$nightly"
 flutter build web --release --wasm --no-web-resources-cdn
 
 scripts/linux/observant/serve.sh          # :8444 TLS, proxies to :8443
 scripts/linux/observant/serve.sh --http   # :8444 plain HTTP, no certificate
 ```
+
+One native Linux host does everything, a Raspberry Pi included: the producer above, this web
+build and `serve.sh`.
 
 `serve.sh` also takes `--producer-host`/`--producer-port` to front a producer
 on another board, and `--state-dir` so several instances (one per producer)
@@ -1535,7 +1545,7 @@ blocks the named run with `name-store error` and would fail the boot start.
 `signalingServerUrl` in `assets/settings/webrtc_settings.json` is
 host-relative by default (`/webrtc-ws`); the web client resolves it against the
 page's origin, so the same build works on localhost, a LAN IP and a Raspberry
-Pi. Open `https://<host>:8444/` and accept the certificate warning, or run
+Pi. Open `https://<host>:8444/` — on the phone too — and accept the certificate warning, or run
 `serve.sh --http` and open `http://<host>:8444/`, which has none.
 
 USB cameras work with `--v4l2 /dev/videoX`. For a Pi's CSI camera use

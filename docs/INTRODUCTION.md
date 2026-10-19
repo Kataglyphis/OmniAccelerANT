@@ -14,10 +14,12 @@ This documentation covers the full Kataglyphis stack: Flutter/Dart frontend, Rus
 
 | Area | Purpose |
 |------|---------|
-| [Overview](source/overview.md) | Architecture, repository layout, and key design goals. |
-| [Getting Started](source/getting-started.md) | Local setup, first run, and verification checks. |
+| [Overview](source/overview.md) | Architecture, repository layout, key design goals, feature status per platform, and literature. |
+| [Getting Started](source/getting-started.md) | Local setup, the lanes CI runs, first run, and verification checks. |
 | [Platforms](source/platforms.md) | Linux, Windows, Android, Raspberry Pi, and Web instructions. |
-| [Camera Streaming](source/camera-streaming.md) | GStreamer WebRTC pipelines and the Rust cat-detection producer. |
+| [Camera Streaming](source/camera-streaming.md) | The installable ObservANT, GStreamer WebRTC pipelines and the Rust cat-detection producer. |
+| [ESP32-S3 Companion & Camera](source/esp32.md) | The Rust companion firmware, the ESP32-S3-EYE camera with on-device cat detection, and the Device page. |
+| [Testing](source/testing.md) | What each kind of test proves, what the app's Dart suite checks, and the known gaps. |
 | [Readmes](source/readmes.md) | Curated links to all relevant README entry points. |
 | [Project Operations](source/project-operations.md) | Build/test/doc workflows, release notes, and contribution flow. |
 | [Upgrade Guide](source/upgrade-guide.md) | Dependency and bridge upgrade procedures. |

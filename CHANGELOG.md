@@ -5,6 +5,21 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ## Unreleased
 
+### Changed
+
+- **The README is a short overview** (2026-10-19, owner: the family's README rule). The feature
+  matrix, platform summary and literature moved to `docs/source/overview.md`, the lane table and
+  the by-hand API docs to `getting-started.md`, the app's Dart suite list to `testing.md`, and the
+  ObservANT guide and by-hand runbook to `camera-streaming.md`, which already held most of it.
+  Contributing, contact and licence are ANTfrastructure's `repository-family.md`.
+
+### Fixed
+
+- **The ESP32 scripts pass the lint gates** that 678b3e4 turned red: `build-firmware.sh` takes the
+  image ref from the hub's `ci-image-ref.sh` (`KATAGLYPHIS_IMAGE` still overrides), every comment
+  in the ESP32 firmware and scripts is one line, and `build-eye-demo.sh --help` prints its header
+  only, no longer three lines of code after it.
+
 ## 2.2.1+5 — 2026-10-18
 
 ### Fixed

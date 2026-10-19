@@ -99,7 +99,7 @@ runs where, and on which version: [`docs/source/camera-streaming.md` § *Where i
 a camera added or moved goes into that table. The
 container + `serve.sh` shape on `https://<board>:8444/` is the manual one, which the
 Zero keeps; `serve.sh --producer-host` is only for looking at one board from another host.
-Runbook: README § *Live cat detection stream*.
+Runbook: [`docs/source/camera-streaming.md`](docs/source/camera-streaming.md) § *Cat detection stream (Rust, native)*.
 
 **`observant` is this app's only WebRTC producer.** AccelerANTgine carries a
 second, unrelated one — `Src/webrtc_streamer.{ixx,cpp}`, reached only through
@@ -277,11 +277,13 @@ happen in their own repositories.
 Everything here is false or meaningless in another repo — that is why it is
 written out rather than linked.
 
-- **Three scripts print a fixed line range of their own header as `--help`.**
+- **Five scripts print a fixed line range of their own header as `--help`.**
   `scripts/linux/observant/package-producer-bundle.sh` (`sed -n '2,22p'`),
-  `scripts/linux/observant/package-observant.sh` (`sed -n '2,15p'`) and
+  `scripts/linux/observant/package-observant.sh` (`sed -n '2,15p'`),
+  `scripts/linux/esp32/build-firmware.sh` (`sed -n '2,12p'`),
+  `scripts/linux/esp32/build-eye-demo.sh` (`sed -n '2,7p'`) and
   `scripts/agentic-loop/Run-AgenticLoop.sh` (`head -30 | tail -28`): edit the
-  header and the range together.
+  header and the range together. `comment-size.allow` freezes those headers.
 - **The two bootstrap copies are body-mode assets.** Below their header,
   `scripts/linux/lib/antfrastructure.sh` and `scripts/windows/Resolve-BuildModule.ps1`
   must equal the hub templates byte for byte (`sync-shared-config.sh --check`).
@@ -818,6 +820,9 @@ gitlinks in every superproject that vendors it. The runner, its Node and token, 
 `--apply` writes what Renovate only detects: [`docs/source/project-operations.md`](docs/source/project-operations.md) § *Dependency upgrades, in detail*.
 
 ## 6. Docs owned by this repo
+
+**Write docs like a developer: short and precise** (owner, 2026-10-19). Say what a thing does,
+how to run it and what breaks; no filler, no marketing, no repetition.
 
 - Guides live in `docs/source/` as plain Markdown, published through exactly one
   builder: `scripts/linux/generate-docs.sh`, whose `DARTDOC_BUILD_GUIDES` array
