@@ -140,31 +140,9 @@ fi
 # explicitly instead of the host's).
 cp -L /lib/aarch64-linux-gnu/ld-linux-aarch64.so.1 /out/lib/
 
-# Transitive library closure of everything in the bundle, including the C
-# runtime copied above.
-declare -A seen=()
-queue=()
-while IFS= read -r -d '' f; do queue+=("$f"); done \
-  < <(find /out/bin /out/lib /out/gstreamer-1.0 /out/libexec -type f -print0)
-while ((${#queue[@]})); do
-  f="${queue[0]}"; queue=("${queue[@]:1}")
-  while IFS= read -r dep; do
-    [ -n "${dep}" ] || continue
-    case "${dep}" in /out/*) continue ;; esac
-    base="$(basename "${dep}")"
-    # libcamera deliberately stays out of the bundle: the plugin must load the
-    # target's own build (its IPA and tuning match the target's kernel).
-    case "${base}" in
-      libcamera.so.0.7|libcamera.so.0.7.*|libcamera-base.so.0.7|libcamera-base.so.0.7.*) continue ;;
-      # Already bundled from the chain dir above; ldd could resolve /opt/opencv5's copy.
-      libonnxruntime.so*) continue ;;
-    esac
-    [ -n "${seen[${base}]:-}" ] && continue
-    seen[${base}]=1
-    cp -L "${dep}" "/out/lib/${base}"
-    queue+=("/out/lib/${base}")
-  done < <(ldd "${f}" 2>/dev/null | awk '/=> \// {print $3} /^\t\/[^ ]+ \(/ {print $1}')
-done
+# Transitive closure, the C runtime included; libcamera stays the target's (IPA and tuning match its kernel), ORT the chain copy.
+bash /hub-scripts/06-packaging/elf-closure.sh --bundle /out --lib-dir /out/lib --ldd --no-default-system --no-runpath \
+  --exclude 'libcamera.so.*' --exclude 'libcamera-base.so.*' --exclude 'libonnxruntime.so*'
 
 # Loaders ask for sonames; the copies above are named after the resolved
 # files, so link every soname that is not already a file.

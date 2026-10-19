@@ -73,90 +73,38 @@ fi
 require_cmd readelf
 require_cmd patchelf
 
-# The plugin list is GST_BUNDLED_PLUGIN_NAMES in lib/bundle-runtime.sh, shared with the closure gate.
-
+# Plugins are dlopen'd, never DT_NEEDED: the hub copies the fixed list (GST_BUNDLED_PLUGIN_NAMES), and a missing one fails.
 mkdir -p "$bundle_lib/gstreamer-1.0"
-
-declare -A seen=()
-declare -A bundled=()
-queue=()
-copied_count=0
-
-resolve_soname() {
-  local soname="$1" path chain
-  # ONNX Runtime comes from the proven chain dir or not at all - never the ld.so cache.
-  if [[ "$soname" == libonnxruntime* ]]; then
-    chain="$(chain_ort_lib_dir)" || return 1
-    if [[ -e "$chain/$soname" ]] && is_chain_ort_file "$chain/$soname"; then
-      printf '%s\n' "$chain/$soname"
-      return 0
-    fi
-    return 1
-  fi
-  # The image has the distro's libstdc++ too; the code needs the one its compiler links.
-  if [[ "$soname" == libstdc++.so.6 || "$soname" == libgcc_s.so.1 ]]; then
-    path="$("${CXX:-clang++}" -print-file-name="$soname")"
-    if [[ "$path" == /* && -e "$path" ]]; then
-      realpath "$path"
-      return 0
-    fi
-  fi
-  if [[ -e "$gst_lib_dir/$soname" ]]; then
-    printf '%s\n' "$gst_lib_dir/$soname"
-    return 0
-  fi
-  path="$(ldconfig -p 2>/dev/null | awk -v n="$soname" '$1 == n {print $NF; exit}' || true)"
-  if [[ -n "$path" && -e "$path" ]]; then
-    printf '%s\n' "$path"
-    return 0
-  fi
-  return 1
-}
-
-# Non-system DT_NEEDED entries are copied as real files under their soname, so no symlink is needed.
-walk_queue() {
-  local file soname src
-  while ((${#queue[@]})); do
-    file="${queue[0]}"
-    queue=("${queue[@]:1}")
-    while IFS= read -r soname; do
-      [[ -n "$soname" ]] || continue
-      if is_system_soname "$soname" || [[ -n "${seen[$soname]:-}" ]]; then
-        continue
-      fi
-      if ! src="$(resolve_soname "$soname")"; then
-        printf 'Error: %s needs %s and it resolves nowhere\n' "$(basename "$file")" "$soname" >&2
-        exit 1
-      fi
-      cp -L "$src" "$bundle_lib/$soname"
-      seen[$soname]=1
-      bundled[$soname]="$src"
-      copied_count=$((copied_count + 1))
-      queue+=("$bundle_lib/$soname")
-    done < <(elf_needed "$file")
-  done
-}
-
-for file in "$bundle_lib"/* "$bundle_lib"/gstreamer-1.0/* "$BUNDLE_DIR"/*; do
-  [[ -f "$file" ]] || continue
-  base="$(basename "$file")"
-  [[ "$base" == *.so* || -x "$file" ]] || continue
-  if [[ -z "${seen[$base]:-}" ]]; then
-    seen[$base]=1
-    queue+=("$file")
-  fi
-done
-walk_queue
-
-# Plugins are dlopen'd, never DT_NEEDED: the hub copies the fixed list, a missing one fails, and their closure is walked after.
 gst_copy_args=(--plugin-dir "$gst_plugins_dir")
 for plugin in "${GST_BUNDLED_PLUGIN_NAMES[@]}"; do gst_copy_args+=(--plugin "$plugin"); done
 bash "$(antfrastructure_path linux/scripts/06-packaging/gstreamer-bundle.sh)" copy --dest "$bundle_lib/gstreamer-1.0" "${gst_copy_args[@]}"
-for plugin in "${GST_BUNDLED_PLUGIN_NAMES[@]}"; do
-  seen["libgst${plugin}.so"]=1
-  queue+=("$bundle_lib/gstreamer-1.0/libgst${plugin}.so")
+
+# cxx_lib_dir <soname>: where the compiler's own copy sits; the image's distro libstdc++ is not the one the code links.
+cxx_lib_dir() {
+  local path
+  path="$("${CXX:-clang++}" -print-file-name="$1")"
+  [[ "$path" == /* && -e "$path" ]] || return 1
+  dirname "$path"
+}
+
+declare -A kept=()
+for file in "$bundle_lib"/*; do
+  if [[ -f "$file" ]]; then kept[$(basename "$file")]=1; fi
 done
-walk_queue
+
+# ONNX Runtime comes from the proven chain dir or not at all, never the ld.so cache; check-bundle-closure.sh's G6 proves the bytes.
+ort_dir="$(chain_ort_lib_dir 2>/dev/null)" || ort_dir=/var/empty
+closure_args=(--bundle "$BUNDLE_DIR" --lib-dir "$bundle_lib" --relocatable --no-runpath --no-default-system
+  --from "libonnxruntime*=$ort_dir")
+for soname in "${SYSTEM_SONAME_ALLOWLIST[@]}"; do closure_args+=(--system "$soname"); done
+for soname in libstdc++.so.6 libgcc_s.so.1; do
+  if dir="$(cxx_lib_dir "$soname")"; then closure_args+=(--from "$soname=$dir"); fi
+done
+bash "$(antfrastructure_path linux/scripts/06-packaging/elf-closure.sh)" "${closure_args[@]}" --search "$gst_lib_dir" --ldconfig
+copied_count=0
+for file in "$bundle_lib"/*; do
+  if [[ -f "$file" && -z "${kept[$(basename "$file")]:-}" ]]; then copied_count=$((copied_count + 1)); fi
+done
 
 # Prepend $ORIGIN, keep the old entries: dead on a target, they still resolve in the image.
 patch_origin_rpath() {
@@ -230,15 +178,9 @@ fi
 
 printf 'Runtime closure: %d file(s) copied, bundle now %s\n' \
   "$copied_count" "$(du -sh "$BUNDLE_DIR" | cut -f1)"
-if [[ "$copied_count" -gt 0 ]]; then
-  printf 'Copied (soname <- source):\n'
-  for name in "${!bundled[@]}"; do
-    printf '  %s <- %s\n' "$name" "${bundled[$name]}"
-  done
-fi
 # rust_builder's CMake stages ORT when the Rust features ask for it; the walk skips a file already here.
 for file in "$bundle_lib"/libonnxruntime*; do
-  [[ -f "$file" && -z "${bundled[$(basename "$file")]:-}" ]] || continue
+  [[ -f "$file" && -n "${kept[$(basename "$file")]:-}" ]] || continue
   printf 'Kept (already in bundle/lib, not copied): %s sha256 %s\n' \
     "$(basename "$file")" "$(sha256sum "$file" | cut -d' ' -f1)"
 done

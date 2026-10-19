@@ -145,26 +145,10 @@ if [ -n "${nss_lib}" ]; then
   done
 fi
 
-# Transitive closure. libcamera stays the host's: its IPA and tuning must match the host kernel.
-declare -A seen=()
-queue=()
-while IFS= read -r -d '' f; do queue+=("$f"); done \
-  < <(find "${bundle}/bin" "${bundle}/lib" "${bundle}/libexec" -type f \( -name '*.so*' -o -perm -u+x \) -print0)
-while ((${#queue[@]})); do
-  f="${queue[0]}"; queue=("${queue[@]:1}")
-  while IFS= read -r dep; do
-    [ -n "${dep}" ] || continue
-    case "${dep}" in "${bundle}"/*) continue ;; esac
-    base="$(basename "${dep}")"
-    case "${base}" in
-      libcamera.so.*|libcamera-base.so.*|libonnxruntime.so*) continue ;;
-    esac
-    [ -n "${seen[${base}]:-}" ] && continue
-    seen[${base}]=1
-    cp -L "${dep}" "${bundle}/lib/${base}"
-    queue+=("${bundle}/lib/${base}")
-  done < <(ldd "${f}" 2>/dev/null | awk '/=> \// {print $3} /^\t\/[^ ]+ \(/ {print $1}')
-done
+# Transitive closure, by ldd. libcamera stays the host's: its IPA and tuning must match the host kernel.
+bash "$(antfrastructure_path linux/scripts/06-packaging/elf-closure.sh)" --bundle "${bundle}" --lib-dir "${bundle}/lib" \
+  --ldd --no-default-system --no-runpath \
+  --exclude 'libcamera.so.*' --exclude 'libcamera-base.so.*' --exclude 'libonnxruntime.so*'
 
 # The image also carries a distro GStreamer; a libgst* from outside /opt/gstreamer would be the wrong one.
 while IFS= read -r line; do

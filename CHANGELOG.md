@@ -41,6 +41,19 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
   `scripts/linux/collect-release-assets.sh` and its suite are gone, and the native lane no longer
   runs that suite. In `:latest` the hub collector with `release.yml`'s own block collects the same
   33 files under the same names as the deleted script, over uploads named as the six lanes name them.
+- **The three Linux bundle walkers are the hub's `elf-closure.sh`** (2026-10-19, hub c3fc7585).
+  `bundle-runtime-closure.sh` copies the GStreamer plugins first and then closes the whole bundle
+  in one call (`--relocatable --no-runpath --no-default-system`, the system list as `--system`,
+  ORT only from the proven chain directory, GCC 16.2's `libstdc++` and `libgcc_s` from the
+  compiler's directory, then GStreamer's `libdir` and the ld.so cache); its `Runtime closure` and
+  `Kept` lines now count from the files `bundle/lib` gained. `package-observant.sh` and the Pi
+  Zero's `package-producer-bundle.sh` call it with `--ldd`, libcamera and ORT excluded. In
+  `:latest` each produced the same files under the same names, byte for byte, as its own walker
+  did: the Flutter bundle (the lane bundle's `install_manifest.txt` files in; 151 files out, G6
+  green), ObservANT's 326-file bundle and its `.deb`, and the producer bundle's 211 entries on
+  x86-64. The one difference: the walker installs each copied library 0644, where `cp -L` kept
+  0755 on the GStreamer libraries, `liborc`, `libstdc++`, `libc` and `libnice`. The ObservANT
+  package suite passes on the new packages (80 of 80).
 
 ### Fixed
 

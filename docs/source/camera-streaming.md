@@ -263,7 +263,9 @@ assumed the host had the image's GStreamer: the plugin DT_NEEDs seven `libgst*` 
 libgtk-3-0`. No lane caught it, because the image's ld.so cache has everything.
 
 What travels in the bundle now (`scripts/linux/bundle-runtime-closure.sh`, run by the lane for
-release builds, before packaging):
+release builds, before packaging). Since 2026-10-19 the walk is the hub's
+[`elf-closure.sh`](../../third_party/ANTfrastructure/docs/linux-build-basics.md#the-elf-closure-walker)
+with its Flutter-bundle options; the ObservANT packagers call it with `--ldd`:
 
 - **the GStreamer closure**, resolved from DT_NEEDED against pkg-config's `libdir` (never
   `ldd`: the image also carries a distro GStreamer, and `ldd` may pick that one), plus the
