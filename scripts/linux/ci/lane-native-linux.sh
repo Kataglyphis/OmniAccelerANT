@@ -18,7 +18,7 @@ Options:
       --package-formats <csv>   Packaging formats (default: tar,appimage,flatpak,deb)
       --no-package              Build only (skip packaging)
       --strict-checks <bool>    Fail on format/analyze/test errors (default: true in CI, false locally)
-      --run-docs <bool>         Generate docs (default: true, only on x64)
+      --run-docs <bool>         Run generate-docs.sh, x64 only (default: false; docs.yml builds the site)
       --flutter-dir <path>      Optional Flutter SDK directory (uses <path>/bin/flutter)
   -h, --help                    Show this help
 
@@ -34,7 +34,7 @@ BUILD_MODE="release"
 FLUTTER_DIR=""
 PACKAGE_FORMATS="tar,appimage,flatpak,deb"
 RUN_PACKAGING=1
-RUN_DOCS="1"
+RUN_DOCS="0"
 STRICT_CHECKS=""
 
 while [[ $# -gt 0 ]]; do

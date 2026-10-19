@@ -32,22 +32,12 @@ on:
       install-packaging-deps:
         required: true
         type: boolean
-      run-docs:
-        description: Build the API docs and, on a push, deploy them over FTP. One architecture carries it.
-        required: true
-        type: boolean
     # Optional, so fork and Dependabot PRs reach the steps with empty values instead of failing at the call.
     secrets:
       GHCR_PAT:
         required: false
-      SERVER:
-        required: false
-      USERNAME:
-        required: false
-      PW:
-        required: false
 
-# Read-only: the ghcr login and the FTP deploy use their own secrets, not GITHUB_TOKEN.
+# Read-only: the ghcr login uses its own secret, not GITHUB_TOKEN.
 permissions:
   contents: read
 
@@ -92,7 +82,7 @@ jobs:
           key: frontend-perf-${{ inputs.arch }}-${{ github.sha }}
           restore-keys: frontend-perf-${{ inputs.arch }}-
 
-      # -e CI=true lets generate-docs.sh chown doc/api/ back; Invoke-LinuxLane.ps1 -CheckParity parses extra-args and script.
+      # --run-docs false: docs.yml builds the site. Invoke-LinuxLane.ps1 -CheckParity parses extra-args and script.
       - name: Run container
         uses: Kataglyphis/ANTfrastructure/.github/actions/run-in-linux-container@develop
         with:
@@ -107,7 +97,7 @@ jobs:
             --install-packaging-deps "${{ inputs.install-packaging-deps }}"
             --strict-checks true
             --run-codeql false
-            --run-docs "${{ inputs.run-docs }}"
+            --run-docs false
 
       - name: Frontend performance report
         if: always() && hashFiles('out/perf/frontend.json') != ''
@@ -154,13 +144,3 @@ jobs:
             out/*.AppImage
             out/*.flatpak
           if-no-files-found: error
-
-      # Push only: fork PRs get no secrets. See third_party/ANTfrastructure/docs/ftp-deploys.md for the action's guards.
-      - name: 📂 Sync files to domain
-        if: ${{ inputs.run-docs && github.event_name == 'push' }}
-        uses: Kataglyphis/ANTfrastructure/.github/actions/deploy-over-ftp@develop
-        with:
-          server: ${{ secrets.SERVER }}
-          username: ${{ secrets.USERNAME }}
-          password: ${{ secrets.PW }}
-          local-dir: "./doc/api/"

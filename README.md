@@ -41,7 +41,7 @@ and embedded devices. ObservANT is the same stack as an installable camera that 
 ```bash
 git clone --recurse-submodules --branch develop https://github.com/Kataglyphis/OmniAccelerANT.git
 cd OmniAccelerANT
-pwsh -File scripts/windows/Invoke-LinuxLane.ps1 -SkipDocs   # the native Linux lane, in the family image
+pwsh -File scripts/windows/Invoke-LinuxLane.ps1   # the native Linux lane, in the family image
 ```
 
 It needs `pwsh` 7 and `nerdctl` (Rancher Desktop on Windows). The other lanes, the Windows

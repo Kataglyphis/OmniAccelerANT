@@ -33,8 +33,6 @@ jobs:
       flutter-dir: /opt/flutter
       package-formats: tar,deb,flatpak,appimage
       install-packaging-deps: true
-      # x64 carries the API docs and their deploy.
-      run-docs: false
     secrets:
       GHCR_PAT: ${{ secrets.GHCR_PAT }}
 

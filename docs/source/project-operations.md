@@ -137,6 +137,14 @@ bash scripts/linux/generate-docs.sh
 dhttpd --path doc/api --host 127.0.0.1 --port 8080
 ```
 
+**CI builds and publishes the site in [`docs.yml`](../../.github/workflows/docs.yml)**
+(2026-10-19) through the hub's reusable `build-docs.yml`
+([`docs-sites.md`](../../third_party/ANTfrastructure/docs/docs-sites.md)): it runs
+`generate-docs.sh` in the family image, adds the hub's `.htaccess` and 404 page, fails on a dead
+internal link or anchor in `doc/api`, and uploads the site over FTP on a push to `develop` or
+`main`, never from a pull request. The Linux lane builds no docs (`--run-docs false`);
+`Invoke-LinuxLane.ps1 -Docs` still runs `generate-docs.sh` at the end of a local x64 lane.
+
 **Planned work lives in [`BACKLOG.md`](../../BACKLOG.md)**, in the format ANTfrastructure's
 agentic loop consumes. `docs/source/roadmap.md`, which the README's *Roadmap* pointed at, was
 never filled in and was deleted on 2026-09-15; git history keeps it.
@@ -277,9 +285,9 @@ reader that the flag does not work.
 
 **Branches, CI rounds and releases** follow the family's rule (owner, 2026-10-15):
 [`branch-and-release-strategy.md`](../../third_party/ANTfrastructure/docs/branch-and-release-strategy.md).
-Here every push to `develop` runs `linux-x64.yml`, which also deploys the API docs over FTP, and
-`on-request.yml` reads the `[ci <lane>]` tokens. Between releases `main` trails `develop` by
-design (416 commits on 2026-10-05). Neither branch is protected (owner, 2026-10-05).
+Here every push to `develop` runs `linux-x64.yml` and `docs.yml`, and `on-request.yml` reads the
+`[ci <lane>]` tokens. Between releases `main` trails `develop` by design (416 commits on
+2026-10-05). Neither branch is protected (owner, 2026-10-05).
 
 - Keep dependency upgrades and feature changes in separate pull requests.
 - Regenerate bridge code when Rust API signatures change.
@@ -369,7 +377,7 @@ bash /workspace/scripts/linux/ci/ci-container-run-native-linux.sh \
   --app-name omni-accelerant \
   --package-formats tar,deb,flatpak,appimage \
   --install-packaging-deps true --strict-checks true \
-  --run-codeql false --run-docs true
+  --run-codeql false --run-docs false
 ```
 
 The lane scripts take their inputs as CLI flags and exit 2 on a missing required one rather than

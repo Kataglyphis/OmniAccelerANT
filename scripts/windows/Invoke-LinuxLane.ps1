@@ -24,7 +24,8 @@ param(
 	# 'true', as android.yml passes; it needs /dev/kvm in the engine's VM (AGENTS.md § 5), 'false' skips the smoke.
 	[ValidateSet('true', 'false')]
 	[string] $EmulatorSmoke = 'true',
-	[switch] $SkipDocs,
+	# Local opt-in for generate-docs.sh on x64; CI sends --run-docs false (docs.yml builds the site), so -CheckParity then differs.
+	[switch] $Docs,
 	[switch] $KeepContainer,
 	# Compare argument VALUES with the lane's workflow, then exit before any container work.
 	[switch] $CheckParity,
@@ -212,7 +213,7 @@ $platform = if ($Arch -eq 'x64') { 'linux/amd64' } else { 'linux/arm64' }
 
 # Named apart from the switch: PowerShell variable names are case-insensitive.
 $runCodeQLArg = if ($RunCodeQL) { 'true' } else { 'false' }
-$runDocs = if ($SkipDocs) { 'false' } else { ($Arch -eq 'x64').ToString().ToLower() }
+$runDocs = ($Docs -and $Arch -eq 'x64').ToString().ToLower()
 
 # Mirrors each lane's workflow (native: linux-<arch>.yml -> reusable-linux.yml); change both together.
 $laneArgs = switch ($Lane) {
@@ -254,7 +255,7 @@ $privilegedArgs = if ($Lane -eq 'android') { @() } else { @('--privileged') }
 # The emulator smoke boots the image's AVD on KVM, as android.yml's --device does.
 $deviceArgs = if ($Lane -eq 'android' -and $EmulatorSmoke -eq 'true') { @('--device', '/dev/kvm') } else { @() }
 
-# Only reusable-linux.yml passes -e CI=true, which lets generate-docs.sh chown doc/api/ back.
+# Only reusable-linux.yml passes -e CI=true; under -Docs it lets generate-docs.sh chown doc/api/ back.
 $ciEnvArgs = if ($Lane -eq 'native') { @('-e', 'CI=true') } else { @() }
 
 # Compares VALUES, not flag names, and needs no engine: no nerdctl, volume or container.

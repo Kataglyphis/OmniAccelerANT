@@ -16,7 +16,7 @@ concurrency:
   group: linux-x64-${{ github.ref }}-${{ github.workflow }}
   cancel-in-progress: true
 
-# Read-only: the ghcr login and the FTP deploy use their own secrets, not GITHUB_TOKEN.
+# Read-only: the ghcr login uses its own secret, not GITHUB_TOKEN.
 permissions:
   contents: read
 
@@ -64,13 +64,8 @@ jobs:
       flutter-dir: /opt/flutter
       package-formats: tar,deb,flatpak,appimage
       install-packaging-deps: true
-      # x64 builds the API docs and, on a push, deploys them; one copy is enough.
-      run-docs: true
     secrets:
       GHCR_PAT: ${{ secrets.GHCR_PAT }}
-      SERVER: ${{ secrets.SERVER }}
-      USERNAME: ${{ secrets.USERNAME }}
-      PW: ${{ secrets.PW }}
 
   # Inside the image every library is present; the bare image base shows a missing one (hub linux-build-basics.md).
   clean-host:

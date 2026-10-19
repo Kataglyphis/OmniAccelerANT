@@ -22,6 +22,17 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
   `camera-streaming.md`. `doc-dupes-hub.allow` turns the hub's `doc-dupes --against-hub` gate on:
   seven restated passages before, one allowed after (the owner's docs rule). The `C:\workspace`
   mount trap is dated: images since 2026-09-26 hold no `C:\workspace` (hub CON29).
+- **The API docs site has its own workflow** (2026-10-19, hub 89b098c9). `docs.yml` calls the
+  hub's `build-docs.yml` with `command: bash scripts/linux/generate-docs.sh` and `site-dir:
+  doc/api`: the site builds in the family image, gets the hub's `.htaccess` and 404 page, passes
+  the built-site link gate and is published on a push to `develop` or `main` only, by a job no
+  newer push cancels. Until now `reusable-linux.yml` uploaded `doc/api` at the end of the x64
+  lane, so a red lane skipped the upload and the next push could cut it off half-way. The lane's
+  `run-docs` input, its FTP step and the `SERVER`/`USERNAME`/`PW` secrets left
+  `reusable-linux.yml` and `linux-x64.yml`; the lane scripts default to `--run-docs false`, and
+  `Invoke-LinuxLane.ps1 -SkipDocs` became the opt-in `-Docs`. The gate in `:latest`: 909
+  documents, 13 dead links, all guide links to non-Markdown repository files, which the hub's
+  renderer leaves relative; `docs/site-links.allow` freezes them until it sends them to GitHub.
 
 ### Fixed
 

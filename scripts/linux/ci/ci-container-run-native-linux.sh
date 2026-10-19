@@ -20,7 +20,7 @@ Options:
       --install-packaging-deps <bool> Install the flathub runtime; only consulted when --package-formats has flatpak (default: false)
       --strict-checks <bool>    Fail on format/analyze/test errors (default: true in CI, false locally)
       --run-codeql <bool>       Must be false: no CodeQL scan is implemented here
-      --run-docs <bool>         Generate docs (default: true)
+      --run-docs <bool>         Run generate-docs.sh, x64 only (default: false; docs.yml builds the site)
   -h, --help                    Show this help
 EOF
 }
@@ -31,7 +31,7 @@ FLUTTER_DIR="/opt/flutter"
 APP_NAME=""
 PACKAGE_FORMATS="tar"
 INSTALL_PACKAGING_DEPS="0"
-RUN_DOCS="1"
+RUN_DOCS="0"
 RUN_CODEQL="0"
 STRICT_CHECKS=""
 

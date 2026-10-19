@@ -1,0 +1,24 @@
+# Dead links on the built docs site that stay, for the hub's built-site link gate (docs.yml, link-allow).
+# Format: verify_site_links.py --print-keys lines. Two-way: a key that resolves now is STALE; delete it.
+# third_party/ANTfrastructure/docs/docs-sites.md#the-built-site-link-gate
+# Why all of them: the hub's dartdoc-guides.py sends only relative *.md links to a guide page or GitHub; a guide's
+# relative link to any other repository file stays relative and climbs out of doc/api. Fixed there, every row goes STALE.
+
+# docs/source/project-operations.md
+missing	../.antfrastructure-shared.manifest
+missing	../.github/codeql/codeql-config.yml
+missing	../.github/workflows/docs.yml
+missing	../.github/workflows/linux-arm64.yml
+missing	../.github/workflows/linux-x64.yml
+missing	../.github/workflows/reusable-linux.yml
+missing	../.github/workflows/web.yml
+missing	../third_party/ANTfrastructure/linux/scripts/05-frameworks/flutter/lane-prologue.sh
+missing	../third_party/ANTfrastructure/linux/webserver/nginx.conf
+missing	../third_party/ANTfrastructure/linux/webserver/security-headers.conf
+
+# docs/source/platforms.md
+missing	../.github/workflows/windows-arm64.yml
+missing	../.github/workflows/windows-x64.yml
+
+# docs/source/readmes.md
+missing	../rust_builder/cargokit/README

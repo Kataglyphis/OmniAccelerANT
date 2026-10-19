@@ -132,6 +132,7 @@ which maps topic → owning document, so these links survive upstream reorganisa
 | Branches, CI rounds (`[ci <lane>]`) and releases | [`docs/branch-and-release-strategy.md`](third_party/ANTfrastructure/docs/branch-and-release-strategy.md) |
 | Every checkout on its branch tip (`git-sync-branches.sh`) | `docs/adopting-in-a-new-project.md` § *Putting every checkout on its branch* |
 | Dependency upgrades: Renovate as a local CLI | `docs/dependency-updates.md` |
+| Docs sites: the reusable `build-docs.yml`, the built-site link gate and its allow file, the site's `.htaccess` | [`docs/docs-sites.md`](third_party/ANTfrastructure/docs/docs-sites.md) |
 
 Two upstream facts repeated here only because they bite before you reach a doc:
 
@@ -616,7 +617,7 @@ the CI invocation: [`docs/source/project-operations.md`](docs/source/project-ope
 | `web` | `ci-container-run-web-linux.sh` | [`web.yml`](.github/workflows/web.yml) |
 
 ```powershell
-.\scripts\windows\Invoke-LinuxLane.ps1 -SkipDocs                        # native, x64
+.\scripts\windows\Invoke-LinuxLane.ps1                                  # native, x64
 .\scripts\windows\Invoke-LinuxLane.ps1 -Lane android
 .\scripts\windows\Invoke-LinuxLane.ps1 -Lane web
 .\scripts\windows\Invoke-LinuxLane.ps1 -Arch arm64                      # needs QEMU, see below
@@ -695,6 +696,10 @@ how to run it and what breaks; no filler, no marketing, no repetition.
   scaffolding was deleted on 2026-09-15, unused by every lane
   ([`docs/source/project-operations.md`](docs/source/project-operations.md)
   § *There is no Sphinx site here*).
+- **`docs.yml` builds and publishes that site** (2026-10-19): the hub's `build-docs.yml` runs
+  `generate-docs.sh` in the image, fails on a dead internal link in `doc/api` and uploads it on
+  a push to `develop` or `main`. The Linux lane builds no docs (`--run-docs false`). Detail:
+  [`docs/source/project-operations.md`](docs/source/project-operations.md) § *Documentation Workflow*.
 - [`docs/source/platforms.md`](docs/source/platforms.md) holds the full
   symptom→cause→fix table for containerized Windows builds.
 - Update docs in the same PR as user-facing behaviour changes.

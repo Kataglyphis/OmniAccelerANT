@@ -1,0 +1,26 @@
+# The API docs site: generate-docs.sh through the hub's build-docs.yml, which checks its links and publishes it (AGENTS.md § 6).
+name: Docs · build + publish
+
+# Least privilege: the reusable workflow reads the repository and publishes with its own FTP secrets.
+permissions:
+  contents: read
+
+on:
+  push:
+    branches: ["main", "develop"]
+  pull_request:
+    branches: ["main", "develop"]
+  workflow_dispatch:
+
+# No workflow-level concurrency: cancelling a run would cancel a publish half-way; build-docs.yml groups its jobs itself.
+jobs:
+  docs:
+    uses: Kataglyphis/ANTfrastructure/.github/workflows/build-docs.yml@develop
+    with:
+      command: bash scripts/linux/generate-docs.sh
+      site-dir: doc/api
+      link-allow: docs/site-links.allow
+    secrets:
+      FTP_SERVER: ${{ secrets.SERVER }}
+      FTP_USERNAME: ${{ secrets.USERNAME }}
+      FTP_PASSWORD: ${{ secrets.PW }}
