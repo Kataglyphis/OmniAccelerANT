@@ -127,7 +127,6 @@ run_gate "rust toolchain gate tests" bash scripts/linux/tests/test-check-rust-to
 run_gate "dart coverage" bash scripts/linux/check-dart-coverage.sh --min 96 --lcov "$dart_lcov"
 run_gate "dart coverage gate tests" bash scripts/linux/tests/test-check-dart-coverage.sh
 run_gate "frontend performance script tests" bash scripts/linux/tests/test-perf-reports.sh
-run_gate "release collector tests" bash scripts/linux/tests/test-collect-release-assets.sh
 assert_gates
 
 flutter config --enable-linux-desktop

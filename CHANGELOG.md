@@ -33,6 +33,14 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
   `Invoke-LinuxLane.ps1 -SkipDocs` became the opt-in `-Docs`. The gate in `:latest`: 909
   documents, 13 dead links, all guide links to non-Markdown repository files, which the hub's
   renderer leaves relative; `docs/site-links.allow` freezes them until it sends them to GitHub.
+- **`release.yml` calls the hub's `release-publish.yml`** (2026-10-19, hub c3fc7585). Its version
+  check and its tag-and-publish job are the reusable workflow's `check` and `publish` stages, both
+  granted `contents: write` because GitHub checks the called file's every job against the grant;
+  the `dry-run` input and the six lanes stay. What a release carries is the `collect:` block of
+  the hub collector's options, the `omniaccelerant.options` the hub suite tests;
+  `scripts/linux/collect-release-assets.sh` and its suite are gone, and the native lane no longer
+  runs that suite. In `:latest` the hub collector with `release.yml`'s own block collects the same
+  33 files under the same names as the deleted script, over uploads named as the six lanes name them.
 
 ### Fixed
 

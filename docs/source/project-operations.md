@@ -295,8 +295,9 @@ Here every push to `develop` runs `linux-x64.yml` and `docs.yml`, and `on-reques
 
 **Publishing a release** (2026-10-15). A push to `main` starts `release.yml`: the version check
 (`v<version>` is `pubspec.yaml`'s version without its `+build`), all six lanes, then the release
-job, whose packages `scripts/linux/collect-release-assets.sh` picks from the lanes' uploads. What
-a release carries (2.2.0 on; 2.1.0 carried only ObservANT):
+job. The check and the release job call the hub's [`release-publish.yml`](../../third_party/ANTfrastructure/docs/branch-and-release-strategy.md#the-reusable-release-workflow),
+which picks the packages from the lanes' uploads by the options in `release.yml`'s `collect:`
+block. What a release carries (2.2.0 on; 2.1.0 carried only ObservANT):
 
 | Platform | The app | ObservANT |
 | --- | --- | --- |
@@ -304,11 +305,11 @@ a release carries (2.2.0 on; 2.1.0 carried only ObservANT):
 | Windows x64 and arm64 | MSI, MSIX (with its test certificate), the app folder as a `.zip` | MSI, MSIX (with its test certificate), `.zip` |
 | Android | the arm64-v8a APK | |
 
-The collector skips logs, debug builds, the arm64 natives and the web build, and fails the
-release on an upload it has no rule for, or when a platform's package is missing.
-`scripts/linux/tests/test-collect-release-assets.sh` runs in the native lane (15 checks); the
-hub's suite tests the publishing script. riscv64 has no package in a release, since no CI lane
-builds one.
+The options skip logs, debug builds, the arm64 natives and the web build, and fail the release
+on an upload no option names (`--strict`) or when a platform's package is missing (`--expect`).
+The hub's `test-collect-release-assets.sh` runs the same options over a release run's uploads
+([§ *Collecting the release files*](../../third_party/ANTfrastructure/docs/branch-and-release-strategy.md#collecting-the-release-files)).
+riscv64 has no package in a release, since no CI lane builds one.
 
 **To release**, follow the hub's
 [§ *Merging into `main`*](../../third_party/ANTfrastructure/docs/branch-and-release-strategy.md#merging-into-main)

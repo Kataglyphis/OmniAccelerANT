@@ -583,7 +583,6 @@ that cannot run there; why, lane by lane: [`docs/source/testing.md`](docs/source
 | ObservANT MSI install checks (`Test-ObservANTWindows.ps1`) | | | | | x64 in `web.yml`'s `observant-windows` job, in `:winamd64`; arm64 on `windows-11-arm` after the hub's arch gate (`observant-windows-arm64-test`) |
 | ObservANT MSIX package checks (`Test-ObservANTMsix.ps1`, without `-Install`) | | | | | in `web.yml`'s `observant-windows` jobs, in `:winamd64` and `:winarm64` |
 | The app's MSI and MSIX: installed, started from Program Files and from the app entry without PATH help, removed (`Test-OmniAccelerANTInstallers.ps1`) | | host, after `Package-OmniAccelerANT.ps1` | device, the same | | |
-| Release collector (`test-collect-release-assets.sh`): every platform's package, no stray upload, nothing missing | yes | | | | |
 | `.deb`, AppImage and tarball on a bare `ubuntu-26.04` runner, 20 s under Xvfb (the hub's `clean-host-package-check`) | yes | | | | |
 
 **When the lanes run** is the family's rule (owner, 2026-10-15):
