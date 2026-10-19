@@ -4,13 +4,6 @@ Demonstrates how to use the kataglyphis_native_inference plugin.
 
 ## Getting Started
 
-This project is a starting point for a Flutter application.
-
-A few resources to get you started if this is your first Flutter project:
-
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+The Flutter plugin template's example: `lib/main.dart` calls the plugin's `getPlatformVersion()`
+and shows the result. It depends on the plugin by path (`../`); its integration test is
+`integration_test/plugin_integration_test.dart`.

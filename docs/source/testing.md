@@ -1,9 +1,9 @@
 # Testing
 
-What each kind of test in OmniAccelerANT, OxidANT (the Rust core) and AccelerANTgine (the
-C++ core) proves, the rules that keep a green run honest, how to run them, and what is not
-covered yet. Which lane runs which test is AGENTS.md § *What each lane tests*; this page is
-the why behind that table (written after the test audit of 2026-10-15).
+What each test in OmniAccelerANT, OxidANT (the Rust core) and AccelerANTgine (the C++ core)
+proves, the rules that keep a green run honest, how to run them, and what is not covered yet.
+Which lane runs which test is AGENTS.md § *What each lane tests*; this page is the why behind
+that table (written after the test audit of 2026-10-15).
 
 ## What runs, and what it proves
 
@@ -22,139 +22,133 @@ the why behind that table (written after the test audit of 2026-10-15).
 
 ## What the app's Dart suite checks
 
-Moved here from the README on 2026-10-19. The app's own Dart suite (`test/`) checks, among
-the rest:
-- every main page laid out at phone, tablet and desktop size, on a phone with its system
-  font at 150 % and 200 %, and on a desktop at 200 %, with the real font
-  (`app_layout_test.dart`);
-- the camera stream's state across remounts, page changes, lost signalling and failed
-  sessions (`webrtc_stream_controller_test.dart`);
+From the README (2026-10-19). `test/` checks, among the rest:
+- every main page laid out at phone, tablet and desktop size, on a phone with its system font at
+  150 % and 200 %, and on a desktop at 200 %, with the real font (`app_layout_test.dart`);
+- the camera stream's state across remounts, page changes, lost signalling and failed sessions
+  (`webrtc_stream_controller_test.dart`);
 - the cat status line, its visits, its arrival picture and video, and the earlier videos
   (`detection_status_test.dart`), and the visit statistics per day and hour (`visit_stats_test.dart`);
 - in Chrome, the requests the Camera page sends ObservANT (`observant_api_web_test.dart`);
 - the Camera page: what it reads from an ObservANT camera, what each button, the slider and the
   name field send, a refused change, and the page off an ObservANT camera (`camera_settings_test.dart`);
-- the native Stream page's calls to the C++ plugin, its camera fallback, its buttons and
-  its error messages, on Linux, Android (camera permission included), macOS and the
-  rest, against a fake plugin (`stream_page_native_test.dart`); Windows and Linux with the
-  Rust features handing the camera to the Rust view (`stream_page_rust_test.dart`); and
-  the Rust camera view's calls to the core, against a fake core (`rust_webcam_view_test.dart`);
+- the native Stream page's calls to the C++ plugin, its camera fallback, its buttons and its
+  error messages, on Linux, Android (camera permission included), macOS and the rest, against a
+  fake plugin (`stream_page_native_test.dart`); Windows and Linux with the Rust features handing
+  the camera to the Rust view (`stream_page_rust_test.dart`); and the Rust camera view's calls to
+  the core, against a fake core (`rust_webcam_view_test.dart`);
 - the GStreamer pipeline strings, which otherwise fail only on a machine with a camera
   (`gstreamer_pipeline_builder_test.dart`);
-- the settings files: a malformed key named in the error, and the web's signalling URL
-  resolved against the page (`webrtc_settings_test.dart`, `settings_asset_paths_test.dart`);
+- the settings files: a malformed key named in the error, and the web's signalling URL resolved
+  against the page (`webrtc_settings_test.dart`, `settings_asset_paths_test.dart`);
 - the web booting without the Rust core, and native refusing to (`rust_core_test.dart`);
 - the About page's SQLite line and its error text (`sqlite3_healthcheck_widget_test.dart`);
 - what no build step checks: the bridge's versions, the sqlite3 wasm, 8-bit icons
   (`pinned_artefacts_test.dart`), and that every social link has an icon (`social_icons_test.dart`).
 
-The native Linux lane measures how much of `lib/` these reach and fails below a floor of
-96 % (`--min` in `lane-native-linux.sh`; 97.2 % measured on 2026-10-16;
-`check-dart-coverage.sh`). The web-only files (`*_web.dart`, `webrtc_view.dart`, the
-gstwebrtc interop) cannot load on the VM, so they are tested in Chrome instead; `flutter test`
-collects coverage on the VM only, so they stay outside the figure (*Known gaps* below).
+The native Linux lane measures how much of `lib/` these reach (without the generated bridge and
+localizations) and fails below a floor of 96 % (`--min` in `lane-native-linux.sh`, stated once
+and moved up as tests are added; `check-dart-coverage.sh`). Measured: 96.5 % on 2026-10-13 (62 %
+the morning before, ahead of the native Stream page and Rust camera view tests), 97.2 % on
+2026-10-16. A file no test imports is not in the report at all. The web-only files are tested in
+Chrome and stay outside the figure (*Known gaps* below).
 
-`flutter test` in the `:latest` image runs it in under a minute
+`flutter test` in the `:latest` image runs the suite in under a minute
 ([AGENTS.md § 5](../../AGENTS.md#5-build-run-test), *The Dart gate in 23 seconds*).
 
 ## Rules that keep a green run honest
 
-- **Nothing skips silently.** A test that cannot run (no GPU, no model, a missing
-  GStreamer element) skips locally, but CI sets `KATAGLYPHIS_REQUIRE_GPU`, `_MODEL` and
-  `_GST` to 1 and the skip becomes a failure; `cargo test` hides a passing test's skip
-  line, so nobody would see it otherwise. AccelerANTgine's Linux lane fails on any skipped
-  ctest test, since ctest reports "100% tests passed" with skips in it, and UBSan reports
-  are fatal (`halt_on_error=1`).
-- **Coverage has floors, per part.** Dart `lib/` fails below 96 % (97.2 % on 2026-10-16).
-  OxidANT's workspace fails below 70 %, and each crate below its own floor
-  (`COVERAGE_FLOORS` in OxidANT's `ci-container-steps.sh`), so one well-tested crate cannot
-  hide a weak one. Floors only move up.
+- **Nothing skips silently.** A test that cannot run (no GPU, no model, a missing GStreamer
+  element) skips locally, but CI sets `KATAGLYPHIS_REQUIRE_GPU`, `_MODEL` and `_GST` to 1 and the
+  skip becomes a failure; `cargo test` hides a passing test's skip line, so nobody would see it
+  otherwise. AccelerANTgine's Linux lane fails on any skipped ctest test, since ctest reports
+  "100% tests passed" with skips in it, and UBSan reports are fatal (`halt_on_error=1`).
+- **Coverage has floors, per part.** Dart `lib/` fails below 96 % (§ *What the app's Dart suite
+  checks*). OxidANT's workspace fails below 70 %, and each crate below its own floor
+  (`COVERAGE_FLOORS` in OxidANT's `ci-container-steps.sh`), so one well-tested crate cannot hide
+  a weak one. Floors only move up.
 - **Performance is judged against a median.** Each Linux x64 run's frame timings, and each
-  OxidANT bench, are compared with the median of the default branch's last 20 runs: above
-  +25 % the run warns, and a stable value at double the median fails it once 3 earlier
-  runs exist. A run that failed never joins the history (camera-streaming.md § *Measuring
-  performance*).
-- **Mutation testing checks the checks.** Coverage says a line ran, not that a test would
-  notice it change. cargo-mutants plants small bugs one at a time (a flipped comparison, a
-  deleted branch, a constant return) and reruns the tests: on ObservANT's network-facing code
-  (`web.rs`, `static_files.rs`) they caught about 84 % of 145 compiling mutants on 2026-10-15,
-  and 142 after tests for every gap it named. The arrival logic (`motion.rs`, `presence.rs`,
-  `status.rs`) went from about 92 % to 375 of 379, and camera choice, config and webhook
-  (`camera.rs`, `config.rs`, `notify.rs`) from about 90 % to 134 of 145, and frames, clips
-  and stats (`frame.rs`, `clip.rs`, `stats.rs`, `output.rs`, `precompress.rs`) from 376 to 400
-  of 412; there the privacy filter's colour planes had never been checked. The capture loop
-  (`capture.rs`) is the weakest, 87 of 124 at first and 98 now, because most of what is left
-  needs a real camera or a loaded model. What is left elsewhere changes nothing a client can
-  see, or reads a real camera device, which no CI host has. How to run it: OxidANT's AGENTS.md.
-- **A new test proves it can fail.** Each gate and property added on 2026-10-15 was run
-  against a planted bug first: `..` let through the path check, an unclamped range end, a
-  route no page answers, a skipped ctest test, a slowdown in the perf reports. A test that
-  stays green against its own bug is not added.
+  OxidANT bench, are compared with the median of the default branch's last 20 runs: above +25 %
+  the run warns, and a stable value at double the median fails it once 3 earlier runs exist (for
+  the frame timings: an average or 90th-percentile build time at more than double). A run that
+  failed never joins the history (camera-streaming.md § *Measuring performance*).
+- **Mutation testing checks the checks.** Coverage says a line ran, not that a test would notice
+  it change. cargo-mutants plants small bugs one at a time (a flipped comparison, a deleted
+  branch, a constant return) and reruns the tests. Caught in ObservANT, at first → now:
+  - network-facing code (`web.rs`, `static_files.rs`): about 84 % of 145 compiling mutants on
+    2026-10-15 → 142 after tests for every gap it named;
+  - arrival logic (`motion.rs`, `presence.rs`, `status.rs`): about 92 % → 375 of 379;
+  - camera choice, config and webhook (`camera.rs`, `config.rs`, `notify.rs`): about 90 % → 134
+    of 145;
+  - frames, clips and stats (`frame.rs`, `clip.rs`, `stats.rs`, `output.rs`, `precompress.rs`):
+    376 → 400 of 412; the privacy filter's colour planes had never been checked;
+  - the capture loop (`capture.rs`), the weakest: 87 of 124 → 98, because most of what is left
+    needs a real camera or a loaded model.
+
+  What is left elsewhere changes nothing a client can see, or reads a real camera device, which
+  no CI host has. How to run it: OxidANT's AGENTS.md.
+- **A new test proves it can fail.** Each gate and property added on 2026-10-15 was run against a
+  planted bug first: `..` let through the path check, an unclamped range end, a route no page
+  answers, a skipped ctest test, a slowdown in the perf reports. A test that stays green against
+  its own bug is not added.
 
 ## Why a lane cannot run a test
 
 The notes under AGENTS.md's lane table, moved here on 2026-10-15.
 
-- Android and Web build no desktop runner, so the desktop rows do not apply
-  there; Android adds the plugin's JVM test and the emulator run. The image carries
-  the emulator and Chrome (hub CON50, owner 2026-10-01); `android.yml` opens
-  `/dev/kvm` to the container and boots the AVD with `android-avd.sh` (since 2026-10-06).
-- ObservANT checks live with ObservANT packages, which only `web.yml` builds,
-  since they wrap its web build. They run as root in `:latest` and drive headless
-  Chrome against the installed service. The MSI's run in `:winamd64` as
-  ContainerAdministrator, where a `webrtcsrc` viewer plays the installed exe.
-- The integration test runs on both Windows architectures by driving the app the
-  build made (`flutter drive --use-application-binary`) — x64 from the `-FlutterTarget` build
-  `Build-WindowsDebugApps.ps1` makes on the Debug tree, arm64 from `Build-WindowsArm64App.ps1 -FlutterTarget` —
+- Android and Web build no desktop runner, so the desktop rows do not apply; Android adds the
+  plugin's JVM test and the emulator run. The image carries the emulator and Chrome (hub CON50,
+  owner 2026-10-01); `android.yml` opens `/dev/kvm` to the container and boots the AVD with
+  `android-avd.sh` (since 2026-10-06).
+- ObservANT checks live with ObservANT packages, which only `web.yml` builds, since they wrap its
+  web build. They run as root in `:latest` and drive headless Chrome against the installed
+  service. The MSI's run in `:winamd64` as ContainerAdministrator, where a `webrtcsrc` viewer
+  plays the installed exe.
+- The integration test runs on both Windows architectures by driving the app the build made
+  (`flutter drive --use-application-binary`): x64 from the `-FlutterTarget` build
+  `Build-WindowsDebugApps.ps1` makes on the Debug tree, arm64 from `Build-WindowsArm64App.ps1 -FlutterTarget`,
   because `flutter test -d windows` would build with Flutter's MSVC default.
-- The mutation suite builds synthetic ELFs for the Linux closure gate; Windows has
-  no ELF and no such gate. The element gate asks the bundle's plugins through `gst-inspect-1.0`;
-  only a Linux bundle loads its plugins alone. Pester tests PowerShell that only Windows lanes run.
-- The plugin's C++ format gate needs only the sources, so one lane grades them for
-  every platform; Windows has no C++ format step. The coverage floor is the same kind of
-  check: one lane's `flutter test --coverage` measures the same Dart everywhere. Since
-  2026-10-15 that is the Dart gate's own test run (the hub's `flutter_checks.sh --coverage`),
-  not a second one, which had cost 55 s on every push. It counts
-  `lib/` without the generated bridge and localizations, was 96.5 % on 2026-10-13 (62 %
-  the morning before, ahead of the native Stream page and Rust camera view tests), and fails the
-  batch below the `--min` in `lane-native-linux.sh`, which states it once and moves up
-  as tests are added; a file no test imports is not in the report at all.
-- The rustc stamp lives in an ELF `.comment`, which a Windows PE does not have. The
-  web lane builds its wasm with `build-web` and the dated nightly it names (AGENTS.md § 4), not
-  Cargokit.
-- The clean-host job is Linux's: the Windows lanes already check the runner outside
-  `:winamd64` (C ABI, import walk, launch smoke), Android's run is the emulator's, and the
-  web lane's packages are ObservANT's, whose checks install them as well. A Debian 13 start is
-  checked by hand on a Raspberry Pi (camera-streaming.md § *Relocatable Linux bundles*).
+- The mutation suite builds synthetic ELFs for the Linux closure gate; Windows has no ELF and no
+  such gate. The element gate asks the bundle's plugins through `gst-inspect-1.0`; only a Linux
+  bundle loads its plugins alone. Pester tests PowerShell that only Windows lanes run.
+- The plugin's C++ format gate needs only the sources, so one lane grades them for every
+  platform; Windows has no C++ format step. The coverage floor is the same kind of check: one
+  lane's `flutter test --coverage` measures the same Dart everywhere. Since 2026-10-15 that is the
+  Dart gate's own test run (the hub's `flutter_checks.sh --coverage`), not a second one, which had
+  cost 55 s on every push.
+- The rustc stamp lives in an ELF `.comment`, which a Windows PE does not have. The web lane
+  builds its wasm with `build-web` and the dated nightly it names (AGENTS.md § 4), not Cargokit.
+- The clean-host job is Linux's: the Windows lanes already check the runner outside `:winamd64`
+  (C ABI, import walk, launch smoke), Android's run is the emulator's, and the web lane's
+  packages are ObservANT's, whose checks install them as well. A Debian 13 start is checked by
+  hand on a Raspberry Pi (camera-streaming.md § *Relocatable Linux bundles*).
 - The frame timings run on Linux x64 alone: a profile build costs minutes, and one arch is enough
   to see the Dart side get slower. `reusable-linux.yml` keeps the default branch's last 20
   `out/perf/frontend.json` in `.perf-baseline/` and writes the comparison with their median into
-  the run's summary: above +25 % it warns, and an average or 90th-percentile build time at more
-  than double the median fails the lane, once 3 earlier runs exist (camera-streaming.md
-  § *Measuring performance*).
-- The webcam frame test is Linux-only: `hasPushedFrame` is the Linux plugin's, and
-  the Windows drives run `simple_test.dart`.
-- The web lane runs both Dart suites in Chrome since 2026-10-05 (`--test-platform chrome`
-  to the hub's gate); the VM-only files are `@TestOn('vm')` and still run on every native
-  lane. Chrome still *compiles* them, so a VM-only test must compile for web too: a plain
-  `int` for a Rust `i64` field failed web run 38255398872 (AGENTS.md § 4, `PlatformInt64Util.from`).
+  the run's summary (thresholds: § *Rules that keep a green run honest*).
+- The webcam frame test is Linux-only: `hasPushedFrame` is the Linux plugin's, and the Windows
+  drives run `simple_test.dart`.
+- The web lane runs both Dart suites in Chrome since 2026-10-05 (`--test-platform chrome` to the
+  hub's gate); the VM-only files are `@TestOn('vm')` and still run on every native lane. Chrome
+  still *compiles* them, so a VM-only test must compile for web too: a plain `int` for a Rust
+  `i64` field failed web run 38255398872 (AGENTS.md § 4, `PlatformInt64Util.from`).
   `flutter test --platform chrome` in `:latest` shows it before a push.
-- Every lane runs the plugin's Dart tests through the same strict gate as the
-  app's: `run_flutter_common_checks` on Linux, *Plugin Flutter Tests* in
-  `Build-Windows.ps1`, `Invoke-FlutterTests.ps1` on arm64.
+- Every lane runs the plugin's Dart tests through the same strict gate as the app's:
+  `run_flutter_common_checks` on Linux, *Plugin Flutter Tests* in `Build-Windows.ps1`,
+  `Invoke-FlutterTests.ps1` on arm64.
 - **A push to `develop` runs Linux x64 alone** (since 2026-10-15, the family's rule in
-  [ANTfrastructure's `branch-and-release-strategy.md`](../../third_party/ANTfrastructure/docs/branch-and-release-strategy.md)). The
-  other five lanes run when a commit message asks, with `[ci windows]`, `[ci arm64]`,
+  [ANTfrastructure's `branch-and-release-strategy.md`](../../third_party/ANTfrastructure/docs/branch-and-release-strategy.md)).
+  The other five lanes run when a commit message asks, with `[ci windows]`, `[ci arm64]`,
   `[ci android]`, `[ci web]` or `[ci all]`; `on-request.yml` reads the tokens and calls those
-  lanes. Every lane also has *Run workflow* (`gh workflow run windows-x64.yml --ref develop`).
-  So a change to Windows-only code carries `[ci windows]`, and a test that only one of the
-  columns above runs is proved by asking for that lane.
-- **Every push to `main` runs every lane** through `release.yml`, and releases only when all
-  are green (project-operations.md § *Release Hygiene*).
+  lanes. Every lane also has *Run workflow* (`gh workflow run windows-x64.yml --ref develop`). So a
+  change to Windows-only code carries `[ci windows]`, and a test that only one of the columns
+  above runs is proved by asking for that lane.
+- **Every push to `main` runs every lane** through `release.yml`, and releases only when all are
+  green (project-operations.md § *Release Hygiene*).
 - **A newer request for a lane cancels its older run on the same branch** (each lane's
-  `concurrency` has `cancel-in-progress: true`); a push without a token cancels nothing.
-  Before 2026-10-15 every push started every lane, and on 2026-10-12 that cancelled 77 of
-  the day's 142 push runs, about 18 hours of runner wall time.
+  `concurrency` has `cancel-in-progress: true`); a push without a token cancels nothing. Before
+  2026-10-15 every push started every lane, and on 2026-10-12 that cancelled 77 of the day's 142
+  push runs, about 18 hours of runner wall time.
 
 ## Running them
 
@@ -175,38 +169,38 @@ python3 scripts/linux/frontend-perf-report.py out/perf/frontend.json
 (cd third_party/OxidANT && PROPTEST_CASES=100000 cargo test -p kataglyphis_observant properties)
 ```
 
-The plugin is its own package with its own lock, so the root's `flutter test` never reaches
-its suite. `flutter test --platform chrome` shows before a push what the web lane will say;
-it compiles every test file for Chrome, the VM-only ones too.
+The plugin is its own package with its own lock, so the root's `flutter test` never reaches its
+suite. `flutter test --platform chrome` shows before a push what the web lane will say; it
+compiles every test file for Chrome, the VM-only ones too (§ *Why a lane cannot run a test*).
 
 ## Known gaps
 
 As found on 2026-10-15, so a green run is read for what it is:
 
 - **Tarpaulin does not measure feature-gated Rust code.** Every module behind
-  `#[cfg(feature = …)]` is missing from its report, `crates/media` and the webcam engine
-  among them, although their tests run. `cargo llvm-cov` would see them; the image does
-  not carry it (OxidANT's AGENTS.md).
+  `#[cfg(feature = …)]` is missing from its report, `crates/media` and the webcam engine among
+  them, although their tests run. `cargo llvm-cov` would see them; the image does not carry it
+  (OxidANT's AGENTS.md).
 - **The native plugin's Windows and Android C++ is barely tested:** one `GetPlatformVersion`
-  gtest on Windows, one JVM test on Android, and nothing for the Android GStreamer glue. The
-  Linux texture has six gtests since 2026-10-15 (pipeline errors as Dart sees them, a
-  transparent test pattern shown opaque, the `knt_push_frame` codes and registry), each
-  checked against a planted bug.
-- **Web-only Dart is outside the coverage figure.** `webrtc_view.dart` and the other files
-  behind `dart.library.js_interop` never load on the VM, and the Chrome run measures
-  nothing; the ObservANT package test's real browser is what covers them. The one with the
-  most to lose, `observant_api_web.dart`, through which the Camera page reads and saves
-  ObservANT's settings, has a Chrome-only test since 2026-10-15
-  (`observant_api_web_test.dart`, `@TestOn('browser')`): it swaps the page's `fetch` for a
-  fake and checks each request's URL, method, header, JSON body and timeout, and that an
-  error status or a failed request reads as nothing.
+  gtest on Windows, one JVM test on Android, nothing for the Android GStreamer glue. The Linux
+  texture has six gtests since 2026-10-15 (pipeline errors as Dart sees them, a transparent test
+  pattern shown opaque, the `knt_push_frame` codes and registry), each checked against a planted
+  bug.
+- **Web-only Dart is outside the coverage figure.** `webrtc_view.dart` and the other files behind
+  `dart.library.js_interop` (`*_web.dart`, the gstwebrtc interop) never load on the VM, `flutter
+  test` collects coverage on the VM only, and the Chrome run measures nothing; the ObservANT
+  package test's real browser is what covers them. The one with the most to lose,
+  `observant_api_web.dart`, through which the Camera page reads and saves ObservANT's settings,
+  has a Chrome-only test since 2026-10-15 (`observant_api_web_test.dart`, `@TestOn('browser')`):
+  it swaps the page's `fetch` for a fake and checks each request's URL, method, header, JSON body
+  and timeout, and that an error status or a failed request reads as nothing.
 - **ANThology's own tests run in its repository only**, and a third of its `lib/` files have
-  none. Its sortable table, behind the blog overview here and four lists on the website, got
-  its first tests on 2026-10-15, and they found three sorting bugs.
-- **C++ fuzzing runs in unit mode only**, about a second per property, without coverage
-  feedback. AccelerANTgine forces `FUZZTEST_FUZZING_MODE` off (`third_party/CMakeLists.txt`):
-  FuzzTest's coverage flags recursed with AddressSanitizer. Its targets read config files and
-  decode boxes; what a network peer sends is parsed in Rust, where the property tests above run.
-- **Windows does not demand the model**, so its real-model tests pass by skipping: its unit
-  tests run before the model is fetched (OxidANT's `BACKLOG.md`). The riscv64 lane fetches
-  and demands it since 2026-10-15.
+  none. Its sortable table, behind the blog overview here and four lists on the website, got its
+  first tests on 2026-10-15, and they found three sorting bugs.
+- **C++ fuzzing runs in unit mode only**, about a second per property, without coverage feedback.
+  AccelerANTgine forces `FUZZTEST_FUZZING_MODE` off (`third_party/CMakeLists.txt`): FuzzTest's
+  coverage flags recursed with AddressSanitizer. Its targets read config files and decode boxes;
+  what a network peer sends is parsed in Rust, where the property tests above run.
+- **Windows does not demand the model**, so its real-model tests pass by skipping: its unit tests
+  run before the model is fetched (OxidANT's `BACKLOG.md`). The riscv64 lane fetches and demands
+  it since 2026-10-15.

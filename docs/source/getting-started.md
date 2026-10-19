@@ -1,28 +1,27 @@
 # Getting Started
 
-This guide takes you from clone to a working local setup.
-
-Only want ObservANT? It comes as a package (`.deb`, AppImage, flatpak, tarball, Windows MSI):
-every [release](https://github.com/Kataglyphis/OmniAccelerANT/releases) carries them with a
-`SHA256SUMS`, and [a new camera in five steps](camera-streaming.md#installing-it) installs one,
-with or without sudo. Building one yourself is a single script:
+Only want ObservANT? Every [release](https://github.com/Kataglyphis/OmniAccelerANT/releases)
+carries it as a package (`.deb`, AppImage, flatpak, tarball, Windows MSI) with a `SHA256SUMS`;
+[a new camera in five steps](camera-streaming.md#installing-it) installs one, with or without
+sudo. Building one yourself is a single script:
 [Camera Streaming](camera-streaming.md#the-observant-package), *The ObservANT package*.
 
 ## 1) Prerequisites
 
 **Or skip them:** every Linux CI lane runs in the family image
-`ghcr.io/kataglyphis/kataglyphis_beschleuniger:latest`, which carries Flutter, Rust,
-GStreamer and ONNX Runtime (the Windows lanes use its `:winamd64` twin). [AGENTS.md § 5](../../AGENTS.md#5-build-run-test), *The Dart
-gate in 23 seconds*, runs the tests in it with nothing installed on the host. The clone
-below works without a GitHub account: every URL is HTTPS.
+`ghcr.io/kataglyphis/kataglyphis_beschleuniger:latest`, which carries Flutter, Rust, GStreamer
+and ONNX Runtime (the Windows lanes use its `:winamd64` twin).
+[AGENTS.md § 5](../../AGENTS.md#5-build-run-test), *The Dart gate in 23 seconds*, runs the tests
+in it with nothing installed on the host. The clone below needs no GitHub account: every URL is
+HTTPS.
 
 On the host:
 
 - Flutter SDK and Dart in `PATH`
 - Rust toolchain (`rustup`, `cargo`)
-- Docker (optional but recommended for reproducible setup); on Windows install
-  [Stevedore](https://github.com/slonopotamus/stevedore) and use its bundled `docker.exe` with
-  `--isolation process` for builds — see [Platforms](platforms.md) and ANTfrastructure
+- Docker (optional, recommended for a reproducible setup); on Windows, install
+  [Stevedore](https://github.com/slonopotamus/stevedore) and build with its bundled `docker.exe`
+  and `--isolation process` ([Platforms](platforms.md), ANTfrastructure)
 - GStreamer runtime and tools (`gst-launch-1.0`)
 
 ### Verify your tooling
@@ -49,10 +48,9 @@ git submodule update --init --recursive
 
 ## 3) Build the app, as CI does
 
-Moved here from the README on 2026-10-19. **Every lane runs containerized but the Windows
-arm64 app build, which runs natively on `windows-11-arm`, and local runs invoke the same
-script CI invokes** — the exact commands, presets and switches are in
-[AGENTS.md § 5](../../AGENTS.md#5-build-run-test):
+From the README (2026-10-19). **Every lane runs containerized except the Windows arm64 app
+build, which runs natively on `windows-11-arm`, and a local run invokes the same script CI
+invokes**; commands, presets and switches: [AGENTS.md § 5](../../AGENTS.md#5-build-run-test).
 
 | Lane | What CI runs | Locally |
 |---|---|---|
@@ -61,24 +59,21 @@ script CI invokes** — the exact commands, presets and switches are in
 | Android | `scripts/linux/ci/ci-container-run-android.sh` | `Invoke-LinuxLane.ps1 -Lane android` |
 | Web | `scripts/linux/ci/ci-container-run-web-linux.sh` | `Invoke-LinuxLane.ps1 -Lane web` |
 
-The Linux entries go through ANTfrastructure's `run-in-linux-container` action
-in CI and Rancher Desktop's `nerdctl` locally; inside the container the two
-are identical, down to the argument list. Reproduce a CI failure locally
-before pushing — that is the whole point of the arrangement.
+The Linux entries run through ANTfrastructure's `run-in-linux-container` action in CI and
+Rancher Desktop's `nerdctl` locally; inside the container both are identical, down to the
+argument list. Reproduce a CI failure locally before pushing.
 
-The native Linux lane takes an opt-in linker,
-`Invoke-LinuxLane.ps1 -Env KATAGLYPHIS_LINKER=lld` (or `mold`). It is off in CI;
-what each one buys is in [`project-operations.md`](project-operations.md) § *The Linux lanes, run locally*.
+The native Linux lane takes an opt-in linker, `Invoke-LinuxLane.ps1 -Env KATAGLYPHIS_LINKER=lld`
+(or `mold`), off in CI; what each buys: [`project-operations.md`](project-operations.md) § *The
+Linux lanes, run locally*.
 
-Building the Linux lane locally on a Windows host has host-side
-prerequisites — Rancher Desktop's engine, the drive the repo lives on being
-visible to *containerd's own* mount namespace, and QEMU binfmt registered
-for an arm64 run. The fixes are in [`project-operations.md`](project-operations.md) § *The Linux lane, locally*;
-the reasoning behind them is ANTfrastructure's, in
+A local Linux lane on a Windows host needs Rancher Desktop's engine, the repo's drive visible to
+*containerd's own* mount namespace, and QEMU binfmt registered for an arm64 run. Fixes:
+[`project-operations.md`](project-operations.md) § *The Linux lane, locally*; the reasoning is
+ANTfrastructure's
 [`rancher-desktop-linux-containers.md`](https://github.com/Kataglyphis/ANTfrastructure/blob/develop/docs/rancher-desktop-linux-containers.md).
-Both prerequisites are lost on a VM restart, and skipping either is silent:
-you get a bind mount that resolves and is empty, or an arm64 container
-running x86-64 binaries.
+The last two are lost on a VM restart, and silently: you get a bind mount that resolves and is
+empty, or an arm64 container running x86-64 binaries.
 
 ## 4) Optional: camera checks on Linux
 
@@ -103,24 +98,21 @@ v4l2-ctl --device=/dev/video0 --list-formats-ext
 
 ## 5) Run the app (web profile)
 
-The web build needs `web/sqlite3.wasm`. It is committed; this is the command that
-refreshes it. The fetcher lives in ANTfrastructure, next to the version and SHA256
-it reads, rather than in a per-app copy:
+The web build needs `web/sqlite3.wasm`. It is committed; this refreshes it:
 
 ```bash
 bash third_party/ANTfrastructure/linux/scripts/05-frameworks/flutter/setup-sqlite3-wasm.sh .
 ```
 
-The version and its SHA256 both come from ANTfrastructure's `versions.env`, and the
-download is checksum-verified, so a tampered, truncated or simply *wrong-version*
-asset fails here rather than in a browser. That check is not theoretical: the
-copy that was committed did not match the version the script claimed to fetch.
+The fetcher lives in ANTfrastructure, not in a per-app copy, and reads the version and its SHA256
+from ANTfrastructure's `versions.env`. The download is checksum-verified, so a tampered,
+truncated or *wrong-version* asset fails here, not in a browser. It happened: the copy that was
+committed did not match the version the script claimed to fetch.
 
-It also wants `web/pkg/`, the Rust core built for wasm, which is generated and
-gitignored: without it the page waits 20 s for the core and then starts without
-it, and only the About page's Rust demo is missing. Build it as
-[`platforms.md`](platforms.md) § *Web Build (WASM)* shows, then run with the
-COOP/COEP headers that page names (Firefox and Safari need them to load the core):
+It also wants `web/pkg/`, the Rust core built for wasm (generated, gitignored): without it the
+page waits 20 s for the core, then starts without it, and only the About page's Rust demo is
+missing. Build it as [`platforms.md`](platforms.md) § *Web Build (WASM)* shows, then run with
+the COOP/COEP headers that page names (Firefox and Safari need them to load the core):
 
 ```bash
 flutter run -d web-server --profile --web-port 8080 --web-hostname 0.0.0.0 \
@@ -128,7 +120,7 @@ flutter run -d web-server --profile --web-port 8080 --web-hostname 0.0.0.0 \
   --web-header=Cross-Origin-Embedder-Policy=require-corp
 ```
 
-Open `http://127.0.0.1:8080` in your browser.
+Open `http://127.0.0.1:8080`.
 
 ## 6) Build API docs
 
@@ -144,30 +136,27 @@ export PATH="$PATH:$HOME/.pub-cache/bin"
 dhttpd --path doc/api --host 127.0.0.1 --port 8080
 ```
 
-**By hand, without the script** (moved here from the README on 2026-10-19): generate the
-site into `doc/api`, then serve it. Use the pub-activated `dartdoc`, **not** the
-SDK-bundled `dart doc`: dartdoc 9.0.4 (bundled with several Flutter SDKs, the Windows
-build image's among them before it moved to Flutter 3.47.4) crashes on any Flutter app
-with a `_stripDocImports` RangeError; ≥ 9.0.9 fixes it. Both images now carry the Flutter
-the hub pins (`FLUTTER_VERSION` in its `versions.env`, 3.47.7 at this pin), whose bundled
-`dart doc` the Linux lane's `generate-docs.sh` runs without trouble.
-
-`scripts/windows/Build-Windows.ps1` already does this for you as its
-"Generate API Docs" step (skip it with `-SkipDocs`); the commands below are for
-generating the site by hand, which `dhttpd` then serves as above.
+**By hand, without the script** (from the README, 2026-10-19): `scripts/windows/Build-Windows.ps1`
+does this as its "Generate API Docs" step (skip it with `-SkipDocs`). Generate the site into
+`doc/api` with the pub-activated `dartdoc`, **not** the SDK-bundled `dart doc`: dartdoc 9.0.4
+(bundled with several Flutter SDKs, the Windows build image's among them before it moved to
+Flutter 3.47.4) crashes on any Flutter app with a `_stripDocImports` RangeError; ≥ 9.0.9 fixes
+it. Both images now carry the Flutter the hub pins (`FLUTTER_VERSION` in its `versions.env`,
+3.47.7 at this pin), whose bundled `dart doc` the Linux lane's `generate-docs.sh` runs without
+trouble.
 
 ```bash
 dart pub global activate dartdoc      # pulls >= 9.0.9
 dart pub global run dartdoc --output doc/api
 ```
 
-On PowerShell the pub-cache `bin` goes on `PATH` differently:
+On PowerShell, the pub-cache `bin` goes on `PATH` like this:
 
 ```powershell
 $env:Path += ";$env:USERPROFILE\AppData\Local\Pub\Cache\bin"
 ```
 
-Then open <http://127.0.0.1:8080>.
+Serve it with `dhttpd` as above, then open <http://127.0.0.1:8080>.
 
 ## 7) WSL2 USB passthrough (if needed)
 
@@ -178,11 +167,11 @@ usbipd list
 usbipd attach --wsl --busid 1-1.2
 ```
 
-Then in WSL, `sudo modprobe uvcvideo` makes it `/dev/video0` (`lsusb` shows it). WebRTC to
-a browser also needs `networkingMode=mirrored` in `%USERPROFILE%\.wslconfig`; both are
-gone after a WSL restart ([AGENTS.md § 4](../../AGENTS.md#4-pitfalls-specific-to-this-project)).
+Then in WSL, `sudo modprobe uvcvideo` makes it `/dev/video0` (`lsusb` shows it). WebRTC to a
+browser also needs `networkingMode=mirrored` in `%USERPROFILE%\.wslconfig`; both are gone after a
+WSL restart ([AGENTS.md § 4](../../AGENTS.md#4-pitfalls-specific-to-this-project)).
 
 ## Next Steps
 
-- Continue with [Platforms](platforms.md) for target-specific builds.
-- Continue with [Camera Streaming](camera-streaming.md) for WebRTC pipelines.
+- [Platforms](platforms.md): target-specific builds.
+- [Camera Streaming](camera-streaming.md): WebRTC pipelines.

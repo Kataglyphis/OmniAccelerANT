@@ -1,7 +1,5 @@
 # Readmes
 
-Curated README navigation for the most relevant project areas.
-
 ## Core
 
 - [Repository README](../../README.md)
@@ -9,13 +7,19 @@ Curated README navigation for the most relevant project areas.
 
 ## Build & Tooling
 
-- [Rust Builder README](../../rust_builder/README.md)
+- [Cargokit README](../../rust_builder/cargokit/README) — the vendored Cargokit that
+  `rust_builder/` builds the Rust core with (local patches: AGENTS.md § 4);
+  `rust_builder/README.md` is empty.
 
 ## Native plugin
 
 - [kataglyphis_native_inference README](../../packages/kataglyphis_native_inference/README.md)
 
+## Firmware
+
+- [ESP32-S3-EYE Rust protocol README](../../firmware/esp32-s3-eye/rust_protocol/README.md)
+- [ESP32-S3 hardware probe README](../../firmware/esp32-s3-probe/README.md)
+
 ## Notes
 
-- This page is meant as a quick navigation hub.
-- External submodule READMEs are intentionally excluded here to keep focus on this repository.
+- Submodule READMEs are left out on purpose, to keep the focus on this repository.
