@@ -425,11 +425,14 @@ the part ObservANT's packaging shares.
   54 MB, arm64 MSI 34 MB and MSIX 41 MB, all twelve installer checks passing on both.
 - **The MSI** (`scripts/windows/installer/omni-accelerant.wxs`) installs per machine into
   `Program Files\OmniAccelerANT` with a Start menu shortcut, and upgrades in place (one
-  `UpgradeCode`). Its version is `pubspec.yaml`'s `version:`.
+  `UpgradeCode`). Its version is `pubspec.yaml`'s `version:`, read by the hub's
+  `Get-PackageVersion -Required`, which throws when there is none.
 - **The MSIX** (`scripts/windows/installer/AppxManifest.xml`) has the identity
   `Kataglyphis.OmniAccelerANT` and the `msix_version` of `msix_config`. A throwaway test
-  certificate signs it; its `-testcert.cer` ships beside it, and a tester trusts that `.cer` under
-  `LocalMachine\TrustedPeople` before installing.
+  certificate from the hub's `New-TestSigningCertificate` signs it, made in memory with no
+  certificate store touched; `Invoke-MsixPackage -RequireSignature` refuses a package that comes
+  out unsigned or signed by another subject. Its `-testcert.cer` ships beside it, and a tester
+  trusts that `.cer` under `LocalMachine\TrustedPeople` before installing.
 - **`Test-OmniAccelerANTInstallers.ps1`** installs the MSI with `msiexec /qn` and checks that
   `AccelerANTgine.dll` sits beside the exe with no `bin\`, that the exe, the plugin and
   AccelerANTgine.dll match the lane's architecture, and that the Start menu shortcut exists. It

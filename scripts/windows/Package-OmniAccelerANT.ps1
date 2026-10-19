@@ -33,9 +33,8 @@ $AppDir = (Resolve-Path -LiteralPath $AppDir).Path
 if (-not (Test-Path -LiteralPath (Join-Path $AppDir 'omni_accelerant.exe') -PathType Leaf)) { throw "no omni_accelerant.exe in $AppDir" }
 # A runner from before 9f4438e kept AccelerANTgine.dll there, where the loader never looks.
 if (Test-Path -LiteralPath (Join-Path $AppDir 'bin') -PathType Container) { throw "$AppDir has a bin\ folder; rebuild it, no installer may ship that layout" }
+$version = Get-PackageVersion -WorkspacePath $repoRoot -VersionFile 'pubspec.yaml' -Components 3 -Required
 $pubspec = Get-Content -LiteralPath (Join-Path $repoRoot 'pubspec.yaml') -Raw
-if ($pubspec -notmatch '(?m)^version:\s*(\d+\.\d+\.\d+)') { throw 'pubspec.yaml names no version' }
-$version = $Matches[1]
 if ($pubspec -notmatch '(?m)^\s+msix_version:\s*(\d+\.\d+\.\d+\.\d+)') { throw 'pubspec.yaml names no msix_config.msix_version' }
 $msixVersion = $Matches[1]
 

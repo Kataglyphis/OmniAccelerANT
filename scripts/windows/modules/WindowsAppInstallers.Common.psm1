@@ -62,26 +62,19 @@ function New-AppMsix {
         if ($Pfx) {
             Copy-Item -LiteralPath $Pfx -Destination $signing
         } else {
-            $cert = New-SelfSignedCertificate -Type Custom -Subject $Publisher -KeyUsage DigitalSignature `
-                -FriendlyName "$([IO.Path]::GetFileNameWithoutExtension($OutFile)) test signing" -CertStoreLocation 'Cert:\CurrentUser\My' `
-                -TextExtension @('2.5.29.37={text}1.3.6.1.5.5.7.3.3', '2.5.29.19={text}')
             $env:MSIX_PFX_PASSWORD = [Guid]::NewGuid().ToString('N')
-            $null = Export-PfxCertificate -Cert $cert -FilePath (Join-Path $signing 'test.pfx') `
-                -Password (ConvertTo-SecureString $env:MSIX_PFX_PASSWORD -AsPlainText -Force)
-            $null = Export-Certificate -Cert $cert -FilePath ($OutFile -replace '\.msix$', '-testcert.cer')
-            Remove-Item -LiteralPath "Cert:\CurrentUser\My\$($cert.Thumbprint)"
+            $null = New-TestSigningCertificate -Subject $Publisher -PfxPath (Join-Path $signing 'test.pfx') `
+                -CerPath ($OutFile -replace '\.msix$', '-testcert.cer') -Password (ConvertTo-SecureString $env:MSIX_PFX_PASSWORD -AsPlainText -Force)
         }
         Invoke-MsixPackage -Context $Context -StagingDir $stage -ManifestTemplatePath $ManifestTemplate `
             -TokenMap @{ '__PUBLISHER__' = $Publisher; '__VERSION__' = $Version; '__ARCH__' = $Arch } `
-            -ResourcesDir $AppDir -LogoPath $LogoPath -OutputPath $OutFile -Sign -SigningRoot $signing | Out-Null
+            -ResourcesDir $AppDir -LogoPath $LogoPath -OutputPath $OutFile -SigningRoot $signing `
+            -RequireSignature -SignerSubject $Publisher | Out-Null
     } finally {
         $env:MSIX_PFX_PASSWORD = $passwordBefore
         Remove-Item -LiteralPath $signing -Recurse -Force -ErrorAction SilentlyContinue
     }
-    # Invoke-MsixSign only warns when signing fails, and an unsigned MSIX does not install.
-    $signer = (Get-AuthenticodeSignature -LiteralPath $OutFile).SignerCertificate
-    if (-not $signer -or $signer.Subject -ne $Publisher) { throw "$OutFile is not signed by $Publisher" }
-    Write-Host "wrote $OutFile ($([math]::Round((Get-Item -LiteralPath $OutFile).Length / 1MB)) MB), signed by $($signer.Subject)"
+    Write-Host "wrote $OutFile ($([math]::Round((Get-Item -LiteralPath $OutFile).Length / 1MB)) MB), signed by $Publisher"
 }
 
 Export-ModuleMember -Function New-AppMsi, New-AppMsix

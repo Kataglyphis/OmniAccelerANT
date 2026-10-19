@@ -50,11 +50,7 @@ $modelsLock = Join-Path $repoRoot 'third_party\OxidANT\resources\models\models.l
 if (-not $OutDir) { $OutDir = Join-Path $repoRoot 'out' }
 if (-not (Test-Path -LiteralPath (Join-Path $WebRoot 'index.html'))) { throw "no index.html in $WebRoot" }
 if ($Model -and -not (Test-Path -LiteralPath $Model)) { throw "model not found: $Model" }
-if (-not $Version) {
-    $line = Select-String -Path (Join-Path $repoRoot 'pubspec.yaml') -Pattern '^version:\s*([0-9]+\.[0-9]+\.[0-9]+)' | Select-Object -First 1
-    if (-not $line) { throw 'no version in pubspec.yaml' }
-    $Version = $line.Matches[0].Groups[1].Value
-}
+if (-not $Version) { $Version = Get-PackageVersion -WorkspacePath $repoRoot -VersionFile 'pubspec.yaml' -Components 3 -Required }
 $runtime = 'C:\runtime'
 $arch = Get-WindowsTargetArch -Arch $Arch
 $packageArch = Get-WindowsPackageArch -Arch $arch

@@ -98,6 +98,17 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
   stopped at its first critical step, the image's `sccache 0.18.0` is refused and the planted
   cache stays where it was; with a module-safe stand-in first on `PATH` the cache moves in and
   back out, over `--version`, `--stop-server`, `--show-stats`, `--stop-server`.
+- **The Windows installers read their version and sign through the hub** (2026-10-19, hub
+  1a174d9c). `Package-OmniAccelerANT.ps1` and `Package-ObservANT.ps1` take `pubspec.yaml`'s
+  version from `Get-PackageVersion -VersionFile 'pubspec.yaml' -Components 3 -Required` instead
+  of a regex each; the app's `msix_version` read stays. `New-AppMsix` makes its throwaway
+  certificate with `New-TestSigningCertificate`, in memory, where it passed through
+  `Cert:\CurrentUser\My`, and `Invoke-MsixPackage -RequireSignature -SignerSubject` replaces its
+  own `Get-AuthenticodeSignature` check. In `:winamd64`, `Package-OmniAccelerANT.ps1` on an app
+  folder of the old Release runner's exe, `flutter_windows.dll` and `data\` wrote the 2.2.1 MSI
+  (25 MB, 102 files) and MSIX (29 MB), signed by `CN=Kataglyphis` with the thumbprint of the
+  `-testcert.cer` beside it; `CurrentUser\My` stayed empty, and a `pubspec.yaml` without
+  `version:` is refused.
 
 ### Fixed
 
