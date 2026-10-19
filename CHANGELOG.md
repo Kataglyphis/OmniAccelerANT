@@ -90,6 +90,14 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
   nerdctl, `Invoke-DartChecks.ps1 -SkipAnalyze` formatted 91 files with 0 changed and passed 225
   app and 4 plugin tests in 63 s; two new `LaneGuard.Tests.ps1` cases fail when the guard drops
   `-AllowMissing` or the docker lookup's `catch`.
+- **`Build-Windows.ps1` moves the CI compiler cache through the hub** (2026-10-19, hub 1a174d9c):
+  `Restore-CiCompilerCache -RequireModuleSafeSccache` after `Initialize-BuildCacheEnvironment`,
+  `Save-CiCompilerCache` in its `finally`, in place of its own robocopy pair.
+  `Test-SccacheModuleSafe` and `Move-CompilerCacheTree` left `WindowsLaneSccache.Common` with
+  their two Pester cases, and `Build-Windows.ps1` no longer imports that module. In `:winamd64`,
+  stopped at its first critical step, the image's `sccache 0.18.0` is refused and the planted
+  cache stays where it was; with a module-safe stand-in first on `PATH` the cache moves in and
+  back out, over `--version`, `--stop-server`, `--show-stats`, `--stop-server`.
 
 ### Fixed
 

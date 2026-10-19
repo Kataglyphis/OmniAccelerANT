@@ -530,8 +530,9 @@ Windows builds run in the `:winamd64` container, and **CI runs the exact same
   short-path clone.
 - **The Release job keeps sccache's cache across runs** (2026-10-17): `.ci-cache` through
   `actions/cache`, saved from `develop` and pruned to one entry, moved in and out by
-  `Build-Windows.ps1`. It is used only on an sccache that keys clang-cl's module importers
-  right (mozilla/sccache#2876): the hub's build or 0.19.0 on (`Test-SccacheModuleSafe`). An image
+  `Build-Windows.ps1` through the hub's `Restore-CiCompilerCache` and `Save-CiCompilerCache`.
+  It is used only on an sccache that keys clang-cl's module importers right
+  (mozilla/sccache#2876): the hub's build or 0.19.0 on (`-RequireModuleSafeSccache`). An image
   with 0.18.0 serves stale importer objects, so such a run neither uses nor saves it and says so.
 - **Windows arm64** ([`windows-arm64.yml`](.github/workflows/windows-arm64.yml)) is a hybrid,
   since Flutter cannot cross-build `windows-arm64`: the natives cross-build in the hub's arm64

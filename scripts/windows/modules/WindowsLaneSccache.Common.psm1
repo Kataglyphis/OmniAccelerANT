@@ -1,6 +1,6 @@
 #requires -Version 7.0
 
-# sccache's lane levels: the host's S3 key for a local Linux lane, and the Windows CI cache kept across runs.
+# The host's sccache S3 key for a local Linux lane; the Windows CI cache is the hub's Restore-CiCompilerCache.
 
 Set-StrictMode -Version Latest
 
@@ -79,29 +79,4 @@ function Remove-LaneSccacheS3Secret {
     if ($Path) { Remove-Item -LiteralPath (Split-Path -Parent $Path) -Recurse -Force -ErrorAction SilentlyContinue }
 }
 
-function Test-SccacheModuleSafe {
-    <#
-    .SYNOPSIS
-        $true when this sccache keys a clang-cl C++20 module importer on the interfaces it imports (mozilla/sccache#2876).
-    .DESCRIPTION
-        0.18.0 and older serve stale importer objects, so a cache kept across CI runs is safe only on the hub's build
-        (0.18.0+<rev>.<patches>, shared/upstream/sccache/README.md) or a release cut after the fix, 0.19.0 on.
-    #>
-    param([AllowEmptyString()][string]$VersionText)
-    if ($VersionText -notmatch '(\d+)\.(\d+)\.(\d+)(\+\S+)?') { return $false }
-    if ($Matches[4]) { return $true }
-    return ([version]"$($Matches[1]).$($Matches[2]).$($Matches[3])" -ge [version]'0.19.0')
-}
-
-function Move-CompilerCacheTree {
-    # Moves a cache directory's content; a missing source is an empty cache, not an error.
-    param([Parameter(Mandatory)][string]$From, [Parameter(Mandatory)][string]$To)
-    if (-not (Test-Path -LiteralPath $From)) { return }
-    $null = New-Item -ItemType Directory -Force -Path $To
-    & robocopy $From $To /E /MOVE /NFL /NDL /NJH /NJS /NP /R:2 /W:1 | Out-Null
-    if ($LASTEXITCODE -ge 8) { throw "robocopy $From -> $To failed with exit code $LASTEXITCODE" }
-    $global:LASTEXITCODE = 0
-}
-
-Export-ModuleMember -Function Get-SccacheS3HostFilePath, Read-SccacheS3HostFile, New-LaneSccacheS3Secret, Remove-LaneSccacheS3Secret,
-    Test-SccacheModuleSafe, Move-CompilerCacheTree
+Export-ModuleMember -Function Get-SccacheS3HostFilePath, Read-SccacheS3HostFile, New-LaneSccacheS3Secret, Remove-LaneSccacheS3Secret
