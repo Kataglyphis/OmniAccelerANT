@@ -17,7 +17,7 @@ port="${ESP32_PORT:-/dev/ttyACM0}"
 flash=0
 
 usage() {
-    sed -n '2,10p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+    sed -n '2,7p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
 }
 
 while [[ $# -gt 0 ]]; do
@@ -49,8 +49,7 @@ if ! git -C "$who" rev-parse --verify --quiet "$who_ref" >/dev/null; then
 fi
 git -C "$who" checkout -f "$who_ref"
 
-# The LCD app proves the camera visually; the terminal app prints detections, which is
-# what a serial monitor can check. This patch is idempotent.
+# The terminal app prints detections a serial monitor can check (the LCD app only shows them); idempotent.
 python3 - "$who/examples/object_detect/main/app_main.cpp" <<'PY'
 from pathlib import Path
 import sys
@@ -77,8 +76,7 @@ if "omni_proto_start();" not in source:
 path.write_text(source)
 PY
 
-# The detection callback runs on the detect task; hand the count and best score to the
-# Rust protocol task, which owns the USB frames.
+# The callback runs on the detect task; count and best score go to the Rust task, which owns the USB frames.
 python3 - "$who/components/who_app/who_detect_app/who_detect_app_term.cpp" <<'PY'
 from pathlib import Path
 import sys
@@ -113,10 +111,7 @@ if old in source:
 path.write_text(source)
 PY
 
-# esp-dl 3.3.13 split RGB565 into LE/BE, replaced get_img_byte_size with
-# img_t::bytes(), dropped the caps argument from sw_decode_jpeg and removed
-# DL_IMAGE_CAP_RGB565_BIG_ENDIAN. The pinned ESP-WHO commit predates that API;
-# patch every call site in the components and the example.
+# esp-dl 3.3.13 changed the image API (RGB565 LE/BE, img_t::bytes(), sw_decode_jpeg) after the pinned ESP-WHO.
 python3 - "$who" <<'PY'
 import re
 import sys
@@ -156,9 +151,7 @@ for rel in files:
     path.write_text(source)
 PY
 
-# The component manager resolves '*' to the newest BSP (6.0.0), whose Kconfig no longer
-# matches this example's sdkconfig defaults. Pin the versions the example's own lock was
-# generated for; bsp_ext.py preserves a pinned version when it rewrites the manifest.
+# '*' resolves to BSP 6.0.0, whose Kconfig breaks these sdkconfig defaults; bsp_ext.py keeps a pinned version.
 python3 - "$who/examples/object_detect/main/idf_component.yml" <<'PY'
 from pathlib import Path
 import sys
@@ -239,15 +232,13 @@ idf.py --version
 
 if [ ! -f sdkconfig ]; then
   rm -rf build managed_components
-  # The example ships a tested lock per BSP+model; the component manager resolves '*'
-  # to newer BSP versions whose Kconfig no longer matches this sdkconfig otherwise.
+  # The tested lock for this BSP+model; '*' would pick a BSP whose Kconfig breaks this sdkconfig.
   cp dependencies.lock.esp32_s3_eye_noglib.cat_detect dependencies.lock 2>/dev/null || true
   idf.py -DSDKCONFIG_DEFAULTS=sdkconfig.bsp.esp32_s3_eye_noglib \
     -DDETECT_MODEL=cat_detect set-target esp32s3
 fi
 
-# The Rust task owns the USB Serial/JTAG driver, so the app console goes to UART0.
-# On the USB port a console would consume the host's HostHello before the Rust read.
+# The Rust task owns USB Serial/JTAG: a console there would eat the host's HostHello, so it goes to UART0.
 sed -i 's/^CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG=y/# CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG is not set/' sdkconfig || true
 grep -q '^CONFIG_ESP_CONSOLE_UART_DEFAULT=y' sdkconfig || \
   echo 'CONFIG_ESP_CONSOLE_UART_DEFAULT=y' >> sdkconfig

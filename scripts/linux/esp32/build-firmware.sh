@@ -13,7 +13,11 @@
 set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
-image="${KATAGLYPHIS_IMAGE:-ghcr.io/kataglyphis/kataglyphis_beschleuniger:latest}"
+# The image ref comes only from the hub; two assignments, since set -e misses a substitution failing mid-expansion.
+# shellcheck source=scripts/linux/lib/antfrastructure.sh
+source "${repo_root}/scripts/linux/lib/antfrastructure.sh"
+_ci_image_ref_sh="$(antfrastructure_path linux/scripts/ci-image-ref.sh)"
+image="${KATAGLYPHIS_IMAGE:-$(bash "${_ci_image_ref_sh}")}"
 engine="${KATAGLYPHIS_ENGINE:-nerdctl}"
 volume="${KATAGLYPHIS_ESP32_VOLUME:-oa-esp32-toolchain}"
 port="${ESP32_PORT:-/dev/ttyACM0}"
@@ -103,8 +107,7 @@ source /opt/esp32/export.sh
 cargo +esp build --release --locked
 "
 
-# Rootless nerdctl remaps the device node to nobody:nogroup, so the image user cannot
-# open it. The build stays as 1001; only the flash step is root.
+# Rootless nerdctl maps the device node to nobody:nogroup, so only the flash step runs as root.
 if [[ "$flash" == 1 ]]; then
     "$engine" run --rm --pull=never --user root --device "$port" \
         --mount "type=volume,source=$volume,target=/opt/esp32" \

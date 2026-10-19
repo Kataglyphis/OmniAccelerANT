@@ -1,8 +1,5 @@
 #!/usr/bin/env bash
-# Builds and flashes the ESP32-S3 companion on a host whose shell can reach espup's
-# toolchain. Set ESPUP_HOME if espup installed somewhere other than
-# ~/.cache/kataglyphis-esp (the scripts/linux/esp32/build-firmware.sh volume does not
-# write to the host).
+# Builds and flashes the companion with the host's espup toolchain (ESPUP_HOME, default ~/.cache/kataglyphis-esp).
 set -euo pipefail
 
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

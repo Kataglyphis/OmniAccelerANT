@@ -137,8 +137,7 @@ unsafe extern "C" fn task(_: *mut c_void) {
 
         let now = xTaskGetTickCount();
         if now.wrapping_sub(last_hello) >= 2000 {
-            // The host's Hello is authoritative; repeating ours keeps the app connected
-            // even if the USB Serial/JTAG RX path is unavailable.
+            // The host's Hello is authoritative; repeating ours keeps the app connected without USB RX.
             send(Message::Hello(device_info()));
             last_hello = now;
         }

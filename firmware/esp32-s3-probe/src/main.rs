@@ -53,9 +53,7 @@ fn main() -> ! {
         println!("  no PSRAM reported: on-device camera AI will be very limited");
     }
 
-    // The sensor's SCCB slave often answers only once XCLK runs. The EYE/Freenove
-    // boards use GPIO15; the XIAO uses GPIO10 (a second probe run can change this).
-    // LEDC gives a clean 10 MHz, the rate the Zephyr ESP32-S3-EYE devicetree uses.
+    // SCCB often answers only once XCLK runs: 10 MHz from LEDC (Zephyr's EYE rate), GPIO15 on EYE/Freenove, GPIO10 on XIAO.
     let mut ledc = Ledc::new(peripherals.LEDC);
     ledc.set_global_slow_clock(LSGlobalClkSource::APBClk);
     let mut xclk_timer = ledc.timer::<LowSpeed>(timer::Number::Timer0);
