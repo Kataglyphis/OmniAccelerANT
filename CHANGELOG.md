@@ -112,6 +112,13 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ### Fixed
 
+- **An ESP32 board found only by its udev by-id link reports its MAC** (2026-10-19, OxidANT
+  20a03fb). OxidANT dcce8a3 cuts udev's interface suffix (`E8:06:90:9D:3E:78-if00`) that left the
+  Device page without a MAC for that board, and db1c25f makes `esp32Connect` check and fill the
+  bridge's one link slot under one lock, so two connects cannot both pass. No `pub` item in
+  `src/api` changed: `flutter_rust_bridge_codegen generate` 2.13.0 in `:latest` leaves
+  `lib/src/rust/` and `src/frb_generated.rs` identical. The same commit moves AccelerANTgine to
+  fc33fb0 (no C++ or CMake change) and ANThology to c3615ca (no `lib/` change).
 - **The ESP32 scripts pass the lint gates** that 678b3e4 turned red: `build-firmware.sh` takes the
   image ref from the hub's `ci-image-ref.sh` (`KATAGLYPHIS_IMAGE` still overrides), every comment
   in the ESP32 firmware and scripts is one line, and `build-eye-demo.sh --help` prints its header
