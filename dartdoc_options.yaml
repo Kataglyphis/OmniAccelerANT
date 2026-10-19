@@ -19,16 +19,3 @@ dartdoc:
       displayName: Operations
   categoryOrder: [overview, guides, readmes, operations]
   showUndocumentedCategories: true
-  additional-docs:
-    - README.md
-    - docs/INTRODUCTION.md
-    - docs/source/README.md
-    - docs/source/overview.md
-    - docs/source/getting-started.md
-    - docs/source/platforms.md
-    - docs/source/camera-streaming.md
-    - docs/source/readmes.md
-    - docs/source/project-operations.md
-    - docs/source/upgrade-guide.md
-    - rust_builder/README.md
-    - assets/documents/README.md

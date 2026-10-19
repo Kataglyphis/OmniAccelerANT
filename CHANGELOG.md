@@ -25,6 +25,12 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
   LED sliders, ping, disconnect), `esp32_controller_test.dart` covers every failure path, and
   `esp32_rust_api_test.dart` checks that `RustEsp32Api` hands each call to its generated binding.
   Both files are at 100 %, `lib/` at 97.6 % (2,131 of 2,183 lines).
+- **The docs site's front page links resolve.** `dart doc` renders the README as the site's
+  `index.html`, where its relative links to `docs/source/`, `AGENTS.md`, `BACKLOG.md`,
+  `CHANGELOG.md` and `LICENSE` and the logo were 404s. They point at `develop` on GitHub now and
+  the logo at `raw.githubusercontent.com`, per the hub's README rule. `dartdoc_options.yaml` lost
+  its `additional-docs` list, which lacked `esp32.md` and `testing.md` and which `dart doc` never
+  read: the published guides are `generate-docs.sh`'s `DARTDOC_BUILD_GUIDES` alone.
 
 ## 2.2.1+5 — 2026-10-18
 

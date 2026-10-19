@@ -1,6 +1,6 @@
 <div align="center">
   <a href="https://jonasheinle.de">
-    <img src="images/logo.png" alt="logo" width="200" />
+    <img src="https://raw.githubusercontent.com/Kataglyphis/OmniAccelerANT/develop/images/logo.png" alt="logo" width="200" />
   </a>
 
   <h1>OmniAccelerANT</h1>
@@ -45,28 +45,28 @@ pwsh -File scripts/windows/Invoke-LinuxLane.ps1 -SkipDocs   # the native Linux l
 ```
 
 It needs `pwsh` 7 and `nerdctl` (Rancher Desktop on Windows). The other lanes, the Windows
-build and the host prerequisites: [Getting Started](docs/source/getting-started.md). Only want
+build and the host prerequisites: [Getting Started](https://github.com/Kataglyphis/OmniAccelerANT/blob/develop/docs/source/getting-started.md). Only want
 ObservANT? A release's package installs it:
-[a new camera in five steps](docs/source/camera-streaming.md#installing-it).
+[a new camera in five steps](https://github.com/Kataglyphis/OmniAccelerANT/blob/develop/docs/source/camera-streaming.md#installing-it).
 
 ## Documentation
 
 | Topic | Read |
 | --- | --- |
-| What it is, its feature status per platform, literature | [docs/source/overview.md](docs/source/overview.md) |
-| Prerequisites, the lanes, the API docs | [docs/source/getting-started.md](docs/source/getting-started.md) |
-| Container, Windows, Android, Raspberry Pi and web builds | [docs/source/platforms.md](docs/source/platforms.md) |
-| ObservANT, the Rust webcam path and the WebRTC pipelines | [docs/source/camera-streaming.md](docs/source/camera-streaming.md) |
-| ESP32-S3 companion and camera | [docs/source/esp32.md](docs/source/esp32.md) |
-| What each test proves, and what is not covered yet | [docs/source/testing.md](docs/source/testing.md) |
-| Gates, releases, local lanes, dependency upgrades | [docs/source/project-operations.md](docs/source/project-operations.md) |
-| Dependency and bridge updates | [docs/source/upgrade-guide.md](docs/source/upgrade-guide.md) |
-| The other READMEs in the tree | [docs/source/readmes.md](docs/source/readmes.md) |
-| Rules for agents and contributors | [AGENTS.md](AGENTS.md) |
-| Known work | [BACKLOG.md](BACKLOG.md) |
-| Changes | [CHANGELOG.md](CHANGELOG.md) |
+| What it is, its feature status per platform, literature | [docs/source/overview.md](https://github.com/Kataglyphis/OmniAccelerANT/blob/develop/docs/source/overview.md) |
+| Prerequisites, the lanes, the API docs | [docs/source/getting-started.md](https://github.com/Kataglyphis/OmniAccelerANT/blob/develop/docs/source/getting-started.md) |
+| Container, Windows, Android, Raspberry Pi and web builds | [docs/source/platforms.md](https://github.com/Kataglyphis/OmniAccelerANT/blob/develop/docs/source/platforms.md) |
+| ObservANT, the Rust webcam path and the WebRTC pipelines | [docs/source/camera-streaming.md](https://github.com/Kataglyphis/OmniAccelerANT/blob/develop/docs/source/camera-streaming.md) |
+| ESP32-S3 companion and camera | [docs/source/esp32.md](https://github.com/Kataglyphis/OmniAccelerANT/blob/develop/docs/source/esp32.md) |
+| What each test proves, and what is not covered yet | [docs/source/testing.md](https://github.com/Kataglyphis/OmniAccelerANT/blob/develop/docs/source/testing.md) |
+| Gates, releases, local lanes, dependency upgrades | [docs/source/project-operations.md](https://github.com/Kataglyphis/OmniAccelerANT/blob/develop/docs/source/project-operations.md) |
+| Dependency and bridge updates | [docs/source/upgrade-guide.md](https://github.com/Kataglyphis/OmniAccelerANT/blob/develop/docs/source/upgrade-guide.md) |
+| The other READMEs in the tree | [docs/source/readmes.md](https://github.com/Kataglyphis/OmniAccelerANT/blob/develop/docs/source/readmes.md) |
+| Rules for agents and contributors | [AGENTS.md](https://github.com/Kataglyphis/OmniAccelerANT/blob/develop/AGENTS.md) |
+| Known work | [BACKLOG.md](https://github.com/Kataglyphis/OmniAccelerANT/blob/develop/BACKLOG.md) |
+| Changes | [CHANGELOG.md](https://github.com/Kataglyphis/OmniAccelerANT/blob/develop/CHANGELOG.md) |
 
 ## Contributing and contact
 
 OmniAccelerANT is one of the [Kataglyphis repositories](https://github.com/Kataglyphis/ANTfrastructure/blob/develop/docs/repository-family.md),
-which share one way to contribute and one contact. Licence: MIT, see [LICENSE](LICENSE).
+which share one way to contribute and one contact. Licence: MIT, see [LICENSE](https://github.com/Kataglyphis/OmniAccelerANT/blob/develop/LICENSE).
