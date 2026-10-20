@@ -134,6 +134,25 @@ what the owner's goal still lacks.
   `prepare-windows-container-host`; a smaller image for these lanes, or a cache the hosted
   runners keep, would halve the round. Blocked on the hub.
 
+## Open — Rust is mandatory
+
+- [ ] **The Rust core is always in, with no opt-out** (owner, 2026-10-20: every Rust feature is mandatory,
+  the platform alone decides). Waits for OxidANT's switch-free develop (features removed, target-gated),
+  then in one round with the OxidANT and AccelerANTgine gitlinks:
+  - drop `KATAGLYPHIS_RUST_FEATURES` and its `--features` forwarding (`rust_builder/{linux,windows}/CMakeLists.txt`,
+    the Cargokit patch's `CARGOKIT_EXTRA_CARGO_FLAGS` if nothing else uses it), the lane defaults and the
+    empty-string opt-out (`scripts/linux/ci/lane-native-linux.sh:137-171`, `scripts/windows/Build-Windows.ps1:204-215,566-571`,
+    `Build-WindowsArm64Natives.ps1:15-16`); ORT bundling on Linux runs unconditionally;
+  - drop the `webcamInferenceAvailable()` probe and the Linux C++ GStreamer MethodChannel webcam fallback
+    (`lib/Pages/StreamPage/stream_page.dart:106-150,330-338`; the plugin's Linux pipeline handlers), keeping the
+    MethodChannel camera for Android and macOS, where the Rust webcam cannot run; the tests of the no-Rust Linux path
+    (`test/stream_page_native_test.dart:101-123`) go, `integration_test/webcam_frame_test.dart` runs on every native lane run;
+  - drop `set(RUST_FEATURES "TRUE")` in `packages/kataglyphis_native_inference/{linux,windows}/CMakeLists.txt`
+    (AccelerANTgine 512edaa removed the option) and the 19 `RUST_FEATURES` lines in `windows/CMakePresets.json`;
+  - regenerate `lib/src/rust/` if OxidANT's frb API changed, and fix AGENTS.md's sections 1 and 4 and `docs/source/`
+    (camera-streaming.md, platforms.md, project-operations.md, testing.md), which call the features opt-in.
+  Done when every lane (Linux x64/arm64, Windows x64/arm64, Android, web) is green with no feature variable set.
+
 ## Open — docs site
 
 - [ ] **The API docs site's theme is this repo's own sheet.** `scripts/linux/generate-docs.sh` sets
