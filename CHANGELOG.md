@@ -7,6 +7,10 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ### Changed
 
+- **The imprint and privacy policy publish `contact@jonasheinle.de`** (2026-10-20, owner;
+  ANThology 4b52e2f). Both pages, German and English, show it as a `mailto:` link where they had
+  `XX` and a link to `#`. The postal address and phone number stay placeholders by owner decision,
+  so the BACKLOG row on the legal pages is closed.
 - **The API docs site takes DocumANTation's theme** (2026-10-20). `generate-docs.sh` points
   `DARTDOC_BUILD_THEME_CSS` at the hub checkout's `third_party/DocumANTation/style/dartdoc.css`, as
   jotrockenmitlocken and ANThology do; the 420-line copy in `docs/source/_static/css/` (last changed

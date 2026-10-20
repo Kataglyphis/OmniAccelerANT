@@ -162,12 +162,6 @@ what the owner's goal still lacks.
 
 ## Open — waiting on the owner
 
-- [b] **The legal pages carry placeholders.** ANThology's `imprintDe.md` says itself that
-  it holds dummy data (Elchwinkel 42, 12345 Bärstadt), and the privacy policies name
-  Elchwinkel 1 (German) and 13 (English), 10117 Bärstadt, a placeholder phone number and the e-mail `XX`. Both
-  OmniAccelerANT and jotrockenmitlocken show them. Blocked on the owner's postal address
-  (a c/o service address works) and the e-mail to publish. Done when both pages name them
-  in German and English.
 - [b] **False arrivals on himbeere2: nearly gone, one mark left.** On 2026-10-12 and 13 a drying rack at
   the bottom edge of himbeere2's frame made dozens of "visits" a day at 0.26 to 0.65, each
   with a clip encode, and one reached the phone. Since 2026-10-14 two fixes are in place:
