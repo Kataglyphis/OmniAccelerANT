@@ -7,6 +7,10 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ### Changed
 
+- **Dependabot is off** (2026-10-20, owner: dependency upgrades go only through Renovate as a local
+  CLI, ANTfrastructure `docs/dependency-updates.md`). `.github/dependabot.yml` and the README's
+  Dependabot badge are gone, and the repository's Dependabot security-update PRs are disabled;
+  Dependabot alerts stay on.
 - **The README is a short overview** (2026-10-19, owner: the family's README rule). The feature
   matrix, platform summary and literature moved to `docs/source/overview.md`, the lane table and
   the by-hand API docs to `getting-started.md`, the app's Dart suite list to `testing.md`, and the

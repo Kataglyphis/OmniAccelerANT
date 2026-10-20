@@ -1,8 +1,0 @@
-# The only `pub` automation until a Renovate PR is seen bumping pub; delete this file then, not before.
-
-version: 2
-updates:
-  - package-ecosystem: "pub" # See documentation for possible values
-    directory: "/" # Location of package manifests
-    schedule:
-      interval: "weekly"

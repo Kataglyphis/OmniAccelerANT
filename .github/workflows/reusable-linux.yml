@@ -32,7 +32,7 @@ on:
       install-packaging-deps:
         required: true
         type: boolean
-    # Optional, so fork and Dependabot PRs reach the steps with empty values instead of failing at the call.
+    # Optional, so fork PRs reach the steps with empty values instead of failing at the call.
     secrets:
       GHCR_PAT:
         required: false
