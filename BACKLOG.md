@@ -134,6 +134,15 @@ what the owner's goal still lacks.
   `prepare-windows-container-host`; a smaller image for these lanes, or a cache the hosted
   runners keep, would halve the round. Blocked on the hub.
 
+## Open — docs site
+
+- [ ] **The API docs site's theme is this repo's own sheet.** `scripts/linux/generate-docs.sh` sets
+  `DARTDOC_BUILD_THEME_CSS` to `docs/source/_static/css/dartdoc-theme-overrides.css`, 420 lines last
+  changed 2026-02-23, while jotrockenmitlocken and ANThology take DocumANTation's generated
+  `style/dartdoc.css` from the hub's checkout since 2026-10-19. The hub's builder cuts a previous append at
+  the sheet's first line, so any sheet works. Done when the site builds with DocumANTation's sheet and the
+  copy is gone.
+
 ## Open — tests
 
 - [b] **`webrtc_view.dart`, about 550 web-only lines, is outside coverage.** It drives
