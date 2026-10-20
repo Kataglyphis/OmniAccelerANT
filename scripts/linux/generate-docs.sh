@@ -23,8 +23,8 @@ DARTDOC_BUILD_CLEAN_CMD=(flutter clean)
 # shellcheck disable=SC2034  # same
 DARTDOC_BUILD_DOC_CMD=(dart doc)
 
-# Keep the sheet's name and "Sphinx press theme" first line: upstream truncates earlier appends at that marker.
-DARTDOC_BUILD_THEME_CSS="${DARTDOC_BUILD_PROJECT_ROOT}/docs/source/_static/css/dartdoc-theme-overrides.css"
+# The family's generated brand sheet, as jotrockenmitlocken and ANThology take it: no copy here to drift.
+DARTDOC_BUILD_THEME_CSS="$(antfrastructure_path third_party/DocumANTation/style/dartdoc.css)"
 DARTDOC_BUILD_IMAGES_DIR="${DARTDOC_BUILD_PROJECT_ROOT}/images"
 
 DARTDOC_BUILD_TITLE_SUFFIX="Kataglyphis Docs"

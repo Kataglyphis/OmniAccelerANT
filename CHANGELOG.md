@@ -7,6 +7,12 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ### Changed
 
+- **The API docs site takes DocumANTation's theme** (2026-10-20). `generate-docs.sh` points
+  `DARTDOC_BUILD_THEME_CSS` at the hub checkout's `third_party/DocumANTation/style/dartdoc.css`, as
+  jotrockenmitlocken and ANThology do; the 420-line copy in `docs/source/_static/css/` (last changed
+  2026-02-23) is gone. The shared sheet sets every property the copy did, so only the colours
+  change: slate and sky blue become the family's green palette. In `:latest`: 909 documents with no
+  dead link, the sidebar check green at 1400, 800 and 400 px.
 - **Dependabot is off** (2026-10-20, owner: dependency upgrades go only through Renovate as a local
   CLI, ANTfrastructure `docs/dependency-updates.md`). `.github/dependabot.yml` and the README's
   Dependabot badge are gone, and the repository's Dependabot security-update PRs are disabled;
