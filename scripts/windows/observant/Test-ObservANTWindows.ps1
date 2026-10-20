@@ -205,10 +205,10 @@ function Test-Viewer {
     if ($foreignLive) { Write-Host "      outside: $($foreignLive -join ', ')" }
     Test-Check 'with a viewer, it loads modules only from the install and Windows' { $foreignLive.Count -eq 0 }
     $done = $viewer.WaitForExit(90000)
-    # EOS comes only from eos-after=60, the proof; after it the signaller can lose its peer first and gst-launch exits 1.
+    # EOS comes only from eos-after=60, the proof; after it the signaller can lose its peer first (either message) and gst-launch exits 1.
     $eos = Select-String -Path (Join-Path $work 'viewer-out.log') -Pattern 'Got EOS' -Quiet
     $errors = @(Select-String -Path (Join-Path $work 'viewer-err.log') -Pattern '^ERROR' -ErrorAction SilentlyContinue)
-    $teardownOnly = $errors.Count -eq 1 -and (Select-String -Path (Join-Path $work 'viewer-err.log') -Pattern 'receiver is gone' -Quiet)
+    $teardownOnly = $errors.Count -eq 1 -and (Select-String -Path (Join-Path $work 'viewer-err.log') -Pattern 'receiver is gone|Connection reset without closing handshake' -Quiet)
     Test-Check 'a webrtcsrc viewer decodes 60 frames from it' {
         $done -and $eos -and ($viewer.ExitCode -eq 0 -or $teardownOnly)
     }

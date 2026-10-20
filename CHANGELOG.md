@@ -112,6 +112,10 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ### Fixed
 
+- **The ObservANT Windows viewer check accepts the signaller's second teardown message** (2026-10-20).
+  After the 60 frames (`eos-after=60`), the signaller can also end with `Connection reset without
+  closing handshake`, not only `receiver is gone`; release dry run 39347765224 failed on it with the
+  frames decoded. A reset before the 60 frames still fails.
 - **Three local tools no longer depend on this host's state** (2026-10-20).
   `LaneSccache.Tests.ps1` failed two cases on a host with its own `KATAGLYPHIS_SCCACHE_S3_*` key,
   which won over the test's file; `New-LaneSccacheS3Secret -EnvLookup` lets the test leave it out,
