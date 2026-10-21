@@ -6,9 +6,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:crypto/crypto.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:omni_accelerant/Pages/StreamPage/gstreamer_pipeline.dart';
 
 /// Repo root, found by walking up from this file until pubspec.yaml appears.
 Directory _repoRoot() {
@@ -222,7 +220,7 @@ void main() {
     });
   });
 
-  test('every element of the Linux pipelines travels in the bundle', () {
+  test('every element of the Rust capture travels in the Linux bundle', () {
     // The packaged app loads only its bundled plugins; check-bundle-gst-elements.sh proves this list there.
     final RegExpMatch? list = RegExp(r'GST_PIPELINE_ELEMENTS=\(([^)]*)\)')
         .firstMatch(_read('scripts/linux/lib/bundle-runtime.sh'));
@@ -236,30 +234,40 @@ void main() {
         .split(RegExp(r'\s+'))
         .where((String name) => name.isNotEmpty)
         .toSet();
-    const GStreamerPipelineBuilder builder = GStreamerPipelineBuilder(
-      width: 640,
-      height: 480,
-      fps: 30,
-      isAndroid: false,
+    const String capture = 'third_party/OxidANT/crates/media/src/capture.rs';
+    final String source = _read(capture);
+    final Set<String> made = <String>{
+      for (final RegExpMatch m in RegExp(
+        r'ElementFactory::make\("([a-z0-9]+)"\)',
+      ).allMatches(source))
+        m.group(1)!,
+      if (source.contains('AppSink::builder()')) 'appsink',
+    };
+    final String webcams = _extract(
+      capture,
+      RegExp(r'for name in \[([^\]]*)\]'),
+      'the webcam source list',
     );
-    for (final String source in <String>[
-      ...kSourceCandidates[TargetPlatform.linux]!,
-      'pattern-smpte',
-      'pattern-snow',
-    ]) {
-      for (final String stage in builder.build(source).split('!')) {
-        final String first = stage.trim().split(' ').first;
-        // A caps string between two elements is a capsfilter.
-        final String element = first.contains('/') ? 'capsfilter' : first;
-        expect(
-          bundled,
-          contains(element),
-          reason:
-              '$source uses $element: add it to GST_PIPELINE_ELEMENTS and '
-              'its plugin to GST_BUNDLED_PLUGIN_NAMES in '
-              'scripts/linux/lib/bundle-runtime.sh',
-        );
-      }
+    // Windows-only sources: find() skips them on Linux.
+    final Set<String> linuxWebcams = <String>{
+      for (final RegExpMatch m in RegExp(r'"([a-z0-9]+)"').allMatches(webcams))
+        m.group(1)!,
+    }.difference(<String>{'mfvideosrc', 'ksvideosrc'});
+    expect(
+      made,
+      hasLength(greaterThanOrEqualTo(3)),
+      reason: '$capture names fewer elements than its pipeline has',
+    );
+    expect(linuxWebcams, isNotEmpty, reason: 'no Linux webcam source left');
+    for (final String element in <String>{...made, ...linuxWebcams}) {
+      expect(
+        bundled,
+        contains(element),
+        reason:
+            '$capture uses $element: add it to GST_PIPELINE_ELEMENTS and '
+            'its plugin to GST_BUNDLED_PLUGIN_NAMES in '
+            'scripts/linux/lib/bundle-runtime.sh',
+      );
     }
   });
 

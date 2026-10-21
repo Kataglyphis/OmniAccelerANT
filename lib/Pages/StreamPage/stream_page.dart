@@ -6,7 +6,6 @@ import 'package:anthology/Layout/ResponsiveDesign/single_page.dart';
 import 'package:anthology/app_attributes.dart';
 import 'package:omni_accelerant/settings/webrtc_settings.dart';
 import 'package:omni_accelerant/Pages/StreamPage/gstreamer_pipeline.dart';
-import 'package:omni_accelerant/src/rust/api/webcam.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 // Stub on native, the WebRTC view on web.
@@ -47,7 +46,7 @@ const double kOverlayAlpha = 0.1;
 
 // StreamPage Widget
 
-/// Video stream page: WebRTC on web, native GStreamer textures on desktop and Android.
+/// Video stream page: WebRTC on web, the Rust webcam on Windows and Linux, the plugin's GStreamer texture on Android and macOS.
 class StreamPage extends StatefulWidget {
   /// The application-wide attributes for theming and layout.
   final AppAttributes appAttributes;
@@ -102,10 +101,12 @@ class StreamPageState extends State<StreamPage> {
   bool get _isWindows => defaultTargetPlatform == TargetPlatform.windows;
   bool get _isLinux => defaultTargetPlatform == TargetPlatform.linux;
 
-  /// Whether this build's Rust core drives the webcam; on Linux only a runtime probe can tell.
-  bool get _useRustWebcam => _isWindows || (_isLinux && _rustWebcamAvailable);
+  /// The target decides: the Rust core drives the webcam on Windows and Linux.
+  bool get _useRustWebcam => _isWindows || _isLinux;
 
-  bool _rustWebcamAvailable = false;
+  /// Android and macOS, where the Rust webcam cannot run, play the plugin's own GStreamer pipeline.
+  bool get _usePluginPipeline => !kIsWeb && (_isMacOS || _isAndroid);
+
   bool get _isMacOS => defaultTargetPlatform == TargetPlatform.macOS;
   bool get _isAndroid => defaultTargetPlatform == TargetPlatform.android;
 
@@ -120,36 +121,15 @@ class StreamPageState extends State<StreamPage> {
   @override
   void initState() {
     super.initState();
-    if (_isLinux) {
-      _rustWebcamAvailable = _probeRustWebcam();
-    }
     _defaultNativeSource = _pickDefaultSource();
     textureId = _initNativeIfNeeded();
-  }
-
-  /// Asks the core for its webcam features: a compile-time answer, where enumerating cameras here blocked the first frame ~1 s.
-  bool _probeRustWebcam() {
-    try {
-      if (webcamInferenceAvailable()) return true;
-      debugPrint(
-        'This build has no Rust webcam features; '
-        'falling back to the GStreamer MethodChannel view.',
-      );
-    } catch (e) {
-      debugPrint(
-        'No Rust core ($e); falling back to the GStreamer MethodChannel view.',
-      );
-    }
-    return false;
   }
 
   String _pickDefaultSource() => _sourceCandidates.first;
 
   Future<int?> _initNativeIfNeeded() async {
     // The Rust view creates the plugin's single texture itself; a second create would race it.
-    if (kIsWeb || _useRustWebcam || !(_isLinux || _isMacOS || _isAndroid)) {
-      return null;
-    }
+    if (!_usePluginPipeline) return null;
 
     if (_isAndroid) {
       final bool granted = await _ensureCameraPermission();
@@ -306,9 +286,11 @@ class StreamPageState extends State<StreamPage> {
 
   @override
   void dispose() {
-    channel
-        .invokeMethod('stop')
-        .catchError((e) => debugPrint('stop on dispose failed: $e'));
+    if (_usePluginPipeline) {
+      channel
+          .invokeMethod('stop')
+          .catchError((e) => debugPrint('stop on dispose failed: $e'));
+    }
     super.dispose();
   }
 
@@ -327,13 +309,11 @@ class StreamPageState extends State<StreamPage> {
       return _buildWebView();
     }
 
-    // Windows always, Linux when the Rust features were compiled in.
     if (_useRustWebcam) {
       return _buildRustWebcamPage();
     }
 
-    // Other desktop + Android: Native GStreamer/Texture view
-    if (_isLinux || _isMacOS || _isAndroid) {
+    if (_usePluginPipeline) {
       return _buildNativeView();
     }
 
@@ -599,24 +579,11 @@ class StreamPageState extends State<StreamPage> {
         label: 'Snow Pattern',
         source: 'pattern-snow',
       ),
-      if (_isWindows)
-        _buildSourceButton(
-          icon: Icons.videocam,
-          label: 'Windows Camera (ksvideosrc)',
-          source: 'ksvideosrc',
-        ),
-      if (_isLinux)
-        _buildSourceButton(
-          icon: Icons.videocam,
-          label: 'Webcam (/dev/video0)',
-          source: 'v4l2src',
-        ),
-      if (_isMacOS)
-        _buildSourceButton(
-          icon: Icons.videocam,
-          label: 'Mac Camera (avfvideosrc)',
-          source: 'avfvideosrc',
-        ),
+      _buildSourceButton(
+        icon: Icons.videocam,
+        label: 'Mac Camera (avfvideosrc)',
+        source: 'avfvideosrc',
+      ),
     ];
   }
 

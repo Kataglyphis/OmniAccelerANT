@@ -4,9 +4,6 @@ module;
 #include <cstdint>
 #include <cstdlib>
 #include <flutter_linux/flutter_linux.h>
-#include <gst/app/gstappsink.h>
-#include <gst/gst.h>
-#include <gst/video/video.h>
 #include <iterator>
 #include <map>
 #include <string.h>
@@ -31,16 +28,10 @@ struct _MyTexture
     uint32_t height;
     uint8_t *buffer;
 
-    // GStreamer components
-    GstElement *pipeline;
-    GstElement *appsink;
-    GstSample *last_sample;
-    GMutex sample_mutex;
-
     // Callback for texture updates
     FlTextureRegistrar *texture_registrar;
 
-    // knt_push_frame frames: packed RGBA, so no stride/caps handling; once set they win over GStreamer.
+    // knt_push_frame frames: packed RGBA, so no stride/caps handling; once set they win over the colour.
     uint8_t *pushed_buffer;
     size_t pushed_capacity;
     uint32_t pushed_width;
@@ -48,9 +39,7 @@ struct _MyTexture
     gboolean has_pushed;
     GMutex pushed_mutex;
 
-    guint64 frame_counter;
     gboolean logged_no_registrar;
-    gboolean logged_first_sample;
     gboolean logged_first_push;
 
     // set_color queues here: copy_pixels (raster thread) is the only writer of `buffer`.
@@ -62,9 +51,6 @@ struct _MyTexture
 };
 
 G_DEFINE_TYPE(MyTexture, my_texture, fl_pixel_buffer_texture_get_type())
-
-// Forward declarations
-static GstFlowReturn on_new_sample(GstAppSink *appsink, gpointer user_data);
 
 // Defined with the knt_push_frame ABI below; dispose needs it first.
 void my_texture_forget_push_target(FlTexture *texture);
@@ -120,29 +106,6 @@ static void my_texture_dispose(GObject *object)
 {
     MyTexture *self = MY_TEXTURE(object);
 
-    g_mutex_lock(&self->sample_mutex);
-
-    if (self->appsink) {
-        GstAppSinkCallbacks callbacks = {};
-        gst_app_sink_set_callbacks(GST_APP_SINK(self->appsink), &callbacks, nullptr, nullptr);
-        gst_object_unref(self->appsink);
-        self->appsink = nullptr;
-    }
-
-    if (self->pipeline) {
-        gst_element_set_state(self->pipeline, GST_STATE_NULL);
-        gst_object_unref(self->pipeline);
-        self->pipeline = nullptr;
-    }
-
-    if (self->last_sample) {
-        gst_sample_unref(self->last_sample);
-        self->last_sample = nullptr;
-    }
-
-    g_mutex_unlock(&self->sample_mutex);
-    g_mutex_clear(&self->sample_mutex);
-
     // The push registry holds raw pointers; backstop for paths that bypass the plugin's unregister.
     my_texture_forget_push_target(FL_TEXTURE(self));
 
@@ -181,7 +144,7 @@ static gboolean my_texture_copy_pixels(FlPixelBufferTexture *texture,
 
     const size_t buffer_size = static_cast<size_t>(self->width) * static_cast<size_t>(self->height) * 4U;
 
-    // A pushed frame wins (Rust owns the camera then); copied row-wise since its geometry is the camera's.
+    // A pushed frame wins over the colour; copied row-wise since its geometry is the camera's.
     g_mutex_lock(&self->pushed_mutex);
     if (self->has_pushed && self->pushed_buffer) {
         const size_t row_bytes =
@@ -206,78 +169,8 @@ static gboolean my_texture_copy_pixels(FlPixelBufferTexture *texture,
     }
     g_mutex_unlock(&self->pushed_mutex);
 
-    g_mutex_lock(&self->sample_mutex);
-    GstSample *sample = self->last_sample ? gst_sample_ref(self->last_sample) : nullptr;
-    g_mutex_unlock(&self->sample_mutex);
-
-    // A queued colour must survive a run without a frame and never overwrite one.
-    gboolean copied_frame = FALSE;
-    if (sample) {
-        GstBuffer *buffer = gst_sample_get_buffer(sample);
-        GstCaps *caps = gst_sample_get_caps(sample);
-        GstMapInfo map;
-
-        if (buffer && gst_buffer_map(buffer, &map, GST_MAP_READ)) {
-            GstVideoInfo info;
-            if (caps && gst_video_info_from_caps(&info, caps)) {
-                const gint src_width_signed = GST_VIDEO_INFO_WIDTH(&info);
-                const gint src_height_signed = GST_VIDEO_INFO_HEIGHT(&info);
-                const uint32_t src_width = static_cast<uint32_t>(std::max(src_width_signed, 0));
-                const uint32_t src_height = static_cast<uint32_t>(std::max(src_height_signed, 0));
-                const int src_stride = GST_VIDEO_INFO_PLANE_STRIDE(&info, 0);
-                const size_t row_bytes =
-                  std::min(static_cast<size_t>(self->width), static_cast<size_t>(src_width)) * 4U;
-                const uint32_t copy_rows = std::min(self->height, src_height);
-
-                memset(self->buffer, 0, buffer_size);
-                if (src_stride > 0 && row_bytes > 0U) {
-                    for (uint32_t row = 0; row < copy_rows; ++row) {
-                        const size_t src_offset = static_cast<size_t>(row) * static_cast<size_t>(src_stride);
-                        const size_t dst_offset = static_cast<size_t>(row) * static_cast<size_t>(self->width) * 4U;
-                        if (src_offset + row_bytes <= static_cast<size_t>(map.size)
-                            && dst_offset + row_bytes <= buffer_size) {
-                            memcpy(self->buffer + dst_offset, map.data + src_offset, row_bytes);
-                        }
-                    }
-                    copied_frame = TRUE;
-                }
-
-                force_alpha_opaque(self->buffer, self->width, self->height);
-
-                if (!self->logged_first_sample) {
-                    const gchar *format_name = gst_video_format_to_string(GST_VIDEO_INFO_FORMAT(&info));
-                    g_message("[my_texture] first sample: src=%ux%u stride=%d format=%s dst=%ux%u",
-                      src_width,
-                      src_height,
-                      src_stride,
-                      format_name ? format_name : "unknown",
-                      self->width,
-                      self->height);
-                    self->logged_first_sample = TRUE;
-                }
-            } else {
-                const size_t copy_size = std::min(buffer_size, static_cast<size_t>(map.size));
-                memcpy(self->buffer, map.data, copy_size);
-                if (copy_size < buffer_size) { memset(self->buffer + copy_size, 0, buffer_size - copy_size); }
-                copied_frame = TRUE;
-
-                force_alpha_opaque(self->buffer, self->width, self->height);
-
-                if (!self->logged_first_sample) {
-                    g_message("[my_texture] first sample (fallback copy): bytes=%zu dst=%ux%u",
-                      static_cast<size_t>(map.size),
-                      self->width,
-                      self->height);
-                    self->logged_first_sample = TRUE;
-                }
-            }
-            gst_buffer_unmap(buffer, &map);
-        }
-
-        gst_sample_unref(sample);
-    }
-
-    if (!copied_frame) { apply_pending_color(self); }
+    // Until a frame arrives, the queued colour.
+    apply_pending_color(self);
 
     *out_buffer = self->buffer;
     *width = self->width;
@@ -310,9 +203,6 @@ static void my_texture_class_init(MyTextureClass *klass)
 
 static void my_texture_init(MyTexture *self)
 {
-    self->pipeline = nullptr;
-    self->appsink = nullptr;
-    self->last_sample = nullptr;
     self->buffer = nullptr;
     self->texture_registrar = nullptr;
     self->pushed_buffer = nullptr;
@@ -320,15 +210,12 @@ static void my_texture_init(MyTexture *self)
     self->pushed_width = 0U;
     self->pushed_height = 0U;
     self->has_pushed = FALSE;
-    self->frame_counter = 0U;
     self->logged_no_registrar = FALSE;
-    self->logged_first_sample = FALSE;
     self->logged_first_push = FALSE;
     self->has_pending_color = FALSE;
     self->pending_r = 0U;
     self->pending_g = 0U;
     self->pending_b = 0U;
-    g_mutex_init(&self->sample_mutex);
     g_mutex_init(&self->pushed_mutex);
     g_mutex_init(&self->buffer_mutex);
 }
@@ -347,187 +234,8 @@ FlTexture *my_texture_new(uint32_t width, uint32_t height, uint8_t r, uint8_t g,
     }
     memset(self->buffer, 0, buffer_bytes);
 
-    gst_init(nullptr, nullptr);
-
     my_texture_set_color(FL_TEXTURE(self), r, g, b);
     return FL_TEXTURE(self);
-}
-
-static GstFlowReturn on_new_sample(GstAppSink *appsink, gpointer user_data)
-{
-    MyTexture *self = MY_TEXTURE(user_data);
-
-    GstSample *sample = gst_app_sink_pull_sample(appsink);
-    if (!sample) { return GST_FLOW_ERROR; }
-
-    g_mutex_lock(&self->sample_mutex);
-
-    if (self->last_sample) { gst_sample_unref(self->last_sample); }
-
-    self->last_sample = sample;
-    self->frame_counter += 1U;
-
-    g_mutex_unlock(&self->sample_mutex);
-
-    request_texture_frame_available(self, "appsink");
-
-    if ((self->frame_counter % 120U) == 0U) {
-        g_message("[my_texture] frame counter=%" G_GUINT64_FORMAT, self->frame_counter);
-    }
-
-    return GST_FLOW_OK;
-}
-
-gboolean my_texture_set_pipeline(FlTexture *texture, const gchar *pipeline_description, GError **error)
-{
-    MyTexture *self = MY_TEXTURE(texture);
-    g_return_val_if_fail(MY_IS_TEXTURE(self), FALSE);
-
-    g_message("[my_texture] set_pipeline called: %s", pipeline_description ? pipeline_description : "<null>");
-
-    g_mutex_lock(&self->sample_mutex);
-
-    if (self->appsink) {
-        GstAppSinkCallbacks callbacks = {};
-        gst_app_sink_set_callbacks(GST_APP_SINK(self->appsink), &callbacks, nullptr, nullptr);
-        gst_object_unref(self->appsink);
-        self->appsink = nullptr;
-    }
-
-    if (self->pipeline) {
-        gst_element_set_state(self->pipeline, GST_STATE_NULL);
-        gst_object_unref(self->pipeline);
-        self->pipeline = nullptr;
-    }
-
-    if (self->last_sample) {
-        gst_sample_unref(self->last_sample);
-        self->last_sample = nullptr;
-    }
-
-    g_mutex_unlock(&self->sample_mutex);
-
-    self->pipeline = gst_parse_launch(pipeline_description, error);
-    if (!self->pipeline) { return FALSE; }
-
-    // A recoverable problem sets `error` next to a valid pipeline; left set, it leaks and reads as failure.
-    g_clear_error(error);
-
-    if (!GST_IS_BIN(self->pipeline)) {
-        if (error) {
-            g_set_error(error,
-              G_IO_ERROR,
-              G_IO_ERROR_FAILED,
-              "Pipeline muss ein Bin/Pipeline sein und appsink name='sink' enthalten");
-        }
-        gst_object_unref(self->pipeline);
-        self->pipeline = nullptr;
-        return FALSE;
-    }
-
-    self->appsink = gst_bin_get_by_name(GST_BIN(self->pipeline), "sink");
-    if (!self->appsink || !GST_IS_APP_SINK(self->appsink)) {
-        if (self->appsink) {
-            gst_object_unref(self->appsink);
-            self->appsink = nullptr;
-        }
-        if (error) {
-            g_set_error(
-              error, G_IO_ERROR, G_IO_ERROR_FAILED, "Pipeline muss ein appsink Element mit name='sink' enthalten");
-        }
-        gst_object_unref(self->pipeline);
-        self->pipeline = nullptr;
-        return FALSE;
-    }
-
-    GstCaps *caps = gst_caps_new_simple("video/x-raw", "format", G_TYPE_STRING, "RGBA", nullptr);
-    g_object_set(
-      self->appsink, "caps", caps, "emit-signals", TRUE, "sync", FALSE, "max-buffers", 1, "drop", TRUE, nullptr);
-    gst_caps_unref(caps);
-
-    GstAppSinkCallbacks callbacks = {};
-    callbacks.new_sample = on_new_sample;
-    gst_app_sink_set_callbacks(GST_APP_SINK(self->appsink), &callbacks, self, nullptr);
-
-    return TRUE;
-}
-
-// Drains the first bus ERROR into `error`; FALSE when a failed state change posted none.
-static gboolean take_first_bus_error(GstElement *pipeline, GError **error)
-{
-    GstBus *bus = gst_element_get_bus(pipeline);
-    if (!bus) { return FALSE; }
-
-    // The pipeline already failed: the message is queued or never coming, so a short bounded wait.
-    GstMessage *msg = gst_bus_timed_pop_filtered(bus, 500 * GST_MSECOND, GST_MESSAGE_ERROR);
-    gboolean found = FALSE;
-
-    if (msg) {
-        GError *err = nullptr;
-        gchar *dbg = nullptr;
-        gst_message_parse_error(msg, &err, &dbg);
-        if (error && err) {
-            // The debug string names the device and element, so it goes through to Dart.
-            g_set_error(error, G_IO_ERROR, G_IO_ERROR_FAILED, "%s (%s)", err->message, dbg ? dbg : "no debug info");
-            found = TRUE;
-        }
-        if (err) g_error_free(err);
-        if (dbg) g_free(dbg);
-        gst_message_unref(msg);
-    }
-
-    gst_object_unref(bus);
-    return found;
-}
-
-gboolean my_texture_play(FlTexture *texture, GError **error)
-{
-    MyTexture *self = MY_TEXTURE(texture);
-    g_return_val_if_fail(MY_IS_TEXTURE(self), FALSE);
-
-    if (!self->pipeline) {
-        g_set_error(error, G_IO_ERROR, G_IO_ERROR_FAILED, "No pipeline set. Call 'setPipeline' first.");
-        return FALSE;
-    }
-
-    GstStateChangeReturn result = gst_element_set_state(self->pipeline, GST_STATE_PLAYING);
-    g_message("[my_texture] set PLAYING result=%d", static_cast<int>(result));
-
-    // A caps failure returns ASYNC and fails only later, so wait for it; a missing device fails synchronously.
-    if (result != GST_STATE_CHANGE_FAILURE) {
-        result = gst_element_get_state(self->pipeline, nullptr, nullptr, 3 * GST_SECOND);
-    }
-
-    if (result == GST_STATE_CHANGE_FAILURE) {
-        if (!take_first_bus_error(self->pipeline, error)) {
-            g_set_error(error,
-              G_IO_ERROR,
-              G_IO_ERROR_FAILED,
-              "Pipeline failed to reach PLAYING and posted no error on its "
-              "bus. Run with GST_DEBUG=3 for the element-level reason.");
-        }
-        // A failed v4l2src left in READY keeps the camera claimed and fails the next setPipeline.
-        gst_element_set_state(self->pipeline, GST_STATE_NULL);
-        return FALSE;
-    }
-
-    return TRUE;
-}
-
-void my_texture_pause(FlTexture *texture)
-{
-    MyTexture *self = MY_TEXTURE(texture);
-    g_return_if_fail(MY_IS_TEXTURE(self));
-
-    if (self->pipeline) { gst_element_set_state(self->pipeline, GST_STATE_PAUSED); }
-}
-
-void my_texture_stop(FlTexture *texture)
-{
-    MyTexture *self = MY_TEXTURE(texture);
-    g_return_if_fail(MY_IS_TEXTURE(self));
-
-    if (self->pipeline) { gst_element_set_state(self->pipeline, GST_STATE_NULL); }
 }
 
 void my_texture_set_texture_registrar(FlTexture *texture, FlTextureRegistrar *registrar)

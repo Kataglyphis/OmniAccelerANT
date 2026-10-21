@@ -37,9 +37,9 @@ t_case "every element from the bundle, whatever the caller's plugin paths"
 t_assert_rc 0 elements "${work}/bundle" \
   STUB_ELEMENTS="${all}" GST_PLUGIN_SYSTEM_PATH=/usr/lib/gstreamer-1.0 GST_PLUGIN_PATH_1_0=/usr/lib/gstreamer-1.0
 t_case "an element no bundled plugin provides"
-t_assert_rc 1 elements "${work}/bundle" STUB_ELEMENTS="${all/jpegdec/}"
+t_assert_rc 1 elements "${work}/bundle" STUB_ELEMENTS="${all/v4l2src/}"
 t_case "the missing element is named"
-t_assert_grep "${work}/out" '^FAIL jpegdec'
+t_assert_grep "${work}/out" '^FAIL v4l2src'
 t_case "an element loaded from outside the bundle"
 t_assert_rc 1 elements "${work}/bundle" STUB_ELEMENTS="${all}" STUB_DIR=/opt/gstreamer/lib/gstreamer-1.0
 t_case "a bundle without plugins"

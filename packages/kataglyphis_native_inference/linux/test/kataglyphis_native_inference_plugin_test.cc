@@ -5,13 +5,8 @@
 #include "include/kataglyphis_native_inference/kataglyphis_native_inference_plugin.h"
 #include "kataglyphis_native_inference_plugin_private.h"
 
-#include <gst/gst.h>
-
 #include <array>
-#include <chrono>
 #include <cstdint>
-#include <string>
-#include <thread>
 
 import kataglyphis.my_texture;
 
@@ -51,18 +46,11 @@ namespace test {
         return ok == TRUE;
     }
 
-    // The error a call left, as text; empty when it left none.
-    std::string message(GError *error) { return error != nullptr ? error->message : ""; }
-
     class MyTextureTest : public ::testing::Test
     {
       protected:
         void SetUp() override { texture = my_texture_new(64, 48, 0, 0, 255); }
-        void TearDown() override
-        {
-            my_texture_stop(texture);
-            g_object_unref(texture);
-        }
+        void TearDown() override { g_object_unref(texture); }
         FlTexture *texture = nullptr;
     };
 
@@ -73,69 +61,6 @@ namespace test {
         EXPECT_EQ(pixels.width, 64U);
         EXPECT_EQ(pixels.height, 48U);
         EXPECT_EQ(pixels.first(), (std::array<uint8_t, 4>{ 0, 0, 255, 255 }));
-    }
-
-    TEST_F(MyTextureTest, APipelineMustParseAndEndInTheNamedAppsink)
-    {
-        GError *error = nullptr;
-        EXPECT_FALSE(my_texture_set_pipeline(texture, "videotestsrc ! ! appsink", &error));
-        EXPECT_FALSE(message(error).empty()) << "gst_parse_launch's reason was lost";
-        g_clear_error(&error);
-
-        EXPECT_FALSE(my_texture_set_pipeline(texture, "videotestsrc ! fakesink", &error));
-        EXPECT_THAT(message(error), testing::HasSubstr("name='sink'"));
-        g_clear_error(&error);
-
-        EXPECT_FALSE(my_texture_set_pipeline(texture, "fakesrc", &error));
-        EXPECT_THAT(message(error), testing::HasSubstr("Bin/Pipeline"));
-        g_clear_error(&error);
-
-        EXPECT_TRUE(my_texture_set_pipeline(texture, "videotestsrc ! videoconvert ! appsink name=sink", &error));
-        EXPECT_EQ(error, nullptr);
-    }
-
-    TEST_F(MyTextureTest, PlayWithoutAPipelineSaysWhatToCallFirst)
-    {
-        GError *error = nullptr;
-        EXPECT_FALSE(my_texture_play(texture, &error));
-        EXPECT_THAT(message(error), testing::HasSubstr("setPipeline"));
-        g_clear_error(&error);
-    }
-
-    TEST_F(MyTextureTest, ASourceThatFailsNamesWhatFailedForDart)
-    {
-        GError *error = nullptr;
-        ASSERT_TRUE(my_texture_set_pipeline(
-          texture, "filesrc location=/nonexistent/clip.raw ! videoparse ! videoconvert ! appsink name=sink", &error));
-        EXPECT_FALSE(my_texture_play(texture, &error));
-        // The debug part names the element and its file, which is what the Stream page shows.
-        EXPECT_THAT(message(error), testing::HasSubstr("/nonexistent/clip.raw"));
-        g_clear_error(&error);
-    }
-
-    // Its frames arrive fully transparent: Flutter would show what lies under the texture.
-    TEST_F(MyTextureTest, ATestPatternReachesThePixelsOpaque)
-    {
-        GError *error = nullptr;
-        ASSERT_TRUE(my_texture_set_pipeline(texture,
-          "videotestsrc pattern=red ! videoconvert ! videoscale ! video/x-raw,width=64,height=48 ! alpha alpha=0 ! "
-          "videoconvert ! appsink name=sink",
-          &error))
-          << message(error);
-        ASSERT_TRUE(my_texture_play(texture, &error)) << message(error);
-
-        Pixels pixels;
-        const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(10);
-        do {
-            ASSERT_TRUE(copy(texture, &pixels));
-            if (pixels.first()[0] > 250 && pixels.first()[2] < 5) { break; }
-            std::this_thread::sleep_for(std::chrono::milliseconds(50));
-        } while (std::chrono::steady_clock::now() < deadline);
-        EXPECT_GT(pixels.first()[0], 250) << "no red frame in 10 s";
-        EXPECT_LT(pixels.first()[2], 5);
-        for (uint32_t index = 0; index < pixels.width * pixels.height; ++index) {
-            ASSERT_EQ(pixels.data[index * 4U + 3U], 255) << "pixel " << index << " is not opaque";
-        }
     }
 
     TEST_F(MyTextureTest, OnlyARegisteredTextureTakesAPushedFrameAndItWins)
@@ -157,6 +82,10 @@ namespace test {
         ASSERT_TRUE(copy(texture, &pixels));
         EXPECT_EQ(pixels.width, 64U) << "a pushed frame keeps the texture's size";
         EXPECT_EQ(pixels.first(), (std::array<uint8_t, 4>{ 0, 255, 0, 255 }));
+        // Rust's frames may arrive transparent: Flutter would show what lies under the texture.
+        for (uint32_t index = 0; index < pixels.width * pixels.height; ++index) {
+            ASSERT_EQ(pixels.data[index * 4U + 3U], 255) << "pixel " << index << " is not opaque";
+        }
 
         my_texture_unregister_push_target(id);
         EXPECT_EQ(knt_push_frame(id, green.data(), 2, 2), -2);

@@ -66,7 +66,7 @@ gst_plugins_dir="$(gst_pkgconfig_var pluginsdir)"
 if [[ -z "$gst_lib_dir" || -z "$gst_plugins_dir" || ! -d "$gst_plugins_dir" ]]; then
   printf 'Error: pkg-config cannot locate GStreamer (libdir=%s pluginsdir=%s)\n' \
     "${gst_lib_dir:-<empty>}" "${gst_plugins_dir:-<empty>}" >&2
-  printf '       The plugin links GStreamer, so the same prefix must be visible here.\n' >&2
+  printf '       The Rust core links GStreamer, so the same prefix must be visible here.\n' >&2
   exit 1
 fi
 
@@ -178,7 +178,7 @@ fi
 
 printf 'Runtime closure: %d file(s) copied, bundle now %s\n' \
   "$copied_count" "$(du -sh "$BUNDLE_DIR" | cut -f1)"
-# rust_builder's CMake stages ORT when the Rust features ask for it; the walk skips a file already here.
+# rust_builder's CMake stages ORT on every build; the walk skips a file already here.
 for file in "$bundle_lib"/libonnxruntime*; do
   [[ -f "$file" && -n "${kept[$(basename "$file")]:-}" ]] || continue
   printf 'Kept (already in bundle/lib, not copied): %s sha256 %s\n' \

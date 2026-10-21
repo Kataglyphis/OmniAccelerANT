@@ -2,7 +2,6 @@ module;
 
 #include <cstdint>
 #include <flutter_linux/flutter_linux.h>
-#include <gst/gst.h>
 
 export module kataglyphis.my_texture;
 
@@ -20,13 +19,3 @@ export void my_texture_register_push_target(int64_t texture_id, FlTexture *textu
 export void my_texture_unregister_push_target(int64_t texture_id);
 // TRUE once knt_push_frame has filled this texture: the proof the integration test reads.
 export gboolean my_texture_has_pushed_frame(int64_t texture_id);
-
-export gboolean my_texture_set_pipeline(FlTexture *texture, const gchar *pipeline_description, GError **error);
-
-// Returns FALSE and sets `error` when the pipeline does not reach PLAYING.
-// pause/stop stay void: a failure there is not what leaves the page showing a
-// blank texture with no explanation, and widening them would churn three more
-// call sites for no reported symptom.
-export gboolean my_texture_play(FlTexture *texture, GError **error);
-export void my_texture_pause(FlTexture *texture);
-export void my_texture_stop(FlTexture *texture);

@@ -25,8 +25,6 @@ list(
 
 list(APPEND PLUGIN_MODULES "my_texture.ixx")
 
-# Add your native library - source folder is ../native
-set(RUST_FEATURES "TRUE")
 # Resolve, then walk up: a ".." inside REALPATH collapses lexically into .plugin_symlinks (AGENTS.md section 3).
 get_filename_component(_KCI_PLUGIN_PLATFORM_DIR "${CMAKE_CURRENT_SOURCE_DIR}" REALPATH)
 get_filename_component(_KCI_PLUGIN_ROOT "${_KCI_PLUGIN_PLATFORM_DIR}" DIRECTORY)
@@ -59,35 +57,15 @@ target_compile_features(${PLUGIN_NAME} PRIVATE cxx_std_20)
 # Build settings from the application-level CMakeLists.txt.
 apply_standard_settings(${PLUGIN_NAME})
 
-find_package(PkgConfig REQUIRED)
-pkg_check_modules(
-  GST
-  REQUIRED
-  IMPORTED_TARGET
-  gstreamer-1.0)
-pkg_check_modules(
-  GST_APP
-  REQUIRED
-  IMPORTED_TARGET
-  gstreamer-app-1.0)
-pkg_check_modules(
-  GST_VIDEO
-  REQUIRED
-  IMPORTED_TARGET
-  gstreamer-video-1.0)
-
 # Hidden by default against cross-plugin symbol clashes; export with FLUTTER_PLUGIN_EXPORT.
 set_target_properties(${PLUGIN_NAME} PROPERTIES CXX_VISIBILITY_PRESET hidden)
 target_compile_definitions(${PLUGIN_NAME} PRIVATE FLUTTER_PLUGIN_IMPL)
 
 target_include_directories(${PLUGIN_NAME} INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/include" "${KCI_DIR}/Src")
 
-target_include_directories(${PLUGIN_NAME} PRIVATE ${GST_INCLUDE_DIRS} ${GST_APP_INCLUDE_DIRS} ${GST_VIDEO_INCLUDE_DIRS})
-
 target_link_libraries(${PLUGIN_NAME} PRIVATE flutter)
 target_link_libraries(${PLUGIN_NAME} PRIVATE PkgConfig::GTK)
 target_link_libraries(${PLUGIN_NAME} PRIVATE AccelerANTgine)
-target_link_libraries(${PLUGIN_NAME} PRIVATE PkgConfig::GST PkgConfig::GST_APP PkgConfig::GST_VIDEO)
 # Absolute paths of the libraries bundled with the plugin.
 set(kataglyphis_native_inference_bundled_libraries
     "$<TARGET_FILE:AccelerANTgine>"
@@ -125,13 +103,10 @@ if(${include_${PROJECT_NAME}_tests})
     target_compile_features(${TEST_RUNNER} PRIVATE cxx_std_20)
     apply_standard_settings(${TEST_RUNNER})
     target_include_directories(${TEST_RUNNER} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}" "${KCI_DIR}/Src")
-    target_include_directories(${TEST_RUNNER} PRIVATE ${GST_INCLUDE_DIRS} ${GST_APP_INCLUDE_DIRS}
-                                                      ${GST_VIDEO_INCLUDE_DIRS})
     target_link_libraries(${TEST_RUNNER} PRIVATE flutter)
     target_link_libraries(${TEST_RUNNER} PRIVATE PkgConfig::GTK)
     # The plugin's own dependencies, since its sources are compiled in.
     target_link_libraries(${TEST_RUNNER} PRIVATE AccelerANTgine)
-    target_link_libraries(${TEST_RUNNER} PRIVATE PkgConfig::GST PkgConfig::GST_APP PkgConfig::GST_VIDEO)
     target_link_libraries(${TEST_RUNNER} PRIVATE gtest_main gmock)
 
     # PRE_TEST: listing the tests runs the binary, which belongs in ctest, not in the build.

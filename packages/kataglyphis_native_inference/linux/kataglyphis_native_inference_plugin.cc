@@ -54,80 +54,7 @@ static uint32_t clamp_to_u32(gint64 value)
     return static_cast<uint32_t>(value);
 }
 
-static uint8_t clamp_to_u8(gint64 value)
-{
-    if (value < 0) { return 0U; }
-    if (value > 255) { return 255U; }
-    return static_cast<uint8_t>(value);
-}
-
-/* Forward declarations */
-static FlMethodResponse *handle_create(KataglyphisNativeInferencePlugin *self, FlMethodCall *method_call);
-static FlMethodResponse *handle_set_color(KataglyphisNativeInferencePlugin *self, FlMethodCall *method_call);
 FlMethodResponse *get_platform_version(void);
-
-static FlMethodResponse *handle_set_pipeline(KataglyphisNativeInferencePlugin *self, FlMethodCall *method_call)
-{
-    if (!self->texture) {
-        return FL_METHOD_RESPONSE(
-          fl_method_error_response_new("Error", "No texture created. Call 'create' first.", nullptr));
-    }
-
-    FlValue *args = fl_method_call_get_args(method_call);
-    if (!is_fl_type(args, FL_VALUE_TYPE_STRING)) {
-        return FL_METHOD_RESPONSE(fl_method_error_response_new("Invalid args", "Expected pipeline string", nullptr));
-    }
-
-    const gchar *pipeline_desc = fl_value_get_string(args);
-    GError *error = nullptr;
-
-    if (!my_texture_set_pipeline(self->texture, pipeline_desc, &error)) {
-        g_autofree gchar *error_msg =
-          g_strdup_printf("Failed to set pipeline: %s", error ? error->message : "Unknown error");
-        if (error) g_error_free(error);
-        return FL_METHOD_RESPONSE(fl_method_error_response_new("Pipeline Error", error_msg, nullptr));
-    }
-
-    return FL_METHOD_RESPONSE(fl_method_success_response_new(nullptr));
-}
-
-static FlMethodResponse *handle_play(KataglyphisNativeInferencePlugin *self, FlMethodCall * /*method_call*/)
-{
-    if (!self->texture) {
-        return FL_METHOD_RESPONSE(fl_method_error_response_new("Error", "No texture created", nullptr));
-    }
-
-    GError *error = nullptr;
-    if (!my_texture_play(self->texture, &error)) {
-        g_autofree gchar *error_msg =
-          g_strdup_printf("Failed to play pipeline: %s", error ? error->message : "Unknown error");
-        if (error) g_error_free(error);
-        // Same code as handle_set_pipeline: stream_page.dart renders both through one arm.
-        return FL_METHOD_RESPONSE(fl_method_error_response_new("Pipeline Error", error_msg, nullptr));
-    }
-
-    return FL_METHOD_RESPONSE(fl_method_success_response_new(nullptr));
-}
-
-static FlMethodResponse *handle_pause(KataglyphisNativeInferencePlugin *self, FlMethodCall * /*method_call*/)
-{
-    if (!self->texture) {
-        return FL_METHOD_RESPONSE(fl_method_error_response_new("Error", "No texture created", nullptr));
-    }
-
-    my_texture_pause(self->texture);
-    return FL_METHOD_RESPONSE(fl_method_success_response_new(nullptr));
-}
-
-static FlMethodResponse *handle_stop(KataglyphisNativeInferencePlugin *self, FlMethodCall * /*method_call*/)
-{
-    if (!self->texture) {
-        return FL_METHOD_RESPONSE(fl_method_error_response_new("Error", "No texture created", nullptr));
-    }
-
-    my_texture_stop(self->texture);
-    return FL_METHOD_RESPONSE(fl_method_success_response_new(nullptr));
-}
 
 // Whether knt_push_frame has filled the texture yet; false before one exists.
 static FlMethodResponse *handle_has_pushed_frame(KataglyphisNativeInferencePlugin *self, FlMethodCall * /*method_call*/)
@@ -167,51 +94,20 @@ static FlMethodResponse *handle_create(KataglyphisNativeInferencePlugin *self, F
 
     self->texture = my_texture_new(width, height, 0x05U, 0x53U, 0xb1U);
 
-    // GStreamer frame updates go through the registrar.
+    // Pushed frames reach Flutter through the registrar.
     my_texture_set_texture_registrar(self->texture, texture_registrar);
 
     if (!fl_texture_registrar_register_texture(texture_registrar, self->texture)) {
         return FL_METHOD_RESPONSE(fl_method_error_response_new("Error", "Failed to register texture", nullptr));
     }
 
-    // Lets knt_push_frame reach this texture; inert without the Rust features.
+    // Lets knt_push_frame reach this texture.
     const int64_t texture_id = fl_texture_get_id(self->texture);
     my_texture_register_push_target(texture_id, self->texture);
 
     // Return the texture ID to Flutter so it can use this texture.
     g_autoptr(FlValue) id = fl_value_new_int(texture_id);
     return FL_METHOD_RESPONSE(fl_method_success_response_new(id));
-}
-
-// Handle request to set the texture color.
-static FlMethodResponse *handle_set_color(KataglyphisNativeInferencePlugin *self, FlMethodCall *method_call)
-{
-    FlValue *args = fl_method_call_get_args(method_call);
-    if (!is_fl_type(args, FL_VALUE_TYPE_LIST) || fl_value_get_length(args) != 3) {
-        return FL_METHOD_RESPONSE(fl_method_error_response_new("Invalid args", "Invalid setColor args", nullptr));
-    }
-    FlValue *r_value = fl_value_get_list_value(args, 0);
-    FlValue *g_value = fl_value_get_list_value(args, 1);
-    FlValue *b_value = fl_value_get_list_value(args, 2);
-    if (!is_fl_type(r_value, FL_VALUE_TYPE_INT) || !is_fl_type(g_value, FL_VALUE_TYPE_INT)
-        || !is_fl_type(b_value, FL_VALUE_TYPE_INT)) {
-        return FL_METHOD_RESPONSE(fl_method_error_response_new("Invalid args", "Invalid setColor args", nullptr));
-    }
-
-    const uint8_t red = clamp_to_u8(fl_value_get_int(r_value));
-    const uint8_t green = clamp_to_u8(fl_value_get_int(g_value));
-    const uint8_t blue = clamp_to_u8(fl_value_get_int(b_value));
-
-    FlEngine *engine = fl_view_get_engine(self->view);
-    FlTextureRegistrar *texture_registrar = fl_engine_get_texture_registrar(engine);
-
-    // Redraw in requested color.
-    my_texture_set_color(self->texture, red, green, blue);
-
-    // Notify Flutter the texture has changed.
-    fl_texture_registrar_mark_texture_frame_available(texture_registrar, self->texture);
-
-    return FL_METHOD_RESPONSE(fl_method_success_response_new(nullptr));
 }
 
 static FlMethodResponse *handle_get_platform_version(KataglyphisNativeInferencePlugin * /*self*/,
@@ -244,7 +140,7 @@ static FlMethodResponse *handle_add(KataglyphisNativeInferencePlugin * /*self*/,
     return FL_METHOD_RESPONSE(fl_method_success_response_new(result_value));
 }
 
-/* Handles general plugin method calls on the single channel. */
+/* Handles general plugin method calls on the single channel; the Rust core drives the camera, so no pipeline calls. */
 static void kataglyphis_native_inference_plugin_handle_method_call(KataglyphisNativeInferencePlugin *self,
   FlMethodCall *method_call)
 {
@@ -252,29 +148,21 @@ static void kataglyphis_native_inference_plugin_handle_method_call(KataglyphisNa
 
     const gchar *method = fl_method_call_get_name(method_call);
 
-    static constexpr std::array<std::pair<const char *, MethodHandler>, 8> kHandlers = { {
+    static constexpr std::array<std::pair<const char *, MethodHandler>, 4> kHandlers = { {
       { "getPlatformVersion", handle_get_platform_version },
       { "add", handle_add },
       { "create", handle_create },
-      { "setColor", handle_set_color },
-      { "setPipeline", handle_set_pipeline },
-      { "play", handle_play },
-      { "pause", handle_pause },
       { "hasPushedFrame", handle_has_pushed_frame },
     } };
 
-    if (g_str_equal(method, "stop")) {
-        response = handle_stop(self, method_call);
-    } else {
-        for (const auto &handler : kHandlers) {
-            if (std::strcmp(method, handler.first) == 0) {
-                response = handler.second(self, method_call);
-                break;
-            }
+    for (const auto &handler : kHandlers) {
+        if (std::strcmp(method, handler.first) == 0) {
+            response = handler.second(self, method_call);
+            break;
         }
-
-        if (response == nullptr) { response = FL_METHOD_RESPONSE(fl_method_not_implemented_response_new()); }
     }
+
+    if (response == nullptr) { response = FL_METHOD_RESPONSE(fl_method_not_implemented_response_new()); }
 
     /* Single call to respond. response must be a valid FlMethodResponse*. */
     fl_method_call_respond(method_call, response, NULL);

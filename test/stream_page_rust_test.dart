@@ -1,4 +1,4 @@
-// Windows, and Linux built with the Rust features, hand the camera to the Rust view; the page itself must then leave the plugin alone.
+// Windows and Linux hand the camera to the Rust view; the page itself must then leave the plugin alone.
 @TestOn('vm')
 library;
 
@@ -12,7 +12,7 @@ import 'package:omni_accelerant/src/rust/frb_generated.dart';
 import 'support/real_fonts.dart';
 import 'support/stream_page_app.dart';
 
-/// The Rust core of a build with the webcam features: no camera attached.
+/// The Rust core of a desktop build: no camera attached.
 class _FakeRustApi extends Fake implements RustLibApi {
   int probed = 0;
   int listed = 0;
@@ -58,13 +58,13 @@ void main() {
         expect(find.text('Webcam Live Inference (Rust)'), findsOneWidget);
         // One create, the view's: a second from the page would race it for the plugin's single texture.
         expect(calls.map((MethodCall c) => c.method), <String>['create']);
-        if (platform == TargetPlatform.linux) {
-          expect(rust.probed, greaterThan(0), reason: 'Linux probes the core');
-        }
+        expect(rust.probed, 0, reason: 'the target decides, not a probe');
         // Enumerating cameras starts libcamera, which held the first frame ~1 s while the page did it.
         expect(rust.listed, 0, reason: 'the page enumerated cameras');
 
         await unmountApp(tester);
+        // No pipeline of the page's own to stop: the Rust view owns the camera.
+        expect(calls.map((MethodCall c) => c.method), <String>['create']);
       },
       variant: TargetPlatformVariant.only(platform),
     );

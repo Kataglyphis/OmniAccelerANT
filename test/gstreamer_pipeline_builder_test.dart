@@ -23,11 +23,9 @@ void main() {
 
   group('sink selection', () {
     test('desktop terminates in the appsink the plugin looks up by name', () {
-      // my_texture.cc looks the appsink up by the name "sink" and fails setPipeline without it.
+      // A desktop plugin finds its appsink by the name "sink" and fails setPipeline without it.
       for (final String source in <String>[
         'videotestsrc',
-        'v4l2src',
-        'ksvideosrc',
         'avfvideosrc',
         'pattern-smpte',
         'pattern-snow',
@@ -35,7 +33,7 @@ void main() {
         expect(
           desktop.build(source),
           contains('appsink name=sink'),
-          reason: '$source must end in the appsink the Linux plugin resolves',
+          reason: '$source must end in the appsink the plugin resolves',
         );
       }
     });
@@ -54,17 +52,12 @@ void main() {
     });
   });
 
-  group('v4l2src — the Linux default', () {
-    // The exact string a Linux desktop negotiates on page open.
-    final String pipeline = desktop.build('v4l2src');
+  group('avfvideosrc — the macOS default', () {
+    // The exact string macOS negotiates on page open.
+    final String pipeline = desktop.build('avfvideosrc');
 
-    test('opens /dev/video0', () {
-      expect(pipeline, contains('v4l2src device=/dev/video0'));
-    });
-
-    test('decodes MJPEG rather than assuming raw frames', () {
-      expect(pipeline, contains('image/jpeg'));
-      expect(pipeline, contains('jpegdec'));
+    test('asks the camera for raw frames', () {
+      expect(pipeline, startsWith('avfvideosrc capture-raw-data=true ! '));
     });
 
     test('converts to RGBA, which is the only format the appsink accepts', () {
@@ -124,8 +117,6 @@ void main() {
             'videotestsrc',
             'ahcsrc',
             'autovideosrc',
-            'v4l2src',
-            'ksvideosrc',
             'avfvideosrc',
             'pattern-smpte',
             'pattern-snow',
@@ -166,13 +157,30 @@ void _fallbackPolicyTests() {
       }
     });
 
-    test('linux tries the V4L2 camera first, then degrades', () {
-      expect(sourceCandidatesFor(TargetPlatform.linux), <String>[
-        'v4l2src',
+    test('android tries its camera, then any camera, then degrades', () {
+      expect(sourceCandidatesFor(TargetPlatform.android), <String>[
+        'ahcsrc',
         'autovideosrc',
         'videotestsrc',
       ]);
     });
+
+    test('macOS tries its camera first, then degrades', () {
+      expect(sourceCandidatesFor(TargetPlatform.macOS), <String>[
+        'avfvideosrc',
+        'videotestsrc',
+      ]);
+    });
+
+    test(
+      'Windows and Linux have no plugin chain: the Rust core owns their camera',
+      () {
+        expect(kSourceCandidates.keys, <TargetPlatform>[
+          TargetPlatform.android,
+          TargetPlatform.macOS,
+        ]);
+      },
+    );
 
     test('an unlisted platform still gets a usable chain', () {
       expect(sourceCandidatesFor(TargetPlatform.fuchsia), <String>[
@@ -206,8 +214,8 @@ void _fallbackPolicyTests() {
       expect(nextSourceAfter('pattern-snow', chain), isNull);
     });
 
-    test('the real linux chain terminates from any starting point', () {
-      final List<String> chain = sourceCandidatesFor(TargetPlatform.linux);
+    test('the real android chain terminates from any starting point', () {
+      final List<String> chain = sourceCandidatesFor(TargetPlatform.android);
       String? current = chain.first;
       int steps = 0;
       while (current != null) {

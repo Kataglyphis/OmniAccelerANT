@@ -1,4 +1,4 @@
-// The native Stream page drives the C++ plugin over a MethodChannel; only a device ran these calls and their source fallback before.
+// On Android and macOS the Stream page drives the plugin over a MethodChannel; only a device ran these calls and their source fallback before.
 @TestOn('vm')
 library;
 
@@ -94,38 +94,14 @@ const MethodChannel _permissionChannel = MethodChannel(
 void main() {
   setUpAll(loadRealFonts);
 
-  final TargetPlatformVariant linux = TargetPlatformVariant.only(
-    TargetPlatform.linux,
-  );
-
-  testWidgets(
-    'Linux without the Rust core creates a texture and plays the camera',
-    (WidgetTester tester) async {
-      final _FakePlugin plugin = _FakePlugin();
-      await pumpStreamPageApp(tester, plugin.handle);
-
-      expect(plugin.methods.take(3), <String>['create', 'setPipeline', 'play']);
-      final List<Object?> size = plugin.calls.first.arguments as List<Object?>;
-      expect(size, hasLength(2));
-      expect(size.every((Object? v) => v is int && v > 0), isTrue);
-      expect(plugin.pipelines.single, startsWith('v4l2src device=/dev/video0'));
-      expect(
-        plugin.pipelines.single,
-        endsWith('appsink name=sink emit-signals=true sync=false'),
-      );
-      expect(find.byType(Texture), findsOneWidget);
-      expect(find.text('Playing'), findsOneWidget);
-
-      await unmountApp(tester);
-      expect(plugin.methods.last, 'stop');
-    },
-    variant: linux,
+  final TargetPlatformVariant macOS = TargetPlatformVariant.only(
+    TargetPlatform.macOS,
   );
 
   testWidgets(
     'a camera the pipeline cannot open falls back to the next source',
     (WidgetTester tester) async {
-      final _FakePlugin plugin = _FakePlugin(missing: <String>{'v4l2src'});
+      final _FakePlugin plugin = _FakePlugin(missing: <String>{'avfvideosrc'});
       await pumpStreamPageApp(tester, plugin.handle);
 
       expect(plugin.methods.take(5), <String>[
@@ -135,39 +111,38 @@ void main() {
         'setPipeline',
         'play',
       ]);
-      expect(plugin.pipelines.last, startsWith('autovideosrc'));
+      expect(plugin.pipelines.last, startsWith('videotestsrc'));
       expect(find.text('Playing'), findsOneWidget);
       expect(find.textContaining('No video source worked'), findsNothing);
 
       await unmountApp(tester);
     },
-    variant: linux,
+    variant: macOS,
   );
 
   testWidgets('with every source missing the error names all of them', (
     WidgetTester tester,
   ) async {
     final _FakePlugin plugin = _FakePlugin(
-      missing: <String>{'v4l2src', 'autovideosrc', 'videotestsrc'},
+      missing: <String>{'avfvideosrc', 'videotestsrc'},
     );
     await pumpStreamPageApp(tester, plugin.handle);
 
     expect(plugin.pipelines.map((String p) => p.split(' ').first), <String>[
-      'v4l2src',
-      'autovideosrc',
+      'avfvideosrc',
       'videotestsrc',
     ]);
     expect(plugin.methods, isNot(contains('play')));
     expect(
       find.text(
-        'No video source worked (tried: v4l2src, autovideosrc, videotestsrc). '
+        'No video source worked (tried: avfvideosrc, videotestsrc). '
         'Last error: no element "videotestsrc"',
       ),
       findsOneWidget,
     );
 
     await unmountApp(tester);
-  }, variant: linux);
+  }, variant: macOS);
 
   testWidgets(
     'a texture the plugin cannot create is reported, and no pipeline is set',
@@ -182,7 +157,7 @@ void main() {
 
       await unmountApp(tester);
     },
-    variant: linux,
+    variant: macOS,
   );
 
   testWidgets('the play/pause button pauses and resumes the pipeline', (
@@ -203,7 +178,7 @@ void main() {
     expect(find.text('Playing'), findsOneWidget);
 
     await unmountApp(tester);
-  }, variant: linux);
+  }, variant: macOS);
 
   testWidgets('the stop button stops the pipeline', (
     WidgetTester tester,
@@ -218,7 +193,7 @@ void main() {
     expect(find.text('Paused'), findsOneWidget);
 
     await unmountApp(tester);
-  }, variant: linux);
+  }, variant: macOS);
 
   testWidgets('a stop the plugin refuses does not claim the stream stopped', (
     WidgetTester tester,
@@ -231,7 +206,7 @@ void main() {
     expect(find.text('Playing'), findsOneWidget);
 
     await unmountApp(tester);
-  }, variant: linux);
+  }, variant: macOS);
 
   testWidgets(
     'a source button stops the running pipeline and plays the chosen one',
@@ -249,7 +224,7 @@ void main() {
 
       await unmountApp(tester);
     },
-    variant: linux,
+    variant: macOS,
   );
 
   testWidgets('a colour button sends its RGB to the plugin', (
@@ -266,7 +241,7 @@ void main() {
     expect(plugin.calls.single.arguments, <int>[0xf2, 0x5d, 0x50]);
 
     await unmountApp(tester);
-  }, variant: linux);
+  }, variant: macOS);
 
   testWidgets(
     'a pause the plugin refuses is reported and the stream plays on',
@@ -281,7 +256,7 @@ void main() {
 
       await unmountApp(tester);
     },
-    variant: linux,
+    variant: macOS,
   );
 
   testWidgets(
@@ -296,7 +271,7 @@ void main() {
 
       await unmountApp(tester);
     },
-    variant: linux,
+    variant: macOS,
   );
 
   testWidgets('a pattern off the fallback chain reports its own error', (
@@ -316,7 +291,7 @@ void main() {
     );
 
     await unmountApp(tester);
-  }, variant: linux);
+  }, variant: macOS);
 
   group('Android', () {
     final TargetPlatformVariant android = TargetPlatformVariant.only(
@@ -432,18 +407,30 @@ void main() {
     }, variant: android);
   });
 
-  testWidgets('macOS plays its camera through the plugin', (
-    WidgetTester tester,
-  ) async {
-    final _FakePlugin plugin = _FakePlugin();
-    await pumpStreamPageApp(tester, plugin.handle);
+  testWidgets(
+    'macOS creates a texture and plays its camera through the plugin',
+    (WidgetTester tester) async {
+      final _FakePlugin plugin = _FakePlugin();
+      await pumpStreamPageApp(tester, plugin.handle);
 
-    expect(plugin.methods.take(3), <String>['create', 'setPipeline', 'play']);
-    expect(plugin.pipelines.single, startsWith('avfvideosrc '));
-    expect(find.text('Mac Camera (avfvideosrc)'), findsOneWidget);
+      expect(plugin.methods.take(3), <String>['create', 'setPipeline', 'play']);
+      final List<Object?> size = plugin.calls.first.arguments as List<Object?>;
+      expect(size, hasLength(2));
+      expect(size.every((Object? v) => v is int && v > 0), isTrue);
+      expect(plugin.pipelines.single, startsWith('avfvideosrc '));
+      expect(
+        plugin.pipelines.single,
+        endsWith('appsink name=sink emit-signals=true sync=false'),
+      );
+      expect(find.byType(Texture), findsOneWidget);
+      expect(find.text('Playing'), findsOneWidget);
+      expect(find.text('Mac Camera (avfvideosrc)'), findsOneWidget);
 
-    await unmountApp(tester);
-  }, variant: TargetPlatformVariant.only(TargetPlatform.macOS));
+      await unmountApp(tester);
+      expect(plugin.methods.last, 'stop');
+    },
+    variant: macOS,
+  );
 
   testWidgets('a platform without a native path shows the WebRTC stand-in', (
     WidgetTester tester,

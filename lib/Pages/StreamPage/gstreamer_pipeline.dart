@@ -1,4 +1,4 @@
-/// The native Stream page's GStreamer pipelines per source and platform, and the order it tries sources in.
+/// The plugin's GStreamer pipelines on Android and macOS, per source, and the order the Stream page tries sources in.
 library;
 
 import 'package:flutter/foundation.dart';
@@ -56,8 +56,6 @@ class GStreamerPipelineBuilder {
       'ahcsrc' => _buildAndroidCamera('ahcsrc'),
       'ahc2src' => _buildAndroidCamera('ahc2src'),
       'autovideosrc' => _buildAutoVideoSrc(),
-      'v4l2src' => _buildV4L2Src(),
-      'ksvideosrc' => _buildKsVideoSrc(),
       'avfvideosrc' => _buildAvfVideoSrc(),
       'pattern-smpte' => _buildTestPattern('smpte'),
       'pattern-snow' => _buildTestPattern('snow'),
@@ -87,19 +85,6 @@ class GStreamerPipelineBuilder {
     return 'autovideosrc ! $_sink';
   }
 
-  String _buildV4L2Src() {
-    return 'v4l2src device=/dev/video0 ! '
-        'image/jpeg,width=$width,height=$height,framerate=$fps/1 ! '
-        'jpegdec ! videoconvert ! '
-        'video/x-raw,format=$kPixelFormat,width=$width,height=$height ! $_sink';
-  }
-
-  String _buildKsVideoSrc() {
-    return 'ksvideosrc device-index=0 ! videoconvert ! '
-        'video/x-raw,format=$kPixelFormat,width=$width,height=$height,'
-        'framerate=$fps/1 ! $_sink';
-  }
-
   String _buildAvfVideoSrc() {
     return 'avfvideosrc capture-raw-data=true ! videoconvert ! '
         'video/x-raw,format=$kPixelFormat,width=$width,height=$height,'
@@ -117,9 +102,7 @@ const Map<TargetPlatform, List<String>> kSourceCandidates =
         'autovideosrc',
         'videotestsrc',
       ],
-      TargetPlatform.linux: <String>['v4l2src', 'autovideosrc', 'videotestsrc'],
       TargetPlatform.macOS: <String>['avfvideosrc', 'videotestsrc'],
-      TargetPlatform.windows: <String>['ksvideosrc', 'videotestsrc'],
     };
 
 /// The fallback chain for [platform], or a hardware-free default.

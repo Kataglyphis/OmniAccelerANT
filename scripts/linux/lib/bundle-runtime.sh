@@ -25,16 +25,16 @@ is_system_soname() {
   return 1
 }
 
-# Every plugin the Dart/C++ pipelines and the Rust capture use; shared so none silently stops travelling.
+# Every plugin the Rust capture uses, the app's only pipeline on Linux; shared so none silently stops travelling.
 # shellcheck disable=SC2034  # read by bundle-runtime-closure.sh and check-bundle-closure.sh
 GST_BUNDLED_PLUGIN_NAMES=(
-  coreelements app videoconvertscale videotestsrc autodetect jpeg video4linux2
+  coreelements app videoconvertscale videotestsrc autodetect video4linux2
 )
 
-# The elements those pipelines name: gstreamer_pipeline.dart's Linux sources (pinned_artefacts_test.dart) and OxidANT's capture.rs.
+# The elements OxidANT's capture.rs names (pinned_artefacts_test.dart reads it).
 # shellcheck disable=SC2034  # read by check-bundle-gst-elements.sh
 GST_PIPELINE_ELEMENTS=(
-  appsink autovideosrc capsfilter jpegdec v4l2src videoconvert videoscale videotestsrc
+  appsink autovideosrc v4l2src videoconvert videoscale videotestsrc
 )
 
 # Exact token match: `$ORIGIN/lib` must not count as `$ORIGIN`.
