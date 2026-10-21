@@ -2,17 +2,17 @@
 // found in the LICENSE file.
 
 import 'dart:async';
-import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
+import 'package:anthology/Boot/boot_overlay.dart';
 import 'package:anthology/Pages/Footer/default_footer_config.dart';
 import 'package:anthology/Pages/Home/default_home_config.dart';
 import 'package:anthology/app_settings.dart';
 import 'package:anthology/app_shell.dart';
 import 'package:anthology/blog_page_config.dart';
+import 'package:anthology/settings_loader.dart';
 import 'package:anthology/user_settings.dart';
 
 import 'package:omni_accelerant/Pages/omni_screen_configurations.dart';
@@ -20,7 +20,6 @@ import 'package:omni_accelerant/Routing/omni_router.dart';
 import 'package:omni_accelerant/blog_dependent_app_attributes.dart';
 import 'package:omni_accelerant/l10n/app_localizations.dart';
 import 'package:omni_accelerant/settings/webrtc_settings.dart';
-import 'package:omni_accelerant/src/boot/boot_overlay.dart';
 import 'package:omni_accelerant/src/boot/rust_core.dart';
 import 'package:omni_accelerant/src/rust/frb_generated.dart';
 
@@ -38,30 +37,22 @@ const String appSettingsFilePath = "assets/settings/app_settings.json";
 const String blogSettingsFilePath = "assets/settings/blog_settings.json";
 const String webrtcSettingsFilePath = "assets/settings/webrtc_settings.json";
 
-/// Loads all settings files in parallel; throws [FormatException] on malformed JSON.
-Future<OmniBootstrapData> loadAppSettings() async {
-  final results = await Future.wait([
-    rootBundle.loadString(userSettingsFilePath),
-    rootBundle.loadString(appSettingsFilePath),
-    rootBundle.loadString(blogSettingsFilePath),
-    rootBundle.loadString(webrtcSettingsFilePath),
+/// Loads all settings files in parallel; a bad or missing file is logged and rethrown.
+Future<OmniBootstrapData> loadAppSettings([SettingsLoader? loader]) async {
+  final SettingsLoader settings = loader ?? SettingsLoader();
+  final List<Object> results = await Future.wait<Object>([
+    settings.loadShared(
+      userSettingsPath: userSettingsFilePath,
+      appSettingsPath: appSettingsFilePath,
+      blogSettingsPath: blogSettingsFilePath,
+    ),
+    settings.load(
+      webrtcSettingsFilePath,
+      (json) => WebRTCSettings.fromJsonFile(json as Map<String, dynamic>),
+    ),
   ]);
-
-  final userSettingsJson = json.decode(results[0]) as Map<String, dynamic>;
-  final appSettingsJson = json.decode(results[1]) as Map<String, dynamic>;
-  final blogSettingsJson = json.decode(results[2]) as List<dynamic>;
-  final webrtcSettingsJson = json.decode(results[3]) as Map<String, dynamic>;
-
-  final userSettings = UserSettings.fromJsonFile(userSettingsJson);
-  final appSettings = AppSettings.fromJsonFile(appSettingsJson);
-
-  final blogConfigs = blogSettingsJson
-      .map((e) => BlogPageConfig.fromJsonFile(e as Map<String, dynamic>))
-      .toList();
-
-  final webrtcSettings = WebRTCSettings.fromJsonFile(webrtcSettingsJson);
-
-  return (appSettings, userSettings, blogConfigs, webrtcSettings);
+  final (appSettings, userSettings, blogConfigs) = results[0] as SharedSettings;
+  return (appSettings, userSettings, blogConfigs, results[1] as WebRTCSettings);
 }
 
 Future<void> main() async {

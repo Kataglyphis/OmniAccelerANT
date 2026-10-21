@@ -8,7 +8,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:permission_handler/permission_handler.dart';
 
-import 'support/real_fonts.dart';
+import 'package:anthology/Testing/real_fonts.dart';
+
 import 'support/stream_page_app.dart';
 
 /// Stands in for the plugin: records every call, fails `setPipeline` for each source in [missing], and refuses every method in [refused].
@@ -92,7 +93,7 @@ const MethodChannel _permissionChannel = MethodChannel(
 );
 
 void main() {
-  setUpAll(loadRealFonts);
+  setUpAll(loadAnthologyFonts);
 
   final TargetPlatformVariant macOS = TargetPlatformVariant.only(
     TargetPlatform.macOS,

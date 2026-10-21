@@ -1,37 +1,44 @@
-function _setCookie(name, value) {
-	// Not an HTTP-date, so browsers drop it and this is a session cookie; fixing it changes the banner's lifetime.
-	const expires = "; expires=2147483647"; // ~2038 i.e. until user clears cookies
-	// Secure on https (SameSite=Strict alone still sends it over a downgraded request); an http LAN page drops a Secure cookie.
-	const secure = location.protocol === "https:" ? "; Secure" : "";
-	document.cookie = name + "=" + (value || "") + expires + "; SameSite=Strict" + secure;
-}
+// Shows the consent notice until its button sets a technically necessary cookie.
+(function () {
+	// Max-Age, since an unparsable Expires made it a session cookie; 400 days is the browsers' cap; path=/ spans the site.
+	const CONSENT_MAX_AGE_SECONDS = 400 * 24 * 60 * 60;
+	const COOKIE_KEY = 'cookie-consent';
+	const COOKIE_VALUE = 'true';
 
-function _getCookie(name) {
-	var nameEQ = name + "=";
-	var ca = document.cookie.split(';');
-	for (var i = 0; i < ca.length; i++) {
-		var c = ca[i];
-		while (c.charAt(0) == ' ') c = c.substring(1, c.length);
-		if (c.indexOf(nameEQ) == 0) return c.substring(nameEQ.length, c.length);
+	function setCookie(name, value) {
+		// Secure on https only: a plain-http LAN page drops a Secure cookie, and the notice came back on every visit.
+		const secure = location.protocol === 'https:' ? '; Secure' : '';
+		document.cookie = name + '=' + value + '; Max-Age=' + CONSENT_MAX_AGE_SECONDS + '; path=/; SameSite=Strict' + secure;
 	}
-	return null;
-}
 
-function initCookieNotice() {
-	const notice = document.getElementById('cookie-notice');
-	const consentBtn = document.getElementById('cookie-consent');
-	const cookieKey = 'cookie-consent';
-	const cookieConsentValue = 'true'
-	const activeClass = 'show';
-	if (_getCookie(cookieKey) === cookieConsentValue) {
-		return;
+	function getCookie(name) {
+		const prefix = name + '=';
+		for (const part of document.cookie.split(';')) {
+			const cookie = part.trim();
+			if (cookie.indexOf(prefix) === 0) {
+				return cookie.substring(prefix.length);
+			}
+		}
+		return null;
 	}
-	notice.classList.add(activeClass);
-	consentBtn.classList.add(activeClass);
-	consentBtn.addEventListener('click', (e) => {
-		e.preventDefault();
-		_setCookie(cookieKey, cookieConsentValue);
-		notice.classList.remove(activeClass);
-		consentBtn.classList.add(activeClass);
-	});
-}
+
+	function initCookieNotice() {
+		const notice = document.getElementById('cookie-notice');
+		const consentButton = document.getElementById('cookie-consent');
+		if (!notice || !consentButton || getCookie(COOKIE_KEY) === COOKIE_VALUE) {
+			return;
+		}
+		notice.classList.add('show');
+		consentButton.addEventListener('click', function (event) {
+			event.preventDefault();
+			setCookie(COOKIE_KEY, COOKIE_VALUE);
+			notice.classList.remove('show');
+		});
+	}
+
+	if (document.readyState === 'loading') {
+		document.addEventListener('DOMContentLoaded', initCookieNotice);
+	} else {
+		initCookieNotice();
+	}
+})();

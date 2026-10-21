@@ -55,19 +55,11 @@
     <title>OmniAccelerANT</title>
     <link rel="manifest" href="manifest.json">
 
-    <script src="javascript/utils.js"></script>
-    <script src="javascript/cookies.js"></script>
-
     <link rel="stylesheet" type="text/css" href="css/cookie.css">
     <link rel="stylesheet" type="text/css" href="css/loading_animation.css">
     <style>
         :root {
             --kPrimaryColor: rgb(105, 240, 174);
-        }
-
-        /* Fallback font families for better character support */
-        body {
-            font-family: 'Roboto', 'Noto Sans', system-ui, -apple-system, sans-serif;
         }
     </style>
 
@@ -84,27 +76,17 @@
         </section>
     </div>
 
-    <script>
-        var userLanguage = navigator.language || navigator.userLanguage;
-        var messageEn = 'I only use technically necessary cookies to provide services.\n'
-            + 'Further information can be found in the cookie statement at the bottom of the website. Have fun :)';
-        var messageDe = 'Ich verwende ausschließlich technisch notwendige Cookies, um Dienstleistungen zu erbringen.\n'
-            + 'Weitere Informationen finden Sie in der Cookie-Erklärung im unteren Teil der Website. Viel Spaß :)';
-        setMessage(userLanguage.substring(0, 2), 'message', messageDe, messageEn);
-        initCookieNotice();
-    </script>
-
     <div id="background-animation"></div>
 
     <div class="loading">
         <div class="loader"></div>
         <div id="loading-message"></div>
-        <script>
-            var messageEn = `You will be there soon ...`;
-            var messageDe = `Noch etwas Geduld ... `;
-            setMessage(userLanguage.substring(0, 2), 'loading-message', messageDe, messageEn);
-        </script>
     </div>
+
+    <!-- The shared shell (ANTfrastructure shared/web/); main() removes the overlay through ANThology's dismissBootOverlay(). -->
+    <script src="javascript/utils.js"></script>
+    <script src="javascript/cookies.js"></script>
+    <script src="javascript/init.js"></script>
     <script>
         if (!window.SharedArrayBuffer) {
             console.warn('SharedArrayBuffer nicht verfügbar');

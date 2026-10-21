@@ -14,9 +14,6 @@
   "aiPlayground": "AI Playground",
   "renderingPlayground": "Rendering Playground",
   "follow": "Visit page",
-  "rerunSqliteHealthcheck": "Re-run SQLite Healthcheck",
-  "sqliteError": "SQLite Error",
-  "sqliteWebHint": "Note: on the web, sqlite3.wasm must be served beside the page (the build copies web/sqlite3.wasm there).",
   "detectionInView": "{what} in view",
   "@detectionInView": {
     "description": "Status line while something it watches is in view; what is the watched classes, e.g. \"Cat\" or \"Cat / dog\".",

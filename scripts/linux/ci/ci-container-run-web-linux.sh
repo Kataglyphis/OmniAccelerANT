@@ -115,4 +115,14 @@ for artefact in pkg/oxidant.js pkg/oxidant_bg.wasm main.dart.wasm; do
   fi
 done
 
+echo "=== Smoke test: the build served, the shared web shell in place ==="
+antfrastructure_source linux/scripts/01-core/http-readiness.sh
+python3 -m http.server 8080 --bind 127.0.0.1 --directory build/web >/dev/null 2>&1 &
+smoke_server=$!
+trap 'kill "$smoke_server" 2>/dev/null || true' EXIT
+wait_for_http http://127.0.0.1:8080/ "http.server (pid $smoke_server)" || exit 1
+# No CSP in this app's index.html (the stream's hosts vary per board), so no CSP hosts to require.
+REQUIRED_CSP_HOSTS="" CHECK_LOADING_SHELL=1 \
+  bash "$(antfrastructure_path linux/webserver/scripts/flutter_integration_smoke_test.sh)" http://127.0.0.1:8080
+
 echo "=== Web build completed successfully ==="

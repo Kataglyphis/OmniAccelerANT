@@ -28,7 +28,7 @@ host-native CMake here: the host's cmake is Strawberry Perl's 3.29.2 out of
 - **Do not stage build output.** `build/`, `logs/`, `.dart_tool/`, `.venv/`,
   `doc/api/` are gitignored. If `git status` shows them, leave them alone.
 - **Deliberate traps — do not "fix" them:** committed generated code under
-  `lib/src/rust/`; the `dbName` string in `lib/src/db/sqlite3_loader_web.dart`;
+  `lib/src/rust/`; `omniIndexedDbName` in `lib/src/db/sqlite3_storage.dart`;
   the Android SDK pins, which live once, in `android/build.gradle.kts`'s
   `extra` block; and the pieces AGENTS.md § 2 (What ANTfrastructure owns) marks as
   deliberately not reused.

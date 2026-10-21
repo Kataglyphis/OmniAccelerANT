@@ -14,8 +14,8 @@ that own every shared procedure. Do not restate those procedures in a task.
   commands: the host's cmake is Strawberry Perl's 3.29.2 and fails at
   configure (AGENTS.md § 5).
 - **Do not propose changes to generated or deliberately-pinned artefacts.**
-  `lib/src/rust/` is committed generated code; the `dbName` string in
-  `lib/src/db/sqlite3_loader_web.dart` is a deliberate browser-database name; the
+  `lib/src/rust/` is committed generated code; `omniIndexedDbName` in
+  `lib/src/db/sqlite3_storage.dart` is a deliberate browser-database name; the
   Android SDK pins live once, in `android/build.gradle.kts`'s `extra` block, and
   no module may repeat them as literals; and the two
   Windows pieces AGENTS.md § 2 (What ANTfrastructure owns) marks "deliberately not reused" must stay out.

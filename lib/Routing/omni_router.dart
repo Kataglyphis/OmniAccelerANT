@@ -1,22 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:omni_accelerant/Pages/AboutMePage/about_me_page.dart';
-import 'package:omni_accelerant/Pages/Blog/blog_page.dart';
 import 'package:omni_accelerant/Pages/CameraSettingsPage/camera_settings_page.dart';
 import 'package:omni_accelerant/Pages/DevicePage/device_page.dart';
 import 'package:anthology/Pages/DataPage/BlockOverviewPage/block_overview_page.dart';
 import 'package:omni_accelerant/Pages/StreamPage/stream_page.dart';
-import 'package:anthology/Pages/ErrorPage/error_page.dart';
 import 'package:omni_accelerant/blog_dependent_app_attributes.dart';
-import 'package:anthology/Pages/Footer/footer_page.dart';
 import 'package:anthology/Pages/LandingPage/landing_page.dart';
-import 'package:anthology/Pages/Footer/footer.dart';
-import 'package:anthology/Pages/Footer/footer_page_config.dart';
-import 'package:anthology/blog_page_config.dart';
 import 'package:anthology/Routing/router_creater.dart';
 import 'package:anthology/app_attributes.dart';
 import 'package:anthology/Pages/stateful_branch_info_provider.dart';
 
-/// All OmniAccelerANT routes, each paired with its [StatefulBranchInfoProvider].
+/// All OmniAccelerANT routes, each paired with its [StatefulBranchInfoProvider]; the footer, blog and error pages come from ANThology's helpers.
 class OmniRoutes extends RoutesCreator {
   OmniBlogDependentAppAttributes blogDependentAppAttributes;
 
@@ -26,59 +20,27 @@ class OmniRoutes extends RoutesCreator {
   List<(Widget, StatefulBranchInfoProvider)> getAllPagesWithConfigs(
     AppAttributes appAttributes,
   ) {
-    List<(Widget, StatefulBranchInfoProvider)> allPagesAndConfigs = [];
-    allPagesAndConfigs += _getNavBarPagesAndConfigs(appAttributes);
-    allPagesAndConfigs += _getFooterPagesAndConfigs(appAttributes);
-    allPagesAndConfigs += _getBlogPagesAndConfigs(appAttributes);
-    allPagesAndConfigs += _getDataPagesAndConfigs(appAttributes);
-    allPagesAndConfigs += _getErrorPagesAndConfigs(appAttributes);
-
-    return allPagesAndConfigs;
-  }
-
-  List<(Widget, StatefulBranchInfoProvider)> _getErrorPagesAndConfigs(
-    AppAttributes appAttributes,
-  ) {
-    List<StatefulBranchInfoProvider> errorPageConfigs = appAttributes
-        .screenConfigurations
-        .getErrorPagesConfig();
-    List<Widget> errorPages = [
-      ErrorPage(footer: getFooter(appAttributes), appAttributes: appAttributes),
-    ];
-    assert(errorPages.length == errorPageConfigs.length);
+    final screens =
+        blogDependentAppAttributes.blogDependentScreenConfigurations;
     return [
-      for (int i = 0; i < errorPages.length; i += 1)
-        (errorPages[i], errorPageConfigs[i]),
-    ];
-  }
-
-  List<(Widget, StatefulBranchInfoProvider)> _getDataPagesAndConfigs(
-    AppAttributes appAttributes,
-  ) {
-    List<StatefulBranchInfoProvider> dataPagesConfigs =
-        blogDependentAppAttributes.blogDependentScreenConfigurations
-            .getDataPagesConfig();
-    List<Widget> dataPages = [
-      BlockOverviewPage(
-        footer: getFooter(appAttributes),
-        appAttributes: appAttributes,
-        blogDependentAppAttributes: blogDependentAppAttributes,
-      ),
-    ];
-    assert(dataPages.length == dataPagesConfigs.length);
-    return [
-      for (int i = 0; i < dataPages.length; i += 1)
-        (dataPages[i], dataPagesConfigs[i]),
+      ..._getNavBarPagesAndConfigs(appAttributes),
+      ...footerPagesWithConfigs(appAttributes),
+      ...blogPagesWithConfigs(appAttributes, screens.getBlogPagesConfig()),
+      ...pairPagesWithConfigs([
+        BlockOverviewPage(
+          footer: getFooter(appAttributes),
+          appAttributes: appAttributes,
+          blogDependentAppAttributes: blogDependentAppAttributes,
+        ),
+      ], screens.getDataPagesConfig()),
+      ...errorPagesWithConfigs(appAttributes),
     ];
   }
 
   List<(Widget, StatefulBranchInfoProvider)> _getNavBarPagesAndConfigs(
     AppAttributes appAttributes,
   ) {
-    List<StatefulBranchInfoProvider> navBarPageConfigs = appAttributes
-        .screenConfigurations
-        .getNavRailPagesConfig();
-    List<Widget> navBarPages = [
+    return pairPagesWithConfigs([
       StreamPage(
         footer: getFooter(appAttributes),
         appAttributes: appAttributes,
@@ -101,66 +63,6 @@ class OmniRoutes extends RoutesCreator {
         footer: getFooter(appAttributes),
         appAttributes: appAttributes,
       ),
-    ];
-    assert(navBarPages.length == navBarPageConfigs.length);
-    return [
-      for (int i = 0; i < navBarPages.length; i += 1)
-        (navBarPages[i], navBarPageConfigs[i]),
-    ];
-  }
-
-  List<(Widget, StatefulBranchInfoProvider)> _getBlogPagesAndConfigs(
-    AppAttributes appAttributes,
-  ) {
-    List<BlogPageConfig> blogPagesConfigs = blogDependentAppAttributes
-        .blogDependentScreenConfigurations
-        .getBlogPagesConfig();
-    List<(Widget, StatefulBranchInfoProvider)> footerPages = blogPagesConfigs
-        .map(
-          (pageConfig) => (
-            BlogPage(
-              footer: getFooter(appAttributes),
-              appAttributes: appAttributes,
-              blogPageConfig: pageConfig,
-            ),
-            pageConfig,
-          ),
-        )
-        .toList();
-
-    return footerPages;
-  }
-
-  List<(Widget, StatefulBranchInfoProvider)> _getFooterPagesAndConfigs(
-    AppAttributes appAttributes,
-  ) {
-    List<FooterPageConfig> footerPagesConfigs = appAttributes
-        .screenConfigurations
-        .getFooterPagesConfig();
-    List<(Widget, StatefulBranchInfoProvider)> footerPages = footerPagesConfigs
-        .map(
-          (pageConfig) => (
-            FooterPage(
-              footer: getFooter(appAttributes),
-              appAttributes: appAttributes,
-              filePathDe: pageConfig.getFilePathDe(),
-              filePathEn: pageConfig.getFilePathEn(),
-            ),
-            pageConfig,
-          ),
-        )
-        .toList();
-
-    return footerPages;
-  }
-
-  @override
-  Footer getFooter(AppAttributes appAttributes) {
-    return Footer(
-      footerPagesConfigs: appAttributes.screenConfigurations
-          .getFooterPagesConfig(),
-      userSettings: appAttributes.userSettings,
-      footerConfig: appAttributes.footerConfig,
-    );
+    ], appAttributes.screenConfigurations.getNavRailPagesConfig());
   }
 }

@@ -9,7 +9,8 @@ import 'package:omni_accelerant/Pages/StreamPage/rust_webcam_view.dart';
 import 'package:omni_accelerant/src/rust/api/webcam.dart';
 import 'package:omni_accelerant/src/rust/frb_generated.dart';
 
-import 'support/real_fonts.dart';
+import 'package:anthology/Testing/real_fonts.dart';
+
 import 'support/stream_page_app.dart';
 
 /// The Rust core of a desktop build: no camera attached.
@@ -38,7 +39,7 @@ void main() {
   final _FakeRustApi rust = _FakeRustApi();
   setUpAll(() async {
     RustLib.initMock(api: rust);
-    await loadRealFonts();
+    await loadAnthologyFonts();
   });
 
   for (final TargetPlatform platform in <TargetPlatform>[

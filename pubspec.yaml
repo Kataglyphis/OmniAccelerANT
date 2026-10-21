@@ -51,7 +51,6 @@ flutter:
   # Only app-specific assets; the shared corpus is referenced as `packages/anthology/assets/...`.
   assets:
     - assets/documents/
-    - assets/documents/footer/
     - assets/data/
     - assets/settings/
     - assets/settings/user_settings/

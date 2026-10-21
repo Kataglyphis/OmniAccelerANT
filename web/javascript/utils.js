@@ -1,26 +1,8 @@
-// Function to set message based on language
-function setMessage(language, messageDivContainerName, messageDe, messageEn) {
-
-	var messageElement = document.getElementById(messageDivContainerName);
-
-	// Check if the element exists
-	if (!messageElement) {
+// Sets an element's text to the German or the English message by the browser's language.
+function setMessage(language, elementId, messageDe, messageEn) {
+	const element = document.getElementById(elementId);
+	if (!element) {
 		return;
 	}
-	var message = "";
-
-	switch (language) {
-		case "de":
-			message=messageDe
-			break;
-		case "en":
-			message = messageEn;
-			break;
-		// Add more cases for other languages as needed
-		default:
-			message = messageEn;
-	}
-
-	// Set the message content
-	messageElement.textContent = message;
+	element.textContent = language.substring(0, 2) === 'de' ? messageDe : messageEn;
 }

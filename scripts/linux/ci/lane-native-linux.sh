@@ -124,9 +124,10 @@ run_gate "bundle gate tests" bash scripts/linux/tests/test-check-bundle-closure.
 run_gate "bundle element gate tests" bash scripts/linux/tests/test-check-bundle-gst-elements.sh
 run_gate "rust toolchain gate tests" bash scripts/linux/tests/test-check-rust-toolchain.sh
 # lib/ was 97.2 % covered on 2026-10-16 (87.4 % on 2026-10-12); raise the floor as it climbs.
-run_gate "dart coverage" bash scripts/linux/check-dart-coverage.sh --min 96 --lcov "$dart_lcov"
-run_gate "dart coverage gate tests" bash scripts/linux/tests/test-check-dart-coverage.sh
-run_gate "frontend performance script tests" bash scripts/linux/tests/test-perf-reports.sh
+run_gate "dart coverage" bash "$(antfrastructure_path linux/scripts/05-frameworks/flutter/check-dart-coverage.sh)" \
+  --min 96 --lcov "$dart_lcov" --exclude lib/src/rust/
+# Title vs manifest, sqlite3.wasm vs the hub's pin, 8-bit icons: what no build step checks.
+run_gate "web artefacts" python3 "$(antfrastructure_path linux/scripts/05-frameworks/flutter/check-web-artefacts.py)" --repo-root .
 assert_gates
 
 flutter config --enable-linux-desktop

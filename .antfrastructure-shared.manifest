@@ -19,3 +19,9 @@ resolve-build-module
 agentic-loop-sh
 agentic-loop-ps1
 clang-format packages/kataglyphis_native_inference/.clang-format
+# The Flutter web shell (shared/web/README.md), copied verbatim; --write refreshes them.
+web-cookie-css
+web-loading-css
+web-cookies-js
+web-utils-js
+web-init-js

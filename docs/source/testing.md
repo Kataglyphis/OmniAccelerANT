@@ -44,13 +44,17 @@ From the README (2026-10-19). `test/` checks, among the rest:
 - the settings files: a malformed key named in the error, and the web's signalling URL resolved
   against the page (`webrtc_settings_test.dart`, `settings_asset_paths_test.dart`);
 - the web booting without the Rust core, and native refusing to (`rust_core_test.dart`);
-- the About page's SQLite line and its error text (`sqlite3_healthcheck_widget_test.dart`);
-- what no build step checks: the bridge's versions, the sqlite3 wasm, 8-bit icons
-  (`pinned_artefacts_test.dart`), and that every social link has an icon (`social_icons_test.dart`).
+- what no build step checks: the bridge's versions, the version written twice, and the browser
+  database's name (`pinned_artefacts_test.dart`); and that every social link has an icon
+  (`bootstrap_settings_test.dart`).
+
+The SQLite line, the boot overlay, the locale helpers, the footer list and the routing helpers are
+ANThology's since 2026-10-21, and so are their tests. The sqlite3 wasm, the icons and the title are
+the hub's `check-web-artefacts.py`, which the native lane runs.
 
 The native Linux lane measures how much of `lib/` these reach (without the generated bridge and
 localizations) and fails below a floor of 96 % (`--min` in `lane-native-linux.sh`, stated once
-and moved up as tests are added; `check-dart-coverage.sh`). Measured: 96.5 % on 2026-10-13 (62 %
+and moved up as tests are added; the hub's `check-dart-coverage.sh`). Measured: 96.5 % on 2026-10-13 (62 %
 the morning before, ahead of the native Stream page and Rust camera view tests), 97.2 % on
 2026-10-16. A file no test imports is not in the report at all. The web-only files are tested in
 Chrome and stay outside the figure (*Known gaps* below).
@@ -156,7 +160,7 @@ xvfb-run -a flutter test integration_test/simple_test.dart -d linux
 # Frame timings in profile mode, and where a slow frame spends its time.
 xvfb-run -a flutter drive --profile -d linux --driver=test_driver/perf_driver.dart \
   --target=integration_test/performance_test.dart
-python3 scripts/linux/frontend-perf-report.py out/perf/frontend.json
+python3 third_party/ANTfrastructure/linux/scripts/05-frameworks/flutter/frontend-perf-report.py out/perf/frontend.json
 
 # Rust, as CI runs it (fetches the model, demands GPU, model and GStreamer), in :latest:
 (cd third_party/OxidANT && bash scripts/linux/ci-container-steps.sh test)

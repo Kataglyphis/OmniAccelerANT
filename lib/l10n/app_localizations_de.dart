@@ -57,16 +57,6 @@ class AppLocalizationsDe extends AppLocalizations {
   String get follow => 'Hier geht\'s weiter';
 
   @override
-  String get rerunSqliteHealthcheck => 'SQLite Healthcheck erneut ausführen';
-
-  @override
-  String get sqliteError => 'SQLite Fehler';
-
-  @override
-  String get sqliteWebHint =>
-      'Hinweis: Im Web muss sqlite3.wasm neben der Seite liegen (der Build kopiert web/sqlite3.wasm dorthin).';
-
-  @override
   String detectionInView(String what) {
     return '$what im Bild';
   }

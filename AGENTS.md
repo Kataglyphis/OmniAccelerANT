@@ -328,14 +328,15 @@ rather than linked.
   changed the package name, the executable, the Linux application id and the MSIX
   identity (`Kataglyphis.KataglyphisInferenceEngine` → `Kataglyphis.OmniAccelerANT`),
   so a 1.x install does not upgrade in place. `CHANGELOG.md` holds the rest.
-- **`dbName` in `lib/src/db/sqlite3_loader_web.dart` is deliberately NOT the package
-  name.** It still reads `kataglyphis_inference_engine` after the 2026-09-05 rename to
+- **`omniIndexedDbName` in `lib/src/db/sqlite3_storage.dart` is deliberately NOT the
+  package name.** It still reads `kataglyphis_inference_engine` after the 2026-09-05 rename to
   `omni_accelerant`, because it names the **IndexedDB database in the visitor's browser**,
   which backs the sqlite3 VFS. Changing it renames nothing: it opens a *different, empty*
   database and orphans whatever the visitor had, with no error and no migration path. A
   rename here is a data migration and needs a copy step first; leaving it costs nothing,
-  since only the browser sees the string. It also keeps that call wrapped across three
-  lines; the shorter name fits on one, and `dart format` then rewrites the file.
+  since only the browser sees the string. `omniSqliteDatabasePath` (`/kataglyphis.db`) is the
+  same kind of name. The loader that opens them is ANThology's `loadSqlite3` (since
+  2026-10-21); `test/pinned_artefacts_test.dart` pins both values.
 - **The Android lane builds an arm64-v8a APK against five load-bearing Gradle constraints**:
   built-in Kotlin with a declared KGP 2.4.21 (so CodeQL scans c, cpp and rust only; never lower
   the KGP for it), `android.newDsl=false`, Cargokit's Gradle 9 and API-37 patches (keep them
@@ -565,13 +566,14 @@ that cannot run there; why, lane by lane: [`docs/source/testing.md`](docs/source
 | G6 over the shipped tree | `check-bundle-closure.sh` | at build, again on the host | at the natives build, again on the device | | |
 | Every pipeline element from the bundled plugins alone (`check-bundle-gst-elements.sh`) | yes | | | | |
 | Bundle gate's mutation suite, the element gate's stub suite | yes | | | | |
-| Dart coverage of `lib/` against a floor (`check-dart-coverage.sh`), and its synthetic-lcov suite | yes | | | | |
+| Dart coverage of `lib/` against a floor (the hub's `check-dart-coverage.sh`) | yes | | | | |
+| Web artefacts: `<title>` vs manifest name, `sqlite3.wasm` vs its pin, 8-bit icons (the hub's `check-web-artefacts.py`) | yes | | | | |
 | Plugin C++ format (`check-plugin-cpp-format.sh`) and its planted-deviation suite | yes | | | | |
 | Import walk | (the closure gate) | host, `-Standalone` | device | | |
 | Launch smoke, 20 s | under Xvfb, on the host's and the bundled glibc, and the app flatpak | host | device | | |
 | Integration test (`integration_test/simple_test.dart`) | under Xvfb | `flutter drive` against the clang-cl app | `flutter drive` (the Debug app) | | |
 | Webcam frame through `knt_push_frame` (`integration_test/webcam_frame_test.dart`) | under Xvfb, test pattern | | | | |
-| Frame timings in profile mode (`integration_test/performance_test.dart`, `flutter drive --profile`), against the last default-branch run, and its scripts' suite (`test-perf-reports.sh`) | x64, under Xvfb | | | | |
+| Frame timings in profile mode (`integration_test/performance_test.dart`, `flutter drive --profile`), against the median of the last 20 default-branch runs (the hub's `frontend-perf-report` action) | x64, under Xvfb | | | | |
 | Pester (`scripts/windows/tests`) | | `windows-2025` | `windows-11-arm` | | |
 | Plugin JVM test | | | | yes | |
 | APK ABI gate (`check-apk-abi.sh`) and its synthetic-APK suite | | | | yes | |

@@ -1,12 +1,12 @@
-// Pins on committed artefacts that no build step checks; paths resolve from the test, not the CWD.
+// Pins on committed artefacts that no build step checks; the web ones (title, sqlite3.wasm, 8-bit icons) are ANTfrastructure's check-web-artefacts.py.
 @TestOn('vm')
 library;
 
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:crypto/crypto.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:omni_accelerant/src/db/sqlite3_storage.dart';
 
 /// Repo root, found by walking up from this file until pubspec.yaml appears.
 Directory _repoRoot() {
@@ -28,20 +28,6 @@ String _read(String relative) {
   final File file = File('${_repoRoot().path}/$relative');
   if (!file.existsSync()) fail('missing file: $relative');
   return file.readAsStringSync();
-}
-
-/// The generated icons: the web favicon, its manifest icons and the Android mipmaps.
-List<File> _generatedIcons() {
-  final String root = _repoRoot().path;
-  bool png(FileSystemEntity e) => e is File && e.path.endsWith('.png');
-  return <File>[
-    File('$root/web/favicon.png'),
-    ...Directory('$root/web/icons').listSync().where(png).cast<File>(),
-    ...Directory('$root/android/app/src/main/res')
-        .listSync(recursive: true)
-        .where(png)
-        .cast<File>(),
-  ];
 }
 
 /// First capture group of [pattern] in [relative], or a failure naming both.
@@ -168,56 +154,10 @@ void main() {
     });
   });
 
-  group('committed web binaries match their upstream pin', () {
-    test('web/sqlite3.wasm is the build ANTfrastructure records', () {
-      // Committed rather than fetched, so nothing else re-verifies it.
-      final String expected = _extract(
-        'third_party/ANTfrastructure/linux/scripts/01-core/versions.env',
-        RegExp(r'^SQLITE3_WASM_SHA256=([0-9a-f]{64})', multiLine: true),
-        'SQLITE3_WASM_SHA256',
-      );
-      final String actual = sha256
-          .convert(
-            File('${_repoRoot().path}/web/sqlite3.wasm').readAsBytesSync(),
-          )
-          .toString();
-      expect(
-        actual,
-        expected,
-        reason:
-            'web/sqlite3.wasm does not match SQLITE3_WASM_SHA256 in the pinned '
-            'ANTfrastructure. Either the submodule moved to a new sqlite3 '
-            'release and web/sqlite3.wasm was not refreshed, or the committed '
-            'binary was replaced by hand. Refresh it with '
-            'linux/scripts/05-frameworks/flutter/setup-sqlite3-wasm.sh.',
-      );
-    });
-
-    test('the locked sqlite3 package is the release the wasm comes from', () {
-      // The Dart bindings and the wasm ship together; a lock refresh alone splits them.
-      final String wasm = _extract(
-        'third_party/ANTfrastructure/linux/scripts/01-core/versions.env',
-        RegExp(r'^SQLITE3_WASM_VERSION=(\S+)', multiLine: true),
-        'SQLITE3_WASM_VERSION',
-      );
-      final String locked = _extract(
-        'pubspec.lock',
-        RegExp(
-          r'^  sqlite3:\r?\n(?:    .*\r?\n)*?    version: "([^"]+)"',
-          multiLine: true,
-        ),
-        'the sqlite3 entry of pubspec.lock',
-      );
-      expect(
-        locked,
-        wasm,
-        reason:
-            'pubspec.lock resolves sqlite3 $locked, but web/sqlite3.wasm is '
-            'the sqlite3-$wasm build (SQLITE3_WASM_VERSION in the pinned '
-            'ANTfrastructure). Move the hub pin, web/sqlite3.wasm and the '
-            'lock together.',
-      );
-    });
+  test('the browser database keeps its name and path', () {
+    // Renaming either opens an empty database in every visitor's browser and orphans the old one.
+    expect(omniIndexedDbName, 'kataglyphis_inference_engine');
+    expect(omniSqliteDatabasePath, '/kataglyphis.db');
   });
 
   test('every element of the Rust capture travels in the Linux bundle', () {
@@ -269,26 +209,5 @@ void main() {
             'scripts/linux/lib/bundle-runtime.sh',
       );
     }
-  });
-
-  group('generated icons', () {
-    test('are 8 bits per channel', () {
-      // flutter_launcher_icons writes 16; browsers show 8, and Icon-192.png was 123 kB instead of 26.
-      final String root = _repoRoot().path;
-      final List<String> deep = <String>[
-        for (final File icon in _generatedIcons())
-          if (icon.readAsBytesSync()[24] != 8)
-            icon.path.substring(root.length + 1),
-      ];
-      expect(
-        deep,
-        isEmpty,
-        reason:
-            'these icons are not 8 bits per channel: ${deep.join(', ')}. '
-            'Re-encode them, in :latest: python3 -c "import sys; from PIL '
-            'import Image; [Image.open(p).save(p, optimize=True, '
-            'compress_level=9) for p in sys.argv[1:]]" <files>',
-      );
-    });
   });
 }

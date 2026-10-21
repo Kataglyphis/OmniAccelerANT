@@ -188,24 +188,6 @@ abstract class AppLocalizations {
   /// **'Visit page'**
   String get follow;
 
-  /// No description provided for @rerunSqliteHealthcheck.
-  ///
-  /// In en, this message translates to:
-  /// **'Re-run SQLite Healthcheck'**
-  String get rerunSqliteHealthcheck;
-
-  /// No description provided for @sqliteError.
-  ///
-  /// In en, this message translates to:
-  /// **'SQLite Error'**
-  String get sqliteError;
-
-  /// No description provided for @sqliteWebHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Note: on the web, sqlite3.wasm must be served beside the page (the build copies web/sqlite3.wasm there).'**
-  String get sqliteWebHint;
-
   /// Status line while something it watches is in view; what is the watched classes, e.g. "Cat" or "Cat / dog".
   ///
   /// In en, this message translates to:

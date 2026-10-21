@@ -1,4 +1,4 @@
-// Keeps integration_test/performance_test.dart's frame timings in out/perf/frontend.json for scripts/linux/frontend-perf-report.py.
+// Keeps integration_test/performance_test.dart's frame timings in out/perf/frontend.json for ANTfrastructure's frontend-perf-report.py.
 import 'dart:convert';
 import 'dart:io';
 

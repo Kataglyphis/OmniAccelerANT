@@ -1,5 +1,7 @@
+/* The consent notice; javascript/cookies.js shows it until its button is pressed. */
 #cookie-notice {
-	background-color: #fff;
+	background-color: #ffffff;
+	color: #000000;
 	bottom: 0;
 	box-shadow: 0 8px 24px rgba(0, 0, 0, .25);
 	-webkit-font-smoothing: antialiased;
@@ -13,26 +15,21 @@
 }
 
 #cookie-notice.show {
-	animation-delay: .2s;
-	animation-duration: .5s;
-	animation-fill-mode: forwards;
-	animation-iteration-count: 1;
-	animation-name: fadein;
-	animation-timing-function: cubic-bezier(.27, .89, .39, .95);
+	animation: fadein .5s cubic-bezier(.27, .89, .39, .95) .2s 1 forwards;
 	display: block;
 }
 
 @keyframes fadein {
 	0% {
-		opacity: 0
+		opacity: 0;
 	}
 
 	to {
-		opacity: 1
+		opacity: 1;
 	}
 }
 
-.container {
+#cookie-notice .container {
 	align-items: center;
 	display: flex;
 	gap: 24px;
@@ -51,7 +48,7 @@
 
 #cookie-consent {
 	background-color: var(--kPrimaryColor);
-	color: #fff;
+	color: #ffffff;
 	align-items: center;
 	justify-content: center;
 	border: 0;
@@ -59,7 +56,7 @@
 	cursor: pointer;
 	display: inline-flex;
 	flex-shrink: 0;
-	font-family: "Google Sans", sans-serif;
+	font-family: inherit;
 	font-size: 14px;
 	font-weight: 700;
 	height: 40px;
@@ -73,7 +70,7 @@
 		padding: 16px 0;
 	}
 
-	.container {
+	#cookie-notice .container {
 		align-items: stretch;
 		flex-direction: column;
 		gap: 12px;

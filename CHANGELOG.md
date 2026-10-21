@@ -21,6 +21,31 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ### Changed
 
+- **The web side is shared with jotrockenmitlocken** (2026-10-21, owner: jonasheinle.de gets every
+  improvement made here, with as much code shared as possible). What both apps carried apart now has
+  one owner:
+  - ANThology ac9606a: the boot overlay (`dismissBootOverlay`), the SQLite loader, healthcheck and
+    its widget (the strings now in en/de/fr), the locale helpers, the seven footer pages and the
+    routing helpers. Gone here: `lib/src/boot/boot_overlay*`, `lib/src/db/sqlite3_loader*` and
+    `sqlite3_healthcheck.dart`, the About page's healthcheck widget, `lib/utils/locale_utils.dart`,
+    the seven footer config classes, `BlogPage`, the router's own footer, blog and error helpers,
+    and `test/support/real_fonts.dart`.
+  - The browser database keeps its name and path: they are constants in
+    `lib/src/db/sqlite3_storage.dart`, pinned by `pinned_artefacts_test.dart` (AGENTS.md § 4).
+  - The Open Source Licenses page is ANThology's `OpenSourceLicensesPage`, Flutter's licence
+    registry, as on jotrockenmitlocken. Before, it was a hand-written list that named `provider`,
+    a package this app never used.
+  - The web shell (`web/css/`, `web/javascript/`) is ANTfrastructure's `shared/web/`, checked by the
+    lint gates' `shared-config`. From jotrockenmitlocken it brings: the consent cookie lasts 400
+    days (`Max-Age`, `path=/`), where `expires=2147483647` was unparsable and the notice came back
+    every session; a dark loading screen; a fade-out; no inline script for the messages
+    (`javascript/init.js`).
+  - The hub's `check-dart-coverage.sh`, `frontend-perf-report.py`, `flutter-trace-summary.py` and
+    `frontend-perf-report` action replace this repo's copies and the four perf-baseline steps.
+    `check-web-artefacts.py` takes `pinned_artefacts_test`'s sqlite3.wasm, lock and icon checks,
+    and the native lane runs it. The web lane now runs the hub smoke test against its build,
+    which also checks that the shared shell is served.
+
 - **The Rust core is in every build, with no feature switch** (2026-10-21; owner 2026-10-20: every
   Rust feature is mandatory, the target alone decides). OxidANT moves to 6192c6b (3.0.0, no
   `[features]` table; it vendors `tract-linalg` 0.23.8 with a fix for clang-cl, whose MASM-rendered

@@ -8,7 +8,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:omni_accelerant/main.dart';
 
-import 'support/real_fonts.dart';
+import 'package:anthology/Testing/real_fonts.dart';
 
 /// The bottom bar's four pages, a markdown footer page and a blog post.
 const List<String> _routes = <String>[
@@ -32,7 +32,7 @@ const List<(Size, double)> _cases = <(Size, double)>[
 ];
 
 void main() {
-  setUpAll(loadRealFonts);
+  setUpAll(loadAnthologyFonts);
 
   for (final (Size size, double textScale) in _cases) {
     testWidgets(

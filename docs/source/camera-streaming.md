@@ -91,10 +91,10 @@ only stable values are gated, and a run the report failed never joins the histor
   --target=integration_test/performance_test.dart`. Flutter's `watchPerformance` times the
   frames of the app's start, three rounds through every tab, and resizes across both layout
   breakpoints; the driver keeps them in `out/perf/frontend.json`, and
-  `scripts/linux/frontend-perf-report.py` makes the table (frames, build and raster time on
+  ANTfrastructure's `frontend-perf-report.py` makes the table (frames, build and raster time on
   average, at the 90th percentile and at worst, missed build budgets). The native lane runs it
-  under Xvfb on x64 (`run_frontend_performance`); `reusable-linux.yml` keeps the default
-  branch's last 20 results in `.perf-baseline/`. Gated: the average and the 90th-percentile
+  under Xvfb on x64 (`run_frontend_performance`); the hub's `frontend-perf-report` action keeps
+  the default branch's last 20 results in `.perf-baseline/`. Gated: the average and the 90th-percentile
   build time; the worst frame is one frame and only warns.
 
 **When a frame is slow, find what it builds.** The report says *that* a scenario got slower; a
@@ -102,7 +102,7 @@ profile timeline says *where*. Write an entry point outside the tree, say
 `build/probe/main.dart`, that sets `debugProfileBuildsEnabled = true` (and
 `debugProfileBuildsEnabledUserWidgets`) before calling the app's `main()`, run `flutter run
 --profile --trace-startup -d linux -t build/probe/main.dart` under Xvfb, then
-`python3 scripts/linux/flutter-trace-summary.py build/start_up_timeline.json`. It lists the
+`python3 third_party/ANTfrastructure/linux/scripts/05-frameworks/flutter/flutter-trace-summary.py build/start_up_timeline.json`. It lists the
 slowest UI and raster frames and the slowest UI frame's self time per event, per widget with
 that flag. That found the 2026-10-15 start-up fix: `StreamPage` held 938 ms of a 963 ms build,
 because its `initState` enumerated cameras synchronously. Without the flag the same command

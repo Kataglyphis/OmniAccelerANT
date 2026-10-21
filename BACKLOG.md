@@ -171,6 +171,14 @@ what the owner's goal still lacks.
   Done when a TURN entry carries its credentials to the peer connection, with a test in
   `webrtc_view_test.dart`.
 
+- [ ] **ANThology's web-only code is tested in Chrome by hand only.** Since 2026-10-21 this app's
+  boot overlay and SQLite loader are ANThology's (`lib/Boot/`, `lib/Sqlite/`). The web halves have
+  tests (`boot_overlay_web_test.dart` is `@TestOn('browser')`), but ANThology's `docs.yml` checks
+  job runs its suite on the VM only. In Chrome, 84 of its tests pass and
+  `footer_and_skills_test.dart`'s `setUpAll` fails: it loads Roboto through `rootBundle`, which a
+  browser test does not serve (`:latest`, 2026-10-21). Done when that file is `@TestOn('vm')` and
+  ANThology's Dart gate also runs its suite in Chrome.
+
 ## Open — waiting on the owner
 
 - [b] **False arrivals on himbeere2: nearly gone, one mark left.** On 2026-10-12 and 13 a drying rack at

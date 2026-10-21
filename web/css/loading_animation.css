@@ -1,38 +1,51 @@
-/* Shown until Flutter draws its first frame; lib/src/boot/boot_overlay_web.dart removes it. */
+/* Until Flutter starts: ANThology's dismissBootOverlay() fades it out and removes it. Below the cookie notice (z-index 11). */
+body {
+	font-family: 'Roboto', 'Noto Sans', system-ui, -apple-system, sans-serif;
+}
+
 .loading {
 	display: flex;
 	flex-direction: column;
+	justify-content: center;
 	align-items: center;
 	gap: 16px;
-	position: absolute;
-	top: 50%;
-	left: 50%;
-	width: min(90vw, 480px);
-	transform: translate(-50%, -50%);
+	position: fixed;
+	inset: 0;
+	padding: 0 16px;
 	text-align: center;
+	z-index: 10;
+	pointer-events: none;
+}
+
+.loading.fade-out {
+	opacity: 0;
+	transition: opacity 0.5s ease-out;
 }
 
 #loading-message {
 	color: #000000;
 	font-size: 24px;
+	max-width: 480px;
 }
 
 #background-animation {
 	position: fixed;
-	top: 0;
-	left: 0;
-	width: 100%;
-	height: 100%;
+	inset: 0;
 	z-index: -1;
-	background: linear-gradient(45deg, #ffffff, #69f0ae);
+	background: linear-gradient(45deg, #ffffff, var(--kPrimaryColor, #69f0ae));
 	background-size: 400% 400%;
 	animation: gradientAnimation 5s ease infinite;
+	transition: opacity 0.5s ease-out;
+}
+
+#background-animation.fade-out {
+	opacity: 0;
 }
 
 .loader {
 	width: 120px;
 	height: 120px;
-	border: 16px solid white;
+	border: 16px solid #ffffff;
 	border-top-color: var(--kPrimaryColor);
 	border-bottom-color: var(--kPrimaryColor);
 	border-radius: 50%;
@@ -48,6 +61,16 @@
 
 	#loading-message {
 		font-size: 20px;
+	}
+}
+
+@media (prefers-color-scheme: dark) {
+	#loading-message {
+		color: #e0e0e0;
+	}
+
+	#background-animation {
+		background: linear-gradient(45deg, #1a1a2e, #16213e);
 	}
 }
 

@@ -2,10 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:anthology/Pages/AboutMePage/Widgets/about_me_table.dart';
 import 'package:anthology/Widgets/skill_table.dart';
-import 'package:omni_accelerant/Pages/AboutMePage/Widgets/sqlite3_healthcheck_widget.dart';
+import 'package:anthology/Sqlite/sqlite3_healthcheck_widget.dart';
+import 'package:anthology/locale_helpers.dart';
 import 'package:omni_accelerant/src/boot/rust_core.dart';
+import 'package:omni_accelerant/src/db/sqlite3_storage.dart';
 import 'package:omni_accelerant/src/rust/api/simple.dart';
-import 'package:omni_accelerant/utils/locale_utils.dart';
 import 'package:kataglyphis_native_inference/kataglyphis_native_inference.dart';
 import 'package:anthology/Layout/ResponsiveDesign/one_two_transition_widget.dart';
 import 'package:anthology/Pages/Footer/footer.dart';
@@ -50,7 +51,9 @@ class AboutMePageState extends State<AboutMePage> {
               : 'Action: Call Rust `greet("Tom")`\nResult: the Rust core did not load in this browser',
         ),
       ),
-      const Center(child: Sqlite3HealthcheckWidget()),
+      const Center(
+        child: Sqlite3HealthcheckWidget(check: runOmniSqliteHealthcheck),
+      ),
       if (!kIsWeb) _buildNativePluginDemo(),
     ];
 
