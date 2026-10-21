@@ -21,6 +21,12 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ### Changed
 
+- **The web lane fails on an engine from Google's CDN** (2026-10-21, owner: no visitor request goes
+  to Google; ANTfrastructure 4e28bc3a). Its smoke test checks that `flutter_bootstrap.js` loads the
+  engine from `canvaskit/` and that both engine wasm files are served. With the local engine,
+  `flutter build web` also bundles its fallback Roboto, so the build contacts no Google host:
+  measured with the hub's console capture over 15 routes, no third-party host. The capture does not
+  run in the lane yet (`BACKLOG.md`).
 - **ANThology 5e57500: its suite runs in Chrome too** (2026-10-21). Its `docs.yml` checks job runs
   the Dart gate again with the tests in Chrome, so the boot overlay and SQLite loader this app
   takes from it are tested where they run (`boot_overlay_web_test.dart`, the new

@@ -275,6 +275,14 @@ string. Measured 2026-09-16 on a `--wasm` build: 1 hit in each of those two file
 after, 0 in `main.dart.mjs`. A "gstatic must be 0" check would fail forever and teach the next
 reader that the flag does not work.
 
+**Nothing goes to Google** (owner, 2026-10-21). With the same flag, `flutter build web` also
+bundles its fallback Roboto (`assets/fonts/fallback/Roboto-Regular.ttf`, a FontManifest family
+named `Roboto`) when the app declares none, so the engine fetches no font from fonts.gstatic.com
+either. The lane's smoke test fails on an engine from the CDN (the hub's `CHECK_LOCAL_ENGINE`).
+Measured with the hub's console capture (`--forbid-host gstatic.com googleapis.com google.com`)
+over 15 routes in `:latest`'s Chrome on 2026-10-21: no third-party host. The capture itself does
+not run in the lane yet (BACKLOG.md).
+
 ## CI/CD Notes
 
 - GitHub Actions runs the Linux native, Windows native, Web and Android pipelines.
