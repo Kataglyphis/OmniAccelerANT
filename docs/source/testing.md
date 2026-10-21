@@ -29,7 +29,9 @@ From the README (2026-10-19). `test/` checks, among the rest:
   (`webrtc_stream_controller_test.dart`);
 - the cat status line, its visits, its arrival picture and video, and the earlier videos
   (`detection_status_test.dart`), and the visit statistics per day and hour (`visit_stats_test.dart`);
-- in Chrome, the requests the Camera page sends ObservANT (`observant_api_web_test.dart`);
+- in Chrome, the requests the Camera page sends ObservANT (`observant_api_web_test.dart`), and the
+  Stream page's video view against the gstwebrtc-api build the page ships (`webrtc_view_test.dart`,
+  `webrtc_view_first_view_test.dart`; § *The WebRTC view in Chrome*);
 - the Camera page: what it reads from an ObservANT camera, what each button, the slider and the
   name field send, a refused change, and the page off an ObservANT camera (`camera_settings_test.dart`);
 - the native Stream page's calls to the C++ plugin, its camera fallback, its buttons and its
@@ -166,6 +168,37 @@ The plugin is its own package with its own lock, so the root's `flutter test` ne
 suite. `flutter test --platform chrome` shows before a push what the web lane will say; it
 compiles every test file for Chrome, the VM-only ones too (§ *Why a lane cannot run a test*).
 
+## The WebRTC view in Chrome
+
+`webrtc_view_test.dart` and `webrtc_view_first_view_test.dart` (2026-10-20) run `webrtc_view.dart`
+on the real gstwebrtc-api: a hybrid isolate reads the build `web/index.html` imports, so a new
+version is tested as it ships. Only ObservANT is stood in for, by
+`test/support/gst_signalling_stand_in.js`: a WebSocket that speaks the gst-plugins-rs signalling
+protocol, and a producer that offers a 64×48 canvas over an in-page `RTCPeerConnection`, so ICE,
+the data channel and the decoded frames are Chrome's own. They check each stage's overlay, the
+frames in the view's video and stats, the STUN servers reaching the peer connection (none when none
+are set), a camera leaving and coming back, lost signalling, an offer Chrome rejects, a session that
+cannot start, a session the camera ends while still announced (caught by its frozen picture), a
+hidden tab, a remount, the control data channel and the 30 s keep-alive. Of 22 bugs planted in the
+view on 2026-10-20 (a stream never attached, a callback dropped, the frame reports cut, the tab's
+visibility unwired), 21 fail them. The one left crashes where `createConsumerSession` returns
+`null` and ends the same: gstwebrtc-api returns `null` only between a socket's close and the
+disconnect it announces next, and swallows a listener's exception.
+
+```bash
+flutter test --platform chrome test/webrtc_view_test.dart test/webrtc_view_first_view_test.dart
+```
+
+- **About 70 s**, 30 of them the keep-alive.
+- **The tests share one page.** The view's video, API and controller are process-wide, so
+  `webrtc_view_test.dart` runs in order, each test starting where the last left the stream; what
+  only a page's first view decides (producer, ICE servers, URL) has its own file.
+- **`flutter test` renders no platform views**, so the stand-in finds the video where the view sets
+  its stream, and the remount test puts it into the page itself.
+- **A gstwebrtc-api bump keeps the import line's shape** (`import GstWebRTCAPI from
+  './javascript/webrtc/gstwebrtc-api-<version>.esm.js'`), or the tests fail at load with
+  `web/index.html no longer imports a gstwebrtc-api build`.
+
 ## Known gaps
 
 As found on 2026-10-15, so a green run is read for what it is:
@@ -180,13 +213,15 @@ As found on 2026-10-15, so a green run is read for what it is:
   pattern shown opaque, the `knt_push_frame` codes and registry), each checked against a planted
   bug.
 - **Web-only Dart is outside the coverage figure.** `webrtc_view.dart` and the other files behind
-  `dart.library.js_interop` (`*_web.dart`, the gstwebrtc interop) never load on the VM, `flutter
-  test` collects coverage on the VM only, and the Chrome run measures nothing; the ObservANT
-  package test's real browser is what covers them. The one with the most to lose,
-  `observant_api_web.dart`, through which the Camera page reads and saves ObservANT's settings,
-  has a Chrome-only test since 2026-10-15 (`observant_api_web_test.dart`, `@TestOn('browser')`):
-  it swaps the page's `fetch` for a fake and checks each request's URL, method, header, JSON body
-  and timeout, and that an error status or a failed request reads as nothing.
+  `dart.library.js_interop` (`*_web.dart`, the gstwebrtc interop) never load on the VM, and
+  `flutter test --platform chrome --coverage` runs the tests, writes no lcov and exits 1 (Flutter
+  3.47.6), so their Chrome tests count towards no floor. `webrtc_view.dart` has them since
+  2026-10-20 (§ *The WebRTC view in Chrome*); measured once through Chrome's V8 coverage, they run
+  218 of its 221 mapped lines, all but overlay texts for a stage that never shows them.
+  `observant_api_web.dart`, through which the Camera page reads and saves ObservANT's settings, has
+  a Chrome-only test since 2026-10-15 (`observant_api_web_test.dart`, `@TestOn('browser')`): it
+  swaps the page's `fetch` for a fake and checks each request's URL, method, header, JSON body and
+  timeout, and that an error status or a failed request reads as nothing.
 - **ANThology's own tests run in its repository only**, and a third of its `lib/` files have
   none. Its sortable table, behind the blog overview here and four lists on the website, got its
   first tests on 2026-10-15, and they found three sorting bugs.

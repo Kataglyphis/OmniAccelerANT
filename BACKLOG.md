@@ -155,10 +155,21 @@ what the owner's goal still lacks.
 
 ## Open — tests
 
-- [b] **`webrtc_view.dart`, about 550 web-only lines, is outside coverage.** It drives
-  gstwebrtc-api's JavaScript; testing it in Chrome needs a stand-in for that API. The stream's
-  state is tested through `webrtc_stream_controller_test.dart`, and the Camera page's requests
-  in Chrome through `observant_api_web_test.dart`. Blocked on a JS stand-in worth its upkeep.
+- [x] **`webrtc_view.dart`, about 550 web-only lines, is outside coverage.** Done 2026-10-20
+  (owner: bring it under test): `webrtc_view_test.dart` and `webrtc_view_first_view_test.dart` run
+  it in Chrome on the vendored gstwebrtc-api, with ObservANT stood in for by
+  `test/support/gst_signalling_stand_in.js` (`testing.md` § *The WebRTC view in Chrome*).
+  Proof in `:latest`: the web lane's Dart step green (190 tests in Chrome), 21 of 22 bugs planted
+  in the view caught, 218 of its 221 mapped lines run (V8 coverage, measured once; the lanes
+  measure the VM only).
+- [ ] **A TURN server in `webrtc_settings.json` would break every web session.** The view hands
+  gstwebrtc-api `{urls}` alone for each `turnServers` entry, and Chrome refuses a `turn:` URL
+  without `username` and `credential`: `InvalidAccessError: Both username and credential are
+  required` (Chrome 155 in `:latest`, 2026-10-20), thrown where gstwebrtc-api builds the session's
+  peer connection, so no session streams. `WebRTCSettings.turnServers` says the credentials are
+  configured separately; nothing configures them. Harmless while the list is empty, as shipped.
+  Done when a TURN entry carries its credentials to the peer connection, with a test in
+  `webrtc_view_test.dart`.
 
 ## Open — waiting on the owner
 

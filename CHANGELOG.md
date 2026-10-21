@@ -5,6 +5,20 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ## Unreleased
 
+### Added
+
+- **The Stream page's WebRTC view is tested in Chrome** (2026-10-20, owner). `webrtc_view_test.dart`
+  and `webrtc_view_first_view_test.dart` run `webrtc_view.dart` on the gstwebrtc-api build
+  `web/index.html` imports, read by a hybrid isolate, against `test/support/gst_signalling_stand_in.js`,
+  which plays ObservANT: the gst-plugins-rs signalling protocol and a producer whose canvas reaches
+  the view's video over a real in-page peer connection. 11 tests cover each stage's overlay, the
+  frames and stats, the ICE servers, a camera leaving and returning, lost signalling, a rejected
+  offer, a session that cannot start, a session ended behind a live announcement, a hidden tab, a
+  remount, the control data channel and the keep-alive. 21 of 22 bugs planted in the view fail
+  them, and they run 218 of its 221 mapped lines (Chrome's V8 coverage, measured once). The web
+  lane runs them; its Chrome run measures no coverage, so the figure still cannot count them
+  (`testing.md` § *Known gaps*).
+
 ### Changed
 
 - **The imprint and privacy policy publish `contact@jonasheinle.de`** (2026-10-20, owner;
