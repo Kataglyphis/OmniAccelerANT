@@ -1,6 +1,6 @@
 <div align="center">
   <a href="https://jonasheinle.de">
-    <img src="https://raw.githubusercontent.com/Kataglyphis/OmniAccelerANT/develop/images/logo.png" alt="logo" width="200" />
+    <img src="https://raw.githubusercontent.com/Kataglyphis/OmniAccelerANT/develop/images/logo.svg" alt="OmniAccelerANT logo: a sprinting ant and a lightning bolt" width="200" />
   </a>
 
   <h1>OmniAccelerANT</h1>

@@ -21,6 +21,10 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ### Changed
 
+- **The README header shows OmniAccelerANT's own logo, `images/logo.svg`** (2026-10-21, owner): a
+  sprinting ant over a lightning bolt, from the family set DocumANTation's
+  `scripts/make_repo_logos.py` draws. `images/logo.png` is unchanged.
+
 - **The web lane fails on an engine from Google's CDN** (2026-10-21, owner: no visitor request goes
   to Google; ANTfrastructure 4e28bc3a). Its smoke test checks that `flutter_bootstrap.js` loads the
   engine from `canvaskit/` and that both engine wasm files are served. With the local engine,

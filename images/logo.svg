@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="OmniAccelerANT: a sprinting ant and a lightning bolt">
+<title>OmniAccelerANT: a sprinting ant and a lightning bolt</title>
+<defs><linearGradient id="tile" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5a2114"/><stop offset="1" stop-color="#3a1410"/></linearGradient></defs>
+<rect x="24" y="24" width="464" height="464" rx="112" fill="url(#tile)"/>
+<rect x="25.5" y="25.5" width="461" height="461" rx="110.5" fill="none" stroke="#ffffff14" stroke-width="3"/>
+<path d="M296,52 L168,282 L248,282 L206,462 L352,206 L270,206 L326,52 Z" fill="#f5a524"/><path d="M58,270 L126,270" stroke="#f5a524" stroke-opacity="0.9" stroke-width="11" stroke-linecap="round"/><path d="M76,304 L148,304" stroke="#f5a524" stroke-opacity="0.7" stroke-width="11" stroke-linecap="round"/><path d="M54,338 L110,338" stroke="#f5a524" stroke-opacity="0.5" stroke-width="11" stroke-linecap="round"/>
+<g transform="translate(250 318) scale(1.12)"><g fill="none" stroke="#3a1410" stroke-linecap="round" stroke-linejoin="round">
+<path d="M50,2 L80,14 L110,28" stroke-width="26.4"/>
+<path d="M32,6 L38,30 L22,52" stroke-width="26.4"/>
+<path d="M14,6 L-18,22 L-66,32" stroke-width="26.4"/>
+</g>
+<g fill="none" stroke="#3a1410" stroke-linecap="round" stroke-linejoin="round">
+<path d="M58,4 L88,16" stroke-width="30"/>
+<path d="M88,16 L118,30" stroke-width="26.4"/>
+<path d="M40,8 L46,32" stroke-width="30"/>
+<path d="M46,32 L30,54" stroke-width="26.4"/>
+<path d="M22,8 L-10,24" stroke-width="30"/>
+<path d="M-10,24 L-58,34" stroke-width="26.4"/>
+<path d="M92,-28 L104,-62 Q122,-64 140,-48" stroke-width="26.4"/>
+<path d="M104,-6 Q116,-2 113,8" stroke-width="25.2"/>
+</g>
+<g fill="#3a1410" stroke="#3a1410" stroke-width="18" stroke-linejoin="round"><ellipse cx="-58" cy="-8" rx="44" ry="30" transform="rotate(-18 -58 -8)"/><ellipse cx="-6" cy="2" rx="8" ry="12"/><path d="M4,6 C2,-8 10,-20 26,-22 C40,-24 52,-20 58,-14 C66,-8 68,0 64,6 C56,12 14,14 4,6 Z"/><ellipse cx="86" cy="-14" rx="23" ry="18" transform="rotate(12 86 -14)"/></g>
+<ellipse cx="91" cy="-19" rx="5.5" ry="6.5" fill="#3a1410" stroke="#3a1410" stroke-width="18"/></g>
+<g transform="translate(250 318) scale(1.12)"><g fill="none" stroke="#3aa77a" stroke-linecap="round" stroke-linejoin="round">
+<path d="M50,2 L80,14 L110,28" stroke-width="8.4"/>
+<path d="M32,6 L38,30 L22,52" stroke-width="8.4"/>
+<path d="M14,6 L-18,22 L-66,32" stroke-width="8.4"/>
+</g>
+<g fill="none" stroke="#6af0ad" stroke-linecap="round" stroke-linejoin="round">
+<path d="M58,4 L88,16" stroke-width="12"/>
+<path d="M88,16 L118,30" stroke-width="8.4"/>
+<path d="M40,8 L46,32" stroke-width="12"/>
+<path d="M46,32 L30,54" stroke-width="8.4"/>
+<path d="M22,8 L-10,24" stroke-width="12"/>
+<path d="M-10,24 L-58,34" stroke-width="8.4"/>
+<path d="M92,-28 L104,-62 Q122,-64 140,-48" stroke-width="8.4"/>
+<path d="M104,-6 Q116,-2 113,8" stroke-width="7.2"/>
+</g>
+<g fill="#6af0ad"><ellipse cx="-58" cy="-8" rx="44" ry="30" transform="rotate(-18 -58 -8)"/><ellipse cx="-6" cy="2" rx="8" ry="12"/><path d="M4,6 C2,-8 10,-20 26,-22 C40,-24 52,-20 58,-14 C66,-8 68,0 64,6 C56,12 14,14 4,6 Z"/><ellipse cx="86" cy="-14" rx="23" ry="18" transform="rotate(12 86 -14)"/></g>
+<ellipse cx="91" cy="-19" rx="5.5" ry="6.5" fill="#3a1410"/></g>
+
+</svg>
