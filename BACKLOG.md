@@ -126,22 +126,6 @@ what the owner's goal still lacks.
 
 ## Open — tests
 
-- [x] **A TURN server in `webrtc_settings.json` would break every web session.** Done 2026-10-21:
-  each `turnServers` entry is `{urls, username, credential}` and reaches the peer connection whole;
-  one without both is skipped with a log line that names its URL, never its secret. The committed
-  list stays empty; where real credentials go: `camera-streaming.md` § *The Stream page*. Proof in
-  `:latest`: `webrtc_view_test.dart` finds a TURN entry's credentials in the peer connection's
-  `iceServers`, `webrtc_view_first_view_test.dart` streams with a credential-less entry dropped,
-  and both fail on a planted bug (the view drops the credentials again; a bare TURN URL passes the
-  parser); the web lane's Dart step green (189 tests in Chrome).
-
-- [x] **ANThology's web-only code is tested in Chrome by hand only.** Done 2026-10-21 (ANThology
-  5e57500): `footer_and_skills_test.dart` is `@TestOn('vm')`, `docs.yml`'s checks job runs
-  `run-dart-checks.sh --test-platform chrome` after the VM run, and the new `sqlite_web_test.dart`
-  runs the web loader. Proof in `:latest`: 127 tests on the VM, 86 in Chrome
-  (`boot_overlay_web_test` and `sqlite_web_test` 2 each); ANThology CI run 39579306040 green,
-  its "Dart checks in Chrome" step included; this app's web lane green on the new gitlink.
-
 - [b] **The web lane runs no browser over the built app.** The hub's console capture
   (`flutter_capture_console_errors.py --forbid-host gstatic.com --forbid-host googleapis.com
   --forbid-host google.com`) would fail a request to Google from any route, but `:latest` has no
