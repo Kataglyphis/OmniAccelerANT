@@ -135,13 +135,12 @@ what the owner's goal still lacks.
   and both fail on a planted bug (the view drops the credentials again; a bare TURN URL passes the
   parser); the web lane's Dart step green (189 tests in Chrome).
 
-- [ ] **ANThology's web-only code is tested in Chrome by hand only.** Since 2026-10-21 this app's
-  boot overlay and SQLite loader are ANThology's (`lib/Boot/`, `lib/Sqlite/`). The web halves have
-  tests (`boot_overlay_web_test.dart` is `@TestOn('browser')`), but ANThology's `docs.yml` checks
-  job runs its suite on the VM only. In Chrome, 84 of its tests pass and
-  `footer_and_skills_test.dart`'s `setUpAll` fails: it loads Roboto through `rootBundle`, which a
-  browser test does not serve (`:latest`, 2026-10-21). Done when that file is `@TestOn('vm')` and
-  ANThology's Dart gate also runs its suite in Chrome.
+- [x] **ANThology's web-only code is tested in Chrome by hand only.** Done 2026-10-21 (ANThology
+  5e57500): `footer_and_skills_test.dart` is `@TestOn('vm')`, `docs.yml`'s checks job runs
+  `run-dart-checks.sh --test-platform chrome` after the VM run, and the new `sqlite_web_test.dart`
+  runs the web loader. Proof in `:latest`: 127 tests on the VM, 86 in Chrome
+  (`boot_overlay_web_test` and `sqlite_web_test` 2 each); ANThology CI run 39579306040 green,
+  its "Dart checks in Chrome" step included; this app's web lane green on the new gitlink.
 
 ## Open — waiting on the owner
 

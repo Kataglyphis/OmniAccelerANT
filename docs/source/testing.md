@@ -225,8 +225,8 @@ As found on 2026-10-15, so a green run is read for what it is:
   a Chrome-only test since 2026-10-15 (`observant_api_web_test.dart`, `@TestOn('browser')`): it
   swaps the page's `fetch` for a fake and checks each request's URL, method, header, JSON body and
   timeout, and that an error status or a failed request reads as nothing.
-- **ANThology's own tests run in its repository only**, and a third of its `lib/` files have
-  none. Its sortable table, behind the blog overview here and four lists on the website, got its
+- **ANThology's own tests run in its repository only** (on the VM, and in Chrome since
+  2026-10-21), and a third of its `lib/` files have none. Its sortable table, behind the blog overview here and four lists on the website, got its
   first tests on 2026-10-15, and they found three sorting bugs.
 - **C++ fuzzing runs in unit mode only**, about a second per property, without coverage feedback.
   AccelerANTgine forces `FUZZTEST_FUZZING_MODE` off (`third_party/CMakeLists.txt`): FuzzTest's

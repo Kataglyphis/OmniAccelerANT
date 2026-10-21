@@ -21,6 +21,10 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ### Changed
 
+- **ANThology 5e57500: its suite runs in Chrome too** (2026-10-21). Its `docs.yml` checks job runs
+  the Dart gate again with the tests in Chrome, so the boot overlay and SQLite loader this app
+  takes from it are tested where they run (`boot_overlay_web_test.dart`, the new
+  `sqlite_web_test.dart`); `footer_and_skills_test.dart` is `@TestOn('vm')`.
 - **The web side is shared with jotrockenmitlocken** (2026-10-21, owner: jonasheinle.de gets every
   improvement made here, with as much code shared as possible). What both apps carried apart now has
   one owner:
