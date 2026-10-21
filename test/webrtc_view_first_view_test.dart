@@ -27,15 +27,22 @@ void main() {
       await tester.pumpWidget(
         webrtcViewApp(
           WebRTCView(
-            settings: webrtcTestSettings(_url),
+            // A TURN entry without credentials: Chrome would refuse every peer connection over it.
+            settings: webrtcTestSettings(
+              _url,
+              turnServers: <Object>['turn:no-credentials.test:3478'],
+            ),
             producerIdToConsume: 'cam-2',
           ),
         ),
       );
-      await pumpUntil(tester, 'streaming', streaming);
+      await pumpUntil(tester, 'streaming', () {
+        expect(server.refusedConfigs.toDart, isEmpty);
+        return streaming();
+      });
       expect(server.session!.producerId, 'cam-2');
-      // No ICE servers configured means none, not gstwebrtc-api's public STUN default.
-      expect(iceServerUrls(server.consumerConfigs.toDart.single), isEmpty);
+      // The dropped entry leaves none, not gstwebrtc-api's public STUN default.
+      expect(iceServers(server.consumerConfigs.toDart.single), isEmpty);
 
       final List<String> logs = <String>[];
       final DebugPrintCallback print = debugPrint;

@@ -180,8 +180,9 @@ version is tested as it ships. Only ObservANT is stood in for, by
 `test/support/gst_signalling_stand_in.js`: a WebSocket that speaks the gst-plugins-rs signalling
 protocol, and a producer that offers a 64×48 canvas over an in-page `RTCPeerConnection`, so ICE,
 the data channel and the decoded frames are Chrome's own. They check each stage's overlay, the
-frames in the view's video and stats, the STUN servers reaching the peer connection (none when none
-are set), a camera leaving and coming back, lost signalling, an offer Chrome rejects, a session that
+frames in the view's video and stats, the ICE servers reaching the peer connection (a TURN entry
+with its credentials; none when none are set; a TURN entry without them dropped, which Chrome would
+refuse), a camera leaving and coming back, lost signalling, an offer Chrome rejects, a session that
 cannot start, a session the camera ends while still announced (caught by its frozen picture), a
 hidden tab, a remount, the control data channel and the 30 s keep-alive. Of 22 bugs planted in the
 view on 2026-10-20 (a stream never attached, a callback dropped, the frame reports cut, the tab's

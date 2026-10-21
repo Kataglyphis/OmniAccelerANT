@@ -26,6 +26,13 @@ void main() {
       settings: webrtcTestSettings(
         _url,
         stunServers: <String>['stun:stun.test:3478'],
+        turnServers: <Object>[
+          <String, Object>{
+            'urls': 'turn:turn.test:3478',
+            'username': 'viewer',
+            'credential': 'relay-pw',
+          },
+        ],
       ),
     ),
   );
@@ -77,9 +84,18 @@ void main() {
       server.releaseOffer();
       await pumpUntil(tester, 'streaming', streaming);
 
-      expect(iceServerUrls(server.consumerConfigs.toDart.single), <Object?>[
-        <Object?>['stun:stun.test:3478'],
+      // Chrome refuses a TURN server without both credentials, so they must reach the peer connection.
+      expect(iceServers(server.consumerConfigs.toDart.single), <Object?>[
+        <Object?, Object?>{
+          'urls': <Object?>['stun:stun.test:3478'],
+        },
+        <Object?, Object?>{
+          'urls': <Object?>['turn:turn.test:3478'],
+          'username': 'viewer',
+          'credential': 'relay-pw',
+        },
       ]);
+      expect(server.refusedConfigs.toDart, isEmpty);
       final web.HTMLVideoElement video = server.video!;
       expect((video.srcObject! as web.MediaStream).getVideoTracks().length, 1);
       expect(await framesAdvance(tester, video), isTrue);

@@ -184,6 +184,14 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ### Fixed
 
+- **A TURN server in `webrtc_settings.json` reaches the browser with its credentials** (2026-10-21).
+  Each `turnServers` entry is `{"urls", "username", "credential"}` and goes to the peer connection
+  whole. The view passed `{urls}` alone, which Chrome refuses (`InvalidAccessError: Both username
+  and credential are required`), so one TURN entry stopped every session. An entry without both is
+  now skipped with a log line that names its URL, never its secret. The committed list stays empty;
+  real credentials go into the served copy (`camera-streaming.md` § *The Stream page*).
+  `webrtc_view_test.dart` checks a TURN entry's credentials in the peer connection's `iceServers`,
+  and `webrtc_view_first_view_test.dart` that an entry without them still streams.
 - **The ObservANT Windows viewer check accepts the signaller's second teardown message** (2026-10-20).
   After the 60 frames (`eos-after=60`), the signaller can also end with `Connection reset without
   closing handshake`, not only `receiver is gone`; release dry run 39347765224 failed on it with the

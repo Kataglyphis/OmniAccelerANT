@@ -126,14 +126,14 @@ what the owner's goal still lacks.
 
 ## Open — tests
 
-- [ ] **A TURN server in `webrtc_settings.json` would break every web session.** The view hands
-  gstwebrtc-api `{urls}` alone for each `turnServers` entry, and Chrome refuses a `turn:` URL
-  without `username` and `credential`: `InvalidAccessError: Both username and credential are
-  required` (Chrome 155 in `:latest`, 2026-10-20), thrown where gstwebrtc-api builds the session's
-  peer connection, so no session streams. `WebRTCSettings.turnServers` says the credentials are
-  configured separately; nothing configures them. Harmless while the list is empty, as shipped.
-  Done when a TURN entry carries its credentials to the peer connection, with a test in
-  `webrtc_view_test.dart`.
+- [x] **A TURN server in `webrtc_settings.json` would break every web session.** Done 2026-10-21:
+  each `turnServers` entry is `{urls, username, credential}` and reaches the peer connection whole;
+  one without both is skipped with a log line that names its URL, never its secret. The committed
+  list stays empty; where real credentials go: `camera-streaming.md` § *The Stream page*. Proof in
+  `:latest`: `webrtc_view_test.dart` finds a TURN entry's credentials in the peer connection's
+  `iceServers`, `webrtc_view_first_view_test.dart` streams with a credential-less entry dropped,
+  and both fail on a planted bug (the view drops the credentials again; a bare TURN URL passes the
+  parser); the web lane's Dart step green (189 tests in Chrome).
 
 - [ ] **ANThology's web-only code is tested in Chrome by hand only.** Since 2026-10-21 this app's
   boot overlay and SQLite loader are ANThology's (`lib/Boot/`, `lib/Sqlite/`). The web halves have

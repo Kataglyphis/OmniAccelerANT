@@ -2,6 +2,7 @@
 
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:omni_accelerant/settings/webrtc_settings.dart';
@@ -209,10 +210,97 @@ void main() {
     test('several entries keep their order', () {
       final Map<String, dynamic> map = _validMap();
       map['stunServers'] = <String>['stun:a:1', 'stun:b:2'];
-      map['turnServers'] = <String>['turn:c:3'];
+      map['turnServers'] = <Object>[
+        <String, Object>{
+          'urls': 'turn:c:3',
+          'username': 'viewer',
+          'credential': 'pw-c',
+        },
+        <String, Object>{
+          'urls': <String>['turn:d:4', 'turns:d:5'],
+          'username': 'viewer',
+          'credential': 'pw-d',
+        },
+      ];
       final WebRTCSettings settings = WebRTCSettings.fromJsonFile(map);
       expect(settings.stunServers, <String>['stun:a:1', 'stun:b:2']);
-      expect(settings.turnServers, <String>['turn:c:3']);
+      expect(
+        <Object>[
+          for (final TurnServer t in settings.turnServers)
+            <Object>[t.urls, t.username, t.credential],
+        ],
+        <Object>[
+          <Object>[
+            <String>['turn:c:3'],
+            'viewer',
+            'pw-c',
+          ],
+          <Object>[
+            <String>['turn:d:4', 'turns:d:5'],
+            'viewer',
+            'pw-d',
+          ],
+        ],
+      );
+    });
+
+    // Chrome refuses the whole peer connection over one such entry, so it must go, loudly, without its secret.
+    test(
+      'a TURN entry without username and credential is skipped with a log line',
+      () {
+        final Map<String, dynamic> map = _validMap();
+        map['turnServers'] = <Object>[
+          'turn:bare:1',
+          <String, Object>{'urls': 'turn:no-user:2', 'credential': 'pw-x'},
+          <String, Object>{
+            'urls': 'turn:empty:3',
+            'username': 'u',
+            'credential': '',
+          },
+          <String, Object>{
+            'urls': <Object>[],
+            'username': 'u',
+            'credential': 'c',
+          },
+          <String, Object>{
+            'urls': 'turn:ok:4',
+            'username': 'viewer',
+            'credential': 'pw-ok',
+          },
+        ];
+        final List<String> logs = <String>[];
+        final DebugPrintCallback print = debugPrint;
+        debugPrint = (String? message, {int? wrapWidth}) =>
+            logs.add('$message');
+        final WebRTCSettings settings;
+        try {
+          settings = WebRTCSettings.fromJsonFile(map);
+        } finally {
+          debugPrint = print;
+        }
+        expect(settings.turnServers.single.urls, <String>['turn:ok:4']);
+        expect(logs, hasLength(4));
+        expect(logs[0], contains('turnServers[0] (turn:bare:1) skipped'));
+        expect(logs[1], contains('turnServers[1] (turn:no-user:2) skipped'));
+        expect(logs[2], contains('turnServers[2] (turn:empty:3) skipped'));
+        expect(logs[3], contains('turnServers[3]'));
+        expect(logs.join(), isNot(contains('pw-x')));
+      },
+    );
+
+    test('a TURN list that is not a list names its key', () {
+      final Map<String, dynamic> map = _validMap()
+        ..['turnServers'] = 'turn:c:3';
+      expect(
+        () => WebRTCSettings.fromJsonFile(map),
+        throwsA(
+          isA<FormatException>().having(
+            (FormatException e) => e.message,
+            'message',
+            contains('turnServers'),
+          ),
+        ),
+      );
     });
   });
 }

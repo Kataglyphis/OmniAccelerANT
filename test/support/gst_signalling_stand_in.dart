@@ -48,6 +48,9 @@ extension type SignallingStandIn._(JSObject _) implements JSObject {
   /// What Chrome made of each RTCPeerConnection config gstwebrtc-api passed.
   external JSArray<JSObject> get consumerConfigs;
 
+  /// The error of each RTCPeerConnection config Chrome refused, as `name: message`.
+  external JSArray<JSString> get refusedConfigs;
+
   /// The newest session not yet ended, or `null`.
   external StandInSession? get session;
 
@@ -107,12 +110,13 @@ void hybridMain(StreamChannel<Object?> channel) {
 WebRTCSettings webrtcTestSettings(
   String signallingUrl, {
   List<String> stunServers = const <String>[],
+  List<Object> turnServers = const <Object>[],
   int reconnectionTimeoutMs = 200,
 }) => WebRTCSettings.fromJsonFile(<String, dynamic>{
   'signalingServerUrl': signallingUrl,
   'reconnectionTimeoutMs': reconnectionTimeoutMs,
   'stunServers': stunServers,
-  'turnServers': <String>[],
+  'turnServers': turnServers,
   'video': <String, dynamic>{
     'defaultWidth': 1280,
     'defaultHeight': 720,
@@ -166,10 +170,20 @@ Future<bool> framesAdvance(
   return video.getVideoPlaybackQuality().totalVideoFrames > before;
 }
 
-/// The `urls` of each ICE server in a config Chrome reports.
-List<Object?> iceServerUrls(JSObject config) => <Object?>[
+/// Each ICE server in a config Chrome reports: its `urls`, and its `username` and `credential` where set.
+List<Map<Object?, Object?>> iceServers(
+  JSObject config,
+) => <Map<Object?, Object?>>[
   for (final Object? server
       in config.getProperty<JSAny?>('iceServers'.toJS).dartify()!
           as List<Object?>)
-    (server! as Map<Object?, Object?>)['urls'],
+    if (server case final Map<Object?, Object?> fields)
+      <Object?, Object?>{
+        for (final String key in const <String>[
+          'urls',
+          'username',
+          'credential',
+        ])
+          if (fields[key] case final Object value when value != '') key: value,
+      },
 ];

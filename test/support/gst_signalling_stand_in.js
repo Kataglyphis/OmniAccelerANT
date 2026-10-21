@@ -64,6 +64,7 @@ class SignallingStandIn {
     this.sessions = [];
     this.received = [];
     this.consumerConfigs = [];
+    this.refusedConfigs = [];
     this.failSends = [];
     this.holdWelcome = false;
     this.holdOffer = false;
@@ -192,7 +193,13 @@ export function install(url) {
   // gstwebrtc-api builds its RTCPeerConnection from the view's config; this records what Chrome made of it.
   window.RTCPeerConnection = class extends NativePeerConnection {
     constructor(config) {
-      super(config);
+      try {
+        super(config);
+      } catch (error) {
+        // gstwebrtc-api only logs it, so a test would see nothing but a session that never streams.
+        server.refusedConfigs.push(`${error.name}: ${error.message}`);
+        throw error;
+      }
       server.consumerConfigs.push(this.getConfiguration());
     }
   };

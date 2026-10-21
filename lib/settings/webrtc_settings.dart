@@ -1,7 +1,7 @@
 /// WebRTC and video settings, parsed from `assets/settings/webrtc_settings.json`.
 library;
 
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show debugPrint, kIsWeb;
 
 /// Default resolution, framerate and bitrate of outgoing WebRTC video.
 class VideoSettings {
@@ -57,6 +57,24 @@ class AndroidSettings {
   final int fps;
 }
 
+/// A TURN relay with the credentials Chrome requires for a `turn:` or `turns:` URL.
+class TurnServer {
+  const TurnServer({
+    required this.urls,
+    required this.username,
+    required this.credential,
+  });
+
+  /// The relay's `turn:`/`turns:` URLs.
+  final List<String> urls;
+
+  /// The relay's user name.
+  final String username;
+
+  /// The relay's password; every viewer's browser receives it.
+  final String credential;
+}
+
 /// Signalling, ICE servers and per-platform video settings from `webrtc_settings.json`.
 class WebRTCSettings {
   /// Parses [json]; throws [FormatException] on a missing or mistyped field.
@@ -66,7 +84,7 @@ class WebRTCSettings {
       ),
       reconnectionTimeoutMs = _requireInt(json, 'reconnectionTimeoutMs'),
       stunServers = _parseStringList(json, 'stunServers'),
-      turnServers = _parseStringList(json, 'turnServers'),
+      turnServers = _parseTurnServers(json),
       video = VideoSettings.fromJsonFile(_requireMap(json, 'video')),
       texture = TextureSettings.fromJsonFile(_requireMap(json, 'texture')),
       android = AndroidSettings.fromJsonFile(_requireMap(json, 'android'));
@@ -80,8 +98,8 @@ class WebRTCSettings {
   /// STUN server URLs for ICE candidate gathering.
   final List<String> stunServers;
 
-  /// TURN relay URLs; their credentials are configured separately.
-  final List<String> turnServers;
+  /// TURN relays; an entry without `username` and `credential` is skipped with a log line.
+  final List<TurnServer> turnServers;
 
   /// Video encoding settings for outgoing streams.
   final VideoSettings video;
@@ -147,6 +165,57 @@ List<String> _parseStringList(Map<String, dynamic> json, String key) {
     );
   }
   return value.map((e) => e.toString()).toList();
+}
+
+/// Parses `turnServers`; an unusable entry is logged and skipped, as Chrome would refuse every peer connection over it.
+List<TurnServer> _parseTurnServers(Map<String, dynamic> json) {
+  final value = json['turnServers'];
+  if (value == null) return const <TurnServer>[];
+  if (value is! List) {
+    throw FormatException(
+      'Field "turnServers" must be a List, got ${value.runtimeType}',
+    );
+  }
+  final List<TurnServer> servers = <TurnServer>[];
+  for (final (int index, Object? entry) in value.indexed) {
+    final TurnServer? server = _parseTurnServer(entry);
+    if (server == null) {
+      // Never the entry itself: it may hold a credential.
+      final Object? urls = entry is Map ? entry['urls'] : entry;
+      debugPrint(
+        'WebRTCSettings: turnServers[$index] ($urls) skipped: it needs '
+        '"urls", "username" and "credential"; Chrome refuses a TURN server '
+        'without credentials.',
+      );
+      continue;
+    }
+    servers.add(server);
+  }
+  return servers;
+}
+
+/// One `{urls, username, credential}` entry, `urls` a string or a list; `null` when anything is missing or empty.
+TurnServer? _parseTurnServer(Object? entry) {
+  if (entry is! Map) return null;
+  final Object? urls = entry['urls'];
+  final Object? username = entry['username'];
+  final Object? credential = entry['credential'];
+  final List<String>? urlList = switch (urls) {
+    String url when url.isNotEmpty => <String>[url],
+    List<Object?> list
+        when list.isNotEmpty &&
+            list.every((Object? url) => url is String && url.isNotEmpty) =>
+      List<String>.from(list),
+    _ => null,
+  };
+  if (urlList == null ||
+      username is! String ||
+      username.isEmpty ||
+      credential is! String ||
+      credential.isEmpty) {
+    return null;
+  }
+  return TurnServer(urls: urlList, username: username, credential: credential);
 }
 
 /// Resolves a host-relative URL against the serving page on the web, so no host is baked into the build.

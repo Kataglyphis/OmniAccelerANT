@@ -1023,6 +1023,15 @@ forwards the WebSocket upgrade to its own signalling server on loopback `:8443`.
 over host candidates only unless `stun_server` is set, so the stream stays on the LAN. No TLS,
 no `serve.sh`, no container.
 
+**A TURN relay needs its credentials** (2026-10-21). Each `turnServers` entry in
+`assets/settings/webrtc_settings.json` is `{"urls": "turn:<host>:3478", "username": "<user>",
+"credential": "<password>"}`, `urls` a string or a list. Chrome refuses every peer connection
+over a TURN URL without both, so an entry missing one is skipped with a log line. The committed
+list stays empty: real credentials go into the served copy, `assets/assets/settings/webrtc_settings.json`
+under the web root (`build/web` before a deploy, `/opt/omni-observant/web` on a board, where a
+package upgrade replaces it), never into a repository. Every viewer's browser receives them, so
+give the relay a user of its own.
+
 #### What it detects
 
 **Cats by default, any of the 80 COCO classes on request** (2026-10-14). `classes` in

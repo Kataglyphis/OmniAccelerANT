@@ -46,8 +46,12 @@ JSAny? _buildWebRTCConfig(WebRTCSettings settings) {
   final List<Map<String, Object?>> iceServers = <Map<String, Object?>>[
     for (final String url in settings.stunServers)
       <String, Object?>{'urls': url},
-    for (final String url in settings.turnServers)
-      <String, Object?>{'urls': url},
+    for (final TurnServer turn in settings.turnServers)
+      <String, Object?>{
+        'urls': turn.urls,
+        'username': turn.username,
+        'credential': turn.credential,
+      },
   ];
   if (iceServers.isEmpty) return null;
   return <String, Object?>{'iceServers': iceServers}.jsify();
