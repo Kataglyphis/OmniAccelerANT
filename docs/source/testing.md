@@ -34,11 +34,11 @@ From the README (2026-10-19). `test/` checks, among the rest:
   `webrtc_view_first_view_test.dart`; § *The WebRTC view in Chrome*);
 - the Camera page: what it reads from an ObservANT camera, what each button, the slider and the
   name field send, a refused change, and the page off an ObservANT camera (`camera_settings_test.dart`);
-- the native Stream page's calls to the C++ plugin, its camera fallback, its buttons and its
-  error messages, on Linux, Android (camera permission included), macOS and the rest, against a
-  fake plugin (`stream_page_native_test.dart`); Windows and Linux with the Rust features handing
-  the camera to the Rust view (`stream_page_rust_test.dart`); and the Rust camera view's calls to
-  the core, against a fake core (`rust_webcam_view_test.dart`);
+- the Stream page's calls to the plugin, its camera fallback, its buttons and its error
+  messages, on Android (camera permission included), macOS and the rest, against a fake plugin
+  (`stream_page_native_test.dart`); Windows and Linux handing the camera to the Rust view by
+  target (`stream_page_rust_test.dart`); and the Rust camera view's calls to the core, against
+  a fake core (`rust_webcam_view_test.dart`);
 - the GStreamer pipeline strings, which otherwise fail only on a machine with a camera
   (`gstreamer_pipeline_builder_test.dart`);
 - the settings files: a malformed key named in the error, and the web's signalling URL resolved
@@ -203,15 +203,13 @@ flutter test --platform chrome test/webrtc_view_test.dart test/webrtc_view_first
 
 As found on 2026-10-15, so a green run is read for what it is:
 
-- **Tarpaulin does not measure feature-gated Rust code.** Every module behind
-  `#[cfg(feature = …)]` is missing from its report, `crates/media` and the webcam engine among
-  them, although their tests run. `cargo llvm-cov` would see them; the image does not carry it
-  (OxidANT's AGENTS.md).
+- **Tarpaulin skipped feature-gated Rust code** (`crates/media`, the webcam engine) until
+  OxidANT dropped its features on 2026-10-20; its coverage report is OxidANT's (its AGENTS.md).
 - **The native plugin's Windows and Android C++ is barely tested:** one `GetPlatformVersion`
   gtest on Windows, one JVM test on Android, nothing for the Android GStreamer glue. The Linux
-  texture has six gtests since 2026-10-15 (pipeline errors as Dart sees them, a transparent test
-  pattern shown opaque, the `knt_push_frame` codes and registry), each checked against a planted
-  bug.
+  texture has two gtests since its GStreamer pipeline went on 2026-10-21 (the colour before a
+  frame; the `knt_push_frame` codes and registry, a transparent frame shown opaque); its four
+  pipeline gtests of 2026-10-15 went with the pipeline.
 - **Web-only Dart is outside the coverage figure.** `webrtc_view.dart` and the other files behind
   `dart.library.js_interop` (`*_web.dart`, the gstwebrtc interop) never load on the VM, and
   `flutter test --platform chrome --coverage` runs the tests, writes no lcov and exits 1 (Flutter

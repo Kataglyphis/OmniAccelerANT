@@ -62,7 +62,7 @@ rationale, the CPU/base-build caps and the `docker build` prohibition are ANTfra
 ```
 
 `-Configurations` takes preset aliases: `clangcl-debug`, `clangcl-profile`, `clangcl-release` map
-to the `x64-ClangCL-Windows-{Debug,Profile,Release}` CMake presets; also `msvc-*`, `clang-*`
+to the `x64-ClangCL-Windows-{Debug,Profile,Release}` CMake presets; also `msvc-*`
 (full list: § *The Windows lanes in detail*).
 
 > **The bind-mount traps are the hub's**: a Dev Drive refuses the mount until its filters are
@@ -122,7 +122,7 @@ Run the app on the host after a build:
 | `lld-link ... mismatch detected for 'RuntimeLibrary'` (Debug preset) | A `/MT` override (root `CMAKE_MSVC_RUNTIME_LIBRARY`, an abseil `/MT` hack, or a C++20 module BMI built `/MT` re-emitting `detect_mismatch` into importers) collides with Flutter's `/MD` | Remove **every** `/MT` override and compile ASAN with `/clang:-shared-libsan` so clang emits dynamic-CRT link directives. Wired up in the upstream module `third_party/ANTfrastructure/cmake/Sanitizers.cmake`, reached via `CMAKE_MODULE_PATH` (the inference core's own copy is retired), plus the no-`/MT` policy in `third_party/AccelerANTgine/third_party/CMakeLists.txt`. Diagnose stray directives with `llvm-readobj --coff-directives <obj>`. |
 | Instrumented app dies instantly `STATUS_ENTRYPOINT_NOT_FOUND` (−1073741511) | The staged `clang_rt.asan_dynamic-x86_64.dll` is LLVM's, but the binary's baked-in thunk imports Microsoft-named allocator forwarders (`__asan_new`, `__asan_delete`, …), or vice-versa | Link **and** stage a matched pair. The Debug preset links Microsoft's thunk+import lib (ANTfrastructure's `cmake/Sanitizers.cmake`, on `CMAKE_MODULE_PATH`, points the link-search at `VC\Tools\MSVC\<ver>\lib\x64`); `Start-Windows.ps1` stages the matching `clang_rt.asan_dynamic-x86_64.dll` from the same MSVC dir. |
 | Instrumented app aborts on startup with `bad-free` / `bad-malloc_usable_size` | LLVM's ASan runtime loads after ucrtbase, so CRT/COM startup allocations are unhooked and abort when freed through interceptors | Use **Microsoft's** ASan runtime (VS BuildTools), which tracks Windows heap ownership and passes foreign frees through, plus `ASAN_OPTIONS=alloc_dealloc_mismatch=0:check_malloc_usable_size=0`. This is the shipped Debug-preset config; the full app runs clean under it. |
-| App exits with `STATUS_DLL_NOT_FOUND` (−1073741515) on a host without GStreamer/ONNX installs | The native plugin links GStreamer + ONNX Runtime: `C:\runtime` in the container, `C:\Program Files\gstreamer` + `C:\onnxruntime` on a provisioned host | Stage from the image into the runner: `C:\runtime\bin\*.dll` except `onnxruntime*.dll`/`DirectML.dll` → `runner\...\bin\` (ONNX Runtime is already beside the exe: `Build-Windows.ps1` stages the chain copy and `Start-Windows.ps1` refuses any other, AGENTS.md § 4); `C:\runtime\lib\gstreamer-1.0\` → `runner\...\lib\gstreamer-1.0\` (GStreamer finds plugins relative to its core DLL). `Start-Windows.ps1` puts `runner\bin` on `PATH`. With the Rust `gstreamer` feature on (the Windows default) the build's *Bundle Media Runtime DLLs* step already copies `C:\runtime\bin\*.dll` (ORT family excluded) beside the exe and ten capture plugins into `gstreamer-1.0\`. |
+| App exits with `STATUS_DLL_NOT_FOUND` (−1073741515) on a host without GStreamer/ONNX installs | The native plugin links GStreamer + ONNX Runtime: `C:\runtime` in the container, `C:\Program Files\gstreamer` + `C:\onnxruntime` on a provisioned host | Stage from the image into the runner: `C:\runtime\bin\*.dll` except `onnxruntime*.dll`/`DirectML.dll` → `runner\...\bin\` (ONNX Runtime is already beside the exe: `Build-Windows.ps1` stages the chain copy and `Start-Windows.ps1` refuses any other, AGENTS.md § 4); `C:\runtime\lib\gstreamer-1.0\` → `runner\...\lib\gstreamer-1.0\` (GStreamer finds plugins relative to its core DLL). `Start-Windows.ps1` puts `runner\bin` on `PATH`. The build's *Bundle Media Runtime DLLs* step already copies `C:\runtime\bin\*.dll` (ORT family excluded) beside the exe and ten capture plugins into `gstreamer-1.0\`. |
 | `git init/clone/checkout` fails with `could not write config file` / `unable to write new index file` inside the container | Same `wcifs` rename/create flakiness in layer dirs | Do git surgery outside the layer zone (fresh `C:\` dirs work), or `git archive | tar -x` trees into place; a bind-mounted workspace avoids it entirely. |
 | `docker run --mount` fails: `hcs::CreateComputeSystem ... Die Anforderung wird nicht unterstützt` although the source is plain NTFS | The mount **target** already exists in the image (`C:\workspace` before 2026-09-26), refused on skewed hosts | Mount to a path the image lacks (e.g. `target=C:\ws-mnt`) and pass `-w C:\ws-mnt`. |
 | `docker commit` (or `docker start` of a stopped container) fails `hcsshim::ActivateLayer ... (0x20)` | The container was created with `--isolation process`; on this host its writable layer stays locked after stop and cannot be snapshotted | Create any container you will **commit** with `--isolation hyperv` (kept alive + `docker exec` build + stop + commit works; that is why the ANTfrastructure orchestrator uses hyperv for run+commit). `docker export` is **not** a workaround (the daemon refuses to export Windows containers). Keep `--isolation process` for throwaway runs whose output you extract *live* via `tar` over `docker exec` before stopping. |
@@ -593,7 +593,7 @@ rule 2026-09-23). Never copy an ORT into the runner by hand.
 
 - **Staging.** `Build-Windows.ps1`'s *Stage Chain ONNX Runtime* step copies `onnxruntime.dll`
   (+ `DirectML.dll`, `onnxruntime_providers_shared.dll`) from `$env:ONNX_ROOT\bin` beside the exe
-  on every build, whatever `KATAGLYPHIS_RUST_FEATURES` says, after the GStreamer glob (which
+  on every build, after the GStreamer glob (which
   skips ORT-family DLLs). The staging is the hub's `Copy-ChainOrtBeside`
   (`WindowsOrtPayload.Common`, this repo's own code until 2026-09-25).
 - **Proof.** ANTfrastructure's G6 census (`Test-OrtProvenanceTree` in
@@ -718,8 +718,10 @@ block. A real run shows both lines together (`FAILED: MSIX Packaging` … `=== B
 **Trust the process exit code and `failedSteps` in `logs/build-summary-*.json`, never the log
 tail.**
 
-- Preset aliases: `clangcl-{debug,profile,release}`, `msvc-{debug,release}`,
-  `clang-{debug,profile,release}` → `x64-ClangCL-Windows-Debug` etc.
+- Preset aliases: `clangcl-{debug,profile,release}` → `x64-ClangCL-Windows-{Debug,Profile,Release}`,
+  `msvc-{debug,release}` → `x64-MSVC-Windows-{Debug,Release}`. The Rust-less
+  `x64-Clang-Windows-*` presets (GNU-style `clang.exe`, used by no lane) went on 2026-10-21
+  with the Rust feature switch.
 - Switches: `-SkipTests`, `-SkipFormat`, `-SkipDocs`, `-CleanBuild`, `-SkipMsixPackaging`,
   `-SkipBootstrapFlutterBuild`, `-ContinueOnError`/`-StopOnError`, `-CodeQL`. The closing
   **Delivery Check** cannot be skipped.

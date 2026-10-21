@@ -21,14 +21,16 @@ texture and inference code to Dart.
 - The `knt_push_frame`/`knt_api_version` C ABI on Linux and Windows: OxidANT's Rust webcam engine
   pushes frames into the plugin's texture through it.
 - On Windows the texture is a CPU pixel buffer fed by `knt_push_frame`; the pipeline methods are
-  no-ops kept for the method channel.
+  no-ops kept for the method channel. On Linux the texture takes only `knt_push_frame` frames: its
+  pipeline methods went with the Dart fallback on 2026-10-21.
+- On Android the method channel drives the plugin's own GStreamer pipeline.
 
 ### Dependencies
 
 - AccelerANTgine, the C++ inference core (`third_party/AccelerANTgine` in OmniAccelerANT),
   linked on Linux and Windows.
-- GStreamer: through pkg-config on Linux, the Android GStreamer SDK (`GSTREAMER_ROOT_ANDROID`) on
-  Android.
+- GStreamer on Android only, from the Android GStreamer SDK (`GSTREAMER_ROOT_ANDROID`); on Linux and
+  Windows the Rust core captures.
 
 ### Useful tools
 

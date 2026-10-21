@@ -397,12 +397,12 @@ same `name:` line itself. Before 2026-09-05 the literal sat in all four plus the
 copies a rename had to find. The workflows still pass the value explicitly, which keeps CI
 independent of a host's `pwd`.
 
-**The native lane** sets `KATAGLYPHIS_RUST_FEATURES=gstreamer,onnxruntime_dynamic` before
-`flutter build linux` (the empty string opts out) and `KATAGLYPHIS_PLUGIN_TESTS=1`, which
-`linux/CMakeLists.txt` turns into the plugin's gtest target. For a release build it runs
+**The native lane** sets `KATAGLYPHIS_PLUGIN_TESTS=1` before `flutter build linux`, which
+`linux/CMakeLists.txt` turns into the plugin's gtest target; the Rust core takes no feature
+variable (it has none since 2026-10-21). For a release build it runs
 `bundle-runtime-closure.sh`, then the `knt ABI`, `runtime closure` and `plugin gtest` gates, then
-the launch smoke and the integration test under the image's `xvfb-run`, all between the build
-and packaging.
+the launch smoke, the integration test and the webcam frame test under the image's `xvfb-run`,
+all between the build and packaging.
 
 **`KATAGLYPHIS_LINKER=lld|mold` is an opt-in for the native lane** (2026-10-05):
 `.\scripts\windows\Invoke-LinuxLane.ps1 -Env KATAGLYPHIS_LINKER=lld`. `setup_linker` runs it

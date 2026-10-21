@@ -21,6 +21,25 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ### Changed
 
+- **The Rust core is in every build, with no feature switch** (2026-10-21; owner 2026-10-20: every
+  Rust feature is mandatory, the target alone decides). OxidANT moves to 6192c6b (3.0.0, no
+  `[features]` table; it vendors `tract-linalg` 0.23.8 with a fix for clang-cl, whose MASM-rendered
+  AVX-512 VNNI kernel otherwise stops this repo's Windows x64 build, where `Build-Windows.ps1` sets
+  `CC=clang-cl`) and AccelerANTgine to 81f9adc (no `RUST_FEATURES` option). Gone here:
+  `KATAGLYPHIS_RUST_FEATURES` and its forwarding in `rust_builder/{linux,windows}/CMakeLists.txt`,
+  the Cargokit patch that carried it (`CARGOKIT_EXTRA_CARGO_FLAGS`; `builder.dart` and
+  `cargokit.cmake` are upstream's there again), the native lane's default and empty-string
+  opt-out, `Build-Windows.ps1`'s default and its two feature checks,
+  `Build-WindowsArm64Natives.ps1 -RustFeatures`, the plugin's `set(RUST_FEATURES "TRUE")`, the 19
+  `RUST_FEATURES` preset lines, and the Rust-less `x64-Clang-Windows-*` presets with their
+  `clang-*` aliases and the WiX package preset, which no lane used. Linux stages the chain ORT on
+  every build, and the webcam frame test runs on every native lane run. The Stream page sends
+  Windows and Linux to the Rust view by target: the `webcamInferenceAvailable()` probe, the Linux
+  GStreamer MethodChannel fallback, and the Linux plugin's `setPipeline`, `play`, `pause`, `stop`
+  and `setColor` handlers with their pipeline are gone, so the Linux plugin no longer links
+  GStreamer and the bundle no longer carries the `jpeg` plugin only that `v4l2src` pipeline used.
+  Android and macOS keep the MethodChannel pipeline. The web's wasm core has no detector now
+  (`detect_persons_rgba` names the missing file system); no Dart code calls it.
 - **The imprint and privacy policy publish `contact@jonasheinle.de`** (2026-10-20, owner;
   ANThology 4b52e2f). Both pages, German and English, show it as a `mailto:` link where they had
   `XX` and a link to `#`. The postal address and phone number stay placeholders by owner decision,

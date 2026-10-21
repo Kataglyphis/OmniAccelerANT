@@ -153,24 +153,23 @@ What it says:
 
 ## Rust-owned webcam inference (local, no WebRTC)
 
-On Windows the **Stream** page runs a fully local webcam → ONNX → texture pipeline owned
-end-to-end by Rust: no signalling server, no browser. Video frames never cross the Dart
+On Windows and Linux the **Stream** page runs a fully local webcam → ONNX → texture pipeline
+owned end-to-end by Rust: no signalling server, no browser. Video frames never cross the Dart
 bridge; only detection metadata does.
 
 > **Linux has the same design as of 2026-09-16; a frame has crossed it since 2026-10-05.**
-> It is an *addition*: the WebRTC stream below stays, and a Linux build with no
-> `KATAGLYPHIS_RUST_FEATURES` keeps the C++ GStreamer MethodChannel path as it is. All four
-> links are in the tree: the `knt_push_frame` C ABI, the feature forwarding, ONNX Runtime
-> bundling, and the Dart branch behind a runtime `webcamInferenceAvailable()` probe. The probe
-> is a compile-time answer, because `listCameras()` starts libcamera's device monitor: while
-> the page probed with it, that held the app's first frame 0.94 s on a Pi 5 (2026-10-15).
-> `listCameras()` is async now and runs only when someone asks for the camera list.
+> It is an *addition*: the WebRTC stream below stays.
 >
-> As of 2026-09-17 the **native lane** sets
-> `KATAGLYPHIS_RUST_FEATURES=gstreamer,onnxruntime_dynamic` by default (**not**
-> `onnxruntime_directml`, a Windows-only execution provider), the packaged artifacts carry
-> their GStreamer/ONNX Runtime/model closure (*Relocatable Linux bundles*), and
-> `check-knt-abi.sh` runs in the lane.
+> **The Rust core is in every build, with no feature switch** (owner, 2026-10-20; here since
+> 2026-10-21). OxidANT gates by target alone, so the page sends Windows and Linux to
+> `RustWebcamView` by target, and the Linux C++ GStreamer MethodChannel fallback is gone:
+> there the plugin only creates the texture Rust pushes into. Android and macOS, where the Rust
+> webcam cannot run, keep the plugin's MethodChannel pipeline. `listCameras()` runs only when
+> someone asks for the camera list: it starts libcamera's device monitor, which held the
+> app's first frame 0.94 s on a Pi 5 while the page called it on start (2026-10-15).
+>
+> The packaged artifacts carry their GStreamer/ONNX Runtime/model closure (*Relocatable
+> Linux bundles*), and `check-knt-abi.sh` runs in the lane.
 >
 > **A test-pattern frame reaches the texture on every native lane run.**
 > `integration_test/webcam_frame_test.dart` starts `RustWebcamView` on `videotestsrc` under
@@ -197,10 +196,9 @@ crates/media (gstreamer-rs)     src/webcam_engine.rs            src/api/webcam.r
 - **Inference:** `ort` (ONNX Runtime) is loaded via `load-dynamic`
   (`ORT_DYLIB_PATH` → next-to-exe → `C:\runtime\lib\onnxruntime-source\bin`),
   refusing any file that is not the image's chain build (AGENTS.md § 4, the ONNX Runtime
-  bullet); DirectML execution provider with CPU fallback. Enabled by the crate features
-  `gstreamer,onnxruntime_dynamic,onnxruntime_directml` (set for Windows via the
-  `KATAGLYPHIS_RUST_FEATURES` env var, forwarded to cargo by the `rust_builder`
-  CMake → Cargokit).
+  bullet); the DirectML execution provider on Windows with CPU fallback, and tract when ORT
+  cannot load the model. No crate features: the `rust_builder` CMake → Cargokit passes no
+  `--features`, and the target decides what is compiled in.
 - **Display:** the native plugin (`packages/kataglyphis_native_inference`) exports a
   C ABI (`knt_create_texture` implied via the `create` method, `knt_push_frame`,
   `knt_api_version`) that Rust resolves with `libloading`. The Flutter UI is a
@@ -258,7 +256,7 @@ knt ABI OK
 ### Relocatable Linux bundles
 
 The native lane packages four formats from one bundle tree. Until 2026-09-17 that tree
-assumed the host had the image's GStreamer: the plugin DT_NEEDs seven `libgst*` sonames,
+assumed the host had the image's GStreamer: the plugin DT_NEEDed seven `libgst*` sonames,
 `bundle/lib` carried none of them, and the `.deb` declared only `libc6, libstdc++6,
 libgtk-3-0`. No lane caught it, because the image's ld.so cache has everything.
 
@@ -275,13 +273,13 @@ with its Flutter-bundle options; the ObservANT packagers call it with `--ldd`:
   `/usr/local/lib/onnxruntime-cpu/lib`, and only once that directory's `libonnxruntime.so`
   proves to be the chain build: ORT embeds its source path through `__FILE__`, the chain's is
   `/opt/onnxruntime/onnxruntime/core/`, and the variable alone proves nothing. Never from the
-  ld.so cache, where `/opt/opencv5/lib` carries a second copy that sorts first. It travels
-  whether or not the Rust features ask for it, because `libAccelerANTgine.so` needs
-  `libonnxruntime.so.1` either way. With the lane's features it is already there when the
-  packer starts (`rust_builder/linux/CMakeLists.txt` stages both sonames from the same chain
-  directory during `flutter build linux`): the packer copies nothing for it and prints `Kept
-  (already in bundle/lib, not copied)` with each file's sha256, so its `N file(s) copied`
-  list never shows ORT then;
+  ld.so cache, where `/opt/opencv5/lib` carries a second copy that sorts first.
+  `libAccelerANTgine.so` needs `libonnxruntime.so.1` and the Rust core dlopens
+  `libonnxruntime.so`, so it is already there when the packer starts
+  (`rust_builder/linux/CMakeLists.txt` stages both sonames from the same chain directory on
+  every `flutter build linux`): the packer copies nothing for it and prints `Kept (already in
+  bundle/lib, not copied)` with each file's sha256, so its `N file(s) copied` list never shows
+  ORT;
 - **the 15 MB detector model** at `data/resources/models/deim_dfine_n_coco.onnx`, with its
   license and notice, fetched and checked from OxidANT's `models.lock`
   ([The detection model](#the-detection-model)): the standard model, bundled by default

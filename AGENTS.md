@@ -16,7 +16,7 @@ inference plugin.
 | --- | --- |
 | `lib/` | The Flutter/Dart frontend |
 | `third_party/OxidANT` | Rust core, bridged via `flutter_rust_bridge`. `lib/src/rust/` is committed generated code — no build lane regenerates it; how to regenerate: § 4, *The frb Dart bindings* |
-| `packages/kataglyphis_native_inference` | C++ inference plugin — **plain files, not a submodule**; a `pubspec.yaml` path dependency. Links GStreamer + ONNX Runtime via CMake/pkg-config |
+| `packages/kataglyphis_native_inference` | C++ inference plugin — **plain files, not a submodule**; a `pubspec.yaml` path dependency. Links AccelerANTgine (ONNX Runtime); GStreamer only on Android, from its SDK |
 | `third_party/AccelerANTgine` | The inference core the plugin builds. Its own submodule, sibling to the plugin rather than nested inside it |
 | `scripts/windows/`, `scripts/linux/` | Thin wrappers over ANTfrastructure drivers + this repo's own glue |
 | `third_party/ANTfrastructure` | The submodule owning every reusable script, module and doc |
@@ -41,26 +41,24 @@ against a flashed board.
 **Rust-owned webcam inference (Windows, and Linux since 2026-09-16).** The Stream page runs
 webcam → ONNX → Flutter texture in Rust: `crates/media` GStreamer capture →
 `src/webcam_engine.rs` → frb `src/api/webcam.rs` stream. Frames reach the texture through
-the native plugin's `knt_push_frame` C ABI; only detection metadata crosses the bridge. Rust
-features come from the `KATAGLYPHIS_RUST_FEATURES` env var, read at CMake configure time by
-`rust_builder/<platform>/CMakeLists.txt` and handed to cargo through
-`CARGOKIT_EXTRA_CARGO_FLAGS` — a local patch in `rust_builder/cargokit/`, which is vendored
-here, **not** a submodule. The fourth argument to `apply_cargokit` is *not* a features
-parameter on either platform; do not pass them there. Windows uses
-`gstreamer,onnxruntime_dynamic,onnxruntime_directml`; DirectML is a Windows-only execution
-provider, so Linux takes a different set. `mfvideosrc` needs the `mediafoundation` GStreamer
+the native plugin's `knt_push_frame` C ABI; only detection metadata crosses the bridge. **The
+Rust core has no features and no opt-out** (owner, 2026-10-20): OxidANT gates by target alone
+(`cfg(desktop)`, `wasm32`), so every Linux and Windows build carries the webcam engine, ORT
+with tract as its fallback, and DirectML on Windows. Nothing here passes `--features`; never
+add a feature variable or a Rust-less path back. `rust_builder/cargokit/` is vendored here,
+**not** a submodule. `mfvideosrc` needs the `mediafoundation` GStreamer
 plugin **and** a Windows client host; it falls back to `ksvideosrc`. Details in
 [`docs/source/camera-streaming.md`](docs/source/camera-streaming.md)
 § *Rust-owned webcam inference*.
 
-**Linux has this too as of 2026-09-16, and a frame has crossed it since 2026-10-05.** All
-four links are in the tree: the `knt_push_frame`/`knt_api_version` C ABI exported from the
-Linux plugin, `KATAGLYPHIS_RUST_FEATURES` forwarding, ONNX Runtime bundling, and a Dart
-branch that routes Linux to `RustWebcamView` behind a runtime `webcamInferenceAvailable()`
-probe, so a build with no features set keeps the C++ GStreamer MethodChannel path
-unchanged. The probe is a compile-time answer; never put `listCameras()` back on that path:
-it starts libcamera and held the first frame 0.94 s (2026-10-15). **This is an addition,
-not a replacement**: the WebRTC cat detection stream below stays.
+**Linux has this too as of 2026-09-16, and a frame has crossed it since 2026-10-05.** The
+Linux plugin exports the `knt_push_frame`/`knt_api_version` C ABI, the build bundles the chain
+ONNX Runtime, and the Stream page sends Linux and Windows to `RustWebcamView` by target. Since
+2026-10-21 Linux has no C++ GStreamer MethodChannel fallback: the plugin there only creates
+the texture Rust pushes into. Android and macOS, where the Rust webcam cannot run, keep the
+plugin's MethodChannel pipeline. Never call `listCameras()` on the page's start: it starts
+libcamera and held the first frame 0.94 s (2026-10-15). **This is an addition, not a
+replacement**: the WebRTC cat detection stream below stays.
 
 **A test-pattern frame travels Rust → `knt_push_frame` → texture on every native lane run**
 (2026-10-05): `integration_test/webcam_frame_test.dart` starts `RustWebcamView` on
@@ -68,10 +66,8 @@ not a replacement**: the WebRTC cat detection stream below stays.
 sets. A camera only changes the source, so none is needed; a real camera on Linux is still a
 manual check. `scripts/linux/check-knt-abi.sh` dlopens the built plugin and checks the ABI's
 symbols and error codes. Since 2026-10-01 the lane also starts the packaged bundle under Xvfb
-and drives `integration_test/simple_test.dart` there (§ 5, *What each lane tests*). Since
-2026-09-17 the lane sets `KATAGLYPHIS_RUST_FEATURES=gstreamer,onnxruntime_dynamic` by default
-(an empty string opts out), and the packaged artifacts carry their GStreamer/ONNX
-Runtime/model closure, so the featureless app is no longer the only Linux product.
+and drives `integration_test/simple_test.dart` there (§ 5, *What each lane tests*). The
+packaged artifacts carry their GStreamer/ONNX Runtime/model closure.
 
 **Linux/web cat detection stream.** The same Stream page plays a WebRTC stream from
 `third_party/OxidANT/crates/observant` (`kataglyphis_observant`): V4L2/libcamera → ONNX (cat
@@ -278,11 +274,11 @@ rather than linked.
   missing from it. An empty value drops it.
 - **A packaged Linux artifact carries its whole runtime closure** (2026-10-17), by the hub's
   rules ([`linux-build-basics.md` § *Linux packages that run outside the image*](third_party/ANTfrastructure/docs/linux-build-basics.md#linux-packages-that-run-outside-the-image)):
-  `omni_accelerant` is the launcher of `omni_accelerant.bin`, the GStreamer libraries and seven
+  `omni_accelerant` is the launcher of `omni_accelerant.bin`, the GStreamer libraries and six
   plugins travel in `bundle/lib`, and ORT is the image's chain build, proven by the hub's G6
-  census in `check-bundle-closure.sh`. With the lane's Rust features ORT is in `bundle/lib`
-  before the packer runs (`Kept (already in bundle/lib, not copied)`), so a copy list without
-  ORT is not a missing ORT. Detail: [`docs/source/camera-streaming.md`](docs/source/camera-streaming.md) § *Relocatable Linux bundles*.
+  census in `check-bundle-closure.sh`. `rust_builder` puts ORT in `bundle/lib` before the packer
+  runs (`Kept (already in bundle/lib, not copied)`), so a copy list without ORT is not a
+  missing ORT. Detail: [`docs/source/camera-streaming.md`](docs/source/camera-streaming.md) § *Relocatable Linux bundles*.
 - **The Rust binaries name the chain ORT's directory, and G6 must read them as importers.**
   OxidANT's loader keeps `/opt/onnxruntime/onnxruntime/core/` as a string, so only a whole
   NUL-terminated `__FILE__` path is an ORT fingerprint. A census calling `liboxidant.so` or
@@ -515,7 +511,7 @@ Windows builds run in the `:winamd64` container, and **CI runs the exact same
   steps fail on the mount. `Build-Windows-Container.ps1` streams the sources in and needs neither.
 - **A failed step does not abort the run**, and the log still ends with `=== Build Complete ===`:
   trust the exit code and `failedSteps` in `logs/build-summary-*.json`, never the log tail.
-- Presets `clangcl-{debug,profile,release}`, `msvc-{debug,release}`, `clang-{debug,profile,release}`;
+- Presets `clangcl-{debug,profile,release}`, `msvc-{debug,release}`;
   switches `-SkipTests`, `-SkipFormat`, `-SkipDocs`, `-CleanBuild`, `-SkipMsixPackaging`,
   `-SkipBootstrapFlutterBuild`, `-ContinueOnError`/`-StopOnError`, `-CodeQL` (the closing
   Delivery Check cannot be skipped). Logs in `logs/`, API docs in `doc/api`.
