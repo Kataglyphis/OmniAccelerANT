@@ -124,44 +124,8 @@ what the owner's goal still lacks.
   still halves the capture cost at once, at a less smooth stream. Blocked on the owner: 15 fps
   or not.
 
-## Open — CI time
-
-- [b] **Half of every Windows lane is the image pull.** Measured on 0ca48e8 (2026-10-12):
-  *Prepare Windows container host* took 27 and 31 min of `windows-x64.yml`'s 45 and 64 min
-  jobs, 25 of `windows-arm64.yml`'s 35, and 30 of `web.yml`'s 37-min Windows ObservANT job;
-  the Linux lanes spend 5 to 8 of 10 to 15 min there. A round's wall time is the Windows
-  Debug job's 64 min, of which 31 pull the ~54 GB `:winamd64`. The pull is the hub's
-  `prepare-windows-container-host`; a smaller image for these lanes, or a cache the hosted
-  runners keep, would halve the round. Blocked on the hub.
-
-## Open — Rust is mandatory
-
-- [ ] **The Rust core is always in, with no opt-out** (owner, 2026-10-20: every Rust feature is mandatory,
-  the platform alone decides). Waits for OxidANT's switch-free develop (features removed, target-gated),
-  then in one round with the OxidANT and AccelerANTgine gitlinks:
-  - drop `KATAGLYPHIS_RUST_FEATURES` and its `--features` forwarding (`rust_builder/{linux,windows}/CMakeLists.txt`,
-    the Cargokit patch's `CARGOKIT_EXTRA_CARGO_FLAGS` if nothing else uses it), the lane defaults and the
-    empty-string opt-out (`scripts/linux/ci/lane-native-linux.sh:137-171`, `scripts/windows/Build-Windows.ps1:204-215,566-571`,
-    `Build-WindowsArm64Natives.ps1:15-16`); ORT bundling on Linux runs unconditionally;
-  - drop the `webcamInferenceAvailable()` probe and the Linux C++ GStreamer MethodChannel webcam fallback
-    (`lib/Pages/StreamPage/stream_page.dart:106-150,330-338`; the plugin's Linux pipeline handlers), keeping the
-    MethodChannel camera for Android and macOS, where the Rust webcam cannot run; the tests of the no-Rust Linux path
-    (`test/stream_page_native_test.dart:101-123`) go, `integration_test/webcam_frame_test.dart` runs on every native lane run;
-  - drop `set(RUST_FEATURES "TRUE")` in `packages/kataglyphis_native_inference/{linux,windows}/CMakeLists.txt`
-    (AccelerANTgine 512edaa removed the option) and the 19 `RUST_FEATURES` lines in `windows/CMakePresets.json`;
-  - regenerate `lib/src/rust/` if OxidANT's frb API changed, and fix AGENTS.md's sections 1 and 4 and `docs/source/`
-    (camera-streaming.md, platforms.md, project-operations.md, testing.md), which call the features opt-in.
-  Done when every lane (Linux x64/arm64, Windows x64/arm64, Android, web) is green with no feature variable set.
-
 ## Open — tests
 
-- [x] **`webrtc_view.dart`, about 550 web-only lines, is outside coverage.** Done 2026-10-20
-  (owner: bring it under test): `webrtc_view_test.dart` and `webrtc_view_first_view_test.dart` run
-  it in Chrome on the vendored gstwebrtc-api, with ObservANT stood in for by
-  `test/support/gst_signalling_stand_in.js` (`testing.md` § *The WebRTC view in Chrome*).
-  Proof in `:latest`: the web lane's Dart step green (190 tests in Chrome), 21 of 22 bugs planted
-  in the view caught, 218 of its 221 mapped lines run (V8 coverage, measured once; the lanes
-  measure the VM only).
 - [ ] **A TURN server in `webrtc_settings.json` would break every web session.** The view hands
   gstwebrtc-api `{urls}` alone for each `turnServers` entry, and Chrome refuses a `turn:` URL
   without `username` and `credential`: `InvalidAccessError: Both username and credential are
