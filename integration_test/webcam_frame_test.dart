@@ -19,7 +19,7 @@ void main() {
   testWidgets('a test-pattern frame reaches the native texture', (
     WidgetTester tester,
   ) async {
-    // The lane runs this only with the Rust webcam features, and the listing must work without a camera.
+    // Every desktop build has the webcam engine, and the listing must work without a camera.
     expect(webcamInferenceAvailable(), isTrue);
     await listCameras();
 

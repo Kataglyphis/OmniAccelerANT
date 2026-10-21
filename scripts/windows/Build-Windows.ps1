@@ -136,9 +136,6 @@ $presetMapping = @{
     "clangcl-release" = "x64-ClangCL-Windows-Release"
     "msvc-debug" = "x64-MSVC-Windows-Debug"
     "msvc-release" = "x64-MSVC-Windows-Release"
-    "clang-debug" = "x64-Clang-Windows-Debug"
-    "clang-profile" = "x64-Clang-Windows-Profile"
-    "clang-release" = "x64-Clang-Windows-Release"
 }
 
 $presetsToRun = @()
@@ -201,18 +198,10 @@ try {
     }
 
     Invoke-BuildStep -Context $context -StepName "Media Runtime Preflight" -Script {
-        # Read at configure time by rust_builder/windows/CMakeLists.txt; "" builds featureless.
-        if ($null -eq (Get-Item -Path "Env:KATAGLYPHIS_RUST_FEATURES" -ErrorAction SilentlyContinue)) {
-            $env:KATAGLYPHIS_RUST_FEATURES = "gstreamer,onnxruntime_dynamic,onnxruntime_directml"
-        }
-        Write-BuildLog -Context $context -Message "Rust features: '$($env:KATAGLYPHIS_RUST_FEATURES)'"
-
-        if ($env:KATAGLYPHIS_RUST_FEATURES -match "gstreamer") {
-            # All three modules the crate binds, now rather than minutes later inside cargo.
-            Assert-PkgConfigModule `
-                -Module @('gstreamer-1.0', 'gstreamer-app-1.0', 'gstreamer-video-1.0') `
-                -Context "the Rust 'gstreamer' feature (webcam capture). Set KATAGLYPHIS_RUST_FEATURES='' to build without it"
-        }
+        # All three modules the Rust webcam capture binds, now rather than minutes later inside cargo.
+        Assert-PkgConfigModule `
+            -Module @('gstreamer-1.0', 'gstreamer-app-1.0', 'gstreamer-video-1.0') `
+            -Context "the Rust core's webcam capture"
     }
 
     Invoke-BuildStep -Context $context -StepName "Git Configuration" -Script {
@@ -565,11 +554,6 @@ try {
 
         Invoke-BuildStep -Context $context -StepName "Bundle Media Runtime DLLs$stepSuffix" -Script {
             # Plugins go to gstreamer-1.0\, the Rust side's GST_PLUGIN_PATH; ONNX Runtime is the next step's.
-            if ($env:KATAGLYPHIS_RUST_FEATURES -notmatch "gstreamer") {
-                Write-BuildLog -Context $context -Message "Rust media features disabled; skipping DLL bundling."
-                return
-            }
-
             $gstBin = if ($env:GSTREAMER_BIN) { $env:GSTREAMER_BIN } else { "C:\runtime\bin" }
             $gstPlugins = Join-Path (Split-Path $gstBin -Parent) "lib\gstreamer-1.0"
             if (Test-Path $gstBin) {
@@ -601,7 +585,7 @@ try {
             }
         }
 
-        # Unconditional and last: AccelerANTgine.dll imports onnxruntime.dll whatever the features; G6 then proves it.
+        # Last: AccelerANTgine.dll imports onnxruntime.dll and the Rust core dlopens it; G6 then proves it.
         Invoke-BuildStep -Context $context -StepName "Stage Chain ONNX Runtime$stepSuffix" -Critical -Script {
             $null = Copy-ChainOrtBeside -OnnxRoot "$env:ONNX_ROOT" -Destination $currentBuildDirFull
             $proof = Invoke-RunnerOrtProof -RunnerDir $currentBuildDirFull

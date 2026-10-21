@@ -19,7 +19,6 @@ list(
   "kataglyphis_texture.cpp"
   "kataglyphis_texture.h")
 
-set(RUST_FEATURES "TRUE")
 # Resolve, then walk up: a ".." inside REALPATH collapses lexically into .plugin_symlinks (AGENTS.md section 3).
 get_filename_component(_KCI_PLUGIN_PLATFORM_DIR "${CMAKE_CURRENT_SOURCE_DIR}" REALPATH)
 get_filename_component(_KCI_PLUGIN_ROOT "${_KCI_PLUGIN_PLATFORM_DIR}" DIRECTORY)

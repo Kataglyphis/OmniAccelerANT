@@ -134,11 +134,6 @@ flutter config --enable-linux-desktop
 # Models are not tracked; the debug app the integration tests build loads OxidANT's checkout copy.
 bash third_party/OxidANT/scripts/linux/fetch-models.sh
 
-# The Rust webcam path by default; KATAGLYPHIS_RUST_FEATURES="" builds featureless (no DirectML off Windows).
-if [[ -z "${KATAGLYPHIS_RUST_FEATURES+x}" ]]; then
-  export KATAGLYPHIS_RUST_FEATURES="gstreamer,onnxruntime_dynamic"
-fi
-echo "Rust features: '${KATAGLYPHIS_RUST_FEATURES}'"
 # linux/CMakeLists.txt reads it at configure time: the plugin's gtest target, built only by run_plugin_gtest.
 export KATAGLYPHIS_PLUGIN_TESTS=1
 
@@ -166,9 +161,7 @@ if [[ "$BUILD_MODE" == "release" ]]; then
   run_gate "launch smoke, bundled glibc" run_bundled_glibc_launch_smoke "${build_dir}/bundle/$(linux_binary_name)"
   run_gate "integration test" run_integration_test
   # Rust -> knt_push_frame -> texture with a test pattern: CI has no camera, and the push path needs none.
-  if [[ -n "${KATAGLYPHIS_RUST_FEATURES}" ]]; then
-    run_gate "webcam frame test" run_integration_test integration_test/webcam_frame_test.dart
-  fi
+  run_gate "webcam frame test" run_integration_test integration_test/webcam_frame_test.dart
   # One arch is enough to track the Dart side, and a profile build costs minutes.
   if [[ "$MATRIX_ARCH" == "x64" ]]; then
     run_gate "frontend performance" run_frontend_performance

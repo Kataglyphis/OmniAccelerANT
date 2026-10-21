@@ -14,16 +14,6 @@ file(
 
 include("../cargokit/cmake/cargokit.cmake")
 
-# Features reach cargo via the local CARGOKIT_EXTRA_CARGO_FLAGS patch (AGENTS.md § 1); keep identical to linux/.
-if(DEFINED ENV{KATAGLYPHIS_RUST_FEATURES}
-   AND NOT
-       "$ENV{KATAGLYPHIS_RUST_FEATURES}"
-       STREQUAL
-       "")
-  set(CARGOKIT_EXTRA_CARGO_FLAGS "--features $ENV{KATAGLYPHIS_RUST_FEATURES}")
-  message(STATUS "Rust crate features: $ENV{KATAGLYPHIS_RUST_FEATURES}")
-endif()
-
 apply_cargokit(
   ${PROJECT_NAME}
   "${MANIFEST_REL}"

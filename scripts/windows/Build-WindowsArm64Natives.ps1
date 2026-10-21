@@ -12,8 +12,6 @@
 param(
     [string]$WorkspaceDir = 'C:\ws',
     [string]$OutDir = 'dist\windows-arm64-natives',
-    # The x64 features minus onnxruntime_directml: the arm64 ONNX Runtime has no DirectML EP.
-    [string]$RustFeatures = 'gstreamer,onnxruntime_dynamic',
     # The x64 runner's capture subset; unlike there, a missing plugin fails the build.
     [string[]]$GStreamerPlugins = @('gstcoreelements', 'gstapp', 'gsttypefindfunctions', 'gstvideoconvertscale',
         'gstvideofilter', 'gstvideorate', 'gstvideotestsrc', 'gstautodetect', 'gstwinks', 'gstmediafoundation')
@@ -49,7 +47,7 @@ foreach ($header in 'kataglyphis_c_api.h', 'kataglyphis_export.h') { Copy-Item -
 $env:PKG_CONFIG_ALLOW_CROSS = '1'
 $cargoTarget = Join-Path $env:TEMP 'omni-arm64-cargo'
 & cargo build --manifest-path (Join-Path $WorkspaceDir 'third_party\OxidANT\Cargo.toml') --release --lib `
-    --target aarch64-pc-windows-msvc --features $RustFeatures --target-dir $cargoTarget
+    --target aarch64-pc-windows-msvc --target-dir $cargoTarget
 if ($LASTEXITCODE) { throw "cargo build of oxidant.dll for aarch64-pc-windows-msvc failed (exit $LASTEXITCODE)." }
 Copy-Item -LiteralPath (Join-Path $cargoTarget 'aarch64-pc-windows-msvc\release\oxidant.dll') -Destination $runtime
 
@@ -65,7 +63,7 @@ foreach ($name in $GStreamerPlugins) { Copy-Item -LiteralPath (Join-Path $plugin
 
 $seeds = @(Get-ChildItem -LiteralPath $runtime -Filter '*.dll' -File -Recurse | ForEach-Object FullName)
 $added = @(Copy-PeImportClosure -Path $seeds -SearchDirectory @(Get-ProductDllSearchPath -Arch arm64) -Destination $runtime -Arch arm64)
-Write-Host "arm64 natives in $out`: $($seeds.Count) seed(s), $($added.Count) closure DLL(s) in runtime\, features $RustFeatures"
+Write-Host "arm64 natives in $out`: $($seeds.Count) seed(s), $($added.Count) closure DLL(s) in runtime\"
 
 # G6 places ORT from a host exe's folder, and runtime\ has none yet: a copy with AccelerANTgine.exe standing in is proved.
 $env:WINDOWS_TARGET_ARCH = 'arm64'
