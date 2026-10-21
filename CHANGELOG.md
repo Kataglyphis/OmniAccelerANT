@@ -23,7 +23,10 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 - **The README header shows OmniAccelerANT's own logo, `images/logo.svg`** (2026-10-21, owner): a
   sprinting ant over a lightning bolt, from the family set DocumANTation's
-  `scripts/make_repo_logos.py` draws. `images/logo.png` is unchanged.
+  `scripts/make_repo_logos.py` draws. The app's icons are rendered from it at their sizes:
+  `assets/icons/kataglyphis_app_icon.svg` and `.png` (`flutter_launcher_icons`, the MSIX, the
+  ObservANT packages), the Android launcher, the web icons, `windows/runner/resources/app_icon.ico`
+  (now 16 to 256 px), `images/logo.png`, and the native-inference package's logo and example app.
 
 - **The web lane fails on an engine from Google's CDN** (2026-10-21, owner: no visitor request goes
   to Google; ANTfrastructure 4e28bc3a). Its smoke test checks that `flutter_bootstrap.js` loads the

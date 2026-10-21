@@ -1,55 +1,42 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <defs>
-    <linearGradient id="bg" x1="160" y1="140" x2="900" y2="940" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#0B1220"/>
-      <stop offset="0.55" stop-color="#1B2A4A"/>
-      <stop offset="1" stop-color="#D49A3A"/>
-    </linearGradient>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="OmniAccelerANT: a sprinting ant and a lightning bolt">
+<title>OmniAccelerANT: a sprinting ant and a lightning bolt</title>
+<defs><linearGradient id="tile" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5a2114"/><stop offset="1" stop-color="#3a1410"/></linearGradient></defs>
+<rect x="24" y="24" width="464" height="464" rx="112" fill="url(#tile)"/>
+<rect x="25.5" y="25.5" width="461" height="461" rx="110.5" fill="none" stroke="#ffffff14" stroke-width="3"/>
+<path d="M296,52 L168,282 L248,282 L206,462 L352,206 L270,206 L326,52 Z" fill="#f5a524"/><path d="M58,270 L126,270" stroke="#f5a524" stroke-opacity="0.9" stroke-width="11" stroke-linecap="round"/><path d="M76,304 L148,304" stroke="#f5a524" stroke-opacity="0.7" stroke-width="11" stroke-linecap="round"/><path d="M54,338 L110,338" stroke="#f5a524" stroke-opacity="0.5" stroke-width="11" stroke-linecap="round"/>
+<g transform="translate(250 318) scale(1.12)"><g fill="none" stroke="#3a1410" stroke-linecap="round" stroke-linejoin="round">
+<path d="M50,2 L80,14 L110,28" stroke-width="26.4"/>
+<path d="M32,6 L38,30 L22,52" stroke-width="26.4"/>
+<path d="M14,6 L-18,22 L-66,32" stroke-width="26.4"/>
+</g>
+<g fill="none" stroke="#3a1410" stroke-linecap="round" stroke-linejoin="round">
+<path d="M58,4 L88,16" stroke-width="30"/>
+<path d="M88,16 L118,30" stroke-width="26.4"/>
+<path d="M40,8 L46,32" stroke-width="30"/>
+<path d="M46,32 L30,54" stroke-width="26.4"/>
+<path d="M22,8 L-10,24" stroke-width="30"/>
+<path d="M-10,24 L-58,34" stroke-width="26.4"/>
+<path d="M92,-28 L104,-62 Q122,-64 140,-48" stroke-width="26.4"/>
+<path d="M104,-6 Q116,-2 113,8" stroke-width="25.2"/>
+</g>
+<g fill="#3a1410" stroke="#3a1410" stroke-width="18" stroke-linejoin="round"><ellipse cx="-58" cy="-8" rx="44" ry="30" transform="rotate(-18 -58 -8)"/><ellipse cx="-6" cy="2" rx="8" ry="12"/><path d="M4,6 C2,-8 10,-20 26,-22 C40,-24 52,-20 58,-14 C66,-8 68,0 64,6 C56,12 14,14 4,6 Z"/><ellipse cx="86" cy="-14" rx="23" ry="18" transform="rotate(12 86 -14)"/></g>
+<ellipse cx="91" cy="-19" rx="5.5" ry="6.5" fill="#3a1410" stroke="#3a1410" stroke-width="18"/></g>
+<g transform="translate(250 318) scale(1.12)"><g fill="none" stroke="#3aa77a" stroke-linecap="round" stroke-linejoin="round">
+<path d="M50,2 L80,14 L110,28" stroke-width="8.4"/>
+<path d="M32,6 L38,30 L22,52" stroke-width="8.4"/>
+<path d="M14,6 L-18,22 L-66,32" stroke-width="8.4"/>
+</g>
+<g fill="none" stroke="#6af0ad" stroke-linecap="round" stroke-linejoin="round">
+<path d="M58,4 L88,16" stroke-width="12"/>
+<path d="M88,16 L118,30" stroke-width="8.4"/>
+<path d="M40,8 L46,32" stroke-width="12"/>
+<path d="M46,32 L30,54" stroke-width="8.4"/>
+<path d="M22,8 L-10,24" stroke-width="12"/>
+<path d="M-10,24 L-58,34" stroke-width="8.4"/>
+<path d="M92,-28 L104,-62 Q122,-64 140,-48" stroke-width="8.4"/>
+<path d="M104,-6 Q116,-2 113,8" stroke-width="7.2"/>
+</g>
+<g fill="#6af0ad"><ellipse cx="-58" cy="-8" rx="44" ry="30" transform="rotate(-18 -58 -8)"/><ellipse cx="-6" cy="2" rx="8" ry="12"/><path d="M4,6 C2,-8 10,-20 26,-22 C40,-24 52,-20 58,-14 C66,-8 68,0 64,6 C56,12 14,14 4,6 Z"/><ellipse cx="86" cy="-14" rx="23" ry="18" transform="rotate(12 86 -14)"/></g>
+<ellipse cx="91" cy="-19" rx="5.5" ry="6.5" fill="#3a1410"/></g>
 
-    <linearGradient id="rim" x1="180" y1="180" x2="860" y2="860" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.18"/>
-      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
-    </linearGradient>
-
-    <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%" color-interpolation-filters="sRGB">
-      <feOffset dx="0" dy="18"/>
-      <feGaussianBlur stdDeviation="18"/>
-      <feColorMatrix type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.35 0"/>
-      <feBlend mode="normal" in2="SourceGraphic"/>
-    </filter>
-  </defs>
-
-  <!-- Rounded square background -->
-  <rect x="64" y="64" width="896" height="896" rx="220" fill="url(#bg)"/>
-  <rect x="92" y="92" width="840" height="840" rx="200" stroke="url(#rim)" stroke-width="20"/>
-
-  <!-- Ant mark (Cataglyphis-inspired) -->
-  <g filter="url(#softShadow)" stroke="#FFFFFF" stroke-width="46" stroke-linecap="round" stroke-linejoin="round" opacity="0.98">
-    <!-- Body axis -->
-    <path d="M512 292 C512 352 512 392 512 452"/>
-    <path d="M512 452 C512 512 512 556 512 608"/>
-
-    <!-- Head / thorax / abdomen outlines -->
-    <ellipse cx="512" cy="270" rx="90" ry="78"/>
-    <ellipse cx="512" cy="470" rx="98" ry="86"/>
-    <ellipse cx="512" cy="700" rx="140" ry="120"/>
-
-    <!-- Antennae -->
-    <path d="M470 214 C430 182 380 174 338 192"/>
-    <path d="M554 214 C594 182 644 174 686 192"/>
-
-    <!-- Legs (3 per side) -->
-    <path d="M432 454 C356 436 292 396 244 344"/>
-    <path d="M592 454 C668 436 732 396 780 344"/>
-
-    <path d="M424 520 C346 528 282 564 236 620"/>
-    <path d="M600 520 C678 528 742 564 788 620"/>
-
-    <path d="M444 618 C374 654 322 706 292 768"/>
-    <path d="M580 618 C650 654 702 706 732 768"/>
-
-    <!-- Subtle inner highlight line on abdomen -->
-    <path d="M512 632 C448 642 406 682 396 724" stroke-opacity="0.45"/>
-  </g>
 </svg>
