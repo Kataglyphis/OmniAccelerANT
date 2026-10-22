@@ -5,9 +5,9 @@
 #include "include/kataglyphis_native_inference/kataglyphis_native_inference_plugin.h"
 #include "kataglyphis_native_inference_plugin_private.h"
 
+#include "kataglyphis_texture_abi.h"
 #include <array>
 #include <cstdint>
-#include "kataglyphis_texture_abi.h"
 
 import kataglyphis.my_texture;
 

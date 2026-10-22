@@ -315,10 +315,7 @@ void my_texture_forget_push_target(FlTexture *texture)
 extern "C" {
 
 // 0 on success; -1 bad arguments, -2 unknown texture id, -3 copy failed (the Windows codes).
-int32_t knt_push_frame(int64_t texture_id,
-  const uint8_t *rgba,
-  uint32_t width,
-  uint32_t height)
+int32_t knt_push_frame(int64_t texture_id, const uint8_t *rgba, uint32_t width, uint32_t height)
 {
     if (!rgba || width == 0U || height == 0U) { return KNT_BAD_ARGUMENTS; }
 
