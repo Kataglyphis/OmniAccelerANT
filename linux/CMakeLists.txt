@@ -76,7 +76,8 @@ if("$ENV{KATAGLYPHIS_PLUGIN_TESTS}" STREQUAL "1")
   set(include_kataglyphis_native_inference_tests TRUE)
 endif()
 
-# Generated plugin build rules.
+# path_provider_android brings optional JNI; Linux uses path_provider_linux without a JVM.
+set(CMAKE_DISABLE_FIND_PACKAGE_JNI TRUE)
 include(flutter/generated_plugins.cmake)
 
 # Installation: by default a relocatable bundle in the build directory

@@ -431,6 +431,11 @@ variable (it has none since 2026-10-21). For a release build it runs
 the launch smoke, the integration test and the webcam frame test under the image's `xvfb-run`,
 all between the build and packaging.
 
+Linux disables optional JNI discovery before Flutter's generated plugin rules. PathProvider's
+Android implementation brings that FFI plugin into the dependency graph, but Linux uses
+`path_provider_linux`. Finding the image's JDK would otherwise build an unused `libdartjni.so`
+whose `libjvm.so` dependency is absent from the runtime bundle. The closure gate remains strict.
+
 **`KATAGLYPHIS_LINKER=lld|mold` is an opt-in for the native lane** (2026-10-05):
 `.\scripts\windows\Invoke-LinuxLane.ps1 -Env KATAGLYPHIS_LINKER=lld`. `setup_linker` runs it
 after `export_toolchain_env`, so clang links the C++ and the host Rust target with that linker;

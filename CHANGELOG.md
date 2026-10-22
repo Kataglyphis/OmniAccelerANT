@@ -9,6 +9,8 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
   webcam/device sessions and camera-form edits. Bottom navigation reports its selected branch.
 - Open and save the landing page's bundled files through ANThology's shared native/browser
   adapters; failed file actions show localized feedback.
+- Keep Android's optional JNI plugin out of Linux builds; Linux PathProvider needs no JVM,
+  and the image's JDK otherwise introduces an unresolved `libjvm.so` bundle dependency.
 - Reuse ANThology's dev-only layout and navigation contracts, including actual control taps.
 - Consume the generated texture ABI header from OxidANT instead of repeating declarations;
   Rust checks its version before pushing frames. Version 1 signatures remain unchanged.
