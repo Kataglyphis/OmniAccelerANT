@@ -275,16 +275,35 @@ string. Measured 2026-09-16 on a `--wasm` build: 1 hit in each of those two file
 after, 0 in `main.dart.mjs`. A "gstatic must be 0" check would fail forever and teach the next
 reader that the flag does not work.
 
-**Nothing goes to Google** (owner, 2026-10-21). With the same flag, `flutter build web` also
-bundles its fallback Roboto (`assets/fonts/fallback/Roboto-Regular.ttf`, a FontManifest family
-named `Roboto`) when the app declares none, so the engine fetches no font from fonts.gstatic.com
-either. The lane's smoke test fails on an engine from the CDN (the hub's `CHECK_LOCAL_ENGINE`).
-Measured with the hub's console capture (`--forbid-host gstatic.com googleapis.com google.com`)
-over 15 routes in `:latest`'s Chrome on 2026-10-21: no third-party host. The capture itself does
-not run in the lane yet (BACKLOG.md).
+**Nothing goes to Google** (owner, 2026-10-21). The CanvasKit flag also bundles fallback Roboto,
+but emoji and symbol fonts still need `web/flutter_bootstrap.js`'s `fontFallbackBaseUrl` and the
+hub's locked [fallback-font fetcher](../../third_party/ANTfrastructure/linux/webserver/README.md#fallback-fonts-from-the-site).
+The lane copies those fonts from the image store into `build/web/fallback-fonts`, checks them
+over HTTP (`CHECK_FALLBACK_FONTS=1`) and lists their OFL notice on the licences page.
+
+`bash scripts/linux/check-web-browser.sh` runs the hub's
+[Node/Chrome check](../../third_party/ANTfrastructure/docs/ftp-deploys.md#the-live-site-check)
+over all branches and configured blog routes. It serves an idle ObservANT fixture with the
+real signalling handshake, empty producer lists, settings, health and a valid snapshot; a
+physical camera is unnecessary. External hosts and browser errors stay forbidden. The fixture
+does not test media playback; the ObservANT package tests do.
+Its empty producer list makes no WebRTC peer connection, so the network assertion covers
+HTTP(S); live media follows the STUN/TURN configuration in `webrtc_settings.json`.
+
+The web lane runs that check after its build and HTTP smoke, then
+`bash scripts/linux/tests/test-check-web-browser.sh` proves it rejects a console error, a
+Google request and a missing asset. Both commands accept a build directory as their first argument.
+
+Measured on 2026-10-22 in image digest `sha256:3c558d8828553ea2e3feedb97c99e15bb89a0820c6a056813876da4cd968d92c`
+(Flutter 3.47.7, Chrome 155.0.8059.79): all 18 URLs at 1280x800 and 390x844 passed, all 127
+build files returned 200 and `version.json` matched. The HTTP smoke served all 18 locked fonts;
+all three planted failures were rejected. The new scrolling check caught fallback-font
+requests on About and the blog overview before the local-font fix.
 
 ## CI/CD Notes
 
+- API docs use the hub's pinned generator and isolated tool cache; `generate-docs.sh` leaves
+  that default intact. The image's bundled dartdoc can lag fixes independently of Flutter.
 - GitHub Actions runs the Linux native, Windows native, Web and Android pipelines.
 - Keep generated artifacts deterministic: fewer CI diffs and flaky builds.
 - Run the scripts in `scripts/`, not ad-hoc commands, so a run is reproducible.

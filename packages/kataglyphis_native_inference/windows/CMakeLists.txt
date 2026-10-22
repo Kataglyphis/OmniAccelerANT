@@ -25,6 +25,7 @@ get_filename_component(_KCI_PLUGIN_ROOT "${_KCI_PLUGIN_PLATFORM_DIR}" DIRECTORY)
 get_filename_component(_KCI_PACKAGES "${_KCI_PLUGIN_ROOT}" DIRECTORY)
 get_filename_component(_KCI_REPO_ROOT "${_KCI_PACKAGES}" DIRECTORY)
 set(KCI_DIR "${_KCI_REPO_ROOT}/third_party/AccelerANTgine")
+set(KCI_TEXTURE_ABI_DIR "${_KCI_REPO_ROOT}/third_party/OxidANT/include")
 # Windows arm64 links a cross-built AccelerANTgine with its own C API headers (AGENTS.md § 5, the arm64 lane).
 if(DEFINED ENV{KATAGLYPHIS_ACCELERANTGINE_PREBUILT}
    AND NOT
@@ -66,6 +67,7 @@ target_compile_definitions(${PLUGIN_NAME} PRIVATE FLUTTER_PLUGIN_IMPL)
 
 target_include_directories(${PLUGIN_NAME} INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/include")
 target_include_directories(${PLUGIN_NAME} PRIVATE "${KCI_DIR}/Src")
+target_include_directories(${PLUGIN_NAME} PRIVATE "${KCI_TEXTURE_ABI_DIR}")
 target_link_libraries(${PLUGIN_NAME} PRIVATE flutter flutter_wrapper_plugin)
 target_link_libraries(${PLUGIN_NAME} PRIVATE AccelerANTgine)
 # Absolute paths of the libraries bundled with the plugin.
@@ -93,6 +95,7 @@ if(${include_${PROJECT_NAME}_tests})
   add_executable(${TEST_RUNNER} EXCLUDE_FROM_ALL test/kataglyphis_native_inference_plugin_test.cpp ${PLUGIN_SOURCES})
   apply_standard_settings(${TEST_RUNNER})
   target_include_directories(${TEST_RUNNER} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}" "${KCI_DIR}/Src")
+  target_include_directories(${TEST_RUNNER} PRIVATE "${KCI_TEXTURE_ABI_DIR}")
   target_link_libraries(${TEST_RUNNER} PRIVATE flutter_wrapper_plugin)
   # kataglyphis_add comes from AccelerANTgine, as in the plugin itself.
   target_link_libraries(${TEST_RUNNER} PRIVATE AccelerANTgine)

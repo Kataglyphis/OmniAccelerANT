@@ -12,6 +12,8 @@
 #include <mutex>
 #include <string>
 
+#include "kataglyphis_texture_abi.h"
+
 namespace kataglyphis_native_inference {
 
 /// CPU pixel-buffer texture fed by `knt_push_frame`; the pipeline methods are no-ops kept for the method channel.
@@ -63,16 +65,5 @@ void RegisterPushTarget(int64_t texture_id, KataglyphisTexture *texture);
 void UnregisterPushTarget(int64_t texture_id);
 
 }// namespace kataglyphis_native_inference
-
-// Resolved by name from Rust via libloading: keep names and signatures stable.
-extern "C" {
-
-// Returns 0 on success, negative on error (unknown texture, bad args).
-__declspec(dllexport) int32_t knt_push_frame(int64_t texture_id, const uint8_t *rgba, uint32_t width, uint32_t height);
-
-// ABI version for sanity checks from the Rust side.
-__declspec(dllexport) int32_t knt_api_version();
-
-}// extern "C"
 
 #endif// KATAGLYPHIS_TEXTURE_H_

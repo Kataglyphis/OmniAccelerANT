@@ -18,6 +18,7 @@ import 'package:anthology/user_settings.dart';
 import 'package:omni_accelerant/Pages/omni_screen_configurations.dart';
 import 'package:omni_accelerant/Routing/omni_router.dart';
 import 'package:omni_accelerant/blog_dependent_app_attributes.dart';
+import 'package:omni_accelerant/fallback_font_licenses.dart';
 import 'package:omni_accelerant/l10n/app_localizations.dart';
 import 'package:omni_accelerant/settings/webrtc_settings.dart';
 import 'package:omni_accelerant/src/boot/rust_core.dart';
@@ -63,6 +64,7 @@ Future<void> main() async {
     optional: kIsWeb,
   );
   dismissBootOverlay();
+  registerFallbackFontLicenses();
   runApp(const App());
 }
 

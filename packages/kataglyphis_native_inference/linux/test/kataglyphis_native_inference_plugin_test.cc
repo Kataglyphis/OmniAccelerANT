@@ -7,10 +7,9 @@
 
 #include <array>
 #include <cstdint>
+#include "kataglyphis_texture_abi.h"
 
 import kataglyphis.my_texture;
-
-extern "C" int32_t knt_push_frame(int64_t texture_id, const uint8_t *rgba, uint32_t width, uint32_t height);
 
 // Not in the app build: run_plugin_gtest (scripts/linux/lib/container-steps.sh) builds and runs it in the native lanes.
 

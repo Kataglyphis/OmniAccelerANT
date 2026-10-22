@@ -20,8 +20,6 @@ export DARTDOC_BUILD_PROJECT_ROOT
 # flutter clean first: a stale .dart_tool from another build mode yields the wrong package graph.
 # shellcheck disable=SC2034  # read by dartdoc-build.sh, sourced into this shell
 DARTDOC_BUILD_CLEAN_CMD=(flutter clean)
-# shellcheck disable=SC2034  # same
-DARTDOC_BUILD_DOC_CMD=(dart doc)
 
 # The family's generated brand sheet, as jotrockenmitlocken and ANThology take it: no copy here to drift.
 DARTDOC_BUILD_THEME_CSS="$(antfrastructure_path third_party/DocumANTation/style/dartdoc.css)"
