@@ -1,5 +1,7 @@
 module;
 
+#include "kataglyphis_texture_abi.h"
+
 #include <algorithm>
 #include <cstdint>
 #include <cstdlib>
@@ -313,19 +315,16 @@ void my_texture_forget_push_target(FlTexture *texture)
 extern "C" {
 
 // 0 on success; -1 bad arguments, -2 unknown texture id, -3 copy failed (the Windows codes).
-__attribute__((visibility("default"))) int32_t knt_push_frame(int64_t texture_id,
-  const uint8_t *rgba,
-  uint32_t width,
-  uint32_t height)
+int32_t knt_push_frame(int64_t texture_id, const uint8_t *rgba, uint32_t width, uint32_t height)
 {
-    if (!rgba || width == 0U || height == 0U) { return -1; }
+    if (!rgba || width == 0U || height == 0U) { return KNT_BAD_ARGUMENTS; }
 
     // Held across the copy so the texture cannot be destroyed mid-memcpy.
     g_mutex_lock(PushTargetsMutex());
     auto it = PushTargets().find(texture_id);
     if (it == PushTargets().end()) {
         g_mutex_unlock(PushTargetsMutex());
-        return -2;
+        return KNT_UNKNOWN_TEXTURE;
     }
     MyTexture *self = it->second;
 
@@ -337,7 +336,7 @@ __attribute__((visibility("default"))) int32_t knt_push_frame(int64_t texture_id
         if (!grown) {
             g_mutex_unlock(&self->pushed_mutex);
             g_mutex_unlock(PushTargetsMutex());
-            return -3;
+            return KNT_COPY_FAILED;
         }
         self->pushed_buffer = grown;
         self->pushed_capacity = needed;
@@ -358,9 +357,9 @@ __attribute__((visibility("default"))) int32_t knt_push_frame(int64_t texture_id
     g_idle_add(mark_texture_frame_available_on_main, self);
 
     g_mutex_unlock(PushTargetsMutex());
-    return 0;
+    return KNT_OK;
 }
 
-__attribute__((visibility("default"))) int32_t knt_api_version() { return 1; }
+int32_t knt_api_version() { return KNT_API_VERSION; }
 
 }// extern "C"

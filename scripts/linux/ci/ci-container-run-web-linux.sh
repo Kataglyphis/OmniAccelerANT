@@ -104,6 +104,8 @@ flutter_rust_bridge_codegen build-web \
   --wasm-pack-rustup-toolchain "$web_nightly"
 # Local CanvasKit, or an offline LAN host renders blank. See docs/source/project-operations.md § The web lane's CanvasKit source
 flutter_build_web --wasm --no-web-resources-cdn
+python3 "$(antfrastructure_path linux/scripts/05-frameworks/flutter/fetch-fallback-fonts.py)" \
+  --dest build/web/fallback-fonts
 
 # Missing frb wasm artefacts do not fail the build; the page hangs at boot, so assert them here.
 for artefact in pkg/oxidant.js pkg/oxidant_bg.wasm main.dart.wasm; do
@@ -122,7 +124,11 @@ smoke_server=$!
 trap 'kill "$smoke_server" 2>/dev/null || true' EXIT
 wait_for_http http://127.0.0.1:8080/ "http.server (pid $smoke_server)" || exit 1
 # No CSP here (the stream's hosts vary per board); CHECK_LOCAL_ENGINE fails on an engine from Google's CDN (owner, 2026-10-21: nothing from Google).
-REQUIRED_CSP_HOSTS="" CHECK_LOADING_SHELL=1 CHECK_LOCAL_ENGINE=1 \
+REQUIRED_CSP_HOSTS="" CHECK_LOADING_SHELL=1 CHECK_LOCAL_ENGINE=1 CHECK_FALLBACK_FONTS=1 \
   bash "$(antfrastructure_path linux/webserver/scripts/flutter_integration_smoke_test.sh)" http://127.0.0.1:8080
+
+echo "=== Browser smoke: all routes, local assets, no external hosts ==="
+bash scripts/linux/check-web-browser.sh
+bash scripts/linux/tests/test-check-web-browser.sh
 
 echo "=== Web build completed successfully ==="

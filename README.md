@@ -33,6 +33,7 @@ and embedded devices. ObservANT is the same stack as an installable camera that 
 - **GStreamer native GTK integration**, for writing Linux AI inference apps.
 - **ESP32-S3-EYE on-device cat detection**, its USB protocol in Rust, shown on the app's Device page.
 - **flutter_rust_bridge** as the API boundary between the Dart UI and the Rust core.
+- **Retained device sessions:** language, theme and layout changes preserve routed page state.
 - **Containerized builds** in [ANTfrastructure](https://github.com/Kataglyphis/ANTfrastructure)'s images: a local run invokes the script CI invokes.
 
 ## Quick start

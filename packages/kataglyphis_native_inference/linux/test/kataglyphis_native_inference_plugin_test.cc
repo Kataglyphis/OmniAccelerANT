@@ -5,12 +5,11 @@
 #include "include/kataglyphis_native_inference/kataglyphis_native_inference_plugin.h"
 #include "kataglyphis_native_inference_plugin_private.h"
 
+#include "kataglyphis_texture_abi.h"
 #include <array>
 #include <cstdint>
 
 import kataglyphis.my_texture;
-
-extern "C" int32_t knt_push_frame(int64_t texture_id, const uint8_t *rgba, uint32_t width, uint32_t height);
 
 // Not in the app build: run_plugin_gtest (scripts/linux/lib/container-steps.sh) builds and runs it in the native lanes.
 

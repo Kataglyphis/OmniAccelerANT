@@ -31,6 +31,7 @@ get_filename_component(_KCI_PLUGIN_ROOT "${_KCI_PLUGIN_PLATFORM_DIR}" DIRECTORY)
 get_filename_component(_KCI_PACKAGES "${_KCI_PLUGIN_ROOT}" DIRECTORY)
 get_filename_component(_KCI_REPO_ROOT "${_KCI_PACKAGES}" DIRECTORY)
 set(KCI_DIR "${_KCI_REPO_ROOT}/third_party/AccelerANTgine")
+set(KCI_TEXTURE_ABI_DIR "${_KCI_REPO_ROOT}/third_party/OxidANT/include")
 # Otherwise AccelerANTgine's Cache.cmake unsets the lane's sccache launcher for every later target.
 set(myproject_ENABLE_CACHE OFF)
 # Its Debug default instruments it and the plugin with ASan+UBSan, but the Flutter runner links no sanitizer runtime.
@@ -62,6 +63,7 @@ set_target_properties(${PLUGIN_NAME} PROPERTIES CXX_VISIBILITY_PRESET hidden)
 target_compile_definitions(${PLUGIN_NAME} PRIVATE FLUTTER_PLUGIN_IMPL)
 
 target_include_directories(${PLUGIN_NAME} INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/include" "${KCI_DIR}/Src")
+target_include_directories(${PLUGIN_NAME} PRIVATE "${KCI_TEXTURE_ABI_DIR}")
 
 target_link_libraries(${PLUGIN_NAME} PRIVATE flutter)
 target_link_libraries(${PLUGIN_NAME} PRIVATE PkgConfig::GTK)
@@ -103,6 +105,7 @@ if(${include_${PROJECT_NAME}_tests})
     target_compile_features(${TEST_RUNNER} PRIVATE cxx_std_20)
     apply_standard_settings(${TEST_RUNNER})
     target_include_directories(${TEST_RUNNER} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}" "${KCI_DIR}/Src")
+    target_include_directories(${TEST_RUNNER} PRIVATE "${KCI_TEXTURE_ABI_DIR}")
     target_link_libraries(${TEST_RUNNER} PRIVATE flutter)
     target_link_libraries(${TEST_RUNNER} PRIVATE PkgConfig::GTK)
     # The plugin's own dependencies, since its sources are compiled in.

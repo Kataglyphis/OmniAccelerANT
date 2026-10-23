@@ -35,6 +35,8 @@ dependencies:
   sqlite3: ^3.7.0
   web: ^1.1.1
 dev_dependencies:
+  anthology_test_support:
+    path: third_party/ANThology/packages/anthology_test_support
   # test/pinned_artefacts_test.dart imports it directly, which a transitive dependency does not allow.
   crypto: ^3.0.6
   flutter_test:
@@ -54,6 +56,7 @@ flutter:
     - assets/data/
     - assets/settings/
     - assets/settings/user_settings/
+    - assets/licenses/
 
 flutter_launcher_icons:
   android: true

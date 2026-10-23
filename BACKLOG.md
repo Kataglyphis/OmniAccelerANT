@@ -124,18 +124,6 @@ what the owner's goal still lacks.
   still halves the capture cost at once, at a less smooth stream. Blocked on the owner: 15 fps
   or not.
 
-## Open — tests
-
-- [b] **The web lane runs no browser over the built app.** The hub's console capture
-  (`flutter_capture_console_errors.py --forbid-host gstatic.com --forbid-host googleapis.com
-  --forbid-host google.com`) would fail a request to Google from any route, but `:latest` has no
-  Playwright (hub CON137), so the lane checks only the known cause, an engine from the CDN
-  (`CHECK_LOCAL_ENGINE`). The capture would also fail this app as it stands: with no ObservANT
-  behind the build, the Stream page logs two console errors for `/webrtc-ws` (2026-10-21: 32
-  passed, 0 failed, no third-party host). Blocked on CON137. Done when the web lane runs the
-  capture over every route with the three `--forbid-host`s, the signalling errors answered by a
-  stand-in on `/webrtc-ws` or allowed by the capture.
-
 ## Open — waiting on the owner
 
 - [b] **False arrivals on himbeere2: nearly gone, one mark left.** On 2026-10-12 and 13 a drying rack at

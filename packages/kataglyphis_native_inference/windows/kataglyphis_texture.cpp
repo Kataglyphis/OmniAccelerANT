@@ -132,12 +132,12 @@ void UnregisterPushTarget(int64_t texture_id)
 int32_t knt_push_frame(int64_t texture_id, const uint8_t *rgba, uint32_t width, uint32_t height)
 {
     using namespace kataglyphis_native_inference;
-    if (!rgba || width == 0 || height == 0) { return -1; }
+    if (!rgba || width == 0 || height == 0) { return KNT_BAD_ARGUMENTS; }
     // Held across PushFrame so the texture cannot be destroyed mid-copy.
     std::lock_guard<std::mutex> lock(g_push_targets_mutex);
     auto it = PushTargets().find(texture_id);
-    if (it == PushTargets().end()) { return -2; }
-    return it->second->PushFrame(rgba, width, height) ? 0 : -3;
+    if (it == PushTargets().end()) { return KNT_UNKNOWN_TEXTURE; }
+    return it->second->PushFrame(rgba, width, height) ? KNT_OK : KNT_COPY_FAILED;
 }
 
-int32_t knt_api_version() { return 1; }
+int32_t knt_api_version() { return KNT_API_VERSION; }

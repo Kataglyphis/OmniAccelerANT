@@ -226,6 +226,24 @@ repositories.
 
 ## 4. Pitfalls specific to this project
 
+**The Flutter router and device sessions survive appearance changes.** ANThology keeps one
+router and publishes current settings through `AppAttributesScope`; do not recreate the router
+to change language, theme or breakpoints. That would dispose `RustWebcamView`, disconnect an
+owned `Esp32Controller` and discard camera-form edits. Its shared `FileActions` also owns the
+landing page's browser downloads and native open/save dialogs. `test/app_layout_test.dart`
+registers the dev-only `anthology_test_support` contracts for both layout and actual control taps.
+
+**The texture ABI is generated from OxidANT.** `third_party/OxidANT/abi/texture.json` owns the
+version and signatures; `scripts/generate-texture-abi.py` there generates its public C header
+and Rust module. Both desktop plugins include `kataglyphis_texture_abi.h` from that submodule.
+Rust refuses an incompatible `knt_api_version` before pushing a frame; do not duplicate the
+declarations here. Version 1's existing signatures are unchanged.
+
+**The desktop `add` API is an integration demo.** The About page's `add(3, 4)` reaches
+AccelerANTgine through the native plugin while live webcam inference stays in Rust. Keep the
+API and link until an explicit compatibility change retires that demo; the measured artifact
+sizes and decision are in [overview.md](docs/source/overview.md#desktop-c-integration).
+
 Everything here is false or meaningless in another repo — that is why it is written out
 rather than linked.
 
@@ -304,6 +322,12 @@ rather than linked.
   then failed the lane. The guard is `command -v` plus
   `cargo install --locked --version "${FLUTTER_RUST_BRIDGE_VERSION}"`, so a bare host gets the
   pin the image carries — never a floating latest, and never `--force`.
+- **The built web app gets a real browser check.** `scripts/linux/check-web-browser.sh`
+  delegates to the hub's Node/Chrome check; its idle ObservANT fixture answers signalling,
+  snapshots and API requests without weakening error checks. Keep the static branch routes
+  there current; configured blog routes are read from their settings. Fallback glyph fonts
+  need both `web/flutter_bootstrap.js` and the hub's locked font fetcher. Commands and scope:
+  [project-operations.md](docs/source/project-operations.md#the-web-lanes-canvaskit-source).
 - **Renaming the Rust crate touches committed generated code.**
   `lib/src/rust/frb_generated.dart` hard-codes the artefact name in
   `kDefaultExternalLibraryLoaderConfig`: `stem` (`oxidant` → `oxidant.dll`,
@@ -403,6 +427,10 @@ rather than linked.
   (`builder.dart`, `rustup.dart`), both halves kept when bumping the vendored copy.
   `check-rust-toolchain.sh` fails the native and Android lanes on any other `rustc version`
   stamp. Detail: [`docs/source/platforms.md`](docs/source/platforms.md) § *Cargokit's Rust toolchain*.
+- **Linux PathProvider needs no JVM.** Its Android package brings the optional `jni` FFI plugin
+  into Flutter's discovery on Linux too. `linux/CMakeLists.txt` disables JNI package discovery
+  before the generated plugin rules; otherwise the image's JDK enables `libdartjni.so` and its
+  unbundled `libjvm.so` dependency. Android's JNI path is unaffected.
 - **The Linux plugin builds AccelerANTgine without its test suites and its Debug sanitizers**
   (`BUILD_TESTING` and both `myproject_ENABLE_SANITIZER_*` OFF before `add_subdirectory`):
   without them the Debug integration build cannot link. Windows keeps its ASan Debug preset on
@@ -562,6 +590,7 @@ that cannot run there; why, lane by lane: [`docs/source/testing.md`](docs/source
 | --- | --- | --- | --- | --- | --- |
 | App Dart tests (`test/`) | yes | yes, in the image | yes, arm64 Dart VM | yes | in Chrome |
 | Plugin Dart tests (`packages/kataglyphis_native_inference/test/`) | yes | yes, in the image | yes, arm64 Dart VM | yes | in Chrome |
+| Built app in Chrome, all routes, files and external hosts (`check-web-browser.sh`); its three planted-failure checks | | | | | yes |
 | Plugin gtest (`kataglyphis_native_inference_test`) | yes | built in the image, run on the host | yes, on the device | | |
 | Plugin C ABI (`knt_*`) | `check-knt-abi.sh` | `Test-KntAbi.ps1`, host | `Test-KntAbi.ps1`, device | | |
 | G6 over the shipped tree | `check-bundle-closure.sh` | at build, again on the host | at the natives build, again on the device | | |

@@ -29,6 +29,19 @@ OmniAccelerANT is a Flutter frontend over native Rust/C++ inference and GStreame
 | `third_party/ANTfrastructure` | Shared build images, container actions, and CI helpers |
 | `third_party/ANThology` | Shared Flutter/Dart code (`anthology` package), a path dependency in `pubspec.yaml` |
 
+## Desktop C++ integration
+
+Live webcam inference runs in Rust. The desktop plugin's `add` method remains an explicit
+Flutter → MethodChannel → AccelerANTgine integration demo: the About page calls `add(3, 4)`
+and displays `7`. Keeping that API preserves the native-link and packaged-library smoke check;
+it does not introduce a second webcam inference path.
+
+The existing Linux bundle from 2026-10-19 contains a 590,793-byte `libAccelerANTgine.so` and a
+32,408,120-byte ONNX Runtime. Rust also needs ONNX Runtime, so removing the C++ smoke call would
+not imply removing that runtime payload. These are existing artifact sizes, not a new build-time
+benchmark. A future removal should measure the same preset, image and cache state and explicitly
+retire the demo API; this change retains it.
+
 ## Core Design Goals
 
 1. **Cross-platform parity** where practical, across desktop, web and embedded targets.

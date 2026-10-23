@@ -10,6 +10,7 @@ that table (written after the test audit of 2026-10-15).
 | Kind | Where | What a pass means | Runs in |
 | --- | --- | --- | --- |
 | Dart unit and widget tests | `test/`, the plugin's `test/` | Page logic and state; the shipped settings files load and name assets that exist; every page lays out at a phone's, a tablet's and a desktop's size, at 150 % and 200 % text, and lands on its own route rather than the error page | Every lane on the Dart VM; the web lane in Chrome |
+| Built web app | `scripts/linux/check-web-browser.sh` | Every branch boots in real Chrome at desktop and phone sizes; scrolling triggers no external font fetch, console error or missing asset; every build file and version is served | `web.yml`, after the WASM and Flutter build; an idle ObservANT fixture answers signalling and API requests |
 | Rust unit tests | OxidANT `crates/*`, `src/` | ObservANT's motion, arrival, clip and HTTP rules; the webcam engine on `videotestsrc` with the real model, headless; the detector on a real photo | OxidANT's Linux and Windows lanes |
 | Property tests | OxidANT `crates/observant` (`mod properties`) | A rule holds for every input, not a few examples: no request path, however encoded, leaves the web root; a served byte range stays inside the file; a public host name is refused; a config that validates keeps its numbers in range | With the Rust unit tests, 256 random inputs per rule and run |
 | C++ unit tests | AccelerANTgine `Test/commit` (97 gtests) | The ONNX engine, the detector's decoding, the config loaders, the GStreamer pipeline; under ASan and UBSan, and once more under TSan | AccelerANTgine's Linux and Windows lanes |
@@ -24,7 +25,11 @@ that table (written after the test audit of 2026-10-15).
 
 From the README (2026-10-19). `test/` checks, among the rest:
 - every main page laid out at phone, tablet and desktop size, on a phone with its system font at
-  150 % and 200 %, and on a desktop at 200 %, with the real font (`app_layout_test.dart`);
+  150 % and 200 %, and on a desktop at 200 %, with the real font (`app_layout_test.dart`, using
+  ANThology's dev-only `anthology_test_support` package);
+- actual bottom-navigation, brightness and language taps, followed by a breakpoint change,
+  preserve the selected route and router; ANThology also tests retained form state, localized
+  asset reloads and native file extraction through injectable system actions;
 - the camera stream's state across remounts, page changes, lost signalling and failed sessions
   (`webrtc_stream_controller_test.dart`);
 - the cat status line, its visits, its arrival picture and video, and the earlier videos
