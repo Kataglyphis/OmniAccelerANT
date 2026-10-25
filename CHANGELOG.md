@@ -5,6 +5,9 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ## Unreleased
 
+- Add shared CI quality reports, Ruff/ty analysis and a manual Python refactor preview.
+  PowerShell checks cover local scripts and strictly grade the vendored Cargokit helper;
+  generated local reports stay in ignored `logs/`.
 - Keep one Flutter router across language, theme and breakpoint changes, preserving native
   webcam/device sessions and camera-form edits. Bottom navigation reports its selected branch.
 - Open and save the landing page's bundled files through ANThology's shared native/browser
