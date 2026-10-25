@@ -5,6 +5,7 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ## Unreleased
 
+- Verify the Renovate wrapper and shared config in CI without applying updates.
 - Add shared CI quality reports, Ruff/ty analysis and a manual Python refactor preview.
   PowerShell checks cover local scripts and strictly grade the vendored Cargokit helper;
   generated local reports stay in ignored `logs/`.

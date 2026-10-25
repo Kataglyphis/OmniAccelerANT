@@ -699,7 +699,7 @@ and the pre-commit hook*, § *The CMake format gate*, § *The plugin's C++ forma
 
 **Submodule and package upgrades go through Renovate as a local CLI, never by hand, and a run
 only reports** (owner directive 2026-09-11): `-Apply` only when the owner asked for it in that
-turn. Nothing in CI runs it. On this host, in the family Linux image:
+turn. CI verifies the wrapper and config without applying upgrades. On this host, in the family Linux image:
 
 ```powershell
 .\scripts\windows\Invoke-Renovate.ps1                      # what is behind
