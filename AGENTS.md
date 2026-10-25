@@ -701,6 +701,9 @@ and the pre-commit hook*, § *The CMake format gate*, § *The plugin's C++ forma
 only reports** (owner directive 2026-09-11): `-Apply` only when the owner asked for it in that
 turn. CI verifies the wrapper and config without applying upgrades. On this host, in the family Linux image:
 
+A real `-Apply` initializes a missing pinned hub before updating every selected direct submodule
+to its remote default tip. Report and dry-run calls do not initialize missing checkouts.
+
 ```powershell
 .\scripts\windows\Invoke-Renovate.ps1                      # what is behind
 .\scripts\windows\Invoke-Renovate.ps1 -Apply -DryRun       # the plan

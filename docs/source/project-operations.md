@@ -360,6 +360,9 @@ repo's part:
   `-Apply`/`-DryRun`/`-Refresh`/`-Managers`/`-PrintBin`.
 - **Managers default to every manager whose file patterns match this tree** (eight today), so
   `-Managers` narrows a run rather than enabling one.
+- **A real apply bootstraps an absent pinned hub**, then the shared driver updates selected direct
+  submodules to each remote default tip regardless of `.gitmodules branch`. Report and dry-run
+  calls leave missing checkouts absent; initialize the hub or provide another checkout to preview.
 - **Renovate's Node lives on the `kataglyphis-renovate-cache` volume**: its `engines.node` range
   excludes the image's Node, so the bootstrap pulls a checksum-pinned one.
 - **The runner passes `gh`'s token as `GITHUB_COM_TOKEN`** when `gh` is authenticated. A live

@@ -5,6 +5,8 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ## Unreleased
 
+- Bootstrap a missing pinned ANTfrastructure checkout during a real Renovate apply and follow
+  direct submodules' remote default tips; reports and previews do not clone.
 - Verify the Renovate wrapper and shared config in CI without applying updates.
 - Add shared CI quality reports, Ruff/ty analysis and a manual Python refactor preview.
   PowerShell checks cover local scripts and strictly grade the vendored Cargokit helper;

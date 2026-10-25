@@ -27,7 +27,8 @@ Linux, Android and the web: an end-to-end reference for cross-platform inference
 and embedded devices. ObservANT is the same stack as an installable camera that spots cats.
 
 Dependency updates: run `bash scripts/linux/renovate-local.sh` to report, `--apply --dry-run` to plan,
-and `--apply` to update. CI checks the wrapper and config; see
+and `--apply` to update. A real apply initializes a missing pinned hub and follows direct
+submodules' remote default branches. CI checks the wrapper and config; see
 [the shared Renovate guide](https://github.com/Kataglyphis/ANTfrastructure/blob/develop/docs/dependency-updates.md).
 
 ## Highlights

@@ -44,4 +44,4 @@ fi
 # Upstream targets $PWD, so a run from a subdirectory still grades this repo; an explicit root still wins.
 cd "$KATAGLYPHIS_REPO_ROOT"
 
-antfrastructure_exec linux/scripts/renovate-local.sh "$@"
+antfrastructure_renovate_exec linux/scripts/renovate-local.sh "$@"
