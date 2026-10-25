@@ -362,9 +362,8 @@ repo's part:
   `-Managers` narrows a run rather than enabling one.
 - **Renovate's Node lives on the `kataglyphis-renovate-cache` volume**: its `engines.node` range
   excludes the image's Node, so the bootstrap pulls a checksum-pinned one.
-- **The runner passes `gh`'s token as `GITHUB_COM_TOKEN`** when `gh` is authenticated. Without it
-  Renovate's GitHub lookups are rate-limited and can report stale GitHub Actions as up to date:
-  DocumANTation's action majors were invisible until a token was supplied.
+- **The runner passes `gh`'s token as `GITHUB_COM_TOKEN`** when `gh` is authenticated. A live
+  scan now stops before dependency lookup if no GitHub token is available.
 - **`-Recurse` runs the hub's `renovate-fleet.sh --vendored`**: in this one-superproject mount
   every repo is vendored, so it writes into the submodule worktrees (what follows an `-Apply`:
   AGENTS.md § 5). This repo's own 135-line submodule walker went on 2026-09-15.

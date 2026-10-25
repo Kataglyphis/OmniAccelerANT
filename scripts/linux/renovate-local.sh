@@ -13,9 +13,9 @@ Usage:
   bash scripts/linux/renovate-local.sh [--apply] [--dry-run] [--managers <csv>]
                                        [--print-bin] [<repo root>]
 
-Reports which of this repo's dependencies are behind, per .github/renovate.json,
-and with --apply moves the submodule gitlinks Renovate named. Options are passed
-straight through to ANTfrastructure's renovate-local.sh; see
+Reports which of this repo's dependencies are behind, per .github/renovate.json.
+With --apply, it updates supported gitlinks, manifests, and matching lockfiles.
+Options are passed straight through to ANTfrastructure's renovate-local.sh; see
 third_party/ANTfrastructure/docs/dependency-updates.md.
 
 The root defaults to this checkout. Give an override as an ABSOLUTE path: this
