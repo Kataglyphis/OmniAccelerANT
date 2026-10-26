@@ -5,6 +5,8 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ## Unreleased
 
+- Keep the copied Renovate Git selector beside the bootstrap, so a real WSL apply uses Windows
+  Git for a Windows-authored checkout and restores the same Git config on failure.
 - Bootstrap a missing pinned ANTfrastructure checkout during a real Renovate apply and follow
   direct submodules' remote default tips; reports and previews do not clone.
 - Verify the Renovate wrapper and shared config in CI without applying updates.

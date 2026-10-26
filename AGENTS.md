@@ -158,6 +158,8 @@ Two upstream facts repeated here only because they bite before you reach a doc:
   `.antfrastructure-shared.manifest` and checked by `sync-shared-config.sh --check`: re-copy
   them after an upstream change, never edit them here
   ([`shared/config/README.md`](third_party/ANTfrastructure/shared/config/README.md#the-template-trees-are-owners-too)).
+  `scripts/linux/lib/renovate-git-mode.sh` is the bootstrap's required exact-copy companion;
+  the same drift check covers it.
 - `scripts/agentic-loop/` — the adopted planner/executor loop: config, both runner wrappers,
   prompt overlays. Engine `opencode` (**v2 only**), executor
   `opencode-go/deepseek-v4.1-flash`, Windows build/test driver

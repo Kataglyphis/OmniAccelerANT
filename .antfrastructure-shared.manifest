@@ -15,6 +15,7 @@
 
 cmake-format
 antfrastructure-sh
+renovate-git-mode-sh
 resolve-build-module
 agentic-loop-sh
 agentic-loop-ps1
