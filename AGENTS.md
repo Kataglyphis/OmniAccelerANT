@@ -432,10 +432,10 @@ rather than linked.
   (`builder.dart`, `rustup.dart`), both halves kept when bumping the vendored copy.
   `check-rust-toolchain.sh` fails the native and Android lanes on any other `rustc version`
   stamp. Detail: [`docs/source/platforms.md`](docs/source/platforms.md) § *Cargokit's Rust toolchain*.
-- **Linux PathProvider needs no JVM.** Its Android package brings the optional `jni` FFI plugin
-  into Flutter's discovery on Linux too. `linux/CMakeLists.txt` disables JNI package discovery
-  before the generated plugin rules; otherwise the image's JDK enables `libdartjni.so` and its
-  unbundled `libjvm.so` dependency. Android's JNI path is unaffected.
+- **Desktop PathProvider needs no JVM.** Its Android package brings the optional `jni` FFI plugin
+  into Flutter's Linux and Windows discovery too. Both desktop `CMakeLists.txt` files disable JNI
+  package discovery before the generated plugin rules; otherwise a build-host JDK enables
+  `libdartjni.so` or `dartjni.dll` with an unbundled JVM dependency. Android's JNI path is unaffected.
 - **The Linux plugin builds AccelerANTgine without its test suites and its Debug sanitizers**
   (`BUILD_TESTING` and both `myproject_ENABLE_SANITIZER_*` OFF before `add_subdirectory`):
   without them the Debug integration build cannot link. Windows keeps its ASan Debug preset on

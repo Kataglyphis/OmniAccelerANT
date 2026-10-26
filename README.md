@@ -60,7 +60,7 @@ ObservANT? A release's package installs it:
 | --- | --- |
 | What it is, its feature status per platform, literature | [docs/source/overview.md](https://github.com/Kataglyphis/OmniAccelerANT/blob/develop/docs/source/overview.md) |
 | Prerequisites, the lanes, the API docs | [docs/source/getting-started.md](https://github.com/Kataglyphis/OmniAccelerANT/blob/develop/docs/source/getting-started.md) |
-| Container, Windows, Android, Raspberry Pi and web builds | [docs/source/platforms.md](https://github.com/Kataglyphis/OmniAccelerANT/blob/develop/docs/source/platforms.md) |
+| Container, Windows and ARM64 bundle checks, Android, Raspberry Pi and web builds | [docs/source/platforms.md](https://github.com/Kataglyphis/OmniAccelerANT/blob/develop/docs/source/platforms.md) |
 | ObservANT, the Rust webcam path and the WebRTC pipelines | [docs/source/camera-streaming.md](https://github.com/Kataglyphis/OmniAccelerANT/blob/develop/docs/source/camera-streaming.md) |
 | ESP32-S3 companion and camera | [docs/source/esp32.md](https://github.com/Kataglyphis/OmniAccelerANT/blob/develop/docs/source/esp32.md) |
 | What each test proves, and what is not covered yet | [docs/source/testing.md](https://github.com/Kataglyphis/OmniAccelerANT/blob/develop/docs/source/testing.md) |

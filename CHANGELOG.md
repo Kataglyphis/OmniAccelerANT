@@ -5,6 +5,8 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ## Unreleased
 
+- Keep optional JNI out of Windows Flutter bundles too; the ARM64 import walk
+  now stays strict without an unused `dartjni.dll` dependency on `jvm.dll`.
 - Use ANTfrastructure's validated PE reader and shared assertion runner in all three Windows installer checks.
 - Reuse ANTfrastructure's parameterized synthetic ELF and gst-inspect fixtures in the Linux bundle tests.
 - Keep the copied Renovate bootstrap within strict complexity and trailing-return limits in CI.

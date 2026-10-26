@@ -122,6 +122,9 @@ The notes under AGENTS.md's lane table, moved here on 2026-10-15.
 - The mutation suite builds synthetic ELFs for the Linux closure gate; Windows has no ELF and no
   such gate. The element gate asks the bundle's plugins through `gst-inspect-1.0`; only a Linux
   bundle loads its plugins alone. Pester tests PowerShell that only Windows lanes run.
+- `Flutter.OptionalJni.Tests.ps1` rejects missing, disabled and late Windows JNI guards before
+  Flutter's generated plugin rules. It does not inspect DLL bytes; the x64 and arm64 import walks
+  check the packaged app trees.
 - The plugin's C++ format gate needs only the sources, so one lane grades them for every
   platform; Windows has no C++ format step. The coverage floor is the same kind of check: one
   lane's `flutter test --coverage` measures the same Dart everywhere. Since 2026-10-15 that is the
