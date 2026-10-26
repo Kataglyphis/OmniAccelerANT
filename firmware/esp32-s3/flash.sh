@@ -5,20 +5,10 @@ set -euo pipefail
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$here"
 
-espup_home="${ESPUP_HOME:-${HOME}/.cache/kataglyphis-esp}"
-if [[ -f "${espup_home}/export.sh" ]]; then
-    # shellcheck disable=SC1091
-    source "${espup_home}/export.sh"
-    export RUSTUP_HOME="${espup_home}/rustup"
-    export CARGO_HOME="${espup_home}/cargo"
-    export PATH="${espup_home}/cargo/bin:${espup_home}/bin:${PATH}"
-elif [[ -f "${HOME}/export-esp.sh" ]]; then
-    # shellcheck disable=SC1091
-    source "${HOME}/export-esp.sh"
-else
-    echo "no espup export file found; run 'espup install --targets esp32s3' first" >&2
-    exit 2
-fi
+repo_root="$(cd "${here}/../.." && pwd)"
+# shellcheck source=scripts/linux/lib/espup-env.sh
+source "${repo_root}/scripts/linux/lib/espup-env.sh"
+omni_espup_environment
 
 command -v espflash >/dev/null 2>&1 || {
     echo "espflash is not on PATH; install it from https://github.com/esp-rs/espflash/releases" >&2

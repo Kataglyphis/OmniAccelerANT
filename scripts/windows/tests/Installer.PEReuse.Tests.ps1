@@ -4,13 +4,11 @@
 Describe 'Installer shared Windows checks' {
     . (Join-Path $PSScriptRoot '..\Resolve-BuildModule.ps1')
     Import-BuildModule @('WindowsTargetArch.Common', 'WindowsSmokeTest.Common')
+    Import-Module (Join-Path $PSScriptRoot '..\..\..\third_party\ANTfrastructure\windows\scripts\tests\TestHarness.psm1') -Function Get-TestScriptAst -ErrorAction Stop
 
     It 'parses and calls the shared target facts and PE reader' {
         $installer = Join-Path $PSScriptRoot '..\Test-OmniAccelerANTInstallers.ps1'
-        $tokens = $null
-        $parseErrors = $null
-        $ast = [System.Management.Automation.Language.Parser]::ParseFile($installer, [ref]$tokens, [ref]$parseErrors)
-        @($parseErrors | Where-Object { $_ }).Count | Should Be 0
+        $ast = Get-TestScriptAst -ScriptPath $installer
         $commands = @($ast.FindAll({ param($node) $node -is [System.Management.Automation.Language.CommandAst] }, $true))
         @($commands | Where-Object { $_.GetCommandName() -eq 'Import-BuildModule' -and $_.Extent.Text -match "WindowsTargetArch\.Common" }).Count | Should Be 1
         @($commands | Where-Object { $_.GetCommandName() -eq 'Get-PeMachineType' }).Count | Should Be 1
@@ -40,10 +38,7 @@ Describe 'Installer shared Windows checks' {
     It 'uses the hub assertion runner in all three installer checks' {
         foreach ($relative in 'Test-OmniAccelerANTInstallers.ps1', 'observant/Test-ObservANTWindows.ps1', 'observant/Test-ObservANTMsix.ps1') {
             $path = Join-Path $PSScriptRoot (Join-Path '..' $relative)
-            $tokens = $null
-            $errors = $null
-            $scriptAst = [System.Management.Automation.Language.Parser]::ParseFile($path, [ref]$tokens, [ref]$errors)
-            @($errors | Where-Object { $_ }).Count | Should Be 0
+            $scriptAst = Get-TestScriptAst -ScriptPath $path
             $commands = @($scriptAst.FindAll({ param($node) $node -is [System.Management.Automation.Language.CommandAst] }, $true))
             @($commands | Where-Object { $_.GetCommandName() -eq 'Import-BuildModule' -and $_.Extent.Text -match 'WindowsSmokeTest\.Common' }).Count | Should Be 1
             @($commands | Where-Object { $_.GetCommandName() -eq 'Initialize-SmokeTestRun' }).Count | Should Be 1
@@ -51,6 +46,29 @@ Describe 'Installer shared Windows checks' {
             @($commands | Where-Object { $_.GetCommandName() -eq 'Get-SmokeTestSummary' }).Count -gt 0 | Should Be $true
             @($scriptAst.FindAll({ param($node) $node -is [System.Management.Automation.Language.FunctionDefinitionAst] -and $node.Name -eq 'Test-Check' }, $true)).Count | Should Be 0
         }
+    }
+
+    It 'reads both MSIX manifests through the shared archive reader' {
+        @(Get-Command Get-MsixArchiveInfo -ErrorAction SilentlyContinue).Count | Should Be 1
+        foreach ($relative in 'Test-OmniAccelerANTInstallers.ps1', 'observant/Test-ObservANTMsix.ps1') {
+            $ast = Get-TestScriptAst -ScriptPath (Join-Path $PSScriptRoot (Join-Path '..' $relative))
+            $calls = @($ast.FindAll({ param($node) $node -is [System.Management.Automation.Language.CommandAst] -and $node.GetCommandName() -eq 'Get-MsixArchiveInfo' }, $true))
+            $calls.Count | Should Be 1
+            ($ast.Extent.Text -match 'ZipFile\]::OpenRead') | Should Be $false
+        }
+    }
+
+    It 'uses the shared directory reset for MSIX signing and staging' {
+        Import-BuildModule 'WindowsAppInstallers.Common'
+        $source = & (Get-Module WindowsAppInstallers.Common) { (Get-Command Initialize-BuildDirectory -ErrorAction Stop).Source }
+        $source | Should Be 'WindowsScripts.Shared'
+        $modulePath = if ($env:OMNI_APP_INSTALLERS_SOURCE) { $env:OMNI_APP_INSTALLERS_SOURCE } else { Join-Path $PSScriptRoot '..\modules\WindowsAppInstallers.Common.psm1' }
+        $ast = Get-TestScriptAst -ScriptPath $modulePath
+        $calls = @($ast.FindAll({ param($node) $node -is [System.Management.Automation.Language.CommandAst] -and $node.GetCommandName() -eq 'Initialize-BuildDirectory' }, $true))
+        $calls.Count | Should Be 1
+        $parameters = @($calls[0].CommandElements | Where-Object { $_ -is [System.Management.Automation.Language.CommandParameterAst] } | ForEach-Object ParameterName)
+        @($parameters | Where-Object { $_ -eq 'Path' }).Count | Should Be 1
+        @($parameters | Where-Object { $_ -eq 'Empty' }).Count | Should Be 1
     }
 
     It 'continues after false and thrown assertions and reports both failures' {

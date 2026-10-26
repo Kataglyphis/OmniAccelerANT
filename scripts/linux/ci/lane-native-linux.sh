@@ -4,6 +4,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 source "$SCRIPT_DIR/../lib/cli-common.sh"
+source "$SCRIPT_DIR/../lib/ci-options.sh"
 source "$SCRIPT_DIR/../lib/container-steps.sh"
 
 usage() {
@@ -37,51 +38,7 @@ RUN_PACKAGING=1
 RUN_DOCS="0"
 STRICT_CHECKS=""
 
-while [[ $# -gt 0 ]]; do
-  case "$1" in
-    -a|--arch)
-      MATRIX_ARCH="${2:-}"
-      shift 2
-      ;;
-    --build-mode)
-      BUILD_MODE="${2:-}"
-      shift 2
-      ;;
-    -n|--app-name)
-      APP_NAME="${2:-}"
-      shift 2
-      ;;
-    --package-formats)
-      PACKAGE_FORMATS="${2:-}"
-      shift 2
-      ;;
-    --no-package)
-      RUN_PACKAGING=0
-      shift
-      ;;
-    --strict-checks)
-      STRICT_CHECKS="${2:-}"
-      shift 2
-      ;;
-    --run-docs)
-      RUN_DOCS="${2:-}"
-      shift 2
-      ;;
-    --flutter-dir)
-      FLUTTER_DIR="${2:-}"
-      shift 2
-      ;;
-    -h|--help)
-      usage
-      exit 0
-      ;;
-    *)
-      echo "Error: unknown argument: $1" >&2
-      usage >&2
-      exit 2
-      ;;
-  esac
-done
+parse_omni_ci_options lane-native-linux "$@"
 
 if [[ -z "$APP_NAME" ]]; then
   echo "Error: --app-name must not be empty" >&2
@@ -111,6 +68,8 @@ require_cmd dart
 
 # One batch: every gate runs and assert_gates fails once; --strict-checks governs only the Dart half.
 gate_reset "code quality (${MATRIX_ARCH})"
+run_gate "CI option parser tests" bash scripts/linux/tests/test-ci-options.sh
+run_gate "bundle option parser tests" bash scripts/linux/tests/test-bundle-options.sh
 # The checks' one test run writes the coverage the floor below reads; a second run cost 55 s.
 dart_lcov="build/coverage/lcov.info"
 rm -f "$dart_lcov"

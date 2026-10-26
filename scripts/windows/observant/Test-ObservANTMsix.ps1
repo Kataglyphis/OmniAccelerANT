@@ -30,14 +30,9 @@ $Msix = $msixFiles[0].FullName
 
 Write-Host '=== the package ==='
 Assert-Test -Name "it is signed by $Publisher" { (Get-AuthenticodeSignature -LiteralPath $Msix).SignerCertificate.Subject -eq $Publisher }
-Add-Type -AssemblyName System.IO.Compression.FileSystem
-$zip = [System.IO.Compression.ZipFile]::OpenRead($Msix)
-try {
-    $reader = [System.IO.StreamReader]::new($zip.GetEntry('AppxManifest.xml').Open())
-    [xml]$manifest = $reader.ReadToEnd()
-    $reader.Dispose()
-    $entries = @($zip.Entries | ForEach-Object FullName)
-} finally { $zip.Dispose() }
+$facts = Get-MsixArchiveInfo -Path $Msix
+$manifest = $facts.Manifest
+$entries = $facts.Entries
 $ns = [System.Xml.XmlNamespaceManager]::new($manifest.NameTable)
 $ns.AddNamespace('m', 'http://schemas.microsoft.com/appx/manifest/foundation/windows10')
 $ns.AddNamespace('desktop', 'http://schemas.microsoft.com/appx/manifest/desktop/windows10')

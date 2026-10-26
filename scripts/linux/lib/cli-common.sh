@@ -22,6 +22,17 @@ validate_arch() {
   esac
 }
 
+validate_build_mode() {
+  local mode="${1:-}"
+  case "$mode" in
+    debug|profile|release) return 0 ;;
+    *)
+      printf 'Error: --build-mode must be debug, profile or release (got: %s)\n' "${mode:-<empty>}" >&2
+      return 1
+      ;;
+  esac
+}
+
 require_cmd() {
   local cmd="$1"
   if ! command -v "$cmd" >/dev/null 2>&1; then

@@ -2,6 +2,12 @@
 
 Guidance for coding agents (and new contributors) working in OmniAccelerANT.
 
+**Reuse before adding Bash or PowerShell code.** Search this repository and every direct
+submodule, including `third_party/ANTfrastructure`, for an existing implementation. Call or
+extend its canonical owner, passing project-specific values as arguments. For new behavior
+needed by multiple consumers, create or extend one shared owner module and call it here.
+Keep unique product logic in this repository.
+
 Laid out per ANTfrastructure's
 [`shared/templates/AGENTS.md.template`](third_party/ANTfrastructure/shared/templates/README.md).
 The rule that shapes it: *would this still be true in a different project?* If
@@ -138,6 +144,8 @@ Two upstream facts repeated here only because they bite before you reach a doc:
   `powershell`. Under 5.1 it fails as an opaque `Import-Module` error.
 - Composite actions resolve at `@develop`, so an ANTfrastructure change a workflow
   depends on must be pushed **before** the consumer change.
+- The Windows container driver passes root-only exclusions to the shared runner;
+  never rebuild its inbound file list here or exclude a root name with a tar pattern.
 
 **This repo's glue** (deliberately thin):
 
@@ -175,7 +183,10 @@ Two upstream facts repeated here only because they bite before you reach a doc:
   swaps in the host's libcamera: [`docs/source/camera-streaming.md`](docs/source/camera-streaming.md)
   § *Cat detection stream (Rust, native)*.
 - `scripts/linux/observant/package-producer-bundle.sh` — the container-less aarch64 producer
-  bundle for a board too small for the image (Pi Zero 2 W); same section.
+  bundle for a board too small for the image (Pi Zero 2 W); same section. It
+  sources OxidANT's `scripts/linux/observant/lib/producer-container.sh` for the
+  shared binary probe and Cargo build, while retaining automatic build on a
+  missing binary, `--platform` and its explicit Bash entrypoint.
 - `scripts/linux/observant/package-observant.sh` + `package/` — the installable ObservANT
   (`.deb`, AppImage, flatpak; riscv64 `.deb` and tarball). `observant.toml` is not a conffile,
   on purpose: [`docs/source/camera-streaming.md`](docs/source/camera-streaming.md) § *The ObservANT package*.
@@ -288,6 +299,9 @@ rather than linked.
   contradicts the file on disk and the next reader (you, ten minutes on) draws the wrong
   conclusion. This cost one run: the log said "falling back to bare clang" while the file
   already had the fix. Wait for the container to exit.
+- **ObservANT's Flatpak requires a committed OSTree app ref and a nonempty copied bundle.**
+  Use ANTfrastructure's verdict after `flatpak-builder`: its exit code alone can lie in either
+  direction. The stubbed regression checks both cases and the empty artifact.
 - **The flatpak gets `--device=all`, because flatpak has no `--device=video`**
   (owner, 2026-10-01). `scripts/linux/lib/packaging-common.sh` sets
   `KATAGLYPHIS_FLATPAK_FINISH_ARGS`, which the hub appends to its four finish-args, and
@@ -303,6 +317,11 @@ rather than linked.
 - **Linux bundle fixtures come from the hub.** The closure and GStreamer element tests source
   `synthetic-elf-fixture.sh` and `gst-inspect-fixture.sh`; preserve their DT_STRSZ and Name-field
   options when changing a test, and keep the helper import fatal.
+- **Linux bundle check options reuse the hub parser.** `check-bundle-gst-elements.sh` and
+  `check-knt-abi.sh` call `scripts/linux/lib/bundle-options.sh`, which delegates value flags to
+  ANTfrastructure's `parse_cli_value_options`; keep each gate's accepted path flag, error code,
+  help text and the shared build-mode verdict. The native lane runs
+  `scripts/linux/tests/test-bundle-options.sh`, including a mutated option destination.
 - **The Rust binaries name the chain ORT's directory, and G6 must read them as importers.**
   OxidANT's loader keeps `/opt/onnxruntime/onnxruntime/core/` as a string, so only a whole
   NUL-terminated `__FILE__` path is an ORT fingerprint. A census calling `liboxidant.so` or
@@ -493,6 +512,9 @@ rather than linked.
   `--before usb-reset` for the native USB port, `default-reset` for a UART bridge, and runs
   only the flash step as root (rootless nerdctl remaps the device to `nobody:nogroup`); its
   named volume and the rest: `docs/source/esp32.md` § *Build and flash the companion firmware*.
+- **Share host espup setup.** `firmware/esp32-s3/flash.sh` and
+  `scripts/linux/esp32/build-eye-demo.sh` source `scripts/linux/lib/espup-env.sh`; keep
+  the preferred toolchain, fallback and failure status in that one helper.
 - **The ESP32-S3-EYE's OV2640 does not answer SCCB until XCLK runs:** a scan without XCLK
   finds only the ES8311 codec at `0x12`, and a busy-loop clock also missed the sensor. Use
   **LEDC 10 MHz on GPIO15**, as `firmware/esp32-s3-probe` does. The board's pins, the camera
@@ -526,6 +548,11 @@ rather than linked.
 debugger.** **Run one lane at a time**: every local lane bind-mounts the same checkout and its
 per-host generated files (`android/local.properties`, `.dart_tool`, the plugin symlinks), so two
 at once break each other with errors that name neither. CI never sees this.
+
+The five Linux CI entry points parse value flags through `scripts/linux/lib/ci-options.sh` and
+ANTfrastructure's `parse_cli_value_options`. Keep each lane's accepted options, defaults and
+validation in that contract; `--no-package` belongs only to the native lane. Web and native
+Linux reject `--run-codeql true` because neither implements a scan.
 
 Windows builds run in the `:winamd64` container, and **CI runs the exact same
 `Build-Windows.ps1`** through the hub's `run-in-windows-container`. Locally:

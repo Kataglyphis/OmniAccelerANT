@@ -518,8 +518,8 @@ and rust** around `flutter build apk` and runs two `database analyze` suites. Bu
 minutes: that is why the android workflow and `Invoke-LinuxLane.ps1` both send `--run-codeql
 false` and the driver's local opt-in is `-RunCodeQL`. Java and Kotlin are deliberately not in
 that cluster: CodeQL's Java extractor refuses this repo's KGP and kills the Gradle build with it
-(AGENTS.md § 4, the built-in-Kotlin bullet). The native lane implements none, and its driver
-*refuses* `--run-codeql true` with exit 2 rather than report success over a scan that never
+(AGENTS.md § 4, the built-in-Kotlin bullet). The native and web lanes implement none; both
+*refuse* `--run-codeql true` with exit 2 rather than report success over a scan that never
 happened. So CI's android lane is the plain `flutter build apk` plus the plugin's JVM test, and
 the native build (both architectures) the plain `flutter clean && flutter build linux --release`
 (its `pub get` ran in the checks batch before it).
@@ -582,6 +582,22 @@ analyze`), and **whether a failure is fatal depends on the lane**, not on the st
 | native Linux ([`reusable-linux.yml`](../../.github/workflows/reusable-linux.yml), both architectures) | `true` | reds the lane |
 | web ([`web.yml`](../../.github/workflows/web.yml)) | `true` | reds the lane |
 | android (`ci-container-run-android.sh`) | not passed; always strict | reds the lane |
+
+The five Linux entry points use `scripts/linux/lib/ci-options.sh` for their own accepted flags;
+that library calls ANTfrastructure's `parse_cli_value_options` to move argument values. Values
+starting with `-` remain values, `--` is still unknown, and `--no-package` works only in the
+native lane. `bash scripts/linux/tests/test-ci-options.sh` checks the parser and all five entry
+scripts; native, Android and web CI invoke the same suite before their builds.
+
+The Linux GStreamer-element and knt-ABI gates use `scripts/linux/lib/bundle-options.sh` for
+their distinct bundle path flags and the same ANTfrastructure value parser. Their architecture
+and build-mode checks share `cli-common.sh`. The native lane runs
+`bash scripts/linux/tests/test-bundle-options.sh` before building; it checks both gate CLIs,
+the closure builder's build-mode verdict, and a wrong option-target mutation.
+
+The Windows OmniAccelerANT and ObservANT MSIX checks read signature, manifest and archive
+entries through ANTfrastructure's shared MSIX archive reader. A missing or malformed
+`AppxManifest.xml` fails the check before product-specific assertions run.
 
 Every lane is strict since 2026-10-01: the android lane was the last that reported a failing
 check and moved on, and `lane-android.sh` now calls `run_flutter_common_checks true` like the

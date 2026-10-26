@@ -33,13 +33,14 @@ submodules' remote default branches. CI checks the wrapper and config; see
 
 ## Highlights
 
-- **An installable ObservANT**: a `.deb`, AppImage, flatpak or Windows MSI that streams a camera to any browser and spots cats.
+- **An installable ObservANT**: a `.deb`, AppImage, flatpak or Windows MSI that streams a camera to any browser and spots cats. The Flatpak packager verifies the committed app and nonempty bundle.
+- **A small-board ObservANT bundle** whose producer build reuses [OxidANT's container helper](https://github.com/Kataglyphis/OxidANT/blob/develop/scripts/linux/observant/lib/producer-container.sh).
 - **GStreamer WebRTC livestreaming** with ready-to-use pipelines for USB and Raspberry Pi cameras.
 - **GStreamer native GTK integration**, for writing Linux AI inference apps.
 - **ESP32-S3-EYE on-device cat detection**, its USB protocol in Rust, shown on the app's Device page.
 - **flutter_rust_bridge** as the API boundary between the Dart UI and the Rust core.
 - **Retained device sessions:** language, theme and layout changes preserve routed page state.
-- **Containerized builds** in [ANTfrastructure](https://github.com/Kataglyphis/ANTfrastructure)'s images: a local run invokes the script CI invokes.
+- **Containerized builds** in [ANTfrastructure](https://github.com/Kataglyphis/ANTfrastructure)'s images: a local run invokes the script CI invokes; all five Linux entry points and the two bundle checks reuse its CLI value parser.
 
 ## Quick start
 
@@ -60,9 +61,9 @@ ObservANT? A release's package installs it:
 | --- | --- |
 | What it is, its feature status per platform, literature | [docs/source/overview.md](https://github.com/Kataglyphis/OmniAccelerANT/blob/develop/docs/source/overview.md) |
 | Prerequisites, the lanes, the API docs | [docs/source/getting-started.md](https://github.com/Kataglyphis/OmniAccelerANT/blob/develop/docs/source/getting-started.md) |
-| Container, Windows and ARM64 bundle checks, Android, Raspberry Pi and web builds | [docs/source/platforms.md](https://github.com/Kataglyphis/OmniAccelerANT/blob/develop/docs/source/platforms.md) |
+| Container source selection, Windows and ARM64 bundle checks, Android, Raspberry Pi and web builds | [docs/source/platforms.md](https://github.com/Kataglyphis/OmniAccelerANT/blob/develop/docs/source/platforms.md#tar-pipe-inbound-exclusions) |
 | ObservANT, the Rust webcam path and the WebRTC pipelines | [docs/source/camera-streaming.md](https://github.com/Kataglyphis/OmniAccelerANT/blob/develop/docs/source/camera-streaming.md) |
-| ESP32-S3 companion and camera | [docs/source/esp32.md](https://github.com/Kataglyphis/OmniAccelerANT/blob/develop/docs/source/esp32.md) |
+| ESP32-S3 companion, camera and shared host toolchain | [docs/source/esp32.md](https://github.com/Kataglyphis/OmniAccelerANT/blob/develop/docs/source/esp32.md) |
 | What each test proves, and what is not covered yet | [docs/source/testing.md](https://github.com/Kataglyphis/OmniAccelerANT/blob/develop/docs/source/testing.md) |
 | Gates, releases, local lanes, dependency upgrades | [docs/source/project-operations.md](https://github.com/Kataglyphis/OmniAccelerANT/blob/develop/docs/source/project-operations.md) |
 | CI quality reports, Ruff/ty, PowerShell checks and refactor previews | [Shared quality tooling](https://github.com/Kataglyphis/ANTfrastructure/blob/develop/docs/code-quality-tooling.md) |

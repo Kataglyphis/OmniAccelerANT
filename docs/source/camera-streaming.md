@@ -329,6 +329,11 @@ element the pipelines name (`GST_PIPELINE_ELEMENTS` in `scripts/linux/lib/bundle
 sources; OxidANT's `capture.rs` adds `videoscale`. A new element goes into that list and its
 plugin into `GST_BUNDLED_PLUGIN_NAMES`, or the lane fails.
 
+The GStreamer-element and knt-ABI check CLIs share `scripts/linux/lib/bundle-options.sh`,
+which uses ANTfrastructure's value-option parser; `cli-common.sh` owns their architecture and
+build-mode verdicts. The native lane tests help, invalid values and a mutated option target
+with `scripts/linux/tests/test-bundle-options.sh` before it builds.
+
 `scripts/linux/check-bundle-closure.sh` grades the result headlessly (one second, no display,
 no container-in-container):
 - every DT_NEEDED of the runner and of every bundle lib is bundled or in the documented system
@@ -385,6 +390,12 @@ bash scripts/linux/observant/package-observant.sh --web-root build/web
 # out/omni-observant-<version>-<uname-arch>.flatpak      any flatpak desktop; USB cameras, sign-in start
 # out/omni-observant-<version>-linux-<deb-arch>.tar.gz   the same bundle, unpacked
 ```
+
+The Flatpak build uses ANTfrastructure's committed OSTree ref as its verdict:
+`flatpak-builder` can return success without an app or fail after committing one.
+The packager also requires a nonempty copied bundle. The stubbed
+`scripts/linux/tests/test-observant-flatpak-verdict.sh` checks both exit/ref
+combinations and an empty bundle without building an image.
 
 - The `.deb` carries a systemd unit, enabled at install, and a ufw profile.
   **`/etc/omni-accelerant/observant.toml` is not a conffile, on purpose** (why: *What the
@@ -1559,6 +1570,10 @@ rsyncs it to `HOST:observant/`. Its ONNX Runtime is the image's chain copy
 the finished bundle: every ORT binary byte-identical to that image's chain ORT, and the
 producer, given an `$ORIGIN/../lib` RUNPATH (the same directory `run.sh` passes to the bundled
 loader), resolving to it.
+Its binary probe and container Cargo build reuse
+[`OxidANT`'s producer helper](https://github.com/Kataglyphis/OxidANT/blob/develop/scripts/linux/observant/lib/producer-container.sh).
+The packager builds a missing binary automatically and forwards `--platform`;
+OxidANT's Pi runner still requires `--build` before compiling.
 
 **Other VC4/unicam Pis (e.g. Pi 4).** The same host-libcamera swap applies, but the Rust
 producer fits there, and it needs **no board-specific runner**: the Pi 5's runner works as-is.

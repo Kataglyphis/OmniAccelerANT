@@ -141,9 +141,10 @@ the cargo-cache sync-back leaves in `third_party/OxidANT/target` (the container 
 
 - Patterns match whole path components **at every depth**, and no form anchors (`./build`,
   `[.]/build` and `build/` all behave the same), so a root directory cannot be excluded by name:
-  `build` would also take `third_party/ANTfrastructure/windows/scripts/build`. Root directories are
-  omitted from the item list instead (`-InboundItems`, computed in the driver); the patterns cover
-  the deep directories.
+  `build` would also take `third_party/ANTfrastructure/windows/scripts/build`. The driver passes
+  exact root names through `-ExcludeRootEntries`; ANTfrastructure's runner selects the inbound
+  items, while tar patterns cover the deep directories. An empty root selection fails before
+  the container starts.
 - No pattern is a prefix glob like `out*`, which would drop unrelated directories such as
   nlohmann's `detail/output/`.
 - Of `.git` only `modules/` and the object store are left out: the CMake format gate's

@@ -289,14 +289,14 @@ if ! APPIMAGE_EXTRACT_AND_RUN=1 NO_APPSTREAM=1 ARCH="$(uname -m)" \
   exit 1
 fi
 
-# --- the flatpak: the bundle in /app/observant on the image's runtime; no rpicam-vid inside, so USB cameras only
-flatpak_id="org.kataglyphis.${package}"
-flatpak_work="${work}/flatpak"
-mkdir -p "${flatpak_work}/files/bundle"
-cp -a "${bundle}/." "${flatpak_work}/files/bundle/"
-install -m 755 "${script_dir}/package/flatpak-omni-observant" "${flatpak_work}/files/omni-observant"
-install -m 644 "${repo_root}/assets/icons/kataglyphis_app_icon.svg" "${flatpak_work}/files/${flatpak_id}.svg"
-cat > "${flatpak_work}/files/${flatpak_id}.desktop" <<DESKTOP
+# The packaged runtime has no rpicam-vid, so Flatpak keeps the USB-camera entrypoint.
+package_observant_flatpak() {
+  local flatpak_id="org.kataglyphis.${package}" flatpak_work="${work}/flatpak" runtime_version flatpak_builder_rc=0
+  mkdir -p "${flatpak_work}/files/bundle"
+  cp -a "${bundle}/." "${flatpak_work}/files/bundle/"
+  install -m 755 "${script_dir}/package/flatpak-omni-observant" "${flatpak_work}/files/omni-observant"
+  install -m 644 "${repo_root}/assets/icons/kataglyphis_app_icon.svg" "${flatpak_work}/files/${flatpak_id}.svg"
+  cat > "${flatpak_work}/files/${flatpak_id}.desktop" <<DESKTOP
 [Desktop Entry]
 Type=Application
 Name=ObservANT
@@ -306,11 +306,11 @@ Icon=${flatpak_id}
 Categories=AudioVideo;Video;
 Terminal=true
 DESKTOP
-runtime_version="$(sed -n 's/^FLATPAK_RUNTIME_VERSION=//p' "$(antfrastructure_path linux/scripts/01-core/versions.env)")"
-[ -n "${runtime_version}" ] || { printf 'no FLATPAK_RUNTIME_VERSION in the hub versions.env\n' >&2; exit 1; }
-# The image may lag the hub's pin (it shipped 24.08 when the pin moved to 26.08), so fetch the pair from Flathub.
-app_packaging_ensure_flatpak_runtime "" org.freedesktop.Platform org.freedesktop.Sdk "${runtime_version}"
-cat > "${flatpak_work}/${flatpak_id}.yml" <<MANIFEST
+  runtime_version="$(sed -n 's/^FLATPAK_RUNTIME_VERSION=//p' "$(antfrastructure_path linux/scripts/01-core/versions.env)")"
+  [ -n "${runtime_version}" ] || { printf 'no FLATPAK_RUNTIME_VERSION in the hub versions.env\n' >&2; exit 1; }
+  # The image may lag the hub's pin, so fetch the runtime pair from Flathub.
+  app_packaging_ensure_flatpak_runtime "" org.freedesktop.Platform org.freedesktop.Sdk "${runtime_version}"
+  cat > "${flatpak_work}/${flatpak_id}.yml" <<MANIFEST
 app-id: ${flatpak_id}
 runtime: org.freedesktop.Platform
 runtime-version: '${runtime_version}'
@@ -332,15 +332,19 @@ modules:
       - type: dir
         path: files
 MANIFEST
-if ! flatpak-builder --force-clean --disable-rofiles-fuse --state-dir="${flatpak_work}/state" \
-  --repo="${flatpak_work}/repo" "${flatpak_work}/build" "${flatpak_work}/${flatpak_id}.yml" >"${work}/flatpak-builder.log" 2>&1; then
-  tail -20 "${work}/flatpak-builder.log" >&2
-  printf 'flatpak-builder failed; it needs a privileged container for bubblewrap\n' >&2
-  exit 1
-fi
+  flatpak-builder --force-clean --disable-rofiles-fuse --state-dir="${flatpak_work}/state" \
+    --repo="${flatpak_work}/repo" "${flatpak_work}/build" "${flatpak_work}/${flatpak_id}.yml" >"${work}/flatpak-builder.log" 2>&1 || flatpak_builder_rc=$?
+  if [ "${flatpak_builder_rc}" -ne 0 ]; then tail -20 "${work}/flatpak-builder.log" >&2; fi
+  if ! app_packaging_assert_flatpak_committed "${flatpak_work}/repo" "${flatpak_id}" "${flatpak_builder_rc}"; then
+    if [ "${flatpak_builder_rc}" -ne 0 ]; then printf 'flatpak-builder failed; it needs a privileged container for bubblewrap\n' >&2; fi
+    exit 1
+  fi
+  flatpak build-bundle "${flatpak_work}/repo" "${flatpak_work}/observant.flatpak" "${flatpak_id}"
+  cp -f "${flatpak_work}/observant.flatpak" "${flatpak_file}"
+  app_packaging_assert_artifact "${flatpak_file}" >/dev/null
+}
 flatpak_file="${out_dir}/${package}-${version}-$(uname -m).flatpak"
-flatpak build-bundle "${flatpak_work}/repo" "${flatpak_work}/observant.flatpak" "${flatpak_id}"
-cp -f "${flatpak_work}/observant.flatpak" "${flatpak_file}"
+package_observant_flatpak
 
 printf 'bundle: %s files, %s\n' "$(find "${bundle}" -type f | wc -l)" "$(du -sh "${bundle}" | cut -f1)"
 printf 'wrote %s (%s)\n' "${deb_file}" "$(du -h "${deb_file}" | cut -f1)"

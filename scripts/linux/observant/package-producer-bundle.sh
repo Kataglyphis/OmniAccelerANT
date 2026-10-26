@@ -53,20 +53,19 @@ done
 
 command -v nerdctl >/dev/null 2>&1 || { printf 'nerdctl not found\n' >&2; exit 1; }
 
-producer_present() {
-  nerdctl run ${platform_args[@]+"${platform_args[@]}"} --rm --user 0:0 --entrypoint bash -v "${target_volume}":/cargo-target "${image}" \
-    -c "test -x ${producer}" >/dev/null 2>&1
-}
+producer_container="${repo_root}/third_party/OxidANT/scripts/linux/observant/lib/producer-container.sh"
+if [ ! -r "${producer_container}" ]; then
+  printf 'OxidANT producer helper missing at %s; initialize or update third_party/OxidANT\n' "${producer_container}" >&2
+  exit 1
+fi
+# shellcheck source=third_party/OxidANT/scripts/linux/observant/lib/producer-container.sh
+source "${producer_container}"
 
-if [ "${do_build}" = true ] || ! producer_present; then
+if [ "${do_build}" = true ] || ! observant_producer_present \
+  "${image}" "${target_volume}" "${producer}" bash "${platform_args[@]}"; then
   printf 'building kataglyphis_observant in the container\n'
-  nerdctl run ${platform_args[@]+"${platform_args[@]}"} --rm --user 0:0 --network host \
-    -v "${repo_root}":/workspace \
-    -v "${target_volume}":/cargo-target \
-    -v "${cargo_volume}":/cargo-home \
-    -e CARGO_TARGET_DIR=/cargo-target -e CARGO_HOME=/cargo-home \
-    --entrypoint bash "${image}" \
-    -lc 'cd /workspace/third_party/OxidANT && cargo build --release --locked -p kataglyphis_observant'
+  observant_build_producer "${image}" "${repo_root}" "${target_volume}" \
+    "${cargo_volume}" /workspace/third_party/OxidANT bash "${platform_args[@]}"
 fi
 
 printf 'assembling %s\n' "${bundle_dir}"

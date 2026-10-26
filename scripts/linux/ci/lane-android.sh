@@ -4,6 +4,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 source "$SCRIPT_DIR/../lib/cli-common.sh"
+source "$SCRIPT_DIR/../lib/ci-options.sh"
 source "$SCRIPT_DIR/../lib/packaging-common.sh"
 source "$SCRIPT_DIR/../lib/container-steps.sh"
 
@@ -32,39 +33,7 @@ BUILD_MODE="release"
 FLUTTER_DIR=""
 EMULATOR_SMOKE="false"
 
-while [[ $# -gt 0 ]]; do
-  case "$1" in
-    -a|--arch)
-      MATRIX_ARCH="${2:-}"
-      shift 2
-      ;;
-    --build-mode)
-      BUILD_MODE="${2:-}"
-      shift 2
-      ;;
-    -n|--app-name)
-      APP_NAME="${2:-}"
-      shift 2
-      ;;
-    --flutter-dir)
-      FLUTTER_DIR="${2:-}"
-      shift 2
-      ;;
-    --emulator-smoke)
-      EMULATOR_SMOKE="${2:-}"
-      shift 2
-      ;;
-    -h|--help)
-      usage
-      exit 0
-      ;;
-    *)
-      echo "Error: unknown argument: $1" >&2
-      usage >&2
-      exit 2
-      ;;
-  esac
-done
+parse_omni_ci_options lane-android "$@"
 
 if [[ -z "$APP_NAME" ]]; then
   echo "Error: --app-name must not be empty" >&2

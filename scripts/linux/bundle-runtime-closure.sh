@@ -47,10 +47,7 @@ done
 if ! validate_arch "$MATRIX_ARCH"; then
   exit 2
 fi
-case "$BUILD_MODE" in
-  debug|profile|release) ;;
-  *) printf 'Error: --build-mode must be debug, profile or release (got: %s)\n' "${BUILD_MODE:-<empty>}" >&2; exit 2 ;;
-esac
+validate_build_mode "$BUILD_MODE" || exit 2
 
 if [[ -z "$BUNDLE_DIR" ]]; then
   BUNDLE_DIR="$REPO_ROOT/build/linux/$MATRIX_ARCH/$BUILD_MODE/bundle"

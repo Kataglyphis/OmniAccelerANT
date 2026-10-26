@@ -111,6 +111,13 @@ firmware/esp32-s3/flash.sh                    # /dev/ttyACM0, native USB
 ESP32_PORT=/dev/ttyUSB0 firmware/esp32-s3/flash.sh   # UART bridge, default reset
 ```
 
+The host flash script and the camera build script both source
+`scripts/linux/lib/espup-env.sh`. It prefers `$ESPUP_HOME/export.sh` (default:
+`~/.cache/kataglyphis-esp/export.sh`), sets `RUSTUP_HOME`, `CARGO_HOME` and `PATH`
+for that toolchain, and falls back to `~/export-esp.sh`. A missing export file exits
+with status 2. `bash scripts/linux/tests/test-espup-env.sh` checks both routes and
+the missing-toolchain error without a board.
+
 The same build runs in the family image, with the toolchain in a named volume:
 
 ```bash

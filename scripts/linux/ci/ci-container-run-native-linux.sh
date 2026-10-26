@@ -4,6 +4,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/../lib/container-steps.sh"
 source "$SCRIPT_DIR/../lib/cli-common.sh"
+source "$SCRIPT_DIR/../lib/ci-options.sh"
 source "$SCRIPT_DIR/../lib/packaging-common.sh"
 
 usage() {
@@ -35,55 +36,7 @@ RUN_DOCS="0"
 RUN_CODEQL="0"
 STRICT_CHECKS=""
 
-while [[ $# -gt 0 ]]; do
-  case "$1" in
-    -a|--arch)
-      MATRIX_ARCH="${2:-}"
-      shift 2
-      ;;
-    --build-mode)
-      BUILD_MODE="${2:-}"
-      shift 2
-      ;;
-    --flutter-dir)
-      FLUTTER_DIR="${2:-}"
-      shift 2
-      ;;
-    -n|--app-name)
-      APP_NAME="${2:-}"
-      shift 2
-      ;;
-    --package-formats)
-      PACKAGE_FORMATS="${2:-}"
-      shift 2
-      ;;
-    --install-packaging-deps)
-      INSTALL_PACKAGING_DEPS="${2:-}"
-      shift 2
-      ;;
-    --strict-checks)
-      STRICT_CHECKS="${2:-}"
-      shift 2
-      ;;
-    --run-codeql)
-      RUN_CODEQL="${2:-}"
-      shift 2
-      ;;
-    --run-docs)
-      RUN_DOCS="${2:-}"
-      shift 2
-      ;;
-    -h|--help)
-      usage
-      exit 0
-      ;;
-    *)
-      echo "Error: unknown argument: $1" >&2
-      usage >&2
-      exit 2
-      ;;
-  esac
-done
+parse_omni_ci_options ci-container-run-native-linux "$@"
 
 if ! validate_arch "$MATRIX_ARCH"; then
   usage >&2

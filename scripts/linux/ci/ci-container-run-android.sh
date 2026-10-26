@@ -4,6 +4,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/../lib/container-steps.sh"
 source "$SCRIPT_DIR/../lib/cli-common.sh"
+source "$SCRIPT_DIR/../lib/ci-options.sh"
 source "$SCRIPT_DIR/../lib/packaging-common.sh"
 source "$SCRIPT_DIR/../codeql/codeql-common.sh"
 source "$SCRIPT_DIR/../codeql/codeql-android.sh"
@@ -32,43 +33,7 @@ APP_NAME=""
 RUN_CODEQL="0"
 EMULATOR_SMOKE="false"
 
-while [[ $# -gt 0 ]]; do
-  case "$1" in
-    -a|--arch)
-      MATRIX_ARCH="${2:-}"
-      shift 2
-      ;;
-    --build-mode)
-      BUILD_MODE="${2:-}"
-      shift 2
-      ;;
-    --flutter-dir)
-      FLUTTER_DIR="${2:-}"
-      shift 2
-      ;;
-    -n|--app-name)
-      APP_NAME="${2:-}"
-      shift 2
-      ;;
-    --run-codeql)
-      RUN_CODEQL="${2:-}"
-      shift 2
-      ;;
-    --emulator-smoke)
-      EMULATOR_SMOKE="${2:-}"
-      shift 2
-      ;;
-    -h|--help)
-      usage
-      exit 0
-      ;;
-    *)
-      echo "Error: unknown argument: $1" >&2
-      usage >&2
-      exit 2
-      ;;
-  esac
-done
+parse_omni_ci_options ci-container-run-android "$@"
 
 if ! validate_arch "$MATRIX_ARCH"; then
   usage >&2
@@ -101,6 +66,7 @@ flutter_lane_prepare_env "$FLUTTER_DIR" || exit 2
 
 # Container-only preparation, kept out of lane-android.sh; a batch so assert_gates turns a failure into the exit code.
 gate_reset "code quality"
+run_gate "CI option parser tests" bash scripts/linux/tests/test-ci-options.sh
 run_gate "cmake-format --check" run_cmake_format_check
 # The APK ABI gate's own suite (synthetic APKs): that it refuses an extra slice or a missing plugin.
 run_gate "apk abi gate tests" bash scripts/linux/tests/test-check-apk-abi.sh

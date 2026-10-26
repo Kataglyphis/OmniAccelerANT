@@ -5,8 +5,26 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ## Unreleased
 
+- Verify ObservANT's Flatpak through ANTfrastructure's committed-ref and nonempty-artifact
+  checks. A late builder failure with a committed app can finish; a green builder without
+  one, or an empty bundle, fails. Reuse the hub's MSIX directory reset for both Windows
+  installer staging paths.
+- Share the host espup environment between the companion flash and camera build scripts,
+  with a hardware-free regression suite for preferred, fallback and missing toolchains.
+- Reuse ANTfrastructure's value-option parser in both Linux bundle checks, share the build-mode
+  validator with the closure builder, and run parser mutation tests in the native lane.
+- Reuse ANTfrastructure's MSIX archive reader in both Windows installer checks, failing on a
+  missing or malformed manifest before product-specific assertions.
+- Share ANTfrastructure's value-option parser across all five Linux CI entries and test their
+  lane-specific flags, error statuses and a broken option target in every Linux CI lane. Web
+  now fails loudly when CodeQL is requested instead of silently skipping the scan.
+- Reuse ANTfrastructure's root-only inbound selector for Windows container builds;
+  keep the existing Flutter output exclusions and deep tar filters.
 - Keep optional JNI out of Windows Flutter bundles too; the ARM64 import walk
   now stays strict without an unused `dartjni.dll` dependency on `jvm.dll`.
+- Use OxidANT's shared producer binary probe and container Cargo build in the
+  small-board bundle packager, preserving automatic build, `--platform` and
+  explicit Bash entrypoint behavior.
 - Use ANTfrastructure's validated PE reader and shared assertion runner in all three Windows installer checks.
 - Reuse ANTfrastructure's parameterized synthetic ELF and gst-inspect fixtures in the Linux bundle tests.
 - Keep the copied Renovate bootstrap within strict complexity and trailing-return limits in CI.

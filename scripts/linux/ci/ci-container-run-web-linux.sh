@@ -4,6 +4,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/../lib/container-steps.sh"
 source "$SCRIPT_DIR/../lib/cli-common.sh"
+source "$SCRIPT_DIR/../lib/ci-options.sh"
 
 usage() {
   cat <<'EOF'
@@ -14,7 +15,7 @@ Options:
   -a, --arch <x64|arm64>        Target architecture (required)
       --flutter-dir <path>      Flutter SDK directory (default: /opt/flutter, baked into the image)
       --strict-checks <bool>    Fail on format/analyze/test errors (default: true in CI, false locally)
-      --run-codeql <bool>       Run CodeQL scan (default: false)
+      --run-codeql <bool>       Must be false: no CodeQL scan is implemented here
   -h, --help                    Show this help
 EOF
 }
@@ -24,35 +25,7 @@ FLUTTER_DIR="/opt/flutter"
 STRICT_CHECKS=""
 RUN_CODEQL="0"
 
-while [[ $# -gt 0 ]]; do
-  case "$1" in
-    -a|--arch)
-      MATRIX_ARCH="${2:-}"
-      shift 2
-      ;;
-    --flutter-dir)
-      FLUTTER_DIR="${2:-}"
-      shift 2
-      ;;
-    --strict-checks)
-      STRICT_CHECKS="${2:-}"
-      shift 2
-      ;;
-    --run-codeql)
-      RUN_CODEQL="${2:-}"
-      shift 2
-      ;;
-    -h|--help)
-      usage
-      exit 0
-      ;;
-    *)
-      echo "Error: unknown argument: $1" >&2
-      usage >&2
-      exit 2
-      ;;
-  esac
-done
+parse_omni_ci_options ci-container-run-web-linux "$@"
 
 if ! validate_arch "$MATRIX_ARCH"; then
   usage >&2
@@ -61,12 +34,20 @@ fi
 
 STRICT_CHECKS="$(resolve_strict_checks "$STRICT_CHECKS")"
 
+if maybe_truthy "$RUN_CODEQL"; then
+  echo "Error: --run-codeql true was requested, but the web Linux flow implements no CodeQL scan." >&2
+  echo "       Pass --run-codeql false or implement the web scan before enabling it." >&2
+  exit 2
+fi
+
 # Dynamische Wahl des Arbeitsverzeichnisses: /workspace (CI) oder lokal
 REPO_ROOT="$(resolve_repo_root /workspace)"
 if [[ "$REPO_ROOT" != "/workspace" ]]; then
   echo "[Info] /workspace nicht gefunden, benutze stattdessen $REPO_ROOT als Arbeitsverzeichnis."
 fi
 cd "$REPO_ROOT"
+
+bash scripts/linux/tests/test-ci-options.sh
 
 # See lib/container-steps.sh for what this replaces.
 flutter_lane_prepare_env "$FLUTTER_DIR" || exit 2

@@ -55,8 +55,7 @@ function New-AppMsix {
     )
     $signing = Join-Path $WorkDir 'msix-signing'
     $stage = Join-Path $WorkDir 'msix-stage'
-    foreach ($d in $signing, $stage) { if (Test-Path -LiteralPath $d) { Remove-Item -LiteralPath $d -Recurse -Force } }
-    $null = New-Item -ItemType Directory -Force -Path $signing
+    Initialize-BuildDirectory -Path @($signing, $stage) -Empty
     $passwordBefore = $env:MSIX_PFX_PASSWORD
     try {
         if ($Pfx) {
