@@ -85,10 +85,8 @@ antfrastructure_renovate_will_apply() {
     [ "$apply" -eq 1 ]
 }
 
-antfrastructure_renovate_check_hub() {
-    local root="$1" path="$2" git_bin="$3" git_root="$4"
-    local record mode="" oid="" stage="" file="" entries
-    local mappings line count=0
+antfrastructure_renovate_check_gitlink() {
+    local git_bin="$1" git_root="$2" record mode="" oid="" stage="" file=""
     record="$("$git_bin" -C "$git_root" ls-files --stage -- third_party/ANTfrastructure)" || return 1
     IFS=$' \t' read -r mode oid stage file <<< "$record" || true
     if [ "$mode" != 160000 ] || [[ ! "$oid" =~ ^[0-9a-f]{40}$ ]] ||
@@ -97,6 +95,11 @@ antfrastructure_renovate_check_hub() {
         echo "Renovate bootstrap: third_party/ANTfrastructure is not one tracked direct gitlink." >&2
         return 1
     fi
+    return 0
+}
+
+antfrastructure_renovate_check_mapping() {
+    local git_bin="$1" git_root="$2" mappings line count=0
     if ! "$git_bin" -C "$git_root" ls-files --error-unmatch .gitmodules >/dev/null 2>&1 ||
        ! "$git_bin" -C "$git_root" diff --quiet -- .gitmodules ||
        ! "$git_bin" -C "$git_root" diff --cached --quiet -- .gitmodules; then
@@ -111,6 +114,11 @@ antfrastructure_renovate_check_hub() {
         echo "Renovate bootstrap: .gitmodules must map the direct hub path exactly once." >&2
         return 1
     fi
+    return 0
+}
+
+antfrastructure_renovate_check_path() {
+    local root="$1" path="$2" entries
     if [ -L "$root/third_party" ] || [ -L "$path" ] ||
        { [ -e "$root/third_party" ] && [ ! -d "$root/third_party" ]; } ||
        { [ -e "$path" ] && [ ! -d "$path" ]; }; then
@@ -127,22 +135,36 @@ antfrastructure_renovate_check_hub() {
     return 0
 }
 
+antfrastructure_renovate_check_hub() {
+    local root="$1" path="$2" git_bin="$3" git_root="$4"
+    antfrastructure_renovate_check_gitlink "$git_bin" "$git_root" || return 1
+    antfrastructure_renovate_check_mapping "$git_bin" "$git_root" || return 1
+    antfrastructure_renovate_check_path "$root" "$path"
+}
+
+antfrastructure_renovate_restore_paths() {
+    local root="$1" path="$2" path_absent="$3" parent_absent="$4" failed=0
+    if [ "$path_absent" -eq 1 ]; then
+        if [ -d "$path" ]; then rmdir -- "$path" || failed=1; fi
+    elif [ ! -d "$path" ]; then
+        mkdir -- "$path" || failed=1
+    fi
+    if [ "$parent_absent" -eq 1 ] && [ -d "$root/third_party" ]; then
+        rmdir -- "$root/third_party" || failed=1
+    fi
+    return "$failed"
+}
+
 antfrastructure_renovate_finish() {
     local status="$1" root="$2" config="$3" backup_dir="$4" path_absent="$5" parent_absent="$6"
-    local git_bin="$7" git_root="$8" failed=0 path="$root/third_party/ANTfrastructure"
+    local git_bin="$7" git_root="$8" failed=0
     trap - EXIT INT TERM
     if [ "$status" -ne 0 ] && [ "$status" -ne 2 ]; then
         "$git_bin" -C "$git_root" submodule deinit --force -- third_party/ANTfrastructure >/dev/null || failed=1
         cp -p -- "$backup_dir/config" "$config" &&
             cmp -s -- "$backup_dir/config" "$config" || failed=1
-        if [ "$path_absent" -eq 1 ]; then
-            if [ -d "$path" ]; then rmdir -- "$path" || failed=1; fi
-        elif [ ! -d "$path" ]; then
-            mkdir -- "$path" || failed=1
-        fi
-        if [ "$parent_absent" -eq 1 ] && [ -d "$root/third_party" ]; then
-            rmdir -- "$root/third_party" || failed=1
-        fi
+        antfrastructure_renovate_restore_paths "$root" "$root/third_party/ANTfrastructure" \
+            "$path_absent" "$parent_absent" || failed=1
     fi
     if [ "$failed" -ne 0 ]; then
         echo "Renovate bootstrap: hub rollback failed; config backup at $backup_dir/config." >&2
