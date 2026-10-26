@@ -69,8 +69,7 @@ endif()
 # Application build; see runner/CMakeLists.txt.
 add_subdirectory("runner")
 
-# Generated plugin build rules, which build the plugins and add them to the application.
-# The Android-only transitive JNI plugin must not bundle a JVM-dependent desktop DLL.
+# Disable JNI discovery so the optional plugin cannot bundle a JVM-dependent desktop DLL.
 set(CMAKE_DISABLE_FIND_PACKAGE_JNI TRUE)
 include(flutter/generated_plugins.cmake)
 
