@@ -5,6 +5,7 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ## Unreleased
 
+- Remove the stale ShellCheck warning freeze after the shared CI option refactor cleared it.
 - Verify ObservANT's Flatpak through ANTfrastructure's committed-ref and nonempty-artifact
   checks. A late builder failure with a committed app can finish; a green builder without
   one, or an empty bundle, fails. Reuse the hub's MSIX directory reset for both Windows
