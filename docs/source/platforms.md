@@ -435,10 +435,14 @@ the part ObservANT's packaging shares.
   trusts that `.cer` under `LocalMachine\TrustedPeople` before installing.
 - **`Test-OmniAccelerANTInstallers.ps1`** installs the MSI with `msiexec /qn` and checks that
   `AccelerANTgine.dll` sits beside the exe with no `bin\`, that the exe, the plugin and
-  AccelerANTgine.dll match the lane's architecture, and that the Start menu shortcut exists. It
-  then starts the installed app through `Test-LaunchSmoke.ps1` without any `-SearchPath`, as the
+  AccelerANTgine.dll match the lane's architecture through ANTfrastructure's
+  `WindowsTargetArch.Common` PE reader, and that the Start menu shortcut exists. Invalid PE
+  files fail this check rather than being treated as matching binaries. It then starts the
+  installed app through `Test-LaunchSmoke.ps1` without any `-SearchPath`, as the
   shortcut does. For the MSIX it checks signature, identity and architecture, trusts the
   certificate, runs `Add-AppxPackage`, starts the package through its app entry and removes it.
+  Assertions use ANTfrastructure's `WindowsSmokeTest.Common`; the script exits with its failed
+  check count.
 - **A runner with a `bin\` folder is refused** by the packaging script: before 9f4438e the x64
   build left AccelerANTgine.dll there, where the loader never looks (§ *Troubleshooting
   containerized Windows builds*).

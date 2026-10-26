@@ -356,6 +356,9 @@ A missing GStreamer lib or a foreign ONNX Runtime fails the lane here instead of
 target machine. Both gates run in `lane-native-linux.sh` after `flutter build linux`;
 `scripts/linux/tests/test-check-bundle-closure.sh`, which mutation-tests when the census runs
 and that its verdict decides, runs in the same lane's code-quality batch before the build.
+Its synthetic ELF records and the GStreamer element test's gst-inspect output now come from
+ANTfrastructure's shared fixtures; the local tests still set DT_STRSZ and Name-field variants
+that exercise their bundle-specific failure paths.
 
 The system allowlist is the GTK desktop stack the `.deb`'s `Depends` stand for; GStreamer, ONNX
 Runtime and the camera stack are deliberately not in it, they are the bundle's job. So the
@@ -1307,8 +1310,9 @@ covered. It carries `IgnoreFailure`: a Windows without the firewall service, suc
 image's process-isolated container, still installs. Packaging needs WiX's firewall extension,
 which the hub's final stage installs (`WIX_FIREWALL_EXT_VERSION`).
 
-**`Test-ObservANTWindows.ps1` checks the MSI** inside `:winamd64` as admin. In the image, 14
-checks passed on 2026-10-06:
+**`Test-ObservANTWindows.ps1` checks the MSI** inside `:winamd64` as admin. It and
+`Test-ObservANTMsix.ps1` use ANTfrastructure's `WindowsSmokeTest.Common` assertions and exit
+with the failed check count. In the image, 14 checks passed on 2026-10-06:
 - the MSI's firewall rule: LAN-only, bound to the exe, installing where it cannot apply;
 - the silent install, its files, the Startup entry and the shortcuts;
 - the installed exe run with a scrubbed environment, only System32 on PATH: `/healthz` and the

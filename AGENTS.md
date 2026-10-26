@@ -300,6 +300,9 @@ rather than linked.
   census in `check-bundle-closure.sh`. `rust_builder` puts ORT in `bundle/lib` before the packer
   runs (`Kept (already in bundle/lib, not copied)`), so a copy list without ORT is not a
   missing ORT. Detail: [`docs/source/camera-streaming.md`](docs/source/camera-streaming.md) § *Relocatable Linux bundles*.
+- **Linux bundle fixtures come from the hub.** The closure and GStreamer element tests source
+  `synthetic-elf-fixture.sh` and `gst-inspect-fixture.sh`; preserve their DT_STRSZ and Name-field
+  options when changing a test, and keep the helper import fatal.
 - **The Rust binaries name the chain ORT's directory, and G6 must read them as importers.**
   OxidANT's loader keeps `/opt/onnxruntime/onnxruntime/core/` as a string, so only a whole
   NUL-terminated `__FILE__` path is an ORT fingerprint. A census calling `liboxidant.so` or
@@ -549,6 +552,9 @@ Windows builds run in the `:winamd64` container, and **CI runs the exact same
   Delivery Check cannot be skipped). Logs in `logs/`, API docs in `doc/api`.
 - **MSIX packaging runs only locally**: CI passes `-SkipMsixPackaging`, and `runner\Release` is the
   flat copy of the first preset that msix reads.
+- **Installer checks share the hub's assertions.** The app MSI/MSIX and both ObservANT checks
+  call `WindowsSmokeTest.Common` and exit with its failed count; the app's PE architecture check
+  reads the file and target facts through `WindowsTargetArch.Common`.
 - **CI** ([`windows-x64.yml`](.github/workflows/windows-x64.yml)): the hub's PowerShell lint on the
   host before the ~54 GB image pull, the Release build with the lane's quality gates, four host
   checks of the runner (C ABI, plugin gtest, import walk, launch smoke with the ORT stamp), and

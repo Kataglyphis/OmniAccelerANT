@@ -7,6 +7,7 @@ source "${TESTS_DIR}/../lib/antfrastructure.sh"
 _harness="$(antfrastructure_path linux/scripts/tests/test-harness.sh)" || exit 1
 # shellcheck source=third_party/ANTfrastructure/linux/scripts/tests/test-harness.sh
 source "${_harness}"
+antfrastructure_source linux/scripts/tests/synthetic-elf-fixture.sh || exit 1
 # shellcheck source=scripts/linux/lib/bundle-runtime.sh
 source "${TESTS_DIR}/../lib/bundle-runtime.sh"
 GATE="${TESTS_DIR}/../check-bundle-closure.sh"
@@ -15,34 +16,8 @@ PY="$(command -v python3 || command -v python)"
 _work="$(mktemp -d)"
 trap 'rm -rf "${_work}"' EXIT
 
-# _elf <path> <needed,csv> <runpath> <text>... : an x86-64 ELF .so whose dynamic section readelf can name.
-_elf() {
-  mkdir -p "$(dirname "$1")"
-  MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL='*' "${PY}" - \
-    "$(cd "$(dirname "$1")" && { pwd -W 2>/dev/null || pwd; })/$(basename "$1")" "${@:2}" <<'PY'
-import struct
-import sys
-
-path, needed, runpath, texts = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4:]
-strtab, dyn = b"\0", []
-for tag, value in [(1, n) for n in needed.split(",") if n] + ([(29, runpath)] if runpath else []):
-    dyn.append((tag, len(strtab)))
-    strtab += value.encode() + b"\0"
-dyn_off = 64 + 2 * 56
-dyn_size = 16 * (len(dyn) + 3)
-str_off = dyn_off + dyn_size
-payload = b"".join(b"\0" + t.encode() + b"\0" for t in texts)
-total = max(str_off + len(strtab) + len(payload), 2048)
-data = b"\x7fELF" + bytes([2, 1, 1, 0]) + b"\0" * 8
-data += struct.pack("<HHIQQQIHHHHHH", 3, 62, 1, 0, 64, 0, 0, 64, 56, 2, 64, 0, 0)
-data += struct.pack("<IIQQQQQQ", 1, 5, 0, 0, 0, total, total, 0x1000)
-data += struct.pack("<IIQQQQQQ", 2, 6, dyn_off, dyn_off, dyn_off, dyn_size, dyn_size, 8)
-data += b"".join(struct.pack("<qQ", t, v) for t, v in dyn)
-data += struct.pack("<qQ", 5, str_off) + struct.pack("<qQ", 10, len(strtab)) + struct.pack("<qQ", 0, 0)
-data += strtab + payload
-open(path, "wb").write(data + b"\0" * (total - len(data)))
-PY
-}
+# The consumer probe expects DT_STRSZ; the shared fixture keeps that choice explicit.
+_elf() { t_write_synthetic_elf "${PY}" --strsz "$@"; }
 CHAIN_SRC=/opt/onnxruntime/onnxruntime/core/session/inference_session.cc
 WINML_SRC='C:\__w\1\s\onnxruntime\core\session\inference_session.cc'
 # Real liboxidant.so bytes: rustc packs &str literals without NULs, so the marker sits inside other text.

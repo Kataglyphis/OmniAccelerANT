@@ -17,6 +17,9 @@ param(
 )
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
+. (Join-Path $PSScriptRoot '..\Resolve-BuildModule.ps1')
+Import-BuildModule 'WindowsSmokeTest.Common'
+Initialize-SmokeTestRun
 
 $product = 'ObservANT'
 $prefix = Join-Path $env:ProgramFiles $product
@@ -24,7 +27,6 @@ $exe = Join-Path $prefix 'kataglyphis_observant.exe'
 $startup = Join-Path $env:ProgramData "Microsoft\Windows\Start Menu\Programs\StartUp\$product.lnk"
 $work = Join-Path $env:TEMP "observant-test-$PID"
 $null = New-Item -ItemType Directory -Force -Path $work
-$script:failures = 0
 $msis = @(Get-ChildItem -Path $Msi -File)
 if ($msis.Count -ne 1) { throw "-Msi must name exactly one MSI; $Msi matches $($msis.Count)" }
 $Msi = $msis[0].FullName
@@ -33,12 +35,6 @@ $source = Get-ChildItem -Path $Photo -File | Select-Object -First 1
 if (-not $source) { throw "no photo at $Photo" }
 $Photo = Join-Path $work "cat$($source.Extension)"
 Copy-Item -LiteralPath $source.FullName -Destination $Photo
-
-function Test-Check {
-    param([string]$Name, [scriptblock]$Condition)
-    $ok = try { [bool](& $Condition) } catch { Write-Host "      $($_.Exception.Message)"; $false }
-    if ($ok) { Write-Host "PASS  $Name" } else { Write-Host "FAIL  $Name"; $script:failures++ }
-}
 
 # The environment a fresh logon gives a process, and nothing of the image's.
 function Start-Installed {
@@ -139,7 +135,7 @@ function Wait-Healthz {
 }
 
 Write-Host '=== install ==='
-Test-Check 'the MSI opens the firewall to the local subnet for its exe, and installs where it cannot' {
+Assert-Test -Name 'the MSI opens the firewall to the local subnet for its exe, and installs where it cannot' {
     $rows = @(Get-MsiRow -Path $Msi -Query 'SELECT `Program`, `RemoteAddresses`, `Attributes` FROM `Wix5FirewallException`')
     $rows.Count -eq 1 -and $rows[0][0] -eq '[#exe0]' -and $rows[0][1] -eq 'LocalSubnet' -and ([int]$rows[0][2] -band 1)
 }
@@ -147,18 +143,18 @@ Test-Check 'the MSI opens the firewall to the local subnet for its exe, and inst
 $firewallOn = (Get-Service MpsSvc -ErrorAction SilentlyContinue).Status -eq 'Running'
 $installLog = Join-Path $work 'install.log'
 $p = Start-Process msiexec.exe -ArgumentList '/i', "`"$Msi`"", '/qn', '/l*v', "`"$installLog`"" -Wait -PassThru
-Test-Check 'msiexec installs it silently' { $p.ExitCode -eq 0 }
-Test-Check 'the exe, its plugins, the model and the page are installed' {
+Assert-Test -Name 'msiexec installs it silently' { $p.ExitCode -eq 0 }
+Assert-Test -Name 'the exe, its plugins, the model and the page are installed' {
     (Test-Path $exe) -and (Test-Path (Join-Path $prefix 'lib\gstreamer-1.0\gstrswebrtc.dll')) -and
     (Test-Path (Join-Path $prefix 'models\deim_dfine_n_coco.onnx')) -and (Test-Path (Join-Path $prefix 'web\index.html')) -and
     (Test-Path (Join-Path $prefix 'onnxruntime.dll'))
 }
-Test-Check 'the all-users Startup folder starts it at logon' { Test-Path $startup }
-Test-Check 'the Start menu has ObservANT and its page' {
+Assert-Test -Name 'the all-users Startup folder starts it at logon' { Test-Path $startup }
+Assert-Test -Name 'the Start menu has ObservANT and its page' {
     Test-Path (Join-Path $env:ProgramData "Microsoft\Windows\Start Menu\Programs\$product\ObservANT page.lnk")
 }
 if ($firewallOn) {
-    Test-Check 'Windows Firewall lets the local subnet reach the exe' {
+    Assert-Test -Name 'Windows Firewall lets the local subnet reach the exe' {
         $rules = @(Get-ExeFirewallRule)
         $rules.Count -gt 0 -and @($rules | Get-NetFirewallAddressFilter | Where-Object { $_.RemoteAddress -contains 'LocalSubnet' }).Count -gt 0
     }
@@ -168,21 +164,21 @@ Write-Host '=== the installed service, scrubbed environment ==='
 $svc = Start-Installed -Arguments @('--camera', 'test', '--inference', 'off') -LogName 'service.log'
 $health = Wait-Healthz
 Write-Host "      healthz: $health"
-Test-Check '/healthz answers on :8080' { $health -match '"ok":true' }
-Test-Check 'the page is served from the install' { (Invoke-WebRequest -UseBasicParsing -TimeoutSec 5 http://127.0.0.1:8080/).Content -match '<html' }
+Assert-Test -Name '/healthz answers on :8080' { $health -match '"ok":true' }
+Assert-Test -Name 'the page is served from the install' { (Invoke-WebRequest -UseBasicParsing -TimeoutSec 5 http://127.0.0.1:8080/).Content -match '<html' }
 $web = Join-Path $prefix 'web'
-Test-Check 'the page leaves out the renderers its loader never asks for, and the debug maps' {
+Assert-Test -Name 'the page leaves out the renderers its loader never asks for, and the debug maps' {
     (Test-Path (Join-Path $web 'canvaskit\skwasm.wasm')) -and -not (Test-Path (Join-Path $web 'canvaskit\webparagraph')) -and
     @(Get-ChildItem -LiteralPath $web -Recurse -File -Include 'wimp.*', '*.symbols').Count -eq 0
 }
 $wasm = Join-Path $web 'main.dart.wasm'
 $served = Get-Gzipped -UrlPath 'main.dart.wasm'
-Test-Check 'main.dart.wasm goes out gzipped and unzips to the installed file' {
+Assert-Test -Name 'main.dart.wasm goes out gzipped and unzips to the installed file' {
     Test-SameBytes (Expand-Gzip $served) ([System.IO.File]::ReadAllBytes($wasm))
 }
 if ([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture -eq 'X64') {
-    Test-Check 'it sends the packaged zopfli .gz, byte for byte' { Test-SameBytes $served ([System.IO.File]::ReadAllBytes("$wasm.gz")) }
-    Test-Check 'every file the server gzips (its types, 1 KiB and up) ships its zopfli .gz' {
+    Assert-Test -Name 'it sends the packaged zopfli .gz, byte for byte' { Test-SameBytes $served ([System.IO.File]::ReadAllBytes("$wasm.gz")) }
+    Assert-Test -Name 'every file the server gzips (its types, 1 KiB and up) ships its zopfli .gz' {
         $types = '.js', '.mjs', '.wasm', '.json', '.html', '.css', '.svg', '.ttf', '.otf'
         $missing = @(Get-ChildItem -LiteralPath $web -Recurse -File | Where-Object {
                 $_.Extension -in $types -and $_.Length -ge 1024 -and -not (Test-Path -LiteralPath "$($_.FullName).gz") })
@@ -192,7 +188,7 @@ if ([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture -eq 'X64
 } else { Write-Host 'SKIP  the packaged .gz files: an arm64 package has none, its producer cannot run where it is packaged' }
 $foreign = @(Get-ForeignModule -Process $svc.Process)
 if ($foreign) { Write-Host "      outside: $($foreign -join ', ')" }
-Test-Check 'idle, it loads modules only from the install and Windows' { $foreign.Count -eq 0 }
+Assert-Test -Name 'idle, it loads modules only from the install and Windows' { $foreign.Count -eq 0 }
 
 # The image's GStreamer plays the viewer; only ObservANT side runs from the install.
 function Test-Viewer {
@@ -203,13 +199,13 @@ function Test-Viewer {
     Start-Sleep -Seconds 4
     $foreignLive = @(Get-ForeignModule -Process $Process)
     if ($foreignLive) { Write-Host "      outside: $($foreignLive -join ', ')" }
-    Test-Check 'with a viewer, it loads modules only from the install and Windows' { $foreignLive.Count -eq 0 }
+    Assert-Test -Name 'with a viewer, it loads modules only from the install and Windows' { $foreignLive.Count -eq 0 }
     $done = $viewer.WaitForExit(90000)
     # EOS comes only from eos-after=60, the proof; after it the signaller can lose its peer first (either message) and gst-launch exits 1.
     $eos = Select-String -Path (Join-Path $work 'viewer-out.log') -Pattern 'Got EOS' -Quiet
     $errors = @(Select-String -Path (Join-Path $work 'viewer-err.log') -Pattern '^ERROR' -ErrorAction SilentlyContinue)
     $teardownOnly = $errors.Count -eq 1 -and (Select-String -Path (Join-Path $work 'viewer-err.log') -Pattern 'receiver is gone|Connection reset without closing handshake' -Quiet)
-    Test-Check 'a webrtcsrc viewer decodes 60 frames from it' {
+    Assert-Test -Name 'a webrtcsrc viewer decodes 60 frames from it' {
         $done -and $eos -and ($viewer.ExitCode -eq 0 -or $teardownOnly)
     }
     if (-not $done) { $viewer.Kill($true) }
@@ -233,21 +229,22 @@ Start-Sleep -Seconds 25
 $infer.Process.Kill($true)
 $infer.Process.WaitForExit()
 Get-Content -LiteralPath $infer.Log -ErrorAction SilentlyContinue | Select-String -Pattern 'model:|ONNX Runtime loaded|ORT session|ERROR|cat in view' | Select-Object -First 5 | ForEach-Object { Write-Host "      $($_.Line)" }
-Test-Check 'it runs its own model on its own ONNX Runtime and finds a cat' {
+Assert-Test -Name 'it runs its own model on its own ONNX Runtime and finds a cat' {
     $log = Get-Content -LiteralPath $infer.Log -Raw
     $log -match [regex]::Escape("$prefix\models\deim_dfine_n_coco.onnx") -and $log -match [regex]::Escape("$prefix\onnxruntime.dll") -and $log -match 'cat in view'
 }
 
 Write-Host '=== uninstall ==='
 $u = Start-Process msiexec.exe -ArgumentList '/x', "`"$Msi`"", '/qn' -Wait -PassThru
-Test-Check 'msiexec removes it silently' { $u.ExitCode -eq 0 }
-Test-Check 'nothing is left: the folder, the Startup entry, the Start menu folder' {
+Assert-Test -Name 'msiexec removes it silently' { $u.ExitCode -eq 0 }
+Assert-Test -Name 'nothing is left: the folder, the Startup entry, the Start menu folder' {
     -not (Test-Path $exe) -and -not (Test-Path $startup) -and -not (Test-Path (Join-Path $env:ProgramData "Microsoft\Windows\Start Menu\Programs\$product"))
 }
-if ($firewallOn) { Test-Check 'the firewall rule went with it' { @(Get-ExeFirewallRule).Count -eq 0 } }
+if ($firewallOn) { Assert-Test -Name 'the firewall rule went with it' { @(Get-ExeFirewallRule).Count -eq 0 } }
 
-Write-Host "$($script:failures) failure(s)"
-if ($script:failures -gt 0) {
+$failed = (Get-SmokeTestSummary).Failed
+Write-Host "$failed failure(s)"
+if ($failed -gt 0) {
     foreach ($log in @(Get-ChildItem $work -Filter '*.log' -Exclude 'install.log')) { Write-Host "--- $($log.Name)"; Get-Content $log.FullName -Tail 8 | ForEach-Object { Write-Host $_ } }
 }
-exit $script:failures
+exit $failed
