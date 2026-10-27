@@ -52,9 +52,14 @@ sample "${work}/viewing.json" $((seconds / 6))
 wait "${viewer}" || true
 grep -v 'level=warning' "${work}/page.txt"
 python3 - "${work}" <<'PY'
-import json, statistics, sys
+import json
+import statistics
+import sys
+
+
 def summary(name):
-    rows = [json.loads(line) for line in open(f"{sys.argv[1]}/{name}.json") if line.strip()]
+    with open(f"{sys.argv[1]}/{name}.json") as samples:
+        rows = [json.loads(line) for line in samples if line.strip()]
     stats = [r["stats"] for r in rows]
     med = lambda k: statistics.median(s[k] for s in stats if s.get(k) is not None)
     return (f"cpu%={med('cpu_percent'):5.1f} capture_fps={med('capture_fps'):4.1f} rss_mb={med('rss_mb'):5.1f} "

@@ -6,6 +6,7 @@ Describe 'WindowsOrtRunner.Common' {
 
     . (Join-Path $PSScriptRoot '..\Resolve-BuildModule.ps1')
     Import-BuildModule @('WindowsOrtRunner.Common', 'WindowsOrtProvenance.Common', 'WindowsOrtPayload.Common')
+    Import-Module (Join-Path $PSScriptRoot '..\..\..\third_party\ANTfrastructure\windows\scripts\tests\TestHarness.psm1') -Function Get-TestScriptAst -ErrorAction Stop
 
     # NUL-terminated like a compiler's __FILE__: G6 takes only a whole terminated path as a fingerprint.
     $chainSrc = 'C:\temp\onnx-src\onnxruntime\core\session\inference_session.cc'
@@ -22,6 +23,13 @@ Describe 'WindowsOrtRunner.Common' {
     function Get-ThrowText([scriptblock] $Block) {
         try { & $Block | Out-Null } catch { return "$($_.Exception.Message)" }
         return ''
+    }
+
+    function Get-MsixPackagingStep([string] $ScriptPath = '') {
+        $source = if ($ScriptPath) { $ScriptPath } else { Join-Path $PSScriptRoot '..\Build-Windows.ps1' }
+        $ast = Get-TestScriptAst -ScriptPath $source
+        $ast.FindAll({ param($n) $n -is [System.Management.Automation.Language.CommandAst] -and
+                    $n.GetCommandName() -eq 'Invoke-BuildStep' -and $n.Extent.Text -match '-StepName "MSIX Packaging"' }, $true)
     }
 
     # A chain ONNX_ROOT, and a runner whose exe hosts AccelerANTgine.dll and oxidant.dll (both use ORT).
@@ -117,14 +125,17 @@ Describe 'WindowsOrtRunner.Common' {
     }
 
     It 'wires G6 into MSIX packaging: the packed runner\Release is proved before msix:create (mutation)' {
-        $tokens = $null; $errors = $null
-        $ast = [System.Management.Automation.Language.Parser]::ParseFile((Join-Path $PSScriptRoot '..\Build-Windows.ps1'), [ref] $tokens, [ref] $errors)
-        $step = @($ast.FindAll({ param($n) $n -is [System.Management.Automation.Language.CommandAst] -and
-                    $n.GetCommandName() -eq 'Invoke-BuildStep' -and $n.Extent.Text -match '-StepName "MSIX Packaging"' }, $true))
+        $step = @(Get-MsixPackagingStep)
         $step.Count | Should Be 1
         $text = $step[0].Extent.Text
         $proof = $text.IndexOf('Invoke-RunnerOrtProof -RunnerDir (Resolve-NormalizedPath -Path (Join-Path $workspace "build/windows/x64/runner/Release"))')
         ($proof -ge 0 -and $proof -lt $text.IndexOf('msix:create')) | Should Be $true
+    }
+
+    It 'rejects malformed build source before inspecting MSIX wiring (mutation)' {
+        $broken = Join-Path $TestDrive 'Build-Windows.ps1'
+        Set-Content -LiteralPath $broken -Value @('Invoke-BuildStep -StepName "MSIX Packaging" -Script {}', 'if (')
+        Get-ThrowText { $null = Get-MsixPackagingStep -ScriptPath $broken } | Should Match 'parse errors'
     }
 
     It 'refuses to stage without a chain ONNX_ROOT' {

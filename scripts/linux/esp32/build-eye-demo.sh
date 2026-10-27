@@ -51,8 +51,8 @@ git -C "$who" checkout -f "$who_ref"
 
 # The terminal app prints detections a serial monitor can check (the LCD app only shows them); idempotent.
 python3 - "$who/examples/object_detect/main/app_main.cpp" <<'PY'
-from pathlib import Path
 import sys
+from pathlib import Path
 
 path = Path(sys.argv[1])
 source = path.read_text()
@@ -78,8 +78,8 @@ PY
 
 # The callback runs on the detect task; count and best score go to the Rust task, which owns the USB frames.
 python3 - "$who/components/who_app/who_detect_app/who_detect_app_term.cpp" <<'PY'
-from pathlib import Path
 import sys
+from pathlib import Path
 
 path = Path(sys.argv[1])
 source = path.read_text()
@@ -153,8 +153,8 @@ PY
 
 # '*' resolves to BSP 6.0.0, whose Kconfig breaks these sdkconfig defaults; bsp_ext.py keeps a pinned version.
 python3 - "$who/examples/object_detect/main/idf_component.yml" <<'PY'
-from pathlib import Path
 import sys
+from pathlib import Path
 
 path = Path(sys.argv[1])
 path.write_text(
@@ -181,8 +181,8 @@ cp "$rust_dir/include/omni_proto.h" \
     "$who/components/who_app/who_detect_app/omni_proto.h"
 
 python3 - "$who/examples/object_detect/main/CMakeLists.txt" <<'PY'
-from pathlib import Path
 import sys
+from pathlib import Path
 
 path = Path(sys.argv[1])
 source = path.read_text()

@@ -14,8 +14,12 @@ port="${BENCH_PORT:-18080}"
 # Prints one model's medians from the healthz samples in $1.
 summarise() {
   python3 - "$1" "$2" <<'PY'
-import json, statistics, sys
-rows = [json.loads(line)["stats"] for line in open(sys.argv[1]) if line.strip()]
+import json
+import statistics
+import sys
+
+with open(sys.argv[1]) as samples:
+    rows = [json.loads(line)["stats"] for line in samples if line.strip()]
 med = lambda k: statistics.median(r[k] for r in rows if r.get(k) is not None)
 print(f"{sys.argv[2]:28s} model_ms={med('model_ms'):6.1f} runs/s={med('model_runs_per_s'):4.2f} "
       f"cpu%={med('cpu_percent'):5.1f} rss_mb={med('rss_mb'):5.1f} temp_c={med('temperature_c')}")

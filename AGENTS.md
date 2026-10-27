@@ -431,6 +431,8 @@ rather than linked.
   `Start-Windows.ps1` refuses a runner whose ORT is missing, unstamped, changed or foreign, since
   Windows would otherwise load System32's Windows ML 1.17. Detail: [`docs/source/platforms.md`](docs/source/platforms.md) § *ONNX Runtime in
   the Windows runner*.
+  The MSIX wiring test parses `Build-Windows.ps1` with ANTfrastructure's `Get-TestScriptAst`,
+  so a syntax error fails before its G6 ordering assertion.
 - **On an unprovisioned host** (`STATUS_DLL_NOT_FOUND`, or a ~6 MB process that exits) the
   runner lacks the image's runtime DLLs: stage `C:\runtime\bin` and its GStreamer plugins. Since
   2026-10-17 AccelerANTgine.dll and the VC++ runtime sit beside the exe on x64 as on arm64 (the

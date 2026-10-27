@@ -21,6 +21,7 @@ for mutation in console google asset; do
   python3 - "$work/original.html" "$work/web/index.html" "$mutation" <<'PY'
 import pathlib
 import sys
+
 source, target, mutation = sys.argv[1:]
 scripts = {
     'console': "console.error('omni-browser-smoke-mutation');",

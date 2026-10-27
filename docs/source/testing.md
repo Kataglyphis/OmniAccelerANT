@@ -21,6 +21,11 @@ that table (written after the test audit of 2026-10-15).
 | Performance | `integration_test/performance_test.dart`; OxidANT's Criterion benches | The app's frame build times at start, page switches and resizes; what a frame costs before the model, and a whole detection | Linux x64 (Flutter); OxidANT's Linux lanes |
 | Gate suites | `scripts/linux/tests/`, OxidANT's `scripts/linux/tests/`, `scripts/windows/tests/` | The CI gates themselves: each suite plants the failure its gate exists for and expects it to go red | The lanes' code-quality batches, OxidANT's lint workflow, the Pester jobs |
 
+`OrtRunner.Tests.ps1` uses ANTfrastructure's `Get-TestScriptAst` when checking that the MSIX step
+proves the runner's ONNX Runtime before packaging. A malformed fixture proves syntax errors fail
+before command order is inspected. The gate checks script structure; the Windows lane checks the
+actual package.
+
 ## What the app's Dart suite checks
 
 From the README (2026-10-19). `test/` checks, among the rest:

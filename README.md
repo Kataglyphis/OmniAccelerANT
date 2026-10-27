@@ -66,7 +66,7 @@ ObservANT? A release's package installs it:
 | ESP32-S3 companion, camera and shared host toolchain | [docs/source/esp32.md](https://github.com/Kataglyphis/OmniAccelerANT/blob/develop/docs/source/esp32.md) |
 | What each test proves, and what is not covered yet | [docs/source/testing.md](https://github.com/Kataglyphis/OmniAccelerANT/blob/develop/docs/source/testing.md) |
 | Gates, releases, local lanes, dependency upgrades | [docs/source/project-operations.md](https://github.com/Kataglyphis/OmniAccelerANT/blob/develop/docs/source/project-operations.md) |
-| CI quality reports, Ruff/ty, PowerShell checks and refactor previews | [Shared quality tooling](https://github.com/Kataglyphis/ANTfrastructure/blob/develop/docs/code-quality-tooling.md) |
+| CI quality reports, Ruff/ty, PowerShell syntax checks and refactor previews | [Shared quality tooling](https://github.com/Kataglyphis/ANTfrastructure/blob/develop/docs/code-quality-tooling.md) |
 | Dependency and bridge updates | [docs/source/upgrade-guide.md](https://github.com/Kataglyphis/OmniAccelerANT/blob/develop/docs/source/upgrade-guide.md) |
 | The other READMEs in the tree | [docs/source/readmes.md](https://github.com/Kataglyphis/OmniAccelerANT/blob/develop/docs/source/readmes.md) |
 | Rules for agents and contributors | [AGENTS.md](https://github.com/Kataglyphis/OmniAccelerANT/blob/develop/AGENTS.md) |

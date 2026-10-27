@@ -41,6 +41,8 @@ not be reproduced locally at all.
 - **The gates**, all bootstrapped pinned from ANTfrastructure, all run even after one fails:
   shell lint, workflow lint (plus the CI image-reference check), the gitleaks secret scan,
   Python lint, the shared-config drift check and the consumer pin-forwarding check.
+  Python lint reads heredocs inside Bash scripts as well as `.py` files; the app's ESP32 patcher,
+  browser test and ObservANT benchmarks follow the same Ruff rules.
 - **`--ratchets`** adds the eight measurement gates (freeze files: the `*.allow` at the root)
   and the doc-links gate over this repo's Markdown.
 - **gitleaks self-tests first**: an empty tree must scan clean, and a planted token must be

@@ -5,6 +5,9 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ## Unreleased
 
+- Pin AccelerANTgine to its shared AST parser wiring check on `develop`.
+- Clear nine first-party Ruff advisories in embedded Python by sorting imports and closing benchmark sample files promptly.
+- Parse the Windows MSIX G6 wiring through ANTfrastructure's shared AST reader, failing the Pester gate on a syntax-broken build script.
 - Remove the stale ShellCheck warning freeze after the shared CI option refactor cleared it.
 - Verify ObservANT's Flatpak through ANTfrastructure's committed-ref and nonempty-artifact
   checks. A late builder failure with a committed app can finish; a green builder without
