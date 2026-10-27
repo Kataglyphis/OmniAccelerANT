@@ -1,0 +1,186 @@
+[
+ {
+  "id": "consumer.omni-ort-stage",
+  "target": "scripts/linux/bundle-runtime-closure.sh",
+  "find": "stage_ort_wheel_licenses \"$BUNDLE_DIR\"",
+  "replace": ":",
+  "test": "bash scripts/linux/tests/test-flutter-package-license.sh",
+  "why": "The shipped bundle must stage notices matched to its native ORT files."
+ },
+ {
+  "id": "consumer.omni-ort-archive",
+  "target": "scripts/linux/lib/packaging-common.sh",
+  "find": "  verify_ort_wheel_package_licenses \"$output\" \"$bundle\" \"$prefix\"",
+  "replace": "  return 0",
+  "test": "bash scripts/linux/tests/test-flutter-package-license.sh",
+  "why": "Every built tar, deb and flatpak retains the original notices."
+ },
+ {
+  "id": "consumer.omni-ort-appimage",
+  "target": "scripts/linux/lib/packaging-common.sh",
+  "find": "      verify_ort_wheel_appimage_licenses \"$output\" \"$bundle\" \"$arch\" \"usr/lib/${package}\"",
+  "replace": "      return 0",
+  "test": "bash scripts/linux/tests/test-flutter-package-license.sh",
+  "why": "The built AppImage retains the original notices."
+ },
+ {
+  "id": "consumer.observant-ort-stage",
+  "target": "scripts/linux/observant/package-observant.sh",
+  "find": "stage_ort_wheel_licenses \"${bundle}\"",
+  "replace": ":",
+  "test": "bash scripts/linux/tests/test-flutter-package-license.sh",
+  "why": "ObservANT stages notices for its native ORT."
+ },
+ {
+  "id": "consumer.observant-ort-deb",
+  "target": "scripts/linux/observant/package-observant.sh",
+  "find": "verify_ort_wheel_package_licenses \"${deb_file}\" \"${bundle}\" \"opt/${package}\"",
+  "replace": ":",
+  "test": "bash scripts/linux/tests/test-flutter-package-license.sh",
+  "why": "The ObservANT deb checks both original notices."
+ },
+ {
+  "id": "consumer.observant-ort-tar",
+  "target": "scripts/linux/observant/package-observant.sh",
+  "find": "verify_ort_wheel_package_licenses \"${out_dir}/${package}-${version}-linux-${deb_arch}.tar.gz\" \"${bundle}\" \"${package}\"",
+  "replace": ":",
+  "test": "bash scripts/linux/tests/test-flutter-package-license.sh",
+  "why": "The ObservANT tar checks both original notices."
+ },
+ {
+  "id": "consumer.observant-ort-appimage",
+  "target": "scripts/linux/observant/package-observant.sh",
+  "find": "verify_ort_wheel_appimage_licenses \"${appimage_file}\" \"${bundle}\" \"$(uname -m)\" .",
+  "replace": ":",
+  "test": "bash scripts/linux/tests/test-flutter-package-license.sh",
+  "why": "The ObservANT AppImage checks both original notices."
+ },
+ {
+  "id": "consumer.observant-ort-flatpak",
+  "target": "scripts/linux/observant/package-observant.sh",
+  "find": "verify_ort_wheel_package_licenses \"${flatpak_file}\" \"${bundle}\" 'files/observant'",
+  "replace": ":",
+  "test": "bash scripts/linux/tests/test-flutter-package-license.sh",
+  "why": "The ObservANT flatpak checks both original notices."
+ },
+ {
+  "id": "consumer.observant-producer-ort-stage",
+  "target": "scripts/linux/observant/package-producer-bundle.sh",
+  "find": "stage_ort_wheel_licenses /out",
+  "replace": ":",
+  "test": "bash scripts/linux/tests/test-flutter-package-license.sh",
+  "why": "The Pi bundle stages native ORT notices."
+ },
+ {
+  "id": "consumer.observant-producer-ort-check",
+  "target": "scripts/linux/observant/package-producer-bundle.sh",
+  "find": "verify_ort_wheel_package_licenses /out /out .",
+  "replace": ":",
+  "test": "bash scripts/linux/tests/test-flutter-package-license.sh",
+  "why": "The Pi bundle checks its original notices."
+ },
+ {
+  "id": "consumer.omni-license-verifier",
+  "target": "scripts/linux/lib/flutter-package-license.sh",
+  "find": "  python3 \"$verifier\" \"$artifact\" --require \"${pattern}=${KATAGLYPHIS_REPO_ROOT}/LICENSE\"",
+  "replace": "  return 0",
+  "test": "bash scripts/linux/tests/test-flutter-package-license.sh",
+  "why": "The Flutter artifact and launcher checks must remain effective."
+ },
+ {
+  "id": "consumer.omni-archive-license",
+  "target": "scripts/linux/lib/packaging-common.sh",
+  "find": "  verify_flutter_package_license \"$output\" '*flutter_assets/NOTICES.Z'",
+  "replace": "  return 0",
+  "test": "bash scripts/linux/tests/test-flutter-package-license.sh",
+  "why": "The Flutter artifact and launcher checks must remain effective."
+ },
+ {
+  "id": "consumer.omni-appimage-license",
+  "target": "scripts/linux/lib/packaging-common.sh",
+  "find": "      verify_flutter_appimage_license \"$output\" \"$arch\" \"usr/lib/${package}/data/flutter_assets/NOTICES.Z\"",
+  "replace": "      return 0",
+  "test": "bash scripts/linux/tests/test-flutter-package-license.sh",
+  "why": "The Flutter artifact and launcher checks must remain effective."
+ },
+ {
+  "id": "consumer.omni-flatpak-wiring",
+  "target": "scripts/linux/package-linux.sh",
+  "find": "package_with_project_license flatpak \"$@\"",
+  "replace": "app_packaging_package_linux_bundle_flatpak \"$@\"",
+  "test": "bash scripts/linux/tests/test-flutter-package-license.sh",
+  "why": "The Flutter artifact and launcher checks must remain effective."
+ },
+ {
+  "id": "consumer.omni-tar-wiring",
+  "target": "scripts/linux/package-linux.sh",
+  "find": "tar) packager=package_tar_with_project_license",
+  "replace": "tar) packager=app_packaging_package_linux_bundle_tar",
+  "test": "bash scripts/linux/tests/test-flutter-package-license.sh",
+  "why": "The Flutter artifact and launcher checks must remain effective."
+ },
+ {
+  "id": "consumer.omni-appimage-wiring",
+  "target": "scripts/linux/package-linux.sh",
+  "find": "appimage) packager=package_appimage_with_project_license",
+  "replace": "appimage) packager=app_packaging_package_linux_bundle_appimage",
+  "test": "bash scripts/linux/tests/test-flutter-package-license.sh",
+  "why": "The Flutter artifact and launcher checks must remain effective."
+ },
+ {
+  "id": "consumer.observant-tar-license",
+  "target": "scripts/linux/observant/package-observant.sh",
+  "find": "verify_flutter_package_license \"${out_dir}/${package}-${version}-linux-${deb_arch}.tar.gz\" '*web/assets/NOTICES'",
+  "replace": ":",
+  "test": "bash scripts/linux/tests/test-flutter-package-license.sh",
+  "why": "The Flutter artifact and launcher checks must remain effective."
+ },
+ {
+  "id": "consumer.observant-appimage-license",
+  "target": "scripts/linux/observant/package-observant.sh",
+  "find": "verify_flutter_appimage_license \"${appimage_file}\" \"$(uname -m)\" 'web/assets/NOTICES'",
+  "replace": ":",
+  "test": "bash scripts/linux/tests/test-flutter-package-license.sh",
+  "why": "The Flutter artifact and launcher checks must remain effective."
+ },
+ {
+  "id": "consumer.observant-flatpak-license",
+  "target": "scripts/linux/observant/package-observant.sh",
+  "find": "verify_flutter_package_license \"${flatpak_file}\" '*web/assets/NOTICES'",
+  "replace": ":",
+  "test": "bash scripts/linux/tests/test-flutter-package-license.sh",
+  "why": "The Flutter artifact and launcher checks must remain effective."
+ },
+ {
+  "id": "consumer.omni-lane-android.sh-icon",
+  "target": "scripts/linux/ci/lane-android.sh",
+  "find": "check_flutter_launcher_artifacts",
+  "replace": ": # removed launcher check",
+  "test": "bash scripts/linux/tests/test-flutter-package-license.sh",
+  "why": "The Flutter artifact and launcher checks must remain effective."
+ },
+ {
+  "id": "consumer.omni-lane-android.sh-license",
+  "target": "scripts/linux/ci/lane-android.sh",
+  "find": "verify_flutter_package_license \"build/app/outputs/flutter-apk/app-${BUILD_MODE}.apk\" '*flutter_assets/NOTICES.Z'",
+  "replace": ": # removed APK license check",
+  "test": "bash scripts/linux/tests/test-flutter-package-license.sh",
+  "why": "The Flutter artifact and launcher checks must remain effective."
+ },
+ {
+  "id": "consumer.omni-ci-container-run-android.sh-icon",
+  "target": "scripts/linux/ci/ci-container-run-android.sh",
+  "find": "check_flutter_launcher_artifacts",
+  "replace": ": # removed launcher check",
+  "test": "bash scripts/linux/tests/test-flutter-package-license.sh",
+  "why": "The Flutter artifact and launcher checks must remain effective."
+ },
+ {
+  "id": "consumer.omni-ci-container-run-android.sh-license",
+  "target": "scripts/linux/ci/ci-container-run-android.sh",
+  "find": "verify_flutter_package_license \"build/app/outputs/flutter-apk/app-${BUILD_MODE}.apk\" '*flutter_assets/NOTICES.Z'",
+  "replace": ": # removed APK license check",
+  "test": "bash scripts/linux/tests/test-flutter-package-license.sh",
+  "why": "The Flutter artifact and launcher checks must remain effective."
+ }
+]

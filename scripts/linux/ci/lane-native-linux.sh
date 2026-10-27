@@ -69,6 +69,7 @@ require_cmd dart
 # One batch: every gate runs and assert_gates fails once; --strict-checks governs only the Dart half.
 gate_reset "code quality (${MATRIX_ARCH})"
 run_gate "CI option parser tests" bash scripts/linux/tests/test-ci-options.sh
+run_gate "Flutter package license tests" bash scripts/linux/tests/test-flutter-package-license.sh
 run_gate "bundle option parser tests" bash scripts/linux/tests/test-bundle-options.sh
 # The checks' one test run writes the coverage the floor below reads; a second run cost 55 s.
 dart_lcov="build/coverage/lcov.info"
@@ -86,7 +87,7 @@ run_gate "rust toolchain gate tests" bash scripts/linux/tests/test-check-rust-to
 run_gate "dart coverage" bash "$(antfrastructure_path linux/scripts/05-frameworks/flutter/check-dart-coverage.sh)" \
   --min 96 --lcov "$dart_lcov" --exclude lib/src/rust/
 # Title vs manifest, sqlite3.wasm vs the hub's pin, 8-bit icons: what no build step checks.
-run_gate "web artefacts" python3 "$(antfrastructure_path linux/scripts/05-frameworks/flutter/check-web-artefacts.py)" --repo-root .
+run_gate "web artefacts" check_flutter_launcher_artifacts
 assert_gates
 
 flutter config --enable-linux-desktop

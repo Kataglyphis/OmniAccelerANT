@@ -100,7 +100,7 @@ IFS=',' read -r -a selected_formats <<< "$FORMATS"
 
 # The hub's flatpak packager, then proof that the extra finish-args reached the built app's [Context].
 package_flatpak_with_finish_args() {
-	app_packaging_package_linux_bundle_flatpak "$@" || return 1
+	package_with_project_license flatpak "$@" || return $?
 	local metadata="${KATAGLYPHIS_FLATPAK_WORKDIR:-/tmp/flatpak-work}/build-dir/metadata" arg key value
 	local -a extra=()
 	IFS=' ' read -r -a extra <<< "${KATAGLYPHIS_FLATPAK_FINISH_ARGS:-}"
@@ -130,10 +130,10 @@ for raw_format in "${selected_formats[@]}"; do
 	format="$(echo "$raw_format" | xargs | tr '[:upper:]' '[:lower:]')"
 
 	case "$format" in
-		tar) packager=app_packaging_package_linux_bundle_tar ;;
-		deb) packager=app_packaging_package_linux_bundle_deb ;;
+		tar) packager=package_tar_with_project_license ;;
+		deb) packager=package_deb_with_project_license ;;
 		flatpak) packager=package_flatpak_with_finish_args ;;
-		appimage) packager=app_packaging_package_linux_bundle_appimage ;;
+		appimage) packager=package_appimage_with_project_license ;;
 		"") continue ;;
 		*)
 			# Fatal, not a skipped gate: an unknown format is the caller's typo, not a missing tool.

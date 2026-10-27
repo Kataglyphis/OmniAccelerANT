@@ -1,0 +1,13 @@
+name: Linux package license mutations
+
+on: [push, pull_request, workflow_dispatch]
+
+permissions:
+  contents: read
+
+jobs:
+  mutations:
+    uses: Kataglyphis/ANTfrastructure/.github/workflows/mutation-gates.yml@develop
+    with:
+      manifest: scripts/linux/tests/ort-license-mutations.json
+      submodules: 'true'

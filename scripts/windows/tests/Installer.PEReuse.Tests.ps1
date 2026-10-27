@@ -4,7 +4,7 @@
 Describe 'Installer shared Windows checks' {
     . (Join-Path $PSScriptRoot '..\Resolve-BuildModule.ps1')
     Import-BuildModule @('WindowsTargetArch.Common', 'WindowsSmokeTest.Common')
-    Import-Module (Join-Path $PSScriptRoot '..\..\..\third_party\ANTfrastructure\windows\scripts\tests\TestHarness.psm1') -Function Get-TestScriptAst, New-TestPeFile -ErrorAction Stop
+    Import-Module (Join-Path $PSScriptRoot '..\..\..\third_party\ANTfrastructure\windows\scripts\tests\TestHarness.psm1') -Function Get-TestScriptAst, Get-TestAstCommands, New-TestPeFile -ErrorAction Stop
 
     It 'parses and calls the shared target facts and PE reader' {
         $installer = Join-Path $PSScriptRoot '..\Test-OmniAccelerANTInstallers.ps1'
@@ -63,6 +63,41 @@ Describe 'Installer shared Windows checks' {
         $parameters = @($calls[0].CommandElements | Where-Object { $_ -is [System.Management.Automation.Language.CommandParameterAst] } | ForEach-Object ParameterName)
         @($parameters | Where-Object { $_ -eq 'Path' }).Count | Should Be 1
         @($parameters | Where-Object { $_ -eq 'Empty' }).Count | Should Be 1
+    }
+
+    It 'checks the project license in the built MSI and MSIX through the hub' {
+        foreach ($case in @(
+                @{ Path = 'Package-OmniAccelerANT.ps1'; Msi = 'NOTICES.Z'; Msix = 'flutter_assets/NOTICES.Z' },
+                @{ Path = 'observant/Package-ObservANT.ps1'; Msi = 'NOTICES'; Msix = 'web/assets/NOTICES' }
+            )) {
+            $ast = Get-TestScriptAst -ScriptPath (Join-Path $PSScriptRoot (Join-Path '..' $case.Path))
+            $commands = @($ast.FindAll({ param($node) $node -is [System.Management.Automation.Language.CommandAst] }, $true))
+            $msi = @($commands | Where-Object { $_.GetCommandName() -eq 'Assert-MsiPackageLicense' })
+            $msix = @($commands | Where-Object { $_.GetCommandName() -eq 'Assert-PackageLicense' })
+            $msi.Count | Should Be 1
+            $msix.Count | Should Be 1
+            $msi[0].Extent.Text.Contains($case.Msi) | Should Be $true
+            $msix[0].Extent.Text.Contains($case.Msix) | Should Be $true
+            $msi[0].Extent.Text.Contains("'LICENSE'") | Should Be $true
+            $msix[0].Extent.Text.Contains("'LICENSE'") | Should Be $true
+        }
+    }
+
+    It 'copies wheel-matched ONNX texts and checks every Windows package' {
+        foreach ($case in @(
+                @{ Path = 'Package-OmniAccelerANT.ps1'; Checks = 2 },
+                @{ Path = 'observant/Package-ObservANT.ps1'; Checks = 3 }
+            )) {
+            $ast = Get-TestScriptAst -ScriptPath (Join-Path $PSScriptRoot (Join-Path '..' $case.Path))
+            $commands = @(Get-TestAstCommands -Ast $ast -Name 'Copy-OrtWheelLicenses')
+            $checks = @(Get-TestAstCommands -Ast $ast -Name 'Assert-OrtWheelLicensesInPackage')
+            $commands.Count | Should Be 1
+            $commands[0].Extent.Text.Contains('onnxruntime.dll') | Should Be $true
+            $commands[0].Extent.Text.Contains('Get-OrtChainWheelStore') | Should Be $true
+            $checks.Count | Should Be $case.Checks
+            @($checks | Where-Object { $_.Extent.Text.Contains('-Format msi') -and $_.Extent.Text.Contains('-WixPath $fragment') }).Count | Should Be 1
+            @($checks | Where-Object { $_.Extent.Text.Contains('-Format archive') }).Count | Should Be ($case.Checks - 1)
+        }
     }
 
     It 'continues after false and thrown assertions and reports both failures' {

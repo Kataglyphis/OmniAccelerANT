@@ -35,6 +35,13 @@ run_flutter_common_checks() {
 
 KATAGLYPHIS_PLUGIN_PACKAGE="packages/kataglyphis_native_inference"
 
+# One shared gate checks both committed web assets and Android launcher resources.
+check_flutter_launcher_artifacts() {
+  local check
+  check="$(antfrastructure_path linux/scripts/05-frameworks/flutter/check-web-artefacts.py)" || return $?
+  python3 "$check" --repo-root "$KATAGLYPHIS_REPO_ROOT"
+}
+
 # The hub's checks test the root package only; the plugin's own suite is graded with the same strictness.
 run_plugin_dart_tests() {
   local strict_flag="${1:-true}" platform="${2:-vm}" test_args=()

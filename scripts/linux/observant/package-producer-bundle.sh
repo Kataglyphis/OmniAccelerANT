@@ -156,6 +156,9 @@ done
 # The verdict: every ORT binary in /out is this image's chain build and the producer resolves to it.
 patchelf --set-rpath '$ORIGIN/../lib' /out/bin/kataglyphis_observant
 bash /hub-scripts/06-packaging/check-ort-provenance.sh /out
+source /hub-scripts/06-packaging/ort-wheel-licenses.sh
+stage_ort_wheel_licenses /out
+verify_ort_wheel_package_licenses /out /out .
 
 printf 'bundle: %s files, %s\n' "$(find /out -type f | wc -l)" "$(du -sh /out | cut -f1)"
 BUNDLE_BUILDER

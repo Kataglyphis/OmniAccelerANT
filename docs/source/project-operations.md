@@ -11,6 +11,27 @@
 
 ## Quality Gates
 
+### Package license and launcher checks
+
+Android CI checks the manifest and launcher resources through ANTfrastructure before building,
+then verifies the complete project `LICENSE` in Flutter's compressed `NOTICES.Z` in the APK.
+Omni's TAR, DEB, AppImage, Flatpak, MSI and MSIX checks inspect that notice in the finished
+package; ObservANT uses its web `NOTICES` for the same formats. AppImage checks run on the
+matching native architecture; MSI file identifiers are resolved from each installer, and
+ambiguous names fail. These checks establish the project text is present; they do not establish
+that all native dependency licenses are included.
+
+Windows MSI and MSIX packages, and ObservANT's ZIP, also carry the original ONNX Runtime
+license and notices from the image wheel whose `onnxruntime.dll` exactly matches the packaged
+DLL. Missing or ambiguous wheel matches and missing or altered package texts fail packaging.
+
+Linux Omni, ObservANT and its Pi bundle match every bundled `libonnxruntime*.so*`
+to one wheel, either directly or after target-compatible stripping. The wheel's
+original license and notices are checked in each finished package. Set
+`ORT_CHAIN_WHEEL_DIR` to override `/opt/onnxruntime-wheels` and `STRIP` to choose
+the target's strip tool. A missing, changed or ambiguous match fails; this does
+not establish coverage of other native dependencies.
+
 ### Static checks
 
 ```bash

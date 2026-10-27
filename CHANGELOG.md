@@ -5,6 +5,15 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ## Unreleased
 
+- Match bundled Linux ONNX Runtime libraries to one wheel and verify its original license and notices in Omni and ObservANT packages.
+
+- Include and verify the original ONNX Runtime license and notices in Windows artifacts,
+  selecting the image wheel by the exact shipped DLL hash.
+
+- Check Android launcher resources and the full project MIT text in built APK, TAR, DEB,
+  AppImage, Flatpak, MSI and MSIX artifacts using ANTfrastructure; resolve MSI entries from
+  the installer file table.
+
 - Install the CMake formatter on both platforms through ANTfrastructure's locked uv tool project.
 - Reuse ANTfrastructure's valid synthetic PE fixtures in the Windows ORT and installer tests;
   keep the foreign, stale and malformed binary checks.

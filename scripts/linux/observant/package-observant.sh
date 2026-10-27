@@ -19,6 +19,8 @@ script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 repo_root="$(cd -- "${script_dir}/../../.." && pwd)"
 # shellcheck source=scripts/linux/lib/antfrastructure.sh
 source "${script_dir}/../lib/antfrastructure.sh"
+source "${script_dir}/../lib/flutter-package-license.sh"
+antfrastructure_source linux/scripts/06-packaging/ort-wheel-licenses.sh
 
 package=omni-observant
 prefix="/opt/${package}"
@@ -170,6 +172,7 @@ done
 # shellcheck disable=SC2016
 patchelf --set-rpath '$ORIGIN/../lib' "${bundle}/bin/kataglyphis_observant"
 bash "$(antfrastructure_path linux/scripts/06-packaging/check-ort-provenance.sh)" "${bundle}"
+stage_ort_wheel_licenses "${bundle}"
 
 cat > "${bundle}/observant" <<LAUNCHER
 #!/bin/sh
@@ -256,8 +259,12 @@ CONTROL
 mkdir -p "${out_dir}"
 deb_file="${out_dir}/${package}_${version}_${deb_arch}.deb"
 dpkg-deb --root-owner-group --build "${deb}" "${deb_file}" >/dev/null
+verify_flutter_package_license "${deb_file}" '*web/assets/NOTICES'
+verify_ort_wheel_package_licenses "${deb_file}" "${bundle}" "opt/${package}"
 tar -C "${bundle}/.." -czf "${out_dir}/${package}-${version}-linux-${deb_arch}.tar.gz" \
   --transform "s|^bundle|${package}|" bundle
+verify_flutter_package_license "${out_dir}/${package}-${version}-linux-${deb_arch}.tar.gz" '*web/assets/NOTICES'
+verify_ort_wheel_package_licenses "${out_dir}/${package}-${version}-linux-${deb_arch}.tar.gz" "${bundle}" "${package}"
 if [ "${desktop_formats}" = 0 ]; then
   printf 'bundle: %s files, %s\n' "$(find "${bundle}" -type f | wc -l)" "$(du -sh "${bundle}" | cut -f1)"
   printf 'wrote %s (%s); no AppImage or flatpak on %s\n' "${deb_file}" "$(du -h "${deb_file}" | cut -f1)" "$(uname -m)"
@@ -288,6 +295,8 @@ if ! APPIMAGE_EXTRACT_AND_RUN=1 NO_APPSTREAM=1 ARCH="$(uname -m)" \
   printf 'appimagetool failed for %s\n' "${appimage_file}" >&2
   exit 1
 fi
+verify_flutter_appimage_license "${appimage_file}" "$(uname -m)" 'web/assets/NOTICES'
+verify_ort_wheel_appimage_licenses "${appimage_file}" "${bundle}" "$(uname -m)" .
 
 # The packaged runtime has no rpicam-vid, so Flatpak keeps the USB-camera entrypoint.
 package_observant_flatpak() {
@@ -345,6 +354,8 @@ MANIFEST
 }
 flatpak_file="${out_dir}/${package}-${version}-$(uname -m).flatpak"
 package_observant_flatpak
+verify_flutter_package_license "${flatpak_file}" '*web/assets/NOTICES'
+verify_ort_wheel_package_licenses "${flatpak_file}" "${bundle}" 'files/observant'
 
 printf 'bundle: %s files, %s\n' "$(find "${bundle}" -type f | wc -l)" "$(du -sh "${bundle}" | cut -f1)"
 printf 'wrote %s (%s)\n' "${deb_file}" "$(du -h "${deb_file}" | cut -f1)"

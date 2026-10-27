@@ -181,3 +181,6 @@ for file in "$bundle_lib"/libonnxruntime*; do
   printf 'Kept (already in bundle/lib, not copied): %s sha256 %s\n' \
     "$(basename "$file")" "$(sha256sum "$file" | cut -d' ' -f1)"
 done
+# Match notices only after all bundle transformations are complete.
+antfrastructure_source linux/scripts/06-packaging/ort-wheel-licenses.sh
+stage_ort_wheel_licenses "$BUNDLE_DIR"

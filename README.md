@@ -32,6 +32,11 @@ submodules' remote default branches. CI checks the wrapper and config; see
 [the shared Renovate guide](https://github.com/Kataglyphis/ANTfrastructure/blob/develop/docs/dependency-updates.md).
 Both platforms use ANTfrastructure's locked uv project for CMake formatting.
 
+Android CI checks launcher resources before building and verifies the project's MIT text in
+the APK. The Linux package, MSI and MSIX builders check that text in their completed packages; see
+[project operations](docs/source/project-operations.md#package-license-and-launcher-checks).
+Linux and Windows packages also carry the ONNX Runtime license and notices from their matching image wheel.
+
 ## Highlights
 
 - **An installable ObservANT**: a `.deb`, AppImage, flatpak or Windows MSI that streams a camera to any browser and spots cats. The Flatpak packager verifies the committed app and nonempty bundle.

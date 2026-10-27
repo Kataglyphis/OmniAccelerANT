@@ -67,6 +67,7 @@ flutter_lane_prepare_env "$FLUTTER_DIR" || exit 2
 # Container-only preparation, kept out of lane-android.sh; a batch so assert_gates turns a failure into the exit code.
 gate_reset "code quality"
 run_gate "CI option parser tests" bash scripts/linux/tests/test-ci-options.sh
+run_gate "Flutter package license tests" bash scripts/linux/tests/test-flutter-package-license.sh
 run_gate "cmake-format --check" run_cmake_format_check
 # The APK ABI gate's own suite (synthetic APKs): that it refuses an extra slice or a missing plugin.
 run_gate "apk abi gate tests" bash scripts/linux/tests/test-check-apk-abi.sh
@@ -79,10 +80,12 @@ export_toolchain_env "$MATRIX_ARCH"
 if maybe_truthy "$RUN_CODEQL"; then
   # CodeQL drives the APK build itself, so lane-android.sh's checks run here instead.
   run_flutter_common_checks "$STRICT_CHECKS"
+  check_flutter_launcher_artifacts
   flutter config --enable-android
 
   # No fallback build: a failed scan must fail the lane, not ship a plain APK.
   run_codeql_android "$FLUTTER_DIR" "$BUILD_MODE"
+  verify_flutter_package_license "build/app/outputs/flutter-apk/app-${BUILD_MODE}.apk" '*flutter_assets/NOTICES.Z'
   bash "$REPO_ROOT/scripts/linux/check-apk-abi.sh" --apk "build/app/outputs/flutter-apk/app-${BUILD_MODE}.apk"
   bash "$REPO_ROOT/scripts/linux/check-rust-toolchain.sh" --apk "build/app/outputs/flutter-apk/app-${BUILD_MODE}.apk"
 

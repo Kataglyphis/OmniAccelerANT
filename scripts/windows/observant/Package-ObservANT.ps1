@@ -43,7 +43,7 @@ Set-StrictMode -Version Latest
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..\..')).Path
 . (Join-Path $PSScriptRoot '..\Resolve-BuildModule.ps1')
 Import-BuildModule @('WindowsBuild.Common', 'WindowsTargetArch.Common', 'WindowsCrossBundle.Common',
-    'WindowsOrtProvenance.Common', 'WindowsOrtPayload.Common', 'WindowsMsix.Common', 'WindowsAppInstallers.Common')
+    'WindowsOrtProvenance.Common', 'WindowsOrtPayload.Common', 'WindowsMsix.Common', 'WindowsAppInstallers.Common', 'WindowsMsiLicense.Common', 'WindowsOrtLicense.Common')
 
 $package = 'omni-observant'
 $modelsLock = Join-Path $repoRoot 'third_party\OxidANT\resources\models\models.lock'
@@ -173,6 +173,7 @@ Replace it with a model of your choice through 'model' in %ProgramData%\omni-acc
 $final = "C:\observant-out\$package"
 $payload = New-OrtProvenPayload -ExePath (Join-Path $stage (Split-Path $Producer -Leaf)) -Destination $final `
     -IncludeDirectory @('lib', 'libexec', 'models', 'web', 'share')
+$ortLicenses = Copy-OrtWheelLicenses -OrtDll (Join-Path $final 'onnxruntime.dll') -WheelDir (Get-OrtChainWheelStore) -Destination $final
 $fileCount = @(Get-ChildItem $final -Recurse -File).Count
 $sizeMb = [math]::Round((Get-ChildItem $final -Recurse -File | Measure-Object Length -Sum).Sum / 1MB)
 Write-Host "bundle: $fileCount files, $sizeMb MB, ORT proved: $($payload.LoadsOrt)"
@@ -181,17 +182,23 @@ $null = New-Item -ItemType Directory -Force -Path $OutDir
 $zip = Join-Path $OutDir "$package-$Version-windows-$packageArch.zip"
 if (Test-Path -LiteralPath $zip) { Remove-Item -LiteralPath $zip -Force }
 Compress-Archive -Path $final -DestinationPath $zip
+Assert-OrtWheelLicensesInPackage -Path $zip -LicenseDirectory $ortLicenses -Format archive -ArchivePrefix $package
 Write-Host "wrote $zip"
 
 $context = New-BuildContext -Workspace $repoRoot -LogDir (Join-Path $OutDir 'logs')
 $msixBase = Join-Path $OutDir "$package-$Version-windows-$packageArch"
 if (-not $SkipMsi) {
+    $fragment = 'C:\observant-out\msi-payload-files.wxs'
     New-AppMsi -Context $context -AppDir $final -ExeName (Split-Path $payload.Exe -Leaf) -WxsFile (Join-Path $PSScriptRoot 'observant.wxs') `
         -LicenseFile (Join-Path $PSScriptRoot '..\installer\License.rtf') -ProductName 'ObservANT' -Version $Version -Arch $packageArch `
-        -OutFile "$msixBase.msi" -FragmentPath 'C:\observant-out\msi-payload-files.wxs' -Extensions @('WixToolset.UI.wixext', 'WixToolset.Firewall.wixext')
+        -OutFile "$msixBase.msi" -FragmentPath $fragment -Extensions @('WixToolset.UI.wixext', 'WixToolset.Firewall.wixext')
+    Assert-MsiPackageLicense -Path "$msixBase.msi" -FileName 'NOTICES' -LicensePath (Join-Path $repoRoot 'LICENSE')
+    Assert-OrtWheelLicensesInPackage -Path "$msixBase.msi" -LicenseDirectory $ortLicenses -Format msi -WixPath $fragment
 }
 if (-not $Msix) { return }
 
 Import-BuildModule @('WindowsMsix.Signing')
 New-AppMsix -Context $context -AppDir $final -ManifestTemplate (Join-Path $PSScriptRoot 'AppxManifest.xml') -LogoPath (Join-Path $WebRoot 'icons\Icon-512.png') `
     -Version "$Version.0" -Arch $packageArch -OutFile "$msixBase.msix" -WorkDir 'C:\observant-out' -Publisher $MsixPublisher -Pfx $MsixPfx
+Assert-PackageLicense -Path "$msixBase.msix" -Pattern '*web/assets/NOTICES' -LicensePath (Join-Path $repoRoot 'LICENSE')
+Assert-OrtWheelLicensesInPackage -Path "$msixBase.msix" -LicenseDirectory $ortLicenses -Format archive

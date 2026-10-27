@@ -8,6 +8,13 @@ extend its canonical owner, passing project-specific values as arguments. For ne
 needed by multiple consumers, create or extend one shared owner module and call it here.
 Keep unique product logic in this repository.
 
+Android builds keep the shared launcher-resource gate and APK project-license check. Linux,
+MSI and MSIX package creation checks the complete project license in the finished artifact,
+including when optional launch tests are disabled. MSI cabinet IDs come from the package.
+Windows packages also carry the ORT wheel's original license and notices, selected only by
+an exact hash match to the shipped ONNX Runtime DLL and checked in each completed package.
+Linux packages and the Pi bundle match every bundled ORT ELF to one wheel and verify its original texts; retain the shared verifier and mutation workflow.
+
 Laid out per ANTfrastructure's
 [`shared/templates/AGENTS.md.template`](third_party/ANTfrastructure/shared/templates/README.md).
 The rule that shapes it: *would this still be true in a different project?* If
