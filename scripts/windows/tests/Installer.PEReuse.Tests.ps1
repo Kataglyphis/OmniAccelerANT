@@ -4,7 +4,7 @@
 Describe 'Installer shared Windows checks' {
     . (Join-Path $PSScriptRoot '..\Resolve-BuildModule.ps1')
     Import-BuildModule @('WindowsTargetArch.Common', 'WindowsSmokeTest.Common')
-    Import-Module (Join-Path $PSScriptRoot '..\..\..\third_party\ANTfrastructure\windows\scripts\tests\TestHarness.psm1') -Function Get-TestScriptAst -ErrorAction Stop
+    Import-Module (Join-Path $PSScriptRoot '..\..\..\third_party\ANTfrastructure\windows\scripts\tests\TestHarness.psm1') -Function Get-TestScriptAst, New-TestPeFile -ErrorAction Stop
 
     It 'parses and calls the shared target facts and PE reader' {
         $installer = Join-Path $PSScriptRoot '..\Test-OmniAccelerANTInstallers.ps1'
@@ -19,17 +19,11 @@ Describe 'Installer shared Windows checks' {
     It 'reads x64 and arm64 target facts and rejects a malformed binary' {
         Get-PeMachineType -Arch x64 | Should Be 0x8664
         Get-PeMachineType -Arch arm64 | Should Be 0xAA64
-        $bytes = [byte[]]::new(134)
-        $bytes[0] = 0x4D
-        $bytes[1] = 0x5A
-        [BitConverter]::GetBytes([int]0x80).CopyTo($bytes, 0x3C)
-        $bytes[0x80] = 0x50
-        $bytes[0x81] = 0x45
-        [BitConverter]::GetBytes([uint16]0x8664).CopyTo($bytes, 0x84)
         $path = Join-Path $TestDrive 'fixture.exe'
-        [IO.File]::WriteAllBytes($path, $bytes)
+        New-TestPeFile -Path $path -Machine 0x8664
         Get-PeFileMachine -Path $path | Should Be 0x8664
-        $bytes[0x80] = 0
+        $bytes = [IO.File]::ReadAllBytes($path)
+        $bytes[0x40] = 0
         [IO.File]::WriteAllBytes($path, $bytes)
         $message = try { Get-PeFileMachine -Path $path | Out-Null; '' } catch { $_.Exception.Message }
         ($message -match 'not a PE file') | Should Be $true

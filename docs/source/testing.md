@@ -26,6 +26,10 @@ proves the runner's ONNX Runtime before packaging. A malformed fixture proves sy
 before command order is inspected. The gate checks script structure; the Windows lane checks the
 actual package.
 
+The ORT and installer suites build valid synthetic PE files with ANTfrastructure's shared
+`New-OrtTestPe` and `New-TestPeFile`. Their negative cases then change the source fingerprint,
+package bytes or PE signature; they do not handcraft a separate valid file format.
+
 ## What the app's Dart suite checks
 
 From the README (2026-10-19). `test/` checks, among the rest:

@@ -68,6 +68,9 @@ to decide; never reach for a flag. The web lane builds no native CMake code and 
 trees, each verified generated or vendored. Never widen the gate onto one: it would fight the
 generator or upstream.
 
+On Windows, the step gets its `uv` command and log callbacks from ANTfrastructure's
+`New-UvBuildDelegates -Context $context`; the shared runner keeps external command failures fatal.
+
 | Excluded | Why |
 | --- | --- |
 | `third_party/`, `build/` | vendored, build output |

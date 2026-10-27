@@ -129,7 +129,7 @@ which maps topic → owning document, so these links survive upstream reorganisa
 | appimagetool provisioning — pinned version + SHA256, not the moving `continuous` tag | `linux/scripts/02-toolchain/packaging-deps.sh`, subcommand `appimagetool` |
 | Python venv + `uv` provisioning (installer downloaded to a file and SHA-checkable, never `curl \| sh`) | `linux/scripts/01-core/python_uv.sh` |
 | The Dart gate for Linux lanes — deps, format, analyze, test, `--strict`/`--extra-package` | `linux/scripts/05-frameworks/flutter/flutter_checks.sh` |
-| The CMake gate's machinery — `code_quality_find_cmake_files` + `CODE_QUALITY_CMAKE_EXCLUDE_PATHS` on Linux, `Initialize-UvVenv` + `Install-UvRequirements` on Windows | `linux/scripts/lib/code-quality.sh`, `windows/scripts/modules/WindowsUv.Common.psm1` |
+| The CMake gate's machinery — `code_quality_find_cmake_files` + `CODE_QUALITY_CMAKE_EXCLUDE_PATHS` on Linux, `Initialize-UvVenv` + `Install-UvRequirements` with `New-UvBuildDelegates` on Windows | `linux/scripts/lib/code-quality.sh`, `windows/scripts/modules/WindowsUv.Common.psm1`, `WindowsBuild.Common.psm1` |
 | The canonical `.cmake-format.yaml` this repo's root copy syncs from, and the drift check | `shared/config/README.md` |
 | Image and tag naming: `:latest`, `:winamd64`, variants, per-arch wrappers | `third_party/ANTfrastructure/AGENTS.md` § *Image and tag naming* |
 | Branches, CI rounds (`[ci <lane>]`) and releases | [`docs/branch-and-release-strategy.md`](third_party/ANTfrastructure/docs/branch-and-release-strategy.md) |
@@ -433,6 +433,8 @@ rather than linked.
   the Windows runner*.
   The MSIX wiring test parses `Build-Windows.ps1` with ANTfrastructure's `Get-TestScriptAst`,
   so a syntax error fails before its G6 ordering assertion.
+  Windows PE test samples use ANTfrastructure's `New-OrtTestPe` and `New-TestPeFile`; each
+  negative case changes its source fingerprint, package bytes or PE signature.
 - **On an unprovisioned host** (`STATUS_DLL_NOT_FOUND`, or a ~6 MB process that exits) the
   runner lacks the image's runtime DLLs: stage `C:\runtime\bin` and its GStreamer plugins. Since
   2026-10-17 AccelerANTgine.dll and the VC++ runtime sit beside the exe on x64 as on arm64 (the

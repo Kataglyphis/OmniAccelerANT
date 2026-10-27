@@ -267,14 +267,12 @@ try {
                     throw "cmake-format bootstrap pins not found: $cmakeFormatRequirements. If the whole directory is missing the submodule is not checked out: git submodule update --init --recursive third_party/ANTfrastructure."
                 }
 
-                $uvLogInfo = { param([string]$Message) Write-BuildLog -Context $context -Message $Message }
-                $uvLogWarning = { param([string]$Message) Write-BuildLogWarning -Context $context -Message $Message }
-                $uvRunner = { param([string]$File, [string[]]$Parameters) Invoke-BuildExternal -Context $context -File $File -Parameters $Parameters | Out-Null }
+                $uvDelegates = New-UvBuildDelegates -Context $context
 
                 $venvPython = Initialize-UvVenv -Workspace $workspace -EnvName '.venv' `
-                    -CommandRunner $uvRunner -LogInfo $uvLogInfo -LogWarning $uvLogWarning
+                    -CommandRunner $uvDelegates.CommandRunner -LogInfo $uvDelegates.LogInfo -LogWarning $uvDelegates.LogWarning
                 Install-UvRequirements -VenvPython $venvPython -RequirementsPath $cmakeFormatRequirements `
-                    -CommandRunner $uvRunner -LogInfo $uvLogInfo
+                    -CommandRunner $uvDelegates.CommandRunner -LogInfo $uvDelegates.LogInfo
 
                 $cmakeFormatExe = Join-Path (Split-Path $venvPython -Parent) 'cmake-format.exe'
                 if (-not (Test-Path -LiteralPath $cmakeFormatExe -PathType Leaf)) {

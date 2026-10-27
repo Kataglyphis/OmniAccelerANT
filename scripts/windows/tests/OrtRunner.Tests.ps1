@@ -6,19 +6,11 @@ Describe 'WindowsOrtRunner.Common' {
 
     . (Join-Path $PSScriptRoot '..\Resolve-BuildModule.ps1')
     Import-BuildModule @('WindowsOrtRunner.Common', 'WindowsOrtProvenance.Common', 'WindowsOrtPayload.Common')
-    Import-Module (Join-Path $PSScriptRoot '..\..\..\third_party\ANTfrastructure\windows\scripts\tests\TestHarness.psm1') -Function Get-TestScriptAst -ErrorAction Stop
+    Import-Module (Join-Path $PSScriptRoot '..\..\..\third_party\ANTfrastructure\windows\scripts\tests\TestHarness.psm1') -Function Get-TestScriptAst, New-OrtTestPe -ErrorAction Stop
 
     # NUL-terminated like a compiler's __FILE__: G6 takes only a whole terminated path as a fingerprint.
     $chainSrc = 'C:\temp\onnx-src\onnxruntime\core\session\inference_session.cc'
     $foreignSrc = 'C:\__w\1\s\onnxruntime\core\session\inference_session.cc'
-
-    # MZ, e_lfanew = 0x40, 'PE\0\0', machine amd64: enough for Get-PeFileMachine; the text follows.
-    function New-FakeDll([string] $Path, [string] $Text) {
-        New-Item -ItemType Directory -Force -Path (Split-Path $Path -Parent) | Out-Null
-        $h = [byte[]]::new(0x80)
-        $h[0] = 0x4D; $h[1] = 0x5A; $h[0x3C] = 0x40; $h[0x40] = 0x50; $h[0x41] = 0x45; $h[0x44] = 0x64; $h[0x45] = 0x86
-        [System.IO.File]::WriteAllBytes($Path, [byte[]]($h + [System.Text.Encoding]::Latin1.GetBytes("`0$Text`0")))
-    }
 
     function Get-ThrowText([scriptblock] $Block) {
         try { & $Block | Out-Null } catch { return "$($_.Exception.Message)" }
@@ -36,13 +28,13 @@ Describe 'WindowsOrtRunner.Common' {
     function New-Case([string] $Name) {
         $case = Join-Path $TestDrive $Name
         $bin = Join-Path $case 'onnx\bin'
-        New-FakeDll (Join-Path $bin 'onnxruntime.dll') "$chainSrc`0OrtGetApiBase"
-        New-FakeDll (Join-Path $bin 'onnxruntime_providers_shared.dll') 'provider bridge'
-        New-FakeDll (Join-Path $bin 'DirectML.dll') 'directml'
+        New-OrtTestPe -Path (Join-Path $bin 'onnxruntime.dll') -Text "$chainSrc`0OrtGetApiBase"
+        New-OrtTestPe -Path (Join-Path $bin 'onnxruntime_providers_shared.dll') -Text 'provider bridge'
+        New-OrtTestPe -Path (Join-Path $bin 'DirectML.dll') -Text 'directml'
         $runner = Join-Path $case 'runner'
-        New-FakeDll (Join-Path $runner 'omni_accelerant.exe') 'main'
-        New-FakeDll (Join-Path $runner 'AccelerANTgine.dll') 'OrtGetApiBase'
-        New-FakeDll (Join-Path $runner 'oxidant.dll') 'OrtGetApiBase'
+        New-OrtTestPe -Path (Join-Path $runner 'omni_accelerant.exe') -Text 'main'
+        New-OrtTestPe -Path (Join-Path $runner 'AccelerANTgine.dll') -Text 'OrtGetApiBase'
+        New-OrtTestPe -Path (Join-Path $runner 'oxidant.dll') -Text 'OrtGetApiBase'
         return [pscustomobject]@{ Root = (Join-Path $case 'onnx'); Runner = $runner }
     }
 
@@ -54,7 +46,7 @@ Describe 'WindowsOrtRunner.Common' {
 
     It 'stages the chain ORT over stale copies, proves it with G6 and re-proves the stamp on a host' {
         $c = New-Case 'green'
-        New-FakeDll (Join-Path $c.Runner 'onnxruntime.dll') $foreignSrc
+        New-OrtTestPe -Path (Join-Path $c.Runner 'onnxruntime.dll') -Text $foreignSrc
         Invoke-WithOnnxRoot $c.Root {
             $null = Copy-ChainOrtBeside -OnnxRoot $c.Root -Destination $c.Runner
             $proof = Invoke-RunnerOrtProof -RunnerDir $c.Runner
@@ -71,14 +63,14 @@ Describe 'WindowsOrtRunner.Common' {
         $c = New-Case 'build-red'
         Invoke-WithOnnxRoot $c.Root {
             $null = Copy-ChainOrtBeside -OnnxRoot $c.Root -Destination $c.Runner
-            New-FakeDll (Join-Path $c.Runner 'onnxruntime.dll') $foreignSrc
+            New-OrtTestPe -Path (Join-Path $c.Runner 'onnxruntime.dll') -Text $foreignSrc
             Get-ThrowText { Invoke-RunnerOrtProof -RunnerDir $c.Runner } | Should Match 'FOREIGN'
-            New-FakeDll (Join-Path $c.Runner 'onnxruntime.dll') "$chainSrc`0FileVersion 1.27.0"
+            New-OrtTestPe -Path (Join-Path $c.Runner 'onnxruntime.dll') -Text "$chainSrc`0FileVersion 1.27.0"
             Get-ThrowText { Invoke-RunnerOrtProof -RunnerDir $c.Runner } | Should Match 'STALE'
             Remove-Item -LiteralPath (Join-Path $c.Runner 'onnxruntime.dll')
             Get-ThrowText { Invoke-RunnerOrtProof -RunnerDir $c.Runner } | Should Match 'MISSING'
             $null = Copy-ChainOrtBeside -OnnxRoot $c.Root -Destination $c.Runner
-            New-FakeDll (Join-Path $c.Runner 'gstreamer-1.0\onnxruntime-genai.dll') 'genai'
+            New-OrtTestPe -Path (Join-Path $c.Runner 'gstreamer-1.0\onnxruntime-genai.dll') -Text 'genai'
             Get-ThrowText { Invoke-RunnerOrtProof -RunnerDir $c.Runner } | Should Match 'STRAY .*onnxruntime-genai'
         }
     }
@@ -91,18 +83,18 @@ Describe 'WindowsOrtRunner.Common' {
         }
         $stamp = Join-Path $c.Runner 'ort-chain-stamp.json'
         $saved = Get-Content -LiteralPath $stamp -Raw
-        New-FakeDll (Join-Path $c.Runner 'DirectML.dll') 'other directml'
+        New-OrtTestPe -Path (Join-Path $c.Runner 'DirectML.dll') -Text 'other directml'
         Get-ThrowText { Assert-RunnerOrtStamp -RunnerDir $c.Runner } | Should Match 'CHANGED .*DirectML'
         Copy-Item -LiteralPath (Join-Path $c.Root 'bin\DirectML.dll') -Destination $c.Runner -Force
-        New-FakeDll (Join-Path $c.Runner 'onnxruntime_extra.dll') 'extra'
+        New-OrtTestPe -Path (Join-Path $c.Runner 'onnxruntime_extra.dll') -Text 'extra'
         Get-ThrowText { Assert-RunnerOrtStamp -RunnerDir $c.Runner } | Should Match 'STRAY .*onnxruntime_extra'
         Remove-Item -LiteralPath (Join-Path $c.Runner 'onnxruntime_extra.dll')
         # A renamed ORT is invisible to the family names; G6 still sees its fingerprint.
-        New-FakeDll (Join-Path $c.Runner 'helper.dll') $foreignSrc
+        New-OrtTestPe -Path (Join-Path $c.Runner 'helper.dll') -Text $foreignSrc
         Get-ThrowText { Assert-RunnerOrtStamp -RunnerDir $c.Runner } | Should Match 'FOREIGN .*helper.dll'
         Remove-Item -LiteralPath (Join-Path $c.Runner 'helper.dll')
         # Stamp and bytes swapped together for an ORT with no source root at all: G6 alone cannot tell.
-        New-FakeDll (Join-Path $c.Runner 'onnxruntime.dll') 'OrtGetApiBase no fingerprint'
+        New-OrtTestPe -Path (Join-Path $c.Runner 'onnxruntime.dll') -Text 'OrtGetApiBase no fingerprint'
         $sha = (Get-FileHash -LiteralPath (Join-Path $c.Runner 'onnxruntime.dll') -Algorithm SHA256).Hash.ToLowerInvariant()
         $forged = $saved | ConvertFrom-Json -AsHashtable
         $forged['sha256']['onnxruntime.dll'] = $sha
@@ -119,7 +111,7 @@ Describe 'WindowsOrtRunner.Common' {
             $null = Invoke-RunnerOrtProof -RunnerDir $c.Runner
         }
         $other = Join-Path $TestDrive 'override\sys\onnxruntime.dll'
-        New-FakeDll $other "$chainSrc`0FileVersion 1.27.0"
+        New-OrtTestPe -Path $other -Text "$chainSrc`0FileVersion 1.27.0"
         Get-ThrowText { Assert-RunnerOrtOverride -Value $other -ExeDir $c.Runner -RunnerDir $c.Runner } | Should Match 'not the chain ONNX Runtime the build proved'
         Get-ThrowText { Assert-RunnerOrtOverride -Value '' -ExeDir $c.Runner -RunnerDir $c.Runner } | Should Be ''
     }

@@ -64,7 +64,7 @@ ObservANT? A release's package installs it:
 | Container source selection, Windows and ARM64 bundle checks, Android, Raspberry Pi and web builds | [docs/source/platforms.md](https://github.com/Kataglyphis/OmniAccelerANT/blob/develop/docs/source/platforms.md#tar-pipe-inbound-exclusions) |
 | ObservANT, the Rust webcam path and the WebRTC pipelines | [docs/source/camera-streaming.md](https://github.com/Kataglyphis/OmniAccelerANT/blob/develop/docs/source/camera-streaming.md) |
 | ESP32-S3 companion, camera and shared host toolchain | [docs/source/esp32.md](https://github.com/Kataglyphis/OmniAccelerANT/blob/develop/docs/source/esp32.md) |
-| What each test proves, and what is not covered yet | [docs/source/testing.md](https://github.com/Kataglyphis/OmniAccelerANT/blob/develop/docs/source/testing.md) |
+| What each test proves, including shared Windows PE fixtures | [docs/source/testing.md](https://github.com/Kataglyphis/OmniAccelerANT/blob/develop/docs/source/testing.md) |
 | Gates, releases, local lanes, dependency upgrades | [docs/source/project-operations.md](https://github.com/Kataglyphis/OmniAccelerANT/blob/develop/docs/source/project-operations.md) |
 | CI quality reports, Ruff/ty, PowerShell syntax checks and refactor previews | [Shared quality tooling](https://github.com/Kataglyphis/ANTfrastructure/blob/develop/docs/code-quality-tooling.md) |
 | Dependency and bridge updates | [docs/source/upgrade-guide.md](https://github.com/Kataglyphis/OmniAccelerANT/blob/develop/docs/source/upgrade-guide.md) |
