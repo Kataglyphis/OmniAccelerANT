@@ -91,9 +91,9 @@ third_party/ANTfrastructure/shared/config/sync-shared-config.sh --repo-root . --
 [`.antfrastructure-shared.manifest`](../../.antfrastructure-shared.manifest), four rows, and the
 scripts refuse `-Ignore` while that file exists.
 
-cmake-format comes from `PATH` or a uv venv fed by ANTfrastructure's pinned
-`third_party/ANTfrastructure/linux/scripts/cmake-format.requirements.txt`, which both bootstraps
-named above read; there is no root `requirements.txt`. `pyyaml` is in that set because
+cmake-format comes from `PATH` or a uv venv fed by ANTfrastructure's locked
+`third_party/ANTfrastructure/quality/cmake-format` project on both platforms.
+`pyyaml` is in that set because
 cmake-format cannot read its own YAML config without it. The config's `line_ending: unix` is why
 `.gitattributes` pins `CMakeLists.txt` and `*.cmake` to LF: a `core.autocrlf=true` checkout would
 otherwise fail `--check` on every file.

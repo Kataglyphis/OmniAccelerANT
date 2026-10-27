@@ -50,7 +50,7 @@ Import-BuildModule @(
     'WindowsFlutter.Common'     # plugin symlink + permission_handler patches, host artifact sync
     'WindowsCMake.Common'       # Remove-BuildRootSafe
     'WindowsGstPlugins.Common'  # Assert-PkgConfigModule
-    'WindowsUv.Common'          # Initialize-UvVenv + Install-UvRequirements (before its dependents)
+    'WindowsUv.Common'          # Shared uv primitives before their dependents.
     'WindowsFormatting.Common'  # Get-ProjectDartFiles
     'WindowsPaths.Common'       # project-local: this repo's Flutter windows/x64 layout
     'WindowsOrtRunner.Common'   # project-local: stamp the G6 proof of the runner's chain ONNX Runtime
@@ -257,26 +257,12 @@ try {
                     throw ".cmake-format.yaml is missing at the repo root; without it cmake-format silently uses built-in defaults. Restore the consumer copy with ANTfrastructure shared/config/Sync-SharedConfig.ps1 -Write (AGENTS.md paragraph 5)."
                 }
 
-                # Not Initialize-UvVenvPython: without a root requirements.txt it returns an empty venv.
-                if (-not (Get-Command 'uv' -ErrorAction SilentlyContinue)) {
-                    throw 'uv not found on PATH. Install Astral uv before running formatting steps.'
-                }
-
-                $cmakeFormatRequirements = Join-Path $workspace 'third_party/ANTfrastructure/linux/scripts/cmake-format.requirements.txt'
-                if (-not (Test-Path -LiteralPath $cmakeFormatRequirements -PathType Leaf)) {
-                    throw "cmake-format bootstrap pins not found: $cmakeFormatRequirements. If the whole directory is missing the submodule is not checked out: git submodule update --init --recursive third_party/ANTfrastructure."
-                }
-
-                $uvDelegates = New-UvBuildDelegates -Context $context
-
-                $venvPython = Initialize-UvVenv -Workspace $workspace -EnvName '.venv' `
-                    -CommandRunner $uvDelegates.CommandRunner -LogInfo $uvDelegates.LogInfo -LogWarning $uvDelegates.LogWarning
-                Install-UvRequirements -VenvPython $venvPython -RequirementsPath $cmakeFormatRequirements `
-                    -CommandRunner $uvDelegates.CommandRunner -LogInfo $uvDelegates.LogInfo
+                $cmakeFormatProject = Join-Path $workspace 'third_party/ANTfrastructure/quality/cmake-format'
+                $venvPython = Initialize-UvVenvPython -Context $context -WorkspacePath $workspace -UvProjectPath $cmakeFormatProject
 
                 $cmakeFormatExe = Join-Path (Split-Path $venvPython -Parent) 'cmake-format.exe'
                 if (-not (Test-Path -LiteralPath $cmakeFormatExe -PathType Leaf)) {
-                    throw "cmake-format not found in venv: $cmakeFormatExe (expected from $cmakeFormatRequirements)."
+                    throw "cmake-format not found in venv: $cmakeFormatExe (expected from $cmakeFormatProject)."
                 }
                 Invoke-BuildExternal -Context $context -File $cmakeFormatExe -Parameters (@('-c', $formatConfig, '--check') + $cmakeFiles)
             } finally {

@@ -30,6 +30,7 @@ Dependency updates: run `bash scripts/linux/renovate-local.sh` to report, `--app
 and `--apply` to update. A real apply initializes a missing pinned hub and follows direct
 submodules' remote default branches. CI checks the wrapper and config; see
 [the shared Renovate guide](https://github.com/Kataglyphis/ANTfrastructure/blob/develop/docs/dependency-updates.md).
+Both platforms use ANTfrastructure's locked uv project for CMake formatting.
 
 ## Highlights
 

@@ -5,7 +5,7 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ## Unreleased
 
-- Use ANTfrastructure's `New-UvBuildDelegates` for the Windows CMake formatter's logging and command runner.
+- Install the CMake formatter on both platforms through ANTfrastructure's locked uv tool project.
 - Reuse ANTfrastructure's valid synthetic PE fixtures in the Windows ORT and installer tests;
   keep the foreign, stale and malformed binary checks.
 - Pin AccelerANTgine to its shared AST parser wiring check on `develop`.

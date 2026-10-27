@@ -135,19 +135,6 @@ run_frontend_performance() {
     --driver=test_driver/perf_driver.dart --target=integration_test/performance_test.dart
 }
 
-_cmake_format_venv_create() {
-  antfrastructure_source linux/scripts/01-core/python_uv.sh
-  # Empty python version: honour UV_PYTHON, which the CI images export.
-  uv_venv_create .venv ""
-}
-
-_cmake_format_install_requirements() {
-  antfrastructure_source linux/scripts/01-core/python_uv.sh
-  local requirements
-  requirements="$(antfrastructure_path linux/scripts/cmake-format.requirements.txt)" || return 1
-  uv_pip_install_requirements .venv "$requirements"
-}
-
 # No strictness switch: wrap it in run_gate. See docs/source/project-operations.md § The CMake format gate
 run_cmake_format_check() {
   if [ "$#" -gt 0 ]; then
@@ -159,8 +146,6 @@ run_cmake_format_check() {
   antfrastructure_source linux/scripts/lib/code-quality.sh || return 1
 
   CODE_QUALITY_VENV_DIR="${PWD}/.venv"
-  CODE_QUALITY_UV_VENV_CREATE_SCRIPT=_cmake_format_venv_create
-  CODE_QUALITY_UV_INSTALL_REQUIREMENTS_SCRIPT=_cmake_format_install_requirements
   # Bare call: its failures exit via err(), and only run_gate's subshell turns that into a recorded failure.
   code_quality_ensure_cmake_format
 

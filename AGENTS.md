@@ -129,8 +129,8 @@ which maps topic → owning document, so these links survive upstream reorganisa
 | appimagetool provisioning — pinned version + SHA256, not the moving `continuous` tag | `linux/scripts/02-toolchain/packaging-deps.sh`, subcommand `appimagetool` |
 | Python venv + `uv` provisioning (installer downloaded to a file and SHA-checkable, never `curl \| sh`) | `linux/scripts/01-core/python_uv.sh` |
 | The Dart gate for Linux lanes — deps, format, analyze, test, `--strict`/`--extra-package` | `linux/scripts/05-frameworks/flutter/flutter_checks.sh` |
-| The CMake gate's machinery — `code_quality_find_cmake_files` + `CODE_QUALITY_CMAKE_EXCLUDE_PATHS` on Linux, `Initialize-UvVenv` + `Install-UvRequirements` with `New-UvBuildDelegates` on Windows | `linux/scripts/lib/code-quality.sh`, `windows/scripts/modules/WindowsUv.Common.psm1`, `WindowsBuild.Common.psm1` |
-| The canonical `.cmake-format.yaml` this repo's root copy syncs from, and the drift check | `shared/config/README.md` |
+| The CMake gate's machinery — `code_quality_find_cmake_files` + `CODE_QUALITY_CMAKE_EXCLUDE_PATHS` on Linux, `Initialize-UvVenvPython` on Windows | `linux/scripts/lib/code-quality.sh`, `windows/scripts/modules/WindowsUv.Common.psm1`, `WindowsFormatting.Common.psm1` |
+| The canonical `.cmake-format.yaml` and locked formatter used on both platforms | `shared/config/README.md` and `quality/cmake-format/uv.lock` |
 | Image and tag naming: `:latest`, `:winamd64`, variants, per-arch wrappers | `third_party/ANTfrastructure/AGENTS.md` § *Image and tag naming* |
 | Branches, CI rounds (`[ci <lane>]`) and releases | [`docs/branch-and-release-strategy.md`](third_party/ANTfrastructure/docs/branch-and-release-strategy.md) |
 | Every checkout on its branch tip (`git-sync-branches.sh`) | `docs/adopting-in-a-new-project.md` § *Putting every checkout on its branch* |
