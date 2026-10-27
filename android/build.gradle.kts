@@ -34,6 +34,10 @@ subprojects {
             android.compileSdkVersion(rootProject.extra["kataglyphisCompileSdk"] as Int)
             android.buildToolsVersion = rootProject.extra["kataglyphisBuildTools"] as String
             android.ndkVersion = rootProject.extra["kataglyphisNdk"] as String
+            // A plugin's CMake build otherwise asks for AGP's default 3.22.1, which the image lacks.
+            if (android.externalNativeBuild.cmake.path != null) {
+                android.externalNativeBuild.cmake.version = rootProject.extra["kataglyphisCmake"] as String
+            }
         }
     }
 }

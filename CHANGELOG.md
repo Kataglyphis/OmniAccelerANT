@@ -13,6 +13,7 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 - Check that every launcher icon derives from `images/logo.svg`; ObservANT's Linux packages
   install the logo itself and the MSI shows the app icon in Apps & features.
 - Register the fallback fonts' license through ANThology's `registerAssetLicense`.
+- Pin the CMake version of every Android module with a CMake build, `jni` included.
 - Give the Windows x64 lane's formatter wiring check an absolute script path; the hub resolves a relative one against itself.
 
 - Match bundled Linux ONNX Runtime libraries to one wheel and verify its original license and notices in Omni and ObservANT packages.

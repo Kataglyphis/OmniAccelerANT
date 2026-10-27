@@ -568,7 +568,8 @@ One place pins them (single-sourced 2026-09-17): the `extra` block in `android/b
 `kataglyphisAbi` beside them is the APK's one ABI, § *Android and cross-toolchain constraints*).
 Its global `subprojects` override sets compileSdk, build-tools and NDK on every Android module,
 which also drags third-party plugins such as permission_handler up from their own
-`compileSdk 35`, so `android/app`, the native plugin's `android/` and `rust_builder/android/`
+`compileSdk 35`, and the CMake version on every module with a CMake build (pub's `jni` asked
+for 3.22.1), so `android/app`, the native plugin's `android/` and `rust_builder/android/`
 carry no literals of their own; the plugin reads its CMake version from the same block. The
 override block must sit **above** the `evaluationDependsOn(":app")` block: that one forces
 evaluation, and registering `afterEvaluate` afterwards throws
