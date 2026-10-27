@@ -270,7 +270,7 @@ jobs:
 
       - name: Check locked formatter wiring
         shell: pwsh
-        run: pwsh -NoProfile -File third_party/ANTfrastructure/shared/windows/tests/Test-CmakeUvProjectWiring.ps1 -ScriptPath scripts/windows/Build-Windows.ps1 -CommandName Initialize-UvVenvPython
+        run: pwsh -NoProfile -File third_party/ANTfrastructure/shared/windows/tests/Test-CmakeUvProjectWiring.ps1 -ScriptPath "$PWD/scripts/windows/Build-Windows.ps1" -CommandName Initialize-UvVenvPython
 
       - name: Pester suite (scripts/windows/tests)
         uses: Kataglyphis/ANTfrastructure/.github/actions/run-pester-suite@develop

@@ -51,4 +51,6 @@ Describe 'WindowsThirdPartyLicense.Common' {
     }
 
     Remove-Item -LiteralPath $work -Recurse -Force -ErrorAction SilentlyContinue
+    # The expected verifier failures must not become the runner step's exit code.
+    $global:LASTEXITCODE = 0
 }
