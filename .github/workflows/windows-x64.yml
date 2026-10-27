@@ -151,6 +151,20 @@ jobs:
           & (Join-Path $wix 'wix.exe') extension add --global WixToolset.UI.wixext/7.0.0
           Add-Content -LiteralPath $env:GITHUB_ENV -Value "WIX=$wix"
 
+      # The native-license gate runs `python`, which on this host is only the Store alias.
+      - name: Read the pinned Python
+        id: python
+        working-directory: ${{ steps.prep.outputs.workspace }}
+        run: |
+          $line = Select-String -LiteralPath third_party/ANTfrastructure/linux/scripts/01-core/versions.env -Pattern '^PYTHON_VERSION=(\d+\.\d+)\.' | Select-Object -First 1
+          if (-not $line) { throw 'versions.env names no PYTHON_VERSION' }
+          Add-Content -LiteralPath $env:GITHUB_OUTPUT -Value "version=$($line.Matches[0].Groups[1].Value)"
+
+      - name: Python for the license gates
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.0.0
+        with:
+          python-version: ${{ steps.python.outputs.version }}
+
       - name: Package the app (MSI, MSIX)
         working-directory: ${{ steps.prep.outputs.workspace }}
         run: '& ./scripts/windows/Package-OmniAccelerANT.ps1 -AppDir $env:BUILD_DIR_RELEASE -Arch x64 -OutDir out'

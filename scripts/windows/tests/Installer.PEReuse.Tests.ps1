@@ -83,6 +83,13 @@ Describe 'Installer shared Windows checks' {
         }
     }
 
+    It 'gives the x64 host packager a real Python before its native-license gate (mutation)' {
+        $yaml = [IO.File]::ReadAllText((Join-Path $PSScriptRoot '..\..\..\.github\workflows\windows-x64.yml'))
+        $python = $yaml.IndexOf('uses: actions/setup-python@')
+        $package = $yaml.IndexOf('Package-OmniAccelerANT.ps1 -AppDir $env:BUILD_DIR_RELEASE')
+        ($python -ge 0 -and $package -gt $python) | Should Be $true
+    }
+
     It 'copies wheel-matched ONNX texts and checks every Windows package' {
         # The host-side app packager takes the texts the image build matched and stamped; ObservANT packs in the image.
         foreach ($case in @(

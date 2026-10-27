@@ -111,7 +111,8 @@
     ],
     "windows": [
      "url_launcher_windows_plugin.dll",
-     "permission_handler_windows_plugin.dll"
+     "permission_handler_windows_plugin.dll",
+     "file_saver_plugin.dll"
     ],
     "android": [
      "libdartjni.so"

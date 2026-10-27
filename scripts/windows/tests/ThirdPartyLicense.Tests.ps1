@@ -32,6 +32,17 @@ Describe 'WindowsThirdPartyLicense.Common' {
         Get-ThrowMessage { Assert-NativeLicenseCoverage -Path $payload -RepoRoot $repoRoot } | Should Match 'no third-party license entry'
     }
 
+    It 'covers the DLL of every Flutter plugin the Windows runner builds (mutation)' {
+        $cmake = Get-Content -LiteralPath (Join-Path $repoRoot 'windows\flutter\generated_plugins.cmake') -Raw
+        if ($cmake -notmatch '(?s)list\(APPEND FLUTTER_PLUGIN_LIST\s+(.*?)\)') { throw 'generated_plugins.cmake has no FLUTTER_PLUGIN_LIST' }
+        $plugins = @($Matches[1] -split '\s+' | Where-Object { $_ })
+        $plugins.Count -gt 0 | Should Be $true
+        $payload = Join-Path $work 'plugins'
+        $null = New-Item -ItemType Directory -Force -Path $payload
+        foreach ($name in $plugins) { Set-Content -LiteralPath (Join-Path $payload "${name}_plugin.dll") -Value '' }
+        Get-ThrowMessage { Assert-NativeLicenseCoverage -Path $payload -RepoRoot $repoRoot } | Should Be ''
+    }
+
     It 'requires every inventory file in an archive, byte for byte' {
         $good = Join-Path $work 'good.zip'
         $bare = Join-Path $work 'bare.zip'
