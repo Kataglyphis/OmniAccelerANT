@@ -275,7 +275,7 @@ fi
 appdir="${work}/appdir"
 cp -a "${bundle}" "${appdir}"
 ln -s observant "${appdir}/AppRun"
-install -m 644 "${repo_root}/assets/icons/kataglyphis_app_icon.svg" "${appdir}/${package}.svg"
+install -m 644 "${repo_root}/images/logo.svg" "${appdir}/${package}.svg"
 cat > "${appdir}/${package}.desktop" <<DESKTOP
 [Desktop Entry]
 Type=Application
@@ -304,7 +304,7 @@ package_observant_flatpak() {
   mkdir -p "${flatpak_work}/files/bundle"
   cp -a "${bundle}/." "${flatpak_work}/files/bundle/"
   install -m 755 "${script_dir}/package/flatpak-omni-observant" "${flatpak_work}/files/omni-observant"
-  install -m 644 "${repo_root}/assets/icons/kataglyphis_app_icon.svg" "${flatpak_work}/files/${flatpak_id}.svg"
+  install -m 644 "${repo_root}/images/logo.svg" "${flatpak_work}/files/${flatpak_id}.svg"
   cat > "${flatpak_work}/files/${flatpak_id}.desktop" <<DESKTOP
 [Desktop Entry]
 Type=Application

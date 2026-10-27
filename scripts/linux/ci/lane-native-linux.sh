@@ -70,6 +70,8 @@ require_cmd dart
 gate_reset "code quality (${MATRIX_ARCH})"
 run_gate "CI option parser tests" bash scripts/linux/tests/test-ci-options.sh
 run_gate "Flutter package license tests" bash scripts/linux/tests/test-flutter-package-license.sh
+run_gate "third-party license tests" bash scripts/linux/tests/test-third-party-licenses.sh
+run_gate "brand icon tests" bash scripts/linux/tests/test-check-brand-icons.sh
 run_gate "bundle option parser tests" bash scripts/linux/tests/test-bundle-options.sh
 # The checks' one test run writes the coverage the floor below reads; a second run cost 55 s.
 dart_lcov="build/coverage/lcov.info"

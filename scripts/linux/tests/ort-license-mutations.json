@@ -82,7 +82,7 @@
  {
   "id": "consumer.omni-license-verifier",
   "target": "scripts/linux/lib/flutter-package-license.sh",
-  "find": "  python3 \"$verifier\" \"$artifact\" --require \"${pattern}=${KATAGLYPHIS_REPO_ROOT}/LICENSE\"",
+  "find": "  python3 \"$verifier\" \"$artifact\" \"${args[@]}\"",
   "replace": "  return 0",
   "test": "bash scripts/linux/tests/test-flutter-package-license.sh",
   "why": "The Flutter artifact and launcher checks must remain effective."
@@ -182,5 +182,61 @@
   "replace": ": # removed APK license check",
   "test": "bash scripts/linux/tests/test-flutter-package-license.sh",
   "why": "The Flutter artifact and launcher checks must remain effective."
+ },
+ {
+  "id": "consumer.omni-third-party-inputs",
+  "target": "scripts/licenses/generate-third-party-licenses.py",
+  "find": "    if index.get(\"inputs\") != input_digests():",
+  "replace": "    if False:",
+  "test": "bash scripts/linux/tests/test-third-party-licenses.sh",
+  "why": "A changed lockfile or table must force a regenerated inventory."
+ },
+ {
+  "id": "consumer.omni-third-party-text-pin",
+  "target": "scripts/licenses/generate-third-party-licenses.py",
+  "find": "            if digest(data) != text[\"sha256\"]:",
+  "replace": "            if False:",
+  "test": "bash scripts/linux/tests/test-third-party-licenses.sh",
+  "why": "A vendored license text is pinned by its digest."
+ },
+ {
+  "id": "consumer.omni-native-coverage",
+  "target": "scripts/licenses/check-native-coverage.py",
+  "find": "            missing.append(name)",
+  "replace": "            pass",
+  "test": "bash scripts/linux/tests/test-third-party-licenses.sh",
+  "why": "Every shipped native binary needs an inventory entry."
+ },
+ {
+  "id": "consumer.omni-native-coverage-linux",
+  "target": "scripts/linux/lib/packaging-common.sh",
+  "find": "  check_native_license_coverage \"$bundle\" linux || return $?",
+  "replace": "  :",
+  "test": "bash scripts/linux/tests/test-third-party-licenses.sh",
+  "why": "Linux packaging runs the coverage gate on the bundle."
+ },
+ {
+  "id": "consumer.omni-third-party-assets",
+  "target": "scripts/linux/lib/flutter-package-license.sh",
+  "find": "  while IFS= read -r rule; do args+=(--require \"$rule\"); done <<< \"$requires\"",
+  "replace": "  :",
+  "test": "bash scripts/linux/tests/test-flutter-package-license.sh",
+  "why": "Every package carries the third-party inventory assets."
+ },
+ {
+  "id": "consumer.omni-icon-raster",
+  "target": "scripts/linux/check-brand-icons.py",
+  "find": "        if score > TOLERANCE:",
+  "replace": "        if False:",
+  "test": "bash scripts/linux/tests/test-check-brand-icons.sh",
+  "why": "Every launcher raster must match the logo master."
+ },
+ {
+  "id": "consumer.omni-icon-svg",
+  "target": "scripts/linux/check-brand-icons.py",
+  "find": "        if (root / copy).read_bytes() != logo:",
+  "replace": "        if False:",
+  "test": "bash scripts/linux/tests/test-check-brand-icons.sh",
+  "why": "The app icon SVG stays a byte copy of the logo."
  }
 ]

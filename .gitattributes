@@ -21,3 +21,6 @@ CMakeLists.txt text eol=lf
 
 # exclude vendored trees from language analysis
 third_party/** linguist-vendored
+
+# Vendored license originals, pinned by digest in scripts/licenses/: never rewrite their bytes.
+scripts/licenses/texts/** -text

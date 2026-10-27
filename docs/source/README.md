@@ -19,6 +19,7 @@
 | [ESP32-S3 Companion & Camera](esp32.md) | The two firmware variants (Rust companion; ESP32-S3-EYE camera + ESP-DL), the shared USB-serial protocol (`Detection` and `CameraDetection`), the desktop-only Rust bridge, the Device page, the hardware probe, the on-device cat detection. |
 | [Testing](testing.md) | What each kind of test proves (unit, property, fuzz, integration, end-to-end, performance), what the app's Dart suite checks, the rules that keep a green run honest, how to run them, the known gaps. |
 | [Readmes](readmes.md) | Links to the key README files in this repository. |
+| [Third-party Components](third-party-components.md) | Every open-source component the packages ship, with its license and source; generated. |
 | [Project Operations](project-operations.md) | Tests, contribution process, repository hygiene, upgrade notes. |
 | [Upgrade Guide](upgrade-guide.md) | Dependency and bridge updates. |
 

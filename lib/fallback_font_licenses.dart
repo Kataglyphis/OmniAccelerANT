@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart';
+import 'package:anthology/Licenses/bundled_licenses.dart';
 import 'package:flutter/services.dart';
 
 /// The OFL notice of the Noto fonts the web build serves under `fallback-fonts/`.
@@ -11,15 +11,11 @@ const List<String> fallbackFontFamilies = <String>[
   'Noto Sans Symbols 2',
 ];
 
-/// The fallback fonts' licence entry, its text read from [bundle].
-Stream<LicenseEntry> fallbackFontLicenses(AssetBundle bundle) async* {
-  yield LicenseEntryWithLineBreaks(
+/// Adds the fallback fonts' licence to the licences page; the text is read only when a page lists the licences.
+void registerFallbackFontLicenses({AssetBundle? bundle}) {
+  registerAssetLicense(
     fallbackFontFamilies,
-    await bundle.loadString(fallbackFontLicensePath),
+    fallbackFontLicensePath,
+    bundle: bundle,
   );
-}
-
-/// Adds the fallback fonts' licence to [LicenseRegistry]; the text is read only when a page lists the licences.
-void registerFallbackFontLicenses() {
-  LicenseRegistry.addLicense(() => fallbackFontLicenses(rootBundle));
 }

@@ -68,6 +68,8 @@ flutter_lane_prepare_env "$FLUTTER_DIR" || exit 2
 gate_reset "code quality"
 run_gate "CI option parser tests" bash scripts/linux/tests/test-ci-options.sh
 run_gate "Flutter package license tests" bash scripts/linux/tests/test-flutter-package-license.sh
+run_gate "third-party license tests" bash scripts/linux/tests/test-third-party-licenses.sh
+run_gate "brand icon tests" bash scripts/linux/tests/test-check-brand-icons.sh
 run_gate "cmake-format --check" run_cmake_format_check
 # The APK ABI gate's own suite (synthetic APKs): that it refuses an extra slice or a missing plugin.
 run_gate "apk abi gate tests" bash scripts/linux/tests/test-check-apk-abi.sh
@@ -86,6 +88,7 @@ if maybe_truthy "$RUN_CODEQL"; then
   # No fallback build: a failed scan must fail the lane, not ship a plain APK.
   run_codeql_android "$FLUTTER_DIR" "$BUILD_MODE"
   verify_flutter_package_license "build/app/outputs/flutter-apk/app-${BUILD_MODE}.apk" '*flutter_assets/NOTICES.Z'
+  check_native_license_coverage "build/app/outputs/flutter-apk/app-${BUILD_MODE}.apk" android
   bash "$REPO_ROOT/scripts/linux/check-apk-abi.sh" --apk "build/app/outputs/flutter-apk/app-${BUILD_MODE}.apk"
   bash "$REPO_ROOT/scripts/linux/check-rust-toolchain.sh" --apk "build/app/outputs/flutter-apk/app-${BUILD_MODE}.apk"
 

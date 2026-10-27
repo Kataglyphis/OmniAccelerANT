@@ -1,0 +1,339 @@
+{
+ "version": 1,
+ "packages": {
+  "burn_demos@3.0.0": {
+   "files": [
+    {
+     "root": "workspace",
+     "path": "LICENSE",
+     "sha256": "586ec400195558a35f3895d08f8e089f3de6206ab8512fe58d6e4b47fb342e7b",
+     "provenance": "OxidANT workspace LICENSE (license.workspace = true)"
+    }
+   ]
+  },
+  "dart-sys@4.1.5": {
+   "files": [
+    {
+     "root": "workspace",
+     "path": ".omni-cargo-licenses/dart-sys@4.1.5/LICENSE-MIT.md",
+     "sha256": "a6b742d988bc83c6182193ca4e5abf2dbb67e929817fc94f5ed6e9f49b803f29",
+     "provenance": "https://github.com/dart-sys/dart-sys/blob/c9329430a5a8e3828cf59600babe7896326c7c44/LICENSE-MIT.md (the published crate has no license file)"
+    },
+    {
+     "root": "workspace",
+     "path": ".omni-cargo-licenses/dart-sys@4.1.5/LICENSE-APACHE-2.0.md",
+     "sha256": "9c7a58ef39c896d7cc48e18c0a38eb570fc7cecb15a656101d399e367da800a2",
+     "provenance": "https://github.com/dart-sys/dart-sys/blob/c9329430a5a8e3828cf59600babe7896326c7c44/LICENSE-APACHE-2.0.md (the published crate has no license file)"
+    }
+   ]
+  },
+  "defmt-parser@1.0.0": {
+   "files": [
+    {
+     "root": "workspace",
+     "path": ".omni-cargo-licenses/defmt-parser@1.0.0/LICENSE-MIT",
+     "sha256": "2710a622a896bba67356913d4d0492cab5465f61b2ecce6d880aeb483834fb50",
+     "provenance": "https://github.com/knurling-rs/defmt/blob/ce31388b004475172475f64e807f551f2d22ecae/LICENSE-MIT (the published crate has no license file)"
+    },
+    {
+     "root": "workspace",
+     "path": ".omni-cargo-licenses/defmt-parser@1.0.0/LICENSE-APACHE",
+     "sha256": "8173d5c29b4f956d532781d2b86e4e30f83e6b7878dce18c919451d6ba707c90",
+     "provenance": "https://github.com/knurling-rs/defmt/blob/ce31388b004475172475f64e807f551f2d22ecae/LICENSE-APACHE (the published crate has no license file)"
+    }
+   ]
+  },
+  "flutter_rust_bridge@2.13.0": {
+   "files": [
+    {
+     "root": "workspace",
+     "path": ".omni-cargo-licenses/flutter_rust_bridge@2.13.0/LICENSE",
+     "sha256": "d56622df159a9967bd6a16c726823a2cbe8546c1f18437617283c9da27000390",
+     "provenance": "https://github.com/fzyzcjy/flutter_rust_bridge/blob/8631db91a90c699439c9ce2a1fb4164ae8661da9/LICENSE (the published crate has no license file)"
+    }
+   ]
+  },
+  "flutter_rust_bridge_macros@2.13.0": {
+   "files": [
+    {
+     "root": "workspace",
+     "path": ".omni-cargo-licenses/flutter_rust_bridge_macros@2.13.0/LICENSE",
+     "sha256": "d56622df159a9967bd6a16c726823a2cbe8546c1f18437617283c9da27000390",
+     "provenance": "https://github.com/fzyzcjy/flutter_rust_bridge/blob/8631db91a90c699439c9ce2a1fb4164ae8661da9/LICENSE (the published crate has no license file)"
+    }
+   ]
+  },
+  "kataglyphis_cli@3.0.0": {
+   "files": [
+    {
+     "root": "workspace",
+     "path": "LICENSE",
+     "sha256": "586ec400195558a35f3895d08f8e089f3de6206ab8512fe58d6e4b47fb342e7b",
+     "provenance": "OxidANT workspace LICENSE (license.workspace = true)"
+    }
+   ]
+  },
+  "kataglyphis_core@3.0.0": {
+   "files": [
+    {
+     "root": "workspace",
+     "path": "LICENSE",
+     "sha256": "586ec400195558a35f3895d08f8e089f3de6206ab8512fe58d6e4b47fb342e7b",
+     "provenance": "OxidANT workspace LICENSE (license.workspace = true)"
+    }
+   ]
+  },
+  "kataglyphis_cxx_bridge@3.0.0": {
+   "files": [
+    {
+     "root": "workspace",
+     "path": "LICENSE",
+     "sha256": "586ec400195558a35f3895d08f8e089f3de6206ab8512fe58d6e4b47fb342e7b",
+     "provenance": "OxidANT workspace LICENSE (license.workspace = true)"
+    }
+   ]
+  },
+  "kataglyphis_esp32@3.0.0": {
+   "files": [
+    {
+     "root": "workspace",
+     "path": "LICENSE",
+     "sha256": "586ec400195558a35f3895d08f8e089f3de6206ab8512fe58d6e4b47fb342e7b",
+     "provenance": "OxidANT workspace LICENSE (license.workspace = true)"
+    }
+   ]
+  },
+  "kataglyphis_esp32_proto@3.0.0": {
+   "files": [
+    {
+     "root": "workspace",
+     "path": "LICENSE",
+     "sha256": "586ec400195558a35f3895d08f8e089f3de6206ab8512fe58d6e4b47fb342e7b",
+     "provenance": "OxidANT workspace LICENSE (license.workspace = true)"
+    }
+   ]
+  },
+  "kataglyphis_gui@3.0.0": {
+   "files": [
+    {
+     "root": "workspace",
+     "path": "LICENSE",
+     "sha256": "586ec400195558a35f3895d08f8e089f3de6206ab8512fe58d6e4b47fb342e7b",
+     "provenance": "OxidANT workspace LICENSE (license.workspace = true)"
+    }
+   ]
+  },
+  "kataglyphis_inference@3.0.0": {
+   "files": [
+    {
+     "root": "workspace",
+     "path": "LICENSE",
+     "sha256": "586ec400195558a35f3895d08f8e089f3de6206ab8512fe58d6e4b47fb342e7b",
+     "provenance": "OxidANT workspace LICENSE (license.workspace = true)"
+    }
+   ]
+  },
+  "kataglyphis_media@3.0.0": {
+   "files": [
+    {
+     "root": "workspace",
+     "path": "LICENSE",
+     "sha256": "586ec400195558a35f3895d08f8e089f3de6206ab8512fe58d6e4b47fb342e7b",
+     "provenance": "OxidANT workspace LICENSE (license.workspace = true)"
+    }
+   ]
+  },
+  "kataglyphis_observant@3.0.0": {
+   "files": [
+    {
+     "root": "workspace",
+     "path": "LICENSE",
+     "sha256": "586ec400195558a35f3895d08f8e089f3de6206ab8512fe58d6e4b47fb342e7b",
+     "provenance": "OxidANT workspace LICENSE (license.workspace = true)"
+    }
+   ]
+  },
+  "kataglyphis_telemetry@3.0.0": {
+   "files": [
+    {
+     "root": "workspace",
+     "path": "LICENSE",
+     "sha256": "586ec400195558a35f3895d08f8e089f3de6206ab8512fe58d6e4b47fb342e7b",
+     "provenance": "OxidANT workspace LICENSE (license.workspace = true)"
+    }
+   ]
+  },
+  "kataglyphis_webgpu_renderer@3.0.0": {
+   "files": [
+    {
+     "root": "workspace",
+     "path": "LICENSE",
+     "sha256": "586ec400195558a35f3895d08f8e089f3de6206ab8512fe58d6e4b47fb342e7b",
+     "provenance": "OxidANT workspace LICENSE (license.workspace = true)"
+    }
+   ]
+  },
+  "nom-language@0.1.0": {
+   "files": [
+    {
+     "root": "workspace",
+     "path": ".omni-cargo-licenses/nom-language@0.1.0/LICENSE",
+     "sha256": "4dbda04344456f09a7a588140455413a9ac59b6b26a1ef7cdf9c800c012d87f0",
+     "provenance": "https://github.com/rust-bakery/nom/blob/2cec1b3e4c9ccac62c902d60c00de6d1549ccbe1/LICENSE (the published crate has no license file)"
+    }
+   ]
+  },
+  "profiling-procmacros@1.0.18": {
+   "files": [
+    {
+     "root": "workspace",
+     "path": ".omni-cargo-licenses/profiling-procmacros@1.0.18/LICENSE-MIT",
+     "sha256": "c8167fdeeed46d3f244d3f85c5bf998ce889343691c32be2c61a8bc4b5c08333",
+     "provenance": "https://github.com/aclysma/profiling/blob/da44bd1c5497c665c0f00e5d70594fc14d390b4b/LICENSE-MIT (the published crate has no license file)"
+    },
+    {
+     "root": "workspace",
+     "path": ".omni-cargo-licenses/profiling-procmacros@1.0.18/LICENSE-APACHE",
+     "sha256": "10d30a673cd5e9349bdc02aeb48f14b3386d27d0da32df8f0a555d4aa16aa551",
+     "provenance": "https://github.com/aclysma/profiling/blob/da44bd1c5497c665c0f00e5d70594fc14d390b4b/LICENSE-APACHE (the published crate has no license file)"
+    }
+   ]
+  },
+  "profiling@1.0.18": {
+   "files": [
+    {
+     "root": "workspace",
+     "path": ".omni-cargo-licenses/profiling@1.0.18/LICENSE-MIT",
+     "sha256": "c8167fdeeed46d3f244d3f85c5bf998ce889343691c32be2c61a8bc4b5c08333",
+     "provenance": "https://github.com/aclysma/profiling/blob/da44bd1c5497c665c0f00e5d70594fc14d390b4b/LICENSE-MIT (the published crate has no license file)"
+    },
+    {
+     "root": "workspace",
+     "path": ".omni-cargo-licenses/profiling@1.0.18/LICENSE-APACHE",
+     "sha256": "10d30a673cd5e9349bdc02aeb48f14b3386d27d0da32df8f0a555d4aa16aa551",
+     "provenance": "https://github.com/aclysma/profiling/blob/da44bd1c5497c665c0f00e5d70594fc14d390b4b/LICENSE-APACHE (the published crate has no license file)"
+    }
+   ]
+  },
+  "pulp-wasm-simd-flag@0.1.1": {
+   "files": [
+    {
+     "root": "workspace",
+     "path": ".omni-cargo-licenses/pulp-wasm-simd-flag@0.1.1/LICENSE",
+     "sha256": "d64f878c89bd5f1e5ada7e4aad57690b122727cf5229b7b87ea1980c188da1d9",
+     "provenance": "https://github.com/sarah-quinones/pulp/blob/5eb07fd7b68edf0a5e19f71737d315f72a510295/LICENSE (the published crate has no license file)"
+    }
+   ]
+  },
+  "ring@0.17.14": {
+   "reviewed_expression": "Apache-2.0 AND ISC",
+   "files": [
+    {
+     "root": "package",
+     "path": "LICENSE",
+     "sha256": "b3d734001a94efff3579978d953391aa7115f877657d25eb54037a43875d078a",
+     "provenance": "crates.io ring@0.17.14, reviewed: every listed text ships"
+    },
+    {
+     "root": "package",
+     "path": "LICENSE-BoringSSL",
+     "sha256": "005fc765ddc5115da796cca915baa9557abae13ff35e0a47c47affc56f6c414d",
+     "provenance": "crates.io ring@0.17.14, reviewed: every listed text ships"
+    },
+    {
+     "root": "package",
+     "path": "LICENSE-other-bits",
+     "sha256": "f025ccfb7dfb6bdfedc75ca0f67acc69e6fb4998143d834f7c2f38a29989680f",
+     "provenance": "crates.io ring@0.17.14, reviewed: every listed text ships"
+    }
+   ]
+  },
+  "simd_helpers@0.1.0": {
+   "files": [
+    {
+     "root": "workspace",
+     "path": ".omni-cargo-licenses/simd_helpers@0.1.0/LICENSE",
+     "sha256": "d69f24ad84ec2ade64c0b68bdb31b41170e997b158370342056918329cc9af1e",
+     "provenance": "https://github.com/lu-zero/simd_helpers/blob/82040194cd05affb060bf94d6f19f82a771d07fb/LICENSE (the published crate has no license file)"
+    }
+   ]
+  },
+  "tract-extra@0.23.8": {
+   "files": [
+    {
+     "root": "workspace",
+     "path": ".omni-cargo-licenses/tract-extra@0.23.8/LICENSE-MIT",
+     "sha256": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3",
+     "provenance": "https://github.com/sonos/tract/blob/9e0cfaa9b3a9251f41f74101801dc2c937b1660a/LICENSE-MIT (the published crate has no license file)"
+    },
+    {
+     "root": "workspace",
+     "path": ".omni-cargo-licenses/tract-extra@0.23.8/LICENSE-APACHE",
+     "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2",
+     "provenance": "https://github.com/sonos/tract/blob/9e0cfaa9b3a9251f41f74101801dc2c937b1660a/LICENSE-APACHE (the published crate has no license file)"
+    }
+   ]
+  },
+  "tract-transformers@0.23.8": {
+   "files": [
+    {
+     "root": "workspace",
+     "path": ".omni-cargo-licenses/tract-transformers@0.23.8/LICENSE-MIT",
+     "sha256": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3",
+     "provenance": "https://github.com/sonos/tract/blob/9e0cfaa9b3a9251f41f74101801dc2c937b1660a/LICENSE-MIT (the published crate has no license file)"
+    },
+    {
+     "root": "workspace",
+     "path": ".omni-cargo-licenses/tract-transformers@0.23.8/LICENSE-APACHE",
+     "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2",
+     "provenance": "https://github.com/sonos/tract/blob/9e0cfaa9b3a9251f41f74101801dc2c937b1660a/LICENSE-APACHE (the published crate has no license file)"
+    }
+   ]
+  },
+  "unicode-ident@1.0.27": {
+   "reviewed_expression": "(MIT OR Apache-2.0) AND Unicode-3.0",
+   "files": [
+    {
+     "root": "package",
+     "path": "LICENSE-APACHE",
+     "sha256": "62c7a1e35f56406896d7aa7ca52d0cc0d272ac022b5d2796e7d6905db8a3636a",
+     "provenance": "crates.io unicode-ident@1.0.27, reviewed: every listed text ships"
+    },
+    {
+     "root": "package",
+     "path": "LICENSE-MIT",
+     "sha256": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3",
+     "provenance": "crates.io unicode-ident@1.0.27, reviewed: every listed text ships"
+    },
+    {
+     "root": "package",
+     "path": "LICENSE-UNICODE",
+     "sha256": "f7db81051789b729fea528a63ec4c938fdcb93d9d61d97dc8cc2e9df6d47f2a1",
+     "provenance": "crates.io unicode-ident@1.0.27, reviewed: every listed text ships"
+    }
+   ]
+  },
+  "zune-inflate@0.2.54": {
+   "files": [
+    {
+     "root": "workspace",
+     "path": ".omni-cargo-licenses/zune-inflate@0.2.54/LICENSE-MIT",
+     "sha256": "d30047bca3b516639339a3c279bb84c3483124fb5a9dafe3c75056a85090e745",
+     "provenance": "https://github.com/etemesi254/zune-image/blob/2f9086b07cdf5a36621ce18f79d310f99b751de9/crates/zune-inflate/LICENSE-MIT (the published crate has no license file)"
+    },
+    {
+     "root": "workspace",
+     "path": ".omni-cargo-licenses/zune-inflate@0.2.54/LICENSE-APACHE",
+     "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4",
+     "provenance": "https://github.com/etemesi254/zune-image/blob/2f9086b07cdf5a36621ce18f79d310f99b751de9/crates/zune-inflate/LICENSE-APACHE (the published crate has no license file)"
+    },
+    {
+     "root": "workspace",
+     "path": ".omni-cargo-licenses/zune-inflate@0.2.54/LICENSE-ZLIB",
+     "sha256": "d201d14804d3bcd3b944147173175e4abfbd838b7c8069b6bd3452496bf13e6c",
+     "provenance": "https://github.com/etemesi254/zune-image/blob/2f9086b07cdf5a36621ce18f79d310f99b751de9/crates/zune-inflate/LICENSE-ZLIB (the published crate has no license file)"
+    }
+   ]
+  }
+ }
+}

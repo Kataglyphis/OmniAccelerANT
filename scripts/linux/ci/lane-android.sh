@@ -70,6 +70,7 @@ flutter pub get
 # android-arm64 is Flutter's name for kataglyphisAbi (android/build.gradle.kts): no libapp, Rust or sqlite3 for a dropped ABI.
 flutter build apk --"$BUILD_MODE" --target-platform android-arm64
 verify_flutter_package_license "build/app/outputs/flutter-apk/app-${BUILD_MODE}.apk" '*flutter_assets/NOTICES.Z'
+check_native_license_coverage "build/app/outputs/flutter-apk/app-${BUILD_MODE}.apk" android
 bash "$REPO_ROOT/scripts/linux/check-apk-abi.sh" --apk "build/app/outputs/flutter-apk/app-${BUILD_MODE}.apk"
 bash "$REPO_ROOT/scripts/linux/check-rust-toolchain.sh" --apk "build/app/outputs/flutter-apk/app-${BUILD_MODE}.apk"
 

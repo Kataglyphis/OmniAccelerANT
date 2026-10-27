@@ -32,6 +32,47 @@ original license and notices are checked in each finished package. Set
 the target's strip tool. A missing, changed or ambiguous match fails; this does
 not establish coverage of other native dependencies.
 
+### Third-party license inventory
+
+[Third-party components](third-party-components.md) lists every component the packages ship:
+native libraries and data (`scripts/licenses/native-components.json`), Rust crates of OxidANT
+and AccelerANTgine for every shipped target, and Dart packages from `pubspec.lock`. Native and
+crate license texts ship in every APK, TAR, DEB, AppImage, Flatpak, MSI and MSIX as
+`assets/licenses/third-party-licenses.json` plus its text files, and the app's licenses page shows
+them; Dart package texts stay in Flutter's `NOTICES`. Each package check requires those assets
+byte for byte.
+
+- **Regenerate after a lockfile, submodule or native-table change**:
+  `python3 scripts/licenses/generate-third-party-licenses.py --write`. It copies each Cargo
+  workspace and runs ANTfrastructure's `stage-cargo-licenses.py` per root crate and target, so
+  it needs `cargo` and the crate sources. `--check` is the offline drift gate the Linux and
+  Android lanes run through `scripts/linux/tests/test-third-party-licenses.sh`.
+- **Crates without a license file** take the original text from their upstream repository,
+  vendored under `scripts/licenses/texts/cargo/` and pinned in `scripts/licenses/cargo-policy.json`
+  with its commit URL and SHA-256. OxidANT's workspace crates point at its `LICENSE`.
+  AccelerANTgine's `rusty_code` declares no license; the generator's copy states its repository's
+  MIT until AccelerANTgine adds `license = "MIT"`.
+- **Native texts** are upstream originals under `scripts/licenses/texts/native/`, pinned by
+  SHA-256 with their source URL. Each component names the file globs it covers per platform.
+- **Coverage gate**: `scripts/licenses/check-native-coverage.py` fails Linux packaging, the APK
+  build and the Windows MSI/MSIX build when a shipped `.so`, ELF, `.dll`, `.exe` or `.lib` has no
+  component. A new library therefore needs an entry and its text before it ships.
+
+What it does not establish: code linked statically or header-only is listed by hand (the
+Android plugin's GStreamer SDK, AccelerANTgine's C++ dependencies); corresponding-source offers
+for LGPL components are not produced; DirectML and the Visual C++ runtime are proprietary
+redistributables, listed with their terms' URL; ObservANT's native payload is not yet gated.
+
+### Launcher icons from one logo
+
+`images/logo.svg` is the source. `assets/icons/kataglyphis_app_icon.svg` must stay a byte copy,
+and `flutter_launcher_icons` renders every platform set from its 1024 px PNG.
+`scripts/linux/check-brand-icons.py` compares the web, Android and `images/logo.png` rasters and
+every frame of `windows/runner/resources/app_icon.ico` with that PNG; a foreign or mirrored icon
+fails. Linux packages take `web/icons/Icon-512.png`, the MSIX logos come from the same file, the
+MSI's Start menu shortcut and Apps & Features entry use the exe's icon, and ObservANT's Linux
+packages install `images/logo.svg`. The SVG-to-PNG render itself is not compared.
+
 ### Static checks
 
 ```bash

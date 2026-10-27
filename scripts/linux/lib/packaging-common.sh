@@ -20,10 +20,11 @@ source "${_packaging_common_dir}/flutter-package-license.sh"
 
 package_with_project_license() {
   local format="${1:?format required}" arch="${2:?arch required}" app="${3:?app required}" version package mapped output prefix bundle
+  bundle="$(app_packaging_detect_bundle_dir "$arch")"
+  check_native_license_coverage "$bundle" linux || return $?
   "app_packaging_package_linux_bundle_${format}" "$arch" "$app" || return $?
   version="${APP_PACKAGING_VERSION:-$(app_packaging_get_pubspec_version)}"
   package="$(app_packaging_sanitize_package_name "$app")"
-  bundle="$(app_packaging_detect_bundle_dir "$arch")"
   case "$format" in
     tar) output="out/${app}-linux-${arch}.tar.gz"; prefix="${app}-bundle" ;;
     deb) mapped="$(app_packaging_map_arch_to_deb "$arch")"; output="${APP_PACKAGING_OUT_DIR:-out}/${package}_${version}_${mapped}.deb"; prefix="opt/${package}" ;;

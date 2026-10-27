@@ -1,0 +1,1061 @@
+{
+ "schema": 1,
+ "scope": "Native code and data in OmniAccelerANT and ObservANT packages besides Cargo crates and Dart packages.",
+ "components": [
+  {
+   "id": "omni-accelerant",
+   "name": "OmniAccelerANT",
+   "license": "MIT",
+   "source": "https://github.com/Kataglyphis/OmniAccelerANT",
+   "files": {
+    "linux": [
+     "omni_accelerant",
+     "omni_accelerant.bin",
+     "libkataglyphis_native_inference_plugin.so"
+    ],
+    "windows": [
+     "omni_accelerant.exe",
+     "kataglyphis_native_inference_plugin.dll"
+    ],
+    "android": [
+     "libkataglyphis_native_inference.so"
+    ]
+   },
+   "texts": [
+    {
+     "path": "LICENSE",
+     "sha256": "260fa7ba290c2a4ba5a694005917bb976a2e2dbf84ec3ecca6e3fe145b9785be",
+     "provenance": "this repository"
+    }
+   ],
+   "note": "On Android the native plugin statically links the GStreamer Android SDK: GStreamer, GLib, ORC, libffi, PCRE2, libiconv, libpng, libjpeg-turbo, zlib and Graphene, listed below."
+  },
+  {
+   "id": "oxidant",
+   "name": "OxidANT",
+   "license": "MIT",
+   "source": "https://github.com/Kataglyphis/OxidANT",
+   "files": {
+    "linux": [
+     "liboxidant.so"
+    ],
+    "windows": [
+     "oxidant.dll"
+    ],
+    "android": [
+     "liboxidant.so"
+    ]
+   },
+   "texts": [
+    {
+     "path": "third_party/OxidANT/LICENSE",
+     "sha256": "586ec400195558a35f3895d08f8e089f3de6206ab8512fe58d6e4b47fb342e7b",
+     "provenance": "submodule third_party/OxidANT"
+    }
+   ],
+   "note": "The Rust core; its crates are listed under the cargo ecosystem."
+  },
+  {
+   "id": "accelerantgine",
+   "name": "AccelerANTgine",
+   "license": "MIT",
+   "source": "https://github.com/Kataglyphis/AccelerANTgine",
+   "files": {
+    "linux": [
+     "libAccelerANTgine.so"
+    ],
+    "windows": [
+     "AccelerANTgine.dll",
+     "AccelerANTgine.lib"
+    ]
+   },
+   "texts": [
+    {
+     "path": "third_party/AccelerANTgine/LICENSE",
+     "sha256": "885560f6df8845075aa21934dd872c7672529ecd8be4258e0d641efda9fd5940",
+     "provenance": "submodule third_party/AccelerANTgine"
+    }
+   ],
+   "note": "Compiles in spdlog, {fmt}, nlohmann/json, toml++ and Microsoft GSL; its Rust part is listed under the cargo ecosystem."
+  },
+  {
+   "id": "flutter",
+   "name": "Flutter engine and embedders",
+   "license": "BSD-3-Clause",
+   "source": "https://github.com/flutter/flutter",
+   "files": {
+    "linux": [
+     "libflutter_linux_gtk.so",
+     "libapp.so"
+    ],
+    "windows": [
+     "flutter_windows.dll"
+    ],
+    "android": [
+     "libflutter.so",
+     "libapp.so"
+    ]
+   },
+   "texts": [],
+   "note": "Flutter's NOTICES file in every package holds the engine's and every Dart package's license texts."
+  },
+  {
+   "id": "flutter-plugins",
+   "name": "Flutter plugins from pub.dev",
+   "license": "see the dart ecosystem",
+   "source": "https://pub.dev",
+   "files": {
+    "linux": [
+     "liburl_launcher_linux_plugin.so",
+     "libfile_saver_plugin.so"
+    ],
+    "windows": [
+     "url_launcher_windows_plugin.dll",
+     "permission_handler_windows_plugin.dll"
+    ]
+   },
+   "texts": [],
+   "note": "Native parts of Dart packages; their texts are in Flutter's NOTICES."
+  },
+  {
+   "id": "onnxruntime",
+   "name": "ONNX Runtime",
+   "license": "MIT",
+   "source": "https://github.com/microsoft/onnxruntime",
+   "files": {
+    "linux": [
+     "libonnxruntime.so",
+     "libonnxruntime.so.*"
+    ],
+    "windows": [
+     "onnxruntime.dll",
+     "onnxruntime_providers_shared.dll"
+    ]
+   },
+   "texts": [
+    {
+     "path": "scripts/licenses/texts/native/onnxruntime/LICENSE",
+     "sha256": "2f07c72751aed99790b8a4869cf2311df85a860b22ded05fa22803587a48922c",
+     "provenance": "https://raw.githubusercontent.com/microsoft/onnxruntime/main/LICENSE (fetched 2026-10-27)"
+    }
+   ],
+   "note": "Desktop packages also carry the matching wheel's original LICENSE and ThirdPartyNotices.txt under licenses/onnxruntime."
+  },
+  {
+   "id": "directml",
+   "name": "Microsoft DirectML",
+   "license": "LicenseRef-Microsoft-DirectML",
+   "source": "https://www.nuget.org/packages/Microsoft.AI.DirectML",
+   "files": {
+    "windows": [
+     "DirectML.dll"
+    ]
+   },
+   "texts": [],
+   "note": "Not open source: a Microsoft redistributable shipped for ONNX Runtime's DirectML provider under the NuGet package's license terms.",
+   "license_url": "https://www.nuget.org/packages/Microsoft.AI.DirectML"
+  },
+  {
+   "id": "msvc-runtime",
+   "name": "Microsoft Visual C++ runtime",
+   "license": "LicenseRef-Microsoft-VC-Redist",
+   "source": "https://learn.microsoft.com/cpp/windows/redistributing-visual-cpp-files",
+   "files": {
+    "windows": [
+     "vcruntime140.dll",
+     "vcruntime140_1.dll",
+     "msvcp140.dll",
+     "msvcp140_*.dll",
+     "concrt140.dll"
+    ]
+   },
+   "texts": [],
+   "note": "Not open source: redistributable files under the Visual Studio license terms.",
+   "license_url": "https://visualstudio.microsoft.com/license-terms/"
+  },
+  {
+   "id": "sqlite",
+   "name": "SQLite",
+   "license": "blessing",
+   "source": "https://sqlite.org",
+   "files": {
+    "linux": [
+     "libsqlite3.so"
+    ],
+    "windows": [
+     "sqlite3.dll",
+     "sqlite3-3.dll"
+    ],
+    "android": [
+     "libsqlite3.so"
+    ]
+   },
+   "texts": [
+    {
+     "path": "scripts/licenses/texts/native/sqlite/LICENSE.md",
+     "sha256": "c9053892d578840a196d588ff68baa9bc0f5240eb215fb9cf91cd6b0b3209305",
+     "provenance": "https://raw.githubusercontent.com/sqlite/sqlite/master/LICENSE.md (fetched 2026-10-27)"
+    }
+   ]
+  },
+  {
+   "id": "glibc",
+   "name": "GNU C Library",
+   "license": "LGPL-2.1-or-later",
+   "source": "https://sourceware.org/glibc",
+   "files": {
+    "linux": [
+     "ld-linux-*.so.*",
+     "libc.so.6",
+     "libm.so.6",
+     "libmvec.so.1",
+     "libpthread.so.0",
+     "libdl.so.2",
+     "librt.so.1",
+     "libresolv.so.2",
+     "libutil.so.1",
+     "libanl.so.1",
+     "libnss_*.so.2"
+    ]
+   },
+   "texts": [
+    {
+     "path": "scripts/licenses/texts/native/glibc/COPYING.LESSERv2",
+     "sha256": "20e50fe7aae3e56378ebf0417d9de904f55a0e61e4df315333e632a4d3555d95",
+     "provenance": "https://raw.githubusercontent.com/bminor/glibc/master/COPYING.LESSERv2 (fetched 2026-10-27)"
+    }
+   ],
+   "note": "Unmodified copies of the build image's Ubuntu glibc; its corresponding source is Ubuntu's glibc source package."
+  },
+  {
+   "id": "gcc-runtime",
+   "name": "GCC runtime libraries (libstdc++, libgcc_s)",
+   "license": "GPL-3.0-or-later WITH GCC-exception-3.1",
+   "source": "https://gcc.gnu.org",
+   "files": {
+    "linux": [
+     "libstdc++.so.6",
+     "libgcc_s.so.1"
+    ]
+   },
+   "texts": [
+    {
+     "path": "scripts/licenses/texts/native/gcc-runtime/COPYING3",
+     "sha256": "8ceb4b9ee5adedde47b31e975c1d90c73ad27b6b165a1dcd80c7c545eb65b903",
+     "provenance": "https://raw.githubusercontent.com/gcc-mirror/gcc/master/COPYING3 (fetched 2026-10-27)"
+    },
+    {
+     "path": "scripts/licenses/texts/native/gcc-runtime/COPYING.RUNTIME",
+     "sha256": "9d6b43ce4d8de0c878bf16b54d8e7a10d9bd42b75178153e3af6a815bdc90f74",
+     "provenance": "https://raw.githubusercontent.com/gcc-mirror/gcc/master/COPYING.RUNTIME (fetched 2026-10-27)"
+    }
+   ]
+  },
+  {
+   "id": "llvm-libcxx",
+   "name": "LLVM libc++",
+   "license": "Apache-2.0 WITH LLVM-exception",
+   "source": "https://github.com/llvm/llvm-project",
+   "files": {
+    "android": [
+     "libc++_shared.so"
+    ]
+   },
+   "texts": [
+    {
+     "path": "scripts/licenses/texts/native/llvm-libcxx/LICENSE.TXT",
+     "sha256": "539dd7aed86e8a4f12cbdd0e6c50c189c7d74847e4fecc64ce2c6ee3a01da38b",
+     "provenance": "https://raw.githubusercontent.com/llvm/llvm-project/main/libcxx/LICENSE.TXT (fetched 2026-10-27)"
+    }
+   ]
+  },
+  {
+   "id": "gstreamer",
+   "name": "GStreamer (core, base, good, bad, plugins, editing services)",
+   "license": "LGPL-2.1-or-later",
+   "source": "https://gitlab.freedesktop.org/gstreamer/gstreamer",
+   "files": {
+    "linux": [
+     "libgst*.so",
+     "libgst*.so.*",
+     "libges-*.so*"
+    ],
+    "windows": [
+     "gst*.dll",
+     "ges-1.0-0.dll"
+    ]
+   },
+   "texts": [
+    {
+     "path": "scripts/licenses/texts/native/gstreamer/COPYING",
+     "sha256": "ad2eec519ebd4b5df86ea84dff24ae3bfa2edea846a703b58902dd221ae375db",
+     "provenance": "https://raw.githubusercontent.com/GStreamer/gstreamer/1.29.2/subprojects/gstreamer/COPYING (fetched 2026-10-27)"
+    }
+   ],
+   "note": "Built from the GStreamer 1.29.2 monorepo by the ANTfrastructure image; the Android plugin links the GStreamer Android SDK statically."
+  },
+  {
+   "id": "glib",
+   "name": "GLib (glib, gobject, gio, gmodule, gthread, girepository)",
+   "license": "LGPL-2.1-or-later",
+   "source": "https://gitlab.gnome.org/GNOME/glib",
+   "files": {
+    "linux": [
+     "libglib-2.0.so*",
+     "libgobject-2.0.so*",
+     "libgio-2.0.so*",
+     "libgmodule-2.0.so*",
+     "libgthread-2.0.so*",
+     "libgirepository-*.so*"
+    ],
+    "windows": [
+     "glib-2.0-0.dll",
+     "gobject-2.0-0.dll",
+     "gio-2.0-0.dll",
+     "gmodule-2.0-0.dll",
+     "gthread-2.0-0.dll",
+     "girepository-2.0-0.dll"
+    ]
+   },
+   "texts": [
+    {
+     "path": "scripts/licenses/texts/native/glib/LGPL-2.1-or-later.txt",
+     "sha256": "fa6f36630bb1e0c571d34b2bbdf188d08495c9dbf58f28cac112f303fc1f58fb",
+     "provenance": "https://gitlab.gnome.org/GNOME/glib/-/raw/main/LICENSES/LGPL-2.1-or-later.txt (fetched 2026-10-27)"
+    }
+   ]
+  },
+  {
+   "id": "libffi",
+   "name": "libffi",
+   "license": "MIT",
+   "source": "https://github.com/libffi/libffi",
+   "files": {
+    "linux": [
+     "libffi.so*"
+    ],
+    "windows": [
+     "ffi-7.dll"
+    ]
+   },
+   "texts": [
+    {
+     "path": "scripts/licenses/texts/native/libffi/LICENSE",
+     "sha256": "17b64dc60f3b6897a60f971e288b973f655c2edcdf08b25f3c3dd5549857881c",
+     "provenance": "https://raw.githubusercontent.com/libffi/libffi/master/LICENSE (fetched 2026-10-27)"
+    }
+   ]
+  },
+  {
+   "id": "proxy-libintl",
+   "name": "proxy-libintl",
+   "license": "LGPL-2.0-or-later",
+   "source": "https://github.com/frida/proxy-libintl",
+   "files": {
+    "windows": [
+     "intl-8.dll"
+    ]
+   },
+   "texts": [
+    {
+     "path": "scripts/licenses/texts/native/proxy-libintl/COPYING",
+     "sha256": "d245807f90032872d1438d741ed21e2490e1175dc8aa3afa5ddb6c8e529b58e5",
+     "provenance": "https://raw.githubusercontent.com/frida/proxy-libintl/master/COPYING (fetched 2026-10-27)"
+    }
+   ]
+  },
+  {
+   "id": "orc",
+   "name": "ORC",
+   "license": "BSD-2-Clause AND BSD-3-Clause",
+   "source": "https://gitlab.freedesktop.org/gstreamer/orc",
+   "files": {
+    "linux": [
+     "liborc-0.4.so*",
+     "liborc-test-0.4.so*"
+    ],
+    "windows": [
+     "orc-0.4-0.dll",
+     "orc-test-0.4-0.dll"
+    ]
+   },
+   "texts": [
+    {
+     "path": "scripts/licenses/texts/native/orc/COPYING",
+     "sha256": "4f5dabb1b44bb6fc5cd53820b1f103147ad61b395a57903991325bd1b85d97bf",
+     "provenance": "https://raw.githubusercontent.com/GStreamer/orc/main/COPYING (fetched 2026-10-27)"
+    }
+   ]
+  },
+  {
+   "id": "libjpeg-turbo",
+   "name": "libjpeg-turbo",
+   "license": "IJG AND BSD-3-Clause AND Zlib",
+   "source": "https://github.com/libjpeg-turbo/libjpeg-turbo",
+   "files": {
+    "linux": [
+     "libjpeg.so*",
+     "libturbojpeg.so*"
+    ],
+    "windows": [
+     "jpeg-*.dll",
+     "turbojpeg-*.dll"
+    ]
+   },
+   "texts": [
+    {
+     "path": "scripts/licenses/texts/native/libjpeg-turbo/LICENSE.md",
+     "sha256": "ba6bceebcba0fdd35488477c2cca8c4632ce82c74dbfbc87d886ce6fc4433579",
+     "provenance": "https://raw.githubusercontent.com/libjpeg-turbo/libjpeg-turbo/main/LICENSE.md (fetched 2026-10-27)"
+    },
+    {
+     "path": "scripts/licenses/texts/native/libjpeg-turbo/README.ijg",
+     "sha256": "75815e3bf6484201a3c3d17a1bbf10f2e8e3237f84df10a2357ea896db2a81d6",
+     "provenance": "https://raw.githubusercontent.com/libjpeg-turbo/libjpeg-turbo/main/README.ijg (fetched 2026-10-27)"
+    }
+   ]
+  },
+  {
+   "id": "libpng",
+   "name": "libpng",
+   "license": "libpng-2.0",
+   "source": "https://github.com/pnggroup/libpng",
+   "files": {
+    "linux": [
+     "libpng16.so*"
+    ],
+    "windows": [
+     "png16-16.dll"
+    ]
+   },
+   "texts": [
+    {
+     "path": "scripts/licenses/texts/native/libpng/LICENSE",
+     "sha256": "bdb0a645ea18c60507d0368379b1ac5474b92255fcc2d115e07486a7672ba526",
+     "provenance": "https://raw.githubusercontent.com/pnggroup/libpng/libpng16/LICENSE (fetched 2026-10-27)"
+    }
+   ]
+  },
+  {
+   "id": "zlib",
+   "name": "zlib",
+   "license": "Zlib",
+   "source": "https://github.com/madler/zlib",
+   "files": {
+    "linux": [
+     "libz.so*"
+    ],
+    "windows": [
+     "z-1.dll"
+    ]
+   },
+   "texts": [
+    {
+     "path": "scripts/licenses/texts/native/zlib/LICENSE",
+     "sha256": "e32ff4e00d9d94930537635291da39e7e612703334bf6fde8c7f1686fe8a45a2",
+     "provenance": "https://raw.githubusercontent.com/madler/zlib/master/LICENSE (fetched 2026-10-27)"
+    }
+   ]
+  },
+  {
+   "id": "flac",
+   "name": "FLAC",
+   "license": "BSD-3-Clause",
+   "source": "https://github.com/xiph/flac",
+   "files": {
+    "windows": [
+     "FLAC-*.dll"
+    ]
+   },
+   "texts": [
+    {
+     "path": "scripts/licenses/texts/native/flac/COPYING.Xiph",
+     "sha256": "7866ee98760fc1f0156b4fe6bf530257e02be487ab3fd94e2b63799dd32d6b2c",
+     "provenance": "https://raw.githubusercontent.com/xiph/flac/master/COPYING.Xiph (fetched 2026-10-27)"
+    }
+   ]
+  },
+  {
+   "id": "libogg",
+   "name": "libogg",
+   "license": "BSD-3-Clause",
+   "source": "https://github.com/xiph/ogg",
+   "files": {
+    "windows": [
+     "ogg.dll"
+    ]
+   },
+   "texts": [
+    {
+     "path": "scripts/licenses/texts/native/libogg/COPYING",
+     "sha256": "d2ab5758336489da61c12cc5bb757da5339c4ae9001f9bb0562b4370249af814",
+     "provenance": "https://raw.githubusercontent.com/xiph/ogg/master/COPYING (fetched 2026-10-27)"
+    }
+   ]
+  },
+  {
+   "id": "libvorbis",
+   "name": "libvorbis",
+   "license": "BSD-3-Clause",
+   "source": "https://github.com/xiph/vorbis",
+   "files": {
+    "windows": [
+     "vorbis-0.dll",
+     "vorbisenc-2.dll",
+     "vorbisfile-3.dll"
+    ]
+   },
+   "texts": [
+    {
+     "path": "scripts/licenses/texts/native/libvorbis/COPYING",
+     "sha256": "ec1815db59fcd302846df949d7424876cb2e2dc5ed1606c5fb0b36787b1cf43a",
+     "provenance": "https://raw.githubusercontent.com/xiph/vorbis/master/COPYING (fetched 2026-10-27)"
+    }
+   ]
+  },
+  {
+   "id": "libtheora",
+   "name": "libtheora",
+   "license": "BSD-3-Clause",
+   "source": "https://github.com/xiph/theora",
+   "files": {
+    "windows": [
+     "theora-0.dll",
+     "theoradec-1.dll",
+     "theoraenc-1.dll"
+    ]
+   },
+   "texts": [
+    {
+     "path": "scripts/licenses/texts/native/libtheora/COPYING",
+     "sha256": "8417fad7da775735564e209484a2e011e0fa201e94f01fdbee6e4977e478e6fc",
+     "provenance": "https://raw.githubusercontent.com/xiph/theora/master/COPYING (fetched 2026-10-27)"
+    }
+   ]
+  },
+  {
+   "id": "opus",
+   "name": "Opus",
+   "license": "BSD-3-Clause",
+   "source": "https://github.com/xiph/opus",
+   "files": {
+    "windows": [
+     "opus-0.dll"
+    ]
+   },
+   "texts": [
+    {
+     "path": "scripts/licenses/texts/native/opus/COPYING",
+     "sha256": "01e1167d54a096d123cf6dfbbeb19587278845c6481d2d66d545669846079551",
+     "provenance": "https://raw.githubusercontent.com/xiph/opus/main/COPYING (fetched 2026-10-27)"
+    }
+   ]
+  },
+  {
+   "id": "fdk-aac",
+   "name": "Fraunhofer FDK AAC",
+   "license": "FDK-AAC",
+   "source": "https://github.com/mstorsjo/fdk-aac",
+   "files": {
+    "windows": [
+     "fdk-aac-2.dll"
+    ]
+   },
+   "texts": [
+    {
+     "path": "scripts/licenses/texts/native/fdk-aac/NOTICE",
+     "sha256": "95ec80da40b4af12ad4c4f3158c9cfb80f2479f3246e4260cb600827cc8c7836",
+     "provenance": "https://raw.githubusercontent.com/mstorsjo/fdk-aac/master/NOTICE (fetched 2026-10-27)"
+    }
+   ]
+  },
+  {
+   "id": "lame",
+   "name": "LAME",
+   "license": "LGPL-2.0-or-later",
+   "source": "https://lame.sourceforge.io",
+   "files": {
+    "windows": [
+     "mp3lame-0.dll"
+    ]
+   },
+   "texts": [
+    {
+     "path": "scripts/licenses/texts/native/lame/copyright",
+     "sha256": "0f504a600439eedca4eefe51d8ac9549ce20a851ce5739143db0170ccca25ede",
+     "provenance": "https://metadata.ftp-master.debian.org/changelogs//main/l/lame/unstable_copyright (fetched 2026-10-27)"
+    }
+   ]
+  },
+  {
+   "id": "openh264",
+   "name": "OpenH264",
+   "license": "BSD-2-Clause",
+   "source": "https://github.com/cisco/openh264",
+   "files": {
+    "windows": [
+     "openh264-7.dll"
+    ]
+   },
+   "texts": [
+    {
+     "path": "scripts/licenses/texts/native/openh264/LICENSE",
+     "sha256": "dd5c1c9668512530fa5a96e4c29ac4033d70a7eeb0eed7a42fddb6dd794ebdbb",
+     "provenance": "https://raw.githubusercontent.com/cisco/openh264/master/LICENSE (fetched 2026-10-27)"
+    }
+   ]
+  },
+  {
+   "id": "openjpeg",
+   "name": "OpenJPEG",
+   "license": "BSD-2-Clause",
+   "source": "https://github.com/uclouvain/openjpeg",
+   "files": {
+    "windows": [
+     "openjp2-7.dll"
+    ]
+   },
+   "texts": [
+    {
+     "path": "scripts/licenses/texts/native/openjpeg/LICENSE",
+     "sha256": "a6af136f3e15038a666b61f376612a07d9a4e48cb7c01adbf3e33b3f14ab49b6",
+     "provenance": "https://raw.githubusercontent.com/uclouvain/openjpeg/master/LICENSE (fetched 2026-10-27)"
+    }
+   ]
+  },
+  {
+   "id": "liblc3",
+   "name": "liblc3",
+   "license": "Apache-2.0",
+   "source": "https://github.com/google/liblc3",
+   "files": {
+    "windows": [
+     "lc3-1.dll"
+    ]
+   },
+   "texts": [
+    {
+     "path": "scripts/licenses/texts/native/liblc3/LICENSE",
+     "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+     "provenance": "https://raw.githubusercontent.com/google/liblc3/main/LICENSE (fetched 2026-10-27)"
+    }
+   ]
+  },
+  {
+   "id": "openssl",
+   "name": "OpenSSL",
+   "license": "Apache-2.0",
+   "source": "https://github.com/openssl/openssl",
+   "files": {
+    "windows": [
+     "libcrypto-*.dll",
+     "libssl-*.dll"
+    ]
+   },
+   "texts": [
+    {
+     "path": "scripts/licenses/texts/native/openssl/LICENSE.txt",
+     "sha256": "7d5450cb2d142651b8afa315b5f238efc805dad827d91ba367d8516bc9d49e7a",
+     "provenance": "https://raw.githubusercontent.com/openssl/openssl/master/LICENSE.txt (fetched 2026-10-27)"
+    }
+   ]
+  },
+  {
+   "id": "libsrtp",
+   "name": "libsrtp",
+   "license": "BSD-3-Clause",
+   "source": "https://github.com/cisco/libsrtp",
+   "files": {
+    "windows": [
+     "srtp2-1.dll"
+    ]
+   },
+   "texts": [
+    {
+     "path": "scripts/licenses/texts/native/libsrtp/LICENSE",
+     "sha256": "8e19d42a1eec9561f3f347253ddf2e385c55f392f025bb0fd41b88dbf38db5ae",
+     "provenance": "https://raw.githubusercontent.com/cisco/libsrtp/main/LICENSE (fetched 2026-10-27)"
+    }
+   ]
+  },
+  {
+   "id": "libnice",
+   "name": "libnice",
+   "license": "MPL-1.1 OR LGPL-2.1-only",
+   "source": "https://gitlab.freedesktop.org/libnice/libnice",
+   "files": {
+    "windows": [
+     "nice-10.dll"
+    ]
+   },
+   "texts": [
+    {
+     "path": "scripts/licenses/texts/native/libnice/COPYING",
+     "sha256": "e5504e5ffe894870ea1a652df957a120ead9c3f9a5e9d314ca41ba06f2d72024",
+     "provenance": "https://raw.githubusercontent.com/libnice/libnice/master/COPYING (fetched 2026-10-27)"
+    },
+    {
+     "path": "scripts/licenses/texts/native/libnice/COPYING.LGPL",
+     "sha256": "a9bdde5616ecdd1e980b44f360600ee8783b1f99b8cc83a2beb163a0a390e861",
+     "provenance": "https://raw.githubusercontent.com/libnice/libnice/master/COPYING.LGPL (fetched 2026-10-27)"
+    },
+    {
+     "path": "scripts/licenses/texts/native/libnice/COPYING.MPL",
+     "sha256": "3b3c75ae6c663c4f93987647eb5463d33dc1602a1aded3ac479773f2c3928e3a",
+     "provenance": "https://raw.githubusercontent.com/libnice/libnice/master/COPYING.MPL (fetched 2026-10-27)"
+    }
+   ]
+  },
+  {
+   "id": "libsoup",
+   "name": "libsoup",
+   "license": "LGPL-2.0-or-later",
+   "source": "https://gitlab.gnome.org/GNOME/libsoup",
+   "files": {
+    "windows": [
+     "soup-3.0-0.dll"
+    ]
+   },
+   "texts": [
+    {
+     "path": "scripts/licenses/texts/native/libsoup/COPYING",
+     "sha256": "b7993225104d90ddd8024fd838faf300bea5e83d91203eab98e29512acebd69c",
+     "provenance": "https://gitlab.gnome.org/GNOME/libsoup/-/raw/master/COPYING (fetched 2026-10-27)"
+    }
+   ]
+  },
+  {
+   "id": "libpsl",
+   "name": "libpsl",
+   "license": "MIT",
+   "source": "https://github.com/rockdaboot/libpsl",
+   "files": {
+    "windows": [
+     "psl-5.dll"
+    ]
+   },
+   "texts": [
+    {
+     "path": "scripts/licenses/texts/native/libpsl/LICENSE",
+     "sha256": "e7c9f0d8498d28a360a7e8293ea70fd7bd952955b636938322c13d60a03b5a45",
+     "provenance": "https://raw.githubusercontent.com/rockdaboot/libpsl/master/LICENSE (fetched 2026-10-27)"
+    }
+   ]
+  },
+  {
+   "id": "nghttp2",
+   "name": "nghttp2",
+   "license": "MIT",
+   "source": "https://github.com/nghttp2/nghttp2",
+   "files": {
+    "windows": [
+     "nghttp2-1.dll"
+    ]
+   },
+   "texts": [
+    {
+     "path": "scripts/licenses/texts/native/nghttp2/COPYING",
+     "sha256": "6b94f3abc1aabd0c72a7c7d92a77f79dda7c8a0cb3df839a97890b4116a2de2a",
+     "provenance": "https://raw.githubusercontent.com/nghttp2/nghttp2/master/COPYING (fetched 2026-10-27)"
+    }
+   ]
+  },
+  {
+   "id": "libmicrodns",
+   "name": "libmicrodns",
+   "license": "LGPL-2.1-or-later",
+   "source": "https://github.com/videolabs/libmicrodns",
+   "files": {
+    "windows": [
+     "microdns.dll"
+    ]
+   },
+   "texts": [
+    {
+     "path": "scripts/licenses/texts/native/libmicrodns/COPYING",
+     "sha256": "f764ee3ea10043718c7cc2ce3e2c8a8b3a4e9a3f4b5b4bbb74c603d2a974aabe",
+     "provenance": "https://raw.githubusercontent.com/videolabs/libmicrodns/master/COPYING (fetched 2026-10-27)"
+    }
+   ]
+  },
+  {
+   "id": "json-glib",
+   "name": "JSON-GLib",
+   "license": "LGPL-2.1-or-later",
+   "source": "https://gitlab.gnome.org/GNOME/json-glib",
+   "files": {
+    "windows": [
+     "json-glib-1.0-0.dll"
+    ]
+   },
+   "texts": [
+    {
+     "path": "scripts/licenses/texts/native/json-glib/LGPL-2.1-or-later.txt",
+     "sha256": "fa6f36630bb1e0c571d34b2bbdf188d08495c9dbf58f28cac112f303fc1f58fb",
+     "provenance": "https://gitlab.gnome.org/GNOME/json-glib/-/raw/main/LICENSES/LGPL-2.1-or-later.txt (fetched 2026-10-27)"
+    }
+   ]
+  },
+  {
+   "id": "gdk-pixbuf",
+   "name": "GdkPixbuf",
+   "license": "LGPL-2.1-or-later",
+   "source": "https://gitlab.gnome.org/GNOME/gdk-pixbuf",
+   "files": {
+    "windows": [
+     "gdk_pixbuf-2.0-0.dll"
+    ]
+   },
+   "texts": [
+    {
+     "path": "scripts/licenses/texts/native/gdk-pixbuf/COPYING",
+     "sha256": "dc626520dcd53a22f727af3ee42c770e56c97a64fe3adb063799d8ab032fe551",
+     "provenance": "https://gitlab.gnome.org/GNOME/gdk-pixbuf/-/raw/master/COPYING (fetched 2026-10-27)"
+    }
+   ]
+  },
+  {
+   "id": "graphene",
+   "name": "Graphene",
+   "license": "MIT",
+   "source": "https://github.com/ebassi/graphene",
+   "files": {
+    "linux": [
+     "libgraphene-1.0.so*"
+    ],
+    "windows": [
+     "graphene-1.0-0.dll"
+    ]
+   },
+   "texts": [
+    {
+     "path": "scripts/licenses/texts/native/graphene/copyright",
+     "sha256": "59477df6c16df1f26679ea572b611be5c87c81e8842409086b38f8a0e7ff6743",
+     "provenance": "https://metadata.ftp-master.debian.org/changelogs//main/g/graphene/unstable_copyright (fetched 2026-10-27)"
+    }
+   ]
+  },
+  {
+   "id": "webrtc-audio-processing",
+   "name": "WebRTC audio processing",
+   "license": "BSD-3-Clause",
+   "source": "https://gitlab.freedesktop.org/pulseaudio/webrtc-audio-processing",
+   "files": {
+    "windows": [
+     "webrtc-audio-processing-*.dll"
+    ]
+   },
+   "texts": [
+    {
+     "path": "scripts/licenses/texts/native/webrtc-audio-processing/copyright",
+     "sha256": "dcc6eb618027dc61a72a8a174c78e105c184454a74685f877021662e16e625fa",
+     "provenance": "https://metadata.ftp-master.debian.org/changelogs//main/w/webrtc-audio-processing/unstable_copyright (fetched 2026-10-27)"
+    }
+   ]
+  },
+  {
+   "id": "pcre2",
+   "name": "PCRE2",
+   "license": "BSD-3-Clause WITH PCRE2-exception",
+   "source": "https://github.com/PCRE2Project/pcre2",
+   "files": {
+    "windows": [
+     "pcre2-*.dll"
+    ]
+   },
+   "texts": [
+    {
+     "path": "scripts/licenses/texts/native/pcre2/LICENCE.md",
+     "sha256": "197d8a73ffee0d6b09adba2f9c677b5f5aede24edf89258a68e48248d010d811",
+     "provenance": "https://raw.githubusercontent.com/PCRE2Project/pcre2/master/LICENCE.md (fetched 2026-10-27)"
+    }
+   ],
+   "note": "Static in the Android plugin through the GStreamer Android SDK."
+  },
+  {
+   "id": "libiconv",
+   "name": "GNU libiconv",
+   "license": "LGPL-2.1-or-later",
+   "source": "https://www.gnu.org/software/libiconv",
+   "files": {
+    "windows": [
+     "iconv*.dll"
+    ]
+   },
+   "texts": [
+    {
+     "path": "scripts/licenses/texts/native/libiconv/COPYING.LIB",
+     "sha256": "20e50fe7aae3e56378ebf0417d9de904f55a0e61e4df315333e632a4d3555d95",
+     "provenance": "https://git.savannah.gnu.org/cgit/libiconv.git/plain/COPYING.LIB (fetched 2026-10-27)"
+    }
+   ],
+   "note": "Static in the Android plugin through the GStreamer Android SDK."
+  },
+  {
+   "id": "libdrm",
+   "name": "libdrm",
+   "license": "MIT",
+   "source": "https://gitlab.freedesktop.org/mesa/drm",
+   "files": {
+    "linux": [
+     "libdrm.so*"
+    ]
+   },
+   "texts": [
+    {
+     "path": "scripts/licenses/texts/native/libdrm/copyright",
+     "sha256": "90df8ca02b0e0f21eebd8e58585345a8a5cd97bd46ad6faa577dc8d07a67aeaa",
+     "provenance": "https://metadata.ftp-master.debian.org/changelogs//main/libd/libdrm/unstable_copyright (fetched 2026-10-27)"
+    }
+   ]
+  },
+  {
+   "id": "v4l-utils",
+   "name": "libv4l (v4l-utils)",
+   "license": "LGPL-2.1-or-later",
+   "source": "https://git.linuxtv.org/v4l-utils.git",
+   "files": {
+    "linux": [
+     "libv4l2.so*",
+     "libv4lconvert.so*"
+    ]
+   },
+   "texts": [
+    {
+     "path": "scripts/licenses/texts/native/v4l-utils/COPYING.libv4l",
+     "sha256": "6db18e1c5b47fd0b84a9ddf763cebae7bf6b9c56f1a1eeceae76a157ed9cd26e",
+     "provenance": "https://raw.githubusercontent.com/gjasny/v4l-utils/master/COPYING.libv4l (fetched 2026-10-27)"
+    }
+   ]
+  },
+  {
+   "id": "systemd-libudev",
+   "name": "libudev (systemd)",
+   "license": "LGPL-2.1-or-later",
+   "source": "https://github.com/systemd/systemd",
+   "files": {
+    "linux": [
+     "libudev.so*"
+    ]
+   },
+   "texts": [
+    {
+     "path": "scripts/licenses/texts/native/systemd-libudev/LICENSE.LGPL2.1",
+     "sha256": "6d9bb3b7fc818a8facc4cc296060a0883fef8710d6498f86165335846e82ee9d",
+     "provenance": "https://raw.githubusercontent.com/systemd/systemd/main/LICENSE.LGPL2.1 (fetched 2026-10-27)"
+    }
+   ]
+  },
+  {
+   "id": "libgudev",
+   "name": "libgudev",
+   "license": "LGPL-2.1-or-later",
+   "source": "https://gitlab.gnome.org/GNOME/libgudev",
+   "files": {
+    "linux": [
+     "libgudev-1.0.so*"
+    ]
+   },
+   "texts": [
+    {
+     "path": "scripts/licenses/texts/native/libgudev/COPYING",
+     "sha256": "dc626520dcd53a22f727af3ee42c770e56c97a64fe3adb063799d8ab032fe551",
+     "provenance": "https://gitlab.gnome.org/GNOME/libgudev/-/raw/master/COPYING (fetched 2026-10-27)"
+    }
+   ]
+  },
+  {
+   "id": "spdlog",
+   "name": "spdlog",
+   "license": "MIT",
+   "source": "https://github.com/gabime/spdlog",
+   "files": {},
+   "texts": [
+    {
+     "path": "scripts/licenses/texts/native/spdlog/LICENSE",
+     "sha256": "d678c20826e1392578508e1c78649a1e3c31bda05ef4388d967dbd654461b140",
+     "provenance": "https://raw.githubusercontent.com/gabime/spdlog/v1.x/LICENSE (fetched 2026-10-27)"
+    }
+   ],
+   "note": "Compiled into AccelerANTgine."
+  },
+  {
+   "id": "fmt",
+   "name": "{fmt}",
+   "license": "MIT",
+   "source": "https://github.com/fmtlib/fmt",
+   "files": {},
+   "texts": [
+    {
+     "path": "scripts/licenses/texts/native/fmt/LICENSE",
+     "sha256": "a65fcc5a1095fc33cc37e4fff69366e49d7e92f613558a2b95ed1b70e33758b4",
+     "provenance": "https://raw.githubusercontent.com/fmtlib/fmt/master/LICENSE (fetched 2026-10-27)"
+    }
+   ],
+   "note": "Bundled in spdlog, compiled into AccelerANTgine."
+  },
+  {
+   "id": "nlohmann-json",
+   "name": "nlohmann/json",
+   "license": "MIT",
+   "source": "https://github.com/nlohmann/json",
+   "files": {},
+   "texts": [
+    {
+     "path": "scripts/licenses/texts/native/nlohmann-json/LICENSE.MIT",
+     "sha256": "d64d1b4d948aa7751cfb613c02dc246aab7b358d760053e6580f01affe946906",
+     "provenance": "https://raw.githubusercontent.com/nlohmann/json/develop/LICENSE.MIT (fetched 2026-10-27)"
+    }
+   ],
+   "note": "Compiled into AccelerANTgine."
+  },
+  {
+   "id": "tomlplusplus",
+   "name": "toml++",
+   "license": "MIT",
+   "source": "https://github.com/marzer/tomlplusplus",
+   "files": {},
+   "texts": [
+    {
+     "path": "scripts/licenses/texts/native/tomlplusplus/LICENSE",
+     "sha256": "529bc3900a9571e49db285b0df432397e70b881cc3bf48de6667ae74ff4b06d8",
+     "provenance": "https://raw.githubusercontent.com/marzer/tomlplusplus/master/LICENSE (fetched 2026-10-27)"
+    }
+   ],
+   "note": "Compiled into AccelerANTgine."
+  },
+  {
+   "id": "ms-gsl",
+   "name": "Microsoft GSL",
+   "license": "MIT",
+   "source": "https://github.com/microsoft/GSL",
+   "files": {},
+   "texts": [
+    {
+     "path": "scripts/licenses/texts/native/ms-gsl/LICENSE",
+     "sha256": "4c21dc82a1c7186ea754fd59d504c00947953a3401fe8e24eaa44109ef8e2555",
+     "provenance": "https://raw.githubusercontent.com/microsoft/GSL/main/LICENSE (fetched 2026-10-27)"
+    }
+   ],
+   "note": "Header-only, compiled into AccelerANTgine."
+  },
+  {
+   "id": "noto-fonts",
+   "name": "Noto Color Emoji and Noto Sans Symbols 2",
+   "license": "OFL-1.1",
+   "source": "https://github.com/notofonts",
+   "files": {},
+   "texts": [],
+   "note": "Web fallback fonts; the OFL text ships as assets/licenses/noto-fallback-fonts-OFL.txt and is on the app's licenses page."
+  },
+  {
+   "id": "deim-dfine",
+   "name": "DEIM-D-FINE-N COCO detection model",
+   "license": "Apache-2.0",
+   "source": "https://github.com/Kataglyphis/ModelANT",
+   "files": {},
+   "texts": [],
+   "note": "Data, not code: the model's own LICENSE and NOTICE ship beside deim_dfine_n_coco.onnx in every package that bundles it."
+  }
+ ]
+}

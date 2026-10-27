@@ -62,6 +62,9 @@
 
         <SetProperty Id='ARPINSTALLLOCATION' Value='[APPLICATIONFOLDER]' After='CostFinalize'/>
         <Property Id='ARPHELPLINK' Value='https://github.com/Kataglyphis/OmniAccelerANT'/>
+        <!-- Apps and features shows the exe's own icon, the one resource built from the repo logo. -->
+        <Icon Id='AppIcon.exe' SourceFile='$(var.ExeSource)'/>
+        <Property Id='ARPPRODUCTICON' Value='AppIcon.exe'/>
 
         <ui:WixUI Id='WixUI_FeatureTree'/>
         <!-- Welcome goes straight to the feature tree; order 99 beats the extension's own license-dialog rows. -->

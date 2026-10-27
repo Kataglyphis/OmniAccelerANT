@@ -5,6 +5,15 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ## Unreleased
 
+- Ship a generated inventory of every third-party component (native libraries, Rust crates,
+  Dart packages, model) with the original native and crate license texts in every APK, TAR,
+  DEB, AppImage, Flatpak, MSI and MSIX, list it on the app's licenses page and in
+  `docs/source/third-party-components.md`, and fail packaging on a native file without an
+  entry (#27).
+- Check that every launcher icon derives from `images/logo.svg`; ObservANT's Linux packages
+  install the logo itself and the MSI shows the app icon in Apps & features.
+- Register the fallback fonts' license through ANThology's `registerAssetLicense`.
+
 - Match bundled Linux ONNX Runtime libraries to one wheel and verify its original license and notices in Omni and ObservANT packages.
 
 - Include and verify the original ONNX Runtime license and notices in Windows artifacts,

@@ -1,0 +1,177 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: libdrm
+Source: https://gitlab.freedesktop.org/mesa/libdrm
+License: Expat
+
+Files: *
+Copyright: 2005 Adam Jackson
+           1999-2000 Precision Insight, Inc., Cedar Park, Texas.
+           2000 VA Linux Systems, Inc., Sunnyvale, California.
+           2007-2008 Dave Airlie <airlied@linux.ie>
+           2007-2008 Jakob Bornecrantz <wallbraker@gmail.com>
+           2002-2008 Tungsten Graphics, Inc., Cedar Park, TX., USA
+           2007-2012 Intel Corporation
+           2000 Gareth Hughes
+           2002 Frank C. Earl
+           2002-2003 Leif Delgass
+           2005 Stephane Marchesin.
+           2004 Felix Kuehling
+           2005 Eric Anholt
+           2008-2021 Jérôme Glisse <glisse@freedesktop.org>
+           1998-2003 VIA Technologies, Inc. All Rights Reserved.
+           2001-2003 S3 Graphics, Inc. All Rights Reserved.
+           2009 VMware, Inc., Palo Alto, CA., USA
+           2007-2009 Red Hat Inc.
+           2008 Nicolai Haehnle
+           1999 Wittawat Yamwong
+           2007 Nouveau Project
+           2014-2024, Advanced Micro Devices, Inc.
+           2018, Collabora, Robert Foss <robert.foss@collabora.com>
+           2016, Linaro, Ltd., Rob Herring <robh@kernel.org>
+           2010-2011, LunarG Inc.
+           2010-2011, Chia-I Wu <olvaffe@gmail.com>
+           2014-2016, Etnaviv Project
+           2014-2021, NVIDIA Corporation
+           2015-2021, Collabora Ltd.
+           2012, Google, Inc
+License: Expat
+
+Files: amdgpu/*
+Copyright: 2014-2024, Advanced Micro Devices, Inc.
+License: Expat
+
+Files: android/*
+Copyright: 2018, Collabora, Robert Foss <robert.foss@collabora.com>
+           2016, Linaro, Ltd., Rob Herring <robh@kernel.org>
+           2010-2011, LunarG Inc.
+           2010-2011, Chia-I Wu <olvaffe@gmail.com>
+License: Expat
+
+Files: etnaviv/*
+Copyright: 2014-2017, Etnaviv Project
+           2017, Zodiac Inflight Innovations
+License: Expat
+
+Files: etnaviv/etnaviv_drm.h
+Copyright: 2015, Etnaviv Project
+License: GPL-2
+
+Files: exynos/*
+Copyright: 2011-2013, Samsung Electronics Co., Ltd.
+License: Expat
+
+Files: freedreno/*
+Copyright: 2012-2016, Rob Clark <robclark@freedesktop.org>
+License: Expat
+
+Files: include/*
+Copyright: 2008-2013, Red Hat Inc.
+           2014, Advanced Micro Devices, Inc.
+           2000, VA Linux Systems, Inc., Fremont, California.
+           1999-2000, Precision Insight, Inc., Cedar Park, Texas.
+           2007-2012, Intel Corporation
+           2007, Jakob Bornecrantz <wallbraker@gmail.com>
+           2007, Dave Airlie <airlied@linux.ie>
+           2002-2008, Tungsten Graphics, Inc., Cedar Park, TX., USA
+           2002, Frank C. Earl
+           2002-2003, Leif Delgass
+           2000, Gareth Hughes
+           2005, Stephane Marchesin.
+           2004, Felix Kuehling
+           2005, Eric Anholt
+           2012-2020, NVIDIA Corporation
+           2014-2015, Broadcom
+           2001-2003, S3 Graphics, Inc.
+           1998-2003, VIA Technologies, Inc.
+           2009-2015, VMware, Inc., Palo Alto, CA., USA
+License: Expat
+
+Files: intel/*
+Copyright: 2007-2012, Intel Corporation
+           2002-2006, Tungsten Graphics, Inc., Bismarck, ND., USA
+           2007, Red Hat Inc.
+           1999, Wittawat Yamwong
+           2003-2016, Troy D. Hanson http:troydhanson.github.com/uthash
+License: Expat
+
+Files: nouveau/*
+Copyright: 2012, Red Hat Inc.
+License: Expat
+
+Files: omap/*
+Copyright: 2011, Texas Instruments, Inc
+License: Expat
+
+Files: radeon/*
+Copyright: 2008-2010, Jérôme Glisse <glisse@freedesktop.org>
+           2008, Dave Airlie
+           2008, Nicolai Haehnle
+           2011-2009, Red Hat Inc.
+License: Expat
+
+Files: tegra/*
+Copyright: 2014-2021, NVIDIA Corporation
+           2013, Erik Faye-Lund
+           2012-2013, Thierry Reding
+License: Expat
+
+Files: tests/*
+Copyright: 2014-2024, Advanced Micro Devices, Inc.
+           2015, Emil Velikov <emil.l.velikov@gmail.com>
+           1999, Precision Insight, Inc., Cedar Park, Texas.
+           2014-2016, Etnaviv Project
+           2011, Luc Verhaegen <libv@codethink.co.uk>
+           2015, Tobias Jakobi
+           2013, Samsung Electronics Co.Ltd
+           2007-2008, Tungsten Graphics, Inc., Cedar Park, Texas.
+           2007-2008, Jakob Bornecrantz <wallbraker@gmail.com>
+           2011-2014, Red Hat
+           2015, Canonical Ltd. (Maarten Lankhorst)
+           2007-2012, Intel Corporation
+           2014-2021, NVIDIA Corporation
+License: Expat
+
+Files: vc4/*
+Copyright: 2014-2015, Broadcom
+License: Expat
+
+Files: debian/*
+Copyright: 2005 Marcelo E. Magallon <mmagallo@debian.org>
+License: Expat
+
+License: Expat
+ Permission is hereby granted, free of charge, to any person obtaining
+ a copy of this software and associated documentation files (the
+ "Software"), to deal in the Software without restriction, including
+ without limitation the rights to use, copy, modify, merge, publish,
+ distribute, sublicense, and/or sell copies of the Software, and to
+ permit persons to whom the Software is furnished to do so, subject to
+ the following conditions:
+ .
+ The above copyright notice and this permission notice shall be
+ included in all copies or substantial portions of the Software.
+ .
+ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+ MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS
+ BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN
+ ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ SOFTWARE.
+
+License: GPL-2
+ This program is free software; you can redistribute it and/or modify
+ it under the terms of the GNU General Public License, v2, as
+ published by the Free Software Foundation.
+ .
+ This package is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.
+ .
+ You should have received a copy of the GNU General Public License
+ along with this program.  If not, see https://www.gnu.org/licenses/.
+ .
+ On Debian systems, the full text of the GNU General Public License
+ version 2 can be found in `/usr/share/common-licenses/GPL-2'.

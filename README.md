@@ -34,8 +34,9 @@ Both platforms use ANTfrastructure's locked uv project for CMake formatting.
 
 Android CI checks launcher resources before building and verifies the project's MIT text in
 the APK. The Linux package, MSI and MSIX builders check that text in their completed packages; see
-[project operations](docs/source/project-operations.md#package-license-and-launcher-checks).
+[project operations](https://github.com/Kataglyphis/OmniAccelerANT/blob/develop/docs/source/project-operations.md#package-license-and-launcher-checks).
 Linux and Windows packages also carry the ONNX Runtime license and notices from their matching image wheel.
+Every package ships the [third-party component list](https://github.com/Kataglyphis/OmniAccelerANT/blob/develop/docs/source/third-party-components.md) with its license texts.
 
 ## Highlights
 

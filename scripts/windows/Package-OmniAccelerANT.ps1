@@ -28,7 +28,7 @@ Set-StrictMode -Version Latest
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 . (Join-Path $PSScriptRoot 'Resolve-BuildModule.ps1')
 Import-BuildModule @('WindowsBuild.Common', 'WindowsMsix.Common', 'WindowsMsix.Signing', 'WindowsAppInstallers.Common',
-    'WindowsMsiLicense.Common', 'WindowsOrtProvenance.Common', 'WindowsOrtLicense.Common')
+    'WindowsMsiLicense.Common', 'WindowsOrtProvenance.Common', 'WindowsOrtLicense.Common', 'WindowsThirdPartyLicense.Common')
 
 $AppDir = (Resolve-Path -LiteralPath $AppDir).Path
 if (-not (Test-Path -LiteralPath (Join-Path $AppDir 'omni_accelerant.exe') -PathType Leaf)) { throw "no omni_accelerant.exe in $AppDir" }
@@ -48,14 +48,18 @@ $context = New-BuildContext -Workspace $repoRoot -LogDir (Join-Path $OutDir 'log
 $installer = Join-Path $PSScriptRoot 'installer'
 $ortLicenses = Copy-OrtWheelLicenses -OrtDll (Join-Path $AppDir 'onnxruntime.dll') -WheelDir (Get-OrtChainWheelStore) -Destination $AppDir
 $fragment = Join-Path $work 'msi-payload-files.wxs'
+Assert-NativeLicenseCoverage -Path $AppDir -RepoRoot $repoRoot
+$licenseAssets = Get-ThirdPartyLicenseAsset -RepoRoot $repoRoot
 
 New-AppMsi -Context $context -AppDir $AppDir -ExeName 'omni_accelerant.exe' -WxsFile (Join-Path $installer 'omni-accelerant.wxs') `
     -LicenseFile (Join-Path $installer 'License.rtf') -ProductName 'OmniAccelerANT' -Version $version -Arch $Arch `
     -OutFile "$base.msi" -FragmentPath $fragment
 Assert-MsiPackageLicense -Path "$base.msi" -FileName 'NOTICES.Z' -LicensePath (Join-Path $repoRoot 'LICENSE')
+Assert-ThirdPartyLicensePackage -Path "$base.msi" -RepoRoot $repoRoot -Asset $licenseAssets
 Assert-OrtWheelLicensesInPackage -Path "$base.msi" -LicenseDirectory $ortLicenses -Format msi -WixPath $fragment
 New-AppMsix -Context $context -AppDir $AppDir -ManifestTemplate (Join-Path $installer 'AppxManifest.xml') `
     -LogoPath (Join-Path $repoRoot 'web\icons\Icon-512.png') -Version $msixVersion -Arch $Arch -OutFile "$base.msix" `
     -WorkDir $work -Publisher $MsixPublisher -Pfx $MsixPfx
 Assert-PackageLicense -Path "$base.msix" -Pattern '*flutter_assets/NOTICES.Z' -LicensePath (Join-Path $repoRoot 'LICENSE')
+Assert-ThirdPartyLicensePackage -Path "$base.msix" -RepoRoot $repoRoot -Asset $licenseAssets
 Assert-OrtWheelLicensesInPackage -Path "$base.msix" -LicenseDirectory $ortLicenses -Format archive

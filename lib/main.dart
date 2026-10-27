@@ -23,6 +23,7 @@ import 'package:omni_accelerant/l10n/app_localizations.dart';
 import 'package:omni_accelerant/settings/webrtc_settings.dart';
 import 'package:omni_accelerant/src/boot/rust_core.dart';
 import 'package:omni_accelerant/src/rust/frb_generated.dart';
+import 'package:omni_accelerant/third_party_licenses.dart';
 
 /// Everything read off disk before the first frame; [WebRTCSettings] makes it Omni's own type.
 typedef OmniBootstrapData = (
@@ -65,6 +66,7 @@ Future<void> main() async {
   );
   dismissBootOverlay();
   registerFallbackFontLicenses();
+  registerThirdPartyLicenses();
   runApp(const App());
 }
 

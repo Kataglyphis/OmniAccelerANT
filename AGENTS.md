@@ -14,6 +14,11 @@ including when optional launch tests are disabled. MSI cabinet IDs come from the
 Windows packages also carry the ORT wheel's original license and notices, selected only by
 an exact hash match to the shipped ONNX Runtime DLL and checked in each completed package.
 Linux packages and the Pi bundle match every bundled ORT ELF to one wheel and verify its original texts; retain the shared verifier and mutation workflow.
+Every package ships the third-party inventory in `assets/licenses/`; regenerate it with
+`scripts/licenses/generate-third-party-licenses.py --write` after a lockfile, gitlink or native-table change, and give
+every new shipped native file an entry with its original text before it ships
+([project operations](docs/source/project-operations.md#third-party-license-inventory)).
+Every launcher icon derives from `images/logo.svg`; `scripts/linux/check-brand-icons.py` gates it.
 
 Laid out per ANTfrastructure's
 [`shared/templates/AGENTS.md.template`](third_party/ANTfrastructure/shared/templates/README.md).
@@ -164,7 +169,8 @@ Two upstream facts repeated here only because they bite before you reach a doc:
   `WindowsOrtPayload.Common` stages into that runner — § 4), `WindowsLaneGuard.Common` (one
   lane at a time per checkout — § 5), `WindowsLaneSccache.Common` (the host's sccache S3 key
   for a local Linux lane — § 5) and `WindowsFlutterAot.Common` (catches a stale AOT target
-  that `assemble` calls up to date).
+  that `assemble` calls up to date) and `WindowsThirdPartyLicense.Common` (the packagers' calls into
+  `scripts/licenses/`).
 - `scripts/linux/lib/antfrastructure.sh` — the bash twin: `antfrastructure_source` and
   `antfrastructure_path`, resolved from `${BASH_SOURCE[0]}` so they work from any working
   directory.
