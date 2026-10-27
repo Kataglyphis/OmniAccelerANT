@@ -21,7 +21,7 @@ $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'Resolve-BuildModule.ps1')
 Import-BuildModule 'WindowsCrossBundle.Common'
 # G6 and its stamp, as the x64 runner gets them; the app job re-proves the stamp on the device.
-Import-BuildModule @('WindowsOrtProvenance.Common', 'WindowsOrtPayload.Common', 'WindowsOrtRunner.Common')
+Import-BuildModule @('WindowsOrtProvenance.Common', 'WindowsOrtPayload.Common', 'WindowsOrtLicense.Common', 'WindowsOrtRunner.Common')
 
 $out = Join-Path $WorkspaceDir $OutDir
 $runtime = Join-Path $out 'runtime'
@@ -72,5 +72,6 @@ Copy-Item -LiteralPath $runtime -Destination $proofDir -Recurse
 Copy-Item -LiteralPath (Join-Path $kciBundle 'bin\AccelerANTgine.exe') -Destination $proofDir
 $proof = Invoke-RunnerOrtProof -RunnerDir $proofDir
 Copy-Item -LiteralPath (Join-Path $proofDir 'ort-chain-stamp.json') -Destination $runtime
+Copy-Item -LiteralPath (Join-Path $proofDir 'licenses') -Destination $runtime -Recurse
 Remove-Item -LiteralPath $proofDir -Recurse -Force
 Write-Host "G6: the chain ONNX Runtime in runtime\ is proved and stamped: $(@($proof.Stamp.sha256.Keys) -join ', ')"

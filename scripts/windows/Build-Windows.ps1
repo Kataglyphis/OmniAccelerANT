@@ -57,7 +57,7 @@ Import-BuildModule @(
     'WindowsFlutterAot.Common'  # project-local: the installed AOT snapshot matches the current kernel
 )
 # G6 and the hub's chain-ORT staging beside the exe; an older hub pin lacks them.
-try { Import-BuildModule @('WindowsOrtProvenance.Common', 'WindowsOrtPayload.Common') } catch {
+try { Import-BuildModule @('WindowsOrtProvenance.Common', 'WindowsOrtPayload.Common', 'WindowsOrtLicense.Common') } catch {
     throw "This build needs ANTfrastructure's WindowsOrtProvenance.Common (G6) and WindowsOrtPayload.Common (hub commit 73a8dd74 of 2026-09-25, third_party/ANTfrastructure/docs/onnxruntime-single-source.md § The shared Windows glue); move third_party/ANTfrastructure to it or later. ($($_.Exception.Message))"
 }
 

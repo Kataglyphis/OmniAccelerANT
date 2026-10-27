@@ -13,6 +13,7 @@ MSI and MSIX package creation checks the complete project license in the finishe
 including when optional launch tests are disabled. MSI cabinet IDs come from the package.
 Windows packages also carry the ORT wheel's original license and notices, selected only by
 an exact hash match to the shipped ONNX Runtime DLL and checked in each completed package.
+The app's match runs in the image and is stamped with the runner's ORT; the host packager only re-proves that stamp.
 Linux packages and the Pi bundle match every bundled ORT ELF to one wheel and verify its original texts; retain the shared verifier and mutation workflow.
 Every package ships the third-party inventory in `assets/licenses/`; regenerate it with
 `scripts/licenses/generate-third-party-licenses.py --write` after a lockfile, gitlink or native-table change, and give

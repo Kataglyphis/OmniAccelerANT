@@ -24,6 +24,13 @@ that all native dependency licenses are included.
 Windows MSI and MSIX packages, and ObservANT's ZIP, also carry the original ONNX Runtime
 license and notices from the image wheel whose `onnxruntime.dll` exactly matches the packaged
 DLL. Missing or ambiguous wheel matches and missing or altered package texts fail packaging.
+The app's MSI and MSIX are packed on the CI host, which has no wheel store, so the match runs
+in the image: `Invoke-RunnerOrtProof` stages the texts in the runner's `licenses\onnxruntime`
+(the arm64 natives carry them into the app) and records their SHA-256 in
+`ort-chain-stamp.json` beside the DLL's. `Package-OmniAccelerANT.ps1` calls
+`Resolve-RunnerOrtLicense`, which re-proves the stamp and refuses missing, changed or
+unstamped texts. The stamp guards against stale or edited copies, not a deliberate forgery of
+both stamp and texts.
 
 Linux Omni, ObservANT and its Pi bundle match every bundled `libonnxruntime*.so*`
 to one wheel, either directly or after target-compatible stripping. The wheel's

@@ -6,7 +6,8 @@ Set-StrictMode -Version Latest
 
 $script:RunnerOrtFiles = @('onnxruntime.dll', 'onnxruntime_providers_shared.dll', 'DirectML.dll')
 $script:RunnerOrtStampName = 'ort-chain-stamp.json'
-$script:RunnerOrtStampSchema = 'omni-accelerant/ort-runner/2'
+$script:RunnerOrtStampSchema = 'omni-accelerant/ort-runner/3'
+$script:RunnerOrtLicenseNames = @('LICENSE', 'ThirdPartyNotices.txt')
 
 function Get-RunnerOrtFatal {
     param([Parameter(Mandatory)][object] $Census)
@@ -45,20 +46,25 @@ function Invoke-RunnerOrtProof {
     if ($fatal.Count -gt 0) {
         throw ("ONNX Runtime in $RunnerDir is not the image's chain build (G6):" + [Environment]::NewLine + '  ' + ($fatal -join ([Environment]::NewLine + '  ')))
     }
-    $stamp = [ordered]@{ schema = $script:RunnerOrtStampSchema; proof = 'G6 Test-OrtProvenanceTree'; sha256 = $stamped }
+    # Only the image has the wheel store, so the texts are matched here and the host re-checks their stamped bytes.
+    $licenseDir = Copy-OrtWheelLicenses -OrtDll (Join-Path $RunnerDir 'onnxruntime.dll') -WheelDir (Get-OrtChainWheelStore) -Destination $RunnerDir
+    $licenses = [ordered]@{}
+    foreach ($name in $script:RunnerOrtLicenseNames) { $licenses[$name] = (Get-FileHash -LiteralPath (Join-Path $licenseDir $name) -Algorithm SHA256).Hash.ToLowerInvariant() }
+    $stamp = [ordered]@{ schema = $script:RunnerOrtStampSchema; proof = 'G6 Test-OrtProvenanceTree'; sha256 = $stamped; licenses = $licenses }
     $stamp | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath (Join-Path $RunnerDir $script:RunnerOrtStampName) -Encoding utf8
     return [pscustomobject]@{ Stamp = $stamp; Census = $census }
 }
 
 function Read-RunnerOrtStamp {
-    param([Parameter(Mandatory)][string] $RunnerDir)
+    param([Parameter(Mandatory)][string] $RunnerDir, [ValidateSet('sha256', 'licenses')][string] $Section = 'sha256')
     $path = Join-Path $RunnerDir $script:RunnerOrtStampName
     if (-not (Test-Path -LiteralPath $path -PathType Leaf)) { return $null }
     try { $json = Get-Content -LiteralPath $path -Raw | ConvertFrom-Json -AsHashtable -ErrorAction Stop } catch { return $null }
-    if ($json -isnot [hashtable] -or $json['schema'] -ne $script:RunnerOrtStampSchema -or $json['sha256'] -isnot [hashtable]) { return $null }
+    if ($json -isnot [hashtable] -or $json['schema'] -ne $script:RunnerOrtStampSchema -or $json[$Section] -isnot [hashtable]) { return $null }
     $sha = @{}
-    foreach ($k in $json['sha256'].Keys) { $sha[$k] = "$($json['sha256'][$k])".ToLowerInvariant() }
-    if (-not $sha.ContainsKey('onnxruntime.dll')) { return $null }
+    foreach ($k in $json[$Section].Keys) { $sha[$k] = "$($json[$Section][$k])".ToLowerInvariant() }
+    $required = if ($Section -eq 'licenses') { $script:RunnerOrtLicenseNames } else { @('onnxruntime.dll') }
+    foreach ($name in $required) { if (-not $sha.ContainsKey($name)) { return $null } }
     return $sha
 }
 
@@ -99,6 +105,35 @@ function Assert-RunnerOrtStamp {
     }
 }
 
+function Resolve-RunnerOrtLicense {
+    <#
+    .SYNOPSIS
+        On a host: the stamp re-proves, and licenses\onnxruntime holds exactly the wheel texts the image matched; returns that directory.
+    #>
+    [CmdletBinding()]
+    [OutputType([string])]
+    param([Parameter(Mandatory)][string] $RunnerDir)
+
+    Assert-RunnerOrtStamp -RunnerDir $RunnerDir
+    $stamped = Read-RunnerOrtStamp -RunnerDir $RunnerDir -Section licenses
+    if ($null -eq $stamped) {
+        throw "UNSTAMPED $RunnerDir\$($script:RunnerOrtStampName) records no wheel-matched ONNX Runtime license texts: it was not staged by Build-Windows.ps1 or Build-WindowsArm64Natives.ps1."
+    }
+    $dir = Join-Path $RunnerDir 'licenses\onnxruntime'
+    $findings = [System.Collections.Generic.List[string]]::new()
+    foreach ($name in $script:RunnerOrtLicenseNames) {
+        $path = Join-Path $dir $name
+        $item = Get-Item -LiteralPath $path -Force -ErrorAction SilentlyContinue
+        if ($null -eq $item -or $item.PSIsContainer) { $findings.Add("MISSING $path"); continue }
+        if ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) { $findings.Add("LINK $path"); continue }
+        if ((Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant() -ne $stamped[$name]) { $findings.Add("CHANGED $path differs from the wheel text the image matched") }
+    }
+    if ($findings.Count -gt 0) {
+        throw ("ONNX Runtime license texts in $RunnerDir are not the stamped wheel texts:" + [Environment]::NewLine + '  ' + ($findings -join ([Environment]::NewLine + '  ')))
+    }
+    return $dir
+}
+
 function Assert-RunnerOrtOverride {
     <#
     .SYNOPSIS
@@ -121,4 +156,4 @@ function Assert-RunnerOrtOverride {
     }
 }
 
-Export-ModuleMember -Function Invoke-RunnerOrtProof, Assert-RunnerOrtStamp, Assert-RunnerOrtOverride
+Export-ModuleMember -Function Invoke-RunnerOrtProof, Assert-RunnerOrtStamp, Resolve-RunnerOrtLicense, Assert-RunnerOrtOverride

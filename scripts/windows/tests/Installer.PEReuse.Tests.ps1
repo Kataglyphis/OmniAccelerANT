@@ -84,16 +84,17 @@ Describe 'Installer shared Windows checks' {
     }
 
     It 'copies wheel-matched ONNX texts and checks every Windows package' {
+        # The host-side app packager takes the texts the image build matched and stamped; ObservANT packs in the image.
         foreach ($case in @(
-                @{ Path = 'Package-OmniAccelerANT.ps1'; Checks = 2 },
-                @{ Path = 'observant/Package-ObservANT.ps1'; Checks = 3 }
+                @{ Path = 'Package-OmniAccelerANT.ps1'; Checks = 2; Name = 'Resolve-RunnerOrtLicense'; Text = '-RunnerDir $AppDir' },
+                @{ Path = 'observant/Package-ObservANT.ps1'; Checks = 3; Name = 'Copy-OrtWheelLicenses'; Text = 'Get-OrtChainWheelStore' }
             )) {
             $ast = Get-TestScriptAst -ScriptPath (Join-Path $PSScriptRoot (Join-Path '..' $case.Path))
-            $commands = @(Get-TestAstCommands -Ast $ast -Name 'Copy-OrtWheelLicenses')
+            $commands = @(Get-TestAstCommands -Ast $ast -Name $case.Name)
             $checks = @(Get-TestAstCommands -Ast $ast -Name 'Assert-OrtWheelLicensesInPackage')
             $commands.Count | Should Be 1
-            $commands[0].Extent.Text.Contains('onnxruntime.dll') | Should Be $true
-            $commands[0].Extent.Text.Contains('Get-OrtChainWheelStore') | Should Be $true
+            $commands[0].Extent.Text.Contains($case.Text) | Should Be $true
+            @(Get-TestAstCommands -Ast $ast -Name 'Copy-OrtWheelLicenses').Count | Should Be ([int]($case.Name -eq 'Copy-OrtWheelLicenses'))
             $checks.Count | Should Be $case.Checks
             @($checks | Where-Object { $_.Extent.Text.Contains('-Format msi') -and $_.Extent.Text.Contains('-WixPath $fragment') }).Count | Should Be 1
             @($checks | Where-Object { $_.Extent.Text.Contains('-Format archive') }).Count | Should Be ($case.Checks - 1)

@@ -5,6 +5,10 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ## Unreleased
 
+- Match the Windows app's ONNX Runtime texts to the chain wheel inside the image, where the wheel
+  store is, and stamp their hashes beside the DLL's; the host MSI/MSIX packager re-proves that stamp
+  instead of looking for a wheel store the CI host does not have (run 40522231228).
+
 - Ship a generated inventory of every third-party component (native libraries, Rust crates,
   Dart packages, model) with the original native and crate license texts in every APK, TAR,
   DEB, AppImage, Flatpak, MSI and MSIX, list it on the app's licenses page and in

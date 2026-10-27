@@ -5,7 +5,7 @@
 Describe 'WindowsOrtRunner.Common' {
 
     . (Join-Path $PSScriptRoot '..\Resolve-BuildModule.ps1')
-    Import-BuildModule @('WindowsOrtRunner.Common', 'WindowsOrtProvenance.Common', 'WindowsOrtPayload.Common')
+    Import-BuildModule @('WindowsOrtRunner.Common', 'WindowsOrtProvenance.Common', 'WindowsOrtPayload.Common', 'WindowsOrtLicense.Common')
     Import-Module (Join-Path $PSScriptRoot '..\..\..\third_party\ANTfrastructure\windows\scripts\tests\TestHarness.psm1') -Function Get-TestScriptAst, New-OrtTestPe -ErrorAction Stop
 
     # NUL-terminated like a compiler's __FILE__: G6 takes only a whole terminated path as a fingerprint.
@@ -35,13 +35,28 @@ Describe 'WindowsOrtRunner.Common' {
         New-OrtTestPe -Path (Join-Path $runner 'omni_accelerant.exe') -Text 'main'
         New-OrtTestPe -Path (Join-Path $runner 'AccelerANTgine.dll') -Text 'OrtGetApiBase'
         New-OrtTestPe -Path (Join-Path $runner 'oxidant.dll') -Text 'OrtGetApiBase'
-        return [pscustomobject]@{ Root = (Join-Path $case 'onnx'); Runner = $runner }
+        $wheels = Join-Path $case 'onnx\wheels'
+        New-OrtCaseWheel -Path (Join-Path $wheels 'onnxruntime-1.31.0-cp315-cp315-win_amd64.whl') -Dll (Join-Path $bin 'onnxruntime.dll')
+        return [pscustomobject]@{ Root = (Join-Path $case 'onnx'); Runner = $runner; Wheels = $wheels }
+    }
+
+    # The image's chain wheel: the core DLL's exact bytes beside ORT's own two texts.
+    function New-OrtCaseWheel([string] $Path, [string] $Dll, [string] $Notice = 'chain notices') {
+        $tree = "$Path.tree"
+        $null = New-Item -ItemType Directory -Force -Path (Join-Path $tree 'onnxruntime\capi'), (Split-Path $Path -Parent)
+        Copy-Item -LiteralPath $Dll -Destination (Join-Path $tree 'onnxruntime\capi\onnxruntime.dll')
+        [IO.File]::WriteAllText((Join-Path $tree 'onnxruntime\LICENSE'), 'chain MIT text')
+        [IO.File]::WriteAllText((Join-Path $tree 'onnxruntime\ThirdPartyNotices.txt'), $Notice)
+        Add-Type -AssemblyName System.IO.Compression.FileSystem
+        [IO.Compression.ZipFile]::CreateFromDirectory($tree, $Path)
+        Remove-Item -LiteralPath $tree -Recurse -Force
     }
 
     function Invoke-WithOnnxRoot([string] $Root, [scriptblock] $Block) {
-        $saved = $env:ONNX_ROOT
+        $saved = $env:ONNX_ROOT, $env:PYTHON_WHEELS
         $env:ONNX_ROOT = $Root
-        try { & $Block } finally { $env:ONNX_ROOT = $saved }
+        $env:PYTHON_WHEELS = Join-Path $Root 'wheels'
+        try { & $Block } finally { $env:ONNX_ROOT, $env:PYTHON_WHEELS = $saved }
     }
 
     It 'stages the chain ORT over stale copies, proves it with G6 and re-proves the stamp on a host' {
@@ -102,6 +117,52 @@ Describe 'WindowsOrtRunner.Common' {
         Get-ThrowText { Assert-RunnerOrtStamp -RunnerDir $c.Runner } | Should Match 'UNPROVEN'
         Remove-Item -LiteralPath $stamp
         Get-ThrowText { Assert-RunnerOrtStamp -RunnerDir $c.Runner } | Should Match 'UNSTAMPED'
+    }
+
+    It 'stages the wheel-matched texts in the image and re-checks their stamped bytes on a host (mutation)' {
+        $c = New-Case 'licenses'
+        Invoke-WithOnnxRoot $c.Root {
+            $null = Copy-ChainOrtBeside -OnnxRoot $c.Root -Destination $c.Runner
+            $null = Invoke-RunnerOrtProof -RunnerDir $c.Runner
+        }
+        Invoke-WithOnnxRoot (Join-Path $TestDrive 'no-image') {
+            $dir = Resolve-RunnerOrtLicense -RunnerDir $c.Runner
+            $dir | Should Be (Join-Path $c.Runner 'licenses\onnxruntime')
+            [IO.File]::ReadAllText((Join-Path $dir 'ThirdPartyNotices.txt')) | Should Be 'chain notices'
+            [IO.File]::WriteAllText((Join-Path $dir 'ThirdPartyNotices.txt'), 'edited notices')
+            Get-ThrowText { Resolve-RunnerOrtLicense -RunnerDir $c.Runner } | Should Match 'CHANGED .*ThirdPartyNotices'
+            [IO.File]::WriteAllText((Join-Path $dir 'ThirdPartyNotices.txt'), 'chain notices')
+            Remove-Item -LiteralPath (Join-Path $dir 'LICENSE')
+            Get-ThrowText { Resolve-RunnerOrtLicense -RunnerDir $c.Runner } | Should Match 'MISSING .*LICENSE'
+            [IO.File]::WriteAllText((Join-Path $dir 'LICENSE'), 'chain MIT text')
+            $stamp = Join-Path $c.Runner 'ort-chain-stamp.json'
+            $json = Get-Content -LiteralPath $stamp -Raw | ConvertFrom-Json -AsHashtable
+            $json.Remove('licenses')
+            $json | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $stamp -Encoding utf8
+            Get-ThrowText { Resolve-RunnerOrtLicense -RunnerDir $c.Runner } | Should Match 'UNSTAMPED .*license texts'
+        }
+    }
+
+    It 'refuses in the image a runner ORT that matches no chain wheel, or two (mutation)' {
+        $c = New-Case 'wheel-red'
+        Invoke-WithOnnxRoot $c.Root {
+            $null = Copy-ChainOrtBeside -OnnxRoot $c.Root -Destination $c.Runner
+            Remove-Item -Path (Join-Path $c.Wheels '*.whl')
+            Get-ThrowText { Invoke-RunnerOrtProof -RunnerDir $c.Runner } | Should Match 'matched 0 wheels'
+            foreach ($v in '1.31.0', '1.31.1') { New-OrtCaseWheel -Path (Join-Path $c.Wheels "onnxruntime-$v-cp315-cp315-win_amd64.whl") -Dll (Join-Path $c.Root 'bin\onnxruntime.dll') }
+            Get-ThrowText { Invoke-RunnerOrtProof -RunnerDir $c.Runner } | Should Match 'matched 2 wheels'
+            Test-Path -LiteralPath (Join-Path $c.Runner 'licenses') | Should Be $false
+        }
+    }
+
+    It 'carries the arm64 proof copy''s matched texts into the natives artifact with its stamp (mutation)' {
+        $ast = Get-TestScriptAst -ScriptPath (Join-Path $PSScriptRoot '..\Build-WindowsArm64Natives.ps1')
+        $copies = @($ast.FindAll({ param($n) $n -is [System.Management.Automation.Language.CommandAst] -and $n.GetCommandName() -eq 'Copy-Item' -and
+                    $n.Extent.Text -match [regex]::Escape("(Join-Path `$proofDir 'licenses') -Destination `$runtime -Recurse") }, $true))
+        $copies.Count | Should Be 1
+        $proof = @($ast.FindAll({ param($n) $n -is [System.Management.Automation.Language.CommandAst] -and $n.GetCommandName() -eq 'Invoke-RunnerOrtProof' }, $true))
+        $proof.Count | Should Be 1
+        ($copies[0].Extent.StartOffset -gt $proof[0].Extent.StartOffset) | Should Be $true
     }
 
     It 'lets ORT_DYLIB_PATH name only the proven bytes' {

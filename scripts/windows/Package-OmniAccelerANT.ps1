@@ -28,7 +28,8 @@ Set-StrictMode -Version Latest
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 . (Join-Path $PSScriptRoot 'Resolve-BuildModule.ps1')
 Import-BuildModule @('WindowsBuild.Common', 'WindowsMsix.Common', 'WindowsMsix.Signing', 'WindowsAppInstallers.Common',
-    'WindowsMsiLicense.Common', 'WindowsOrtProvenance.Common', 'WindowsOrtLicense.Common', 'WindowsThirdPartyLicense.Common')
+    'WindowsMsiLicense.Common', 'WindowsOrtProvenance.Common', 'WindowsOrtPayload.Common', 'WindowsOrtLicense.Common',
+    'WindowsOrtRunner.Common', 'WindowsThirdPartyLicense.Common')
 
 $AppDir = (Resolve-Path -LiteralPath $AppDir).Path
 if (-not (Test-Path -LiteralPath (Join-Path $AppDir 'omni_accelerant.exe') -PathType Leaf)) { throw "no omni_accelerant.exe in $AppDir" }
@@ -46,7 +47,8 @@ $work = Join-Path ([IO.Path]::GetTempPath()) "omni-accelerant-installers-$Arch"
 $null = New-Item -ItemType Directory -Force -Path $work
 $context = New-BuildContext -Workspace $repoRoot -LogDir (Join-Path $OutDir 'logs')
 $installer = Join-Path $PSScriptRoot 'installer'
-$ortLicenses = Copy-OrtWheelLicenses -OrtDll (Join-Path $AppDir 'onnxruntime.dll') -WheelDir (Get-OrtChainWheelStore) -Destination $AppDir
+# The host has no wheel store: the build matched the texts in the image and stamped them with the DLL.
+$ortLicenses = Resolve-RunnerOrtLicense -RunnerDir $AppDir
 $fragment = Join-Path $work 'msi-payload-files.wxs'
 Assert-NativeLicenseCoverage -Path $AppDir -RepoRoot $repoRoot
 $licenseAssets = Get-ThirdPartyLicenseAsset -RepoRoot $repoRoot
