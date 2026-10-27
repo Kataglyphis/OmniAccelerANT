@@ -100,6 +100,9 @@
   {
    "ecosystem": "native",
    "files": {
+    "android": [
+     "libdartjni.so"
+    ],
     "linux": [
      "liburl_launcher_linux_plugin.so",
      "libfile_saver_plugin.so"
@@ -12084,7 +12087,7 @@
  "inputs": {
   "pubspec.lock": "84ac0921a10d84bdef0e678deb3c9ef56e4d38b3cfd0a974e00f2a24308b531e",
   "scripts/licenses/cargo-policy.json": "1a7cc1b9543632c15e3e988aa297e40affaf98c5857ee0fb3944fe9c4dff5ae7",
-  "scripts/licenses/native-components.json": "6288939bdb76a16315a1e705f43469ce56e8cb1a3c782d2dad2238613ea423cf",
+  "scripts/licenses/native-components.json": "2c5bdff01bf44e1a5848ba4231c118b77790aac00ddc8109dc06fa3d7934646b",
   "third_party/AccelerANTgine/Src/rusty_code/Cargo.lock": "7a4eaacef1d82d646bab21ec24512c5c6bac0b262d0e3eadd0df1382360f4830",
   "third_party/OxidANT/Cargo.lock": "1ca0c245584c5593cf352e065c59cd7075f2322e8f13d82ca1bfa1c814bcf4cb"
  },

@@ -74,7 +74,7 @@ t_assert_ok python3 "$coverage" --platform windows "$work/windows"
 t_assert_fails python3 "$coverage" --platform windows "$work/windows"
 
 t_case 'an APK is read from its lib/ slices'
-t_zip "$work/good.apk" lib/arm64-v8a/libflutter.so lib/arm64-v8a/liboxidant.so assets/flutter_assets/NOTICES.Z
+t_zip "$work/good.apk" lib/arm64-v8a/libflutter.so lib/arm64-v8a/liboxidant.so lib/arm64-v8a/libdartjni.so assets/flutter_assets/NOTICES.Z
 t_assert_ok python3 "$coverage" --platform android "$work/good.apk"
 t_zip "$work/bad.apk" lib/arm64-v8a/libflutter.so lib/arm64-v8a/libmystery.so
 t_assert_fails python3 "$coverage" --platform android "$work/bad.apk"

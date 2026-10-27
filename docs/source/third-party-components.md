@@ -15,7 +15,7 @@ Dart package texts are in Flutter's `NOTICES`. Maintenance and limits:
 | OxidANT | MIT | https://github.com/Kataglyphis/OxidANT | android: `liboxidant.so`; linux: `liboxidant.so`; windows: `oxidant.dll` |
 | AccelerANTgine | MIT | https://github.com/Kataglyphis/AccelerANTgine | linux: `libAccelerANTgine.so`; windows: `AccelerANTgine.dll`, `AccelerANTgine.lib` |
 | Flutter engine and embedders | BSD-3-Clause | https://github.com/flutter/flutter | android: `libflutter.so`, `libapp.so`; linux: `libflutter_linux_gtk.so`, `libapp.so`; windows: `flutter_windows.dll` |
-| Flutter plugins from pub.dev | see the dart ecosystem | https://pub.dev | linux: `liburl_launcher_linux_plugin.so`, `libfile_saver_plugin.so`; windows: `url_launcher_windows_plugin.dll`, `permission_handler_windows_plugin.dll` |
+| Flutter plugins from pub.dev | see the dart ecosystem | https://pub.dev | android: `libdartjni.so`; linux: `liburl_launcher_linux_plugin.so`, `libfile_saver_plugin.so`; windows: `url_launcher_windows_plugin.dll`, `permission_handler_windows_plugin.dll` |
 | ONNX Runtime | MIT | https://github.com/microsoft/onnxruntime | linux: `libonnxruntime.so`, `libonnxruntime.so.*`; windows: `onnxruntime.dll`, `onnxruntime_providers_shared.dll` |
 | Microsoft DirectML | LicenseRef-Microsoft-DirectML | https://www.nuget.org/packages/Microsoft.AI.DirectML | windows: `DirectML.dll` |
 | Microsoft Visual C++ runtime | LicenseRef-Microsoft-VC-Redist | https://learn.microsoft.com/cpp/windows/redistributing-visual-cpp-files | windows: `vcruntime140.dll`, `vcruntime140_1.dll`, `msvcp140.dll`, `msvcp140_*.dll`, `concrt140.dll` |
