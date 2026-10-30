@@ -7,7 +7,9 @@ import '../frb_generated.dart';
 
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-/// Whether this build can run the webcam pipeline: a compile-time answer, cheap enough for a widget's build.
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `from`
+
+/// Whether this target runs the webcam pipeline (desktop: GStreamer); compile-time, cheap enough for a widget's build.
 bool webcamInferenceAvailable() =>
     RustLib.instance.api.crateApiWebcamWebcamInferenceAvailable();
 

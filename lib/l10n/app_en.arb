@@ -281,5 +281,25 @@
     }
   },
   "visitStatsPerDay": "Per day",
-  "visitStatsPerHour": "By time of day"
+  "visitStatsPerHour": "By time of day",
+  "aiPlaygroundNav": "AI",
+  "aiPlaygroundTitle": "AI Playground",
+  "aiSettings": "Model and settings",
+  "aiSourceEndpoint": "Endpoint",
+  "aiSourceLocal": "Local model",
+  "aiLocalUnavailable": "This build runs no local model; Linux and Windows builds do through the chain's ONNX Runtime GenAI.",
+  "aiModelDir": "GenAI model directory",
+  "aiProvider": "Execution provider",
+  "aiBaseUrl": "Base URL (without /v1)",
+  "aiModel": "Model",
+  "aiApiKey": "API key",
+  "aiSystemPrompt": "System prompt",
+  "aiMaxTokens": "Maximum new tokens",
+  "aiTemperature": "Temperature",
+  "aiClear": "New conversation",
+  "aiError": "The model failed: {detail}",
+  "@aiError": {
+    "description": "Shown above the chat when a generation fails.",
+    "placeholders": { "detail": { "type": "String" } }
+  }
 }

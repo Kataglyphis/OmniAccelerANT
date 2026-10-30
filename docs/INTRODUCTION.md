@@ -16,6 +16,7 @@
 | [Getting Started](source/getting-started.md) | Local setup, the lanes CI runs, first run, verification checks. |
 | [Platforms](source/platforms.md) | Linux, Windows, Android, Raspberry Pi and Web instructions. |
 | [Camera Streaming](source/camera-streaming.md) | The installable ObservANT, GStreamer WebRTC pipelines, the Rust cat-detection producer. |
+| [AI Playground](source/ai-playground.md) | Chat with a language model: an endpoint on every platform, the chain GenAI locally on Linux and Windows. |
 | [ESP32-S3 Companion & Camera](source/esp32.md) | The Rust companion firmware, the ESP32-S3-EYE camera with on-device cat detection, the Device page. |
 | [Testing](source/testing.md) | What each kind of test proves, what the app's Dart suite checks, the known gaps. |
 | [Readmes](source/readmes.md) | Links to the relevant README entry points. |

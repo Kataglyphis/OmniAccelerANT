@@ -5,6 +5,11 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ## Unreleased
 
+- **The AI Playground page (LAI-F1, F2).** Chat with a language model on ANThology's chat widgets:
+  any OpenAI-compatible endpoint on every platform, or a GenAI model directory in process on Linux
+  and Windows through OxidANT's new text bridge, with streaming, stop and the speed figures. The web
+  build fetches whole answers. OxidANT moves to 2a67ae86 and ANThology to 7b21c696; the generated
+  bindings gain `text.dart`. See `docs/source/ai-playground.md`.
 - Match the Windows app's ONNX Runtime texts to the chain wheel inside the image, where the wheel
   store is, and stamp their hashes beside the DLL's; the host MSI/MSIX packager re-proves that stamp
   instead of looking for a wheel store the CI host does not have (run 40522231228).

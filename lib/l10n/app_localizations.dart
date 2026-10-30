@@ -745,6 +745,102 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'By time of day'**
   String get visitStatsPerHour;
+
+  /// No description provided for @aiPlaygroundNav.
+  ///
+  /// In en, this message translates to:
+  /// **'AI'**
+  String get aiPlaygroundNav;
+
+  /// No description provided for @aiPlaygroundTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'AI Playground'**
+  String get aiPlaygroundTitle;
+
+  /// No description provided for @aiSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Model and settings'**
+  String get aiSettings;
+
+  /// No description provided for @aiSourceEndpoint.
+  ///
+  /// In en, this message translates to:
+  /// **'Endpoint'**
+  String get aiSourceEndpoint;
+
+  /// No description provided for @aiSourceLocal.
+  ///
+  /// In en, this message translates to:
+  /// **'Local model'**
+  String get aiSourceLocal;
+
+  /// No description provided for @aiLocalUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'This build runs no local model; Linux and Windows builds do through the chain\'s ONNX Runtime GenAI.'**
+  String get aiLocalUnavailable;
+
+  /// No description provided for @aiModelDir.
+  ///
+  /// In en, this message translates to:
+  /// **'GenAI model directory'**
+  String get aiModelDir;
+
+  /// No description provided for @aiProvider.
+  ///
+  /// In en, this message translates to:
+  /// **'Execution provider'**
+  String get aiProvider;
+
+  /// No description provided for @aiBaseUrl.
+  ///
+  /// In en, this message translates to:
+  /// **'Base URL (without /v1)'**
+  String get aiBaseUrl;
+
+  /// No description provided for @aiModel.
+  ///
+  /// In en, this message translates to:
+  /// **'Model'**
+  String get aiModel;
+
+  /// No description provided for @aiApiKey.
+  ///
+  /// In en, this message translates to:
+  /// **'API key'**
+  String get aiApiKey;
+
+  /// No description provided for @aiSystemPrompt.
+  ///
+  /// In en, this message translates to:
+  /// **'System prompt'**
+  String get aiSystemPrompt;
+
+  /// No description provided for @aiMaxTokens.
+  ///
+  /// In en, this message translates to:
+  /// **'Maximum new tokens'**
+  String get aiMaxTokens;
+
+  /// No description provided for @aiTemperature.
+  ///
+  /// In en, this message translates to:
+  /// **'Temperature'**
+  String get aiTemperature;
+
+  /// No description provided for @aiClear.
+  ///
+  /// In en, this message translates to:
+  /// **'New conversation'**
+  String get aiClear;
+
+  /// Shown above the chat when a generation fails.
+  ///
+  /// In en, this message translates to:
+  /// **'The model failed: {detail}'**
+  String aiError(String detail);
 }
 
 class _AppLocalizationsDelegate

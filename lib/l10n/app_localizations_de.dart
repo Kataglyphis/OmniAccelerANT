@@ -397,4 +397,55 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get visitStatsPerHour => 'Nach Uhrzeit';
+
+  @override
+  String get aiPlaygroundNav => 'KI';
+
+  @override
+  String get aiPlaygroundTitle => 'KI-Spielwiese';
+
+  @override
+  String get aiSettings => 'Modell und Einstellungen';
+
+  @override
+  String get aiSourceEndpoint => 'Endpunkt';
+
+  @override
+  String get aiSourceLocal => 'Lokales Modell';
+
+  @override
+  String get aiLocalUnavailable =>
+      'Dieser Build führt kein lokales Modell aus; die Linux- und Windows-Builds tun es über das ONNX Runtime GenAI der Chain.';
+
+  @override
+  String get aiModelDir => 'GenAI-Modellverzeichnis';
+
+  @override
+  String get aiProvider => 'Ausführungsanbieter';
+
+  @override
+  String get aiBaseUrl => 'Basis-URL (ohne /v1)';
+
+  @override
+  String get aiModel => 'Modell';
+
+  @override
+  String get aiApiKey => 'API-Schlüssel';
+
+  @override
+  String get aiSystemPrompt => 'Systemprompt';
+
+  @override
+  String get aiMaxTokens => 'Höchstens neue Tokens';
+
+  @override
+  String get aiTemperature => 'Temperatur';
+
+  @override
+  String get aiClear => 'Neues Gespräch';
+
+  @override
+  String aiError(String detail) {
+    return 'Das Modell ist fehlgeschlagen: $detail';
+  }
 }

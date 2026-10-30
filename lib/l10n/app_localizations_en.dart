@@ -394,4 +394,55 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get visitStatsPerHour => 'By time of day';
+
+  @override
+  String get aiPlaygroundNav => 'AI';
+
+  @override
+  String get aiPlaygroundTitle => 'AI Playground';
+
+  @override
+  String get aiSettings => 'Model and settings';
+
+  @override
+  String get aiSourceEndpoint => 'Endpoint';
+
+  @override
+  String get aiSourceLocal => 'Local model';
+
+  @override
+  String get aiLocalUnavailable =>
+      'This build runs no local model; Linux and Windows builds do through the chain\'s ONNX Runtime GenAI.';
+
+  @override
+  String get aiModelDir => 'GenAI model directory';
+
+  @override
+  String get aiProvider => 'Execution provider';
+
+  @override
+  String get aiBaseUrl => 'Base URL (without /v1)';
+
+  @override
+  String get aiModel => 'Model';
+
+  @override
+  String get aiApiKey => 'API key';
+
+  @override
+  String get aiSystemPrompt => 'System prompt';
+
+  @override
+  String get aiMaxTokens => 'Maximum new tokens';
+
+  @override
+  String get aiTemperature => 'Temperature';
+
+  @override
+  String get aiClear => 'New conversation';
+
+  @override
+  String aiError(String detail) {
+    return 'The model failed: $detail';
+  }
 }
