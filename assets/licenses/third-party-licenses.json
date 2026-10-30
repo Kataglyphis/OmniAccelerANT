@@ -1073,19 +1073,19 @@
    "texts": [
     {
      "name": "package/LICENSE-APACHE",
-     "provenance": "crates.io addr2line@0.25.1",
+     "provenance": "crates.io addr2line@0.27.1",
      "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2"
     },
     {
      "name": "package/LICENSE-MIT",
-     "provenance": "crates.io addr2line@0.25.1",
+     "provenance": "crates.io addr2line@0.27.1",
      "sha256": "e99d88d232bf57d70f0fb87f6b496d44b6653f99f8a63d250a54c61ea4bcde40"
     }
    ],
    "used_by": [
     "oxidant"
    ],
-   "version": "0.25.1"
+   "version": "0.27.1"
   },
   {
    "ecosystem": "cargo",
@@ -1840,19 +1840,19 @@
    "texts": [
     {
      "name": "package/LICENSE-APACHE",
-     "provenance": "crates.io backtrace@0.3.76",
+     "provenance": "crates.io backtrace@0.3.77",
      "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2"
     },
     {
      "name": "package/LICENSE-MIT",
-     "provenance": "crates.io backtrace@0.3.76",
+     "provenance": "crates.io backtrace@0.3.77",
      "sha256": "378f5840b258e2779c39418f3f2d7b2ba96f1c7917dd6be0713f88305dbda397"
     }
    ],
    "used_by": [
     "oxidant"
    ],
-   "version": "0.3.76"
+   "version": "0.3.77"
   },
   {
    "ecosystem": "cargo",
@@ -1881,7 +1881,8 @@
     }
    ],
    "used_by": [
-    "kataglyphis_observant"
+    "kataglyphis_observant",
+    "oxidant"
    ],
    "version": "0.23.1"
   },
@@ -2736,19 +2737,19 @@
    "texts": [
     {
      "name": "package/LICENSE-APACHE",
-     "provenance": "crates.io crc32fast@1.5.2",
+     "provenance": "crates.io crc32fast@1.5.3",
      "sha256": "c6596eb7be8581c18be736c846fb9173b69eccf6ef94c5135893ec56bd92ba08"
     },
     {
      "name": "package/LICENSE-MIT",
-     "provenance": "crates.io crc32fast@1.5.2",
+     "provenance": "crates.io crc32fast@1.5.3",
      "sha256": "61d383b05b87d78f94d2937e2580cce47226d17823c0430fbcad09596537efcf"
     }
    ],
    "used_by": [
     "kataglyphis_observant"
    ],
-   "version": "1.5.2"
+   "version": "1.5.3"
   },
   {
    "ecosystem": "cargo",
@@ -3012,12 +3013,12 @@
    "texts": [
     {
      "name": "package/LICENSE-APACHE",
-     "provenance": "crates.io defmt-macros@1.1.1",
+     "provenance": "crates.io defmt-macros@1.2.0",
      "sha256": "8173d5c29b4f956d532781d2b86e4e30f83e6b7878dce18c919451d6ba707c90"
     },
     {
      "name": "package/LICENSE-MIT",
-     "provenance": "crates.io defmt-macros@1.1.1",
+     "provenance": "crates.io defmt-macros@1.2.0",
      "sha256": "2710a622a896bba67356913d4d0492cab5465f61b2ecce6d880aeb483834fb50"
     }
    ],
@@ -3025,7 +3026,7 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "1.1.1"
+   "version": "1.2.0"
   },
   {
    "ecosystem": "cargo",
@@ -3043,13 +3044,13 @@
    ],
    "texts": [
     {
-     "name": "workspace/.omni-cargo-licenses/defmt-parser@1.0.0/LICENSE-APACHE",
-     "provenance": "https://github.com/knurling-rs/defmt/blob/ce31388b004475172475f64e807f551f2d22ecae/LICENSE-APACHE (the published crate has no license file)",
+     "name": "package/LICENSE-APACHE",
+     "provenance": "crates.io defmt-parser@1.1.0",
      "sha256": "8173d5c29b4f956d532781d2b86e4e30f83e6b7878dce18c919451d6ba707c90"
     },
     {
-     "name": "workspace/.omni-cargo-licenses/defmt-parser@1.0.0/LICENSE-MIT",
-     "provenance": "https://github.com/knurling-rs/defmt/blob/ce31388b004475172475f64e807f551f2d22ecae/LICENSE-MIT (the published crate has no license file)",
+     "name": "package/LICENSE-MIT",
+     "provenance": "crates.io defmt-parser@1.1.0",
      "sha256": "2710a622a896bba67356913d4d0492cab5465f61b2ecce6d880aeb483834fb50"
     }
    ],
@@ -3057,7 +3058,7 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "1.0.0"
+   "version": "1.1.0"
   },
   {
    "ecosystem": "cargo",
@@ -3076,12 +3077,12 @@
    "texts": [
     {
      "name": "package/LICENSE-APACHE",
-     "provenance": "crates.io defmt@1.1.1",
+     "provenance": "crates.io defmt@1.2.0",
      "sha256": "8173d5c29b4f956d532781d2b86e4e30f83e6b7878dce18c919451d6ba707c90"
     },
     {
      "name": "package/LICENSE-MIT",
-     "provenance": "crates.io defmt@1.1.1",
+     "provenance": "crates.io defmt@1.2.0",
      "sha256": "2710a622a896bba67356913d4d0492cab5465f61b2ecce6d880aeb483834fb50"
     }
    ],
@@ -3089,7 +3090,7 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "1.1.1"
+   "version": "1.2.0"
   },
   {
    "ecosystem": "cargo",
@@ -3494,12 +3495,12 @@
    "texts": [
     {
      "name": "package/LICENSE-APACHE",
-     "provenance": "crates.io erased-serde@0.4.10",
+     "provenance": "crates.io erased-serde@0.4.11",
      "sha256": "62c7a1e35f56406896d7aa7ca52d0cc0d272ac022b5d2796e7d6905db8a3636a"
     },
     {
      "name": "package/LICENSE-MIT",
-     "provenance": "crates.io erased-serde@0.4.10",
+     "provenance": "crates.io erased-serde@0.4.11",
      "sha256": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3"
     }
    ],
@@ -3507,7 +3508,7 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.4.10"
+   "version": "0.4.11"
   },
   {
    "ecosystem": "cargo",
@@ -4218,19 +4219,19 @@
    "texts": [
     {
      "name": "package/LICENSE-APACHE",
-     "provenance": "crates.io gimli@0.32.3",
+     "provenance": "crates.io gimli@0.34.0",
      "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2"
     },
     {
      "name": "package/LICENSE-MIT",
-     "provenance": "crates.io gimli@0.32.3",
+     "provenance": "crates.io gimli@0.34.0",
      "sha256": "7b63ecd5f1902af1b63729947373683c32745c16a10e8e6292e2e2dcd7e90ae0"
     }
    ],
    "used_by": [
     "oxidant"
    ],
-   "version": "0.32.3"
+   "version": "0.34.0"
   },
   {
    "ecosystem": "cargo",
@@ -4842,7 +4843,8 @@
     }
    ],
    "used_by": [
-    "kataglyphis_observant"
+    "kataglyphis_observant",
+    "oxidant"
    ],
    "version": "1.5.0"
   },
@@ -4873,7 +4875,8 @@
     }
    ],
    "used_by": [
-    "kataglyphis_observant"
+    "kataglyphis_observant",
+    "oxidant"
    ],
    "version": "1.10.1"
   },
@@ -5196,6 +5199,38 @@
    "texts": [
     {
      "name": "package/LICENSE-APACHE",
+     "provenance": "crates.io itertools@0.12.1",
+     "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2"
+    },
+    {
+     "name": "package/LICENSE-MIT",
+     "provenance": "crates.io itertools@0.12.1",
+     "sha256": "7576269ea71f767b99297934c0b2367532690f8c4badc695edf8e04ab6a1e545"
+    }
+   ],
+   "used_by": [
+    "kataglyphis_observant",
+    "oxidant"
+   ],
+   "version": "0.12.1"
+  },
+  {
+   "ecosystem": "cargo",
+   "license": "MIT OR Apache-2.0",
+   "name": "itertools",
+   "source": "https://github.com/rust-itertools/itertools",
+   "targets": [
+    "aarch64-linux-android",
+    "aarch64-pc-windows-msvc",
+    "aarch64-unknown-linux-gnu",
+    "riscv64gc-unknown-linux-gnu",
+    "wasm32-unknown-unknown",
+    "x86_64-pc-windows-msvc",
+    "x86_64-unknown-linux-gnu"
+   ],
+   "texts": [
+    {
+     "name": "package/LICENSE-APACHE",
      "provenance": "crates.io itertools@0.14.0",
      "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2"
     },
@@ -5206,8 +5241,7 @@
     }
    ],
    "used_by": [
-    "kataglyphis_observant",
-    "oxidant"
+    "kataglyphis_observant"
    ],
    "version": "0.14.0"
   },
@@ -5548,6 +5582,31 @@
   },
   {
    "ecosystem": "cargo",
+   "license": "MIT",
+   "name": "kataglyphis_text",
+   "source": "path",
+   "targets": [
+    "aarch64-linux-android",
+    "aarch64-pc-windows-msvc",
+    "aarch64-unknown-linux-gnu",
+    "riscv64gc-unknown-linux-gnu",
+    "x86_64-pc-windows-msvc",
+    "x86_64-unknown-linux-gnu"
+   ],
+   "texts": [
+    {
+     "name": "workspace/LICENSE",
+     "provenance": "OxidANT workspace LICENSE (license.workspace = true)",
+     "sha256": "586ec400195558a35f3895d08f8e089f3de6206ab8512fe58d6e4b47fb342e7b"
+    }
+   ],
+   "used_by": [
+    "oxidant"
+   ],
+   "version": "3.0.0"
+  },
+  {
+   "ecosystem": "cargo",
    "license": "MIT OR Apache-2.0",
    "name": "kstring",
    "source": "https://github.com/cobalt-org/kstring",
@@ -5653,12 +5712,12 @@
    "texts": [
     {
      "name": "package/LICENSE-APACHE",
-     "provenance": "crates.io libc@0.2.190",
+     "provenance": "crates.io libc@0.2.191",
      "sha256": "62c7a1e35f56406896d7aa7ca52d0cc0d272ac022b5d2796e7d6905db8a3636a"
     },
     {
      "name": "package/LICENSE-MIT",
-     "provenance": "crates.io libc@0.2.190",
+     "provenance": "crates.io libc@0.2.191",
      "sha256": "123a331b5dbf04c30097fa43b8f858bc85df671fe776de498d01f3d6b7c1f69e"
     }
    ],
@@ -5666,7 +5725,7 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.2.190"
+   "version": "0.2.191"
   },
   {
    "ecosystem": "cargo",
@@ -6042,12 +6101,12 @@
    "texts": [
     {
      "name": "package/LICENSE-APACHE",
-     "provenance": "crates.io memmap2@0.9.11",
+     "provenance": "crates.io memmap2@0.9.12",
      "sha256": "04ea4849dba9dcae07113850c6f1b1a69052c625210639914eee352023f750ad"
     },
     {
      "name": "package/LICENSE-MIT",
-     "provenance": "crates.io memmap2@0.9.11",
+     "provenance": "crates.io memmap2@0.9.12",
      "sha256": "0d25d03b5ab49576178ad0cae7a2648d12c17ad0452fe49c07e55e4b59aa5257"
     }
    ],
@@ -6055,7 +6114,7 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.9.11"
+   "version": "0.9.12"
   },
   {
    "ecosystem": "cargo",
@@ -6094,8 +6153,7 @@
     }
    ],
    "used_by": [
-    "kataglyphis_observant",
-    "oxidant"
+    "kataglyphis_observant"
    ],
    "version": "0.8.9"
   },
@@ -6136,7 +6194,8 @@
     }
    ],
    "used_by": [
-    "kataglyphis_observant"
+    "kataglyphis_observant",
+    "oxidant"
    ],
    "version": "0.9.1"
   },
@@ -6678,19 +6737,19 @@
    "texts": [
     {
      "name": "package/LICENSE-APACHE",
-     "provenance": "crates.io object@0.37.3",
+     "provenance": "crates.io object@0.40.0",
      "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2"
     },
     {
      "name": "package/LICENSE-MIT",
-     "provenance": "crates.io object@0.37.3",
+     "provenance": "crates.io object@0.40.0",
      "sha256": "0b74dfa0bcee5c420c6b7f67b4b2658f9ab8388c97b8e733975f2cecbdd668a6"
     }
    ],
    "used_by": [
     "oxidant"
    ],
-   "version": "0.37.3"
+   "version": "0.40.0"
   },
   {
    "ecosystem": "cargo",
@@ -7054,7 +7113,8 @@
     }
    ],
    "used_by": [
-    "kataglyphis_observant"
+    "kataglyphis_observant",
+    "oxidant"
    ],
    "version": "2.3.2"
   },
@@ -8049,7 +8109,8 @@
     }
    ],
    "used_by": [
-    "kataglyphis_observant"
+    "kataglyphis_observant",
+    "oxidant"
    ],
    "version": "0.17.14"
   },
@@ -8129,17 +8190,17 @@
    "texts": [
     {
      "name": "package/LICENSE-APACHE",
-     "provenance": "crates.io rustix@1.1.5",
+     "provenance": "crates.io rustix@1.1.6",
      "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2"
     },
     {
      "name": "package/LICENSE-Apache-2.0_WITH_LLVM-exception",
-     "provenance": "crates.io rustix@1.1.5",
+     "provenance": "crates.io rustix@1.1.6",
      "sha256": "268872b9816f90fd8e85db5a28d33f8150ebb8dd016653fb39ef1f94f2686bc5"
     },
     {
      "name": "package/LICENSE-MIT",
-     "provenance": "crates.io rustix@1.1.5",
+     "provenance": "crates.io rustix@1.1.6",
      "sha256": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3"
     }
    ],
@@ -8147,7 +8208,7 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "1.1.5"
+   "version": "1.1.6"
   },
   {
    "ecosystem": "cargo",
@@ -8176,7 +8237,8 @@
     }
    ],
    "used_by": [
-    "kataglyphis_observant"
+    "kataglyphis_observant",
+    "oxidant"
    ],
    "version": "1.15.1"
   },
@@ -8202,7 +8264,8 @@
     }
    ],
    "used_by": [
-    "kataglyphis_observant"
+    "kataglyphis_observant",
+    "oxidant"
    ],
    "version": "0.103.16"
   },
@@ -8238,7 +8301,8 @@
     }
    ],
    "used_by": [
-    "kataglyphis_observant"
+    "kataglyphis_observant",
+    "oxidant"
    ],
    "version": "0.23.46"
   },
@@ -8663,12 +8727,12 @@
    "texts": [
     {
      "name": "package/LICENSE-APACHE",
-     "provenance": "crates.io smallvec@1.16.3",
+     "provenance": "crates.io smallvec@1.16.4",
      "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2"
     },
     {
      "name": "package/LICENSE-MIT",
-     "provenance": "crates.io smallvec@1.16.3",
+     "provenance": "crates.io smallvec@1.16.4",
      "sha256": "0b28172679e0009b655da42797c03fd163a3379d5cfa67ba1f1655e974a2a1a9"
     }
    ],
@@ -8676,7 +8740,7 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "1.16.3"
+   "version": "1.16.4"
   },
   {
    "ecosystem": "cargo",
@@ -8886,7 +8950,8 @@
     }
    ],
    "used_by": [
-    "kataglyphis_observant"
+    "kataglyphis_observant",
+    "oxidant"
    ],
    "version": "2.6.1"
   },
@@ -9178,7 +9243,7 @@
    "texts": [
     {
      "name": "package/LICENSE",
-     "provenance": "crates.io tokio@1.53.3",
+     "provenance": "crates.io tokio@1.54.1",
      "sha256": "253cd04c6714889df2d32f3f64d669179a1c95c76ac43c40882c52eb06bc3552"
     }
    ],
@@ -9186,7 +9251,7 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "1.53.3"
+   "version": "1.54.1"
   },
   {
    "ecosystem": "cargo",
@@ -9931,7 +9996,8 @@
     }
    ],
    "used_by": [
-    "kataglyphis_observant"
+    "kataglyphis_observant",
+    "oxidant"
    ],
    "version": "0.9.0"
   },
@@ -9952,19 +10018,20 @@
    "texts": [
     {
      "name": "package/LICENSE-APACHE.txt",
-     "provenance": "crates.io ureq-proto@0.6.4",
+     "provenance": "crates.io ureq-proto@0.6.5",
      "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
     },
     {
      "name": "package/LICENSE-MIT.txt",
-     "provenance": "crates.io ureq-proto@0.6.4",
+     "provenance": "crates.io ureq-proto@0.6.5",
      "sha256": "5b460f37be48ac4cf2181596181cc6cae432fc2caae05944873f380730829a4b"
     }
    ],
    "used_by": [
-    "kataglyphis_observant"
+    "kataglyphis_observant",
+    "oxidant"
    ],
-   "version": "0.6.4"
+   "version": "0.6.5"
   },
   {
    "ecosystem": "cargo",
@@ -9983,19 +10050,20 @@
    "texts": [
     {
      "name": "package/LICENSE-APACHE",
-     "provenance": "crates.io ureq@3.4.2",
+     "provenance": "crates.io ureq@3.5.0",
      "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
     },
     {
      "name": "package/LICENSE-MIT",
-     "provenance": "crates.io ureq@3.4.2",
+     "provenance": "crates.io ureq@3.5.0",
      "sha256": "7e5886959f67f8c75063a9d55cd3cb08c5a8cbea9a944fa1df2d4ae038f53721"
     }
    ],
    "used_by": [
-    "kataglyphis_observant"
+    "kataglyphis_observant",
+    "oxidant"
    ],
-   "version": "3.4.2"
+   "version": "3.5.0"
   },
   {
    "ecosystem": "cargo",
@@ -10024,7 +10092,8 @@
     }
    ],
    "used_by": [
-    "kataglyphis_observant"
+    "kataglyphis_observant",
+    "oxidant"
    ],
    "version": "0.8.1"
   },
@@ -10313,14 +10382,15 @@
    "texts": [
     {
      "name": "package/LICENSE",
-     "provenance": "crates.io webpki-roots@1.0.10",
+     "provenance": "crates.io webpki-roots@1.0.11",
      "sha256": "e271993808fec50ab29350b39539cdec611a9103f827e0aa26d61da70e2d33f8"
     }
    ],
    "used_by": [
-    "kataglyphis_observant"
+    "kataglyphis_observant",
+    "oxidant"
    ],
-   "version": "1.0.10"
+   "version": "1.0.11"
   },
   {
    "ecosystem": "cargo",
@@ -10832,6 +10902,7 @@
     }
    ],
    "used_by": [
+    "kataglyphis_observant",
     "oxidant"
    ],
    "version": "0.52.6"
@@ -11045,7 +11116,8 @@
     }
    ],
    "used_by": [
-    "kataglyphis_observant"
+    "kataglyphis_observant",
+    "oxidant"
    ],
    "version": "1.9.1"
   },
@@ -12087,10 +12159,10 @@
  ],
  "inputs": {
   "pubspec.lock": "84ac0921a10d84bdef0e678deb3c9ef56e4d38b3cfd0a974e00f2a24308b531e",
-  "scripts/licenses/cargo-policy.json": "1a7cc1b9543632c15e3e988aa297e40affaf98c5857ee0fb3944fe9c4dff5ae7",
+  "scripts/licenses/cargo-policy.json": "6e00988b928e306bffa597f57dc58e21d9c34db75d52985c354b6cf077e1dcf5",
   "scripts/licenses/native-components.json": "f0d691d993aed9af056d18982ea82980ef72c367c820d2448468e9e9c7ac964f",
   "third_party/AccelerANTgine/Src/rusty_code/Cargo.lock": "7a4eaacef1d82d646bab21ec24512c5c6bac0b262d0e3eadd0df1382360f4830",
-  "third_party/OxidANT/Cargo.lock": "1ca0c245584c5593cf352e065c59cd7075f2322e8f13d82ca1bfa1c814bcf4cb"
+  "third_party/OxidANT/Cargo.lock": "479ea738e13d854de250f0c0e7a219ea32abc85b04de4e0605ed0c1c6bca0d76"
  },
  "schema": 1,
  "text_files": [
