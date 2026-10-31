@@ -8,10 +8,12 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import re
 import shutil
 import subprocess
 import sys
 import tempfile
+import tomllib
 from pathlib import Path
 from typing import Any
 
@@ -47,7 +49,7 @@ WORKSPACES: list[dict[str, Any]] = [
         ],
         "license": None,
     },
-    # rusty_code declares no license; the copy states AccelerANTgine's MIT, see docs/source/third-party-components.md.
+    # Older rusty_code revisions omit the MIT license; newer ones declare it themselves.
     {
         "path": "third_party/AccelerANTgine/Src/rusty_code",
         "roots": ["rusty_code"],
@@ -163,6 +165,22 @@ def dart_packages() -> list[dict[str, Any]]:
     return sorted(result, key=lambda item: item["name"])
 
 
+def ensure_workspace_mit_license(manifest: Path) -> None:
+    content = manifest.read_text(encoding="utf-8")
+    package = tomllib.loads(content).get("package")
+    if not isinstance(package, dict):
+        raise TypeError(f"{manifest}: missing package table")
+    declared = package.get("license")
+    if "license-file" in package or declared not in (None, "MIT"):
+        raise ValueError(f"{manifest}: expected MIT package license, got {declared!r}")
+    if declared is None:
+        header = re.search(r"(?m)^\[\s*package\s*\][ \t]*(?:#.*)?$", content)
+        if header is None:
+            raise ValueError(f"{manifest}: cannot locate package table")
+        content = content[: header.end()] + '\nlicense = "MIT"' + content[header.end() :]
+        manifest.write_text(content, encoding="utf-8")
+
+
 def stage_workspace(
     spec: dict[str, Any],
     scratch: Path,
@@ -177,13 +195,7 @@ def stage_workspace(
     if (copy / "LICENSE").is_file():
         (copy / "LICENSE").write_bytes(normalized((copy / "LICENSE").read_bytes()))
     if spec["license"]:
-        manifest = copy / "Cargo.toml"
-        manifest.write_text(
-            manifest.read_text(encoding="utf-8").replace(
-                "[package]\n", '[package]\nlicense = "MIT"\n', 1
-            ),
-            encoding="utf-8",
-        )
+        ensure_workspace_mit_license(copy / "Cargo.toml")
         (copy / "LICENSE").write_bytes(
             normalized((ROOT / spec["license"]).read_bytes())
         )

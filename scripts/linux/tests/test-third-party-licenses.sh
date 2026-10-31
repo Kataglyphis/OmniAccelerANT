@@ -28,6 +28,9 @@ fresh_tree() {
 }
 check_tree() { python3 "$work/tree/scripts/licenses/generate-third-party-licenses.py" --check; }
 
+t_case 'workspace license metadata remains truthful and parseable'
+t_assert_ok python3 "${repo}/scripts/licenses/tests/test_workspace_license.py"
+
 t_case 'the committed inventory matches its inputs'
 t_assert_ok python3 "${repo}/scripts/licenses/generate-third-party-licenses.py" --check
 fresh_tree
