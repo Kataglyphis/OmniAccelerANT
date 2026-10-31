@@ -39,6 +39,12 @@ Describe 'Windows detector model staging' {
     It 'rejects a corrupted model and a missing notice without fetching in verify-only mode' {
         & $stage -WorkspaceDir $script:workspace -RunnerDir $script:runner
         Set-Content -LiteralPath (Join-Path $script:runner 'resources\models\deim_dfine_n_coco.onnx') -Value 'corrupt'
+        $archive = Join-Path $TestDrive 'matching-mutated-model.zip'
+        Compress-Archive -LiteralPath (Join-Path $script:runner 'resources\models\deim_dfine_n_coco.onnx') -DestinationPath $archive
+        $extracted = Join-Path $TestDrive 'matching-mutated-model'
+        Expand-Archive -LiteralPath $archive -DestinationPath $extracted
+        (Get-FileHash -LiteralPath (Join-Path $extracted 'deim_dfine_n_coco.onnx')).Hash |
+            Should Be (Get-FileHash -LiteralPath (Join-Path $script:runner 'resources\models\deim_dfine_n_coco.onnx')).Hash
         $message = try { & $stage -WorkspaceDir $script:workspace -RunnerDir $script:runner -VerifyOnly; '' } catch { $_.Exception.Message }
         $message | Should Match 'verification failed'
         & $stage -WorkspaceDir $script:workspace -RunnerDir $script:runner
@@ -77,6 +83,14 @@ Describe 'Windows detector model staging' {
         $x64 | Should Match 'Stage-DetectorModel\.ps1'
         $arm | Should Match 'Stage-DetectorModel\.ps1'
         $package | Should Match 'Stage-DetectorModel\.ps1[^\r\n]+-VerifyOnly'
+        $msi = $package.IndexOf('Assert-PackageBinary -Path "$base.msi"')
+        $msix = $package.IndexOf('Assert-PackageBinary -Path "$base.msix"')
+        $publish = $package.IndexOf('Move-Item -LiteralPath $outRoot -Destination $gpuDestination')
+        $modelCheck = "Stage-DetectorModel.ps1') -WorkspaceDir `$repoRoot -RunnerDir `$AppDir -VerifyOnly"
+        $afterMsi = $package.IndexOf($modelCheck, $msi)
+        $afterMsix = $package.IndexOf($modelCheck, $msix)
+        ($msi -ge 0 -and $afterMsi -gt $msi -and $afterMsi -lt $msix -and
+            $afterMsix -gt $msix -and $afterMsix -lt $publish) | Should Be $true
         foreach ($name in $names) { $package | Should Match ([regex]::Escape("resources/models/$name")) }
     }
 }

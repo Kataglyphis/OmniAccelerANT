@@ -89,6 +89,7 @@ if ($gpuFiles.Count -gt 0) {
     $gpuMsiIds = @('exe0') + @($gpuPaths | Select-Object -Skip 1 | ForEach-Object { Get-WixSourceFileId -WixPath $fragment -SourcePath $_ })
     $gpuProviders = @($gpuFiles | Where-Object { $_ -clike 'onnxruntime_providers_*.dll' } | Sort-Object)
     Assert-PackageBinary -Path "$base.msi" -Member $gpuMsiIds -SourcePath $gpuPaths
+    & (Join-Path $PSScriptRoot 'Stage-DetectorModel.ps1') -WorkspaceDir $repoRoot -RunnerDir $AppDir -VerifyOnly
     $msiProviders = @(Get-PackageOrtProviderNames -Path "$base.msi" -Directory '' -RootDirectoryId APPLICATIONFOLDER -RootDirectoryName OmniAccelerANT)
     if (($gpuProviders -join ',') -cne ($msiProviders -join ',')) { throw 'MSI ORT provider set differs from the proven runner.' }
     Assert-WindowsInstallerCandidate -RunnerDir $AppDir -Provider $OrtProvider -Arch $Arch
@@ -101,6 +102,7 @@ Assert-ThirdPartyLicensePackage -Path "$base.msix" -RepoRoot $repoRoot -Asset $l
 Assert-OrtWheelLicensesInPackage -Path "$base.msix" -LicenseDirectory $ortLicenses -Format archive
 if ($gpuFiles.Count -gt 0) {
     Assert-PackageBinary -Path "$base.msix" -Member $gpuFiles -SourcePath $gpuPaths
+    & (Join-Path $PSScriptRoot 'Stage-DetectorModel.ps1') -WorkspaceDir $repoRoot -RunnerDir $AppDir -VerifyOnly
     $msixProviders = @(Get-PackageOrtProviderNames -Path "$base.msix" -Directory '')
     if (($gpuProviders -join ',') -cne ($msixProviders -join ',')) { throw 'MSIX ORT provider set differs from the proven runner.' }
     Assert-WindowsInstallerCandidate -RunnerDir $AppDir -Provider $OrtProvider -Arch $Arch
