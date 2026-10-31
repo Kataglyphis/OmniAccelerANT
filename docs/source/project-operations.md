@@ -47,6 +47,7 @@ provenance, then checks the delivered runner's stamp, native-license coverage an
 startup on the host. The x64 runner and arm64 native bundle stage the model, license and
 notice from OxidANT's hash-locked model list; the host packager rechecks all three before
 writing installers. GPU MSI and MSIX checks compare their model files to the verified runner.
+The `gpu-vendor` input defaults to `all`; choose `nvidia` or `amd` to build only that vendor.
 The workflow also requires `--onnx-check` to run the bundled model with ONNX Runtime CPU
 from the runner and both installed executables. It separately starts the MSIX through its
 app entry; its direct executable self-check does not verify inference in that activation
@@ -73,6 +74,8 @@ The manually dispatched or reusable Linux GPU candidate workflow uses the regist
 and ARM64 and the AMD ROCm image on x64. Each finished TAR, DEB and AppImage must carry
 the model and its license and notice at their locked SHA-256 values. Clean-host checks run
 model inference and start each format with CPU selected and model/runtime overrides cleared.
+The `gpu-tuple` input defaults to `all`; choose `nvidia-x64`, `nvidia-arm64`, or `amd-x64`
+to build and check a single combination independently of the other candidates.
 Model files and their directory components must be regular, unlinked package content;
 Windows staging checks the destination for junctions before copying model files.
 The finished DEB's embedded package name and architecture must match the candidate vendor
@@ -89,6 +92,16 @@ existing upload. Linux clean-host checks download the candidate from that same a
 only a downstream job is rerun, the required current-attempt upload may not exist; rerun the
 candidate build as well. Attempt-scoped names prevent accidental reuse but do not prove GPU
 execution or authorize release promotion.
+Both workflows include their validated selection and `caller-scope` in artifact names.
+`caller-scope` defaults to `default` and accepts 1–32 lowercase letters, digits and hyphens,
+starting with a letter. Give repeated calls with the same selection distinct scopes within a caller run;
+identical selection/scope calls share artifact names and may cancel each other. Candidate
+jobs with the same validated selection, scope and target cancel an earlier in-progress job
+on the same ref. Invalid inputs are rejected before reaching those concurrency groups.
+If one Linux matrix build fails, clean-host still checks all selected rows: a failed row's
+missing upload fails its check while successful uploads remain independently checked.
+The scope validation matches ANTfrastructure's newer invocation-scope contract; this local
+fallback remains necessary until the recorded hub pin provides that shared validator.
 
 Linux Omni, ObservANT and its Pi bundle match every bundled `libonnxruntime*.so*`
 to one wheel, either directly or after target-compatible stripping. The wheel's

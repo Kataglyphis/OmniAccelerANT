@@ -2,10 +2,75 @@
 """Check the recorded submodules support GPU candidates before pulling an image."""
 
 import argparse
+import json
 import re
 import sys
 import tomllib
 from pathlib import Path
+
+GPU_ROWS = {
+    "nvidia-x64": {
+        "vendor": "nvidia",
+        "arch": "x64",
+        "platform": "linux/amd64",
+        "runner": "ubuntu-26.04",
+        "image-tag": "latest-nvidia",
+        "provider": "cuda",
+    },
+    "nvidia-arm64": {
+        "vendor": "nvidia",
+        "arch": "arm64",
+        "platform": "linux/arm64",
+        "runner": "ubuntu-26.04-arm",
+        "image-tag": "latest-nvidia",
+        "provider": "cuda",
+    },
+    "amd-x64": {
+        "vendor": "amd",
+        "arch": "x64",
+        "platform": "linux/amd64",
+        "runner": "ubuntu-26.04",
+        "image-tag": "latest-rocm",
+        "provider": "migraphx",
+    },
+}
+WINDOWS_GPU_ROWS = {
+    "nvidia": {"vendor": "nvidia", "tag": "winamd64-nvidia", "provider": "cuda"},
+    "amd": {"vendor": "amd", "tag": "winamd64-rocm", "provider": "directml"},
+}
+
+
+def gpu_matrix(selection: str) -> dict:
+    """Select only requested, supported registry-image and runner tuples."""
+    if selection == "all":
+        rows = list(GPU_ROWS.values())
+    elif selection in GPU_ROWS:
+        rows = [GPU_ROWS[selection]]
+    else:
+        raise ValueError(
+            "unsupported GPU tuple; expected all, nvidia-x64, nvidia-arm64 or amd-x64"
+        )
+    return {"include": rows}
+
+
+def windows_gpu_matrix(selection: str) -> dict:
+    """Select the supported Windows x64 GPU image and provider combinations."""
+    if selection == "all":
+        rows = list(WINDOWS_GPU_ROWS.values())
+    elif selection in WINDOWS_GPU_ROWS:
+        rows = [WINDOWS_GPU_ROWS[selection]]
+    else:
+        raise ValueError("unsupported Windows GPU vendor; expected all, nvidia or amd")
+    return {"include": rows}
+
+
+def validate_scope(scope: str) -> str:
+    """Use the shared invocation-scope syntax with the current older hub pin."""
+    if not re.fullmatch(r"[a-z][a-z0-9-]{0,31}", scope):
+        raise ValueError(
+            "scope must start with a lowercase letter and contain at most 32 lowercase letters, digits or hyphens"
+        )
+    return scope
 
 
 def require_text(path: Path, *markers: str) -> None:
@@ -74,8 +139,32 @@ def main() -> int:
     """Print the image repository only after all pinned capabilities pass."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", type=Path, default=Path.cwd())
+    selections = parser.add_mutually_exclusive_group()
+    selections.add_argument(
+        "--matrix", help="select supported GPU tuples instead of checking pins"
+    )
+    selections.add_argument(
+        "--windows-matrix",
+        help="select supported Windows vendors instead of checking pins",
+    )
+    selections.add_argument(
+        "--scope", help="validate an artifact and concurrency scope"
+    )
     args = parser.parse_args()
     try:
+        if args.matrix is not None:
+            print(json.dumps(gpu_matrix(args.matrix), separators=(",", ":")))
+            return 0
+        if args.windows_matrix is not None:
+            print(
+                json.dumps(
+                    windows_gpu_matrix(args.windows_matrix), separators=(",", ":")
+                )
+            )
+            return 0
+        if args.scope is not None:
+            print(validate_scope(args.scope))
+            return 0
         repository = validate(args.root)
     except ValueError as error:
         print(f"GPU candidate preflight: {error}", file=sys.stderr)

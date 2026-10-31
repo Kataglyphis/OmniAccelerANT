@@ -2,17 +2,30 @@ name: Windows x64 GPU runner candidates (unverified)
 
 on:
   workflow_dispatch:
+    inputs:
+      gpu-vendor:
+        description: Windows GPU candidate vendor to build and check
+        type: choice
+        options: [all, nvidia, amd]
+        default: all
+      caller-scope:
+        description: Lowercase artifact scope; use distinct scopes for calls in one run
+        type: string
+        default: default
   workflow_call:
+    inputs:
+      gpu-vendor:
+        type: string
+        default: all
+      caller-scope:
+        type: string
+        default: default
     secrets:
       GHCR_PAT:
         required: false
 
 permissions:
   contents: read
-
-concurrency:
-  group: windows-gpu-candidates-${{ github.ref }}-${{ github.workflow }}
-  cancel-in-progress: true
 
 jobs:
   preflight:
@@ -21,10 +34,18 @@ jobs:
     outputs:
       repository: ${{ steps.image.outputs.repository }}
       python: ${{ steps.python.outputs.version }}
+      matrix: ${{ steps.matrix.outputs.matrix }}
+      selection: ${{ steps.matrix.outputs.selection }}
+      scope: ${{ steps.matrix.outputs.scope }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           submodules: true
+      - name: Test GPU candidate selectors
+        shell: pwsh
+        run: |
+          python scripts/linux/tests/test-gpu-candidate-preflight.py
+          if ($LASTEXITCODE -ne 0) { throw 'GPU selector tests failed' }
       - name: Test locked model containment
         shell: pwsh
         run: |
@@ -36,6 +57,20 @@ jobs:
       - name: Check recorded GPU dependencies before pulling images
         shell: pwsh
         run: ./scripts/windows/Test-WindowsGpuPins.ps1
+      - name: Select supported GPU vendors
+        id: matrix
+        shell: pwsh
+        env:
+          GPU_VENDOR: ${{ inputs.gpu-vendor }}
+          CALLER_SCOPE: ${{ inputs.caller-scope }}
+        run: |
+          $matrix = python scripts/linux/preflight-gpu-candidate.py --windows-matrix $env:GPU_VENDOR
+          if ($LASTEXITCODE -ne 0) { throw 'Unsupported GPU vendor' }
+          $scope = python scripts/linux/preflight-gpu-candidate.py --scope $env:CALLER_SCOPE
+          if ($LASTEXITCODE -ne 0) { throw 'Invalid caller scope' }
+          Add-Content -LiteralPath $env:GITHUB_OUTPUT -Value "matrix=$matrix"
+          Add-Content -LiteralPath $env:GITHUB_OUTPUT -Value "selection=$env:GPU_VENDOR"
+          Add-Content -LiteralPath $env:GITHUB_OUTPUT -Value "scope=$scope"
       - name: Read registry image prefix
         id: image
         shell: bash
@@ -58,16 +93,12 @@ jobs:
     name: Unverified Windows ${{ matrix.vendor }} x64 runner
     runs-on: windows-2025
     timeout-minutes: 180
+    concurrency:
+      group: omni-windows-gpu-${{ github.ref }}-${{ github.workflow }}-${{ needs.preflight.outputs.selection }}-${{ needs.preflight.outputs.scope }}-${{ matrix.vendor }}
+      cancel-in-progress: true
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          - vendor: nvidia
-            tag: winamd64-nvidia
-            provider: cuda
-          - vendor: amd
-            tag: winamd64-rocm
-            provider: directml
+      matrix: ${{ fromJSON(needs.preflight.outputs.matrix) }}
     steps:
       - name: Prepare host and pull the GPU image
         id: prep
@@ -118,7 +149,7 @@ jobs:
       - name: Upload unverified runner candidate
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: unverified-omni-windows-x64-${{ matrix.vendor }}-runner-attempt-${{ github.run_attempt }}
+          name: unverified-omni-windows-x64-${{ matrix.vendor }}-runner-${{ needs.preflight.outputs.selection }}-${{ needs.preflight.outputs.scope }}-attempt-${{ github.run_attempt }}
           overwrite: false
           if-no-files-found: error
           path: ${{ steps.prep.outputs.workspace }}/build/windows/x64/runner/x64-ClangCL-Windows-Release/**/*
@@ -153,7 +184,7 @@ jobs:
       - name: Upload unverified installer candidates
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: unverified-omni-windows-x64-${{ matrix.vendor }}-installers-attempt-${{ github.run_attempt }}
+          name: unverified-omni-windows-x64-${{ matrix.vendor }}-installers-${{ needs.preflight.outputs.selection }}-${{ needs.preflight.outputs.scope }}-attempt-${{ github.run_attempt }}
           overwrite: false
           if-no-files-found: error
           path: ${{ steps.prep.outputs.workspace }}/out/unverified-omni-windows-x64-${{ matrix.vendor }}-installers/*

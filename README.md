@@ -54,7 +54,7 @@ Every package ships the [third-party component list](https://github.com/Kataglyp
 
 The on-demand [Linux](https://github.com/Kataglyphis/OmniAccelerANT/actions/workflows/linux-gpu-candidates.yml)
 and [Windows](https://github.com/Kataglyphis/OmniAccelerANT/actions/workflows/windows-gpu-candidates.yml)
-workflows target NVIDIA x64/arm64 and AMD x64 on Linux, and NVIDIA/AMD x64 on Windows.
+workflows target NVIDIA x64/arm64 and AMD x64 on Linux, and NVIDIA/AMD x64 on Windows. Select one GPU target or build all.
 Open a successful run and download the matching vendor and architecture from its **Artifacts**
 section (sign-in required). These candidates are unverified and separate from releases; the
 current dependency pins block the workflows, and the hosted checks do not prove GPU inference.

@@ -208,16 +208,17 @@ Describe 'Windows GPU preflight' {
 
     It 'keeps the Windows GPU candidates x64, separately labelled and preflighted' {
         $workflow = Get-Content -LiteralPath (Join-Path $workspace '.github\workflows\windows-gpu-candidates.yml') -Raw
-        $workflow | Should Match '(?m)^on:\r?\n  workflow_dispatch:\r?\n  workflow_call:\r?\n    secrets:\r?\n      GHCR_PAT:\r?\n        required: false\r?$'
-        $workflow.Contains('group: windows-gpu-candidates-${{ github.ref }}-${{ github.workflow }}') | Should Be $true
-        $rows = @([regex]::Matches($workflow, '(?m)^\s*- vendor: (\S+)\s*\n\s*tag: (\S+)\s*\n\s*provider: (\S+)\s*$') | ForEach-Object { "$($_.Groups[1].Value):$($_.Groups[2].Value):$($_.Groups[3].Value)" })
-        $rows.Count | Should Be 2
-        $rows -contains 'nvidia:winamd64-nvidia:cuda' | Should Be $true
-        $rows -contains 'amd:winamd64-rocm:directml' | Should Be $true
+        $workflow.Contains('options: [all, nvidia, amd]') | Should Be $true
+        @([regex]::Matches($workflow, '(?m)^\s+default: all\r?$')).Count | Should Be 2
+        $workflow | Should Not Match '(?m)^concurrency:'
+        $workflow.Contains('group: omni-windows-gpu-${{ github.ref }}-${{ github.workflow }}-${{ needs.preflight.outputs.selection }}-${{ needs.preflight.outputs.scope }}-${{ matrix.vendor }}') | Should Be $true
+        $workflow.Contains('matrix: ${{ fromJSON(needs.preflight.outputs.matrix) }}') | Should Be $true
+        $workflow.Contains('--windows-matrix $env:GPU_VENDOR') | Should Be $true
+        $workflow.Contains('--scope $env:CALLER_SCOPE') | Should Be $true
         $workflow.Contains('winarm64') | Should Be $false
         $workflow.Contains('unverified-omni-windows-x64-${{ matrix.vendor }}-runner') | Should Be $true
-        $workflow | Should Match 'name: unverified-omni-windows-x64-\$\{\{ matrix\.vendor \}\}-runner-attempt-\$\{\{ github\.run_attempt \}\}\s+overwrite: false'
-        $workflow | Should Match 'name: unverified-omni-windows-x64-\$\{\{ matrix\.vendor \}\}-installers-attempt-\$\{\{ github\.run_attempt \}\}\s+overwrite: false'
+        $workflow | Should Match 'name: unverified-omni-windows-x64-\$\{\{ matrix\.vendor \}\}-runner-\$\{\{ needs\.preflight\.outputs\.selection \}\}-\$\{\{ needs\.preflight\.outputs\.scope \}\}-attempt-\$\{\{ github\.run_attempt \}\}\s+overwrite: false'
+        $workflow | Should Match 'name: unverified-omni-windows-x64-\$\{\{ matrix\.vendor \}\}-installers-\$\{\{ needs\.preflight\.outputs\.selection \}\}-\$\{\{ needs\.preflight\.outputs\.scope \}\}-attempt-\$\{\{ github\.run_attempt \}\}\s+overwrite: false'
         $pinCheck = $workflow.IndexOf('Test-WindowsGpuPins.ps1')
         $pull = $workflow.IndexOf('prepare-windows-container-host@')
         $imageCheck = $workflow.IndexOf('Test-WindowsGpuImage.ps1')

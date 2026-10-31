@@ -20,6 +20,7 @@ Every package ships the third-party inventory in `assets/licenses/`; regenerate 
 every new shipped native file an entry with its original text before it ships
 ([project operations](docs/source/project-operations.md#third-party-license-inventory)).
 GPU candidate artifact names include the current run attempt and cannot be overwritten; Linux clean-host verification downloads that same attempt's package.
+GPU candidate selectors and caller scopes must be validated before concurrency; uploads and Linux clean-host downloads use the same selection, scope and attempt.
 Linux GPU candidate verification reads the DEB package identity and architecture from its control metadata, not only from its filename.
 Every launcher icon derives from `images/logo.svg`; `scripts/linux/check-brand-icons.py` gates it.
 

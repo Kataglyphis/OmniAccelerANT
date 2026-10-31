@@ -1,17 +1,25 @@
 #!/usr/bin/env python3
 """Check the GPU candidate matrix and fail-closed pinned dependency preflight."""
 
+import json
 import re
 import runpy
+import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
-VALIDATE = runpy.run_path(str(ROOT / "scripts/linux/preflight-gpu-candidate.py"))[
-    "validate"
-]
+PREFLIGHT = ROOT / "scripts/linux/preflight-gpu-candidate.py"
+MODULE = runpy.run_path(str(PREFLIGHT))
+VALIDATE = MODULE["validate"]
+GPU_MATRIX = MODULE["gpu_matrix"]
 WORKFLOW = ROOT / ".github/workflows/linux-gpu-candidates.yml"
+WINDOWS_WORKFLOW = ROOT / ".github/workflows/windows-gpu-candidates.yml"
+IDENTITY = (
+    "${{ needs.preflight.outputs.selection }}-${{ needs.preflight.outputs.scope }}"
+)
 
 
 class CandidatePreflightTests(unittest.TestCase):
@@ -82,10 +90,20 @@ class CandidatePreflightTests(unittest.TestCase):
 
     def test_workflow_matrix_and_unverified_output(self):
         text = WORKFLOW.read_text(encoding="utf-8")
-        rows = re.findall(
-            r"(?m)^          - vendor: (\S+)\n            arch: (\S+)\n            platform: (\S+)\n            runner: (\S+)\n            image-tag: (\S+)\n            provider: (\S+)$",
-            text,
-        )
+        rows = [
+            tuple(
+                row[key]
+                for key in (
+                    "vendor",
+                    "arch",
+                    "platform",
+                    "runner",
+                    "image-tag",
+                    "provider",
+                )
+            )
+            for row in GPU_MATRIX("all")["include"]
+        ]
         self.assertEqual(
             set(rows),
             {
@@ -121,22 +139,28 @@ class CandidatePreflightTests(unittest.TestCase):
             "ORT_LIB_LOCATION=/usr/local/lib/onnxruntime-gpu/lib",
             "--package-formats tar,deb,appimage",
             "verify-gpu-candidate.sh",
-            "name: unverified-omni-${{ matrix.vendor }}-linux-${{ matrix.arch }}-attempt-${{ github.run_attempt }}",
+            f"name: unverified-omni-${{{{ matrix.vendor }}}}-linux-${{{{ matrix.arch }}}}-{IDENTITY}-attempt-${{{{ github.run_attempt }}}}",
         ):
             self.assertIn(part, text)
         self.assertNotIn("out/omni-accelerant-linux-", text)
         self.assertIn(
-            "name: unverified-omni-${{ matrix.vendor }}-linux-${{ matrix.arch }}-attempt-${{ github.run_attempt }}\n          overwrite: false",
+            f"name: unverified-omni-${{{{ matrix.vendor }}}}-linux-${{{{ matrix.arch }}}}-{IDENTITY}-attempt-${{{{ github.run_attempt }}}}\n          overwrite: false",
             text,
         )
-        self.assertRegex(
-            text,
-            r"(?m)^on:\n  workflow_dispatch:\n  workflow_call:\n"
-            r"    secrets:\n      GHCR_PAT:\n        required: false$",
+        self.assertIn("options: [all, nvidia-x64, nvidia-arm64, amd-x64]", text)
+        self.assertEqual(text.count("default: all"), 2)
+        self.assertIn("GPU_TUPLE: ${{ inputs.gpu-tuple }}", text)
+        self.assertIn('--matrix "$GPU_TUPLE"', text)
+        self.assertEqual(
+            text.count("matrix: ${{ fromJSON(needs.preflight.outputs.matrix) }}"), 2
         )
-        self.assertIn(
-            "group: linux-gpu-candidates-${{ github.ref }}-${{ github.workflow }}", text
-        )
+        self.assertNotRegex(text, r"(?m)^concurrency:")
+        self.assertIn('--scope "$CALLER_SCOPE"', text)
+        self.assertIn("caller-scope:", text)
+        group = re.search(r"(?m)^      group: (.+)$", text)
+        self.assertIsNotNone(group)
+        self.assertIn(IDENTITY, group.group(1))
+        self.assertNotIn("inputs.", group.group(1))
         self.assertNotIn("push:", text)
         self.assertIn("free-disk-space: 'true'", text)
         self.assertIn("pull-first: 'false'", text)
@@ -148,22 +172,14 @@ class CandidatePreflightTests(unittest.TestCase):
     def test_clean_host_runs_inference_for_each_candidate(self):
         text = WORKFLOW.read_text(encoding="utf-8")
         clean = text.split("\n  clean-host:\n", maxsplit=1)[1]
-        clean_rows = re.findall(
-            r"(?m)^          - vendor: (\S+)\n            arch: (\S+)\n            runner: (\S+)$",
+        self.assertIn("needs: [preflight, candidate]", clean)
+        self.assertIn(
+            "if: ${{ !cancelled() && needs.preflight.result == 'success' && (needs.candidate.result == 'success' || needs.candidate.result == 'failure') }}",
             clean,
         )
-        self.assertEqual(
-            set(clean_rows),
-            {
-                ("nvidia", "x64", "ubuntu-26.04"),
-                ("nvidia", "arm64", "ubuntu-26.04-arm"),
-                ("amd", "x64", "ubuntu-26.04"),
-            },
-        )
-        self.assertEqual(len(clean_rows), 3)
-        self.assertIn("needs: candidate", clean)
+        self.assertIn("matrix: ${{ fromJSON(needs.preflight.outputs.matrix) }}", clean)
         self.assertIn(
-            "artifact: unverified-omni-${{ matrix.vendor }}-linux-${{ matrix.arch }}-attempt-${{ github.run_attempt }}",
+            f"artifact: unverified-omni-${{{{ matrix.vendor }}}}-linux-${{{{ matrix.arch }}}}-{IDENTITY}-attempt-${{{{ github.run_attempt }}}}",
             clean,
         )
         for package in ("deb", "tarball", "appimage"):
@@ -176,6 +192,72 @@ class CandidatePreflightTests(unittest.TestCase):
             for name in ("KATAGLYPHIS_ONNX_MODEL", "ORT_DYLIB_PATH", "LD_LIBRARY_PATH"):
                 self.assertEqual(command.group(1).count(f"-u {name}"), 2)
 
+    def test_selector_exposes_only_requested_supported_tuples(self):
+        full = GPU_MATRIX("all")["include"]
+        self.assertEqual(len(full), 3)
+        selections = [
+            ("all", full),
+            *[
+                (name, [row])
+                for name, row in zip(
+                    ("nvidia-x64", "nvidia-arm64", "amd-x64"), full, strict=True
+                )
+            ],
+        ]
+        for selection, expected_rows in selections:
+            with self.subTest(selection=selection):
+                result = subprocess.run(
+                    [sys.executable, str(PREFLIGHT), "--matrix", selection],
+                    capture_output=True,
+                    text=True,
+                    check=False,
+                )
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertEqual(json.loads(result.stdout), {"include": expected_rows})
+        for invalid in ("amd-arm64", "nvidia-x86", "", "all\nname=bad"):
+            with self.subTest(selection=invalid):
+                result = subprocess.run(
+                    [sys.executable, str(PREFLIGHT), "--matrix", invalid],
+                    capture_output=True,
+                    text=True,
+                    check=False,
+                )
+                self.assertNotEqual(result.returncode, 0)
+                self.assertEqual(result.stdout, "")
+
+    def test_windows_selector_exposes_only_supported_x64_vendors(self):
+        expected = {
+            "nvidia": {
+                "vendor": "nvidia",
+                "tag": "winamd64-nvidia",
+                "provider": "cuda",
+            },
+            "amd": {"vendor": "amd", "tag": "winamd64-rocm", "provider": "directml"},
+        }
+        for selection, rows in [
+            ("all", list(expected.values())),
+            *[(key, [row]) for key, row in expected.items()],
+        ]:
+            with self.subTest(selection=selection):
+                result = subprocess.run(
+                    [sys.executable, str(PREFLIGHT), "--windows-matrix", selection],
+                    capture_output=True,
+                    text=True,
+                    check=False,
+                )
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertEqual(json.loads(result.stdout), {"include": rows})
+        for invalid in ("nvidia-arm64", "amd-arm64", "", "all\nname=bad"):
+            with self.subTest(selection=invalid):
+                result = subprocess.run(
+                    [sys.executable, str(PREFLIGHT), "--windows-matrix", invalid],
+                    capture_output=True,
+                    text=True,
+                    check=False,
+                )
+                self.assertNotEqual(result.returncode, 0)
+                self.assertEqual(result.stdout, "")
+
     def test_clean_host_requires_the_current_attempt(self):
         text = WORKFLOW.read_text(encoding="utf-8")
         upload = re.search(r"(?m)^          name: (unverified-omni-.+)$", text)
@@ -187,6 +269,75 @@ class CandidatePreflightTests(unittest.TestCase):
         retry = download.group(1).replace("${{ github.run_attempt }}", "2")
         self.assertNotEqual(first, retry)
         self.assertIn("overwrite: false", text)
+
+    def test_scope_validation_and_isolated_artifact_names(self):
+        for scope in ("default", "a", "a-", "a-1", "z" * 32):
+            with self.subTest(scope=scope):
+                result = subprocess.run(
+                    [sys.executable, str(PREFLIGHT), "--scope", scope],
+                    capture_output=True,
+                    text=True,
+                    check=False,
+                )
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertEqual(result.stdout, scope + "\n")
+        for scope in ("", "A", "-a", "1a", "a_b", "z" * 33, "a\nname=bad"):
+            with self.subTest(scope=scope):
+                result = subprocess.run(
+                    [sys.executable, str(PREFLIGHT), "--scope", scope],
+                    capture_output=True,
+                    text=True,
+                    check=False,
+                )
+                self.assertNotEqual(result.returncode, 0)
+                self.assertEqual(result.stdout, "")
+
+        linux = WORKFLOW.read_text(encoding="utf-8")
+        upload = re.search(r"(?m)^          name: (unverified-omni-.+)$", linux)
+        download = re.search(r"(?m)^          artifact: (unverified-omni-.+)$", linux)
+        self.assertIsNotNone(upload)
+        self.assertIsNotNone(download)
+        self.assertEqual(upload.group(1), download.group(1))
+        windows = WINDOWS_WORKFLOW.read_text(encoding="utf-8")
+        windows_uploads = re.findall(
+            r"(?m)^          name: (unverified-omni-windows-.+)$", windows
+        )
+        self.assertEqual(len(windows_uploads), 2)
+
+        def artifact(template, selection, scope, attempt="1"):
+            for token, value in {
+                "${{ matrix.vendor }}": "nvidia",
+                "${{ matrix.arch }}": "x64",
+                "${{ needs.preflight.outputs.selection }}": selection,
+                "${{ needs.preflight.outputs.scope }}": scope,
+                "${{ github.run_attempt }}": attempt,
+            }.items():
+                template = template.replace(token, value)
+            self.assertNotIn("${{", template)
+            return template
+
+        for template in [upload.group(1), *windows_uploads]:
+            with self.subTest(template=template):
+                single = "nvidia" if "windows" in template else "nvidia-x64"
+                all_target = artifact(template, "all", "default")
+                one_target = artifact(template, single, "default")
+                self.assertNotEqual(all_target, one_target)
+                self.assertNotEqual(one_target, artifact(template, single, "other"))
+                self.assertNotEqual(
+                    one_target, artifact(template, single, "default", "2")
+                )
+                self.assertEqual(one_target, artifact(template, single, "default"))
+
+    def test_windows_scope_is_validated_before_job_concurrency(self):
+        text = WINDOWS_WORKFLOW.read_text(encoding="utf-8")
+        self.assertNotRegex(text, r"(?m)^concurrency:")
+        self.assertIn("--windows-matrix $env:GPU_VENDOR", text)
+        self.assertIn("--scope $env:CALLER_SCOPE", text)
+        self.assertIn("caller-scope:", text)
+        group = re.search(r"(?m)^      group: (.+)$", text)
+        self.assertIsNotNone(group)
+        self.assertIn(IDENTITY, group.group(1))
+        self.assertNotIn("inputs.", group.group(1))
 
 
 if __name__ == "__main__":
