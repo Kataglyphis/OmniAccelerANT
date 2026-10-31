@@ -28,6 +28,8 @@ jobs:
       # Restated: the secret scan reads the whole tree, submodules included.
       submodules: recursive
       ratchets: true
+      # Measured clean of tag-pinned actions, so the sha-pin convention is enforced here.
+      workflow-conventions: sha-pin
 
   # PowerShell twin of the drift gate; its own job because no hub Linux image ships pwsh, and no -Ignore while the manifest exists.
   shared-config:
