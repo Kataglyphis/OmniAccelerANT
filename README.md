@@ -58,8 +58,8 @@ workflows target NVIDIA x64/arm64 and AMD x64 on Linux, and NVIDIA/AMD x64 on Wi
 Open a successful run and download the matching vendor and architecture from its **Artifacts**
 section (sign-in required). These candidates are unverified and separate from releases; the
 current dependency pins block the workflows, and the hosted checks do not prove GPU inference.
-See [project operations](docs/source/project-operations.md) for formats and remaining checks,
-and [camera streaming](docs/source/camera-streaming.md) for host runtime requirements. CPU
+See [project operations](https://github.com/Kataglyphis/OmniAccelerANT/blob/develop/docs/source/project-operations.md) for formats and remaining checks,
+and [camera streaming](https://github.com/Kataglyphis/OmniAccelerANT/blob/develop/docs/source/camera-streaming.md) for host runtime requirements. CPU
 packages remain available through the existing lanes.
 
 ## Quick start
