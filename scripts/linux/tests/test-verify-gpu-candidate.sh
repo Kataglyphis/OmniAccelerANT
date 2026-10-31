@@ -34,6 +34,7 @@ with zipfile.ZipFile(root / 'wheels/onnxruntime_fixture-1.whl', 'w') as wheel:
     for path in (root / 'bundle/licenses/onnxruntime').iterdir():
         wheel.write(path, 'onnxruntime/' + path.name)
 PY
+ln -s libonnxruntime.so.1 "$work/bundle/lib/libonnxruntime.so"
 mkdir -p "$work/bundle/include"
 touch "$work/bundle/include/onnxruntime_cxx_api.h"
 ORT_LIB_LOCATION="$work/bundle/lib" ORT_CHAIN_WHEEL_DIR="$work/wheels" \
@@ -69,6 +70,19 @@ chmod +x "$work/out/$variant-1.0-x86_64.AppImage"
 export FIXTURE_APPDIR="$work/appimage" ORT_CHAIN_WHEEL_DIR="$work/wheels"
 cd "$work"
 bash "$verifier" nvidia x64 >/dev/null
+rm "$work/tar/$variant-bundle/lib/libonnxruntime.so"
+tar -C "$work/tar" -czf "$work/out/$variant-linux-x64.tar.gz" "$variant-bundle"
+if bash "$verifier" nvidia x64 >/dev/null 2>&1; then echo 'missing tar ORT dynamic-load alias passed' >&2; exit 1; fi
+ln -s libonnxruntime.so.1 "$work/tar/$variant-bundle/lib/libonnxruntime.so"
+tar -C "$work/tar" -czf "$work/out/$variant-linux-x64.tar.gz" "$variant-bundle"
+rm "$work/deb/opt/$variant/lib/libonnxruntime.so"
+dpkg-deb --build "$work/deb" "$work/out/${variant}_1.0_amd64.deb" >/dev/null
+if bash "$verifier" nvidia x64 >/dev/null 2>&1; then echo 'missing DEB ORT dynamic-load alias passed' >&2; exit 1; fi
+ln -s libonnxruntime.so.1 "$work/deb/opt/$variant/lib/libonnxruntime.so"
+dpkg-deb --build "$work/deb" "$work/out/${variant}_1.0_amd64.deb" >/dev/null
+rm "$work/appimage/usr/lib/$variant/lib/libonnxruntime.so"
+if bash "$verifier" nvidia x64 >/dev/null 2>&1; then echo 'missing AppImage ORT dynamic-load alias passed' >&2; exit 1; fi
+ln -s libonnxruntime.so.1 "$work/appimage/usr/lib/$variant/lib/libonnxruntime.so"
 printf x >> "$work/tar/$variant-bundle/lib/libonnxruntime_providers_cuda.so"
 tar -C "$work/tar" -czf "$work/out/$variant-linux-x64.tar.gz" "$variant-bundle"
 if bash "$verifier" nvidia x64 >/dev/null 2>&1; then echo 'changed tar provider passed' >&2; exit 1; fi

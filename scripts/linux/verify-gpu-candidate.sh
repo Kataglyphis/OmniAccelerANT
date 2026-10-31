@@ -26,7 +26,7 @@ trap 'rm -rf -- "$work"' EXIT
 
 collect_ort_libraries() {
   local root="$1" lib="$2/lib" file resolved name
-  for name in libonnxruntime.so.1 libonnxruntime_providers_shared.so "libonnxruntime_providers_${provider}.so"; do
+  for name in libonnxruntime.so libonnxruntime.so.1 libonnxruntime_providers_shared.so "libonnxruntime_providers_${provider}.so"; do
     [[ -f "$lib/$name" ]] || { echo "Missing GPU ORT library: $name" >&2; return 1; }
   done
   for file in "$lib"/libonnxruntime*.so*; do
@@ -92,5 +92,15 @@ mkdir "$work/appimage"
   "$image" --appimage-extract "usr/lib/$variant/data/resources/models/*" > /dev/null
   root="$(realpath -e squashfs-root)"
   verify_detector_model "$root" "$root/usr/lib/$variant"
+)
+mkdir "$work/appimage-ort"
+(
+  cd "$work/appimage-ort"
+  "$image" --appimage-extract "usr/lib/$variant/lib/libonnxruntime.so*" > /dev/null
+  root="$(realpath -e squashfs-root)"
+  alias="$root/usr/lib/$variant/lib/libonnxruntime.so"
+  [[ -f "$alias" ]] || { echo 'AppImage is missing the ORT dynamic-load alias' >&2; exit 1; }
+  resolved="$(realpath -e "$alias")"
+  case "$resolved" in "$root/"*) ;; *) echo 'AppImage ORT alias escapes package' >&2; exit 1 ;; esac
 )
 echo 'PASS: unverified GPU candidates carry the wheel-matched runtime and locked model'

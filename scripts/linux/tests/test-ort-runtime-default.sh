@@ -43,4 +43,26 @@ for invalid in migraphx typo ''; do
   fi
   grep -Fq 'Unsupported KATAGLYPHIS_ORT_DEVICE for this GPU package:' "$work/invalid.log"
 done
+touch "$work/libonnxruntime.so.1"
+check_ort_path() {
+  python3 - "$1" "$2" <<'PY'
+import ctypes
+import sys
+
+ctypes.CDLL(sys.argv[1])
+getenv = ctypes.CDLL(None).getenv
+getenv.argtypes = [ctypes.c_char_p]
+getenv.restype = ctypes.c_char_p
+value = getenv(b"ORT_DYLIB_PATH")
+actual = None if value is None else value.decode()
+expected = None if sys.argv[2] == "<unset>" else sys.argv[2]
+if actual != expected:
+    raise SystemExit(f"ORT_DYLIB_PATH: expected {expected!r}, got {actual!r}")
+PY
+}
+export -f check_ort_path
+env -u ORT_DYLIB_PATH -u KATAGLYPHIS_ORT_DEVICE bash -c 'check_ort_path "$@"' _ "$work/cuda.so" '<unset>'
+ln -s libonnxruntime.so.1 "$work/libonnxruntime.so"
+env -u ORT_DYLIB_PATH -u KATAGLYPHIS_ORT_DEVICE bash -c 'check_ort_path "$@"' _ "$work/cuda.so" "$work/libonnxruntime.so"
+ORT_DYLIB_PATH=/explicit/path env -u KATAGLYPHIS_ORT_DEVICE bash -c 'check_ort_path "$@"' _ "$work/cuda.so" /explicit/path
 echo 'ONNX Runtime default-device checks passed'
