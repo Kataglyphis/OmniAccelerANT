@@ -28,7 +28,7 @@ and embedded devices. ObservANT is the same stack as an installable camera that 
 
 Dependency updates: run `bash scripts/linux/renovate-local.sh` to report, `--apply --dry-run` to plan,
 and `--apply` to update. A real apply initializes a missing pinned hub and follows direct
-submodules' remote default branches. CI checks the wrapper and config; see
+submodules' remote default branches. The Windows wrapper forwards exact submodule selections when supported by the pinned hub. CI checks the wrapper and config; see
 [the shared Renovate guide](https://github.com/Kataglyphis/ANTfrastructure/blob/develop/docs/dependency-updates.md).
 Both platforms use ANTfrastructure's locked uv project for CMake formatting.
 

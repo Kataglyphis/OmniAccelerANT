@@ -762,6 +762,7 @@ to its remote default tip. Report and dry-run calls do not initialize missing ch
 .\scripts\windows\Invoke-Renovate.ps1 -Apply -DryRun       # the plan
 .\scripts\windows\Invoke-Renovate.ps1 -Apply               # apply the plan
 .\scripts\windows\Invoke-Renovate.ps1 -Managers pub        # narrow the managers
+.\scripts\windows\Invoke-Renovate.ps1 -Apply -DryRun -Managers git-submodules -SubmodulePath third_party/ANTfrastructure
 .\scripts\windows\Invoke-Renovate.ps1 -Recurse             # owned submodules, in place
 ```
 

@@ -5,6 +5,7 @@ param(
 	[switch] $DryRun,
 	[switch] $Refresh,
 	[string] $Managers = '',
+	[string[]] $SubmodulePath = @(),
 	[switch] $PrintBin,
 	[switch] $Recurse,
 	[string] $Image = '',
@@ -15,6 +16,10 @@ param(
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+
+if ($Recurse -and $SubmodulePath.Count -gt 0) {
+	throw '-SubmodulePath selects direct gitlinks in one repository and cannot be combined with -Recurse.'
+}
 
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 
@@ -44,6 +49,7 @@ if ($DryRun) { $renovateArgs += '--dry-run' }
 if ($Refresh) { $renovateArgs += '--refresh' }
 if ($PrintBin) { $renovateArgs += '--print-bin' }
 if ($Managers) { $renovateArgs += @('--managers', $Managers) }
+foreach ($path in $SubmodulePath) { $renovateArgs += @('--submodule-path', $path) }
 
 # -Recurse runs the hub's fleet driver with --vendored: this one-superproject mount makes every repo vendored.
 if ($Recurse) {

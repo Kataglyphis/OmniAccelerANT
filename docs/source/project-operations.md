@@ -468,7 +468,10 @@ repo's part:
   through `nerdctl`; a Linux host calls the wrapper directly, and nothing in CI runs either. It
   mounts the repo at `/workspace`, adds the `safe.directory` entries the root-owned bind mount
   needs (`/workspace` and `/workspace/*`), and forwards
-  `-Apply`/`-DryRun`/`-Refresh`/`-Managers`/`-PrintBin`.
+  `-Apply`/`-DryRun`/`-Refresh`/`-Managers`/`-SubmodulePath`/`-PrintBin`.
+- **`-SubmodulePath` selects exact direct gitlinks** and can take several paths. Use
+  `-Managers git-submodules` to avoid selecting other dependency updates. This needs a
+  hub pin that supports `--submodule-path` and cannot be combined with `-Recurse`.
 - **Managers default to every manager whose file patterns match this tree** (eight today), so
   `-Managers` narrows a run rather than enabling one.
 - **A real apply bootstraps an absent pinned hub**, then the shared driver updates selected direct
