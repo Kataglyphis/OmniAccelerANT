@@ -2,12 +2,16 @@ name: Linux GPU candidates (unverified)
 
 on:
   workflow_dispatch:
+  workflow_call:
+    secrets:
+      GHCR_PAT:
+        required: false
 
 permissions:
   contents: read
 
 concurrency:
-  group: linux-gpu-candidates-${{ github.ref }}
+  group: linux-gpu-candidates-${{ github.ref }}-${{ github.workflow }}
   cancel-in-progress: true
 
 jobs:

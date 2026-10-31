@@ -117,7 +117,6 @@ class CandidatePreflightTests(unittest.TestCase):
         )
         self.assertEqual(len(rows), 3)
         for part in (
-            "workflow_dispatch:",
             "needs: preflight",
             "ORT_LIB_LOCATION=/usr/local/lib/onnxruntime-gpu/lib",
             "--package-formats tar,deb,appimage",
@@ -130,7 +129,14 @@ class CandidatePreflightTests(unittest.TestCase):
             "name: unverified-omni-${{ matrix.vendor }}-linux-${{ matrix.arch }}\n          overwrite: true",
             text,
         )
-        self.assertNotIn("workflow_call:", text)
+        self.assertRegex(
+            text,
+            r"(?m)^on:\n  workflow_dispatch:\n  workflow_call:\n"
+            r"    secrets:\n      GHCR_PAT:\n        required: false$",
+        )
+        self.assertIn(
+            "group: linux-gpu-candidates-${{ github.ref }}-${{ github.workflow }}", text
+        )
         self.assertNotIn("push:", text)
         self.assertIn("free-disk-space: 'true'", text)
         self.assertIn("pull-first: 'false'", text)

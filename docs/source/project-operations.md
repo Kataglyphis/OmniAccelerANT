@@ -40,7 +40,7 @@ selection; both GPU variants additionally need ANTfrastructure's selected-provid
 runtime-file resolver and same-wheel verification APIs. The resolver follows the same `bin`/
 `lib` precedence as staging; the current recorded pins do not provide these capabilities.
 
-The dispatch-only Windows GPU candidate workflow uses the registry's x64 NVIDIA and AMD
+The manually dispatched or reusable Windows GPU candidate workflow uses the registry's x64 NVIDIA and AMD
 images for CUDA and DirectML respectively; Windows ARM GPU images are excluded. It checks
 the recorded dependency APIs before pulling, validates image DLL architecture and wheel
 provenance, then checks the delivered runner's stamp, native-license coverage and CPU-selected
@@ -69,13 +69,17 @@ dependencies, actual GPU execution and real GPU installers still need verificati
 installers share the CPU installer's product identity and install location, so switching
 variants may require uninstalling the existing one.
 
-The dispatch-only Linux GPU candidate workflow uses the registry NVIDIA images on x64
+The manually dispatched or reusable Linux GPU candidate workflow uses the registry NVIDIA images on x64
 and ARM64 and the AMD ROCm image on x64. Each finished TAR, DEB and AppImage must carry
 the model and its license and notice at their locked SHA-256 values. Clean-host checks run
 model inference and start each format with CPU selected and model/runtime overrides cleared.
 These candidates are unverified: GPU inference still needs testing on matching hardware.
 The workflow checks the recorded dependency capabilities before pulling images, and the
 current recorded pins do not yet provide them.
+Both workflows may be called by another workflow, with the same unverified outputs and
+checks as a manual run. Callers needing the private registry credential must pass
+`GHCR_PAT` explicitly or through inherited secrets. Neither workflow is called by the release workflow;
+calling one alone does not verify GPU operator execution or approve an artifact for release.
 
 Linux Omni, ObservANT and its Pi bundle match every bundled `libonnxruntime*.so*`
 to one wheel, either directly or after target-compatible stripping. The wheel's

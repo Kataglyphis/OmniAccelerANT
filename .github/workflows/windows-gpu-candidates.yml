@@ -2,12 +2,16 @@ name: Windows x64 GPU runner candidates (unverified)
 
 on:
   workflow_dispatch:
+  workflow_call:
+    secrets:
+      GHCR_PAT:
+        required: false
 
 permissions:
   contents: read
 
 concurrency:
-  group: windows-gpu-candidates-${{ github.ref }}
+  group: windows-gpu-candidates-${{ github.ref }}-${{ github.workflow }}
   cancel-in-progress: true
 
 jobs:

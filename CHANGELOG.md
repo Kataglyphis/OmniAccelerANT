@@ -5,6 +5,7 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ## Unreleased
 
+- Allow the Linux and Windows GPU candidate workflows to be called by another workflow while keeping their outputs unverified and outside releases.
 - Check the installed Windows MSIX's bundled ONNX model as well as the MSI when GPU candidates run their CPU installer checks.
 - Forward exact direct-submodule selections through the Windows Renovate wrapper; the pinned hub must support this option.
 - **The AI Playground page (LAI-F1, F2).** Chat with a language model on ANThology's chat widgets:

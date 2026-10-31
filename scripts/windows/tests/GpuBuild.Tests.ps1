@@ -208,6 +208,8 @@ Describe 'Windows GPU preflight' {
 
     It 'keeps the Windows GPU candidates x64, separately labelled and preflighted' {
         $workflow = Get-Content -LiteralPath (Join-Path $workspace '.github\workflows\windows-gpu-candidates.yml') -Raw
+        $workflow | Should Match '(?m)^on:\r?\n  workflow_dispatch:\r?\n  workflow_call:\r?\n    secrets:\r?\n      GHCR_PAT:\r?\n        required: false\r?$'
+        $workflow.Contains('group: windows-gpu-candidates-${{ github.ref }}-${{ github.workflow }}') | Should Be $true
         $rows = @([regex]::Matches($workflow, '(?m)^\s*- vendor: (\S+)\s*\n\s*tag: (\S+)\s*\n\s*provider: (\S+)\s*$') | ForEach-Object { "$($_.Groups[1].Value):$($_.Groups[2].Value):$($_.Groups[3].Value)" })
         $rows.Count | Should Be 2
         $rows -contains 'nvidia:winamd64-nvidia:cuda' | Should Be $true
