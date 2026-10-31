@@ -1,0 +1,33 @@
+# Lane outputs and repo metrics for the hub's quality-report.sh, which holds no repo specifics.
+schema_version = 1
+
+[docs]
+build_list = "scripts/linux/generate-docs.sh"
+source = "docs/source"
+
+[[output]]
+kind = "latency"
+path = "out/perf/frontend.json"
+
+# The native lane deletes build/ after its coverage check, so this is read from a local run.
+[[artifact]]
+name = "lib"
+kind = "coverage"
+format = "lcov"
+path = "build/coverage/lcov.info"
+
+[[artifact]]
+name = "ort-license"
+kind = "mutation"
+path = "logs/code-quality/mutations/report.txt"
+artifact = "mutation-gates-*"
+workflow = "ort-license-mutations.yml"
+
+# Runtime and packaging code must take the default model's file name from the OxidANT lock.
+[[metric]]
+name = "model_name_literals"
+kind = "pattern"
+unit = "lines"
+pattern = 'deim_dfine_n_coco'
+paths = ["lib", "scripts", "rust_builder", "linux", "windows"]
+exclude = ["third_party/*", "test/*", "*/test/*", "tests/*", "*/tests/*", "Test/*", "*/Test/*", "docs/*", "*.md", "*LICENSE*", "*NOTICE*"]

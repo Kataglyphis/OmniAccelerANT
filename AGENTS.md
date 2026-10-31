@@ -580,6 +580,12 @@ rather than linked.
 
 **Security audit lane.** `.github/workflows/security-audit.yml` calls the hub's reusable `security-audit.yml` on push, pull request, Mondays and dispatch. It scans both `pubspec.lock` files, `rust_builder/cargokit/build_tool/pubspec.lock` and the three firmware `Cargo.lock` files with the hub-pinned osv-scanner, records `cargo_security_checks.sh` for each `Cargo.lock`, fails a push or PR that adds a HIGH or CRITICAL advisory absent from the base commit, lists every finding on the weekly and dispatched runs, and uploads `security-audit.json`. Locally: `bash third_party/ANTfrastructure/linux/scripts/security-audit.sh`. The lint gates enforce the hub's `sha-pin` workflow convention (`workflow-conventions: sha-pin`): every third-party `uses:` names a 40-hex commit SHA.
 
+`bash scripts/linux/quality-report.sh` measures this checkout into `logs/code-quality/measurements.json`
+and `queue.md`; `--compare <file>` or `--compare previous-develop` grades it (exit 0 ok, 1 regressed,
+2 incomplete). `quality-report.toml` declares this repo's lane outputs and metrics: hub
+`docs/code-quality-tooling.md` § quality-report. A regressed verdict on develop is fixed or recorded
+in `BACKLOG.md` before new feature work.
+
 **Both lanes run the same thing locally and in CI; reproduce locally first, CI is not a
 debugger.** **Run one lane at a time**: every local lane bind-mounts the same checkout and its
 per-host generated files (`android/local.properties`, `.dart_tool`, the plugin symlinks), so two

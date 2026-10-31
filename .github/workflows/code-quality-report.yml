@@ -8,3 +8,5 @@ permissions:
 jobs:
   report:
     uses: Kataglyphis/ANTfrastructure/.github/workflows/code-quality-report.yml@develop
+    with:
+      quality-report: true

@@ -6,6 +6,10 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 ## Unreleased
 
 ### 2026-10-31
+- **`scripts/linux/quality-report.sh`** runs the hub's `quality-report.sh` on this checkout; the
+  tracked `quality-report.toml` declares the docs build list, lane outputs and repo metrics it reads.
+  The code-quality-report workflow sets `quality-report: true`, so every push and PR is graded against
+  the newest successful develop record and uploads `code-quality-measurements`.
 - Generate the bridge through OxidANT's `scripts/linux/frb-codegen.sh`, the one input and flag
   set, instead of a local `flutter_rust_bridge.yaml` and flag copy; the wrapper passes only this
   app's Rust root and Dart output. `verify-frb-bindings.py` runs OxidANT's checker.
