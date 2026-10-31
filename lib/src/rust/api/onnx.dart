@@ -7,8 +7,30 @@ import '../frb_generated.dart';
 
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-// These functions are ignored because they are not marked as `pub`: `detect_persons_rgba_impl`, `get_or_load`, `new`
+// These functions are ignored because they are not marked as `pub`: `detect_persons_rgba_impl`, `get_or_load`, `new`, `profile_person_detection_impl`
 // These types are ignored because they are neither used by any `pub` functions nor (for structs and enums) marked `#[frb(unignore)]`: `ModelCache`
+
+/// Run the packaged detector twice in one profiled session on a real image.
+void profileDetectorImage({
+  required String imagePath,
+  required String output,
+  required String repeatOutput,
+  required String profile,
+}) => RustLib.instance.api.crateApiOnnxProfileDetectorImage(
+  imagePath: imagePath,
+  output: output,
+  repeatOutput: repeatOutput,
+  profile: profile,
+);
+
+/// Run the desktop detector on a blank frame and return its completed ORT profile path.
+String profilePersonDetection({
+  required String modelPath,
+  required String profilePrefix,
+}) => RustLib.instance.api.crateApiOnnxProfilePersonDetection(
+  modelPath: modelPath,
+  profilePrefix: profilePrefix,
+);
 
 List<Detection> detectPersonsRgba({
   required String modelPath,

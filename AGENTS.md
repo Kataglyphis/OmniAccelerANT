@@ -525,8 +525,11 @@ rather than linked.
   pinned in `third_party/OxidANT/Cargo.toml` (`=2.13.0` today) — a floating latest
   desynchronises the Dart bindings from the Rust runtime.
   The wrapper requires a clean OxidANT checkout at the index gitlink and clean generated
-  outputs; it rejects hidden Git index flags and ignored source inputs. It checks full locked
-  Cargo metadata and verifies the generated loader name, versions and content hash.
+  outputs; it rejects hidden Git index flags and ignored source inputs. The bridge input, flags,
+  generator pin, full cross-target Cargo metadata and loader-stem check live once in OxidANT's
+  `scripts/linux/frb-codegen.sh`; the wrapper passes only this app's Rust root and Dart output.
+  The `frb-bindings` job in `linux-x64.yml` runs `verify-frb-bindings.py` over the committed pair
+  on every push, and OxidANT's `fmt-clippy` step fails a stale `src/frb_generated.rs`.
 - **The ESP32-S3 bridge is desktop-only and its firmware is a separate toolchain.**
   `kataglyphis_esp32` sits in a `[target.'cfg(any(target_os = "linux", target_os =
   "windows", target_os = "macos"))'.dependencies]` block; moving it to `[dependencies]` drags

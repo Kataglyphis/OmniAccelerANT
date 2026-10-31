@@ -73,8 +73,8 @@ Dart package texts are in Flutter's `NOTICES`. Maintenance and limits:
 | addr2line | 0.27.1 | Apache-2.0 OR MIT | oxidant |
 | adler2 | 2.0.1 | 0BSD OR MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
 | aho-corasick | 1.1.5 | Unlicense OR MIT | kataglyphis_observant, oxidant |
-| aligned-vec | 0.6.4 | MIT | kataglyphis_observant |
-| aligned | 0.4.3 | MIT OR Apache-2.0 | kataglyphis_observant |
+| aligned-vec | 0.6.4 | MIT | kataglyphis_observant, oxidant |
+| aligned | 0.4.3 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
 | allo-isolate | 0.1.27 |  | oxidant |
 | allocator-api2 | 0.2.21 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
 | android_log-sys | 0.3.2 | MIT OR Apache-2.0 | oxidant |
@@ -87,30 +87,30 @@ Dart package texts are in Flutter's `NOTICES`. Maintenance and limits:
 | anstyle | 1.0.14 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
 | anyhow | 1.0.104 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
 | anymap3 | 1.1.0 | BlueOak-1.0.0 OR MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
-| arg_enum_proc_macro | 0.3.4 | MIT | kataglyphis_observant |
-| arrayvec | 0.7.8 | MIT OR Apache-2.0 | kataglyphis_observant |
-| as-slice | 0.2.1 | MIT OR Apache-2.0 | kataglyphis_observant |
+| arg_enum_proc_macro | 0.3.4 | MIT | kataglyphis_observant, oxidant |
+| arrayvec | 0.7.8 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
+| as-slice | 0.2.1 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
 | atomic-waker | 1.1.2 | Apache-2.0 OR MIT | kataglyphis_observant |
 | atomic | 0.5.3 | Apache-2.0/MIT | oxidant |
 | atomic_refcell | 0.1.14 | Apache-2.0 OR MIT | kataglyphis_observant, oxidant |
-| av-scenechange | 0.14.1 | MIT | kataglyphis_observant |
-| av1-grain | 0.2.5 | BSD-2-Clause | kataglyphis_observant |
-| avif-serialize | 0.8.9 | BSD-3-Clause | kataglyphis_observant |
+| av-scenechange | 0.14.1 | MIT | kataglyphis_observant, oxidant |
+| av1-grain | 0.2.5 | BSD-2-Clause | kataglyphis_observant, oxidant |
+| avif-serialize | 0.8.9 | BSD-3-Clause | kataglyphis_observant, oxidant |
 | backtrace | 0.3.77 | MIT OR Apache-2.0 | oxidant |
 | base64 | 0.23.1 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
 | bit-set | 0.11.1 | Apache-2.0 OR MIT | kataglyphis_observant, oxidant |
 | bit-vec | 0.10.1 | Apache-2.0 OR MIT | kataglyphis_observant, oxidant |
-| bit_field | 0.10.3 | Apache-2.0/MIT | kataglyphis_observant |
+| bit_field | 0.10.3 | Apache-2.0/MIT | kataglyphis_observant, oxidant |
 | bitflags | 1.3.2 | MIT/Apache-2.0 | kataglyphis_observant, oxidant |
 | bitflags | 2.13.2 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
-| bitstream-io | 4.10.0 | MIT/Apache-2.0 | kataglyphis_observant |
+| bitstream-io | 4.10.0 | MIT/Apache-2.0 | kataglyphis_observant, oxidant |
 | block-buffer | 0.10.4 | MIT OR Apache-2.0 | oxidant |
 | borsh-derive | 1.8.1 | Apache-2.0 | kataglyphis_observant, oxidant |
 | borsh | 1.8.1 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
 | bumpalo | 3.20.3 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
 | bytemuck | 1.25.2 | Zlib OR Apache-2.0 OR MIT | kataglyphis_observant, oxidant |
 | bytemuck_derive | 1.12.1 | Zlib OR Apache-2.0 OR MIT | kataglyphis_observant, oxidant |
-| byteorder-lite | 0.1.0 | Unlicense OR MIT | kataglyphis_observant |
+| byteorder-lite | 0.1.0 | Unlicense OR MIT | kataglyphis_observant, oxidant |
 | byteorder | 1.5.0 | Unlicense OR MIT | kataglyphis_observant, oxidant |
 | bytes | 1.12.1 | MIT | kataglyphis_observant, oxidant |
 | cfg-if | 1.0.5 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
@@ -121,11 +121,11 @@ Dart package texts are in Flutter's `NOTICES`. Maintenance and limits:
 | clap_derive | 4.6.7 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
 | clap_lex | 1.1.1 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
 | cobs | 0.3.0 | MIT OR Apache-2.0 | oxidant |
-| color_quant | 1.1.0 | MIT | kataglyphis_observant |
+| color_quant | 1.1.0 | MIT | kataglyphis_observant, oxidant |
 | colorchoice | 1.0.5 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
 | console_error_panic_hook | 0.1.7 | Apache-2.0/MIT | oxidant |
 | cpufeatures | 0.3.1 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
-| crc32fast | 1.5.3 | MIT OR Apache-2.0 | kataglyphis_observant |
+| crc32fast | 1.5.3 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
 | critical-section | 1.2.0 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
 | crossbeam-deque | 0.8.8 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
 | crossbeam-epoch | 0.9.21 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
@@ -147,16 +147,16 @@ Dart package texts are in Flutter's `NOTICES`. Maintenance and limits:
 | env_filter | 0.1.4 | MIT OR Apache-2.0 | oxidant |
 | env_filter | 2.0.0 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
 | env_logger | 0.11.11 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
-| equator-macro | 0.4.2 | MIT | kataglyphis_observant |
-| equator | 0.4.2 | MIT | kataglyphis_observant |
+| equator-macro | 0.4.2 | MIT | kataglyphis_observant, oxidant |
+| equator | 0.4.2 | MIT | kataglyphis_observant, oxidant |
 | equivalent | 1.0.3 | Apache-2.0 OR MIT | kataglyphis_observant, oxidant, rusty_code |
 | erased-serde | 0.4.11 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
 | errno | 0.3.14 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
-| exr | 1.74.2 | BSD-3-Clause | kataglyphis_observant |
-| fax | 0.2.7 | MIT | kataglyphis_observant |
-| fdeflate | 0.3.7 | MIT OR Apache-2.0 | kataglyphis_observant |
+| exr | 1.74.2 | BSD-3-Clause | kataglyphis_observant, oxidant |
+| fax | 0.2.7 | MIT | kataglyphis_observant, oxidant |
+| fdeflate | 0.3.7 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
 | filetime | 0.2.29 | MIT/Apache-2.0 | kataglyphis_observant, oxidant |
-| flate2 | 1.1.10 | MIT OR Apache-2.0 | kataglyphis_observant |
+| flate2 | 1.1.10 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
 | float-ord | 0.3.2 | MIT / Apache-2.0 | kataglyphis_observant, oxidant |
 | flutter_rust_bridge | 2.13.0 | MIT | oxidant |
 | flutter_rust_bridge_macros | 2.13.0 | MIT | oxidant |
@@ -173,7 +173,7 @@ Dart package texts are in Flutter's `NOTICES`. Maintenance and limits:
 | generic-array | 0.14.7 | MIT | oxidant |
 | getrandom | 0.2.17 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
 | getrandom | 0.4.3 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
-| gif | 0.14.2 | MIT OR Apache-2.0 | kataglyphis_observant |
+| gif | 0.14.2 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
 | gimli | 0.34.0 | MIT OR Apache-2.0 | oxidant |
 | gio-sys | 0.22.9 | MIT | kataglyphis_observant, oxidant |
 | glib-macros | 0.22.9 | MIT | kataglyphis_observant, oxidant |
@@ -201,14 +201,14 @@ Dart package texts are in Flutter's `NOTICES`. Maintenance and limits:
 | hyper-util | 0.1.21 | MIT | kataglyphis_observant |
 | hyper | 1.12.0 | MIT | kataglyphis_observant |
 | iana-time-zone | 0.1.65 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
-| image-webp | 0.2.4 | MIT OR Apache-2.0 | kataglyphis_observant |
-| image | 0.25.10 | MIT OR Apache-2.0 | kataglyphis_observant |
-| imgref | 1.12.3 | CC0-1.0 OR Apache-2.0 | kataglyphis_observant |
+| image-webp | 0.2.4 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
+| image | 0.25.10 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
+| imgref | 1.12.3 | CC0-1.0 OR Apache-2.0 | kataglyphis_observant, oxidant |
 | indexmap | 2.14.2 | Apache-2.0 OR MIT | kataglyphis_observant, oxidant, rusty_code |
 | inventory | 0.3.25 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
 | is_terminal_polyfill | 1.70.2 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
 | itertools | 0.12.1 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
-| itertools | 0.14.0 | MIT OR Apache-2.0 | kataglyphis_observant |
+| itertools | 0.14.0 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
 | itertools | 0.15.0 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
 | itoa | 1.0.18 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
 | jiff-core | 0.1.1 | Unlicense OR MIT | kataglyphis_observant, oxidant |
@@ -224,7 +224,7 @@ Dart package texts are in Flutter's `NOTICES`. Maintenance and limits:
 | kataglyphis_text | 3.0.0 | MIT | oxidant |
 | kstring | 2.0.5 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
 | lazy_static | 1.5.1 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
-| lebe | 0.5.3 | BSD-3-Clause | kataglyphis_observant |
+| lebe | 0.5.3 | BSD-3-Clause | kataglyphis_observant, oxidant |
 | libc | 0.2.191 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
 | libloading | 0.9.0 | ISC | kataglyphis_observant, oxidant |
 | libm | 0.2.16 | MIT | kataglyphis_observant, oxidant |
@@ -232,29 +232,29 @@ Dart package texts are in Flutter's `NOTICES`. Maintenance and limits:
 | linux-raw-sys | 0.12.1 | Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT | kataglyphis_observant, oxidant |
 | lock_api | 0.4.14 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
 | log | 0.4.34 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
-| loop9 | 0.1.5 | MIT | kataglyphis_observant |
+| loop9 | 0.1.5 | MIT | kataglyphis_observant, oxidant |
 | maplit | 1.0.2 | MIT/Apache-2.0 | kataglyphis_observant, oxidant |
 | matrixmultiply | 0.3.11 | MIT/Apache-2.0 | kataglyphis_observant, oxidant |
-| maybe-rayon | 0.1.1 | MIT | kataglyphis_observant |
+| maybe-rayon | 0.1.1 | MIT | kataglyphis_observant, oxidant |
 | md-5 | 0.10.6 | MIT OR Apache-2.0 | oxidant |
 | memchr | 2.8.3 | Unlicense OR MIT | kataglyphis_observant, oxidant |
 | memmap2 | 0.9.12 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
-| miniz_oxide | 0.8.9 | MIT OR Zlib OR Apache-2.0 | kataglyphis_observant |
+| miniz_oxide | 0.8.9 | MIT OR Zlib OR Apache-2.0 | kataglyphis_observant, oxidant |
 | miniz_oxide | 0.9.1 | MIT OR Zlib OR Apache-2.0 | kataglyphis_observant, oxidant |
 | mio | 1.2.4 | MIT | kataglyphis_observant, oxidant |
-| moxcms | 0.8.1 | BSD-3-Clause OR Apache-2.0 | kataglyphis_observant |
+| moxcms | 0.8.1 | BSD-3-Clause OR Apache-2.0 | kataglyphis_observant, oxidant |
 | muldiv | 1.0.1 | MIT | kataglyphis_observant, oxidant |
 | ndarray | 0.17.2 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
-| new_debug_unreachable | 1.0.6 | MIT | kataglyphis_observant |
+| new_debug_unreachable | 1.0.6 | MIT | kataglyphis_observant, oxidant |
 | nix | 0.26.4 | MIT | oxidant |
-| no_std_io2 | 0.9.4 | Apache-2.0 OR MIT | kataglyphis_observant |
+| no_std_io2 | 0.9.4 | Apache-2.0 OR MIT | kataglyphis_observant, oxidant |
 | nom-language | 0.1.0 | MIT | kataglyphis_observant, oxidant |
 | nom | 8.0.0 | MIT | kataglyphis_observant, oxidant |
-| noop_proc_macro | 0.3.0 | MIT | kataglyphis_observant |
+| noop_proc_macro | 0.3.0 | MIT | kataglyphis_observant, oxidant |
 | ntapi | 0.4.3 | Apache-2.0 OR MIT | kataglyphis_observant, oxidant |
 | num-bigint | 0.4.8 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
 | num-complex | 0.4.6 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
-| num-derive | 0.4.2 | MIT OR Apache-2.0 | kataglyphis_observant |
+| num-derive | 0.4.2 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
 | num-integer | 0.1.47 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
 | num-rational | 0.4.2 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
 | num-traits | 0.2.19 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
@@ -268,42 +268,42 @@ Dart package texts are in Flutter's `NOTICES`. Maintenance and limits:
 | oxidant | 3.0.0 | MIT | oxidant |
 | parking_lot | 0.12.5 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
 | parking_lot_core | 0.9.12 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
-| paste | 1.0.15 | MIT OR Apache-2.0 | kataglyphis_observant |
-| pastey | 0.1.1 | MIT OR Apache-2.0 | kataglyphis_observant |
+| paste | 1.0.15 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
+| pastey | 0.1.1 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
 | pastey | 0.2.3 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
 | percent-encoding | 2.3.2 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
 | pin-project-lite | 0.2.17 | Apache-2.0 OR MIT | kataglyphis_observant, oxidant |
-| png | 0.18.1 | MIT OR Apache-2.0 | kataglyphis_observant |
+| png | 0.18.1 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
 | portable-atomic | 1.15.0 | Apache-2.0 OR MIT | kataglyphis_observant, oxidant |
 | postcard | 1.1.3 | MIT OR Apache-2.0 | oxidant |
 | primal-check | 0.3.4 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
 | proc-macro-crate | 3.5.0 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
 | proc-macro2 | 1.0.107 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant, rusty_code |
-| profiling-procmacros | 1.0.18 | MIT OR Apache-2.0 | kataglyphis_observant |
-| profiling | 1.0.18 | MIT OR Apache-2.0 | kataglyphis_observant |
+| profiling-procmacros | 1.0.18 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
+| profiling | 1.0.18 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
 | prost-derive | 0.14.4 | Apache-2.0 | kataglyphis_observant, oxidant |
 | prost | 0.14.4 | Apache-2.0 | kataglyphis_observant, oxidant |
-| pulp-wasm-simd-flag | 0.1.1 | MIT | kataglyphis_observant |
-| pulp | 0.22.3 | MIT | kataglyphis_observant |
-| pxfm | 0.1.30 | BSD-3-Clause OR Apache-2.0 | kataglyphis_observant |
-| qoi | 0.4.1 | MIT/Apache-2.0 | kataglyphis_observant |
-| quick-error | 2.0.1 | MIT/Apache-2.0 | kataglyphis_observant |
+| pulp-wasm-simd-flag | 0.1.1 | MIT | kataglyphis_observant, oxidant |
+| pulp | 0.22.3 | MIT | kataglyphis_observant, oxidant |
+| pxfm | 0.1.30 | BSD-3-Clause OR Apache-2.0 | kataglyphis_observant, oxidant |
+| qoi | 0.4.1 | MIT/Apache-2.0 | kataglyphis_observant, oxidant |
+| quick-error | 2.0.1 | MIT/Apache-2.0 | kataglyphis_observant, oxidant |
 | quote | 1.0.47 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant, rusty_code |
 | rand | 0.10.3 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
 | rand_core | 0.10.1 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
 | rand_core | 0.6.4 | MIT OR Apache-2.0 | oxidant |
 | rand_distr | 0.6.0 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
-| rav1e | 0.8.1 | BSD-2-Clause | kataglyphis_observant |
-| ravif | 0.13.0 | BSD-3-Clause | kataglyphis_observant |
-| raw-cpuid | 11.6.0 | MIT | kataglyphis_observant |
+| rav1e | 0.8.1 | BSD-2-Clause | kataglyphis_observant, oxidant |
+| ravif | 0.13.0 | BSD-3-Clause | kataglyphis_observant, oxidant |
+| raw-cpuid | 11.6.0 | MIT | kataglyphis_observant, oxidant |
 | rawpointer | 0.2.1 | MIT/Apache-2.0 | kataglyphis_observant, oxidant |
 | rayon-core | 1.13.0 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
 | rayon | 1.12.0 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
-| reborrow | 0.5.5 | MIT | kataglyphis_observant |
+| reborrow | 0.5.5 | MIT | kataglyphis_observant, oxidant |
 | regex-automata | 0.4.18 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
 | regex-syntax | 0.8.11 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
 | regex | 1.13.1 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
-| rgb | 0.8.53 | MIT | kataglyphis_observant |
+| rgb | 0.8.53 | MIT | kataglyphis_observant, oxidant |
 | ring | 0.17.14 | Apache-2.0 AND ISC | kataglyphis_observant, oxidant |
 | rustc-demangle | 0.1.28 | MIT/Apache-2.0 | oxidant |
 | rustfft | 6.4.1 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
@@ -323,11 +323,11 @@ Dart package texts are in Flutter's `NOTICES`. Maintenance and limits:
 | serialport | 4.10.1 | MPL-2.0 | oxidant |
 | signal-hook-registry | 1.4.8 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
 | simd-adler32 | 0.3.10 | MIT | kataglyphis_observant, oxidant |
-| simd_helpers | 0.1.0 | MIT | kataglyphis_observant |
+| simd_helpers | 0.1.0 | MIT | kataglyphis_observant, oxidant |
 | slab | 0.4.12 | MIT | kataglyphis_observant, oxidant |
 | smallvec | 1.16.4 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
 | socket2 | 0.6.5 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
-| stable_deref_trait | 1.2.1 | MIT OR Apache-2.0 | kataglyphis_observant |
+| stable_deref_trait | 1.2.1 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
 | static_assertions | 1.1.0 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
 | strength_reduce | 0.2.4 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
 | string-interner | 0.20.0 | MIT/Apache-2.0 | kataglyphis_observant, oxidant |
@@ -340,7 +340,7 @@ Dart package texts are in Flutter's `NOTICES`. Maintenance and limits:
 | thiserror-impl | 2.0.21 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
 | thiserror | 2.0.21 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
 | threadpool | 1.8.1 | MIT/Apache-2.0 | oxidant |
-| tiff | 0.11.3 | MIT | kataglyphis_observant |
+| tiff | 0.11.3 | MIT | kataglyphis_observant, oxidant |
 | tokio-macros | 2.7.2 | MIT | kataglyphis_observant, oxidant |
 | tokio | 1.54.1 | MIT | kataglyphis_observant, oxidant |
 | toml | 1.1.8+spec-1.1.0 | MIT OR Apache-2.0 | kataglyphis_observant |
@@ -370,7 +370,7 @@ Dart package texts are in Flutter's `NOTICES`. Maintenance and limits:
 | ureq | 3.5.0 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
 | utf8-zero | 0.8.1 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
 | utf8parse | 0.2.2 | Apache-2.0 OR MIT | kataglyphis_observant, oxidant |
-| v_frame | 0.3.9 | BSD-2-Clause | kataglyphis_observant |
+| v_frame | 0.3.9 | BSD-2-Clause | kataglyphis_observant, oxidant |
 | walkdir | 2.5.0 | Unlicense/MIT | kataglyphis_observant, oxidant |
 | wasm-bindgen-futures | 0.4.79 | MIT OR Apache-2.0 | oxidant |
 | wasm-bindgen-macro-support | 0.2.129 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
@@ -379,7 +379,7 @@ Dart package texts are in Flutter's `NOTICES`. Maintenance and limits:
 | wasm-bindgen | 0.2.129 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
 | web-sys | 0.3.106 | MIT OR Apache-2.0 | oxidant |
 | webpki-roots | 1.0.11 | CDLA-Permissive-2.0 | kataglyphis_observant, oxidant |
-| weezl | 0.1.12 | MIT OR Apache-2.0 | kataglyphis_observant |
+| weezl | 0.1.12 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
 | winapi-util | 0.1.11 | Unlicense OR MIT | kataglyphis_observant, oxidant |
 | winapi | 0.3.9 | MIT/Apache-2.0 | kataglyphis_observant, oxidant |
 | windows-collections | 0.3.2 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
@@ -401,16 +401,16 @@ Dart package texts are in Flutter's `NOTICES`. Maintenance and limits:
 | winnow | 1.0.4 | MIT | kataglyphis_observant, oxidant |
 | wmi | 0.18.4 | MIT OR Apache-2.0 | oxidant |
 | xattr | 1.6.1 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
-| y4m | 0.8.0 | MIT | kataglyphis_observant |
+| y4m | 0.8.0 | MIT | kataglyphis_observant, oxidant |
 | zerocopy-derive | 0.8.63 | BSD-2-Clause OR Apache-2.0 OR MIT | kataglyphis_observant, oxidant |
 | zerocopy | 0.8.63 | BSD-2-Clause OR Apache-2.0 OR MIT | kataglyphis_observant, oxidant |
 | zeroize | 1.9.1 | Apache-2.0 OR MIT | kataglyphis_observant, oxidant |
-| zlib-rs | 0.6.8 | Zlib | kataglyphis_observant |
+| zlib-rs | 0.6.8 | Zlib | kataglyphis_observant, oxidant |
 | zmij | 1.0.23 | MIT | kataglyphis_observant, oxidant |
 | zopfli | 0.8.4 | Apache-2.0 | kataglyphis_observant |
-| zune-core | 0.5.3 | MIT OR Apache-2.0 OR Zlib | kataglyphis_observant |
-| zune-inflate | 0.2.54 | MIT OR Apache-2.0 OR Zlib | kataglyphis_observant |
-| zune-jpeg | 0.5.15 | MIT OR Apache-2.0 OR Zlib | kataglyphis_observant |
+| zune-core | 0.5.3 | MIT OR Apache-2.0 OR Zlib | kataglyphis_observant, oxidant |
+| zune-inflate | 0.2.54 | MIT OR Apache-2.0 OR Zlib | kataglyphis_observant, oxidant |
+| zune-jpeg | 0.5.15 | MIT OR Apache-2.0 OR Zlib | kataglyphis_observant, oxidant |
 
 ## Dart packages (106)
 

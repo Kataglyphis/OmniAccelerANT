@@ -931,8 +931,9 @@ oxidant's codegen version (2.11.1) should be the same as runtime version (2.12.0
 bash scripts/linux/generate-frb-bindings.sh
 ```
 
-The wrapper checks locked Cargo metadata and generated Rust/Dart loader, version
-and content-hash agreement. It requires a clean OxidANT checkout matching the index
+The wrapper runs OxidANT's `scripts/linux/frb-codegen.sh`, the one bridge flag set, which checks
+full cross-target locked Cargo metadata and generated Rust/Dart loader, version and content-hash
+agreement. It requires a clean OxidANT checkout matching the index
 gitlink, rejects hidden Git index flags and ignored source inputs, and refuses to
 overwrite changed generated files. It updates both
 the app bindings and OxidANT's generated Rust file, so review both outputs together.

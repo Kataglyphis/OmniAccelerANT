@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Generate both sides only when complete Cargo metadata and the library stem agree.
+# Refuse unsafe checkouts, then generate both sides through OxidANT's one bridge configuration.
 set -euo pipefail
 for name in GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_COMMON_DIR GIT_OBJECT_DIRECTORY GIT_ALTERNATE_OBJECT_DIRECTORIES GIT_NAMESPACE GIT_PREFIX; do
   if [[ ${!name+x} ]]; then
@@ -42,15 +42,6 @@ rust_changes=$(git -C third_party/OxidANT status --porcelain --untracked-files=a
 dart_ignored=$(git ls-files --others --ignored --exclude-standard -- lib/src/rust)
 rust_ignored=$(git -C third_party/OxidANT ls-files --others --ignored --exclude-standard -- src/frb_generated.rs)
 [[ -z "$dart_changes$rust_changes$dart_ignored$rust_ignored" ]] || { echo 'Refusing to overwrite changed generated bindings' >&2; exit 1; }
-cargo metadata --locked --manifest-path third_party/OxidANT/Cargo.toml --format-version 1 >/dev/null
-expected_version=$(python3 -I scripts/linux/verify-frb-bindings.py third_party/OxidANT/Cargo.toml --print-version)
-actual_version=$(flutter_rust_bridge_codegen --version)
-if [[ "$actual_version" != "flutter_rust_bridge_codegen $expected_version" ]]; then
-  printf 'FRB generator mismatch: %s (expected %s)\n' "$actual_version" "$expected_version" >&2
-  exit 1
-fi
-flutter_rust_bridge_codegen generate --rust-root third_party/OxidANT --rust-input crate::api \
-  --dart-output lib/src/rust --no-deps-check --no-build-runner --no-dart-fix \
-  --no-add-mod-to-lib --no-auto-upgrade-dependency --stop-on-error
-python3 -I scripts/linux/verify-frb-bindings.py third_party/OxidANT/Cargo.toml \
-  --dart lib/src/rust/frb_generated.dart --rust third_party/OxidANT/src/frb_generated.rs
+# OxidANT owns the bridge input, flags, generator pin and loader check; this app supplies only its roots.
+bash third_party/OxidANT/scripts/linux/frb-codegen.sh generate --hub third_party/ANTfrastructure \
+  --rust-root third_party/OxidANT --dart-output lib/src/rust

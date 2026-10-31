@@ -5,6 +5,17 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ## Unreleased
 
+### 2026-10-31
+- Generate the bridge through OxidANT's `scripts/linux/frb-codegen.sh`, the one input and flag
+  set, instead of a local `flutter_rust_bridge.yaml` and flag copy; the wrapper passes only this
+  app's Rust root and Dart output. `verify-frb-bindings.py` runs OxidANT's checker.
+- Check the committed bridge pair on every push: the `frb-bindings` job in `linux-x64.yml` runs
+  `verify-frb-bindings.py` and the generator wrapper's suites; three mutation recipes prove it fails
+  on a changed version, hash or loader stem.
+- Move OxidANT to the commit that adds the shared bridge script and regenerate the Dart side; the
+  detector profiling API reaches `lib/src/rust/api/onnx.dart`, the third-party license inventory
+  follows OxidANT's lockfile, and the GPU candidate preflight passes against the pinned OxidANT.
+
 - `security-audit.yml` calls the hub's lockfile audit on push, PR, Mondays and dispatch; the lint gates arm the hub's `sha-pin` workflow convention.
 - Reject GPU DEBs whose embedded package identity or architecture does not match the requested candidate.
 - Scope GPU candidate uploads to the workflow attempt, reject replacement and make Linux clean-host checks require the same attempt's package.

@@ -16,11 +16,22 @@ bash scripts/linux/generate-frb-bindings.sh
 The wrapper requires a clean OxidANT checkout matching the index gitlink and refuses
 to overwrite changed generated files. It also rejects hidden Git index flags and ignored
 files in source input directories; ordinary model downloads and build caches are allowed.
-It checks complete locked Cargo metadata,
-the generator version, the library loader name, and matching Rust/Dart versions
-and content hashes. It writes both `lib/src/rust/` and OxidANT's
-`src/frb_generated.rs`; review and commit both sides together. Offline generation
-requires the full locked cross-platform Cargo cache and `cargo-expand`.
+It then runs OxidANT's `scripts/linux/frb-codegen.sh`, which holds the one bridge input and
+flag set and takes only this app's Rust root and Dart output. That script requires the
+generator at the hub's `FLUTTER_RUST_BRIDGE_VERSION`, full cross-target locked Cargo metadata,
+a loader stem equal to the Rust library name, and matching Rust/Dart versions and content
+hashes. It writes both `lib/src/rust/` and OxidANT's `src/frb_generated.rs`; commit and push
+OxidANT first, then move this repository's gitlink with the hub's
+`pin-antfrastructure-submodule.py --path third_party/OxidANT` and commit the Dart side with it.
+The first run installs cargo-expand 1.0.127 from its checksummed crate; offline generation
+also requires the full locked cross-platform Cargo cache.
+
+Two gates keep the pair fresh. OxidANT's `fmt-clippy` step regenerates its Rust side and fails
+when it differs from the commit. Here, the `frb-bindings` job in `linux-x64.yml` runs
+`verify-frb-bindings.py` over the committed `lib/src/rust/frb_generated.dart` and the pinned
+`third_party/OxidANT/src/frb_generated.rs` on every push. It compares the loader stem,
+generator version and content hash; it does not regenerate, so it cannot see an API change
+that neither side picked up. OxidANT's step covers that.
 
 ## Dependency Upgrades
 

@@ -270,5 +270,29 @@
   "replace": "download_file \\\"https://github.com/esp-rs/espflash/releases/download/\\${ESPFLASH_VERSION:?}/espflash-\\${host}.zip\\\" \\\n    /opt/esp32/downloads/espflash.zip",
   "test": "bash scripts/linux/tests/test-pinned-tool-downloads.sh",
   "why": "espflash is unpacked only after its pinned sha256 matches."
+ },
+ {
+  "id": "consumer.omni-frb-version",
+  "target": "lib/src/rust/frb_generated.dart",
+  "find": "String get codegenVersion => '2.13.0';",
+  "replace": "String get codegenVersion => '2.12.0';",
+  "test": "python3 -I scripts/linux/verify-frb-bindings.py third_party/OxidANT/Cargo.toml --dart lib/src/rust/frb_generated.dart --rust third_party/OxidANT/src/frb_generated.rs",
+  "why": "The push gate refuses Dart bindings from another generator version."
+ },
+ {
+  "id": "consumer.omni-frb-hash",
+  "target": "lib/src/rust/frb_generated.dart",
+  "find": "int get rustContentHash =>",
+  "replace": "int get rustContentHash => 1 +",
+  "test": "python3 -I scripts/linux/verify-frb-bindings.py third_party/OxidANT/Cargo.toml --dart lib/src/rust/frb_generated.dart --rust third_party/OxidANT/src/frb_generated.rs",
+  "why": "The push gate refuses Dart bindings generated from other Rust sources."
+ },
+ {
+  "id": "consumer.omni-frb-stem",
+  "target": "lib/src/rust/frb_generated.dart",
+  "find": "stem: 'oxidant',",
+  "replace": "stem: 'UNKNOWN',",
+  "test": "python3 -I scripts/linux/verify-frb-bindings.py third_party/OxidANT/Cargo.toml --dart lib/src/rust/frb_generated.dart --rust third_party/OxidANT/src/frb_generated.rs",
+  "why": "The push gate refuses a loader stem the Rust library does not build."
  }
 ]

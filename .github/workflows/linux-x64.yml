@@ -50,6 +50,29 @@ jobs:
           -RepoRoot .
           -Check
 
+  # No image: the committed bridge pair and the generator wrapper's suites need only Python and Git.
+  frb-bindings:
+    name: Bridge bindings agree with the pinned OxidANT
+    runs-on: ubuntu-26.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          submodules: true
+          fetch-depth: 1
+
+      - name: Committed Rust and Dart sides agree (stem, generator version, content hash)
+        run: >-
+          python3 -I scripts/linux/verify-frb-bindings.py third_party/OxidANT/Cargo.toml
+          --dart lib/src/rust/frb_generated.dart
+          --rust third_party/OxidANT/src/frb_generated.rs
+
+      - name: Generator wrapper refuses unsafe checkouts and bad output
+        run: |
+          bash scripts/linux/tests/test-frb-codegen-preflight.sh
+          python3 scripts/linux/tests/test-frb-codegen-real-git.py
+
   # No needs: on lint, so a finding cannot skip the tests; keep `with:` flat `key: value` lines for Invoke-LinuxLane.ps1 -CheckParity.
   build:
     permissions:

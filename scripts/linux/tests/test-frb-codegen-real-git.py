@@ -41,9 +41,21 @@ class RealGitPreflightTest(unittest.TestCase):
         )
         self.write(self.sub / "src/api/onnx.rs", "pub fn original() {}\n")
         self.write(self.sub / "src/frb_generated.rs", "original Rust binding\n")
+        (self.sub / "scripts/linux").mkdir(parents=True)
+        for name in ("frb-codegen.sh", "verify-frb-bindings.py"):
+            shutil.copyfile(
+                ROOT / "third_party/OxidANT/scripts/linux" / name,
+                self.sub / "scripts/linux" / name,
+            )
         self.write(self.sub / "crates/core/src/lib.rs", "pub fn core() {}\n")
         self.write(
-            self.sub / "Cargo.toml", "[package]\nname='fixture'\nversion='0.1.0'\n"
+            self.sub / "Cargo.toml",
+            "[package]\nname='fixture'\nversion='0.1.0'\n"
+            "[workspace.dependencies]\nflutter_rust_bridge='=2.13.0'\n",
+        )
+        self.write(
+            self.root / "third_party/ANTfrastructure/linux/scripts/01-core/versions.env",
+            "FLUTTER_RUST_BRIDGE_VERSION=2.13.0\n",
         )
         self.git(self.sub, "add", ".")
         self.commit(self.sub)
@@ -69,6 +81,9 @@ class RealGitPreflightTest(unittest.TestCase):
         cargo = bindir / "cargo"
         self.write(cargo, '#!/bin/sh\ntouch "$CARGO_SENTINEL"\nexit 73\n')
         cargo.chmod(0o755)
+        codegen = bindir / "flutter_rust_bridge_codegen"
+        self.write(codegen, "#!/bin/sh\necho flutter_rust_bridge_codegen 2.13.0\n")
+        codegen.chmod(0o755)
         self.marker = self.root / "cargo-reached"
         self.env["PATH"] = str(bindir) + os.pathsep + self.env["PATH"]
         self.env["CARGO_SENTINEL"] = str(self.marker)
@@ -147,7 +162,8 @@ class RealGitPreflightTest(unittest.TestCase):
         )
         self.write(self.sub / "crates/core/worker.log", "ordinary log\n")
         result = self.run_wrapper()
-        self.assertEqual(result.returncode, 73, result.stderr)
+        self.assertIn("full cross-target cargo metadata failed", result.stderr)
+        self.assertNotEqual(result.returncode, 0)
         self.assertTrue(self.marker.exists(), "valid checkout did not reach metadata")
 
     def test_hidden_source_flags_are_rejected(self):

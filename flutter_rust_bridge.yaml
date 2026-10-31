@@ -1,4 +1,0 @@
-rust_input: crate::api
-rust_root: third_party/OxidANT
-# rust_root: rust/
-dart_output: lib/src/rust

@@ -1182,7 +1182,8 @@
     }
    ],
    "used_by": [
-    "kataglyphis_observant"
+    "kataglyphis_observant",
+    "oxidant"
    ],
    "version": "0.6.4"
   },
@@ -1213,7 +1214,8 @@
     }
    ],
    "used_by": [
-    "kataglyphis_observant"
+    "kataglyphis_observant",
+    "oxidant"
    ],
    "version": "0.4.3"
   },
@@ -1586,7 +1588,8 @@
     }
    ],
    "used_by": [
-    "kataglyphis_observant"
+    "kataglyphis_observant",
+    "oxidant"
    ],
    "version": "0.3.4"
   },
@@ -1617,7 +1620,8 @@
     }
    ],
    "used_by": [
-    "kataglyphis_observant"
+    "kataglyphis_observant",
+    "oxidant"
    ],
    "version": "0.7.8"
   },
@@ -1648,7 +1652,8 @@
     }
    ],
    "used_by": [
-    "kataglyphis_observant"
+    "kataglyphis_observant",
+    "oxidant"
    ],
    "version": "0.2.1"
   },
@@ -1772,7 +1777,8 @@
     }
    ],
    "used_by": [
-    "kataglyphis_observant"
+    "kataglyphis_observant",
+    "oxidant"
    ],
    "version": "0.14.1"
   },
@@ -1798,7 +1804,8 @@
     }
    ],
    "used_by": [
-    "kataglyphis_observant"
+    "kataglyphis_observant",
+    "oxidant"
    ],
    "version": "0.2.5"
   },
@@ -1824,7 +1831,8 @@
     }
    ],
    "used_by": [
-    "kataglyphis_observant"
+    "kataglyphis_observant",
+    "oxidant"
    ],
    "version": "0.8.9"
   },
@@ -1981,7 +1989,8 @@
     }
    ],
    "used_by": [
-    "kataglyphis_observant"
+    "kataglyphis_observant",
+    "oxidant"
    ],
    "version": "0.10.3"
   },
@@ -2076,7 +2085,8 @@
     }
    ],
    "used_by": [
-    "kataglyphis_observant"
+    "kataglyphis_observant",
+    "oxidant"
    ],
    "version": "4.10.0"
   },
@@ -2303,7 +2313,8 @@
     }
    ],
    "used_by": [
-    "kataglyphis_observant"
+    "kataglyphis_observant",
+    "oxidant"
    ],
    "version": "0.1.0"
   },
@@ -2636,7 +2647,8 @@
     }
    ],
    "used_by": [
-    "kataglyphis_observant"
+    "kataglyphis_observant",
+    "oxidant"
    ],
    "version": "1.1.0"
   },
@@ -2751,7 +2763,8 @@
     }
    ],
    "used_by": [
-    "kataglyphis_observant"
+    "kataglyphis_observant",
+    "oxidant"
    ],
    "version": "1.5.3"
   },
@@ -3419,7 +3432,8 @@
     }
    ],
    "used_by": [
-    "kataglyphis_observant"
+    "kataglyphis_observant",
+    "oxidant"
    ],
    "version": "0.4.2"
   },
@@ -3445,7 +3459,8 @@
     }
    ],
    "used_by": [
-    "kataglyphis_observant"
+    "kataglyphis_observant",
+    "oxidant"
    ],
    "version": "0.4.2"
   },
@@ -3565,7 +3580,8 @@
     }
    ],
    "used_by": [
-    "kataglyphis_observant"
+    "kataglyphis_observant",
+    "oxidant"
    ],
    "version": "1.74.2"
   },
@@ -3591,7 +3607,8 @@
     }
    ],
    "used_by": [
-    "kataglyphis_observant"
+    "kataglyphis_observant",
+    "oxidant"
    ],
    "version": "0.2.7"
   },
@@ -3622,7 +3639,8 @@
     }
    ],
    "used_by": [
-    "kataglyphis_observant"
+    "kataglyphis_observant",
+    "oxidant"
    ],
    "version": "0.3.7"
   },
@@ -3685,7 +3703,8 @@
     }
    ],
    "used_by": [
-    "kataglyphis_observant"
+    "kataglyphis_observant",
+    "oxidant"
    ],
    "version": "1.1.10"
   },
@@ -4205,7 +4224,8 @@
     }
    ],
    "used_by": [
-    "kataglyphis_observant"
+    "kataglyphis_observant",
+    "oxidant"
    ],
    "version": "0.14.2"
   },
@@ -5023,7 +5043,8 @@
     }
    ],
    "used_by": [
-    "kataglyphis_observant"
+    "kataglyphis_observant",
+    "oxidant"
    ],
    "version": "0.2.4"
   },
@@ -5054,7 +5075,8 @@
     }
    ],
    "used_by": [
-    "kataglyphis_observant"
+    "kataglyphis_observant",
+    "oxidant"
    ],
    "version": "0.25.10"
   },
@@ -5085,7 +5107,8 @@
     }
    ],
    "used_by": [
-    "kataglyphis_observant"
+    "kataglyphis_observant",
+    "oxidant"
    ],
    "version": "1.12.3"
   },
@@ -5245,7 +5268,8 @@
     }
    ],
    "used_by": [
-    "kataglyphis_observant"
+    "kataglyphis_observant",
+    "oxidant"
    ],
    "version": "0.14.0"
   },
@@ -5695,7 +5719,8 @@
     }
    ],
    "used_by": [
-    "kataglyphis_observant"
+    "kataglyphis_observant",
+    "oxidant"
    ],
    "version": "0.5.3"
   },
@@ -5931,7 +5956,8 @@
     }
    ],
    "used_by": [
-    "kataglyphis_observant"
+    "kataglyphis_observant",
+    "oxidant"
    ],
    "version": "0.1.5"
   },
@@ -6021,7 +6047,8 @@
     }
    ],
    "used_by": [
-    "kataglyphis_observant"
+    "kataglyphis_observant",
+    "oxidant"
    ],
    "version": "0.1.1"
   },
@@ -6157,7 +6184,8 @@
     }
    ],
    "used_by": [
-    "kataglyphis_observant"
+    "kataglyphis_observant",
+    "oxidant"
    ],
    "version": "0.8.9"
   },
@@ -6257,7 +6285,8 @@
     }
    ],
    "used_by": [
-    "kataglyphis_observant"
+    "kataglyphis_observant",
+    "oxidant"
    ],
    "version": "0.8.1"
   },
@@ -6342,7 +6371,8 @@
     }
    ],
    "used_by": [
-    "kataglyphis_observant"
+    "kataglyphis_observant",
+    "oxidant"
    ],
    "version": "1.0.6"
   },
@@ -6395,7 +6425,8 @@
     }
    ],
    "used_by": [
-    "kataglyphis_observant"
+    "kataglyphis_observant",
+    "oxidant"
    ],
    "version": "0.9.4"
   },
@@ -6475,7 +6506,8 @@
     }
    ],
    "used_by": [
-    "kataglyphis_observant"
+    "kataglyphis_observant",
+    "oxidant"
    ],
    "version": "0.3.0"
   },
@@ -6597,7 +6629,8 @@
     }
    ],
    "used_by": [
-    "kataglyphis_observant"
+    "kataglyphis_observant",
+    "oxidant"
    ],
    "version": "0.4.2"
   },
@@ -7023,7 +7056,8 @@
     }
    ],
    "used_by": [
-    "kataglyphis_observant"
+    "kataglyphis_observant",
+    "oxidant"
    ],
    "version": "1.0.15"
   },
@@ -7054,7 +7088,8 @@
     }
    ],
    "used_by": [
-    "kataglyphis_observant"
+    "kataglyphis_observant",
+    "oxidant"
    ],
    "version": "0.1.1"
   },
@@ -7181,7 +7216,8 @@
     }
    ],
    "used_by": [
-    "kataglyphis_observant"
+    "kataglyphis_observant",
+    "oxidant"
    ],
    "version": "0.18.1"
   },
@@ -7370,7 +7406,8 @@
     }
    ],
    "used_by": [
-    "kataglyphis_observant"
+    "kataglyphis_observant",
+    "oxidant"
    ],
    "version": "1.0.18"
   },
@@ -7401,7 +7438,8 @@
     }
    ],
    "used_by": [
-    "kataglyphis_observant"
+    "kataglyphis_observant",
+    "oxidant"
    ],
    "version": "1.0.18"
   },
@@ -7481,7 +7519,8 @@
     }
    ],
    "used_by": [
-    "kataglyphis_observant"
+    "kataglyphis_observant",
+    "oxidant"
    ],
    "version": "0.1.1"
   },
@@ -7507,7 +7546,8 @@
     }
    ],
    "used_by": [
-    "kataglyphis_observant"
+    "kataglyphis_observant",
+    "oxidant"
    ],
    "version": "0.22.3"
   },
@@ -7538,7 +7578,8 @@
     }
    ],
    "used_by": [
-    "kataglyphis_observant"
+    "kataglyphis_observant",
+    "oxidant"
    ],
    "version": "0.1.30"
   },
@@ -7569,7 +7610,8 @@
     }
    ],
    "used_by": [
-    "kataglyphis_observant"
+    "kataglyphis_observant",
+    "oxidant"
    ],
    "version": "0.4.1"
   },
@@ -7600,7 +7642,8 @@
     }
    ],
    "used_by": [
-    "kataglyphis_observant"
+    "kataglyphis_observant",
+    "oxidant"
    ],
    "version": "2.0.1"
   },
@@ -7786,7 +7829,8 @@
     }
    ],
    "used_by": [
-    "kataglyphis_observant"
+    "kataglyphis_observant",
+    "oxidant"
    ],
    "version": "0.8.1"
   },
@@ -7812,7 +7856,8 @@
     }
    ],
    "used_by": [
-    "kataglyphis_observant"
+    "kataglyphis_observant",
+    "oxidant"
    ],
    "version": "0.13.0"
   },
@@ -7833,7 +7878,8 @@
     }
    ],
    "used_by": [
-    "kataglyphis_observant"
+    "kataglyphis_observant",
+    "oxidant"
    ],
    "version": "11.6.0"
   },
@@ -7955,7 +8001,8 @@
     }
    ],
    "used_by": [
-    "kataglyphis_observant"
+    "kataglyphis_observant",
+    "oxidant"
    ],
    "version": "0.5.5"
   },
@@ -8077,7 +8124,8 @@
     }
    ],
    "used_by": [
-    "kataglyphis_observant"
+    "kataglyphis_observant",
+    "oxidant"
    ],
    "version": "0.8.53"
   },
@@ -8683,7 +8731,8 @@
     }
    ],
    "used_by": [
-    "kataglyphis_observant"
+    "kataglyphis_observant",
+    "oxidant"
    ],
    "version": "0.1.0"
   },
@@ -8805,7 +8854,8 @@
     }
    ],
    "used_by": [
-    "kataglyphis_observant"
+    "kataglyphis_observant",
+    "oxidant"
    ],
    "version": "1.2.1"
   },
@@ -9199,7 +9249,8 @@
     }
    ],
    "used_by": [
-    "kataglyphis_observant"
+    "kataglyphis_observant",
+    "oxidant"
    ],
    "version": "0.11.3"
   },
@@ -10155,7 +10206,8 @@
     }
    ],
    "used_by": [
-    "kataglyphis_observant"
+    "kataglyphis_observant",
+    "oxidant"
    ],
    "version": "0.3.9"
   },
@@ -10423,7 +10475,8 @@
     }
    ],
    "used_by": [
-    "kataglyphis_observant"
+    "kataglyphis_observant",
+    "oxidant"
    ],
    "version": "0.1.12"
   },
@@ -11015,7 +11068,8 @@
     }
    ],
    "used_by": [
-    "kataglyphis_observant"
+    "kataglyphis_observant",
+    "oxidant"
    ],
    "version": "0.8.0"
   },
@@ -11147,7 +11201,8 @@
     }
    ],
    "used_by": [
-    "kataglyphis_observant"
+    "kataglyphis_observant",
+    "oxidant"
    ],
    "version": "0.6.8"
   },
@@ -11236,7 +11291,8 @@
     }
    ],
    "used_by": [
-    "kataglyphis_observant"
+    "kataglyphis_observant",
+    "oxidant"
    ],
    "version": "0.5.3"
   },
@@ -11272,7 +11328,8 @@
     }
    ],
    "used_by": [
-    "kataglyphis_observant"
+    "kataglyphis_observant",
+    "oxidant"
    ],
    "version": "0.2.54"
   },
@@ -11308,7 +11365,8 @@
     }
    ],
    "used_by": [
-    "kataglyphis_observant"
+    "kataglyphis_observant",
+    "oxidant"
    ],
    "version": "0.5.15"
   },
@@ -12166,7 +12224,7 @@
   "scripts/licenses/cargo-policy.json": "6e00988b928e306bffa597f57dc58e21d9c34db75d52985c354b6cf077e1dcf5",
   "scripts/licenses/native-components.json": "6992436acc939b3d78eba68ff4efbb44880070f1bbc2593d6ea5d4d027650980",
   "third_party/AccelerANTgine/Src/rusty_code/Cargo.lock": "7a4eaacef1d82d646bab21ec24512c5c6bac0b262d0e3eadd0df1382360f4830",
-  "third_party/OxidANT/Cargo.lock": "479ea738e13d854de250f0c0e7a219ea32abc85b04de4e0605ed0c1c6bca0d76"
+  "third_party/OxidANT/Cargo.lock": "b21d24f960c8c4d2e926f0e1945138100276d9e066f2856760ce1bc8415a40f0"
  },
  "schema": 1,
  "text_files": [

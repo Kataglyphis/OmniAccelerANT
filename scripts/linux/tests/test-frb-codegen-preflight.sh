@@ -4,9 +4,13 @@ set -euo pipefail
 repo=$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)
 work=$(mktemp -d)
 trap 'rm -rf -- "$work"' EXIT
-mkdir -p "$work/bin" "$work/repo/scripts/linux" "$work/repo/third_party/OxidANT/src" "$work/repo/lib/src/rust"
+mkdir -p "$work/bin" "$work/repo/scripts/linux" "$work/repo/third_party/OxidANT/src" "$work/repo/lib/src/rust" \
+  "$work/repo/third_party/OxidANT/scripts/linux" "$work/repo/third_party/ANTfrastructure/linux/scripts/01-core"
 cp "$repo/scripts/linux/generate-frb-bindings.sh" "$work/repo/scripts/linux/"
 cp "$repo/scripts/linux/verify-frb-bindings.py" "$work/repo/scripts/linux/"
+cp "$repo/third_party/OxidANT/scripts/linux/frb-codegen.sh" "$repo/third_party/OxidANT/scripts/linux/verify-frb-bindings.py" \
+  "$work/repo/third_party/OxidANT/scripts/linux/"
+printf 'FLUTTER_RUST_BRIDGE_VERSION=2.13.0\n' > "$work/repo/third_party/ANTfrastructure/linux/scripts/01-core/versions.env"
 cat > "$work/repo/third_party/OxidANT/Cargo.toml" <<'TOML'
 [workspace.dependencies]
 flutter_rust_bridge = "=2.13.0"
@@ -52,6 +56,7 @@ esac
 FAKE
 cat > "$work/bin/cargo" <<'FAKE'
 #!/usr/bin/env bash
+if [[ "$1" == expand ]]; then echo 'cargo-expand 1.0.127'; exit 0; fi
 [[ "$1" == metadata ]]
 [[ ${FAKE_METADATA_FAIL:-0} != 1 ]]
 FAKE
