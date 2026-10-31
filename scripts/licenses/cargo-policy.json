@@ -163,6 +163,16 @@
     }
    ]
   },
+  "kataglyphis_text@3.0.0": {
+   "files": [
+    {
+     "root": "workspace",
+     "path": "LICENSE",
+     "sha256": "586ec400195558a35f3895d08f8e089f3de6206ab8512fe58d6e4b47fb342e7b",
+     "provenance": "OxidANT workspace LICENSE (license.workspace = true)"
+    }
+   ]
+  },
   "kataglyphis_webgpu_renderer@3.0.0": {
    "files": [
     {

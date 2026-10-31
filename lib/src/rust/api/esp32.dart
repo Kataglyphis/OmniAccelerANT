@@ -7,7 +7,7 @@ import '../frb_generated.dart';
 
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-// These functions are ignored because they are not marked as `pub`: `empty`, `hello`, `telemetry_event`
+// These functions are ignored because they are not marked as `pub`: `empty`, `hello`, `notify_detections`, `telemetry_event`
 // These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `from`
 
 /// Whether this build can talk to the board: false on web and Android.

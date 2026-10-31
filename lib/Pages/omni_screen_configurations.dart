@@ -1,4 +1,5 @@
 import 'package:omni_accelerant/Pages/AboutMePage/about_me_page_navbar_config.dart';
+import 'package:omni_accelerant/Pages/AiPlaygroundPage/ai_playground_navbar_config.dart';
 import 'package:omni_accelerant/Pages/CameraSettingsPage/camera_settings_navbar_config.dart';
 import 'package:omni_accelerant/Pages/DevicePage/device_page_navbar_config.dart';
 import 'package:omni_accelerant/Pages/DataPage/BlockOverviewPage/block_overview_page_config.dart';
@@ -25,6 +26,7 @@ class OmniScreenConfigurations extends ScreenConfigurations
       StreamPageNavBarConfig(),
       CameraSettingsNavBarConfig(),
       DeviceNavBarConfig(),
+      AiPlaygroundNavBarConfig(),
       LandingPageNavBarConfig(),
       AboutMePageNavBarConfig(),
     ];

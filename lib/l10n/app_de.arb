@@ -106,5 +106,21 @@
   "visitStatsSummary": "{today} heute, {total} in {days} Tagen",
   "visitStatsAverageStay": "Im Schnitt {minutes} min geblieben",
   "visitStatsPerDay": "Pro Tag",
-  "visitStatsPerHour": "Nach Uhrzeit"
+  "visitStatsPerHour": "Nach Uhrzeit",
+  "aiPlaygroundNav": "KI",
+  "aiPlaygroundTitle": "KI-Spielwiese",
+  "aiSettings": "Modell und Einstellungen",
+  "aiSourceEndpoint": "Endpunkt",
+  "aiSourceLocal": "Lokales Modell",
+  "aiLocalUnavailable": "Dieser Build führt kein lokales Modell aus; die Linux- und Windows-Builds tun es über das ONNX Runtime GenAI der Chain.",
+  "aiModelDir": "GenAI-Modellverzeichnis",
+  "aiProvider": "Ausführungsanbieter",
+  "aiBaseUrl": "Basis-URL (ohne /v1)",
+  "aiModel": "Modell",
+  "aiApiKey": "API-Schlüssel",
+  "aiSystemPrompt": "Systemprompt",
+  "aiMaxTokens": "Höchstens neue Tokens",
+  "aiTemperature": "Temperatur",
+  "aiClear": "Neues Gespräch",
+  "aiError": "Das Modell ist fehlgeschlagen: {detail}"
 }
