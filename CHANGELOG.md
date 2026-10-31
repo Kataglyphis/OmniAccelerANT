@@ -5,6 +5,7 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ## Unreleased
 
+- Check the installed Windows MSIX's bundled ONNX model as well as the MSI when GPU candidates run their CPU installer checks.
 - Forward exact direct-submodule selections through the Windows Renovate wrapper; the pinned hub must support this option.
 - **The AI Playground page (LAI-F1, F2).** Chat with a language model on ANThology's chat widgets:
   any OpenAI-compatible endpoint on every platform, or a GenAI model directory in process on Linux

@@ -13,6 +13,9 @@
     The matching .msix; its -testcert.cer must sit beside it unless -Publisher's certificate is trusted already.
 .PARAMETER Arch
     x64 or arm64: the machine every installed binary must be built for.
+.PARAMETER CheckOnnx
+    Also run each installed executable's ONNX Runtime CPU model check directly. This is separate from MSIX app-entry
+    activation and does not prove GPU execution.
 #>
 param(
     [Parameter(Mandatory)][string]$Msi,
@@ -42,6 +45,7 @@ function Resolve-One([string]$Pattern, [string]$What) {
 $Msi = Resolve-One $Msi 'Msi'
 $Msix = Resolve-One $Msix 'Msix'
 $launch = Join-Path $PSScriptRoot 'Test-LaunchSmoke.ps1'
+$selfCheck = Join-Path $PSScriptRoot 'Test-OnnxSelfCheck.ps1'
 
 Write-Host "=== the MSI: $Msi ==="
 $log = Join-Path $env:TEMP "omni-accelerant-msi-$PID.log"
@@ -66,7 +70,7 @@ Assert-Test -Name "the installed app starts from Program Files without PATH help
 }
 if ($CheckOnnx) {
     Assert-Test -Name 'the installed MSI runs the bundled model on ONNX Runtime CPU' {
-        & (Join-Path $PSScriptRoot 'Test-OnnxSelfCheck.ps1') -AppDir $prefix
+        & $selfCheck -AppDir $prefix
         $true
     }
 }
@@ -107,6 +111,12 @@ try {
                     Where-Object { $_.Path -and $_.Path.StartsWith($installed.InstallLocation, [StringComparison]::OrdinalIgnoreCase) })
             $running | Stop-Process -Force
             $running.Count -ge 1
+        }
+        if ($CheckOnnx) {
+            Assert-Test -Name 'the installed MSIX runs the bundled model on ONNX Runtime CPU' {
+                & $selfCheck -AppDir $installed.InstallLocation
+                $true
+            }
         }
         Remove-AppxPackage -Package $installed.PackageFullName
         Assert-Test -Name 'Remove-AppxPackage removes it' { -not (Get-AppxPackage -Name $identityName) }

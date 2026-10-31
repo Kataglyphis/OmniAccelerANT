@@ -73,7 +73,52 @@ class Probe {
         $message = try { & $check -AppDir $script:dir -TimeoutSeconds 1; '' } catch { $_.Exception.Message }
         $message | Should Match 'did not finish'
     }
-    It 'checks the runner and the installed MSI before publishing candidates' {
+    It 'checks the installed MSIX path and records a failed self-check' {
+        # The actual installer conditional runs against the fixture, not an installed package.
+        $installer = Join-Path $PSScriptRoot '..\Test-OmniAccelerANTInstallers.ps1'
+        $tokens = $null
+        $errors = $null
+        $ast = [Management.Automation.Language.Parser]::ParseFile($installer, [ref]$tokens, [ref]$errors)
+        $errors.Count | Should Be 0
+        $conditional = @($ast.FindAll({
+                    param($node)
+                    $node -is [Management.Automation.Language.IfStatementAst] -and
+                    $node.Clauses[0].Item1.Extent.Text -eq '$CheckOnnx' -and
+                    $node.Extent.Text.Contains('the installed MSIX runs the bundled model')
+                }, $true))
+        $conditional.Count | Should Be 1
+        $run = [scriptblock]::Create($conditional[0].Extent.Text)
+        Set-Variable -Name selfCheck -Value $check
+        Set-Variable -Name installed -Value ([pscustomobject]@{ InstallLocation = $script:dir })
+        Set-Variable -Name CheckOnnx -Value $true
+        $script:assertionCount = 0
+        $script:assertionPassed = 0
+        $script:assertionFailed = 0
+        $script:assertionError = ''
+        function Assert-Test {
+            param([string]$Name, [scriptblock]$Condition)
+            $script:assertionCount++
+            try {
+                if (& $Condition) { $script:assertionPassed++ }
+                else { $script:assertionFailed++ }
+            } catch {
+                $script:assertionFailed++
+                $script:assertionError = $_.Exception.Message
+            }
+        }
+        & $run
+        $script:assertionCount | Should Be 1
+        $script:assertionPassed | Should Be 1
+        $env:OMNI_FIXTURE_MODE = 'fail'
+        & $run
+        $script:assertionCount | Should Be 2
+        $script:assertionFailed | Should Be 1
+        $script:assertionError | Should Match 'exit code 17'
+        Set-Variable -Name CheckOnnx -Value $false
+        & $run
+        $script:assertionCount | Should Be 2
+    }
+    It 'checks the runner and installed packages before publishing candidates' {
         $root = (Resolve-Path (Join-Path $PSScriptRoot '..\..\..')).Path
         $workflow = Get-Content (Join-Path $root '.github\workflows\windows-gpu-candidates.yml') -Raw
         $workflow | Should Match 'Test-OnnxSelfCheck\.ps1'

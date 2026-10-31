@@ -47,11 +47,12 @@ provenance, then checks the delivered runner's stamp, native-license coverage an
 startup on the host. The x64 runner and arm64 native bundle stage the model, license and
 notice from OxidANT's hash-locked model list; the host packager rechecks all three before
 writing installers. GPU MSI and MSIX checks compare their model files to the verified runner.
-The workflow also requires `--onnx-check` to run the bundled model with
-ONNX Runtime CPU from both the runner and installed MSI. It inspects the MSIX and starts it
-through its app entry, without an inference check. The new Windows inference checks have
-standalone process tests but have not yet run on a matching candidate; the current pins block
-the workflow. Uploaded runner and installers are labelled unverified and are not release
+The workflow also requires `--onnx-check` to run the bundled model with ONNX Runtime CPU
+from the runner and both installed executables. It separately starts the MSIX through its
+app entry; its direct executable self-check does not verify inference in that activation
+context. The Windows inference checks have standalone process tests but have not yet run
+on a matching candidate or installed MSIX; the current pins block the workflow. Uploaded
+runner and installers are labelled unverified and are not release
 artifacts; GPU inference still needs hardware testing. DirectML uses the system's adapter
 selection and the AMD image alone does not prove
 that an AMD adapter executed the model.
