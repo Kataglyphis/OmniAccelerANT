@@ -164,6 +164,11 @@ byte for byte.
   workspace and runs ANTfrastructure's `stage-cargo-licenses.py` per root crate and target, so
   it needs `cargo` and the crate sources. `--check` is the offline drift gate the Linux and
   Android lanes run through `scripts/linux/tests/test-third-party-licenses.sh`.
+  For an offline regeneration with separate existing Cargo homes, pass `--offline` and
+  repeat `--cargo-home` for the workspaces that need a specific cache, for example:
+  `--cargo-home 'third_party/OxidANT=/absolute/path/to/oxidant-cache'` and
+  `--cargo-home 'third_party/AccelerANTgine/Src/rusty_code=/absolute/path/to/engine-cache'`.
+  Unspecified workspaces inherit `CARGO_HOME`; missing cached sources make the command fail.
 - **Crates without a license file** take the original text from their upstream repository,
   vendored under `scripts/licenses/texts/cargo/` and pinned in `scripts/licenses/cargo-policy.json`
   with its commit URL and SHA-256. OxidANT's workspace crates point at its `LICENSE`.

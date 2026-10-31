@@ -8,6 +8,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -177,8 +178,21 @@ def ensure_workspace_mit_license(manifest: Path) -> None:
         header = re.search(r"(?m)^\[\s*package\s*\][ \t]*(?:#.*)?$", content)
         if header is None:
             raise ValueError(f"{manifest}: cannot locate package table")
-        content = content[: header.end()] + '\nlicense = "MIT"' + content[header.end() :]
+        content = (
+            content[: header.end()] + '\nlicense = "MIT"' + content[header.end() :]
+        )
         manifest.write_text(content, encoding="utf-8")
+
+
+def cargo_environment(
+    workspace: str, cargo_homes: dict[str, Path] | None, offline: bool
+) -> dict[str, str]:
+    env = os.environ.copy()
+    if cargo_homes and workspace in cargo_homes:
+        env["CARGO_HOME"] = str(cargo_homes[workspace])
+    if offline:
+        env["CARGO_NET_OFFLINE"] = "true"
+    return env
 
 
 def stage_workspace(
@@ -186,6 +200,8 @@ def stage_workspace(
     scratch: Path,
     texts: dict[str, str],
     crates: dict[str, dict[str, Any]],
+    cargo_homes: dict[str, Path] | None = None,
+    offline: bool = False,
 ) -> None:
     source = ROOT / spec["path"]
     copy = scratch / Path(spec["path"]).name
@@ -199,7 +215,8 @@ def stage_workspace(
         (copy / "LICENSE").write_bytes(
             normalized((ROOT / spec["license"]).read_bytes())
         )
-    subprocess.run(["cargo", "fetch", "--locked"], cwd=copy, check=True)
+    env = cargo_environment(spec["path"], cargo_homes, offline)
+    subprocess.run(["cargo", "fetch", "--locked"], cwd=copy, check=True, env=env)
     for root in spec["roots"]:
         for target in spec["targets"]:
             out = scratch / f"out-{root}-{target}"
@@ -219,6 +236,7 @@ def stage_workspace(
                     str(out),
                 ],
                 check=True,
+                env=env,
             )
             for package in load_json(out / "manifest.json")["packages"]:
                 key = f"{package['name']}@{package['version']}"
@@ -257,11 +275,15 @@ def stage_workspace(
                     )
 
 
-def cargo_crates(texts: dict[str, str]) -> list[dict[str, Any]]:
+def cargo_crates(
+    texts: dict[str, str],
+    cargo_homes: dict[str, Path] | None = None,
+    offline: bool = False,
+) -> list[dict[str, Any]]:
     crates: dict[str, dict[str, Any]] = {}
     with tempfile.TemporaryDirectory(prefix="omni-cargo-licenses-") as scratch:
         for spec in WORKSPACES:
-            stage_workspace(spec, Path(scratch), texts, crates)
+            stage_workspace(spec, Path(scratch), texts, crates, cargo_homes, offline)
     for entry in crates.values():
         entry["used_by"] = sorted(entry["used_by"])
         entry["targets"] = sorted(entry["targets"])
@@ -345,9 +367,13 @@ def asset_paths(index: dict[str, Any]) -> list[Path]:
     return [INDEX, *(ASSET_DIR / name for name in index["text_files"])]
 
 
-def write() -> None:
+def write(cargo_homes: dict[str, Path] | None = None, offline: bool = False) -> None:
     texts: dict[str, str] = {}
-    components = native_components(texts) + cargo_crates(texts) + dart_packages()
+    components = (
+        native_components(texts)
+        + cargo_crates(texts, cargo_homes, offline)
+        + dart_packages()
+    )
     chunks = chunk_texts(texts)
     names = [f"{TEXT_PREFIX}{number}.json" for number in range(1, len(chunks) + 1)]
     for stale in ASSET_DIR.glob(f"{TEXT_PREFIX}*.json"):
@@ -421,6 +447,30 @@ def check() -> list[str]:
     return errors
 
 
+def parse_cargo_homes(values: list[str]) -> dict[str, Path]:
+    """Map known workspace paths to existing absolute Cargo home directories."""
+    allowed = {spec["path"] for spec in WORKSPACES}
+    result: dict[str, Path] = {}
+    for value in values:
+        workspace, separator, directory = value.partition("=")
+        if (
+            not separator
+            or workspace not in allowed
+            or workspace in result
+            or not directory
+        ):
+            raise ValueError(
+                "--cargo-home must name each known workspace at most once as WORKSPACE=PATH"
+            )
+        path = Path(directory)
+        if not path.is_absolute() or not path.is_dir():
+            raise ValueError(
+                f"Cargo home for {workspace} must be an existing absolute directory"
+            )
+        result[workspace] = path.resolve(strict=True)
+    return result
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     mode = parser.add_mutually_exclusive_group(required=True)
@@ -435,10 +485,23 @@ def main() -> int:
         action="store_true",
         help="print the shipped asset paths, repo-relative",
     )
+    parser.add_argument(
+        "--offline", action="store_true", help="regenerate without Cargo network access"
+    )
+    parser.add_argument(
+        "--cargo-home",
+        action="append",
+        default=[],
+        metavar="WORKSPACE=PATH",
+        help="use an existing Cargo home for a workspace; may be repeated",
+    )
     args = parser.parse_args()
     try:
+        if (args.offline or args.cargo_home) and not args.write:
+            raise ValueError("--offline and --cargo-home require --write")
+        cargo_homes = parse_cargo_homes(args.cargo_home)
         if args.write:
-            write()
+            write(cargo_homes, args.offline)
             errors = check()
         elif args.list_assets:
             names = (
