@@ -4,4 +4,4 @@ dependency_overrides:
     git:
       url: https://github.com/Kataglyphis/flutter-permission-handler.git
       path: permission_handler_windows
-      ref: main
+      ref: 3f44660086ae0979a3f6f40d163059e4bdee01c6

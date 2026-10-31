@@ -485,6 +485,9 @@ on an upload no option names (`--strict`) or when a platform's package is missin
 The hub's `test-collect-release-assets.sh` runs the same options over a release run's uploads
 ([§ *Collecting the release files*](../../third_party/ANTfrastructure/docs/branch-and-release-strategy.md#collecting-the-release-files)).
 riscv64 has no package in a release, since no CI lane builds one.
+`--expect` names every ObservANT package `omni-observant-update` downloads (the `.deb` and the
+tarball for amd64 and arm64); `scripts/linux/tests/test-release-observant-assets.sh` derives those
+names from the updater and the package job's matrix and fails when one is missing.
 
 **To release**, follow the hub's
 [§ *Merging into `main`*](../../third_party/ANTfrastructure/docs/branch-and-release-strategy.md#merging-into-main)
@@ -664,7 +667,9 @@ Android run: § *The Linux lane, locally*.
 ## CodeQL, only on request
 
 **CodeQL runs only when asked for, and never in CI (owner directive 2026-09-17).**
-`scripts/linux/codeql/codeql-android.sh` installs the CLI, builds a `--db-cluster` for **c, cpp
+`scripts/linux/codeql/codeql-android.sh` installs the CLI (`CODEQL_CLI_VERSION` in
+`scripts/linux/tool-pins.env`, unzipped only after the sha256 from the release's checksum file
+matches; x86_64 and aarch64), builds a `--db-cluster` for **c, cpp
 and rust** around `flutter build apk` and runs two `database analyze` suites. Budget hours, not
 minutes: that is why the android workflow and `Invoke-LinuxLane.ps1` both send `--run-codeql
 false` and the driver's local opt-in is `-RunCodeQL`. Java and Kotlin are deliberately not in

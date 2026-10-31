@@ -620,8 +620,8 @@ packages:
     dependency: "direct overridden"
     description:
       path: permission_handler_windows
-      ref: main
-      resolved-ref: "3773d3b59fb5f8eed719909097468a9f13707048"
+      ref: "3f44660086ae0979a3f6f40d163059e4bdee01c6"
+      resolved-ref: "3f44660086ae0979a3f6f40d163059e4bdee01c6"
       url: "https://github.com/Kataglyphis/flutter-permission-handler.git"
     source: git
     version: "0.2.3"

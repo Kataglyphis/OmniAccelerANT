@@ -78,6 +78,8 @@ run_gate "ORT provider staging tests" bash scripts/linux/tests/test-ort-provider
 run_gate "ORT runtime defaults tests" bash scripts/linux/tests/test-ort-runtime-default.sh
 run_gate "GPU host-runtime selection tests" bash scripts/linux/tests/test-gpu-host-runtime.sh
 run_gate "GPU package CPU-smoke tests" bash scripts/linux/tests/test-gpu-ci-smoke.sh
+run_gate "pinned tool download tests" bash scripts/linux/tests/test-pinned-tool-downloads.sh
+run_gate "release asset list tests" bash scripts/linux/tests/test-release-observant-assets.sh
 # The checks' one test run writes the coverage the floor below reads; a second run cost 55 s.
 dart_lcov="build/coverage/lcov.info"
 rm -f "$dart_lcov"

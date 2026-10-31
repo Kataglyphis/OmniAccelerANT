@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Builds (and optionally flashes) the ESP32-S3 companion inside the family image.
 #
-# The first run bootstraps espup's Xtensa toolchain and espflash into a named volume,
-# so later runs are offline and warm. Firmware sources stay on the host mount; only
+# The first run bootstraps espup's Xtensa toolchain and espflash (scripts/linux/tool-pins.env)
+# into a named volume, so later runs are offline and warm. Firmware sources stay on the host mount; only
 # the toolchain, cargo registry and target tree live on the volume.
 #
 #   scripts/linux/esp32/build-firmware.sh
@@ -60,6 +60,7 @@ run_args=(
     run --rm --pull=missing
     --user 1001:1001
     -v "$repo_root:/workspace"
+    -v "${ANTFRASTRUCTURE_DIR}:/opt/antfrastructure:ro"
     -w /workspace/firmware/esp32-s3
     --mount "type=volume,source=$volume,target=/opt/esp32"
     -e HOME=/home/kataglyphis
@@ -74,17 +75,22 @@ before="usb-reset"
 
 "$engine" "${run_args[@]}" "$image" bash -lc "
 set -euo pipefail
-mkdir -p /opt/esp32/bin /opt/esp32/cargo /opt/esp32/rustup
+mkdir -p /opt/esp32/bin /opt/esp32/cargo /opt/esp32/rustup /opt/esp32/downloads
 
-if [ ! -x /opt/esp32/bin/espup ]; then
-  case \"\$(uname -m)\" in
-    aarch64) host=aarch64-unknown-linux-gnu ;;
-    x86_64)  host=x86_64-unknown-linux-gnu ;;
-    *) echo \"unsupported container architecture: \$(uname -m)\" >&2; exit 2 ;;
-  esac
-  curl -fL \"https://github.com/esp-rs/espup/releases/latest/download/espup-\${host}\" \
-    -o /opt/esp32/bin/espup
-  chmod +x /opt/esp32/bin/espup
+source /opt/antfrastructure/linux/scripts/01-core/load-versions-env.sh
+source /opt/antfrastructure/linux/scripts/01-core/downloads.sh
+load_versions_env /workspace/scripts/linux/tool-pins.env
+case \"\$(uname -m)\" in
+  aarch64) host=aarch64-unknown-linux-gnu; espup_sha=\"\${ESPUP_AARCH64_SHA256:?}\"; espflash_sha=\"\${ESPFLASH_AARCH64_SHA256:?}\" ;;
+  x86_64)  host=x86_64-unknown-linux-gnu; espup_sha=\"\${ESPUP_X86_64_SHA256:?}\"; espflash_sha=\"\${ESPFLASH_X86_64_SHA256:?}\" ;;
+  *) echo \"unsupported container architecture: \$(uname -m)\" >&2; exit 2 ;;
+esac
+
+# A tool on the volume from another pin is replaced, never trusted.
+if [ \"\$(/opt/esp32/bin/espup --version 2>/dev/null || true)\" != \"espup \${ESPUP_VERSION#v}\" ]; then
+  download_verified_file \"https://github.com/esp-rs/espup/releases/download/\${ESPUP_VERSION:?}/espup-\${host}\" \
+    \"\$espup_sha\" /opt/esp32/downloads/espup
+  install -m 0755 /opt/esp32/downloads/espup /opt/esp32/bin/espup
 fi
 
 if [ ! -d /opt/esp32/rustup/toolchains/esp ]; then
@@ -92,14 +98,10 @@ if [ ! -d /opt/esp32/rustup/toolchains/esp ]; then
     --export-file /opt/esp32/export.sh --disable-timeouts
 fi
 
-if [ ! -x /opt/esp32/bin/espflash ]; then
-  case \"\$(uname -m)\" in
-    aarch64) host=aarch64-unknown-linux-gnu ;;
-    x86_64)  host=x86_64-unknown-linux-gnu ;;
-  esac
-  curl -fL \"https://github.com/esp-rs/espflash/releases/download/v4.6.0/espflash-\${host}.zip\" \
-    -o /tmp/espflash.zip
-  python3 -m zipfile -e /tmp/espflash.zip /opt/esp32/bin/
+if [ \"\$(/opt/esp32/bin/espflash --version 2>/dev/null || true)\" != \"espflash \${ESPFLASH_VERSION#v}\" ]; then
+  download_verified_file \"https://github.com/esp-rs/espflash/releases/download/\${ESPFLASH_VERSION:?}/espflash-\${host}.zip\" \
+    \"\$espflash_sha\" /opt/esp32/downloads/espflash.zip
+  python3 -m zipfile -e /opt/esp32/downloads/espflash.zip /opt/esp32/bin/
   chmod +x /opt/esp32/bin/espflash
 fi
 

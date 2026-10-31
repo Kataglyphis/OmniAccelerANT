@@ -263,6 +263,13 @@ owned `Esp32Controller` and discard camera-form edits. Its shared `FileActions` 
 landing page's browser downloads and native open/save dialogs. `test/app_layout_test.dart`
 registers the dev-only `anthology_test_support` contracts for both layout and actual control taps.
 
+**Every downloaded tool is pinned and sha256-checked before use.** Versions and per-host
+checksums live in `scripts/linux/tool-pins.env` (CodeQL CLI, espup, espflash), taken from the
+release's checksum file or, where none is published, GitHub's asset digest re-checked with
+`sha256sum`. Fetch through the hub's `download_verified_file`; never a `releases/latest` URL.
+Bump a version and all its checksums together; `scripts/linux/tests/test-pinned-tool-downloads.sh`
+refuses a moving URL, a missing checksum and an unverified fetch.
+
 **The texture ABI is generated from OxidANT.** `third_party/OxidANT/abi/texture.json` owns the
 version and signatures; `scripts/generate-texture-abi.py` there generates its public C header
 and Rust module. Both desktop plugins include `kataglyphis_texture_abi.h` from that submodule.

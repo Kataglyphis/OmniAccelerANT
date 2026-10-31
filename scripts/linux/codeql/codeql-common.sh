@@ -7,18 +7,29 @@ CODEQL="${CODEQL_INSTALL_DIR}/codeql/codeql"
 : "${CODEQL_CONFIG:=/workspace/.github/codeql/codeql-config.yml}"
 
 codeql_install_cli() {
-  local tmpdir="${1:-/tmp/codeql}"
+  local tmpdir="${1:-/tmp/codeql}" asset sha
+  antfrastructure_source linux/scripts/01-core/load-versions-env.sh
+  antfrastructure_source linux/scripts/01-core/downloads.sh
+  load_versions_env "${KATAGLYPHIS_REPO_ROOT}/scripts/linux/tool-pins.env"
+  case "$(uname -m)" in
+    x86_64) asset=codeql-linux64.zip; sha="${CODEQL_CLI_LINUX64_SHA256:-}" ;;
+    aarch64) asset=codeql-linux-arm64.zip; sha="${CODEQL_CLI_LINUX_ARM64_SHA256:-}" ;;
+    *) echo "Error: no pinned CodeQL CLI for $(uname -m)" >&2; return 1 ;;
+  esac
+  if [ -z "${CODEQL_CLI_VERSION:-}" ] || [ -z "$sha" ]; then
+    echo "Error: scripts/linux/tool-pins.env lacks the CodeQL CLI version or the ${asset} sha256" >&2
+    return 1
+  fi
   mkdir -p "$tmpdir"
-  pushd "$tmpdir" >/dev/null
-  wget -q https://github.com/github/codeql-cli-binaries/releases/latest/download/codeql-linux64.zip -O codeql.zip
+  download_verified_file "https://github.com/github/codeql-cli-binaries/releases/download/${CODEQL_CLI_VERSION}/${asset}" \
+    "$sha" "${tmpdir}/codeql.zip" || return 1
   mkdir -p "$CODEQL_INSTALL_DIR"
-  unzip -q codeql.zip -d "$CODEQL_INSTALL_DIR"
+  unzip -q "${tmpdir}/codeql.zip" -d "$CODEQL_INSTALL_DIR"
   if [ ! -x "$CODEQL" ]; then
     echo "Error: codeql CLI not installed at $CODEQL (unzip target not writable?)" >&2
     return 1
   fi
   "$CODEQL" resolve languages
-  popd >/dev/null
 }
 
 codeql_download_packs() {

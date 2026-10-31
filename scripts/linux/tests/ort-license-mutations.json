@@ -238,5 +238,37 @@
   "replace": "        if False:",
   "test": "bash scripts/linux/tests/test-check-brand-icons.sh",
   "why": "The app icon SVG stays a byte copy of the logo."
+ },
+ {
+  "id": "consumer.release-observant-amd64-tarball",
+  "target": ".github/workflows/release.yml",
+  "find": "        --expect omni-observant-{version}-linux-amd64.tar.gz\n",
+  "replace": "",
+  "test": "bash scripts/linux/tests/test-release-observant-assets.sh",
+  "why": "The release refuses to publish without a package the camera updater downloads."
+ },
+ {
+  "id": "consumer.codeql-cli-verified",
+  "target": "scripts/linux/codeql/codeql-common.sh",
+  "find": "download_verified_file \"https://github.com/github/codeql-cli-binaries/releases/download/${CODEQL_CLI_VERSION}/${asset}\" \\\n    \"$sha\" \"${tmpdir}/codeql.zip\"",
+  "replace": "download_file \"https://github.com/github/codeql-cli-binaries/releases/download/${CODEQL_CLI_VERSION}/${asset}\" \\\n    \"${tmpdir}/codeql.zip\"",
+  "test": "bash scripts/linux/tests/test-pinned-tool-downloads.sh",
+  "why": "The CodeQL CLI is unzipped only after its pinned sha256 matches."
+ },
+ {
+  "id": "consumer.espup-verified",
+  "target": "scripts/linux/esp32/build-firmware.sh",
+  "find": "download_verified_file \\\"https://github.com/esp-rs/espup/releases/download/\\${ESPUP_VERSION:?}/espup-\\${host}\\\" \\\n    \\\"\\$espup_sha\\\" /opt/esp32/downloads/espup",
+  "replace": "download_file \\\"https://github.com/esp-rs/espup/releases/download/\\${ESPUP_VERSION:?}/espup-\\${host}\\\" \\\n    /opt/esp32/downloads/espup",
+  "test": "bash scripts/linux/tests/test-pinned-tool-downloads.sh",
+  "why": "espup runs only after its pinned sha256 matches."
+ },
+ {
+  "id": "consumer.espflash-verified",
+  "target": "scripts/linux/esp32/build-firmware.sh",
+  "find": "download_verified_file \\\"https://github.com/esp-rs/espflash/releases/download/\\${ESPFLASH_VERSION:?}/espflash-\\${host}.zip\\\" \\\n    \\\"\\$espflash_sha\\\" /opt/esp32/downloads/espflash.zip",
+  "replace": "download_file \\\"https://github.com/esp-rs/espflash/releases/download/\\${ESPFLASH_VERSION:?}/espflash-\\${host}.zip\\\" \\\n    /opt/esp32/downloads/espflash.zip",
+  "test": "bash scripts/linux/tests/test-pinned-tool-downloads.sh",
+  "why": "espflash is unpacked only after its pinned sha256 matches."
  }
 ]

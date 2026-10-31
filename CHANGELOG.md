@@ -96,6 +96,15 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
   including their OFL notice. A local CanvasKit alone still allowed Google font requests when
   scrolling About and the blog overview.
 
+### 2026-10-31
+
+- Pin the CodeQL CLI (v2.27.3), espup (v0.19.0) and espflash (v4.6.0) in `scripts/linux/tool-pins.env`
+  with per-host sha256 values, and fetch them through the hub's `download_verified_file`; no script
+  downloads a `releases/latest` asset any more.
+- Pin the `permission_handler_windows` override to commit 3f446600 instead of `main`.
+- Expect ObservANT's amd64 `.deb` and both Linux tarballs in a release, the packages
+  `omni-observant-update` downloads, and test that list against the updater.
+
 ### Added
 
 - **The Stream page's WebRTC view is tested in Chrome** (2026-10-20, owner). `webrtc_view_test.dart`

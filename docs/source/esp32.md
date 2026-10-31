@@ -129,6 +129,11 @@ scripts/linux/esp32/build-firmware.sh --flash --port /dev/ttyUSB0 --uart
 - The volume keeps `espup`, the Xtensa toolchain, `espflash`, the cargo registry and `target/`
   between runs; sources stay on the host mount. The first run needs network, later runs are
   offline.
+- `espup` and `espflash` come from the versions in `scripts/linux/tool-pins.env`, each checked
+  against its per-host sha256 (x86_64, aarch64) by the hub's `download_verified_file` before it
+  runs. A tool on the volume that reports another version is fetched again. espup and espflash
+  publish no checksum file, so the pins match GitHub's asset digests and a local `sha256sum`.
+  `bash scripts/linux/tests/test-pinned-tool-downloads.sh` covers the refusal with a fake engine.
 - **Commit the OxidANT submodule before moving this repository's gitlink.** The firmware's only
   path dependency is `third_party/OxidANT/crates/esp32-protocol`; a clean checkout whose gitlink
   predates that crate cannot resolve the firmware build.
