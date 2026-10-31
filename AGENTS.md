@@ -19,6 +19,7 @@ Every package ships the third-party inventory in `assets/licenses/`; regenerate 
 `scripts/licenses/generate-third-party-licenses.py --write` after a lockfile, gitlink or native-table change, and give
 every new shipped native file an entry with its original text before it ships
 ([project operations](docs/source/project-operations.md#third-party-license-inventory)).
+GPU candidate artifact names include the current run attempt and cannot be overwritten; Linux clean-host verification downloads that same attempt's package.
 Every launcher icon derives from `images/logo.svg`; `scripts/linux/check-brand-icons.py` gates it.
 
 Laid out per ANTfrastructure's

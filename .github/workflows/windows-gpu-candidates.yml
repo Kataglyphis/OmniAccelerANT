@@ -110,8 +110,8 @@ jobs:
       - name: Upload unverified runner candidate
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: unverified-omni-windows-x64-${{ matrix.vendor }}-runner
-          overwrite: true
+          name: unverified-omni-windows-x64-${{ matrix.vendor }}-runner-attempt-${{ github.run_attempt }}
+          overwrite: false
           if-no-files-found: error
           path: ${{ steps.prep.outputs.workspace }}/build/windows/x64/runner/x64-ClangCL-Windows-Release/**/*
       - name: .NET for WiX
@@ -145,7 +145,7 @@ jobs:
       - name: Upload unverified installer candidates
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: unverified-omni-windows-x64-${{ matrix.vendor }}-installers
-          overwrite: true
+          name: unverified-omni-windows-x64-${{ matrix.vendor }}-installers-attempt-${{ github.run_attempt }}
+          overwrite: false
           if-no-files-found: error
           path: ${{ steps.prep.outputs.workspace }}/out/unverified-omni-windows-x64-${{ matrix.vendor }}-installers/*

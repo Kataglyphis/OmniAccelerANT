@@ -80,6 +80,11 @@ Both workflows may be called by another workflow, with the same unverified outpu
 checks as a manual run. Callers needing the private registry credential must pass
 `GHCR_PAT` explicitly or through inherited secrets. Neither workflow is called by the release workflow;
 calling one alone does not verify GPU operator execution or approve an artifact for release.
+GPU candidate uploads include the workflow run attempt in their names and cannot replace an
+existing upload. Linux clean-host checks download the candidate from that same attempt. If
+only a downstream job is rerun, the required current-attempt upload may not exist; rerun the
+candidate build as well. Attempt-scoped names prevent accidental reuse but do not prove GPU
+execution or authorize release promotion.
 
 Linux Omni, ObservANT and its Pi bundle match every bundled `libonnxruntime*.so*`
 to one wheel, either directly or after target-compatible stripping. The wheel's

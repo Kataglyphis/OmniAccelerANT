@@ -216,8 +216,8 @@ Describe 'Windows GPU preflight' {
         $rows -contains 'amd:winamd64-rocm:directml' | Should Be $true
         $workflow.Contains('winarm64') | Should Be $false
         $workflow.Contains('unverified-omni-windows-x64-${{ matrix.vendor }}-runner') | Should Be $true
-        $workflow | Should Match 'name: unverified-omni-windows-x64-\$\{\{ matrix\.vendor \}\}-runner\s+overwrite: true'
-        $workflow | Should Match 'name: unverified-omni-windows-x64-\$\{\{ matrix\.vendor \}\}-installers\s+overwrite: true'
+        $workflow | Should Match 'name: unverified-omni-windows-x64-\$\{\{ matrix\.vendor \}\}-runner-attempt-\$\{\{ github\.run_attempt \}\}\s+overwrite: false'
+        $workflow | Should Match 'name: unverified-omni-windows-x64-\$\{\{ matrix\.vendor \}\}-installers-attempt-\$\{\{ github\.run_attempt \}\}\s+overwrite: false'
         $pinCheck = $workflow.IndexOf('Test-WindowsGpuPins.ps1')
         $pull = $workflow.IndexOf('prepare-windows-container-host@')
         $imageCheck = $workflow.IndexOf('Test-WindowsGpuImage.ps1')

@@ -121,12 +121,12 @@ class CandidatePreflightTests(unittest.TestCase):
             "ORT_LIB_LOCATION=/usr/local/lib/onnxruntime-gpu/lib",
             "--package-formats tar,deb,appimage",
             "verify-gpu-candidate.sh",
-            "name: unverified-omni-${{ matrix.vendor }}-linux-${{ matrix.arch }}",
+            "name: unverified-omni-${{ matrix.vendor }}-linux-${{ matrix.arch }}-attempt-${{ github.run_attempt }}",
         ):
             self.assertIn(part, text)
         self.assertNotIn("out/omni-accelerant-linux-", text)
         self.assertIn(
-            "name: unverified-omni-${{ matrix.vendor }}-linux-${{ matrix.arch }}\n          overwrite: true",
+            "name: unverified-omni-${{ matrix.vendor }}-linux-${{ matrix.arch }}-attempt-${{ github.run_attempt }}\n          overwrite: false",
             text,
         )
         self.assertRegex(
@@ -163,7 +163,7 @@ class CandidatePreflightTests(unittest.TestCase):
         self.assertEqual(len(clean_rows), 3)
         self.assertIn("needs: candidate", clean)
         self.assertIn(
-            "artifact: unverified-omni-${{ matrix.vendor }}-linux-${{ matrix.arch }}",
+            "artifact: unverified-omni-${{ matrix.vendor }}-linux-${{ matrix.arch }}-attempt-${{ github.run_attempt }}",
             clean,
         )
         for package in ("deb", "tarball", "appimage"):
@@ -175,6 +175,18 @@ class CandidatePreflightTests(unittest.TestCase):
             self.assertIn("--onnx-check", command.group(1))
             for name in ("KATAGLYPHIS_ONNX_MODEL", "ORT_DYLIB_PATH", "LD_LIBRARY_PATH"):
                 self.assertEqual(command.group(1).count(f"-u {name}"), 2)
+
+    def test_clean_host_requires_the_current_attempt(self):
+        text = WORKFLOW.read_text(encoding="utf-8")
+        upload = re.search(r"(?m)^          name: (unverified-omni-.+)$", text)
+        download = re.search(r"(?m)^          artifact: (unverified-omni-.+)$", text)
+        self.assertIsNotNone(upload)
+        self.assertIsNotNone(download)
+        self.assertEqual(upload.group(1), download.group(1))
+        first = upload.group(1).replace("${{ github.run_attempt }}", "1")
+        retry = download.group(1).replace("${{ github.run_attempt }}", "2")
+        self.assertNotEqual(first, retry)
+        self.assertIn("overwrite: false", text)
 
 
 if __name__ == "__main__":
