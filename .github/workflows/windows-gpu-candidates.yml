@@ -1,0 +1,143 @@
+name: Windows x64 GPU runner candidates (unverified)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: windows-gpu-candidates-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  preflight:
+    runs-on: windows-2025
+    timeout-minutes: 15
+    outputs:
+      repository: ${{ steps.image.outputs.repository }}
+      python: ${{ steps.python.outputs.version }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          submodules: true
+      - name: Check recorded GPU dependencies before pulling images
+        shell: pwsh
+        run: ./scripts/windows/Test-WindowsGpuPins.ps1
+      - name: Read registry image prefix
+        id: image
+        shell: bash
+        run: |
+          set -euo pipefail
+          image="$(bash third_party/ANTfrastructure/linux/scripts/ci-image-ref.sh --windows)"
+          repository="${image%:*}"
+          [[ -n "$repository" && "$repository" != "$image" ]] || { echo 'Invalid registry image reference' >&2; exit 1; }
+          printf 'repository=%s\n' "$repository" >> "$GITHUB_OUTPUT"
+      - name: Read pinned Python
+        id: python
+        shell: pwsh
+        run: |
+          $line = Select-String -LiteralPath third_party/ANTfrastructure/linux/scripts/01-core/versions.env -Pattern '^PYTHON_VERSION=(\d+\.\d+)\.' | Select-Object -First 1
+          if (-not $line) { throw 'versions.env names no PYTHON_VERSION' }
+          Add-Content -LiteralPath $env:GITHUB_OUTPUT -Value "version=$($line.Matches[0].Groups[1].Value)"
+
+  candidate:
+    needs: preflight
+    name: Unverified Windows ${{ matrix.vendor }} x64 runner
+    runs-on: windows-2025
+    timeout-minutes: 180
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - vendor: nvidia
+            tag: winamd64-nvidia
+            provider: cuda
+          - vendor: amd
+            tag: winamd64-rocm
+            provider: directml
+    steps:
+      - name: Prepare host and pull the GPU image
+        id: prep
+        uses: Kataglyphis/ANTfrastructure/.github/actions/prepare-windows-container-host@develop
+        with:
+          image: ${{ format('{0}:{1}', needs.preflight.outputs.repository, matrix.tag) }}
+          registry-password: ${{ secrets.GHCR_PAT }}
+          short-path-target: /d/ws
+          exclude-submodules: third_party/DocumANTation
+      - name: Verify image inputs before the build
+        uses: Kataglyphis/ANTfrastructure/.github/actions/run-in-windows-container@develop
+        with:
+          image: ${{ format('{0}:{1}', needs.preflight.outputs.repository, matrix.tag) }}
+          file: C:\ws\scripts\windows\Test-WindowsGpuImage.ps1
+          file-args: |
+            -Provider
+            ${{ matrix.provider }}
+      - name: Build the GPU runner
+        uses: Kataglyphis/ANTfrastructure/.github/actions/run-in-windows-container@develop
+        with:
+          image: ${{ format('{0}:{1}', needs.preflight.outputs.repository, matrix.tag) }}
+          file: C:\ws\scripts\windows\Build-Windows.ps1
+          file-args: |
+            -SkipMsixPackaging
+            -OrtProvider
+            ${{ matrix.provider }}
+      - name: Python for native license coverage
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.0.0
+        with:
+          python-version: ${{ needs.preflight.outputs.python }}
+      - name: Re-prove the delivered runner on the host
+        shell: pwsh
+        working-directory: ${{ steps.prep.outputs.workspace }}
+        run: >-
+          ./scripts/windows/Test-WindowsGpuCandidate.ps1
+          -RunnerDir build/windows/x64/runner/x64-ClangCL-Windows-Release
+          -Provider '${{ matrix.provider }}'
+      - name: Start the candidate with CPU selected (no model inference)
+        shell: pwsh
+        working-directory: ${{ steps.prep.outputs.workspace }}
+        run: |
+          $env:KATAGLYPHIS_ORT_DEVICE = 'cpu'
+          ./scripts/windows/Test-LaunchSmoke.ps1 -AppDir build/windows/x64/runner/x64-ClangCL-Windows-Release -OrtStamp
+      - name: Upload unverified runner candidate
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: unverified-omni-windows-x64-${{ matrix.vendor }}-runner
+          overwrite: true
+          if-no-files-found: error
+          path: ${{ steps.prep.outputs.workspace }}/build/windows/x64/runner/x64-ClangCL-Windows-Release/**/*
+      - name: .NET for WiX
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: '10.0.x'
+      - name: WiX for the installer candidates
+        shell: pwsh
+        run: |
+          $PSNativeCommandUseErrorActionPreference = $true
+          $wix = Join-Path $env:RUNNER_TEMP 'wix'
+          dotnet tool install --tool-path $wix wix --version 7.0.0
+          & (Join-Path $wix 'wix.exe') eula accept wix7
+          & (Join-Path $wix 'wix.exe') extension add --global WixToolset.UI.wixext/7.0.0
+          Add-Content -LiteralPath $env:GITHUB_ENV -Value "WIX=$wix"
+      - name: Package unverified GPU MSI and MSIX candidates
+        shell: pwsh
+        working-directory: ${{ steps.prep.outputs.workspace }}
+        run: >-
+          ./scripts/windows/Package-OmniAccelerANT.ps1
+          -AppDir build/windows/x64/runner/x64-ClangCL-Windows-Release
+          -Arch x64 -OrtProvider '${{ matrix.provider }}' -OutDir out
+      - name: Install and start candidates (no model inference)
+        shell: pwsh
+        working-directory: ${{ steps.prep.outputs.workspace }}
+        run: |
+          $env:KATAGLYPHIS_ORT_DEVICE = 'cpu'
+          $dir = 'out/unverified-omni-windows-x64-${{ matrix.vendor }}-installers'
+          ./scripts/windows/Test-OmniAccelerANTInstallers.ps1 -Msi "$dir/*.msi" -Msix "$dir/*.msix" -Arch x64
+          if ($LASTEXITCODE -ne 0) { throw "$LASTEXITCODE installer check(s) failed" }
+      - name: Upload unverified installer candidates
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: unverified-omni-windows-x64-${{ matrix.vendor }}-installers
+          overwrite: true
+          if-no-files-found: error
+          path: ${{ steps.prep.outputs.workspace }}/out/unverified-omni-windows-x64-${{ matrix.vendor }}-installers/*

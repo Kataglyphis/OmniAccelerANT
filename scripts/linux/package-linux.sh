@@ -8,6 +8,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/lib/cli-common.sh"
 # shellcheck source=scripts/linux/lib/packaging-common.sh
 source "$SCRIPT_DIR/lib/packaging-common.sh"
+# shellcheck source=scripts/linux/lib/bundle-runtime.sh
+source "$SCRIPT_DIR/lib/bundle-runtime.sh"
 
 # The fleet's run-every-gate-then-fail-once accumulator; packaging-common.sh already sourced antfrastructure.sh.
 antfrastructure_source linux/scripts/01-core/gates.sh
@@ -97,6 +99,21 @@ if [[ -z "$FORMATS" ]]; then
 fi
 
 IFS=',' read -r -a selected_formats <<< "$FORMATS"
+
+bundle_dir="$(app_packaging_detect_bundle_dir "$MATRIX_ARCH")"
+if [[ -d "$bundle_dir/lib" ]]; then
+	prepare_gpu_host_runtime "$bundle_dir"
+	if [[ -n "$GPU_RUNTIME_KIND" ]]; then
+		for raw_format in "${selected_formats[@]}"; do
+			format="$(echo "$raw_format" | xargs | tr '[:upper:]' '[:lower:]')"
+			if [[ "$format" == flatpak ]]; then
+				echo 'Error: GPU packages require the host runtime and do not support Flatpak' >&2
+				exit 2
+			fi
+		done
+		APP_NAME="$(gpu_package_name "$APP_NAME" "$GPU_RUNTIME_KIND")"
+	fi
+fi
 
 # The hub's flatpak packager, then proof that the extra finish-args reached the built app's [Context].
 package_flatpak_with_finish_args() {

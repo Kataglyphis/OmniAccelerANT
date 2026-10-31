@@ -129,11 +129,15 @@
    "files": {
     "linux": [
      "libonnxruntime.so",
-     "libonnxruntime.so.*"
+     "libonnxruntime.so.*",
+     "libonnxruntime_providers_shared.so",
+     "libonnxruntime_providers_cuda.so",
+     "libonnxruntime_providers_migraphx.so"
     ],
     "windows": [
      "onnxruntime.dll",
-     "onnxruntime_providers_shared.dll"
+     "onnxruntime_providers_shared.dll",
+     "onnxruntime_providers_cuda.dll"
     ]
    },
    "texts": [

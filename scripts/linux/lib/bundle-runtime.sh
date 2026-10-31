@@ -16,6 +16,84 @@ SYSTEM_SONAME_ALLOWLIST=(
   'libepoxy.so.0' 'libfontconfig.so.1'
 )
 
+select_gpu_runtime() {
+  local lib="${1:?library directory required}" requested="${KATAGLYPHIS_ORT_PROVIDER:-}"
+  GPU_RUNTIME_KIND=""
+  if [[ -e "$lib/libonnxruntime_providers_cuda.so" ]]; then GPU_RUNTIME_KIND=cuda; fi
+  if [[ -e "$lib/libonnxruntime_providers_migraphx.so" ]]; then
+    [[ -z "$GPU_RUNTIME_KIND" ]] || { echo 'Error: bundle contains both CUDA and MIGraphX providers' >&2; return 1; }
+    GPU_RUNTIME_KIND=migraphx
+  fi
+  if [[ -n "$requested" && "$requested" != "${GPU_RUNTIME_KIND:-cpu}" ]]; then
+    printf 'Error: requested ORT provider %s does not match the bundled provider %s\n' "$requested" "${GPU_RUNTIME_KIND:-cpu}" >&2
+    return 1
+  fi
+}
+
+load_gpu_runtime_helpers() {
+  local helper closure loader
+  helper="$(antfrastructure_path linux/scripts/06-packaging/ort-runtime-bundle.sh)" || return 1
+  closure="$(antfrastructure_path linux/scripts/06-packaging/elf-closure.sh)" || return 1
+  loader="$(antfrastructure_path linux/scripts/06-packaging/bundle-loader.sh)" || return 1
+  # shellcheck disable=SC1090
+  source "$helper"
+  if ! declare -F ort_host_runtime_needed >/dev/null || ! declare -F ort_assert_no_bundled_host_runtime >/dev/null ||
+    ! grep -Fq -- '--direct-only' "$closure" || ! grep -Fq -- '--reject-source-root' "$closure" ||
+    ! grep -Fq -- '--external-library-path' "$loader"; then
+    echo 'Error: GPU bundles require ANTfrastructure host-runtime packaging support' >&2
+    return 1
+  fi
+}
+
+# The GPU provider loads vendor libraries from the user's host SDK.
+prepare_gpu_host_runtime() {
+  local bundle="${1:?bundle required}" lib="$1/lib" provider needed
+  GPU_RUNTIME_SONAMES=()
+  select_gpu_runtime "$lib" || return 1
+  [[ -n "$GPU_RUNTIME_KIND" ]] || return 0
+  [[ -f "$lib/libonnxruntime_providers_shared.so" ]] || { echo 'Error: shared ORT provider is missing' >&2; return 1; }
+  load_gpu_runtime_helpers || return 1
+  provider="$lib/libonnxruntime_providers_${GPU_RUNTIME_KIND}.so"
+  needed="$(ort_host_runtime_needed "$provider" "$GPU_RUNTIME_KIND")" || return 1
+  [[ -n "$needed" ]] || { echo 'Error: GPU provider has no host-runtime dependencies' >&2; return 1; }
+  while IFS= read -r needed; do
+    [[ -n "$needed" ]] || continue
+    GPU_RUNTIME_SONAMES+=("$needed")
+    SYSTEM_SONAME_ALLOWLIST+=("$needed")
+  done <<< "$needed"
+  ort_assert_no_bundled_host_runtime "$bundle" "$GPU_RUNTIME_KIND"
+}
+
+# Both loader branches must see the bundled libraries and the caller's host SDK path.
+verify_gpu_host_launchers() {
+  local bundle="${1:?bundle required}" launcher count=0
+  for launcher in "$bundle"/*; do
+    [[ -f "$launcher" && -x "$launcher" ]] || continue
+    case "${launcher##*/}" in *.bin|ld-linux*.so*) continue ;; esac
+    if [[ "$(head -c 2 -- "$launcher")" != '#!' ]] || [[ ! -f "${launcher}.bin" ]]; then
+      echo 'FAIL GPU bundle executable is not an external-runtime launcher' >&2
+      return 1
+    fi
+    count=$((count + 1))
+    if ! grep -Fxq 'export LD_LIBRARY_PATH="$here/lib${external_library_path}"' "$launcher" ||
+      ! grep -Fq -- '--library-path "$here/lib/glibc:$here/lib${external_library_path}"' "$launcher"; then
+      echo 'FAIL GPU bundle launcher does not preserve its bundled and host library paths' >&2
+      return 1
+    fi
+  done
+  if [[ "$count" -eq 0 ]]; then
+    echo 'FAIL GPU bundle has no external-runtime launcher' >&2
+    return 1
+  fi
+}
+
+gpu_package_name() {
+  local name="${1:?name required}" kind="${2:?GPU provider required}" suffix
+  case "$kind" in cuda) suffix=nvidia ;; migraphx) suffix=amd ;; *) return 2 ;; esac
+  if [[ "$name" != *"-${suffix}" ]]; then name="${name}-${suffix}"; fi
+  printf '%s\n' "$name"
+}
+
 is_system_soname() {
   local soname="$1" pattern
   for pattern in "${SYSTEM_SONAME_ALLOWLIST[@]}"; do

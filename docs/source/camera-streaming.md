@@ -213,6 +213,48 @@ stages `gstmediafoundation.dll`/`gstwinks.dll` + GStreamer core DLLs into the ru
 `windows/scripts/build/Build-GstreamerFromSource.ps1` builds with
 `-Dgst-plugins-bad:mediafoundation=enabled`.
 
+### Linux GPU build selection
+
+The default build uses the CPU ONNX Runtime. For a GPU build, set
+`ORT_LIB_LOCATION=/usr/local/lib/onnxruntime-gpu/lib` and
+`KATAGLYPHIS_ORT_PROVIDER=cuda` or `migraphx` while configuring the app. The build stages
+the matching provider, links AccelerANTgine to that same runtime and sets it as the app's
+default device. A conflicting `ONNXRUNTIME_ROOT` fails configuration; an explicit
+`KATAGLYPHIS_ORT_DEVICE` still overrides that default. An explicit GPU request defaults
+the inference backend to ORT, so an ORT failure does not silently select tract. A GPU
+package accepts `cpu`, `auto`, or its own provider (`cuda` or `migraphx`); other device
+values stop the app with an error instead of silently selecting CPU.
+
+MIGraphX requires an x64 Linux build and an OxidANT dependency that advertises its
+`migraphx` device capability. The recorded OxidANT pin does not yet have that capability,
+so an AMD build stops at configuration until the dependency is updated. The build matrix
+allows CPU and CUDA on x64 and arm64. GPU packages and their host CUDA or ROCm runtime
+dependencies are not yet verified for distribution; staging the provider alone does not
+make an installable GPU artifact. The package scripts require the newer shared host-runtime
+helpers, use `-nvidia` or `-amd` names, and reject Flatpak for these host-runtime variants.
+The current ANTfrastructure pin does not yet contain those helpers.
+The dispatch-only `Linux GPU candidates (unverified)` workflow covers NVIDIA x64 and
+arm64 and AMD x64. It requires both strict-provider capabilities from the recorded
+OxidANT pin and the GPU packaging helpers from ANTfrastructure before it pulls an
+image; the current pins fail that preflight. After those pins are updated, it verifies
+the image's core and selected provider against one wheel, builds tar, DEB and AppImage
+candidates, and checks the finished GPU runtime and notices against that wheel. It
+uploads them with `unverified-omni-` artifact names and does not publish releases.
+The hosted checks use CPU inference and do not prove GPU acceleration.
+After the required dependency updates, a GPU lane in the matching registry image must
+select formats that use the host runtime, for example:
+
+```bash
+export ORT_LIB_LOCATION=/usr/local/lib/onnxruntime-gpu/lib
+export KATAGLYPHIS_ORT_PROVIDER=cuda  # migraphx on Linux x64 only
+bash scripts/linux/ci/lane-native-linux.sh --package-formats tar,appimage,deb
+```
+
+The lane runs its application smoke and integration checks with the CPU ORT device for
+GPU builds, so they can run on hosted runners without a GPU. Those checks do not verify
+GPU inference; that requires a separate profile on a machine with the matching GPU and
+host runtime.
+
 ### Checking the knt ABI
 
 `scripts/linux/check-knt-abi.sh` verifies the C ABI the Rust webcam engine depends on:

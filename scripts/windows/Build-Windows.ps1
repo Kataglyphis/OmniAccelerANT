@@ -13,6 +13,7 @@ param(
     [string] $FlutterTarget = "",
     [string] $CMakeGenerator = "Ninja",
     [string] $CMakeBuildType = "Release",
+    [ValidateSet('cpu', 'cuda', 'directml')][string] $OrtProvider = 'cpu',
     [string] $LogDir = "logs",
     [switch] $CleanBuild,
     [switch] $SkipTests,
@@ -30,6 +31,7 @@ param(
 )
 
 Set-StrictMode -Version Latest
+$OrtProvider = $OrtProvider.ToLowerInvariant()
 
 $buildConfigPath = Join-Path $PSScriptRoot "Get-WindowsBuildConfig.ps1"
 if (-not (Test-Path -LiteralPath $buildConfigPath -PathType Leaf)) {
@@ -54,6 +56,7 @@ Import-BuildModule @(
     'WindowsFormatting.Common'  # Get-ProjectDartFiles
     'WindowsPaths.Common'       # project-local: this repo's Flutter windows/x64 layout
     'WindowsOrtRunner.Common'   # project-local: stamp the G6 proof of the runner's chain ONNX Runtime
+    'WindowsGpuBuild.Common'    # project-local: fail before the build when GPU requirements are absent
     'WindowsFlutterAot.Common'  # project-local: the installed AOT snapshot matches the current kernel
 )
 # G6 and the hub's chain-ORT staging beside the exe; an older hub pin lacks them.
@@ -78,6 +81,10 @@ if ([string]::IsNullOrWhiteSpace($BuildRootDir)) {
 }
 
 $workspace = Resolve-WorkspacePath -Path $WorkspaceDir
+
+Assert-WindowsGpuPackagingMode -Provider $OrtProvider -SkipMsixPackaging:$SkipMsixPackaging
+Assert-WindowsGpuBuild -Provider $OrtProvider -Workspace $workspace `
+    -OxidantDir (Join-Path $workspace $RustCrateDir) -OnnxRoot "$env:ONNX_ROOT"
 
 if ($ContinueOnError -and $StopOnError) {
     throw "-ContinueOnError and -StopOnError cannot be used together."
@@ -445,6 +452,7 @@ try {
                 )
             }
             # Only declares the plugin's gtest target (EXCLUDE_FROM_ALL); Build Native Plugin Tests builds it by name.
+            $cmakeArgs += "-DOMNI_WINDOWS_ORT_PROVIDER=$OrtProvider"
             $cmakeArgs += "-Dinclude_kataglyphis_native_inference_tests=ON"
             if ($useSccache) {
                 $cmakeArgs += "-DCMAKE_C_COMPILER_LAUNCHER=sccache"
@@ -571,9 +579,22 @@ try {
 
         # Last: AccelerANTgine.dll imports onnxruntime.dll and the Rust core dlopens it; G6 then proves it.
         Invoke-BuildStep -Context $context -StepName "Stage Chain ONNX Runtime$stepSuffix" -Critical -Script {
-            $null = Copy-ChainOrtBeside -OnnxRoot "$env:ONNX_ROOT" -Destination $currentBuildDirFull
-            $proof = Invoke-RunnerOrtProof -RunnerDir $currentBuildDirFull
-            Write-BuildLog -Context $context -Message "Chain ONNX Runtime staged from $env:ONNX_ROOT\bin and proved by G6: $(@($proof.Stamp.sha256.Keys) -join ', ')"
+            if ($OrtProvider -eq 'cuda') {
+                $providerDll = 'onnxruntime_providers_cuda.dll'
+                $null = Copy-ChainOrtBeside -OnnxRoot "$env:ONNX_ROOT" -Destination $currentBuildDirFull -RequiredProvider $providerDll
+                $proof = Invoke-RunnerOrtProof -RunnerDir $currentBuildDirFull -RequiredProvider $providerDll
+            } elseif ($OrtProvider -eq 'directml') {
+                $providerDll = 'onnxruntime_providers_shared.dll'
+                $null = Copy-ChainOrtBeside -OnnxRoot "$env:ONNX_ROOT" -Destination $currentBuildDirFull -RequiredProvider $providerDll
+                $proof = Invoke-RunnerOrtProof -RunnerDir $currentBuildDirFull -RequiredProvider $providerDll -RequireDirectMl
+            } else {
+                $null = Copy-ChainOrtBeside -OnnxRoot "$env:ONNX_ROOT" -Destination $currentBuildDirFull
+                $proof = Invoke-RunnerOrtProof -RunnerDir $currentBuildDirFull
+            }
+            if ($OrtProvider -eq 'directml' -and -not (Test-Path -LiteralPath (Join-Path $currentBuildDirFull 'DirectML.dll') -PathType Leaf)) {
+                throw 'The selected DirectML runtime was not staged beside the runner.'
+            }
+            Write-BuildLog -Context $context -Message "Chain ONNX Runtime staged from $env:ONNX_ROOT and proved by G6: $(@($proof.Stamp.sha256.Keys) -join ', ')"
         }
 
         if (-not $SkipTests) {
@@ -638,10 +659,25 @@ try {
         Sync-FastLocalArtifactsToHost -Context $context -BuildRoot $buildRoot -OriginalBuildRoot $originalBuildRoot -CargoTargetDir $env:CARGO_TARGET_DIR -HostRustTargetDir $hostRustTarget
     }
 
+    if ($OrtProvider -ne 'cpu') {
+        $gpuDelivered = Invoke-BuildStep -Context $context -StepName "Verify GPU Delivery" -Critical -Script {
+            foreach ($currentPreset in $presetsToRun) {
+                $sourceLayout = Resolve-KataglyphisWindowsLayout -BuildRootFull $buildRoot -WindowsBuildConfig $windowsBuildConfig -Configuration $currentPreset
+                $hostLayout = Resolve-KataglyphisWindowsLayout -BuildRootFull $originalBuildRoot -WindowsBuildConfig $windowsBuildConfig -Configuration $currentPreset
+                Assert-WindowsGpuDelivery -SourceDir $sourceLayout.RunnerDir -DestinationDir $hostLayout.RunnerDir -Provider $OrtProvider
+            }
+        }
+        if (-not $gpuDelivered) { throw 'GPU delivery verification failed; see the build log.' }
+    }
+
     if (-not $SkipMsixPackaging) {
         Invoke-BuildStep -Context $context -StepName "MSIX Packaging" -Script {
             # msix packs build\windows\x64\runner\Release: G6 proves that directory, as packed, first.
-            $null = Invoke-RunnerOrtProof -RunnerDir (Resolve-NormalizedPath -Path (Join-Path $workspace "build/windows/x64/runner/Release"))
+            if ($OrtProvider -eq 'cuda') {
+                $null = Invoke-RunnerOrtProof -RunnerDir (Resolve-NormalizedPath -Path (Join-Path $workspace "build/windows/x64/runner/Release")) -RequiredProvider 'onnxruntime_providers_cuda.dll'
+            } else {
+                $null = Invoke-RunnerOrtProof -RunnerDir (Resolve-NormalizedPath -Path (Join-Path $workspace "build/windows/x64/runner/Release"))
+            }
             Clear-FlutterPluginSymlink -Context $context -WorkspaceDir $workspace
             Push-Location $workspace
             try {

@@ -32,6 +32,9 @@ get_filename_component(_KCI_PACKAGES "${_KCI_PLUGIN_ROOT}" DIRECTORY)
 get_filename_component(_KCI_REPO_ROOT "${_KCI_PACKAGES}" DIRECTORY)
 set(KCI_DIR "${_KCI_REPO_ROOT}/third_party/AccelerANTgine")
 set(KCI_TEXTURE_ABI_DIR "${_KCI_REPO_ROOT}/third_party/OxidANT/include")
+include("${_KCI_REPO_ROOT}/rust_builder/linux/ort-device.cmake")
+omni_linux_ort_device(_KCI_ORT_DEVICE "${_KCI_REPO_ROOT}/third_party/OxidANT")
+omni_linux_ort_root("${_KCI_ORT_DEVICE}")
 # Otherwise AccelerANTgine's Cache.cmake unsets the lane's sccache launcher for every later target.
 set(myproject_ENABLE_CACHE OFF)
 # Its Debug default instruments it and the plugin with ASan+UBSan, but the Flutter runner links no sanitizer runtime.
@@ -61,6 +64,12 @@ apply_standard_settings(${PLUGIN_NAME})
 # Hidden by default against cross-plugin symbol clashes; export with FLUTTER_PLUGIN_EXPORT.
 set_target_properties(${PLUGIN_NAME} PROPERTIES CXX_VISIBILITY_PRESET hidden)
 target_compile_definitions(${PLUGIN_NAME} PRIVATE FLUTTER_PLUGIN_IMPL)
+if(NOT
+   _KCI_ORT_DEVICE
+   STREQUAL
+   "cpu")
+  target_compile_definitions(${PLUGIN_NAME} PRIVATE KATAGLYPHIS_DEFAULT_ORT_DEVICE="${_KCI_ORT_DEVICE}")
+endif()
 
 target_include_directories(${PLUGIN_NAME} INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/include" "${KCI_DIR}/Src")
 target_include_directories(${PLUGIN_NAME} PRIVATE "${KCI_TEXTURE_ABI_DIR}")

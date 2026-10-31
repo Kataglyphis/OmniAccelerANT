@@ -57,6 +57,8 @@ if [[ ! -d "$BUNDLE_DIR/lib" ]]; then
   exit 1
 fi
 bundle_lib="$BUNDLE_DIR/lib"
+require_cmd readelf
+prepare_gpu_host_runtime "$BUNDLE_DIR"
 
 gst_lib_dir="$(gst_pkgconfig_var libdir)"
 gst_plugins_dir="$(gst_pkgconfig_var pluginsdir)"
@@ -67,7 +69,6 @@ if [[ -z "$gst_lib_dir" || -z "$gst_plugins_dir" || ! -d "$gst_plugins_dir" ]]; 
   exit 1
 fi
 
-require_cmd readelf
 require_cmd patchelf
 
 # Plugins are dlopen'd, never DT_NEEDED: the hub copies the fixed list (GST_BUNDLED_PLUGIN_NAMES), and a missing one fails.
@@ -93,11 +94,20 @@ done
 ort_dir="$(chain_ort_lib_dir 2>/dev/null)" || ort_dir=/var/empty
 closure_args=(--bundle "$BUNDLE_DIR" --lib-dir "$bundle_lib" --relocatable --no-runpath --no-default-system
   --from "libonnxruntime*=$ort_dir")
+if [[ -n "$GPU_RUNTIME_KIND" ]]; then
+  closure_args+=(--direct-only "lib/libonnxruntime_providers_${GPU_RUNTIME_KIND}.so")
+  for sdk_root in /opt/rocm /usr/local/cuda; do
+    [[ ! -d "$sdk_root" ]] || closure_args+=(--reject-source-root "$sdk_root")
+  done
+fi
 for soname in "${SYSTEM_SONAME_ALLOWLIST[@]}"; do closure_args+=(--system "$soname"); done
 for soname in libstdc++.so.6 libgcc_s.so.1; do
   if dir="$(cxx_lib_dir "$soname")"; then closure_args+=(--from "$soname=$dir"); fi
 done
 bash "$(antfrastructure_path linux/scripts/06-packaging/elf-closure.sh)" "${closure_args[@]}" --search "$gst_lib_dir" --ldconfig
+if [[ -n "$GPU_RUNTIME_KIND" ]]; then
+  ort_assert_no_bundled_host_runtime "$BUNDLE_DIR" "$GPU_RUNTIME_KIND"
+fi
 copied_count=0
 for file in "$bundle_lib"/*; do
   if [[ -f "$file" && -z "${kept[$(basename "$file")]:-}" ]]; then copied_count=$((copied_count + 1)); fi
@@ -120,6 +130,8 @@ patch_origin_rpath() {
 # RUNPATH is not transitive, so every lib that needs a sibling gets its own $ORIGIN.
 needs_sibling_rpath() {
   local file="$1" soname
+  # ORT files must remain byte-identical to their wheel; the GPU launcher supplies its lib path.
+  if [[ -n "$GPU_RUNTIME_KIND" && "$(basename "$file")" == libonnxruntime* ]]; then return 1; fi
   while IFS= read -r soname; do
     [[ -n "$soname" ]] || continue
     if [[ -e "$bundle_lib/$soname" ]]; then
@@ -162,7 +174,9 @@ done
 for file in "$BUNDLE_DIR"/*; do
   [[ -f "$file" && -x "$file" && "$file" != *.bin ]] || continue
   is_system_soname "$(basename "$file")" && continue
-  bash "$(antfrastructure_path linux/scripts/06-packaging/bundle-loader.sh)" --beside "$BUNDLE_DIR" "$bundle_lib" "$(basename "$file")"
+  loader_args=(--beside)
+  if [[ -n "$GPU_RUNTIME_KIND" ]]; then loader_args+=(--external-library-path); fi
+  bash "$(antfrastructure_path linux/scripts/06-packaging/bundle-loader.sh)" "${loader_args[@]}" "$BUNDLE_DIR" "$bundle_lib" "$(basename "$file")"
 done
 
 if [[ "$WITH_MODEL" -eq 1 ]]; then

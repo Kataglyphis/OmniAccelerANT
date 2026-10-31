@@ -20,6 +20,13 @@ add_executable(
 # that need different build settings.
 apply_standard_settings(${BINARY_NAME})
 
+include("${CMAKE_CURRENT_SOURCE_DIR}/ort_device.cmake")
+omni_windows_ort_device(_ort_device "${CMAKE_SOURCE_DIR}/../third_party/OxidANT")
+if(NOT _ort_device STREQUAL "cpu")
+  target_compile_definitions(${BINARY_NAME} PRIVATE "OMNI_WINDOWS_ORT_DEVICE=L\"${_ort_device}\"")
+  target_compile_definitions(${BINARY_NAME} PRIVATE "OMNI_WINDOWS_ORT_MARKER=\"OMNI_ACCELERANT_GPU_VARIANT_${_ort_device}_V1\"")
+endif()
+
 # Add preprocessor definitions for the build version.
 target_compile_definitions(${BINARY_NAME} PRIVATE "FLUTTER_VERSION=\"${FLUTTER_VERSION}\"")
 target_compile_definitions(${BINARY_NAME} PRIVATE "FLUTTER_VERSION_MAJOR=${FLUTTER_VERSION_MAJOR}")

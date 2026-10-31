@@ -108,6 +108,29 @@ Describe 'Installer shared Windows checks' {
         }
     }
 
+    It 'checks GPU runtime and app bytes in both installers using their real package mappings' {
+        $ast = Get-TestScriptAst -ScriptPath (Join-Path $PSScriptRoot '..\Package-OmniAccelerANT.ps1')
+        $text = $ast.Extent.Text
+        foreach ($name in 'onnxruntime.dll', 'onnxruntime_providers_shared.dll', 'onnxruntime_providers_cuda.dll', 'ort-chain-stamp.json', 'omni_accelerant.exe', 'oxidant.dll', 'AccelerANTgine.dll') {
+            $text.Contains("'$name'") | Should Be $true
+        }
+        $text.Contains("[ValidateSet('cpu', 'cuda', 'directml')][string]`$OrtProvider = 'cpu'") | Should Be $true
+        $text.Contains("Resolve-BuildModule -Name 'WindowsPackageBinary.Common'") | Should Be $true
+        $text.Contains('"$base-$vendor"') | Should Be $true
+        @(Get-TestAstCommands -Ast $ast -Name 'Get-WixSourceFileId').Count | Should Be 1
+        $checks = @(Get-TestAstCommands -Ast $ast -Name 'Assert-PackageBinary')
+        $checks.Count | Should Be 2
+        @($checks | Where-Object { $_.Extent.Text.Contains('"$base.msi"') -and $_.Extent.Text.Contains('-Member $gpuMsiIds') -and $_.Extent.Text.Contains('-SourcePath $gpuPaths') }).Count | Should Be 1
+        @($checks | Where-Object { $_.Extent.Text.Contains('"$base.msix"') -and $_.Extent.Text.Contains('-Member $gpuFiles') -and $_.Extent.Text.Contains('-SourcePath $gpuPaths') }).Count | Should Be 1
+        $inventories = @(Get-TestAstCommands -Ast $ast -Name 'Get-PackageOrtProviderNames')
+        $inventories.Count | Should Be 2
+        @($inventories | Where-Object { $_.Extent.Text.Contains('-RootDirectoryId APPLICATIONFOLDER') }).Count | Should Be 1
+        $proofs = @(Get-TestAstCommands -Ast $ast -Name 'Assert-WindowsInstallerCandidate')
+        $proofs.Count | Should Be 3
+        ($proofs[1].Extent.StartOffset -gt $checks[0].Extent.StartOffset) | Should Be $true
+        ($proofs[2].Extent.StartOffset -gt $checks[1].Extent.StartOffset) | Should Be $true
+    }
+
     It 'continues after false and thrown assertions and reports both failures' {
         Initialize-SmokeTestRun
         $value = 'visible'

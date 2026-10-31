@@ -3,10 +3,26 @@
 #include <windows.h>
 
 #include "flutter_window.h"
+#include "ort_device.h"
 #include "utils.h"
+
+#ifdef OMNI_WINDOWS_ORT_DEVICE
+#if !defined(_M_X64) && !defined(__x86_64__)
+#error "Windows GPU builds require an x64 target"
+#endif
+
+#endif
 
 int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
                       _In_ wchar_t *command_line, _In_ int show_command) {
+#ifdef OMNI_WINDOWS_ORT_DEVICE
+  ::OutputDebugStringA(OMNI_WINDOWS_ORT_MARKER);
+  if (!ConfigureOrtDevice(OMNI_WINDOWS_ORT_DEVICE)) {
+    ::MessageBoxW(nullptr, L"Invalid or unavailable KATAGLYPHIS_ORT_DEVICE for this GPU package.",
+                  L"OmniAccelerANT", MB_OK | MB_ICONERROR);
+    return EXIT_FAILURE;
+  }
+#endif
   // Attach to console when present (e.g., 'flutter run') or create a
   // new console when running with a debugger.
   if (!::AttachConsole(ATTACH_PARENT_PROCESS) && ::IsDebuggerPresent()) {

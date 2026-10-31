@@ -45,6 +45,11 @@ if [[ ! -d "$bundle_lib" ]]; then
 fi
 
 require_cmd readelf
+prepare_gpu_host_runtime "$BUNDLE_DIR"
+
+if [[ -n "$GPU_RUNTIME_KIND" ]]; then
+  verify_gpu_host_launchers "$BUNDLE_DIR"
+fi
 
 failures=0
 checked=0
@@ -79,6 +84,10 @@ check_one_elf() {
   done
 
   if [[ ${#needed_bundled[@]} -eq 0 ]]; then
+    return 0
+  fi
+  # The verified GPU launcher supplies the library path without changing wheel-matched ORT bytes.
+  if [[ -n "$GPU_RUNTIME_KIND" && "$(basename "$file")" == libonnxruntime* ]]; then
     return 0
   fi
   case "$location" in

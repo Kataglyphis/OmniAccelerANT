@@ -124,11 +124,15 @@
    "files": {
     "linux": [
      "libonnxruntime.so",
-     "libonnxruntime.so.*"
+     "libonnxruntime.so.*",
+     "libonnxruntime_providers_shared.so",
+     "libonnxruntime_providers_cuda.so",
+     "libonnxruntime_providers_migraphx.so"
     ],
     "windows": [
      "onnxruntime.dll",
-     "onnxruntime_providers_shared.dll"
+     "onnxruntime_providers_shared.dll",
+     "onnxruntime_providers_cuda.dll"
     ]
    },
    "license": "MIT",
@@ -12088,7 +12092,7 @@
  "inputs": {
   "pubspec.lock": "84ac0921a10d84bdef0e678deb3c9ef56e4d38b3cfd0a974e00f2a24308b531e",
   "scripts/licenses/cargo-policy.json": "1a7cc1b9543632c15e3e988aa297e40affaf98c5857ee0fb3944fe9c4dff5ae7",
-  "scripts/licenses/native-components.json": "f0d691d993aed9af056d18982ea82980ef72c367c820d2448468e9e9c7ac964f",
+  "scripts/licenses/native-components.json": "6992436acc939b3d78eba68ff4efbb44880070f1bbc2593d6ea5d4d027650980",
   "third_party/AccelerANTgine/Src/rusty_code/Cargo.lock": "7a4eaacef1d82d646bab21ec24512c5c6bac0b262d0e3eadd0df1382360f4830",
   "third_party/OxidANT/Cargo.lock": "1ca0c245584c5593cf352e065c59cd7075f2322e8f13d82ca1bfa1c814bcf4cb"
  },

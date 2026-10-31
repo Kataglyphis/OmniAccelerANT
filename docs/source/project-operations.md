@@ -32,6 +32,43 @@ in the image: `Invoke-RunnerOrtProof` stages the texts in the runner's `licenses
 unstamped texts. The stamp guards against stale or edited copies, not a deliberate forgery of
 both stamp and texts.
 
+The Windows x64 build has `-OrtProvider cuda` and `-OrtProvider directml` opt-ins,
+but both require `-SkipMsixPackaging` for its in-container Flutter packaging. The host
+installer script accepts a GPU runner only with the matching explicit `-OrtProvider` and
+labels its MSI and MSIX as unverified candidates. The GPU opt-ins require an OxidANT pin advertising strict provider
+selection; both GPU variants additionally need ANTfrastructure's selected-provider staging,
+runtime-file resolver and same-wheel verification APIs. The resolver follows the same `bin`/
+`lib` precedence as staging; the current recorded pins do not provide these capabilities.
+
+The dispatch-only Windows GPU candidate workflow uses the registry's x64 NVIDIA and AMD
+images for CUDA and DirectML respectively; Windows ARM GPU images are excluded. It checks
+the recorded dependency APIs before pulling, validates image DLL architecture and wheel
+provenance, then checks the delivered runner's stamp, native-license coverage and CPU-selected
+startup on the host. It packages and inspects MSI and MSIX candidates, then starts the MSI
+with CPU selected and the MSIX through its app entry. Those checks do not run model inference. The uploaded runner and
+installers are labelled unverified and are not release artifacts; GPU inference still needs hardware
+testing. DirectML uses the system's adapter selection and the AMD image alone does not prove
+that an AMD adapter executed the model.
+The existing native inventory links Microsoft's DirectML license terms but does not embed an
+original DirectML license text. The GPU images' DirectML source package and installed DLL
+provenance have not yet been established; ANTfrastructure tracks that image work as CON180.
+
+The runner proof can require and stamp `onnxruntime_providers_cuda.dll` via
+`-RequiredProvider`; its bytes and those of the shared bridge must match the core's wheel.
+The host installer checks the application binaries and selected ORT runtime files in both
+finished MSI and MSIX against the stamped runner. Provider stamps record which DLLs matched
+the wheel; older runner stamps without that proof are rejected for GPU packaging. Host CUDA
+dependencies, actual GPU execution and real GPU installers still need verification. The GPU
+installers share the CPU installer's product identity and install location, so switching
+variants may require uninstalling the existing one.
+
+The dispatch-only Linux GPU candidate workflow uses the registry NVIDIA images on x64
+and ARM64 and the AMD ROCm image on x64. Its clean-host checks install and start each
+TAR, DEB and AppImage candidate with CPU selected; they do not run model inference.
+These candidates are unverified: GPU inference still needs testing on matching hardware.
+The workflow checks the recorded dependency capabilities before pulling images, and the
+current recorded pins do not yet provide them.
+
 Linux Omni, ObservANT and its Pi bundle match every bundled `libonnxruntime*.so*`
 to one wheel, either directly or after target-compatible stripping. The wheel's
 original license and notices are checked in each finished package. Set

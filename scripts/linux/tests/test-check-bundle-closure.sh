@@ -29,8 +29,8 @@ _bundle() {
   for plugin in "${GST_BUNDLED_PLUGIN_NAMES[@]}"; do _elf "${root}/lib/gstreamer-1.0/libgst${plugin}.so" "" ""; done
   printf '%s' "${root}"
 }
-_gate() { bash "${GATE}" --bundle-dir "$1" --ort-reference "${_ref}/lib" 2>&1; }
-_gate_rc() { t_rc bash "${GATE}" --bundle-dir "$1" --ort-reference "${_ref}/lib"; }
+_gate() { KATAGLYPHIS_ORT_PROVIDER='' bash "${GATE}" --bundle-dir "$1" --ort-reference "${_ref}/lib" 2>&1; }
+_gate_rc() { KATAGLYPHIS_ORT_PROVIDER='' t_rc bash "${GATE}" --bundle-dir "$1" --ort-reference "${_ref}/lib"; }
 
 _ref="${_work}/ref"
 _elf "${_ref}/lib/libonnxruntime.so.1" "" "" "${CHAIN_SRC}" OrtGetApiBase
@@ -88,5 +88,28 @@ mkdir -p "${_work}/old-hub"
 t_assert_eq 1 "$(ANTFRASTRUCTURE_DIR="${_work}/old-hub" _gate_rc "${_green}")" "old hub"
 t_assert_contains "$(ANTFRASTRUCTURE_DIR="${_work}/old-hub" _gate "${_green}")" \
   "third_party/ANTfrastructure/docs/onnxruntime-single-source.md" "the pointer resolves from this repo"
+
+if [[ -n "${ORT_TEST_SHARED_HUB:-}" ]]; then
+  t_case 'GPU ORT bytes use the verified external-runtime launcher'
+  _gpu="$(_bundle gpu)"
+  _elf "${_ref}/lib/libonnxruntime_providers_cuda.so" 'libcuda.so.1,libstdc++.so.6' '' "${CHAIN_SRC}"
+  _elf "${_ref}/lib/libonnxruntime_providers_shared.so" '' '' "${CHAIN_SRC}"
+  cp "${_ref}/lib/"libonnxruntime* "${_gpu}/lib/"
+  _elf "${_gpu}/lib/libstdc++.so.6" '' ''
+  _elf "${_gpu}/omni_accelerant.bin" '' ''
+  chmod +x "${_gpu}/omni_accelerant.bin"
+  cat > "${_gpu}/omni_accelerant" <<'EOF'
+#!/bin/bash
+external_library_path=""
+export LD_LIBRARY_PATH="$here/lib${external_library_path}"
+exec "$here/loader" --library-path "$here/lib/glibc:$here/lib${external_library_path}" "$@"
+EOF
+  chmod +x "${_gpu}/omni_accelerant"
+  t_assert_eq 0 "$(ANTFRASTRUCTURE_DIR="$ORT_TEST_SHARED_HUB" _gate_rc "${_gpu}")" "GPU closure"
+  sed -i 's/export LD_LIBRARY_PATH=/export BROKEN_PATH=/' "${_gpu}/omni_accelerant"
+  t_assert_eq 1 "$(ANTFRASTRUCTURE_DIR="$ORT_TEST_SHARED_HUB" _gate_rc "${_gpu}")" "broken GPU launcher"
+else
+  echo 'Info: shared GPU closure integration needs the proposed hub; CPU and old-hub refusal checks still run.'
+fi
 
 t_summary

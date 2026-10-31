@@ -54,6 +54,9 @@ mkdir -p "$work/linux/lib/gstreamer-1.0"
 t_fake_elf "$work/linux/lib/libgstreamer-1.0.so.0" 62
 t_fake_elf "$work/linux/lib/gstreamer-1.0/libgstapp.so" 62
 t_fake_elf "$work/linux/omni_accelerant.bin" 62
+t_fake_elf "$work/linux/lib/libonnxruntime_providers_shared.so" 62
+t_fake_elf "$work/linux/lib/libonnxruntime_providers_cuda.so" 62
+t_fake_elf "$work/linux/lib/libonnxruntime_providers_migraphx.so" 62
 printf '{}' > "$work/linux/lib/notes.json"
 t_assert_ok python3 "$coverage" --platform linux "$work/linux"
 t_fake_elf "$work/linux/lib/libmystery.so.1" 62
@@ -69,6 +72,7 @@ mkdir -p "$work/windows/gstreamer-1.0"
 : > "$work/windows/OMNI_ACCELERANT.EXE"
 : > "$work/windows/gstreamer-1.0/gstapp.dll"
 : > "$work/windows/libcrypto-4-x64.dll"
+: > "$work/windows/onnxruntime_providers_cuda.dll"
 t_assert_ok python3 "$coverage" --platform windows "$work/windows"
 : > "$work/windows/x264-164.dll"
 t_assert_fails python3 "$coverage" --platform windows "$work/windows"

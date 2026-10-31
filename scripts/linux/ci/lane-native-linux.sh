@@ -6,6 +6,7 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 source "$SCRIPT_DIR/../lib/cli-common.sh"
 source "$SCRIPT_DIR/../lib/ci-options.sh"
 source "$SCRIPT_DIR/../lib/container-steps.sh"
+source "$SCRIPT_DIR/../lib/gpu-ci-smoke.sh"
 
 usage() {
   cat <<'EOF'
@@ -73,6 +74,10 @@ run_gate "Flutter package license tests" bash scripts/linux/tests/test-flutter-p
 run_gate "third-party license tests" bash scripts/linux/tests/test-third-party-licenses.sh
 run_gate "brand icon tests" bash scripts/linux/tests/test-check-brand-icons.sh
 run_gate "bundle option parser tests" bash scripts/linux/tests/test-bundle-options.sh
+run_gate "ORT provider staging tests" bash scripts/linux/tests/test-ort-provider-staging.sh
+run_gate "ORT runtime defaults tests" bash scripts/linux/tests/test-ort-runtime-default.sh
+run_gate "GPU host-runtime selection tests" bash scripts/linux/tests/test-gpu-host-runtime.sh
+run_gate "GPU package CPU-smoke tests" bash scripts/linux/tests/test-gpu-ci-smoke.sh
 # The checks' one test run writes the coverage the floor below reads; a second run cost 55 s.
 dart_lcov="build/coverage/lcov.info"
 rm -f "$dart_lcov"
@@ -120,14 +125,14 @@ if [[ "$BUILD_MODE" == "release" ]]; then
 
   # Under the image's xvfb-run: the packaged bundle starts, and the app drives its integration test.
   gate_reset "app under Xvfb (${MATRIX_ARCH})"
-  run_gate "launch smoke" run_launch_smoke "${build_dir}/bundle/$(linux_binary_name)"
-  run_gate "launch smoke, bundled glibc" run_bundled_glibc_launch_smoke "${build_dir}/bundle/$(linux_binary_name)"
-  run_gate "integration test" run_integration_test
+  run_gate "launch smoke" omni_ci_package_smoke run_launch_smoke "${build_dir}/bundle/$(linux_binary_name)"
+  run_gate "launch smoke, bundled glibc" omni_ci_package_smoke run_bundled_glibc_launch_smoke "${build_dir}/bundle/$(linux_binary_name)"
+  run_gate "integration test" omni_ci_package_smoke run_integration_test
   # Rust -> knt_push_frame -> texture with a test pattern: CI has no camera, and the push path needs none.
-  run_gate "webcam frame test" run_integration_test integration_test/webcam_frame_test.dart
+  run_gate "webcam frame test" omni_ci_package_smoke run_integration_test integration_test/webcam_frame_test.dart
   # One arch is enough to track the Dart side, and a profile build costs minutes.
   if [[ "$MATRIX_ARCH" == "x64" ]]; then
-    run_gate "frontend performance" run_frontend_performance
+    run_gate "frontend performance" omni_ci_package_smoke run_frontend_performance
   fi
   assert_gates
 else

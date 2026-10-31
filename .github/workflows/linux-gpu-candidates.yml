@@ -1,0 +1,129 @@
+name: Linux GPU candidates (unverified)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: linux-gpu-candidates-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  preflight:
+    runs-on: ubuntu-26.04
+    timeout-minutes: 10
+    outputs:
+      repository: ${{ steps.pins.outputs.repository }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          submodules: recursive
+      - name: Test candidate contracts
+        run: python3 scripts/linux/tests/test-gpu-candidate-preflight.py
+      - name: Check recorded GPU dependency capabilities before pulling images
+        id: pins
+        run: |
+          repository="$(python3 scripts/linux/preflight-gpu-candidate.py)"
+          printf 'repository=%s\n' "$repository" >> "$GITHUB_OUTPUT"
+      - name: Test finished-package GPU verifier
+        run: bash scripts/linux/tests/test-verify-gpu-candidate.sh
+
+  candidate:
+    needs: preflight
+    name: Unverified ${{ matrix.vendor }} ${{ matrix.arch }} candidate
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 180
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - vendor: nvidia
+            arch: x64
+            platform: linux/amd64
+            runner: ubuntu-26.04
+            image-tag: latest-nvidia
+            provider: cuda
+          - vendor: nvidia
+            arch: arm64
+            platform: linux/arm64
+            runner: ubuntu-26.04-arm
+            image-tag: latest-nvidia
+            provider: cuda
+          - vendor: amd
+            arch: x64
+            platform: linux/amd64
+            runner: ubuntu-26.04
+            image-tag: latest-rocm
+            provider: migraphx
+    steps:
+      - name: Prepare host and pull the registry GPU image
+        uses: Kataglyphis/ANTfrastructure/.github/actions/prepare-linux-ci-host@develop
+        with:
+          image: ${{ format('{0}:{1}', needs.preflight.outputs.repository, matrix.image-tag) }}
+          registry-username: ${{ github.actor }}
+          registry-password: ${{ secrets.GHCR_PAT }}
+          fetch-depth: '1'
+          submodules: recursive
+          free-disk-space: 'true'
+          pull-first: 'false'
+          max-concurrent-downloads: '10'
+      - name: Build, CPU-smoke and verify finished candidate payloads
+        uses: Kataglyphis/ANTfrastructure/.github/actions/run-in-linux-container@develop
+        with:
+          image: ${{ format('{0}:{1}', needs.preflight.outputs.repository, matrix.image-tag) }}
+          extra-args: >-
+            --privileged --platform "${{ matrix.platform }}" -e CI=true
+            -e KATAGLYPHIS_ORT_PROVIDER=${{ matrix.provider }}
+            -e ORT_LIB_LOCATION=/usr/local/lib/onnxruntime-gpu/lib
+          script: >-
+            bash -lc 'bash scripts/linux/check-gpu-image-runtime.sh "${{ matrix.provider }}"
+            && bash scripts/linux/ci/ci-container-run-native-linux.sh
+            --arch "${{ matrix.arch }}" --build-mode release --flutter-dir /opt/flutter
+            --app-name omni-accelerant --package-formats tar,deb,appimage
+            --install-packaging-deps false --strict-checks true --run-codeql false --run-docs false
+            && bash scripts/linux/verify-gpu-candidate.sh "${{ matrix.vendor }}" "${{ matrix.arch }}"'
+      - name: Upload unverified GPU candidates
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: unverified-omni-${{ matrix.vendor }}-linux-${{ matrix.arch }}
+          overwrite: true
+          path: |
+            out/omni-accelerant-${{ matrix.vendor }}-linux-${{ matrix.arch }}.tar.gz
+            out/omni-accelerant-${{ matrix.vendor }}_*.deb
+            out/omni-accelerant-${{ matrix.vendor }}-*.AppImage
+          if-no-files-found: error
+
+  clean-host:
+    name: Clean-host CPU startup (${{ matrix.vendor }}, ${{ matrix.arch }})
+    needs: candidate
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - vendor: nvidia
+            arch: x64
+            runner: ubuntu-26.04
+          - vendor: nvidia
+            arch: arm64
+            runner: ubuntu-26.04-arm
+          - vendor: amd
+            arch: x64
+            runner: ubuntu-26.04
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 30
+    steps:
+      # GPU provider libraries deliberately depend on the host SDK; scan the CPU launch instead.
+      - name: Install and start each candidate with CPU selected (no model inference)
+        uses: Kataglyphis/ANTfrastructure/.github/actions/clean-host-package-check@develop
+        with:
+          artifact: unverified-omni-${{ matrix.vendor }}-linux-${{ matrix.arch }}
+          scan-elves: 'false'
+          apt-packages: xvfb libgl1-mesa-dri libegl-mesa0
+          deb: '*.deb'
+          deb-command: rc=0; KATAGLYPHIS_ORT_DEVICE=cpu KATAGLYPHIS_ONNX_BACKEND=ort xvfb-run -a timeout 20 omni-accelerant-${{ matrix.vendor }} || rc=$?; test "$rc" -eq 124
+          tarball: '*.tar.gz'
+          tarball-command: rc=0; KATAGLYPHIS_ORT_DEVICE=cpu KATAGLYPHIS_ONNX_BACKEND=ort xvfb-run -a timeout 20 ./omni_accelerant || rc=$?; test "$rc" -eq 124
+          appimage: '*.AppImage'
+          appimage-command: rc=0; KATAGLYPHIS_ORT_DEVICE=cpu KATAGLYPHIS_ONNX_BACKEND=ort xvfb-run -a timeout 20 "$APPIMAGE" || rc=$?; test "$rc" -eq 124

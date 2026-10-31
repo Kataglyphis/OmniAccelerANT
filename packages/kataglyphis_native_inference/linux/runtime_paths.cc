@@ -3,6 +3,7 @@
 #include <dlfcn.h>
 #include <sys/stat.h>
 
+#include <cstdio>
 #include <cstdlib>
 #include <string>
 
@@ -33,6 +34,24 @@ std::string module_directory()
 
 void configure_bundle_paths()
 {
+#ifdef KATAGLYPHIS_DEFAULT_ORT_DEVICE
+    set_if_present("KATAGLYPHIS_ORT_DEVICE", KATAGLYPHIS_DEFAULT_ORT_DEVICE);
+    const char *device = ::getenv("KATAGLYPHIS_ORT_DEVICE");
+    if (device != nullptr) {
+        std::string normalized_device(device);
+        for (char &character : normalized_device) {
+            if (character >= 'A' && character <= 'Z') { character += 'a' - 'A'; }
+        }
+        if (normalized_device != "cpu" && normalized_device != "auto"
+            && normalized_device != KATAGLYPHIS_DEFAULT_ORT_DEVICE) {
+            std::fprintf(stderr, "Unsupported KATAGLYPHIS_ORT_DEVICE for this GPU package: %s\n", device);
+            std::exit(EXIT_FAILURE);
+        }
+        if (normalized_device == "cuda" || normalized_device == "migraphx") {
+            set_if_present("KATAGLYPHIS_ONNX_BACKEND", "ort");
+        }
+    }
+#endif
     const std::string dir = module_directory();
     if (dir.empty()) { return; }
     const std::string gst_plugins = dir + "/gstreamer-1.0";
