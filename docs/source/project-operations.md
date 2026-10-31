@@ -69,8 +69,9 @@ installers share the CPU installer's product identity and install location, so s
 variants may require uninstalling the existing one.
 
 The dispatch-only Linux GPU candidate workflow uses the registry NVIDIA images on x64
-and ARM64 and the AMD ROCm image on x64. Its clean-host checks install and start each
-TAR, DEB and AppImage candidate with CPU selected; they do not run model inference.
+and ARM64 and the AMD ROCm image on x64. Each finished TAR, DEB and AppImage must carry
+the model and its license and notice at their locked SHA-256 values. Clean-host checks run
+model inference and start each format with CPU selected and model/runtime overrides cleared.
 These candidates are unverified: GPU inference still needs testing on matching hardware.
 The workflow checks the recorded dependency capabilities before pulling images, and the
 current recorded pins do not yet provide them.

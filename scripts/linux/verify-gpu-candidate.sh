@@ -53,6 +53,15 @@ verify_ort_notices() {
   done
 }
 
+verify_detector_model() {
+  local root="$1" bundle="$2" directory resolved
+  directory="$bundle/data/resources/models"
+  resolved="$(realpath -e "$directory")" || { echo 'Missing bundled detector models' >&2; return 1; }
+  case "$resolved/" in "$root/"*) ;; *) echo 'Detector models escape package' >&2; return 1 ;; esac
+  python3 -I "$repo/scripts/windows/verify_detector_model.py" \
+    "$hub/../lib/fetch-data-lock.py" "$repo/third_party/OxidANT/resources/models/models.lock" "$directory"
+}
+
 verify_tree() {
   local root="$1" bundle="$2"
   local -a libs=()
@@ -66,6 +75,7 @@ verify_tree() {
     --wheel-dir "${ORT_CHAIN_WHEEL_DIR:-/opt/onnxruntime-wheels}" --destination "$work/proven" \
     --strip "${STRIP:-strip}" "${libs[@]}"
   verify_ort_notices "$root" "$bundle"
+  verify_detector_model "$root" "$bundle"
 }
 
 mkdir -p "$work/tar" "$work/deb"
@@ -75,4 +85,12 @@ verify_tree "$work/tar" "$work/tar/${variant}-bundle"
 verify_tree "$work/deb" "$work/deb/opt/$variant"
 bash "$hub/verify-ort-appimage-payload.sh" "${images[0]}" "$arch" \
   "usr/lib/$variant/lib" "usr/lib/$variant/licenses/onnxruntime" "$vendor"
-echo 'PASS: unverified GPU candidates carry the wheel-matched runtime and notices'
+image="$(realpath -e "${images[0]}")"
+mkdir "$work/appimage"
+(
+  cd "$work/appimage"
+  "$image" --appimage-extract "usr/lib/$variant/data/resources/models/*" > /dev/null
+  root="$(realpath -e squashfs-root)"
+  verify_detector_model "$root" "$root/usr/lib/$variant"
+)
+echo 'PASS: unverified GPU candidates carry the wheel-matched runtime and locked model'

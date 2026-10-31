@@ -2,10 +2,22 @@
 # Finished-package fixture: match all three payloads and reject independent mutations.
 set -euo pipefail
 repo="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
-verifier="$repo/scripts/linux/verify-gpu-candidate.sh"
 work="$(mktemp -d)"
 trap 'rm -rf -- "$work"' EXIT
-mkdir -p "$work/out" "$work/wheels" "$work/bundle/lib" "$work/bundle/licenses/onnxruntime"
+fixture_repo="$work/repo"
+verifier="$fixture_repo/scripts/linux/verify-gpu-candidate.sh"
+mkdir -p "$work/out" "$work/wheels" "$work/bundle/lib" "$work/bundle/licenses/onnxruntime" \
+  "$work/bundle/data/resources/models" "$fixture_repo/scripts/linux" "$fixture_repo/scripts/windows" \
+  "$fixture_repo/third_party/OxidANT/resources/models"
+cp "$repo/scripts/linux/verify-gpu-candidate.sh" "$verifier"
+cp "$repo/scripts/windows/verify_detector_model.py" "$fixture_repo/scripts/windows/"
+export ANTFRASTRUCTURE_DIR="${ANTFRASTRUCTURE_DIR:-$repo/third_party/ANTfrastructure}"
+for name in deim_dfine_n_coco.onnx deim_dfine_n_coco.LICENSE deim_dfine_n_coco.NOTICE; do
+  printf 'fixture %s\n' "$name" > "$work/bundle/data/resources/models/$name"
+  printf '%s  %s  https://example.invalid/%s\n' \
+    "$(sha256sum "$work/bundle/data/resources/models/$name" | cut -d ' ' -f1)" "$name" "$name" \
+    >> "$fixture_repo/third_party/OxidANT/resources/models/models.lock"
+done
 printf 'int fixture(void) { return 17; }\n' > "$work/fixture.c"
 for name in libonnxruntime.so.1 libonnxruntime_providers_shared.so libonnxruntime_providers_cuda.so; do
   cc -shared -fPIC -g "$work/fixture.c" -o "$work/bundle/lib/$name"
@@ -49,7 +61,7 @@ dpkg-deb --build "$work/deb" "$work/out/${variant}_1.0_amd64.deb" >/dev/null
 cat > "$work/out/$variant-1.0-x86_64.AppImage" <<'IMAGE'
 #!/usr/bin/env bash
 set -euo pipefail
-[[ "$#" == 1 && "$1" == --appimage-extract ]]
+[[ "$#" -ge 1 && "$#" -le 2 && "$1" == --appimage-extract ]]
 mkdir squashfs-root
 cp -a "$FIXTURE_APPDIR/." squashfs-root/
 IMAGE
@@ -74,6 +86,26 @@ dpkg-deb --build "$work/deb" "$work/out/${variant}_1.0_amd64.deb" >/dev/null
 if bash "$verifier" nvidia x64 >/dev/null 2>&1; then echo 'changed DEB notice passed' >&2; exit 1; fi
 cp "$work/bundle/licenses/onnxruntime/LICENSE" "$work/deb/opt/$variant/licenses/onnxruntime/"
 dpkg-deb --build "$work/deb" "$work/out/${variant}_1.0_amd64.deb" >/dev/null
+printf bad > "$work/tar/$variant-bundle/data/resources/models/deim_dfine_n_coco.onnx"
+tar -C "$work/tar" -czf "$work/out/$variant-linux-x64.tar.gz" "$variant-bundle"
+if bash "$verifier" nvidia x64 >/dev/null 2>&1; then echo 'changed tar model passed' >&2; exit 1; fi
+cp "$work/bundle/data/resources/models/deim_dfine_n_coco.onnx" "$work/tar/$variant-bundle/data/resources/models/"
+tar -C "$work/tar" -czf "$work/out/$variant-linux-x64.tar.gz" "$variant-bundle"
+mv "$work/tar/$variant-bundle/data/resources/models" "$work/model-outside"
+ln -s "$work/model-outside" "$work/tar/$variant-bundle/data/resources/models"
+tar -C "$work/tar" -czf "$work/out/$variant-linux-x64.tar.gz" "$variant-bundle"
+if bash "$verifier" nvidia x64 >/dev/null 2>&1; then echo 'tar model directory escaping package passed' >&2; exit 1; fi
+rm "$work/tar/$variant-bundle/data/resources/models"
+mv "$work/model-outside" "$work/tar/$variant-bundle/data/resources/models"
+tar -C "$work/tar" -czf "$work/out/$variant-linux-x64.tar.gz" "$variant-bundle"
+rm "$work/deb/opt/$variant/data/resources/models/deim_dfine_n_coco.NOTICE"
+dpkg-deb --build "$work/deb" "$work/out/${variant}_1.0_amd64.deb" >/dev/null
+if bash "$verifier" nvidia x64 >/dev/null 2>&1; then echo 'missing DEB model notice passed' >&2; exit 1; fi
+cp "$work/bundle/data/resources/models/deim_dfine_n_coco.NOTICE" "$work/deb/opt/$variant/data/resources/models/"
+dpkg-deb --build "$work/deb" "$work/out/${variant}_1.0_amd64.deb" >/dev/null
+printf bad > "$work/appimage/usr/lib/$variant/data/resources/models/deim_dfine_n_coco.LICENSE"
+if bash "$verifier" nvidia x64 >/dev/null 2>&1; then echo 'changed AppImage model license passed' >&2; exit 1; fi
+cp "$work/bundle/data/resources/models/deim_dfine_n_coco.LICENSE" "$work/appimage/usr/lib/$variant/data/resources/models/"
 printf x >> "$work/appimage/usr/lib/$variant/lib/libonnxruntime_providers_cuda.so"
 if bash "$verifier" nvidia x64 >/dev/null 2>&1; then echo 'changed AppImage provider passed' >&2; exit 1; fi
 if bash "$verifier" amd arm64 >/dev/null 2>&1; then echo 'unsupported AMD arm64 passed' >&2; exit 1; fi

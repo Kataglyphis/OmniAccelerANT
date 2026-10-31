@@ -167,6 +167,8 @@ class CandidatePreflightTests(unittest.TestCase):
             self.assertIn("KATAGLYPHIS_ORT_DEVICE=cpu", command.group(1))
             self.assertIn("KATAGLYPHIS_ONNX_BACKEND=ort", command.group(1))
             self.assertIn("--onnx-check", command.group(1))
+            for name in ("KATAGLYPHIS_ONNX_MODEL", "ORT_DYLIB_PATH", "LD_LIBRARY_PATH"):
+                self.assertEqual(command.group(1).count(f"-u {name}"), 2)
 
 
 if __name__ == "__main__":
