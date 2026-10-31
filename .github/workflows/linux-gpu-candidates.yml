@@ -96,7 +96,7 @@ jobs:
           if-no-files-found: error
 
   clean-host:
-    name: Clean-host CPU startup (${{ matrix.vendor }}, ${{ matrix.arch }})
+    name: Clean-host CPU inference (${{ matrix.vendor }}, ${{ matrix.arch }})
     needs: candidate
     strategy:
       fail-fast: false
@@ -115,15 +115,15 @@ jobs:
     timeout-minutes: 30
     steps:
       # GPU provider libraries deliberately depend on the host SDK; scan the CPU launch instead.
-      - name: Install and start each candidate with CPU selected (no model inference)
+      - name: Run model inference and start each candidate with CPU selected
         uses: Kataglyphis/ANTfrastructure/.github/actions/clean-host-package-check@develop
         with:
           artifact: unverified-omni-${{ matrix.vendor }}-linux-${{ matrix.arch }}
           scan-elves: 'false'
           apt-packages: xvfb libgl1-mesa-dri libegl-mesa0
           deb: '*.deb'
-          deb-command: rc=0; KATAGLYPHIS_ORT_DEVICE=cpu KATAGLYPHIS_ONNX_BACKEND=ort xvfb-run -a timeout 20 omni-accelerant-${{ matrix.vendor }} || rc=$?; test "$rc" -eq 124
+          deb-command: KATAGLYPHIS_ORT_DEVICE=cpu KATAGLYPHIS_ONNX_BACKEND=ort xvfb-run -a timeout 90 omni-accelerant-${{ matrix.vendor }} --onnx-check && { rc=0; KATAGLYPHIS_ORT_DEVICE=cpu KATAGLYPHIS_ONNX_BACKEND=ort xvfb-run -a timeout 20 omni-accelerant-${{ matrix.vendor }} || rc=$?; test "$rc" -eq 124; }
           tarball: '*.tar.gz'
-          tarball-command: rc=0; KATAGLYPHIS_ORT_DEVICE=cpu KATAGLYPHIS_ONNX_BACKEND=ort xvfb-run -a timeout 20 ./omni_accelerant || rc=$?; test "$rc" -eq 124
+          tarball-command: KATAGLYPHIS_ORT_DEVICE=cpu KATAGLYPHIS_ONNX_BACKEND=ort xvfb-run -a timeout 90 ./omni_accelerant --onnx-check && { rc=0; KATAGLYPHIS_ORT_DEVICE=cpu KATAGLYPHIS_ONNX_BACKEND=ort xvfb-run -a timeout 20 ./omni_accelerant || rc=$?; test "$rc" -eq 124; }
           appimage: '*.AppImage'
-          appimage-command: rc=0; KATAGLYPHIS_ORT_DEVICE=cpu KATAGLYPHIS_ONNX_BACKEND=ort xvfb-run -a timeout 20 "$APPIMAGE" || rc=$?; test "$rc" -eq 124
+          appimage-command: KATAGLYPHIS_ORT_DEVICE=cpu KATAGLYPHIS_ONNX_BACKEND=ort xvfb-run -a timeout 90 "$APPIMAGE" --onnx-check && { rc=0; KATAGLYPHIS_ORT_DEVICE=cpu KATAGLYPHIS_ONNX_BACKEND=ort xvfb-run -a timeout 20 "$APPIMAGE" || rc=$?; test "$rc" -eq 124; }

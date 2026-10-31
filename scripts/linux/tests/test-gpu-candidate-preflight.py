@@ -139,6 +139,8 @@ class CandidatePreflightTests(unittest.TestCase):
             text.index("ci-container-run-native-linux.sh"),
         )
 
+    def test_clean_host_runs_inference_for_each_candidate(self):
+        text = WORKFLOW.read_text(encoding="utf-8")
         clean = text.split("\n  clean-host:\n", maxsplit=1)[1]
         clean_rows = re.findall(
             r"(?m)^          - vendor: (\S+)\n            arch: (\S+)\n            runner: (\S+)$",
@@ -146,9 +148,13 @@ class CandidatePreflightTests(unittest.TestCase):
         )
         self.assertEqual(
             set(clean_rows),
-            {(vendor, arch, runner) for vendor, arch, _, runner, _, _ in rows},
+            {
+                ("nvidia", "x64", "ubuntu-26.04"),
+                ("nvidia", "arm64", "ubuntu-26.04-arm"),
+                ("amd", "x64", "ubuntu-26.04"),
+            },
         )
-        self.assertEqual(len(clean_rows), len(rows))
+        self.assertEqual(len(clean_rows), 3)
         self.assertIn("needs: candidate", clean)
         self.assertIn(
             "artifact: unverified-omni-${{ matrix.vendor }}-linux-${{ matrix.arch }}",
@@ -160,6 +166,7 @@ class CandidatePreflightTests(unittest.TestCase):
             self.assertIsNotNone(command)
             self.assertIn("KATAGLYPHIS_ORT_DEVICE=cpu", command.group(1))
             self.assertIn("KATAGLYPHIS_ONNX_BACKEND=ort", command.group(1))
+            self.assertIn("--onnx-check", command.group(1))
 
 
 if __name__ == "__main__":

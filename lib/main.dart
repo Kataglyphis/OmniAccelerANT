@@ -22,6 +22,9 @@ import 'package:omni_accelerant/fallback_font_licenses.dart';
 import 'package:omni_accelerant/l10n/app_localizations.dart';
 import 'package:omni_accelerant/settings/webrtc_settings.dart';
 import 'package:omni_accelerant/src/boot/rust_core.dart';
+import 'package:omni_accelerant/src/boot/onnx_self_check.dart';
+import 'package:omni_accelerant/src/boot/self_check_exit_stub.dart'
+    if (dart.library.io) 'package:omni_accelerant/src/boot/self_check_exit_io.dart';
 import 'package:omni_accelerant/src/rust/frb_generated.dart';
 import 'package:omni_accelerant/third_party_licenses.dart';
 
@@ -57,7 +60,19 @@ Future<OmniBootstrapData> loadAppSettings([SettingsLoader? loader]) async {
   return (appSettings, userSettings, blogConfigs, results[1] as WebRTCSettings);
 }
 
-Future<void> main() async {
+Future<void> main([List<String> args = const <String>[]]) async {
+  if (!kIsWeb && args.length == 1 && args.single == '--onnx-check') {
+    try {
+      await RustLib.init().timeout(const Duration(seconds: 20));
+      final int count = runOnnxSelfCheck();
+      finishSelfCheck(
+        'ONNX model inference succeeded ($count detections); GPU placement was not checked.',
+        0,
+      );
+    } catch (error) {
+      finishSelfCheck('ONNX model inference failed: $error', 1);
+    }
+  }
   // The timeout matters: without web/pkg/ frb's loader never completes, and the page would stay on its spinner.
   await loadRustCore(
     () => RustLib.init().timeout(const Duration(seconds: 20)),

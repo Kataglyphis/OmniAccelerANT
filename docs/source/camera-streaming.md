@@ -240,7 +240,12 @@ image; the current pins fail that preflight. After those pins are updated, it ve
 the image's core and selected provider against one wheel, builds tar, DEB and AppImage
 candidates, and checks the finished GPU runtime and notices against that wheel. It
 uploads them with `unverified-omni-` artifact names and does not publish releases.
-The hosted checks use CPU inference and do not prove GPU acceleration.
+The clean-host checks run `--onnx-check` with ONNX Runtime CPU selected on each
+finished package, then check normal startup. The self-check loads the packaged
+model and runs a blank frame through the desktop detector bridge; it returns a
+nonzero exit status on failure. It does not inspect provider placement or prove
+GPU acceleration. An explicit `KATAGLYPHIS_ONNX_MODEL` still overrides the
+packaged model.
 After the required dependency updates, a GPU lane in the matching registry image must
 select formats that use the host runtime, for example:
 
