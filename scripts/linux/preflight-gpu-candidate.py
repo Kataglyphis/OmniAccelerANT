@@ -14,6 +14,8 @@ GPU_ROWS = {
         "arch": "x64",
         "platform": "linux/amd64",
         "runner": "ubuntu-26.04",
+        "runner-arch": "X64",
+        "gpu-runner": "gpu-nvidia-cuda",
         "image-tag": "latest-nvidia",
         "provider": "cuda",
     },
@@ -22,6 +24,8 @@ GPU_ROWS = {
         "arch": "arm64",
         "platform": "linux/arm64",
         "runner": "ubuntu-26.04-arm",
+        "runner-arch": "ARM64",
+        "gpu-runner": "gpu-nvidia-cuda",
         "image-tag": "latest-nvidia",
         "provider": "cuda",
     },
@@ -30,13 +34,23 @@ GPU_ROWS = {
         "arch": "x64",
         "platform": "linux/amd64",
         "runner": "ubuntu-26.04",
+        "runner-arch": "X64",
+        "gpu-runner": "gpu-amd-rocm",
         "image-tag": "latest-rocm",
         "provider": "migraphx",
     },
 }
 WINDOWS_GPU_ROWS = {
-    "nvidia": {"vendor": "nvidia", "tag": "winamd64-nvidia", "provider": "cuda"},
-    "amd": {"vendor": "amd", "tag": "winamd64-rocm", "provider": "directml"},
+    "nvidia": {
+        "vendor": "nvidia",
+        "tag": "winamd64-nvidia",
+        "provider": "cuda",
+    },
+    "amd": {
+        "vendor": "amd",
+        "tag": "winamd64-rocm",
+        "provider": "directml",
+    },
 }
 
 
@@ -82,6 +96,32 @@ def require_text(path: Path, *markers: str) -> None:
     for marker in markers:
         if marker not in contents:
             raise ValueError(f"pinned GPU helper {path} lacks {marker}")
+
+
+def validate_profile_contract(root: Path) -> None:
+    """Require the paired bridge and shared checks before using a GPU runner."""
+    oxidant = root / "third_party/OxidANT"
+    require_text(oxidant / "src/api/onnx.rs", "pub fn profile_detector_image(")
+    require_text(oxidant / "src/detector_profile.rs", "pub fn run(", "infer_rgba(")
+    try:
+        rust = (oxidant / "src/frb_generated.rs").read_text(encoding="utf-8")
+        dart = (root / "lib/src/rust/frb_generated.dart").read_text(encoding="utf-8")
+    except OSError as error:
+        raise ValueError("missing paired Flutter Rust Bridge bindings") from error
+    rust_hash = re.findall(
+        r"FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = (-?\d+);", rust
+    )
+    dart_hash = re.findall(r"int get rustContentHash => (-?\d+);", dart)
+    if len(rust_hash) != 1 or rust_hash != dart_hash:
+        raise ValueError(
+            "Rust and Dart bridge bindings are not the same generated pair"
+        )
+    hub = root / "third_party/ANTfrastructure"
+    require_text(
+        hub / "linux/scripts/lib/gpu-profile-env.sh", "gpu_without_migraphx_overrides()"
+    )
+    require_text(hub / "shared/python/verify_ort_profile.py", "--min-runs")
+    require_text(hub / "shared/python/compare_detector_parity.py", "--pairwise")
 
 
 def validate(root: Path) -> str:
@@ -150,6 +190,11 @@ def main() -> int:
     selections.add_argument(
         "--scope", help="validate an artifact and concurrency scope"
     )
+    selections.add_argument(
+        "--profile-contract",
+        action="store_true",
+        help="check paired profiling dependencies",
+    )
     args = parser.parse_args()
     try:
         if args.matrix is not None:
@@ -164,6 +209,9 @@ def main() -> int:
             return 0
         if args.scope is not None:
             print(validate_scope(args.scope))
+            return 0
+        if args.profile_contract:
+            validate_profile_contract(args.root)
             return 0
         repository = validate(args.root)
     except ValueError as error:

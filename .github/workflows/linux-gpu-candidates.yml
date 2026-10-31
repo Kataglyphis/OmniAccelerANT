@@ -12,6 +12,10 @@ on:
         description: Lowercase artifact scope; use distinct scopes for calls in one run
         type: string
         default: default
+      verify-gpu:
+        description: Check packaged detector parity on a matching self-hosted GPU
+        type: boolean
+        default: false
   workflow_call:
     inputs:
       gpu-tuple:
@@ -20,12 +24,16 @@ on:
       caller-scope:
         type: string
         default: default
+      verify-gpu:
+        type: boolean
+        default: false
     secrets:
       GHCR_PAT:
         required: false
 
 permissions:
   contents: read
+  actions: read
 
 jobs:
   preflight:
@@ -59,6 +67,15 @@ jobs:
           printf 'repository=%s\n' "$repository" >> "$GITHUB_OUTPUT"
       - name: Test finished-package GPU verifier
         run: bash scripts/linux/tests/test-verify-gpu-candidate.sh
+      - name: Test packaged GPU detector profiling
+        if: ${{ inputs.verify-gpu }}
+        run: |
+          python3 scripts/linux/preflight-gpu-candidate.py --profile-contract
+          python3 scripts/linux/tests/test-gpu-profile-metadata.py
+          python3 scripts/linux/tests/test-profile-package-preflight.py
+          python3 scripts/linux/tests/test-gpu-profile-evidence.py
+          bash scripts/linux/tests/test-clean-host-gpu-receipt.sh
+          bash scripts/linux/tests/test-profile-gpu-packages.sh
       - name: Select supported GPU candidates
         id: matrix
         env:
@@ -109,7 +126,15 @@ jobs:
             --app-name omni-accelerant --package-formats tar,deb,appimage
             --install-packaging-deps false --strict-checks true --run-codeql false --run-docs false
             && bash scripts/linux/verify-gpu-candidate.sh "${{ matrix.vendor }}" "${{ matrix.arch }}"'
+      - name: Select exact candidate packages
+        if: ${{ inputs.verify-gpu }}
+        id: files
+        env:
+          GPU_VENDOR: ${{ matrix.vendor }}
+          GPU_ARCH: ${{ matrix.arch }}
+        run: python3 -I scripts/linux/gpu-profile-metadata.py select out
       - name: Upload unverified GPU candidates
+        if: ${{ !inputs.verify-gpu }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: unverified-omni-${{ matrix.vendor }}-linux-${{ matrix.arch }}-${{ needs.preflight.outputs.selection }}-${{ needs.preflight.outputs.scope }}-attempt-${{ github.run_attempt }}
@@ -118,6 +143,32 @@ jobs:
             out/omni-accelerant-${{ matrix.vendor }}-linux-${{ matrix.arch }}.tar.gz
             out/omni-accelerant-${{ matrix.vendor }}_*.deb
             out/omni-accelerant-${{ matrix.vendor }}-*.AppImage
+          if-no-files-found: error
+      - name: Upload exact profile candidates
+        if: ${{ inputs.verify-gpu }}
+        id: upload
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: unverified-omni-${{ matrix.vendor }}-linux-${{ matrix.arch }}-${{ needs.preflight.outputs.selection }}-${{ needs.preflight.outputs.scope }}-attempt-${{ github.run_attempt }}
+          overwrite: false
+          path: ${{ steps.files.outputs.paths }}
+          if-no-files-found: error
+      - name: Record this candidate's immutable upload identity
+        if: ${{ inputs.verify-gpu }}
+        env:
+          GPU_VENDOR: ${{ matrix.vendor }}
+          GPU_ARCH: ${{ matrix.arch }}
+          GPU_ARTIFACT_ID: ${{ steps.upload.outputs.artifact-id }}
+          GPU_ARTIFACT_DIGEST: ${{ steps.upload.outputs.artifact-digest }}
+          GPU_ARTIFACT_FILES: ${{ steps.files.outputs.files }}
+        run: python3 -I scripts/linux/gpu-profile-metadata.py create "$RUNNER_TEMP/omni-gpu-metadata.json"
+      - name: Upload candidate identity
+        if: ${{ inputs.verify-gpu }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: unverified-omni-metadata-${{ matrix.vendor }}-linux-${{ matrix.arch }}-${{ needs.preflight.outputs.selection }}-${{ needs.preflight.outputs.scope }}-attempt-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/omni-gpu-metadata.json
+          overwrite: false
           if-no-files-found: error
 
   clean-host:
@@ -131,8 +182,25 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          submodules: ${{ inputs.verify-gpu && 'recursive' || 'false' }}
+      - name: Download this candidate identity
+        if: ${{ inputs.verify-gpu }}
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: unverified-omni-metadata-${{ matrix.vendor }}-linux-${{ matrix.arch }}-${{ needs.preflight.outputs.selection }}-${{ needs.preflight.outputs.scope }}-attempt-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/omni-clean-metadata
+          digest-mismatch: error
+      - name: Validate clean-host candidate identity
+        if: ${{ inputs.verify-gpu }}
+        id: clean_metadata
+        env:
+          GPU_VENDOR: ${{ matrix.vendor }}
+          GPU_ARCH: ${{ matrix.arch }}
+        run: python3 -I scripts/linux/gpu-profile-metadata.py resolve "$RUNNER_TEMP/omni-clean-metadata/omni-gpu-metadata.json"
       # GPU provider libraries deliberately depend on the host SDK; scan the CPU launch instead.
       - name: Run model inference and start each candidate with CPU selected
+        if: ${{ !inputs.verify-gpu }}
         uses: Kataglyphis/ANTfrastructure/.github/actions/clean-host-package-check@develop
         with:
           artifact: unverified-omni-${{ matrix.vendor }}-linux-${{ matrix.arch }}-${{ needs.preflight.outputs.selection }}-${{ needs.preflight.outputs.scope }}-attempt-${{ github.run_attempt }}
@@ -144,3 +212,173 @@ jobs:
           tarball-command: bash "$GITHUB_WORKSPACE/scripts/linux/check-packaged-onnx-runtime.sh" bundle . && { rc=0; env -u KATAGLYPHIS_ONNX_MODEL -u ORT_DYLIB_PATH -u ORT_LIB_LOCATION -u ONNX_ROOT -u LD_LIBRARY_PATH KATAGLYPHIS_ORT_DEVICE=cpu KATAGLYPHIS_ONNX_BACKEND=ort xvfb-run -a timeout 20 ./omni_accelerant || rc=$?; test "$rc" -eq 124; }
           appimage: '*.AppImage'
           appimage-command: bash "$GITHUB_WORKSPACE/scripts/linux/check-packaged-onnx-runtime.sh" appimage "$APPIMAGE" "omni-accelerant-${{ matrix.vendor }}" && { rc=0; env -u KATAGLYPHIS_ONNX_MODEL -u ORT_DYLIB_PATH -u ORT_LIB_LOCATION -u ONNX_ROOT -u LD_LIBRARY_PATH KATAGLYPHIS_ORT_DEVICE=cpu KATAGLYPHIS_ONNX_BACKEND=ort xvfb-run -a timeout 20 "$APPIMAGE" || rc=$?; test "$rc" -eq 124; }
+      - name: Check immutable packages and write clean-host receipt
+        if: ${{ inputs.verify-gpu }}
+        uses: ./third_party/ANTfrastructure/.github/actions/clean-host-package-check
+        with:
+          artifact: unverified-omni-${{ matrix.vendor }}-linux-${{ matrix.arch }}-${{ needs.preflight.outputs.selection }}-${{ needs.preflight.outputs.scope }}-attempt-${{ github.run_attempt }}
+          artifact-id: ${{ steps.clean_metadata.outputs.artifact_id }}
+          artifact-digest: ${{ steps.clean_metadata.outputs.artifact_digest }}
+          artifact-files: ${{ steps.clean_metadata.outputs.files }}
+          gpu-vendor: ${{ matrix.vendor }}
+          gpu-arch: ${{ matrix.arch }}
+          gpu-receipt: ${{ runner.temp }}/omni-clean-receipt.json
+          max-uncompressed-bytes: '42949672960'
+          max-compression-ratio: '1000'
+          scan-elves: 'false'
+          apt-packages: xvfb libgl1-mesa-dri libegl-mesa0
+          deb: '*.deb'
+          deb-command: bash "$GITHUB_WORKSPACE/scripts/linux/check-packaged-onnx-runtime.sh" bundle "/opt/omni-accelerant-${{ matrix.vendor }}" && { rc=0; env -u KATAGLYPHIS_ONNX_MODEL -u ORT_DYLIB_PATH -u ORT_LIB_LOCATION -u ONNX_ROOT -u LD_LIBRARY_PATH KATAGLYPHIS_ORT_DEVICE=cpu KATAGLYPHIS_ONNX_BACKEND=ort xvfb-run -a timeout 20 omni-accelerant-${{ matrix.vendor }} || rc=$?; test "$rc" -eq 124; }
+          tarball: '*.tar.gz'
+          tarball-command: bash "$GITHUB_WORKSPACE/scripts/linux/check-packaged-onnx-runtime.sh" bundle . && { rc=0; env -u KATAGLYPHIS_ONNX_MODEL -u ORT_DYLIB_PATH -u ORT_LIB_LOCATION -u ONNX_ROOT -u LD_LIBRARY_PATH KATAGLYPHIS_ORT_DEVICE=cpu KATAGLYPHIS_ONNX_BACKEND=ort xvfb-run -a timeout 20 ./omni_accelerant || rc=$?; test "$rc" -eq 124; }
+          appimage: '*.AppImage'
+          appimage-command: bash "$GITHUB_WORKSPACE/scripts/linux/check-packaged-onnx-runtime.sh" appimage "$APPIMAGE" "omni-accelerant-${{ matrix.vendor }}" && { rc=0; env -u KATAGLYPHIS_ONNX_MODEL -u ORT_DYLIB_PATH -u ORT_LIB_LOCATION -u ONNX_ROOT -u LD_LIBRARY_PATH KATAGLYPHIS_ORT_DEVICE=cpu KATAGLYPHIS_ONNX_BACKEND=ort xvfb-run -a timeout 20 "$APPIMAGE" || rc=$?; test "$rc" -eq 124; }
+      - name: Upload clean-host receipt
+        if: ${{ inputs.verify-gpu }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: unverified-omni-clean-host-${{ matrix.vendor }}-linux-${{ matrix.arch }}-${{ needs.preflight.outputs.selection }}-${{ needs.preflight.outputs.scope }}-attempt-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/omni-clean-receipt.json
+          overwrite: false
+          if-no-files-found: error
+
+  gpu-profile:
+    if: ${{ !cancelled() && inputs.verify-gpu && needs.preflight.result == 'success' && (needs.candidate.result == 'success' || needs.candidate.result == 'failure') && (needs.clean-host.result == 'success' || needs.clean-host.result == 'failure') }}
+    needs: [preflight, candidate, clean-host]
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.preflight.outputs.matrix) }}
+    runs-on: [self-hosted, Linux, '${{ matrix.runner-arch }}', '${{ matrix.gpu-runner }}']
+    concurrency:
+      group: omni-linux-gpu-profile-${{ github.ref }}-${{ github.workflow }}-${{ needs.preflight.outputs.selection }}-${{ needs.preflight.outputs.scope }}-${{ matrix.vendor }}-${{ matrix.arch }}
+      cancel-in-progress: true
+    timeout-minutes: 45
+    env:
+      PROFILE_DISK_FLOOR_BYTES: ${{ vars.OMNI_PROFILE_DISK_FLOOR_BYTES || '16642998272' }}
+    steps:
+      - name: Check GPU runner package inspection tools
+        run: |
+          set -euo pipefail
+          for tool in python3 dpkg-deb unsquashfs df; do
+            command -v "$tool" >/dev/null || { echo "Required GPU profile tool missing: $tool" >&2; exit 1; }
+          done
+          [[ "$PROFILE_DISK_FLOOR_BYTES" =~ ^[0-9]{1,18}$ ]] || { echo 'Invalid disk floor' >&2; exit 1; }
+          floor=$((10#$PROFILE_DISK_FLOOR_BYTES))
+          (( floor >= 16642998272 )) || { echo 'Disk floor must be at least 15.5 GiB' >&2; exit 1; }
+          for directory in "$RUNNER_TEMP" "$GITHUB_WORKSPACE"; do
+            available=$(df -PB1 --output=avail "$directory" | tail -n 1)
+            available=${available//[[:space:]]/}
+            [[ "$available" =~ ^[0-9]{1,18}$ ]] || { echo 'Cannot measure free space' >&2; exit 1; }
+            (( 10#$available >= floor + 1073741824 )) || { echo "Insufficient free space before checkout: $directory" >&2; exit 1; }
+          done
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          submodules: recursive
+      - name: Allocate fresh profile scratch
+        id: scratch
+        run: printf 'root=%s\n' "$(mktemp -d "$RUNNER_TEMP/omni-gpu-proof.XXXXXXXX")" >> "$GITHUB_OUTPUT"
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: unverified-omni-metadata-${{ matrix.vendor }}-linux-${{ matrix.arch }}-${{ needs.preflight.outputs.selection }}-${{ needs.preflight.outputs.scope }}-attempt-${{ github.run_attempt }}
+          path: ${{ steps.scratch.outputs.root }}/metadata
+          digest-mismatch: error
+      - name: Validate candidate identity
+        id: metadata
+        env:
+          GPU_VENDOR: ${{ matrix.vendor }}
+          GPU_ARCH: ${{ matrix.arch }}
+          PROFILE_ROOT: ${{ steps.scratch.outputs.root }}
+        run: python3 -I scripts/linux/gpu-profile-metadata.py resolve "$PROFILE_ROOT/metadata/omni-gpu-metadata.json"
+      - name: Check candidate download space and identity
+        env:
+          PROFILE_ROOT: ${{ steps.scratch.outputs.root }}
+          ARTIFACT_ID: ${{ steps.metadata.outputs.artifact_id }}
+          GH_TOKEN: ${{ github.token }}
+        run: python3 -I scripts/linux/preflight-profile-packages.py download --artifact-id "$ARTIFACT_ID" --root "$PROFILE_ROOT"
+      - name: Download immutable candidate archive
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          artifact-ids: ${{ steps.metadata.outputs.artifact_id }}
+          path: ${{ steps.scratch.outputs.root }}/archive
+          skip-decompress: true
+          digest-mismatch: error
+      - name: Download this attempt's clean-host receipt
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: unverified-omni-clean-host-${{ matrix.vendor }}-linux-${{ matrix.arch }}-${{ needs.preflight.outputs.selection }}-${{ needs.preflight.outputs.scope }}-attempt-${{ github.run_attempt }}
+          path: ${{ steps.scratch.outputs.root }}/clean
+          digest-mismatch: error
+      - name: Check CPU/GPU detector parity in each candidate format
+        shell: bash
+        env:
+          PROFILE_ROOT: ${{ steps.scratch.outputs.root }}
+          ARTIFACT_ID: ${{ steps.metadata.outputs.artifact_id }}
+          ARTIFACT_DIGEST: ${{ steps.metadata.outputs.artifact_digest }}
+          PACKAGE_FILES: ${{ steps.metadata.outputs.files }}
+          VENDOR: ${{ matrix.vendor }}
+          ARCH: ${{ matrix.arch }}
+          PROVIDER: ${{ matrix.provider }}
+        run: |
+          set -euo pipefail
+          case "$ARCH:$(uname -m)" in x64:x86_64|arm64:aarch64) ;; *) echo 'Runner architecture does not match the candidate' >&2; exit 1 ;; esac
+          shopt -s nullglob dotglob
+          archives=("$PROFILE_ROOT/archive"/*)
+          [[ ${#archives[@]} -eq 1 && -f "${archives[0]}" && ! -L "${archives[0]}" ]] || { echo 'Expected one immutable archive' >&2; exit 1; }
+          python3 -I scripts/linux/preflight-profile-packages.py stage --archive "${archives[0]}" --root "$PROFILE_ROOT"
+          mapfile -t files <<< "$PACKAGE_FILES"
+          file_args=()
+          for file in "${files[@]}"; do file_args+=(--file "$file"); done
+          shared=third_party/ANTfrastructure/shared/python
+          identity=(--repository "$GITHUB_REPOSITORY" --revision "$GITHUB_SHA" --run-id "$GITHUB_RUN_ID"
+            --run-attempt "$GITHUB_RUN_ATTEMPT" --artifact-id "$ARTIFACT_ID" --artifact-digest "$ARTIFACT_DIGEST"
+            --platform linux --vendor "$VENDOR" --arch "$ARCH" "${file_args[@]}")
+          python3 -I "$shared/prepare_gpu_artifact.py" --archive "${archives[0]}" --output "$PROFILE_ROOT/packages" \
+            --before-receipt "$PROFILE_ROOT/before.json" --max-uncompressed-bytes 42949672960 --max-compression-ratio 1000 "${identity[@]}"
+          python3 -I "$shared/gpu_artifact_receipt.py" verify --directory "$PROFILE_ROOT/packages" --receipt "$PROFILE_ROOT/clean/omni-clean-receipt.json" \
+            --check clean-host-inference "${identity[@]}"
+          PROFILE_EVIDENCE_DIR="$PROFILE_ROOT/evidence" bash scripts/linux/profile-gpu-packages.sh "$PROFILE_ROOT/packages" "$VENDOR" "$ARCH" "$PROVIDER"
+          python3 -I "$shared/gpu_artifact_receipt.py" verify --directory "$PROFILE_ROOT/packages" --receipt "$PROFILE_ROOT/before.json" \
+            --check before-check "${identity[@]}"
+          cp -- "$PROFILE_ROOT/before.json" "$PROFILE_ROOT/evidence/before.json"
+          cp -- "$PROFILE_ROOT/clean/omni-clean-receipt.json" "$PROFILE_ROOT/evidence/clean-host-receipt.json"
+          python3 -I "$shared/gpu_artifact_receipt.py" create --directory "$PROFILE_ROOT/packages" --receipt "$PROFILE_ROOT/evidence/receipt.json" \
+            --check gpu-model-inference "${identity[@]}"
+      - name: Upload GPU profile evidence and receipt
+        id: profile_upload
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: unverified-omni-profile-${{ matrix.vendor }}-linux-${{ matrix.arch }}-${{ needs.preflight.outputs.selection }}-${{ needs.preflight.outputs.scope }}-attempt-${{ github.run_attempt }}
+          path: ${{ steps.scratch.outputs.root }}/evidence
+          overwrite: false
+          if-no-files-found: error
+      - name: Bind profile evidence to the candidate and receipt
+        env:
+          GPU_VENDOR: ${{ matrix.vendor }}
+          GPU_ARCH: ${{ matrix.arch }}
+          GPU_ARTIFACT_ID: ${{ steps.metadata.outputs.artifact_id }}
+          GPU_ARTIFACT_DIGEST: ${{ steps.metadata.outputs.artifact_digest }}
+          GPU_ARTIFACT_FILES: ${{ steps.metadata.outputs.files }}
+          GPU_PROFILE_ARTIFACT_ID: ${{ steps.profile_upload.outputs.artifact-id }}
+          GPU_PROFILE_ARTIFACT_DIGEST: ${{ steps.profile_upload.outputs.artifact-digest }}
+          PROFILE_ROOT: ${{ steps.scratch.outputs.root }}
+        run: |
+          set -euo pipefail
+          export GPU_PROFILE_RECEIPT_SHA256
+          GPU_PROFILE_RECEIPT_SHA256="$(sha256sum "$PROFILE_ROOT/evidence/receipt.json" | cut -d' ' -f1)"
+          python3 -I scripts/linux/gpu-profile-metadata.py evidence "$PROFILE_ROOT/evidence-identity.json"
+      - name: Upload profile evidence identity
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: unverified-omni-profile-identity-${{ matrix.vendor }}-linux-${{ matrix.arch }}-${{ needs.preflight.outputs.selection }}-${{ needs.preflight.outputs.scope }}-attempt-${{ github.run_attempt }}
+          path: ${{ steps.scratch.outputs.root }}/evidence-identity.json
+          overwrite: false
+          if-no-files-found: error
+      - name: Remove this job's profile scratch
+        if: ${{ always() && steps.scratch.outcome == 'success' }}
+        env:
+          PROFILE_ROOT: ${{ steps.scratch.outputs.root }}
+        run: |
+          set -euo pipefail
+          case "$PROFILE_ROOT" in "$RUNNER_TEMP"/omni-gpu-proof.*) ;; *) echo 'Unsafe profile scratch path' >&2; exit 1 ;; esac
+          [[ ! -L "$PROFILE_ROOT" ]] || { echo 'Profile scratch is a symlink' >&2; exit 1; }
+          rm -rf -- "$PROFILE_ROOT"

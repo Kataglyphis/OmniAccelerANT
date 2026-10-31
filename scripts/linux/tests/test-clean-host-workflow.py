@@ -28,10 +28,15 @@ def executable(path, content):
     path.chmod(0o755)
 
 
-def inputs():
+def inputs(local=False):
     text = WORKFLOW.read_text(encoding="utf-8").split("\n  clean-host:\n", 1)[1]
+    action = (
+        r"\./third_party/ANTfrastructure/\.github/actions/clean-host-package-check"
+        if local
+        else r"Kataglyphis/ANTfrastructure/\.github/actions/clean-host-package-check@[^\n]+"
+    )
     match = re.search(
-        r"(?m)^        uses: Kataglyphis/ANTfrastructure/\.github/actions/clean-host-package-check@[^\n]+\n        with:\n((?:          .+\n)+)",
+        r"(?m)^        uses: " + action + r"\n        with:\n((?:          .+\n)+)",
         text,
     )
     if match is None:
@@ -46,6 +51,30 @@ def inputs():
 
 
 class CleanHostWorkflowTests(unittest.TestCase):
+    def test_receipt_mode_checks_the_same_packages_and_commands(self):
+        regular, bound = inputs(), inputs(local=True)
+        for key in (
+            "scan-elves",
+            "apt-packages",
+            "deb",
+            "deb-command",
+            "tarball",
+            "tarball-command",
+            "appimage",
+            "appimage-command",
+        ):
+            self.assertEqual(bound[key], regular[key], key)
+        self.assertEqual(
+            bound["artifact-id"], "${{ steps.clean_metadata.outputs.artifact_id }}"
+        )
+        self.assertEqual(
+            bound["artifact-digest"],
+            "${{ steps.clean_metadata.outputs.artifact_digest }}",
+        )
+        self.assertEqual(
+            bound["artifact-files"], "${{ steps.clean_metadata.outputs.files }}"
+        )
+
     def prepare(self, root, values):
         bin_dir = root / "bin"
         packages = root / "packages"

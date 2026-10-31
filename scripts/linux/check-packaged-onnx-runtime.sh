@@ -6,6 +6,9 @@ if [[ $# -ne 2 && $# -ne 3 ]]; then
   exit 2
 fi
 unset LD_PRELOAD LD_AUDIT LD_DEBUG LD_DEBUG_OUTPUT
+script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+# shellcheck source=/dev/null
+source "$script_dir/lib/verify-onnx-loader-trace.sh"
 kind=$1
 target=$(realpath -e "$2")
 work=$(mktemp -d "${RUNNER_TEMP:-${TMPDIR:-/tmp}}/omni-ort-check.XXXXXXXX")
@@ -35,23 +38,5 @@ env -u LD_PRELOAD -u LD_AUDIT -u LD_LIBRARY_PATH -u LD_DEBUG -u LD_DEBUG_OUTPUT 
   -u ORT_LIB_LOCATION -u ONNX_ROOT -u KATAGLYPHIS_ORT_DEVICE -u KATAGLYPHIS_ONNX_BACKEND \
   KATAGLYPHIS_ORT_DEVICE=cpu KATAGLYPHIS_ONNX_BACKEND=ort \
   LD_DEBUG=libs LD_DEBUG_OUTPUT="$work/logs/loader" xvfb-run -a timeout 90 "$launcher" --onnx-check
-shopt -s nullglob
-logs=("$work/logs/loader."*)
-[[ ${#logs[@]} -gt 0 ]] || { echo 'Missing dynamic loader trace' >&2; exit 1; }
-mapfile -t loaded < <(awk 'index($0,"calling init: ") && index($0,"libonnxruntime.so") { print substr($0,index($0,"calling init: ")+14) }' "${logs[@]}")
-[[ ${#loaded[@]} -gt 0 ]] || { echo 'Missing ONNX Runtime loader evidence' >&2; exit 1; }
-for runtime in "${loaded[@]}"; do
-  [[ "$runtime" =~ /libonnxruntime\.so(\.[0-9]+)*$ ]] || { echo 'Malformed ONNX Runtime loader evidence' >&2; exit 1; }
-  if [[ "$kind" == appimage ]]; then
-    suffix="/usr/lib/$variant/lib/${runtime##*/}"
-    [[ "$runtime" == "$runtime_root/"*"$suffix" ]] || { echo 'ONNX Runtime loaded outside AppImage' >&2; exit 1; }
-    extraction=${runtime#"$runtime_root/"}
-    extraction=${extraction%"$suffix"}
-    [[ "$extraction" =~ ^appimage_extracted_[0-9a-f]{32}$ ]] || { echo 'Invalid AppImage extraction path' >&2; exit 1; }
-  else
-    case "$runtime" in "$runtime_root/"libonnxruntime.so*) ;; *) echo 'ONNX Runtime loaded outside bundle' >&2; exit 1 ;; esac
-    resolved=$(realpath -e "$runtime")
-    case "$resolved" in "$runtime_root/"*) ;; *) echo 'ONNX Runtime symlink escapes bundle' >&2; exit 1 ;; esac
-  fi
-done
+omni_verify_ort_loader_trace "$kind" "$runtime_root" "${variant:-}" "$work/logs/loader"
 echo 'Packaged CPU inference loaded the bundle ONNX Runtime'

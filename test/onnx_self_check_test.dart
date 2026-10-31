@@ -8,6 +8,22 @@ import 'package:omni_accelerant/src/rust/frb_generated.dart';
 
 class _Detector extends Fake implements RustLibApi {
   bool fail = false;
+  int profileCalls = 0;
+
+  @override
+  void crateApiOnnxProfileDetectorImage({
+    required String imagePath,
+    required String output,
+    required String repeatOutput,
+    required String profile,
+  }) {
+    expect(
+      (imagePath, output, repeatOutput, profile),
+      ('image.jpg', 'first.json', 'second.json', 'profile'),
+    );
+    profileCalls++;
+    if (fail) throw StateError('profile failed');
+  }
 
   @override
   List<Detection> crateApiOnnxDetectPersonsRgba({
@@ -29,7 +45,10 @@ class _Detector extends Fake implements RustLibApi {
 void main() {
   final _Detector detector = _Detector();
   setUpAll(() => RustLib.initMock(api: detector));
-  setUp(() => detector.fail = false);
+  setUp(() {
+    detector.fail = false;
+    detector.profileCalls = 0;
+  });
 
   test('runs inference through the detector bridge', () {
     expect(runOnnxSelfCheck(), 0);
@@ -38,5 +57,32 @@ void main() {
   test('reports model loading failures to the caller', () {
     detector.fail = true;
     expect(runOnnxSelfCheck, throwsStateError);
+  });
+
+  test('requires all profile arguments and forwards them to the bridge', () {
+    expect(
+      () => runProfiledDetector(['--onnx-profile-image']),
+      throwsArgumentError,
+    );
+    expect(detector.profileCalls, 0);
+    runProfiledDetector([
+      '--onnx-profile-image',
+      'image.jpg',
+      'first.json',
+      'second.json',
+      'profile',
+    ]);
+    expect(detector.profileCalls, 1);
+    detector.fail = true;
+    expect(
+      () => runProfiledDetector([
+        '--onnx-profile-image',
+        'image.jpg',
+        'first.json',
+        'second.json',
+        'profile',
+      ]),
+      throwsStateError,
+    );
   });
 }

@@ -84,8 +84,24 @@ Windows staging checks the destination for junctions before copying model files.
 The finished DEB's embedded package name and architecture must match the candidate vendor
 and target; a matching filename alone is not sufficient.
 These candidates are unverified: GPU inference still needs testing on matching hardware.
-The workflow checks the recorded dependency capabilities before pulling images, and the
-current recorded pins do not yet provide them.
+The workflow checks the recorded dependency capabilities before pulling images.
+With `verify-gpu` enabled, a matching self-hosted Linux runner profiles the packaged
+detector on CPU and the selected GPU provider for the TAR, extracted DEB payload and
+AppImage. It checks provider execution, detector parity and the packaged runtime's loader
+trace, and records receipts tied to the candidate upload and run attempt. The evidence
+verifier can independently check those receipts and profile archives when supplied trusted
+artifact identities. These checks do not identify the physical GPU, establish the cached
+person-only bridge or webcam path, or promote the candidates for release.
+The GPU runner needs `unsquashfs` and `dpkg-deb`. Before extracting trusted same-run
+packages, the profile checks their measured expanded sizes, limits each format to 4 GiB,
+and reserves space for the largest stage plus a 1 GiB cushion. It removes TAR and DEB
+scratch after profiling each. Before checkout it checks the workspace and runner-temp free
+space; before downloading it reserves the artifact API's reported size, then reserves the
+ZIP's expanded size before staging. The floor is at least 15.5 GiB; set the repository
+variable `OMNI_PROFILE_DISK_FLOOR_BYTES` to a larger value when needed. These measurements
+and free-space checks are operational safeguards, not a hard quota or a sandbox for hostile
+archives; concurrent writers can reduce free space between checks. The AppImage is executed
+after inspection to profile its launcher.
 Both workflows may be called by another workflow, with the same unverified outputs and
 checks as a manual run. Callers needing the private registry credential must pass
 `GHCR_PAT` explicitly or through inherited secrets. Neither workflow is called by the release workflow;

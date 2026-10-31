@@ -10,3 +10,18 @@ int runOnnxSelfCheck() => detectPersonsRgba(
   height: 64,
   scoreThreshold: 0.5,
 ).length;
+
+/// Profiles two detections in the same packaged detector session.
+void runProfiledDetector(List<String> args) {
+  if (args.length != 5 || args.first != '--onnx-profile-image') {
+    throw ArgumentError(
+      'Expected image, two output paths and a profile prefix.',
+    );
+  }
+  profileDetectorImage(
+    imagePath: args[1],
+    output: args[2],
+    repeatOutput: args[3],
+    profile: args[4],
+  );
+}

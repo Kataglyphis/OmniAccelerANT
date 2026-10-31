@@ -61,6 +61,20 @@ Future<OmniBootstrapData> loadAppSettings([SettingsLoader? loader]) async {
 }
 
 Future<void> main([List<String> args = const <String>[]]) async {
+  if (!kIsWeb && args.isNotEmpty && args.first == '--onnx-profile-image') {
+    try {
+      if (args.length != 5) {
+        throw ArgumentError(
+          'Expected image, two output paths and a profile prefix.',
+        );
+      }
+      await RustLib.init().timeout(const Duration(seconds: 20));
+      runProfiledDetector(args);
+      finishSelfCheck('ONNX detector profile completed.', 0);
+    } catch (error) {
+      finishSelfCheck('ONNX detector profile failed: $error', 1);
+    }
+  }
   if (!kIsWeb && args.length == 1 && args.single == '--onnx-check') {
     try {
       await RustLib.init().timeout(const Duration(seconds: 20));

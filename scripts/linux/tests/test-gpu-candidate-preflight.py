@@ -14,6 +14,7 @@ ROOT = Path(__file__).resolve().parents[3]
 PREFLIGHT = ROOT / "scripts/linux/preflight-gpu-candidate.py"
 MODULE = runpy.run_path(str(PREFLIGHT))
 VALIDATE = MODULE["validate"]
+VALIDATE_PROFILE = MODULE["validate_profile_contract"]
 GPU_MATRIX = MODULE["gpu_matrix"]
 WORKFLOW = ROOT / ".github/workflows/linux-gpu-candidates.yml"
 WINDOWS_WORKFLOW = ROOT / ".github/workflows/windows-gpu-candidates.yml"
@@ -69,6 +70,117 @@ class CandidatePreflightTests(unittest.TestCase):
         self.assertEqual(
             VALIDATE(self.root), "ghcr.io/kataglyphis/kataglyphis_beschleuniger"
         )
+
+    def test_profile_contract_requires_the_generated_pair_and_shared_checks(self):
+        self.write(
+            "third_party/OxidANT/src/api/onnx.rs", "pub fn profile_detector_image("
+        )
+        self.write(
+            "third_party/OxidANT/src/detector_profile.rs", "pub fn run( infer_rgba("
+        )
+        self.write(
+            "third_party/OxidANT/src/frb_generated.rs",
+            "FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = 1413895636;",
+        )
+        dart = "lib/src/rust/frb_generated.dart"
+        self.write(dart, "int get rustContentHash => 1413895636;")
+        self.write(
+            "third_party/ANTfrastructure/linux/scripts/lib/gpu-profile-env.sh",
+            "gpu_without_migraphx_overrides()",
+        )
+        self.write(
+            "third_party/ANTfrastructure/shared/python/verify_ort_profile.py",
+            "--min-runs",
+        )
+        self.write(
+            "third_party/ANTfrastructure/shared/python/compare_detector_parity.py",
+            "--pairwise",
+        )
+        VALIDATE_PROFILE(self.root)
+        for contents in (
+            "int get rustContentHash => 7;",
+            "int get rustContentHash => 1413895636;\nint get rustContentHash => 1413895636;",
+            "",
+        ):
+            with self.subTest(contents=contents):
+                self.write(dart, contents)
+                with self.assertRaisesRegex(ValueError, "not the same generated pair"):
+                    VALIDATE_PROFILE(self.root)
+        self.write(dart, "int get rustContentHash => 1413895636;")
+        self.write(
+            "third_party/ANTfrastructure/shared/python/compare_detector_parity.py",
+            "no pairwise support",
+        )
+        with self.assertRaisesRegex(ValueError, "--pairwise"):
+            VALIDATE_PROFILE(self.root)
+
+    def test_profile_uses_current_attempt_scope_and_selected_tuple(self):
+        text = WORKFLOW.read_text(encoding="utf-8")
+        clean = text.split("\n  clean-host:\n", maxsplit=1)[1].split(
+            "\n  gpu-profile:\n", maxsplit=1
+        )[0]
+        profile = text.split("\n  gpu-profile:\n", maxsplit=1)[1]
+        self.assertIn("needs: [preflight, candidate, clean-host]", profile)
+        self.assertIn("!cancelled() && inputs.verify-gpu", profile)
+        self.assertIn("needs.preflight.result == 'success'", profile)
+        self.assertIn("needs.candidate.result == 'failure'", profile)
+        self.assertIn("needs.clean-host.result == 'failure'", profile)
+        self.assertIn(
+            "matrix: ${{ fromJSON(needs.preflight.outputs.matrix) }}", profile
+        )
+        self.assertIn("${{ matrix.runner-arch }}", profile)
+        self.assertIn("${{ matrix.gpu-runner }}", profile)
+        self.assertLess(
+            profile.index("Check GPU runner package inspection tools"),
+            profile.index("Download immutable candidate archive"),
+        )
+        self.assertIn("python3 dpkg-deb unsquashfs", profile)
+        self.assertLess(
+            profile.index("Check GPU runner package inspection tools"),
+            profile.index("actions/checkout@"),
+        )
+        self.assertLess(
+            profile.index("preflight-profile-packages.py download"),
+            profile.index("Download immutable candidate archive"),
+        )
+        self.assertLess(
+            profile.index("preflight-profile-packages.py stage"),
+            profile.index("prepare_gpu_artifact.py"),
+        )
+        self.assertIn(
+            f"name: unverified-omni-metadata-${{{{ matrix.vendor }}}}-linux-${{{{ matrix.arch }}}}-{IDENTITY}-attempt-${{{{ github.run_attempt }}}}",
+            profile,
+        )
+        self.assertIn(
+            "artifact-ids: ${{ steps.metadata.outputs.artifact_id }}", profile
+        )
+        self.assertIn("skip-decompress: true", profile)
+        self.assertIn("prepare_gpu_artifact.py", profile)
+        self.assertIn("--check before-check", profile)
+        self.assertIn("--check gpu-model-inference", profile)
+        self.assertIn("steps.profile_upload.outputs.artifact-digest", profile)
+        self.assertIn("GPU_PROFILE_RECEIPT_SHA256", profile)
+        for fragment in (
+            "scripts/linux/gpu-profile-metadata.py resolve",
+            "uses: ./third_party/ANTfrastructure/.github/actions/clean-host-package-check",
+            "artifact-id: ${{ steps.clean_metadata.outputs.artifact_id }}",
+            "artifact-digest: ${{ steps.clean_metadata.outputs.artifact_digest }}",
+            "artifact-files: ${{ steps.clean_metadata.outputs.files }}",
+            "gpu-receipt: ${{ runner.temp }}/omni-clean-receipt.json",
+        ):
+            self.assertIn(fragment, clean)
+        self.assertLess(
+            clean.index("Check immutable packages"),
+            clean.index("Upload clean-host receipt"),
+        )
+        self.assertIn("--check clean-host-inference", profile)
+        self.assertLess(
+            profile.index("--check clean-host-inference"),
+            profile.index("profile-gpu-packages.sh"),
+        )
+        self.assertIn("digest-mismatch: error", profile)
+        self.assertIn("profile-gpu-packages.sh", profile)
+        self.assertNotIn("inputs.caller-scope", profile)
 
     def test_old_or_partial_pins_fail_closed(self):
         manifest = "third_party/OxidANT/crates/inference/Cargo.toml"
@@ -158,7 +270,7 @@ class CandidatePreflightTests(unittest.TestCase):
         self.assertIn("GPU_TUPLE: ${{ inputs.gpu-tuple }}", text)
         self.assertIn('--matrix "$GPU_TUPLE"', text)
         self.assertEqual(
-            text.count("matrix: ${{ fromJSON(needs.preflight.outputs.matrix) }}"), 2
+            text.count("matrix: ${{ fromJSON(needs.preflight.outputs.matrix) }}"), 3
         )
         self.assertNotRegex(text, r"(?m)^concurrency:")
         self.assertIn('--scope "$CALLER_SCOPE"', text)
