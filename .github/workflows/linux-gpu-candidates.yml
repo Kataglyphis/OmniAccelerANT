@@ -41,7 +41,9 @@ jobs:
         with:
           submodules: recursive
       - name: Test candidate contracts
-        run: python3 scripts/linux/tests/test-gpu-candidate-preflight.py
+        run: |
+          python3 scripts/linux/tests/test-gpu-candidate-preflight.py
+          python3 scripts/linux/tests/test-clean-host-workflow.py
       - name: Test packaged CPU runtime verification
         run: bash scripts/linux/tests/test-check-packaged-onnx-runtime.sh
       - name: Test bridge regeneration safeguards
