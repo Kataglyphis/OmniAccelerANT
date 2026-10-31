@@ -9,6 +9,7 @@ $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 $workspace = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 $runner = (Resolve-Path -LiteralPath $RunnerDir).Path
+& (Join-Path $PSScriptRoot 'Stage-DetectorModel.ps1') -WorkspaceDir $workspace -RunnerDir $runner -VerifyOnly
 . (Join-Path $PSScriptRoot 'Resolve-BuildModule.ps1')
 Import-BuildModule @('WindowsTargetArch.Common', 'WindowsOrtProvenance.Common', 'WindowsOrtPayload.Common',
     'WindowsMsiLicense.Common', 'WindowsOrtRunner.Common', 'WindowsGpuBuild.Common', 'WindowsThirdPartyLicense.Common')

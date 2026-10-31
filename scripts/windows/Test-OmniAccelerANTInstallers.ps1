@@ -19,7 +19,8 @@ param(
     [Parameter(Mandatory)][string]$Msix,
     [Parameter(Mandatory)][ValidateSet('x64', 'arm64')][string]$Arch,
     [string]$Publisher = 'CN=Kataglyphis',
-    [ValidateRange(1, 600)][int]$Seconds = 20
+    [ValidateRange(1, 600)][int]$Seconds = 20,
+    [switch]$CheckOnnx
 )
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
@@ -31,6 +32,7 @@ $exeName = 'omni_accelerant.exe'
 $identityName = 'Kataglyphis.OmniAccelerANT'
 $prefix = Join-Path $env:ProgramFiles $product
 $machine = Get-PeMachineType -Arch $Arch
+$modelFiles = @('deim_dfine_n_coco.onnx', 'deim_dfine_n_coco.LICENSE', 'deim_dfine_n_coco.NOTICE')
 
 function Resolve-One([string]$Pattern, [string]$What) {
     $found = @(Get-ChildItem -Path $Pattern -File)
@@ -55,9 +57,18 @@ Assert-Test -Name ('the exe, the plugin and AccelerANTgine.dll are {0} binaries 
 Assert-Test -Name 'the Start menu shortcut exists' {
     Test-Path -LiteralPath (Join-Path $env:ProgramData "Microsoft\Windows\Start Menu\Programs\$product\$product.lnk")
 }
+Assert-Test -Name 'the installed MSI contains the model and its notices' {
+    @($modelFiles | Where-Object { -not (Test-Path -LiteralPath (Join-Path $prefix "resources\models\$_") -PathType Leaf) }).Count -eq 0
+}
 Assert-Test -Name "the installed app starts from Program Files without PATH help and is alive after $Seconds s" {
     & $launch -AppDir $prefix -Seconds $Seconds -OrtStamp | ForEach-Object { Write-Host "      $_" }
     $true
+}
+if ($CheckOnnx) {
+    Assert-Test -Name 'the installed MSI runs the bundled model on ONNX Runtime CPU' {
+        & (Join-Path $PSScriptRoot 'Test-OnnxSelfCheck.ps1') -AppDir $prefix
+        $true
+    }
 }
 $u = Start-Process msiexec.exe -ArgumentList '/x', "`"$Msi`"", '/qn' -Wait -PassThru
 Assert-Test -Name 'msiexec removes it silently, and the exe with it' { $u.ExitCode -eq 0 -and -not (Test-Path -LiteralPath (Join-Path $prefix $exeName)) }
@@ -77,6 +88,9 @@ Assert-Test -Name "its identity is $identityName for $Arch, published by $Publis
     $identity.GetAttribute('Publisher') -eq $Publisher
 }
 Assert-Test -Name 'it carries the exe and AccelerANTgine.dll side by side' { $entries -contains $exeName -and $entries -contains 'AccelerANTgine.dll' }
+Assert-Test -Name 'the MSIX contains the model and its notices' {
+    @($modelFiles | Where-Object { $entries -cnotcontains "resources/models/$_" }).Count -eq 0
+}
 
 $cer = $Msix -replace '\.msix$', '-testcert.cer'
 $trusted = $null

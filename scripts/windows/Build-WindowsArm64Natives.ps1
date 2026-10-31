@@ -27,6 +27,7 @@ $out = Join-Path $WorkspaceDir $OutDir
 $runtime = Join-Path $out 'runtime'
 if (Test-Path -LiteralPath $out) { Remove-Item -LiteralPath $out -Recurse -Force }
 $null = New-Item -ItemType Directory -Force -Path (Join-Path $runtime 'gstreamer-1.0')
+& (Join-Path $PSScriptRoot 'Stage-DetectorModel.ps1') -WorkspaceDir $WorkspaceDir -RunnerDir $runtime
 
 # AccelerANTgine: its own arm64 lane, so this is exactly what its windows-arm64-cross.yml ships.
 $kci = Join-Path $WorkspaceDir 'third_party\AccelerANTgine'

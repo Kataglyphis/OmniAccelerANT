@@ -531,6 +531,10 @@ try {
             Write-BuildLog -Context $context -Message "AOT snapshot rebuilt from the current kernel."
         }
 
+        Invoke-BuildStep -Context $context -StepName "Stage Detector Model$stepSuffix" -Critical -Script {
+            & (Join-Path $PSScriptRoot 'Stage-DetectorModel.ps1') -WorkspaceDir $workspace -RunnerDir $currentBuildDirFull
+        }
+
         Invoke-BuildStep -Context $context -StepName "Copy Rust DLL$stepSuffix" -Script {
             # Mirrored into the plugins layout Start-Windows.ps1 expects.
             $bundleDll = Join-Path $currentBuildDirFull $RustDllName

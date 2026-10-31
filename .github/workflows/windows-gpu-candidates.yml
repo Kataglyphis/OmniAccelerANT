@@ -99,6 +99,10 @@ jobs:
         run: |
           $env:KATAGLYPHIS_ORT_DEVICE = 'cpu'
           ./scripts/windows/Test-LaunchSmoke.ps1 -AppDir build/windows/x64/runner/x64-ClangCL-Windows-Release -OrtStamp
+      - name: Run the bundled model with ONNX Runtime CPU
+        shell: pwsh
+        working-directory: ${{ steps.prep.outputs.workspace }}
+        run: ./scripts/windows/Test-OnnxSelfCheck.ps1 -AppDir build/windows/x64/runner/x64-ClangCL-Windows-Release
       - name: Upload unverified runner candidate
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
@@ -126,13 +130,13 @@ jobs:
           ./scripts/windows/Package-OmniAccelerANT.ps1
           -AppDir build/windows/x64/runner/x64-ClangCL-Windows-Release
           -Arch x64 -OrtProvider '${{ matrix.provider }}' -OutDir out
-      - name: Install and start candidates (no model inference)
+      - name: Install and test candidates with CPU selected
         shell: pwsh
         working-directory: ${{ steps.prep.outputs.workspace }}
         run: |
           $env:KATAGLYPHIS_ORT_DEVICE = 'cpu'
           $dir = 'out/unverified-omni-windows-x64-${{ matrix.vendor }}-installers'
-          ./scripts/windows/Test-OmniAccelerANTInstallers.ps1 -Msi "$dir/*.msi" -Msix "$dir/*.msix" -Arch x64
+          ./scripts/windows/Test-OmniAccelerANTInstallers.ps1 -Msi "$dir/*.msi" -Msix "$dir/*.msix" -Arch x64 -CheckOnnx
           if ($LASTEXITCODE -ne 0) { throw "$LASTEXITCODE installer check(s) failed" }
       - name: Upload unverified installer candidates
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

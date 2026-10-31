@@ -44,10 +44,16 @@ The dispatch-only Windows GPU candidate workflow uses the registry's x64 NVIDIA 
 images for CUDA and DirectML respectively; Windows ARM GPU images are excluded. It checks
 the recorded dependency APIs before pulling, validates image DLL architecture and wheel
 provenance, then checks the delivered runner's stamp, native-license coverage and CPU-selected
-startup on the host. It packages and inspects MSI and MSIX candidates, then starts the MSI
-with CPU selected and the MSIX through its app entry. Those checks do not run model inference. The uploaded runner and
-installers are labelled unverified and are not release artifacts; GPU inference still needs hardware
-testing. DirectML uses the system's adapter selection and the AMD image alone does not prove
+startup on the host. The x64 runner and arm64 native bundle stage the model, license and
+notice from OxidANT's hash-locked model list; the host packager rechecks all three before
+writing installers. GPU MSI and MSIX checks compare their model files to the verified runner.
+The workflow also requires `--onnx-check` to run the bundled model with
+ONNX Runtime CPU from both the runner and installed MSI. It inspects the MSIX and starts it
+through its app entry, without an inference check. The new Windows inference checks have
+standalone process tests but have not yet run on a matching candidate; the current pins block
+the workflow. Uploaded runner and installers are labelled unverified and are not release
+artifacts; GPU inference still needs hardware testing. DirectML uses the system's adapter
+selection and the AMD image alone does not prove
 that an AMD adapter executed the model.
 The existing native inventory links Microsoft's DirectML license terms but does not embed an
 original DirectML license text. The GPU images' DirectML source package and installed DLL

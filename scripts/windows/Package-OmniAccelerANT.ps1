@@ -35,6 +35,7 @@ Import-BuildModule @('WindowsBuild.Common', 'WindowsMsix.Common', 'WindowsMsix.S
 
 $AppDir = (Resolve-Path -LiteralPath $AppDir).Path
 if (-not (Test-Path -LiteralPath (Join-Path $AppDir 'omni_accelerant.exe') -PathType Leaf)) { throw "no omni_accelerant.exe in $AppDir" }
+& (Join-Path $PSScriptRoot 'Stage-DetectorModel.ps1') -WorkspaceDir $repoRoot -RunnerDir $AppDir -VerifyOnly
 Assert-WindowsInstallerCandidate -RunnerDir $AppDir -Provider $OrtProvider -Arch $Arch
 # A runner from before 9f4438e kept AccelerANTgine.dll there, where the loader never looks.
 if (Test-Path -LiteralPath (Join-Path $AppDir 'bin') -PathType Container) { throw "$AppDir has a bin\ folder; rebuild it, no installer may ship that layout" }
@@ -68,6 +69,7 @@ $ortLicenses = Resolve-RunnerOrtLicense -RunnerDir $AppDir
 $gpuFiles = @()
 if ($OrtProvider -ne 'cpu') {
     $gpuFiles = @('omni_accelerant.exe', 'oxidant.dll', 'AccelerANTgine.dll', 'kataglyphis_native_inference_plugin.dll', 'onnxruntime.dll', 'onnxruntime_providers_shared.dll', 'ort-chain-stamp.json')
+    $gpuFiles += @('resources/models/deim_dfine_n_coco.onnx', 'resources/models/deim_dfine_n_coco.LICENSE', 'resources/models/deim_dfine_n_coco.NOTICE')
     if ($OrtProvider -eq 'cuda') { $gpuFiles += 'onnxruntime_providers_cuda.dll' }
     if (Test-Path -LiteralPath (Join-Path $AppDir 'DirectML.dll') -PathType Leaf) { $gpuFiles += 'DirectML.dll' }
     $base = "$base-$vendor"

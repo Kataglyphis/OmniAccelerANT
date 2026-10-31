@@ -59,6 +59,19 @@ jobs:
       - name: Submodules the app build reads
         run: git submodule update --init --depth 1 third_party/ANThology third_party/ANTfrastructure third_party/OxidANT
 
+      - name: Read pinned Python version
+        id: python
+        shell: pwsh
+        run: |
+          $line = Select-String -LiteralPath third_party/ANTfrastructure/linux/scripts/01-core/versions.env -Pattern '^PYTHON_VERSION=(\d+\.\d+)\.' | Select-Object -First 1
+          if (-not $line) { throw 'versions.env names no PYTHON_VERSION' }
+          Add-Content -LiteralPath $env:GITHUB_OUTPUT -Value "version=$($line.Matches[0].Groups[1].Value)"
+      - name: Python for package verification
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.0.0
+        with:
+          python-version: ${{ steps.python.outputs.version }}
+          architecture: x64
+
       - name: Flutter (the image's version)
         run: |
           if ($env:PROCESSOR_ARCHITECTURE -ne 'ARM64') { throw "this job must run on arm64, not $env:PROCESSOR_ARCHITECTURE" }
