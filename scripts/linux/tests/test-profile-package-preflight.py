@@ -13,6 +13,8 @@ from unittest import mock
 
 SCRIPT = Path(__file__).resolve().parents[1] / "preflight-profile-packages.py"
 SPEC = importlib.util.spec_from_file_location("profile_package_preflight", SCRIPT)
+if SPEC is None or SPEC.loader is None:
+    raise RuntimeError("cannot load profile package preflight")
 MODULE = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(MODULE)
 

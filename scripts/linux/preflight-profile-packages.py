@@ -154,7 +154,7 @@ def reserve(root: Path, size: int) -> None:
 class NoRedirect(urllib.request.HTTPRedirectHandler):
     """Keep the artifact API token on the requested GitHub host."""
 
-    def redirect_request(self, request, file_pointer, code, message, headers, new_url):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
         return None
 
 

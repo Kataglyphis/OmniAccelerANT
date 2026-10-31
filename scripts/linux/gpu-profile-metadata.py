@@ -193,9 +193,11 @@ def main():
         for key in ("artifact_id", "files"):
             if data[key] != candidate[key]:
                 raise ValueError("evidence candidate identity does not match")
-        if data["artifact_digest"].removeprefix("sha256:") != candidate[
-            "artifact_digest"
-        ].removeprefix("sha256:"):
+        digest = data["artifact_digest"]
+        candidate_digest = candidate["artifact_digest"]
+        if not isinstance(digest, str) or not isinstance(candidate_digest, str):
+            raise ValueError("evidence candidate digest must be a string")
+        if digest.removeprefix("sha256:") != candidate_digest.removeprefix("sha256:"):
             raise ValueError("evidence candidate digest does not match")
     if args.mode in ("create", "evidence"):
         with args.path.open("x", encoding="utf-8", newline="\n") as stream:
