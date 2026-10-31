@@ -18,6 +18,8 @@ $exe = Join-Path $dir 'omni_accelerant.exe'
 if (-not (Test-Path -LiteralPath $exe -PathType Leaf)) { throw "No omni_accelerant.exe in $dir." }
 $model = Join-Path $dir 'resources\models\deim_dfine_n_coco.onnx'
 if (-not (Test-Path -LiteralPath $model -PathType Leaf)) { throw "No bundled ONNX model in $dir." }
+$ort = Join-Path $dir 'onnxruntime.dll'
+if (-not (Test-Path -LiteralPath $ort -PathType Leaf)) { throw "No bundled ONNX Runtime in $dir." }
 
 $start = [Diagnostics.ProcessStartInfo]::new()
 $start.FileName = $exe
@@ -28,7 +30,8 @@ $start.ArgumentList.Add('--onnx-check')
 $start.Environment['KATAGLYPHIS_ORT_DEVICE'] = 'cpu'
 $start.Environment['KATAGLYPHIS_ONNX_BACKEND'] = 'ort'
 $null = $start.Environment.Remove('KATAGLYPHIS_ONNX_MODEL')
-$null = $start.Environment.Remove('ORT_DYLIB_PATH')
+$start.Environment['ORT_DYLIB_PATH'] = $ort
+$null = $start.Environment.Remove('ONNX_ROOT')
 $windows = [Environment]::GetEnvironmentVariable('SystemRoot')
 if (-not $windows) { throw 'SystemRoot is required to isolate the self-check PATH.' }
 $start.Environment['PATH'] = @((Join-Path $windows 'System32'), $windows) -join [IO.Path]::PathSeparator
