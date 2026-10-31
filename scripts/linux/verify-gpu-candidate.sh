@@ -21,6 +21,12 @@ if [[ ${#tarballs[@]} -ne 1 || ! -f ${tarballs[0]} || ${#debs[@]} -ne 1 || ${#im
   echo "Expected one $vendor $arch tar, DEB and AppImage candidate" >&2
   exit 1
 fi
+[[ "$(dpkg-deb --field "${debs[0]}" Architecture)" == "$deb" ]] || {
+  echo "DEB architecture does not match $arch" >&2; exit 1;
+}
+[[ "$(dpkg-deb --field "${debs[0]}" Package)" == "$variant" ]] || {
+  echo "DEB package identity does not match $variant" >&2; exit 1;
+}
 work="$(mktemp -d)"
 trap 'rm -rf -- "$work"' EXIT
 

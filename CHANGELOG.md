@@ -5,6 +5,7 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ## Unreleased
 
+- Reject GPU DEBs whose embedded package identity or architecture does not match the requested candidate.
 - Scope GPU candidate uploads to the workflow attempt, reject replacement and make Linux clean-host checks require the same attempt's package.
 - Allow the Linux and Windows GPU candidate workflows to be called by another workflow while keeping their outputs unverified and outside releases.
 - Check the installed Windows MSIX's bundled ONNX model as well as the MSI when GPU candidates run their CPU installer checks.

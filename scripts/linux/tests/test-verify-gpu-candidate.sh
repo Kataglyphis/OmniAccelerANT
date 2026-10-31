@@ -70,6 +70,14 @@ chmod +x "$work/out/$variant-1.0-x86_64.AppImage"
 export FIXTURE_APPDIR="$work/appimage" ORT_CHAIN_WHEEL_DIR="$work/wheels"
 cd "$work"
 bash "$verifier" nvidia x64 >/dev/null
+sed -i 's/^Architecture: amd64$/Architecture: arm64/' "$work/deb/DEBIAN/control"
+dpkg-deb --build "$work/deb" "$work/out/${variant}_1.0_amd64.deb" >/dev/null
+if bash "$verifier" nvidia x64 >/dev/null 2>&1; then echo 'DEB with wrong embedded architecture passed' >&2; exit 1; fi
+sed -i 's/^Architecture: arm64$/Architecture: amd64/; s/^Package: omni-accelerant-nvidia$/Package: omni-accelerant-amd/' "$work/deb/DEBIAN/control"
+dpkg-deb --build "$work/deb" "$work/out/${variant}_1.0_amd64.deb" >/dev/null
+if bash "$verifier" nvidia x64 >/dev/null 2>&1; then echo 'DEB with wrong embedded package identity passed' >&2; exit 1; fi
+sed -i 's/^Package: omni-accelerant-amd$/Package: omni-accelerant-nvidia/' "$work/deb/DEBIAN/control"
+dpkg-deb --build "$work/deb" "$work/out/${variant}_1.0_amd64.deb" >/dev/null
 rm "$work/tar/$variant-bundle/lib/libonnxruntime.so"
 tar -C "$work/tar" -czf "$work/out/$variant-linux-x64.tar.gz" "$variant-bundle"
 if bash "$verifier" nvidia x64 >/dev/null 2>&1; then echo 'missing tar ORT dynamic-load alias passed' >&2; exit 1; fi
