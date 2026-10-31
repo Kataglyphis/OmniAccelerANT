@@ -23,6 +23,12 @@ IDENTITY = (
 
 
 class CandidatePreflightTests(unittest.TestCase):
+    def search(self, pattern: str, text: str) -> re.Match[str]:
+        match = re.search(pattern, text)
+        if match is None:
+            self.fail(f"{pattern!r} has no match")
+        return match
+
     """Only current GPU-capable dependencies can proceed to image pulls."""
 
     def setUp(self):
@@ -157,8 +163,7 @@ class CandidatePreflightTests(unittest.TestCase):
         self.assertNotRegex(text, r"(?m)^concurrency:")
         self.assertIn('--scope "$CALLER_SCOPE"', text)
         self.assertIn("caller-scope:", text)
-        group = re.search(r"(?m)^      group: (.+)$", text)
-        self.assertIsNotNone(group)
+        group = self.search(r"(?m)^      group: (.+)$", text)
         self.assertIn(IDENTITY, group.group(1))
         self.assertNotIn("inputs.", group.group(1))
         self.assertNotIn("push:", text)
@@ -184,8 +189,7 @@ class CandidatePreflightTests(unittest.TestCase):
         )
         for package in ("deb", "tarball", "appimage"):
             self.assertRegex(clean, rf"(?m)^          {package}: '\*\.")
-            command = re.search(rf"(?m)^          {package}-command: (.+)$", clean)
-            self.assertIsNotNone(command)
+            command = self.search(rf"(?m)^          {package}-command: (.+)$", clean)
             self.assertIn(
                 "scripts/linux/check-packaged-onnx-runtime.sh", command.group(1)
             )
@@ -268,10 +272,8 @@ class CandidatePreflightTests(unittest.TestCase):
 
     def test_clean_host_requires_the_current_attempt(self):
         text = WORKFLOW.read_text(encoding="utf-8")
-        upload = re.search(r"(?m)^          name: (unverified-omni-.+)$", text)
-        download = re.search(r"(?m)^          artifact: (unverified-omni-.+)$", text)
-        self.assertIsNotNone(upload)
-        self.assertIsNotNone(download)
+        upload = self.search(r"(?m)^          name: (unverified-omni-.+)$", text)
+        download = self.search(r"(?m)^          artifact: (unverified-omni-.+)$", text)
         self.assertEqual(upload.group(1), download.group(1))
         first = upload.group(1).replace("${{ github.run_attempt }}", "1")
         retry = download.group(1).replace("${{ github.run_attempt }}", "2")
@@ -301,10 +303,8 @@ class CandidatePreflightTests(unittest.TestCase):
                 self.assertEqual(result.stdout, "")
 
         linux = WORKFLOW.read_text(encoding="utf-8")
-        upload = re.search(r"(?m)^          name: (unverified-omni-.+)$", linux)
-        download = re.search(r"(?m)^          artifact: (unverified-omni-.+)$", linux)
-        self.assertIsNotNone(upload)
-        self.assertIsNotNone(download)
+        upload = self.search(r"(?m)^          name: (unverified-omni-.+)$", linux)
+        download = self.search(r"(?m)^          artifact: (unverified-omni-.+)$", linux)
         self.assertEqual(upload.group(1), download.group(1))
         windows = WINDOWS_WORKFLOW.read_text(encoding="utf-8")
         windows_uploads = re.findall(
@@ -342,8 +342,7 @@ class CandidatePreflightTests(unittest.TestCase):
         self.assertIn("--windows-matrix $env:GPU_VENDOR", text)
         self.assertIn("--scope $env:CALLER_SCOPE", text)
         self.assertIn("caller-scope:", text)
-        group = re.search(r"(?m)^      group: (.+)$", text)
-        self.assertIsNotNone(group)
+        group = self.search(r"(?m)^      group: (.+)$", text)
         self.assertIn(IDENTITY, group.group(1))
         self.assertNotIn("inputs.", group.group(1))
 

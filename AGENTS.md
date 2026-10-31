@@ -580,6 +580,8 @@ rather than linked.
 
 **Security audit lane.** `.github/workflows/security-audit.yml` calls the hub's reusable `security-audit.yml` on push, pull request, Mondays and dispatch. It scans both `pubspec.lock` files, `rust_builder/cargokit/build_tool/pubspec.lock` and the three firmware `Cargo.lock` files with the hub-pinned osv-scanner, records `cargo_security_checks.sh` for each `Cargo.lock`, fails a push or PR that adds a HIGH or CRITICAL advisory absent from the base commit, lists every finding on the weekly and dispatched runs, and uploads `security-audit.json`. Locally: `bash third_party/ANTfrastructure/linux/scripts/security-audit.sh`. The lint gates enforce the hub's `sha-pin` workflow convention (`workflow-conventions: sha-pin`): every third-party `uses:` names a 40-hex commit SHA.
 
+**Python static analysis is strict.** `.github/workflows/python-static.yml` calls the hub's reusable `python-static.yml` with `strict: true` on push, PR and dispatch: one Ruff finding or ty diagnostic in a tracked `.py` file fails the lane. Locally: `bash third_party/ANTfrastructure/linux/scripts/python-static.sh --root "$PWD" --strict`. Fix a finding in the code; never add a suppression, and give a script with a shebang the executable mode. The tracked Flutter `ios/Flutter/ephemeral/flutter_lldb_helper.py` is in that scope: re-check it after Flutter regenerates the platform files.
+
 `bash scripts/linux/quality-report.sh` measures this checkout into `logs/code-quality/measurements.json`
 and `queue.md`; `--compare <file>` or `--compare previous-develop` grades it (exit 0 ok, 1 regressed,
 2 incomplete). `quality-report.toml` declares this repo's lane outputs and metrics: hub

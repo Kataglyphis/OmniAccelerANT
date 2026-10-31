@@ -6,11 +6,6 @@ on:
   pull_request:
     branches: [main, develop]
   workflow_dispatch:
-    inputs:
-      strict:
-        description: Fail on Ruff or ty findings
-        type: boolean
-        default: false
 
 permissions:
   contents: read
@@ -19,4 +14,4 @@ jobs:
   analyze:
     uses: Kataglyphis/ANTfrastructure/.github/workflows/python-static.yml@develop
     with:
-      strict: ${{ inputs.strict == true }}
+      strict: true

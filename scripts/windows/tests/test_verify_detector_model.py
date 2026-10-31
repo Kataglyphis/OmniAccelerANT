@@ -15,6 +15,8 @@ from unittest.mock import patch
 ROOT = Path(__file__).resolve().parents[3]
 SCRIPT = ROOT / "scripts/windows/verify_detector_model.py"
 spec = importlib.util.spec_from_file_location("model_verifier", SCRIPT)
+if spec is None or spec.loader is None:
+    raise ImportError(f"cannot load {SCRIPT}")
 verifier = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(verifier)
 
