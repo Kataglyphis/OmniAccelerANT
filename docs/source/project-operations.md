@@ -907,8 +907,14 @@ oxidant's codegen version (2.11.1) should be the same as runtime version (2.12.0
 **Fix:** regenerate the Flutter Rust Bridge bindings:
 
 ```bash
-flutter_rust_bridge_codegen generate
+bash scripts/linux/generate-frb-bindings.sh
 ```
+
+The wrapper checks locked Cargo metadata and generated Rust/Dart loader, version
+and content-hash agreement. It requires a clean OxidANT checkout matching the index
+gitlink, rejects hidden Git index flags and ignored source inputs, and refuses to
+overwrite changed generated files. It updates both
+the app bindings and OxidANT's generated Rust file, so review both outputs together.
 
 It is a cargo binary baked into the build image, not a pub dependency. On a bare host install it
 first, at the version this repo pins, never at latest:

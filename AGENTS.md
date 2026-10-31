@@ -507,7 +507,7 @@ rather than linked.
 - **The frb Dart bindings must match the Rust runtime's frb version.** They were stale at
   2.12.0 against 2.13.0 and the web build died with an empty `Uncaught` before
   `pkg/oxidant.js` loaded. Regenerate both sides together:
-  `flutter_rust_bridge_codegen generate` writes `lib/src/rust/` **and** OxidANT's
+  `bash scripts/linux/generate-frb-bindings.sh` writes `lib/src/rust/` **and** OxidANT's
   `src/frb_generated.rs`; when the wasm artefacts are involved,
   `flutter_rust_bridge_codegen build-web --release --rust-root
   third_party/OxidANT`. `web/pkg/` is generated and gitignored. The codegen is a cargo binary
@@ -516,6 +516,9 @@ rather than linked.
   is `FLUTTER_RUST_BRIDGE_VERSION` in the image or, off it, the `flutter_rust_bridge` version
   pinned in `third_party/OxidANT/Cargo.toml` (`=2.13.0` today) — a floating latest
   desynchronises the Dart bindings from the Rust runtime.
+  The wrapper requires a clean OxidANT checkout at the index gitlink and clean generated
+  outputs; it rejects hidden Git index flags and ignored source inputs. It checks full locked
+  Cargo metadata and verifies the generated loader name, versions and content hash.
 - **The ESP32-S3 bridge is desktop-only and its firmware is a separate toolchain.**
   `kataglyphis_esp32` sits in a `[target.'cfg(any(target_os = "linux", target_os =
   "windows", target_os = "macos"))'.dependencies]` block; moving it to `[dependencies]` drags

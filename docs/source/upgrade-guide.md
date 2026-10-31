@@ -10,8 +10,17 @@ Dart changes.
 # third_party/OxidANT/Cargo.toml (`=2.13.0` today). A floating latest writes
 # bindings the Rust runtime then refuses at load time.
 cargo install --locked --version 2.13.0 flutter_rust_bridge_codegen
-flutter_rust_bridge_codegen generate
+bash scripts/linux/generate-frb-bindings.sh
 ```
+
+The wrapper requires a clean OxidANT checkout matching the index gitlink and refuses
+to overwrite changed generated files. It also rejects hidden Git index flags and ignored
+files in source input directories; ordinary model downloads and build caches are allowed.
+It checks complete locked Cargo metadata,
+the generator version, the library loader name, and matching Rust/Dart versions
+and content hashes. It writes both `lib/src/rust/` and OxidANT's
+`src/frb_generated.rs`; review and commit both sides together. Offline generation
+requires the full locked cross-platform Cargo cache and `cargo-expand`.
 
 ## Dependency Upgrades
 
