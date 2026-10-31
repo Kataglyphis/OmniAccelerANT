@@ -266,7 +266,7 @@ jobs:
           floor=$((10#$PROFILE_DISK_FLOOR_BYTES))
           (( floor >= 16642998272 )) || { echo 'Disk floor must be at least 15.5 GiB' >&2; exit 1; }
           for directory in "$RUNNER_TEMP" "$GITHUB_WORKSPACE"; do
-            available=$(df -PB1 --output=avail "$directory" | tail -n 1)
+            available=$(df -B1 --output=avail "$directory" | tail -n 1)
             available=${available//[[:space:]]/}
             [[ "$available" =~ ^[0-9]{1,18}$ ]] || { echo 'Cannot measure free space' >&2; exit 1; }
             (( 10#$available >= floor + 1073741824 )) || { echo "Insufficient free space before checkout: $directory" >&2; exit 1; }

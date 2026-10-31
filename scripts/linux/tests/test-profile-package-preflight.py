@@ -4,8 +4,13 @@
 import importlib.util
 import io
 import json
+import os
+import shutil
+import subprocess
+import sys
 import tarfile
 import tempfile
+import textwrap
 import unittest
 import zipfile
 from pathlib import Path
@@ -203,6 +208,67 @@ class ProfilePackagePreflightTests(unittest.TestCase):
             self.assertRaisesRegex(ValueError, "expanded-size cap"),
         ):
             MODULE.image_size(Path("x"))
+
+
+@unittest.skipUnless(sys.platform.startswith("linux"), "GNU df guard runs on Linux")
+class RunnerDiskGuardTests(unittest.TestCase):
+    def test_actual_workflow_guard_uses_gnu_df(self):
+        root = SCRIPT.parents[2]
+        workflow = (root / ".github/workflows/linux-gpu-candidates.yml").read_text(
+            encoding="utf-8"
+        )
+        step = workflow.split(
+            "      - name: Check GPU runner package inspection tools\n", 1
+        )[1]
+        step = step.split("      - uses: actions/checkout@", 1)[0]
+        command = textwrap.dedent(step.split("        run: |\n", 1)[1])
+        with tempfile.TemporaryDirectory() as temp:
+            bin_dir = Path(temp)
+            for tool in ("python3", "dpkg-deb", "unsquashfs"):
+                stub = bin_dir / tool
+                stub.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
+                stub.chmod(0o755)
+            env = os.environ.copy()
+            env.update(
+                {
+                    "PATH": str(bin_dir) + os.pathsep + env.get("PATH", ""),
+                    "PROFILE_DISK_FLOOR_BYTES": "16642998272",
+                    "RUNNER_TEMP": str(root),
+                    "GITHUB_WORKSPACE": str(root),
+                }
+            )
+            result = subprocess.run(
+                ["bash", "-c", command],
+                env=env,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            if shutil.disk_usage(root).free >= 16642998272 + 1073741824:
+                self.assertEqual(result.returncode, 0, result.stderr)
+            else:
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn("Insufficient free space", result.stderr)
+            env["PROFILE_DISK_FLOOR_BYTES"] = "1"
+            result = subprocess.run(
+                ["bash", "-c", command],
+                env=env,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("Disk floor must be at least", result.stderr)
+            env["PROFILE_DISK_FLOOR_BYTES"] = "999999999999999999"
+            result = subprocess.run(
+                ["bash", "-c", command],
+                env=env,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("Insufficient free space", result.stderr)
 
 
 if __name__ == "__main__":
