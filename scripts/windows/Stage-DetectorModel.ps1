@@ -22,6 +22,8 @@ foreach ($file in $fetcher, $lock, $verifier) {
     if (-not (Test-Path -LiteralPath $file -PathType Leaf)) { throw "Missing model staging input: $file" }
 }
 if (-not $VerifyOnly) {
+    & python -I $verifier $fetcher $lock $models --root $runner --check-directory
+    if ($LASTEXITCODE -ne 0) { throw "Unsafe model staging directory (exit $LASTEXITCODE)." }
     $tempRoot = [IO.Path]::GetFullPath([IO.Path]::GetTempPath()).TrimEnd('\') + '\'
     $staged = [IO.Path]::GetFullPath((Join-Path $tempRoot "omni-detector-$([guid]::NewGuid().ToString('N'))"))
     if (-not $staged.StartsWith($tempRoot, [StringComparison]::OrdinalIgnoreCase)) { throw 'Invalid model staging path.' }
@@ -36,5 +38,5 @@ if (-not $VerifyOnly) {
         if (Test-Path -LiteralPath $staged) { Remove-Item -LiteralPath $staged -Recurse -Force }
     }
 }
-& python -I $verifier $fetcher $lock $models
+& python -I $verifier $fetcher $lock $models --root $runner
 if ($LASTEXITCODE -ne 0) { throw "Bundled model verification failed (exit $LASTEXITCODE)." }

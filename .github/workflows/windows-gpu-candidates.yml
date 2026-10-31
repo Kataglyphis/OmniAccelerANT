@@ -25,6 +25,14 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           submodules: true
+      - name: Test locked model containment
+        shell: pwsh
+        run: |
+          python -I scripts/windows/tests/test_verify_detector_model.py
+          if ($LASTEXITCODE -ne 0) { throw 'Locked model containment tests failed' }
+          Import-Module Pester -RequiredVersion 3.4.0
+          $result = Invoke-Pester -Script scripts/windows/tests/DetectorModel.Tests.ps1 -PassThru
+          if ($result.FailedCount -ne 0 -or $result.PassedCount -ne 5) { throw 'Model staging fixtures failed or did not all run' }
       - name: Check recorded GPU dependencies before pulling images
         shell: pwsh
         run: ./scripts/windows/Test-WindowsGpuPins.ps1

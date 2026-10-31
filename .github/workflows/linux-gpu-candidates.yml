@@ -26,6 +26,8 @@ jobs:
           submodules: recursive
       - name: Test candidate contracts
         run: python3 scripts/linux/tests/test-gpu-candidate-preflight.py
+      - name: Test locked model containment
+        run: python3 -I scripts/windows/tests/test_verify_detector_model.py
       - name: Check recorded GPU dependency capabilities before pulling images
         id: pins
         run: |

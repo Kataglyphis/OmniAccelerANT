@@ -65,7 +65,7 @@ verify_detector_model() {
   resolved="$(realpath -e "$directory")" || { echo 'Missing bundled detector models' >&2; return 1; }
   case "$resolved/" in "$root/"*) ;; *) echo 'Detector models escape package' >&2; return 1 ;; esac
   python3 -I "$repo/scripts/windows/verify_detector_model.py" \
-    "$hub/../lib/fetch-data-lock.py" "$repo/third_party/OxidANT/resources/models/models.lock" "$directory"
+    "$hub/../lib/fetch-data-lock.py" "$repo/third_party/OxidANT/resources/models/models.lock" "$directory" --root "$root"
 }
 
 verify_tree() {

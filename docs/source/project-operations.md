@@ -73,6 +73,8 @@ The manually dispatched or reusable Linux GPU candidate workflow uses the regist
 and ARM64 and the AMD ROCm image on x64. Each finished TAR, DEB and AppImage must carry
 the model and its license and notice at their locked SHA-256 values. Clean-host checks run
 model inference and start each format with CPU selected and model/runtime overrides cleared.
+Model files and their directory components must be regular, unlinked package content;
+Windows staging checks the destination for junctions before copying model files.
 The finished DEB's embedded package name and architecture must match the candidate vendor
 and target; a matching filename alone is not sufficient.
 These candidates are unverified: GPU inference still needs testing on matching hardware.

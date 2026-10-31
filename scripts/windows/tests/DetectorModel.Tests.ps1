@@ -52,6 +52,24 @@ Describe 'Windows detector model staging' {
         $message = try { & $stage -WorkspaceDir $script:workspace -RunnerDir $script:runner | Out-Null; '' } catch { $_.Exception.Message }
         $message | Should Match 'verification failed'
     }
+    It 'rejects a model directory junction before writing to its target' {
+        $case = Join-Path $TestDrive "junction-case-$([guid]::NewGuid().ToString('N'))"
+        $runner = Join-Path $case 'runner'
+        $resources = Join-Path $runner 'resources'
+        $outside = Join-Path $case 'outside-models'
+        $models = Join-Path $resources 'models'
+        New-Item -ItemType Directory -Force -Path $resources, $outside | Out-Null
+        Set-Content -LiteralPath (Join-Path $outside 'sentinel') -Value 'untouched'
+        New-Item -ItemType Junction -Path $models -Target $outside -ErrorAction Stop | Out-Null
+        try {
+            $message = try { & $stage -WorkspaceDir $script:workspace -RunnerDir $runner; '' } catch { $_.Exception.Message }
+            $message | Should Match 'Unsafe model staging directory'
+            (Get-Content -Raw -LiteralPath (Join-Path $outside 'sentinel')).Trim() | Should Be 'untouched'
+            @(Get-ChildItem -LiteralPath $outside).Count | Should Be 1
+        } finally {
+            Remove-Item -LiteralPath $models -Force
+        }
+    }
     It 'requires verified model data in both Windows builds and before packaging' {
         $x64 = Get-Content (Join-Path $root 'scripts\windows\Build-Windows.ps1') -Raw
         $arm = Get-Content (Join-Path $root 'scripts\windows\Build-WindowsArm64Natives.ps1') -Raw
