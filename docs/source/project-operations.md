@@ -74,6 +74,9 @@ The manually dispatched or reusable Linux GPU candidate workflow uses the regist
 and ARM64 and the AMD ROCm image on x64. Each finished TAR, DEB and AppImage must carry
 the model and its license and notice at their locked SHA-256 values. Clean-host checks run
 model inference and start each format with CPU selected and model/runtime overrides cleared.
+The inference check also inspects the Linux loader trace and requires the ONNX Runtime
+to come from the installed or extracted package. This confirms the CPU test's runtime
+location; it does not establish GPU execution or physical-device placement.
 The `gpu-tuple` input defaults to `all`; choose `nvidia-x64`, `nvidia-arm64`, or `amd-x64`
 to build and check a single combination independently of the other candidates.
 Model files and their directory components must be regular, unlinked package content;

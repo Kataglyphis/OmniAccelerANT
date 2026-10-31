@@ -186,9 +186,11 @@ class CandidatePreflightTests(unittest.TestCase):
             self.assertRegex(clean, rf"(?m)^          {package}: '\*\.")
             command = re.search(rf"(?m)^          {package}-command: (.+)$", clean)
             self.assertIsNotNone(command)
+            self.assertIn(
+                "scripts/linux/check-packaged-onnx-runtime.sh", command.group(1)
+            )
             self.assertIn("KATAGLYPHIS_ORT_DEVICE=cpu", command.group(1))
             self.assertIn("KATAGLYPHIS_ONNX_BACKEND=ort", command.group(1))
-            self.assertIn("--onnx-check", command.group(1))
             for name in (
                 "KATAGLYPHIS_ONNX_MODEL",
                 "ORT_DYLIB_PATH",
@@ -196,7 +198,7 @@ class CandidatePreflightTests(unittest.TestCase):
                 "ONNX_ROOT",
                 "LD_LIBRARY_PATH",
             ):
-                self.assertEqual(command.group(1).count(f"-u {name}"), 2)
+                self.assertEqual(command.group(1).count(f"-u {name}"), 1)
 
     def test_selector_exposes_only_requested_supported_tuples(self):
         full = GPU_MATRIX("all")["include"]

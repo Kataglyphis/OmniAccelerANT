@@ -42,6 +42,8 @@ jobs:
           submodules: recursive
       - name: Test candidate contracts
         run: python3 scripts/linux/tests/test-gpu-candidate-preflight.py
+      - name: Test packaged CPU runtime verification
+        run: bash scripts/linux/tests/test-check-packaged-onnx-runtime.sh
       - name: Test bridge regeneration safeguards
         run: |
           bash scripts/linux/tests/test-frb-codegen-preflight.sh
@@ -126,6 +128,7 @@ jobs:
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 30
     steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       # GPU provider libraries deliberately depend on the host SDK; scan the CPU launch instead.
       - name: Run model inference and start each candidate with CPU selected
         uses: Kataglyphis/ANTfrastructure/.github/actions/clean-host-package-check@develop
@@ -134,8 +137,8 @@ jobs:
           scan-elves: 'false'
           apt-packages: xvfb libgl1-mesa-dri libegl-mesa0
           deb: '*.deb'
-          deb-command: env -u KATAGLYPHIS_ONNX_MODEL -u ORT_DYLIB_PATH -u ORT_LIB_LOCATION -u ONNX_ROOT -u LD_LIBRARY_PATH KATAGLYPHIS_ORT_DEVICE=cpu KATAGLYPHIS_ONNX_BACKEND=ort xvfb-run -a timeout 90 omni-accelerant-${{ matrix.vendor }} --onnx-check && { rc=0; env -u KATAGLYPHIS_ONNX_MODEL -u ORT_DYLIB_PATH -u ORT_LIB_LOCATION -u ONNX_ROOT -u LD_LIBRARY_PATH KATAGLYPHIS_ORT_DEVICE=cpu KATAGLYPHIS_ONNX_BACKEND=ort xvfb-run -a timeout 20 omni-accelerant-${{ matrix.vendor }} || rc=$?; test "$rc" -eq 124; }
+          deb-command: bash "$GITHUB_WORKSPACE/scripts/linux/check-packaged-onnx-runtime.sh" bundle "/opt/omni-accelerant-${{ matrix.vendor }}" && { rc=0; env -u KATAGLYPHIS_ONNX_MODEL -u ORT_DYLIB_PATH -u ORT_LIB_LOCATION -u ONNX_ROOT -u LD_LIBRARY_PATH KATAGLYPHIS_ORT_DEVICE=cpu KATAGLYPHIS_ONNX_BACKEND=ort xvfb-run -a timeout 20 omni-accelerant-${{ matrix.vendor }} || rc=$?; test "$rc" -eq 124; }
           tarball: '*.tar.gz'
-          tarball-command: env -u KATAGLYPHIS_ONNX_MODEL -u ORT_DYLIB_PATH -u ORT_LIB_LOCATION -u ONNX_ROOT -u LD_LIBRARY_PATH KATAGLYPHIS_ORT_DEVICE=cpu KATAGLYPHIS_ONNX_BACKEND=ort xvfb-run -a timeout 90 ./omni_accelerant --onnx-check && { rc=0; env -u KATAGLYPHIS_ONNX_MODEL -u ORT_DYLIB_PATH -u ORT_LIB_LOCATION -u ONNX_ROOT -u LD_LIBRARY_PATH KATAGLYPHIS_ORT_DEVICE=cpu KATAGLYPHIS_ONNX_BACKEND=ort xvfb-run -a timeout 20 ./omni_accelerant || rc=$?; test "$rc" -eq 124; }
+          tarball-command: bash "$GITHUB_WORKSPACE/scripts/linux/check-packaged-onnx-runtime.sh" bundle . && { rc=0; env -u KATAGLYPHIS_ONNX_MODEL -u ORT_DYLIB_PATH -u ORT_LIB_LOCATION -u ONNX_ROOT -u LD_LIBRARY_PATH KATAGLYPHIS_ORT_DEVICE=cpu KATAGLYPHIS_ONNX_BACKEND=ort xvfb-run -a timeout 20 ./omni_accelerant || rc=$?; test "$rc" -eq 124; }
           appimage: '*.AppImage'
-          appimage-command: env -u KATAGLYPHIS_ONNX_MODEL -u ORT_DYLIB_PATH -u ORT_LIB_LOCATION -u ONNX_ROOT -u LD_LIBRARY_PATH KATAGLYPHIS_ORT_DEVICE=cpu KATAGLYPHIS_ONNX_BACKEND=ort xvfb-run -a timeout 90 "$APPIMAGE" --onnx-check && { rc=0; env -u KATAGLYPHIS_ONNX_MODEL -u ORT_DYLIB_PATH -u ORT_LIB_LOCATION -u ONNX_ROOT -u LD_LIBRARY_PATH KATAGLYPHIS_ORT_DEVICE=cpu KATAGLYPHIS_ONNX_BACKEND=ort xvfb-run -a timeout 20 "$APPIMAGE" || rc=$?; test "$rc" -eq 124; }
+          appimage-command: bash "$GITHUB_WORKSPACE/scripts/linux/check-packaged-onnx-runtime.sh" appimage "$APPIMAGE" "omni-accelerant-${{ matrix.vendor }}" && { rc=0; env -u KATAGLYPHIS_ONNX_MODEL -u ORT_DYLIB_PATH -u ORT_LIB_LOCATION -u ONNX_ROOT -u LD_LIBRARY_PATH KATAGLYPHIS_ORT_DEVICE=cpu KATAGLYPHIS_ONNX_BACKEND=ort xvfb-run -a timeout 20 "$APPIMAGE" || rc=$?; test "$rc" -eq 124; }
