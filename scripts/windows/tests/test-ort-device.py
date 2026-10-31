@@ -1,10 +1,11 @@
 """Exercise Windows provider configuration without building the application."""
 
 import os
-from pathlib import Path
+import re
 import subprocess
 import tempfile
 import unittest
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
 MODULE = ROOT / "windows/runner/ort_device.cmake"
@@ -108,8 +109,14 @@ class OrtDeviceTests(unittest.TestCase):
 
     def test_actual_cmake_definitions_compile_a_runnable_gpu_marker(self):
         runner = (ROOT / "windows/runner/CMakeLists.txt").read_text(encoding="utf-8")
-        definitions = [line.strip() for line in runner.splitlines() if 'target_compile_definitions(${BINARY_NAME} PRIVATE "OMNI_WINDOWS_ORT_' in line]
+        definitions = re.findall(
+            r'^[ \t]*target_compile_definitions\(\s*\$\{BINARY_NAME\}\s+PRIVATE\s+"OMNI_WINDOWS_ORT_(?:DEVICE|MARKER)=.*?"\s*\)',
+            runner,
+            flags=re.DOTALL | re.MULTILINE,
+        )
         self.assertEqual(len(definitions), 2)
+        self.assertEqual(sum("OMNI_WINDOWS_ORT_DEVICE=" in item for item in definitions), 1)
+        self.assertEqual(sum("OMNI_WINDOWS_ORT_MARKER=" in item for item in definitions), 1)
         (self.path / "CMakeLists.txt").write_text(
             'cmake_minimum_required(VERSION 3.14)\nproject(marker LANGUAGES CXX)\n'
             'set(BINARY_NAME probe)\nset(_ort_device directml)\nadd_executable(probe probe.cpp)\n'
