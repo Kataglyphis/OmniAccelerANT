@@ -12,6 +12,14 @@ on:
         description: Lowercase artifact scope; use distinct scopes for calls in one run
         type: string
         default: default
+      verify-gpu:
+        description: Profile both installer payloads on a matching self-hosted GPU
+        type: boolean
+        default: false
+      amd-device-index:
+        description: DirectML DXGI adapter index for the physical AMD GPU
+        type: string
+        default: '0'
   workflow_call:
     inputs:
       gpu-vendor:
@@ -20,6 +28,12 @@ on:
       caller-scope:
         type: string
         default: default
+      verify-gpu:
+        type: boolean
+        default: false
+      amd-device-index:
+        type: string
+        default: '0'
     secrets:
       GHCR_PAT:
         required: false
@@ -46,6 +60,26 @@ jobs:
         run: |
           python scripts/linux/tests/test-gpu-candidate-preflight.py
           if ($LASTEXITCODE -ne 0) { throw 'GPU selector tests failed' }
+      - name: Test GPU profile contracts
+        if: ${{ inputs.verify-gpu }}
+        shell: pwsh
+        run: |
+          python scripts/linux/preflight-gpu-candidate.py --profile-contract
+          if ($LASTEXITCODE -ne 0) { throw 'GPU profile bridge or helpers are unavailable' }
+          python -I scripts/windows/tests/test_gpu_detector_parity.py
+          if ($LASTEXITCODE -ne 0) { throw 'GPU detector parity fixtures failed' }
+          python -I scripts/windows/tests/test_profile_gpu_installers.py
+          if ($LASTEXITCODE -ne 0) { throw 'GPU installer profile fixtures failed' }
+          python -I scripts/windows/tests/test_gpu_process.py
+          if ($LASTEXITCODE -ne 0) { throw 'GPU process cleanup fixtures failed' }
+      - name: Validate DirectML adapter selection
+        if: ${{ inputs.verify-gpu }}
+        shell: pwsh
+        env:
+          AMD_DEVICE_INDEX: ${{ inputs.amd-device-index }}
+        run: |
+          $index = [long]0
+          if ($env:AMD_DEVICE_INDEX -cnotmatch '^(0|[1-9][0-9]*)$' -or -not [long]::TryParse($env:AMD_DEVICE_INDEX, [ref]$index) -or $index -gt 2147483647) { throw 'Invalid DirectML adapter index' }
       - name: Test locked model containment
         shell: pwsh
         run: |
@@ -188,3 +222,116 @@ jobs:
           overwrite: false
           if-no-files-found: error
           path: ${{ steps.prep.outputs.workspace }}/out/unverified-omni-windows-x64-${{ matrix.vendor }}-installers/*
+
+  gpu-profile:
+    if: ${{ !cancelled() && inputs.verify-gpu && needs.preflight.result == 'success' && (needs.candidate.result == 'success' || needs.candidate.result == 'failure') }}
+    needs: [preflight, candidate]
+    permissions:
+      contents: read
+      actions: read
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.preflight.outputs.matrix) }}
+    runs-on: [self-hosted, Windows, X64, '${{ matrix.gpu-runner }}']
+    timeout-minutes: 45
+    concurrency:
+      group: omni-windows-gpu-profile-${{ github.ref }}-${{ github.workflow }}-${{ needs.preflight.outputs.selection }}-${{ needs.preflight.outputs.scope }}-${{ matrix.vendor }}
+      cancel-in-progress: true
+    steps:
+      - name: Check GPU runner disk headroom
+        shell: pwsh
+        run: |
+          foreach ($path in @($env:RUNNER_WORKSPACE, $env:RUNNER_TEMP)) {
+            $disk = [IO.DriveInfo]::new([IO.Path]::GetPathRoot([IO.Path]::GetFullPath($path)))
+            if ($disk.AvailableFreeSpace -lt (15.5GB + 1GB)) { throw 'Insufficient GPU runner disk headroom' }
+          }
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          submodules: true
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.0.0
+        with:
+          python-version: ${{ needs.preflight.outputs.python }}
+      - name: Select this attempt's installer artifact and check its size
+        id: artifact
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXPECTED_NAME: unverified-omni-windows-x64-${{ matrix.vendor }}-installers-${{ needs.preflight.outputs.selection }}-${{ needs.preflight.outputs.scope }}-attempt-${{ github.run_attempt }}
+        run: |
+          $headers = @{ Authorization = "Bearer $env:GH_TOKEN"; Accept = 'application/vnd.github+json'; 'X-GitHub-Api-Version' = '2022-11-28' }
+          $uri = "$env:GITHUB_API_URL/repos/$env:GITHUB_REPOSITORY/actions/runs/$env:GITHUB_RUN_ID/artifacts?per_page=100"
+          $result = Invoke-RestMethod -Uri $uri -Headers $headers
+          if ($result.total_count -gt 100) { throw 'Too many artifacts to select safely' }
+          $found = @($result.artifacts | Where-Object { $_.name -ceq $env:EXPECTED_NAME -and -not $_.expired })
+          if ($found.Count -ne 1) { throw 'Expected one current-attempt installer artifact' }
+          $artifact = $found[0]
+          if ($artifact.workflow_run.id -ne [long]$env:GITHUB_RUN_ID -or $artifact.workflow_run.head_sha -cne $env:GITHUB_SHA -or $artifact.digest -cnotmatch '^sha256:[0-9a-f]{64}$') { throw 'Installer artifact identity mismatch' }
+          $disk = [IO.DriveInfo]::new([IO.Path]::GetPathRoot([IO.Path]::GetFullPath($env:RUNNER_TEMP)))
+          if ($artifact.size_in_bytes -le 0 -or ($disk.AvailableFreeSpace - $artifact.size_in_bytes) -lt (15.5GB + 1GB)) { throw 'Insufficient space for installer artifact' }
+          Add-Content -LiteralPath $env:GITHUB_OUTPUT -Value "id=$($artifact.id)"
+          Add-Content -LiteralPath $env:GITHUB_OUTPUT -Value "digest=$($artifact.digest)"
+      - name: Create profile scratch
+        id: scratch
+        shell: pwsh
+        run: |
+          $root = Join-Path $env:RUNNER_TEMP ('omni-windows-evidence-' + [guid]::NewGuid().ToString('N'))
+          $null = New-Item -ItemType Directory -Path $root -ErrorAction Stop
+          Add-Content -LiteralPath $env:GITHUB_OUTPUT -Value "root=$root"
+      - name: Download the selected installer archive
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          artifact-ids: ${{ steps.artifact.outputs.id }}
+          path: ${{ steps.scratch.outputs.root }}/archive
+          skip-decompress: true
+          digest-mismatch: error
+      - name: Profile MSI and MSIX payloads
+        shell: pwsh
+        env:
+          PROFILE_ROOT: ${{ steps.scratch.outputs.root }}
+          ARTIFACT_ID: ${{ steps.artifact.outputs.id }}
+          ARTIFACT_DIGEST: ${{ steps.artifact.outputs.digest }}
+          GPU_VENDOR: ${{ matrix.vendor }}
+          PROVIDER: ${{ matrix.provider }}
+          DIRECTML_INDEX: ${{ inputs.amd-device-index }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $archives = @(Get-ChildItem -LiteralPath "$env:PROFILE_ROOT/archive" -File)
+          if ($archives.Count -ne 1) { throw 'Expected one installer archive' }
+          $planText = python -I scripts/windows/profile_gpu_installers.py plan $archives[0].FullName --vendor $env:GPU_VENDOR --evidence $env:PROFILE_ROOT
+          if ($LASTEXITCODE -ne 0) { throw 'Installer archive size or names are invalid' }
+          $plan = $planText | ConvertFrom-Json
+          $identity = @('--repository', $env:GITHUB_REPOSITORY, '--revision', $env:GITHUB_SHA, '--run-id', $env:GITHUB_RUN_ID,
+            '--run-attempt', $env:GITHUB_RUN_ATTEMPT, '--artifact-id', $env:ARTIFACT_ID, '--artifact-digest', $env:ARTIFACT_DIGEST,
+            '--platform', 'windows', '--arch', 'x64', '--vendor', $env:GPU_VENDOR)
+          foreach ($file in $plan.files) { $identity += @('--file', $file) }
+          $shared = 'third_party/ANTfrastructure/shared/python'
+          python -I "$shared/prepare_gpu_artifact.py" --archive $archives[0].FullName --output "$env:PROFILE_ROOT/packages" `
+            --before-receipt "$env:PROFILE_ROOT/before.json" --max-uncompressed-bytes 4294967296 --max-compression-ratio 1000 @identity
+          if ($LASTEXITCODE -ne 0) { throw 'Could not prepare the installer artifact' }
+          $evidence = Join-Path $env:PROFILE_ROOT 'evidence'
+          $null = New-Item -ItemType Directory -Path $evidence
+          python -I scripts/windows/profile_gpu_installers.py profile "$env:PROFILE_ROOT/packages" --vendor $env:GPU_VENDOR `
+            --device $env:PROVIDER --directml-index $env:DIRECTML_INDEX --evidence $evidence
+          if ($LASTEXITCODE -ne 0) { throw 'Extracted installer GPU profile failed' }
+          python -I "$shared/gpu_artifact_receipt.py" verify --directory "$env:PROFILE_ROOT/packages" --receipt "$env:PROFILE_ROOT/before.json" --check before-check @identity
+          if ($LASTEXITCODE -ne 0) { throw 'Installer bytes changed during profiling' }
+          Copy-Item -LiteralPath "$env:PROFILE_ROOT/before.json" -Destination "$evidence/before.json"
+          python -I "$shared/gpu_artifact_receipt.py" create --directory "$env:PROFILE_ROOT/packages" --receipt "$evidence/receipt.json" --check gpu-model-inference @identity
+          if ($LASTEXITCODE -ne 0) { throw 'Could not create GPU profile receipt' }
+      - name: Upload GPU profile evidence
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: omni-windows-gpu-profile-${{ matrix.vendor }}-${{ needs.preflight.outputs.selection }}-${{ needs.preflight.outputs.scope }}-attempt-${{ github.run_attempt }}
+          overwrite: false
+          if-no-files-found: error
+          path: ${{ steps.scratch.outputs.root }}/evidence
+      - name: Remove profile scratch
+        if: ${{ always() && steps.scratch.outcome == 'success' }}
+        shell: pwsh
+        env:
+          PROFILE_ROOT: ${{ steps.scratch.outputs.root }}
+        run: |
+          $base = [IO.Path]::GetFullPath($env:RUNNER_TEMP).TrimEnd('\') + '\'
+          $root = [IO.Path]::GetFullPath($env:PROFILE_ROOT)
+          if (-not $root.StartsWith($base, [StringComparison]::OrdinalIgnoreCase) -or (Split-Path -Leaf $root) -cnotmatch '^omni-windows-evidence-[0-9a-f]{32}$') { throw 'Unsafe profile scratch path' }
+          Remove-Item -LiteralPath $root -Recurse -Force

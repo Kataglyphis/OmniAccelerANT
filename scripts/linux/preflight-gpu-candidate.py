@@ -45,11 +45,13 @@ WINDOWS_GPU_ROWS = {
         "vendor": "nvidia",
         "tag": "winamd64-nvidia",
         "provider": "cuda",
+        "gpu-runner": "gpu-nvidia-cuda",
     },
     "amd": {
         "vendor": "amd",
         "tag": "winamd64-rocm",
         "provider": "directml",
+        "gpu-runner": "gpu-amd-directml",
     },
 }
 

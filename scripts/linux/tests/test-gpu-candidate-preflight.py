@@ -355,8 +355,14 @@ class CandidatePreflightTests(unittest.TestCase):
                 "vendor": "nvidia",
                 "tag": "winamd64-nvidia",
                 "provider": "cuda",
+                "gpu-runner": "gpu-nvidia-cuda",
             },
-            "amd": {"vendor": "amd", "tag": "winamd64-rocm", "provider": "directml"},
+            "amd": {
+                "vendor": "amd",
+                "tag": "winamd64-rocm",
+                "provider": "directml",
+                "gpu-runner": "gpu-amd-directml",
+            },
         }
         for selection, rows in [
             ("all", list(expected.values())),

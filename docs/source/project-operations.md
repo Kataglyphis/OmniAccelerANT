@@ -57,6 +57,26 @@ runner and installers are labelled unverified and are not release
 artifacts; GPU inference still needs hardware testing. DirectML uses the system's adapter
 selection and the AMD image alone does not prove
 that an AMD adapter executed the model.
+
+With `verify-gpu` enabled, a trusted self-hosted Windows x64 GPU runner selects the
+current attempt's installer artifact by name and ID, checks its reported ZIP size and
+digest, then profiles the MSI and MSIX payloads separately. It checks the packaged
+ONNX Runtime on CPU and the selected GPU provider, compares detector output, and saves
+per-format evidence and a receipt tied to the artifact. AMD uses the selected DirectML
+adapter index. The MSI is expanded with `msiexec /a`; this is an administrative
+extraction of a trusted same-run package, and MSI custom actions may run. It is not
+proof of the behavior of a normally installed package. Timed-out checks use Windows
+`taskkill /T`; Windows Installer service or custom-action processes may outlive the client,
+and runner cancellation is not covered by that timeout cleanup.
+
+The runner checks for at least 15.5 GiB free plus a 1 GiB cushion before checkout and
+uses the artifact ZIP, MSI File-table and MSIX expanded sizes to check each extraction.
+Each expansion is capped at 4 GiB and scratch is removed between installer formats.
+These checks are operational headroom, not a disk quota: checkout, application output,
+installer actions and concurrent writes can consume space between measurements. The
+hosted CPU installer checks occur before upload, but are not cryptographically bound to
+the uploaded archive. Matching GPU hardware and an independent release evidence consumer
+are still needed; a successful profile does not promote the artifact.
 The existing native inventory links Microsoft's DirectML license terms but does not embed an
 original DirectML license text. The GPU images' DirectML source package and installed DLL
 provenance have not yet been established; ANTfrastructure tracks that image work as CON180.
