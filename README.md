@@ -50,6 +50,18 @@ Every package ships the [third-party component list](https://github.com/Kataglyp
 - **Retained device sessions:** language, theme and layout changes preserve routed page state.
 - **Containerized builds** in [ANTfrastructure](https://github.com/Kataglyphis/ANTfrastructure)'s images: a local run invokes the script CI invokes; all five Linux entry points and the two bundle checks reuse its CLI value parser.
 
+## GPU package candidates
+
+The on-demand [Linux](https://github.com/Kataglyphis/OmniAccelerANT/actions/workflows/linux-gpu-candidates.yml)
+and [Windows](https://github.com/Kataglyphis/OmniAccelerANT/actions/workflows/windows-gpu-candidates.yml)
+workflows target NVIDIA x64/arm64 and AMD x64 on Linux, and NVIDIA/AMD x64 on Windows.
+Open a successful run and download the matching vendor and architecture from its **Artifacts**
+section (sign-in required). These candidates are unverified and separate from releases; the
+current dependency pins block the workflows, and the hosted checks do not prove GPU inference.
+See [project operations](docs/source/project-operations.md) for formats and remaining checks,
+and [camera streaming](docs/source/camera-streaming.md) for host runtime requirements. CPU
+packages remain available through the existing lanes.
+
 ## Quick start
 
 ```bash
