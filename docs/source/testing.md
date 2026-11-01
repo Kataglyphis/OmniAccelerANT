@@ -164,6 +164,10 @@ The notes under AGENTS.md's lane table, moved here on 2026-10-15.
   the run's summary (thresholds: § *Rules that keep a green run honest*).
 - The webcam frame test is Linux-only: `hasPushedFrame` is the Linux plugin's, and the Windows
   drives run `simple_test.dart`.
+- The release lane's `detect check` gate follows the launch smoke: the packaged app must find two
+  cats in `two_cats.jpg` and must fail on a blank frame; `test-detect-check.sh` holds the gate's
+  wiring with a fake app (recipes `consumer.omni-detect-check-*`). The webcam frame test also
+  requires the real core's first event to read `ort on cpu`.
 - The web lane runs both Dart suites in Chrome since 2026-10-05 (`--test-platform chrome` to the
   hub's gate); the VM-only files are `@TestOn('vm')` and still run on every native lane. Chrome
   still *compiles* them, so a VM-only test must compile for web too: a plain `int` for a Rust

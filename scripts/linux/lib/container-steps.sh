@@ -103,6 +103,27 @@ run_launch_smoke() {
   launch_for "${2:-20}" "$(basename "$exe")" "$exe"
 }
 
+# <exe> <photo>: two confident cats in the photo pass and a blank frame fails, through the app's own decoder and bridge.
+run_detect_check() {
+  local exe="${1:?executable required}" photo="${2:?photo required}" blank rc=0
+  blank="$(mktemp --suffix=.png)"
+  # A subshell keeps the harness's handlers out of the lane; a flat-colour frame has nothing to detect.
+  (antfrastructure_source linux/scripts/lib/test-harness.sh && t_write_png "$blank" 64 64) || { rm -f "$blank"; return 1; }
+  xvfb-run -a timeout 120 "$exe" --detect-check "$photo" || rc=$?
+  if [[ "$rc" -ne 0 ]]; then
+    rm -f "$blank"
+    echo "[Error] --detect-check ${photo} exited ${rc}: fewer than two confident cats" >&2
+    return 1
+  fi
+  xvfb-run -a timeout 120 "$exe" --detect-check "$blank" || rc=$?
+  rm -f "$blank"
+  if [[ "$rc" -ne 1 ]]; then
+    echo "[Error] --detect-check on a blank image exited ${rc}, not 1" >&2
+    return 1
+  fi
+  echo "[Info] --detect-check passed on ${photo} and failed on a blank image"
+}
+
 # The image's glibc is the bundled one, so the launcher takes the host's path; this forces the bundled loader.
 run_bundled_glibc_launch_smoke() {
   local exe="${1:?executable required}"

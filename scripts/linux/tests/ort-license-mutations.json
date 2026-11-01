@@ -358,5 +358,21 @@
   "replace": "done < /dev/null",
   "test": "bash scripts/linux/tests/test-suite-inventory.sh",
   "why": "The native lane must run every discovered native suite."
+ },
+ {
+  "id": "consumer.omni-detect-check-photo",
+  "target": "scripts/linux/lib/container-steps.sh",
+  "find": "  xvfb-run -a timeout 120 \"$exe\" --detect-check \"$photo\" || rc=$?\n  if [[ \"$rc\" -ne 0 ]]; then",
+  "replace": "  xvfb-run -a timeout 120 \"$exe\" --detect-check \"$photo\" || rc=$?\n  if false; then",
+  "test": "bash scripts/linux/tests/test-detect-check.sh",
+  "why": "The launch smoke fails when the photo shows fewer than two confident cats."
+ },
+ {
+  "id": "consumer.omni-detect-check-blank",
+  "target": "scripts/linux/lib/container-steps.sh",
+  "find": "  if [[ \"$rc\" -ne 1 ]]; then",
+  "replace": "  if false; then",
+  "test": "bash scripts/linux/tests/test-detect-check.sh",
+  "why": "The launch smoke fails when a blank frame passes the detect check."
  }
 ]

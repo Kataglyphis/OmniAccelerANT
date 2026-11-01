@@ -176,6 +176,20 @@ bridge; only detection metadata does.
 > Xvfb and polls the plugin's `hasPushedFrame`, the flag `knt_push_frame` sets. A camera
 > changes only the source, so the push path needs none. A green lane is still not a working
 > *camera*: real V4L2 capture on Linux remains a manual check.
+>
+> **Classes, backend and provider.** `RustWebcamView` sends its class ids in
+> `WebcamStreamConfig.classes` (default `[0]`, person; the picker offers OxidANT's
+> `detectorLabels()`), labels each box with its class name, and shows the event's `backend`
+> and `executionProvider`, for example `ort on cpu`. `KATAGLYPHIS_ORT_DEVICE=xnnpack` or `dnnl`
+> select OxidANT's CPU accelerators; a missing provider fails the start with
+> `ProviderUnavailable` instead of running on the CPU.
+>
+> **`omni_accelerant --detect-check IMAGE`** decodes the image with the engine's codecs, runs
+> OxidANT's `detect_rgba` with classes `[15]`, and exits 0 only for at least two cats at score
+> 0.4 or more. The release lane runs it on the packaged bundle with
+> `third_party/OxidANT/crates/inference/tests/fixtures/two_cats.jpg` and with a flat-colour
+> 64x64 PNG from the hub's `t_write_png`, which must exit 1 (`run_detect_check` in `scripts/linux/lib/container-steps.sh`).
+> It checks CPU inference through the package; it does not check a GPU provider.
 
 **Data flow:**
 

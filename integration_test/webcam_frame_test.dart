@@ -52,6 +52,16 @@ void main() {
       isTrue,
       reason: 'no frame reached the texture through knt_push_frame in 60 s',
     );
+    // The core's own event, not a fake: the default session runs ORT on the CPU provider.
+    final Finder provider = find.byKey(
+      const ValueKey<String>('inferenceProvider'),
+    );
+    await _pumpUntil(
+      tester,
+      () => provider.evaluate().isNotEmpty,
+      what: 'a detection event',
+    );
+    expect(tester.widget<Text>(provider).data, 'ort on cpu');
 
     await tester.tap(find.text('Stop'));
     await tester.pump();
@@ -59,11 +69,15 @@ void main() {
 }
 
 /// Pumps until [done] holds; a texture id arrives over a platform channel, so pumpAndSettle cannot wait for it.
-Future<void> _pumpUntil(WidgetTester tester, bool Function() done) async {
+Future<void> _pumpUntil(
+  WidgetTester tester,
+  bool Function() done, {
+  String what = 'the texture',
+}) async {
   final DateTime deadline = DateTime.now().add(const Duration(seconds: 30));
   while (!done()) {
     if (DateTime.now().isAfter(deadline)) {
-      fail('timed out waiting for the texture');
+      fail('timed out waiting for $what');
     }
     await tester.pump(const Duration(milliseconds: 100));
     await Future<void>.delayed(const Duration(milliseconds: 100));

@@ -1,9 +1,11 @@
 @TestOn('vm')
 library;
 
+import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:omni_accelerant/src/boot/onnx_self_check.dart';
 import 'package:omni_accelerant/src/rust/api/onnx.dart';
+import 'package:omni_accelerant/src/rust/api/webcam.dart';
 import 'package:omni_accelerant/src/rust/frb_generated.dart';
 
 class _Detector extends Fake implements RustLibApi {
@@ -40,6 +42,30 @@ class _Detector extends Fake implements RustLibApi {
     if (fail) throw StateError('model unavailable');
     return <Detection>[];
   }
+
+  List<double> catScores = const <double>[];
+
+  @override
+  List<DetectionBox> crateApiOnnxDetectRgba({
+    required List<int> rgba,
+    required int width,
+    required int height,
+    required Int64List classes,
+  }) {
+    expect(<int>[for (final c in classes) c.toInt()], <int>[15]);
+    expect((rgba.length, width, height), (2 * 3 * 4, 2, 3));
+    return <DetectionBox>[
+      for (final double score in catScores)
+        DetectionBox(
+          x1: 0,
+          y1: 0,
+          x2: 1,
+          y2: 1,
+          score: score,
+          classId: PlatformInt64Util.from(15),
+        ),
+    ];
+  }
 }
 
 void main() {
@@ -48,6 +74,15 @@ void main() {
   setUp(() {
     detector.fail = false;
     detector.profileCalls = 0;
+  });
+
+  test('the detect check counts only cats at score 0.4 or more', () {
+    final Uint8List frame = Uint8List(2 * 3 * 4);
+    detector.catScores = const <double>[0.95, 0.4, 0.39];
+    expect(countConfidentCats(frame, 2, 3), 2);
+    detector.catScores = const <double>[];
+    expect(countConfidentCats(frame, 2, 3), 0);
+    expect(detectCheckMinimum, 2);
   });
 
   test('runs inference through the detector bridge', () {

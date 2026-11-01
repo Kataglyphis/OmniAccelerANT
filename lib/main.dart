@@ -75,6 +75,20 @@ Future<void> main([List<String> args = const <String>[]]) async {
       finishSelfCheck('ONNX detector profile failed: $error', 1);
     }
   }
+  if (!kIsWeb && args.length == 2 && args.first == '--detect-check') {
+    try {
+      WidgetsFlutterBinding.ensureInitialized();
+      await RustLib.init().timeout(const Duration(seconds: 20));
+      final int cats = await runDetectCheck(await readSelfCheckFile(args[1]));
+      finishSelfCheck(
+        'Detect check: $cats cat(s) at score $detectCheckScore or more, '
+        'at least $detectCheckMinimum required.',
+        cats >= detectCheckMinimum ? 0 : 1,
+      );
+    } catch (error) {
+      finishSelfCheck('Detect check failed: $error', 1);
+    }
+  }
   if (!kIsWeb && args.length == 1 && args.single == '--onnx-check') {
     try {
       await RustLib.init().timeout(const Duration(seconds: 20));

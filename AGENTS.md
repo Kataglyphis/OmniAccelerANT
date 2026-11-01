@@ -91,6 +91,15 @@ symbols and error codes. Since 2026-10-01 the lane also starts the packaged bund
 and drives `integration_test/simple_test.dart` there (§ 5, *What each lane tests*). The
 packaged artifacts carry their GStreamer/ONNX Runtime/model closure.
 
+**The class list goes to the core; person stays the default.** `RustWebcamView.classes`
+defaults to `[0]` and its class picker lists `detectorLabels()` from OxidANT, the one owner of
+the class names: never add a Dart copy. Each `DetectionEvent` names its `backend` and
+`executionProvider`; the webcam frame test requires `ort on cpu` from the real core. After the
+launch smoke, the release lane runs `--detect-check` on OxidANT's `two_cats.jpg` (at least two
+class-15 boxes at score 0.4 or more) and on a generated blank frame, which must exit 1.
+Regenerate `lib/src/rust/` with `scripts/linux/generate-frb-bindings.sh` in the same commit as
+any OxidANT pin that changes `src/api`.
+
 **Linux/web cat detection stream.** The same Stream page plays a WebRTC stream from
 `third_party/OxidANT/crates/observant` (`kataglyphis_observant`): V4L2/libcamera → ONNX (cat
 = COCO class 15) → boxes burned into the RGBA frames → `webrtcsink` with its own signalling

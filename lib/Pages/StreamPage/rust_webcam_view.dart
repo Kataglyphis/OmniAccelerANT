@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 // PlatformInt64Util: i64 is `int` natively and `BigInt` on web — AGENTS.md § 4.
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
+import 'package:omni_accelerant/src/rust/api/onnx.dart';
 import 'package:omni_accelerant/src/rust/api/webcam.dart';
 
 /// Rust-driven webcam inference view; frames reach the [Texture] natively, only detections cross the bridge.
@@ -13,7 +14,15 @@ class RustWebcamView extends StatefulWidget {
   final int width;
   final int height;
 
-  const RustWebcamView({super.key, this.width = 1280, this.height = 720});
+  /// Class ids the stream reports at start; the class picker replaces them.
+  final List<int> classes;
+
+  const RustWebcamView({
+    super.key,
+    this.width = 1280,
+    this.height = 720,
+    this.classes = const <int>[0],
+  });
 
   @override
   State<RustWebcamView> createState() => _RustWebcamViewState();
@@ -32,6 +41,10 @@ class _RustWebcamViewState extends State<RustWebcamView> {
   List<DetectionBox> _detections = const [];
   double _fps = 0;
   double _inferenceMs = 0;
+  String? _provider;
+
+  late List<int> _classes = widget.classes;
+  List<String> _labels = const [];
 
   bool _useTestSource = true;
   List<CameraDesc> _cameras = const [];
@@ -45,6 +58,11 @@ class _RustWebcamViewState extends State<RustWebcamView> {
   void initState() {
     super.initState();
     _createTexture();
+    try {
+      _labels = detectorLabels();
+    } catch (e) {
+      _error = 'Class names unavailable: $e';
+    }
   }
 
   Future<void> _createTexture() async {
@@ -99,8 +117,7 @@ class _RustWebcamViewState extends State<RustWebcamView> {
         framerate: 30,
         modelPath: _modelPathController.text.trim(),
         scoreThreshold: _scoreThreshold,
-        // The view boxes persons only, COCO class 0.
-        classes: Int64List.fromList(const <int>[0]),
+        classes: Int64List.fromList(_classes),
         textureId: PlatformInt64Util.from(textureId),
       ),
     );
@@ -111,6 +128,7 @@ class _RustWebcamViewState extends State<RustWebcamView> {
           _detections = event.detections;
           _fps = event.fps;
           _inferenceMs = event.inferenceMs;
+          _provider = '${event.backend} on ${event.executionProvider}';
           _error = null;
         });
       },
@@ -189,6 +207,7 @@ class _RustWebcamViewState extends State<RustWebcamView> {
                   CustomPaint(
                     painter: DetectionOverlayPainter(
                       detections: _detections,
+                      labels: _labels,
                       sourceWidth: widget.width.toDouble(),
                       sourceHeight: widget.height.toDouble(),
                     ),
@@ -201,14 +220,40 @@ class _RustWebcamViewState extends State<RustWebcamView> {
 
   Widget _buildStats() {
     final String status = _running ? 'Running' : 'Stopped';
-    return Text(
-      '$status • ${_fps.toStringAsFixed(1)} fps • '
-      '${_inferenceMs.toStringAsFixed(1)} ms inference • '
-      '${_detections.length} detection(s)',
-      style: TextStyle(
-        fontWeight: FontWeight.bold,
-        color: _running ? Colors.green : Colors.orange,
-      ),
+    final String? provider = _provider;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          '$status • ${_fps.toStringAsFixed(1)} fps • '
+          '${_inferenceMs.toStringAsFixed(1)} ms inference • '
+          '${_detections.length} detection(s)',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: _running ? Colors.green : Colors.orange,
+          ),
+        ),
+        if (provider != null)
+          Text(provider, key: const ValueKey<String>('inferenceProvider')),
+      ],
+    );
+  }
+
+  Widget _buildClassPicker() {
+    final int? selected = _classes.length == 1 ? _classes.single : null;
+    return DropdownButton<int>(
+      key: const ValueKey<String>('classPicker'),
+      hint: Text('${_classes.length} classes'),
+      value: selected != null && selected < _labels.length ? selected : null,
+      items: [
+        for (final (int id, String name) in _labels.indexed)
+          DropdownMenuItem<int>(value: id, child: Text(name)),
+      ],
+      onChanged: _running
+          ? null
+          : (int? id) {
+              if (id != null) setState(() => _classes = <int>[id]);
+            },
     );
   }
 
@@ -250,6 +295,7 @@ class _RustWebcamViewState extends State<RustWebcamView> {
                     .toList(),
                 onChanged: (v) => setState(() => _selectedCameraIndex = v),
               ),
+            _buildClassPicker(),
             IconButton(
               tooltip: 'Refresh cameras',
               icon: const Icon(Icons.refresh),
@@ -313,11 +359,15 @@ class _RustWebcamViewState extends State<RustWebcamView> {
 /// Paints detection boxes (source-pixel coordinates) scaled onto the widget.
 class DetectionOverlayPainter extends CustomPainter {
   final List<DetectionBox> detections;
+
+  /// Class names by id, from `detectorLabels`; an unknown id shows as its number.
+  final List<String> labels;
   final double sourceWidth;
   final double sourceHeight;
 
   DetectionOverlayPainter({
     required this.detections,
+    this.labels = const <String>[],
     required this.sourceWidth,
     required this.sourceHeight,
   });
@@ -344,7 +394,8 @@ class DetectionOverlayPainter extends CustomPainter {
 
       final textPainter = TextPainter(
         text: TextSpan(
-          text: '${(det.score * 100).toStringAsFixed(0)}%',
+          text:
+              '${_label(det.classId.toInt())} ${(det.score * 100).toStringAsFixed(0)}%',
           style: const TextStyle(
             color: Colors.black,
             fontSize: 12,
@@ -363,7 +414,9 @@ class DetectionOverlayPainter extends CustomPainter {
     }
   }
 
+  String _label(int id) => id >= 0 && id < labels.length ? labels[id] : '$id';
+
   @override
   bool shouldRepaint(DetectionOverlayPainter oldDelegate) =>
-      oldDelegate.detections != detections;
+      oldDelegate.detections != detections || oldDelegate.labels != labels;
 }

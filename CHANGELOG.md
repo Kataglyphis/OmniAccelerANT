@@ -5,6 +5,17 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ## Unreleased
 
+### 2026-11-01 (cv)
+- **Class ids reach the Rust core.** `RustWebcamView` passes `WebcamStreamConfig.classes`, `[0]` by
+  default, with a picker over OxidANT's `detectorLabels()`; boxes are labelled with class names, and
+  the view shows each `DetectionEvent`'s backend and execution provider. It uses the bindings that
+  `generate-frb-bindings.sh` produced for the OxidANT pin carrying `detect_rgba`, `detector_labels`,
+  `WebcamStreamConfig.classes` and the event's `backend`/`execution_provider`.
+- **`--detect-check IMAGE` and its release-lane gate.** The app decodes the image and requires at least
+  two class-15 boxes at score 0.4 or more; the lane runs it on `two_cats.jpg` and on a blank frame,
+  which must fail. New `test-detect-check.sh`, recipes `consumer.omni-detect-check-photo` and `-blank`.
+- The webcam frame integration test requires `ort on cpu` from the real core's event.
+
 ### 2026-11-01
 - **ObservANT streams on its first start again.** OxidANT moves to `c1474de`, whose
   `ensure_gst_initialized` leaves `GST_REGISTRY_FORK` unset when the caller names a plugin scanner.
