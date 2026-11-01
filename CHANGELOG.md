@@ -6,6 +6,12 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 ## Unreleased
 
 ### 2026-11-01
+- **The WebRTC view tests no longer lose an offer after a reconnect.** The signalling stand-in
+  (`test/support/gst_signalling_stand_in.js`) gave every message its own `setTimeout(0)`; Chrome
+  clamps a timer nested five deep to 4 ms, so after the reconnect chain the offer's unnested timer
+  could overtake `sessionStarted`, gstwebrtc-api dropped it, and `webrtc_view_test.dart` hung at
+  "Negotiating" from the frozen-picture case on. Each socket now delivers from one FIFO queue, one
+  message per task, as a real socket orders them.
 - **The native lane discovers its test suites.** `scripts/linux/lib/suite-inventory.sh` replaces
   the lane's hand list: every tracked script suite runs as its own gate unless it names another
   runner with `# suite-runner:`, and the inventory gate fails when nothing is discovered or a named
