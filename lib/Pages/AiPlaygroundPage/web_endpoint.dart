@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:js_interop';
 
+import 'package:omni_accelerant/Pages/AiPlaygroundPage/endpoint_request.dart';
 import 'package:omni_accelerant/Pages/AiPlaygroundPage/playground_settings.dart';
 import 'package:omni_accelerant/src/rust/api/text.dart';
 import 'package:web/web.dart' as web;
@@ -14,14 +15,7 @@ Stream<TextEvent> complete(
 ) async* {
   final abort = web.AbortController();
   _running = abort;
-  final body = jsonEncode(<String, Object>{
-    'model': settings.model,
-    'messages': [
-      for (final m in messages) {'role': m.role, 'content': m.content},
-    ],
-    'max_tokens': settings.maxNewTokens,
-    'temperature': settings.temperature,
-  });
+  final body = jsonEncode(chatCompletionBody(settings, messages));
   final headers = <String, String>{
     'content-type': 'application/json',
     if (settings.apiKey.isNotEmpty)

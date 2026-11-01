@@ -442,6 +442,15 @@ class AppLocalizationsDe extends AppLocalizations {
   String get aiTemperature => 'Temperatur';
 
   @override
+  String get aiSeed => 'Seed (leer: jedes Mal eine neue Antwort)';
+
+  @override
+  String get aiJsonSchema => 'JSON-Schema der Antwort (leer: freier Text)';
+
+  @override
+  String get aiStop => 'Stoppzeichenfolgen, eine pro Zeile';
+
+  @override
   String get aiClear => 'Neues Gespräch';
 
   @override

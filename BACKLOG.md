@@ -124,6 +124,15 @@ what the owner's goal still lacks.
   still halves the capture cost at once, at a less smooth stream. Blocked on the owner: 15 fps
   or not.
 
+## Language AI
+
+- **llguidance accepts the hub tiny model's tokenizer** (probe 2026-11-01, GenAI 0.17.0 in
+  `:latest` 7d4d4129). `set_guidance("json_schema", ...)` loaded on both the tiny model and
+  SmolLM2-135M; a schema with `maxLength`, no extra properties and fixed whitespace makes the tiny
+  model decode `{"a":"#$%"}` and stop at its end token, so schema tests need no SmolLM2 fallback.
+  An unbounded schema lets the tiny model emit whitespace until the budget ends. Windows' GenAI is
+  built without guidance (hub LAI-H2), so a schema there answers the unsupported error.
+
 ## Open — waiting on the owner
 
 - [b] **False arrivals on himbeere2: nearly gone, one mark left.** On 2026-10-12 and 13 a drying rack at

@@ -439,6 +439,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aiTemperature => 'Temperature';
 
   @override
+  String get aiSeed => 'Seed (empty: a fresh answer each time)';
+
+  @override
+  String get aiJsonSchema => 'JSON schema for the answer (empty: free text)';
+
+  @override
+  String get aiStop => 'Stop strings, one per line';
+
+  @override
   String get aiClear => 'New conversation';
 
   @override

@@ -16,8 +16,25 @@ and [OxidANT's text bridge](https://github.com/Kataglyphis/OxidANT/blob/develop/
 Native builds go through OxidANT's `text_generate`, which streams each piece as it is decoded. The
 web build has no such bridge, so it fetches one whole answer from the endpoint and shows it at once;
 there the decode rate stays 0 and the time to the first token is the request's whole time. The local
-option is offered only where `text_local_available` loads the chain GenAI. The settings live for the
-running app and are not saved yet.
+option is offered only where `text_local_available` loads the chain GenAI.
+
+## Saved settings
+
+Every change is saved at once and restored at the next start: a JSON file,
+`ai_playground_settings.json`, in the app's support directory on native builds, and the browser's
+local storage on the web (`playground_settings_store.dart`). **The API key is never written.**
+`PlaygroundSettings.toJson` leaves it out, every store writes only that encoding, and the key lives
+in memory until the app closes. A file that cannot be read shows its error above the conversation
+and the defaults apply.
+
+## Seed, JSON schema and stop strings
+
+Under the temperature the form takes a seed (empty draws a fresh answer each time), a JSON schema
+the answer must follow (empty for free text) and stop strings, one per line. The web build sends
+them as OpenAI's `seed`, `response_format` (`{"type": "json_schema", "json_schema": {"name":
+"response", "schema": ..., "strict": true}}`) and `stop` (`endpoint_request.dart`); a field left
+empty is left out of the request. A schema that is not a JSON object fails the request with its
+error. Native builds do not pass them yet: the pinned OxidANT's `TextOptions` has no such fields.
 
 ## Using it
 
@@ -32,3 +49,8 @@ failure, such as an unreachable endpoint or a missing model, appears above the c
 `test/ai_playground_test.dart` drives the controller and the view with a fake backend: streaming,
 the figures, the conversation history, waiting and stopping, and a failure. It also checks that the
 bridge client hands the settings to a mocked Rust core.
+
+`test/ai_playground_settings_test.dart` saves settings with a planted API key, reads every byte
+under the store's directory and finds no trace of it, then restores the rest in a second controller,
+as a restart does. It also covers a broken file, a store that cannot write, the default store through
+the mocked support directory, the request body and the three new fields.

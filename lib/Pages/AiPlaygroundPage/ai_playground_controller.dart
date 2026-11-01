@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:anthology/Widgets/Chat/chat_entry.dart';
 import 'package:flutter/foundation.dart';
 import 'package:omni_accelerant/Pages/AiPlaygroundPage/playground_settings.dart';
+import 'package:omni_accelerant/Pages/AiPlaygroundPage/playground_settings_store.dart';
 import 'package:omni_accelerant/Pages/AiPlaygroundPage/text_client.dart';
 import 'package:omni_accelerant/src/rust/api/text.dart';
 
@@ -20,11 +21,18 @@ ChatFigures figuresOf(TextEvent done) => ChatFigures(
 
 /// One conversation with a language model: its messages, the running answer and the settings it uses.
 class AiPlaygroundController extends ChangeNotifier {
-  AiPlaygroundController({TextClient? client})
+  AiPlaygroundController({TextClient? client, this.store})
     : client = client ?? const DefaultTextClient();
 
   final TextClient client;
+
+  /// Null keeps the settings for this run only.
+  final PlaygroundSettingsStore? store;
   PlaygroundSettings settings = const PlaygroundSettings();
+  Future<void> _saved = Future<void>.value();
+
+  /// Counts restores, so a form built before one rebuilds its fields from the restored values.
+  int restored = 0;
   final List<ChatEntry> _messages = <ChatEntry>[];
   StreamSubscription<TextEvent>? _run;
   bool busy = false;
@@ -34,10 +42,37 @@ class AiPlaygroundController extends ChangeNotifier {
 
   List<ChatEntry> get messages => List<ChatEntry>.unmodifiable(_messages);
 
-  void updateSettings(PlaygroundSettings next) {
-    settings = next;
+  /// Takes the saved settings, keeping the key typed in this run; a broken store shows its error and keeps the defaults.
+  Future<void> restore() async {
+    try {
+      final saved = await store?.load();
+      if (saved != null) {
+        settings = saved.copyWith(apiKey: settings.apiKey);
+        restored++;
+      }
+    } on Object catch (failure) {
+      error = 'the saved settings could not be read: $failure';
+    }
     notifyListeners();
   }
+
+  /// Applies [next] to the next message and saves it in order; [saved] completes once it is written.
+  void updateSettings(PlaygroundSettings next) {
+    settings = next;
+    final target = store;
+    if (target != null) {
+      _saved = _saved.then((_) => target.save(next)).catchError((
+        Object failure,
+      ) {
+        error = 'the settings could not be saved: $failure';
+        notifyListeners();
+      });
+    }
+    notifyListeners();
+  }
+
+  /// Completes after every save started so far.
+  Future<void> get saved => _saved;
 
   /// Sends [text] with the whole conversation before it; a second send waits for the running answer.
   void send(String text) {

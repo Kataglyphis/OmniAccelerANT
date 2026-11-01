@@ -578,6 +578,10 @@ rather than linked.
     `bsp_camera_cfg_t` API while its lock and defaults are still 5.0.2. The script also
     disables the example's BSP LED block (absent from 5.0.2) and patches the esp-dl 3.3.13
     API.
+- **The AI Playground never writes its API key.** Its settings persist through
+  `PlaygroundSettings.toJson`, which leaves the key out; a new store or field writes that encoding
+  only, and `test/ai_playground_settings_test.dart` scans every saved byte for a planted key:
+  [`docs/source/ai-playground.md`](docs/source/ai-playground.md) § *Saved settings*.
 - **Windows host only: the webcam reaches WSL over usbipd, and WebRTC needs mirrored
   networking.** `usbipd attach --wsl --busid <id>` (bus ids change) plus `modprobe uvcvideo`
   gives the container `/dev/video0`; `[wsl2] networkingMode=mirrored` in

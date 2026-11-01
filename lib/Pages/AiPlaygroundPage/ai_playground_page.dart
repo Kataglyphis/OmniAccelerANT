@@ -5,6 +5,7 @@ import 'package:anthology/app_attributes.dart';
 import 'package:flutter/material.dart';
 import 'package:omni_accelerant/Pages/AiPlaygroundPage/ai_playground_controller.dart';
 import 'package:omni_accelerant/Pages/AiPlaygroundPage/playground_settings.dart';
+import 'package:omni_accelerant/Pages/AiPlaygroundPage/playground_settings_store.dart';
 import 'package:omni_accelerant/l10n/app_localizations.dart';
 
 /// Chat with a language model: the chain GenAI in this process on Linux and Windows, or any OpenAI-compatible endpoint.
@@ -28,7 +29,9 @@ class AiPlaygroundPage extends StatefulWidget {
 
 class _AiPlaygroundPageState extends State<AiPlaygroundPage> {
   late final AiPlaygroundController _controller =
-      widget.controller ?? AiPlaygroundController();
+      widget.controller ??
+      (AiPlaygroundController(store: defaultPlaygroundSettingsStore())
+        ..restore());
 
   @override
   void dispose() {
@@ -76,7 +79,12 @@ class AiPlaygroundView extends StatelessWidget {
           ),
           ExpansionTile(
             title: Text(l10n.aiSettings),
-            children: <Widget>[PlaygroundSettingsForm(controller: controller)],
+            children: <Widget>[
+              PlaygroundSettingsForm(
+                key: ValueKey<int>(controller.restored),
+                controller: controller,
+              ),
+            ],
           ),
           if (controller.error != null)
             Padding(
@@ -119,16 +127,25 @@ class PlaygroundSettingsForm extends StatelessWidget {
 
   void _set(PlaygroundSettings next) => controller.updateSettings(next);
 
+  /// The bridge takes seeds up to 2^31 - 1; anything else keeps the last valid one.
+  static int? _seed(String text) {
+    final seed = int.tryParse(text);
+    return seed != null && seed >= 0 && seed <= 0x7fffffff ? seed : null;
+  }
+
   Widget _field(
     String label,
     String value,
     ValueChanged<String> changed, {
     bool secret = false,
+    int lines = 1,
   }) => Padding(
     padding: const EdgeInsets.symmetric(vertical: 6),
     child: TextFormField(
       initialValue: value,
       obscureText: secret,
+      minLines: lines,
+      maxLines: lines,
       decoration: InputDecoration(
         labelText: label,
         border: const OutlineInputBorder(),
@@ -219,6 +236,31 @@ class PlaygroundSettingsForm extends StatelessWidget {
             max: 1.5,
             divisions: 30,
             onChanged: (v) => _set(s.copyWith(temperature: v)),
+          ),
+          _field(
+            l10n.aiSeed,
+            s.seed?.toString() ?? '',
+            (v) => _set(
+              v.trim().isEmpty
+                  ? s.copyWith(clearSeed: true)
+                  : s.copyWith(seed: _seed(v.trim()) ?? s.seed),
+            ),
+          ),
+          _field(
+            l10n.aiJsonSchema,
+            s.jsonSchema,
+            (v) => _set(s.copyWith(jsonSchema: v.trim())),
+            lines: 4,
+          ),
+          _field(
+            l10n.aiStop,
+            s.stop.join('\n'),
+            (v) => _set(
+              s.copyWith(
+                stop: v.split('\n').where((l) => l.isNotEmpty).toList(),
+              ),
+            ),
+            lines: 2,
           ),
         ],
       ),

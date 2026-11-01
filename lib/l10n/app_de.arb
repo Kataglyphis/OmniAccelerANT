@@ -121,6 +121,9 @@
   "aiSystemPrompt": "Systemprompt",
   "aiMaxTokens": "Höchstens neue Tokens",
   "aiTemperature": "Temperatur",
+  "aiSeed": "Seed (leer: jedes Mal eine neue Antwort)",
+  "aiJsonSchema": "JSON-Schema der Antwort (leer: freier Text)",
+  "aiStop": "Stoppzeichenfolgen, eine pro Zeile",
   "aiClear": "Neues Gespräch",
   "aiError": "Das Modell ist fehlgeschlagen: {detail}"
 }
