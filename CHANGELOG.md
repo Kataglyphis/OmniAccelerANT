@@ -11,6 +11,8 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
   (18) reached 0: shebang scripts got their executable mode, the GPU preflight and detector-model
   tests narrow regex and import-spec results before use, and the tracked Flutter LLDB helper's
   import block and format call follow Ruff.
+- The six GPU profile evidence scripts added in 3d07c6a get their executable mode, which strict
+  python-static requires of every shebang script.
 
 ### 2026-10-31
 - **`scripts/linux/quality-report.sh`** runs the hub's `quality-report.sh` on this checkout; the
