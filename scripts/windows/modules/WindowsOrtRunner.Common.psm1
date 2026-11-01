@@ -24,18 +24,9 @@ function Get-RunnerOrtFamilyFinding {
     }
 }
 
-function Invoke-RunnerOrtProof {
-    <#
-    .SYNOPSIS
-        In the image: G6 over RunnerDir, then the stamp Assert-RunnerOrtStamp re-proves on a host; throws on a fatal finding.
-    #>
-    [CmdletBinding()]
-    param(
-        [Parameter(Mandatory)][string] $RunnerDir,
-        [ValidateSet('onnxruntime_providers_shared.dll', 'onnxruntime_providers_cuda.dll')][string[]] $RequiredProvider = @(),
-        [switch] $RequireDirectMl
-    )
-
+function Assert-RunnerOrtProofInput {
+    # The runner holds the core DLL and each requested provider, and the pinned hub can match them to a wheel.
+    param([Parameter(Mandatory)][string] $RunnerDir, [string[]] $RequiredProvider = @(), [switch] $RequireDirectMl)
     if (-not (Test-Path -LiteralPath (Join-Path $RunnerDir 'onnxruntime.dll') -PathType Leaf)) {
         throw "MISSING $RunnerDir\onnxruntime.dll: without it a client host loads System32's Windows ML copy."
     }
@@ -54,6 +45,21 @@ function Invoke-RunnerOrtProof {
     if ($RequireDirectMl -and -not (Get-Command Copy-OrtWheelLicenses).Parameters.ContainsKey('DirectMlDll')) {
         throw 'The pinned ANTfrastructure cannot verify DirectML against the matching ORT wheel.'
     }
+}
+
+function Invoke-RunnerOrtProof {
+    <#
+    .SYNOPSIS
+        In the image: G6 over RunnerDir, then the stamp Assert-RunnerOrtStamp re-proves on a host; throws on a fatal finding.
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)][string] $RunnerDir,
+        [ValidateSet('onnxruntime_providers_shared.dll', 'onnxruntime_providers_cuda.dll')][string[]] $RequiredProvider = @(),
+        [switch] $RequireDirectMl
+    )
+
+    Assert-RunnerOrtProofInput -RunnerDir $RunnerDir -RequiredProvider $RequiredProvider -RequireDirectMl:$RequireDirectMl
     $census = Test-OrtProvenanceTree -Root $RunnerDir -PassThru
     $fatal = @(Get-RunnerOrtFatal -Census $census)
     $stamped = @{}
@@ -68,6 +74,7 @@ function Invoke-RunnerOrtProof {
     # Only the image has the wheel store, so the texts are matched here and the host re-checks their stamped bytes.
     $licenseArgs = @{ OrtDll = (Join-Path $RunnerDir 'onnxruntime.dll'); WheelDir = (Get-OrtChainWheelStore); Destination = $RunnerDir }
     if ($RequiredProvider.Count -gt 0) {
+        $bridge = Join-Path $RunnerDir 'onnxruntime_providers_shared.dll'
         $licenseArgs.ProviderDll = @(@($bridge) + @($RequiredProvider | ForEach-Object { Join-Path $RunnerDir $_ }) | Select-Object -Unique)
     }
     if ($RequireDirectMl) { $licenseArgs.DirectMlDll = Join-Path $RunnerDir 'DirectML.dll' }
@@ -94,6 +101,27 @@ function Read-RunnerOrtStamp {
     return $sha
 }
 
+function Assert-RunnerOrtStampVerified {
+    # The image matched each requested provider, and DirectML when asked, to the core wheel before stamping.
+    param([Parameter(Mandatory)][string] $RunnerDir, [Parameter(Mandatory)][hashtable] $Stamped,
+        [string[]] $RequiredProvider = @(), [switch] $RequireDirectMl)
+    if ($RequiredProvider.Count -gt 0) {
+        $stamp = Get-Content -LiteralPath (Join-Path $RunnerDir $script:RunnerOrtStampName) -Raw | ConvertFrom-Json -AsHashtable
+        $verified = @($stamp['verified_providers'])
+        foreach ($name in $RequiredProvider) {
+            if ($name -notin $verified -or -not $Stamped.ContainsKey($name)) {
+                throw "UNPROVEN $name was not matched to the core ONNX Runtime wheel for $RunnerDir."
+            }
+        }
+    }
+    if ($RequireDirectMl) {
+        $stamp = Get-Content -LiteralPath (Join-Path $RunnerDir $script:RunnerOrtStampName) -Raw | ConvertFrom-Json -AsHashtable
+        if ($stamp['verified_directml'] -isnot [bool] -or -not $stamp['verified_directml'] -or -not $Stamped.ContainsKey('DirectML.dll')) {
+            throw "UNPROVEN DirectML.dll was not matched to the core ONNX Runtime wheel for $RunnerDir."
+        }
+    }
+}
+
 function Assert-RunnerOrtStamp {
     <#
     .SYNOPSIS
@@ -108,21 +136,7 @@ function Assert-RunnerOrtStamp {
     if ($null -eq $stamped) {
         throw "UNSTAMPED $RunnerDir has no $($script:RunnerOrtStampName) of schema $($script:RunnerOrtStampSchema): it was not staged and proved by Build-Windows.ps1."
     }
-    if ($RequiredProvider.Count -gt 0) {
-        $stamp = Get-Content -LiteralPath (Join-Path $RunnerDir $script:RunnerOrtStampName) -Raw | ConvertFrom-Json -AsHashtable
-        $verified = @($stamp['verified_providers'])
-        foreach ($name in $RequiredProvider) {
-            if ($name -notin $verified -or -not $stamped.ContainsKey($name)) {
-                throw "UNPROVEN $name was not matched to the core ONNX Runtime wheel for $RunnerDir."
-            }
-        }
-    }
-    if ($RequireDirectMl) {
-        $stamp = Get-Content -LiteralPath (Join-Path $RunnerDir $script:RunnerOrtStampName) -Raw | ConvertFrom-Json -AsHashtable
-        if ($stamp['verified_directml'] -isnot [bool] -or -not $stamp['verified_directml'] -or -not $stamped.ContainsKey('DirectML.dll')) {
-            throw "UNPROVEN DirectML.dll was not matched to the core ONNX Runtime wheel for $RunnerDir."
-        }
-    }
+    Assert-RunnerOrtStampVerified -RunnerDir $RunnerDir -Stamped $stamped -RequiredProvider $RequiredProvider -RequireDirectMl:$RequireDirectMl
     $findings = [System.Collections.Generic.List[string]]::new()
     foreach ($name in $stamped.Keys) {
         if (-not (Test-Path -LiteralPath (Join-Path $RunnerDir $name) -PathType Leaf)) { $findings.Add("MISSING $name is stamped but absent from $RunnerDir") }

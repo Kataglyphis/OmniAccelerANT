@@ -33,6 +33,16 @@ Import-BuildModule @('WindowsBuild.Common', 'WindowsMsix.Common', 'WindowsMsix.S
     'WindowsMsiLicense.Common', 'WindowsOrtProvenance.Common', 'WindowsOrtPayload.Common', 'WindowsOrtLicense.Common',
     'WindowsOrtRunner.Common', 'WindowsGpuBuild.Common', 'WindowsThirdPartyLicense.Common')
 
+# The GPU runtime and app bytes both installers must carry unchanged from the proven runner.
+function Get-GpuPackageFile {
+    param([Parameter(Mandatory)][string]$RunnerDir, [Parameter(Mandatory)][string]$Provider)
+    $files = @('omni_accelerant.exe', 'oxidant.dll', 'AccelerANTgine.dll', 'kataglyphis_native_inference_plugin.dll', 'onnxruntime.dll', 'onnxruntime_providers_shared.dll', 'ort-chain-stamp.json')
+    $files += @('resources/models/deim_dfine_n_coco.onnx', 'resources/models/deim_dfine_n_coco.LICENSE', 'resources/models/deim_dfine_n_coco.NOTICE')
+    if ($Provider -eq 'cuda') { $files += 'onnxruntime_providers_cuda.dll' }
+    if (Test-Path -LiteralPath (Join-Path $RunnerDir 'DirectML.dll') -PathType Leaf) { $files += 'DirectML.dll' }
+    return $files
+}
+
 $AppDir = (Resolve-Path -LiteralPath $AppDir).Path
 if (-not (Test-Path -LiteralPath (Join-Path $AppDir 'omni_accelerant.exe') -PathType Leaf)) { throw "no omni_accelerant.exe in $AppDir" }
 & (Join-Path $PSScriptRoot 'Stage-DetectorModel.ps1') -WorkspaceDir $repoRoot -RunnerDir $AppDir -VerifyOnly
@@ -68,10 +78,7 @@ $installer = Join-Path $PSScriptRoot 'installer'
 $ortLicenses = Resolve-RunnerOrtLicense -RunnerDir $AppDir
 $gpuFiles = @()
 if ($OrtProvider -ne 'cpu') {
-    $gpuFiles = @('omni_accelerant.exe', 'oxidant.dll', 'AccelerANTgine.dll', 'kataglyphis_native_inference_plugin.dll', 'onnxruntime.dll', 'onnxruntime_providers_shared.dll', 'ort-chain-stamp.json')
-    $gpuFiles += @('resources/models/deim_dfine_n_coco.onnx', 'resources/models/deim_dfine_n_coco.LICENSE', 'resources/models/deim_dfine_n_coco.NOTICE')
-    if ($OrtProvider -eq 'cuda') { $gpuFiles += 'onnxruntime_providers_cuda.dll' }
-    if (Test-Path -LiteralPath (Join-Path $AppDir 'DirectML.dll') -PathType Leaf) { $gpuFiles += 'DirectML.dll' }
+    $gpuFiles = @(Get-GpuPackageFile -RunnerDir $AppDir -Provider $OrtProvider)
     $base = "$base-$vendor"
 }
 $fragment = Join-Path $work 'msi-payload-files.wxs'

@@ -633,6 +633,10 @@ Windows builds run in the `:winamd64` container, and **CI runs the exact same
   (`Build-WindowsDebugApps.ps1`) for the launch smoke and `flutter drive`. The checkout prunes
   `third_party/DocumANTation` (`'$GIT_DIR' too big`), so every path is absolute under the
   short-path clone.
+- **PowerShell complexity is measured, not yet strict.** `powershell-quality.yml` reports every
+  unit over 15 cyclomatic, 5 nesting or 80 function lines under `scripts/`; 7 remain, listed in its
+  JSON artifact. Fix one by extracting a named function, never by an exception or a higher limit;
+  `strict: true` follows when the count reaches 0.
 - **The Release job keeps sccache's cache across runs** (2026-10-17): `.ci-cache` through
   `actions/cache`, saved from `develop` and pruned to one entry, moved in and out by
   `Build-Windows.ps1` through the hub's `Restore-CiCompilerCache` and `Save-CiCompilerCache`.

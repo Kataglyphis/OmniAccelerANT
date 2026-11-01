@@ -6,6 +6,11 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 ## Unreleased
 
 ### 2026-11-01
+- **PowerShell complexity findings 14 -> 7.** `Build-Windows-Container.ps1`, `Invoke-Renovate.ps1`,
+  `Package-OmniAccelerANT.ps1` and `Start-Windows.ps1` build their argument lists, GPU file list,
+  runnable-build search, AOT copy and ASan staging in named helper functions;
+  `WindowsOrtRunner.Common` checks proof inputs and the stamp's provider verdicts in two private
+  helpers; and the installer wiring suite asserts through two helper functions. Behaviour is unchanged.
 - **Python static analysis is strict.** `python-static.yml` passes `strict: true` to the hub's
   reusable workflow on every push, PR and dispatch, after the Ruff findings (10) and ty diagnostics
   (18) reached 0: shebang scripts got their executable mode, the GPU preflight and detector-model

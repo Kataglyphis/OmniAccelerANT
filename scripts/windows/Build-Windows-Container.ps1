@@ -59,16 +59,17 @@ $runner = Join-Path $repoRoot 'third_party\ANTfrastructure\windows\scripts\build
 if (-not (Test-Path -LiteralPath $runner)) { throw "Required script not found: $runner (run: git submodule update --init --recursive third_party/ANTfrastructure)" }
 
 # Tokens must be space-free (docker CLI -> cmd /S /C -> %*); C:\ws is the tar-pipe workspace.
-$workspacePath = 'C:\ws'
-if ($TestsOnly) {
+function Get-ContainerBuildArgv {
+    param([Parameter(Mandatory)][string]$WorkspacePath)
+    if ($TestsOnly) {
+        return @(
+            'pwsh', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File',
+            "$WorkspacePath\scripts\windows\Invoke-WindowsDartGates.ps1"
+        )
+    }
     $buildArgv = @(
         'pwsh', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File',
-        "$workspacePath\scripts\windows\Invoke-WindowsDartGates.ps1"
-    )
-} else {
-    $buildArgv = @(
-        'pwsh', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File',
-        "$workspacePath\scripts\windows\Build-Windows.ps1",
+        "$WorkspacePath\scripts\windows\Build-Windows.ps1",
         '-SkipDocs', '-SkipMsixPackaging'
     )
     if (-not [string]::IsNullOrWhiteSpace($Configurations)) { $buildArgv += @('-Configurations', $Configurations) }
@@ -78,7 +79,9 @@ if ($TestsOnly) {
     if ($CodeQL) { $buildArgv += '-CodeQL' }
     if ($CodeQLDownload) { $buildArgv += '-CodeQLDownload' }
     if ($CleanCodeQLDb) { $buildArgv += '-CleanCodeQLDb' }
+    return $buildArgv
 }
+$buildArgv = @(Get-ContainerBuildArgv -WorkspacePath 'C:\ws')
 
 # Only what the host runs comes back: deep cargo/cxxbridge paths exceed MAX_PATH and abort the transfer.
 $outputDirs = if ($TestsOnly) {

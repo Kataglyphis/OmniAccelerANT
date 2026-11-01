@@ -1,6 +1,42 @@
 #requires -Version 7.0
 
 # This guards shared module wiring and byte validation; it does not install MSI or MSIX packages.
+function Assert-InstallerChecksUseHubRunner {
+    foreach ($relative in 'Test-OmniAccelerANTInstallers.ps1', 'observant/Test-ObservANTWindows.ps1', 'observant/Test-ObservANTMsix.ps1') {
+        $path = Join-Path $PSScriptRoot (Join-Path '..' $relative)
+        $scriptAst = Get-TestScriptAst -ScriptPath $path
+        $commands = @($scriptAst.FindAll({ param($node) $node -is [System.Management.Automation.Language.CommandAst] }, $true))
+        @($commands | Where-Object { $_.GetCommandName() -eq 'Import-BuildModule' -and $_.Extent.Text -match 'WindowsSmokeTest\.Common' }).Count | Should Be 1
+        @($commands | Where-Object { $_.GetCommandName() -eq 'Initialize-SmokeTestRun' }).Count | Should Be 1
+        @($commands | Where-Object { $_.GetCommandName() -eq 'Assert-Test' }).Count -gt 0 | Should Be $true
+        @($commands | Where-Object { $_.GetCommandName() -eq 'Get-SmokeTestSummary' }).Count -gt 0 | Should Be $true
+        @($scriptAst.FindAll({ param($node) $node -is [System.Management.Automation.Language.FunctionDefinitionAst] -and $node.Name -eq 'Test-Check' }, $true)).Count | Should Be 0
+    }
+}
+
+function Assert-GpuPackageByteCheck {
+    $ast = Get-TestScriptAst -ScriptPath (Join-Path $PSScriptRoot '..\Package-OmniAccelerANT.ps1')
+    $text = $ast.Extent.Text
+    foreach ($name in 'onnxruntime.dll', 'onnxruntime_providers_shared.dll', 'onnxruntime_providers_cuda.dll', 'ort-chain-stamp.json', 'omni_accelerant.exe', 'oxidant.dll', 'AccelerANTgine.dll') {
+        $text.Contains("'$name'") | Should Be $true
+    }
+    $text.Contains("[ValidateSet('cpu', 'cuda', 'directml')][string]`$OrtProvider = 'cpu'") | Should Be $true
+    $text.Contains("Resolve-BuildModule -Name 'WindowsPackageBinary.Common'") | Should Be $true
+    $text.Contains('"$base-$vendor"') | Should Be $true
+    @(Get-TestAstCommands -Ast $ast -Name 'Get-WixSourceFileId').Count | Should Be 1
+    $checks = @(Get-TestAstCommands -Ast $ast -Name 'Assert-PackageBinary')
+    $checks.Count | Should Be 2
+    @($checks | Where-Object { $_.Extent.Text.Contains('"$base.msi"') -and $_.Extent.Text.Contains('-Member $gpuMsiIds') -and $_.Extent.Text.Contains('-SourcePath $gpuPaths') }).Count | Should Be 1
+    @($checks | Where-Object { $_.Extent.Text.Contains('"$base.msix"') -and $_.Extent.Text.Contains('-Member $gpuFiles') -and $_.Extent.Text.Contains('-SourcePath $gpuPaths') }).Count | Should Be 1
+    $inventories = @(Get-TestAstCommands -Ast $ast -Name 'Get-PackageOrtProviderNames')
+    $inventories.Count | Should Be 2
+    @($inventories | Where-Object { $_.Extent.Text.Contains('-RootDirectoryId APPLICATIONFOLDER') }).Count | Should Be 1
+    $proofs = @(Get-TestAstCommands -Ast $ast -Name 'Assert-WindowsInstallerCandidate')
+    $proofs.Count | Should Be 3
+    ($proofs[1].Extent.StartOffset -gt $checks[0].Extent.StartOffset) | Should Be $true
+    ($proofs[2].Extent.StartOffset -gt $checks[1].Extent.StartOffset) | Should Be $true
+}
+
 Describe 'Installer shared Windows checks' {
     . (Join-Path $PSScriptRoot '..\Resolve-BuildModule.ps1')
     Import-BuildModule @('WindowsTargetArch.Common', 'WindowsSmokeTest.Common')
@@ -29,18 +65,7 @@ Describe 'Installer shared Windows checks' {
         ($message -match 'not a PE file') | Should Be $true
     }
 
-    It 'uses the hub assertion runner in all three installer checks' {
-        foreach ($relative in 'Test-OmniAccelerANTInstallers.ps1', 'observant/Test-ObservANTWindows.ps1', 'observant/Test-ObservANTMsix.ps1') {
-            $path = Join-Path $PSScriptRoot (Join-Path '..' $relative)
-            $scriptAst = Get-TestScriptAst -ScriptPath $path
-            $commands = @($scriptAst.FindAll({ param($node) $node -is [System.Management.Automation.Language.CommandAst] }, $true))
-            @($commands | Where-Object { $_.GetCommandName() -eq 'Import-BuildModule' -and $_.Extent.Text -match 'WindowsSmokeTest\.Common' }).Count | Should Be 1
-            @($commands | Where-Object { $_.GetCommandName() -eq 'Initialize-SmokeTestRun' }).Count | Should Be 1
-            @($commands | Where-Object { $_.GetCommandName() -eq 'Assert-Test' }).Count -gt 0 | Should Be $true
-            @($commands | Where-Object { $_.GetCommandName() -eq 'Get-SmokeTestSummary' }).Count -gt 0 | Should Be $true
-            @($scriptAst.FindAll({ param($node) $node -is [System.Management.Automation.Language.FunctionDefinitionAst] -and $node.Name -eq 'Test-Check' }, $true)).Count | Should Be 0
-        }
-    }
+    It 'uses the hub assertion runner in all three installer checks' { Assert-InstallerChecksUseHubRunner }
 
     It 'reads both MSIX manifests through the shared archive reader' {
         @(Get-Command Get-MsixArchiveInfo -ErrorAction SilentlyContinue).Count | Should Be 1
@@ -108,28 +133,7 @@ Describe 'Installer shared Windows checks' {
         }
     }
 
-    It 'checks GPU runtime and app bytes in both installers using their real package mappings' {
-        $ast = Get-TestScriptAst -ScriptPath (Join-Path $PSScriptRoot '..\Package-OmniAccelerANT.ps1')
-        $text = $ast.Extent.Text
-        foreach ($name in 'onnxruntime.dll', 'onnxruntime_providers_shared.dll', 'onnxruntime_providers_cuda.dll', 'ort-chain-stamp.json', 'omni_accelerant.exe', 'oxidant.dll', 'AccelerANTgine.dll') {
-            $text.Contains("'$name'") | Should Be $true
-        }
-        $text.Contains("[ValidateSet('cpu', 'cuda', 'directml')][string]`$OrtProvider = 'cpu'") | Should Be $true
-        $text.Contains("Resolve-BuildModule -Name 'WindowsPackageBinary.Common'") | Should Be $true
-        $text.Contains('"$base-$vendor"') | Should Be $true
-        @(Get-TestAstCommands -Ast $ast -Name 'Get-WixSourceFileId').Count | Should Be 1
-        $checks = @(Get-TestAstCommands -Ast $ast -Name 'Assert-PackageBinary')
-        $checks.Count | Should Be 2
-        @($checks | Where-Object { $_.Extent.Text.Contains('"$base.msi"') -and $_.Extent.Text.Contains('-Member $gpuMsiIds') -and $_.Extent.Text.Contains('-SourcePath $gpuPaths') }).Count | Should Be 1
-        @($checks | Where-Object { $_.Extent.Text.Contains('"$base.msix"') -and $_.Extent.Text.Contains('-Member $gpuFiles') -and $_.Extent.Text.Contains('-SourcePath $gpuPaths') }).Count | Should Be 1
-        $inventories = @(Get-TestAstCommands -Ast $ast -Name 'Get-PackageOrtProviderNames')
-        $inventories.Count | Should Be 2
-        @($inventories | Where-Object { $_.Extent.Text.Contains('-RootDirectoryId APPLICATIONFOLDER') }).Count | Should Be 1
-        $proofs = @(Get-TestAstCommands -Ast $ast -Name 'Assert-WindowsInstallerCandidate')
-        $proofs.Count | Should Be 3
-        ($proofs[1].Extent.StartOffset -gt $checks[0].Extent.StartOffset) | Should Be $true
-        ($proofs[2].Extent.StartOffset -gt $checks[1].Extent.StartOffset) | Should Be $true
-    }
+    It 'checks GPU runtime and app bytes in both installers using their real package mappings' { Assert-GpuPackageByteCheck }
 
     It 'continues after false and thrown assertions and reports both failures' {
         Initialize-SmokeTestRun

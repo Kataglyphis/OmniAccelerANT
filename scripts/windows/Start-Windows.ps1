@@ -49,43 +49,44 @@ if ($resolvedBuildRoots.Count -eq 0) {
 	throw "Build root directory could not be resolved. Set BuildRootDir in Get-WindowsBuildConfig.ps1 or pass -BuildRootDir."
 }
 
-$selectedBuildRoot = $null
-$buildDirReleaseFull = $null
-$pluginDir = $null
-$pluginDll = $null
-$exePath = $null
-$searchResults = [System.Collections.Generic.List[string]]::new()
+# The first build root whose runner holds both the exe and the plugin DLL.
+function Find-RunnableWindowsBuild {
+	param([Parameter(Mandatory)][string[]] $BuildRoots)
+	$searchResults = [System.Collections.Generic.List[string]]::new()
+	foreach ($candidateRoot in $BuildRoots) {
+		$candidateLayout = Resolve-KataglyphisWindowsLayout -BuildRootFull $candidateRoot -WindowsBuildConfig $windowsBuildConfig -Configuration $Configuration
+		$candidatePluginDll = $candidateLayout.RustPluginDllPath
+		$candidateExePath = $candidateLayout.RunnerExePath
 
-foreach ($candidateRoot in $resolvedBuildRoots) {
-	$candidateLayout = Resolve-KataglyphisWindowsLayout -BuildRootFull $candidateRoot -WindowsBuildConfig $windowsBuildConfig -Configuration $Configuration
-	$candidateBuildDirRelease = $candidateLayout.RunnerDir
-	$candidatePluginDir = $candidateLayout.PluginDir
-	$candidatePluginDll = $candidateLayout.RustPluginDllPath
-	$candidateExePath = $candidateLayout.RunnerExePath
+		# The app loads oxidant.dll from beside the exe; runner\Release, the MSIX copy, has no plugins\Release twin.
+		if (-not (Test-Path -LiteralPath $candidatePluginDll -PathType Leaf)) {
+			$candidatePluginDll = Join-Path (Split-Path $candidateExePath -Parent) (Split-Path $candidatePluginDll -Leaf)
+		}
+		$hasPlugin = Test-Path -LiteralPath $candidatePluginDll -PathType Leaf
+		$hasExe = Test-Path -LiteralPath $candidateExePath -PathType Leaf
 
-	# The app loads oxidant.dll from beside the exe; runner\Release, the MSIX copy, has no plugins\Release twin.
-	if (-not (Test-Path -LiteralPath $candidatePluginDll -PathType Leaf)) {
-		$candidatePluginDll = Join-Path (Split-Path $candidateExePath -Parent) (Split-Path $candidatePluginDll -Leaf)
+		$searchResults.Add("$candidateRoot => plugin=$hasPlugin exe=$hasExe")
+
+		if ($hasPlugin -and $hasExe) {
+			return [pscustomobject]@{
+				BuildRoot = $candidateRoot
+				RunnerDir = $candidateLayout.RunnerDir
+				PluginDir = $candidateLayout.PluginDir
+				PluginDll = $candidatePluginDll
+				ExePath   = $candidateExePath
+			}
+		}
 	}
-	$hasPlugin = Test-Path -LiteralPath $candidatePluginDll -PathType Leaf
-	$hasExe = Test-Path -LiteralPath $candidateExePath -PathType Leaf
-
-	$searchResults.Add("$candidateRoot => plugin=$hasPlugin exe=$hasExe")
-
-	if ($hasPlugin -and $hasExe) {
-		$selectedBuildRoot = $candidateRoot
-		$buildDirReleaseFull = $candidateBuildDirRelease
-		$pluginDir = $candidatePluginDir
-		$pluginDll = $candidatePluginDll
-		$exePath = $candidateExePath
-		break
-	}
-}
-
-if ($null -eq $selectedBuildRoot) {
 	$diagnostics = $searchResults -join "; "
 	throw "Kein lauffähiger Build gefunden. Geprüfte BuildRoots: $diagnostics. Starte zuerst scripts/windows/Build-Windows.ps1 mit passendem -BuildRootDir (z. B. out)."
 }
+
+$selected = Find-RunnableWindowsBuild -BuildRoots $resolvedBuildRoots
+$selectedBuildRoot = $selected.BuildRoot
+$buildDirReleaseFull = $selected.RunnerDir
+$pluginDir = $selected.PluginDir
+$pluginDll = $selected.PluginDll
+$exePath = $selected.ExePath
 
 # Windows resolves onnxruntime.dll beside the exe before System32's, so G6 re-proves the stamped chain copy.
 try {
@@ -100,12 +101,14 @@ try {
 # ORT_DYLIB_PATH overrides that copy for oxidant.dll, so it may only name those same bytes.
 Assert-RunnerOrtOverride -Value "$env:ORT_DYLIB_PATH" -ExeDir (Split-Path $exePath -Parent) -RunnerDir $buildDirReleaseFull
 
-$runnerDataDir = Join-Path $buildDirReleaseFull "data"
-$runnerAotPath = Join-Path $runnerDataDir "app.so"
-
-if (-not (Test-Path -LiteralPath $runnerAotPath -PathType Leaf)) {
+# A runner without data\app.so gets the first AOT snapshot a build left elsewhere.
+function Copy-RunnerAotSnapshot {
+	param([Parameter(Mandatory)][string] $RunnerDir, [Parameter(Mandatory)][string] $BuildRoot)
+	$runnerDataDir = Join-Path $RunnerDir "data"
+	$runnerAotPath = Join-Path $runnerDataDir "app.so"
+	if (Test-Path -LiteralPath $runnerAotPath -PathType Leaf) { return }
 	$aotCandidates = @(
-		(Join-Path $selectedBuildRoot "windows/app.so"),
+		(Join-Path $BuildRoot "windows/app.so"),
 		(Join-Path $repoRoot "out/windows/app.so"),
 		(Join-Path $repoRoot "build/windows/app.so")
 	)
@@ -117,6 +120,32 @@ if (-not (Test-Path -LiteralPath $runnerAotPath -PathType Leaf)) {
 	if ($null -ne $resolvedAotSource) {
 		New-Item -ItemType Directory -Force -Path $runnerDataDir | Out-Null
 		Copy-Item -LiteralPath $resolvedAotSource -Destination $runnerAotPath -Force
+	}
+}
+
+Copy-RunnerAotSnapshot -RunnerDir $buildDirReleaseFull -BuildRoot $selectedBuildRoot
+
+# The Debug preset's ASan runtime must be Microsoft's: LLVM's aborts on pre-init COM/CRT frees (AGENTS.md § 4).
+function Initialize-MsvcAsanRuntime {
+	param([Parameter(Mandatory)][string] $RunnerDir)
+	$asanDllName = "clang_rt.asan_dynamic-x86_64.dll"
+	$needsAsan = ($Configuration -match "Debug") -or `
+		(Test-Path -LiteralPath (Join-Path $RunnerDir $asanDllName) -PathType Leaf)
+	if (-not $needsAsan) { return }
+	# vswhere-based, so every Visual Studio SKU is found; -RuntimeFlavor Msvc is load-bearing.
+	$msAsan = Get-AsanRuntimeDll -RuntimeFlavor Msvc
+	if ($null -ne $msAsan) {
+		Copy-Item -LiteralPath $msAsan -Destination (Join-Path $RunnerDir $asanDllName) -Force
+		Write-Host "[Start-Windows] Staged Microsoft ASan runtime: $msAsan"
+		# Prepend, never skip — see AGENTS.md § 4 (ASAN).
+		$repoAsanOptions = "alloc_dealloc_mismatch=0:check_malloc_usable_size=0"
+		$env:ASAN_OPTIONS = if ([string]::IsNullOrWhiteSpace($env:ASAN_OPTIONS)) {
+			$repoAsanOptions
+		} else {
+			"${repoAsanOptions}:$($env:ASAN_OPTIONS)"
+		}
+	} else {
+		Write-Warning "[Start-Windows] Microsoft ASan runtime not found under any Visual Studio install; an ASan-instrumented app may abort on startup."
 	}
 }
 
@@ -143,27 +172,7 @@ try {
 	$pluginPathEntries.Add($pluginDir)
 	$pluginPathEntries.Add((Split-Path $pluginDll -Parent))
 
-	# The Debug preset's ASan runtime must be Microsoft's: LLVM's aborts on pre-init COM/CRT frees (AGENTS.md § 4).
-	$asanDllName = "clang_rt.asan_dynamic-x86_64.dll"
-	$needsAsan = ($Configuration -match "Debug") -or `
-		(Test-Path -LiteralPath (Join-Path $buildDirReleaseFull $asanDllName) -PathType Leaf)
-	if ($needsAsan) {
-		# vswhere-based, so every Visual Studio SKU is found; -RuntimeFlavor Msvc is load-bearing.
-		$msAsan = Get-AsanRuntimeDll -RuntimeFlavor Msvc
-		if ($null -ne $msAsan) {
-			Copy-Item -LiteralPath $msAsan -Destination (Join-Path $buildDirReleaseFull $asanDllName) -Force
-			Write-Host "[Start-Windows] Staged Microsoft ASan runtime: $msAsan"
-			# Prepend, never skip — see AGENTS.md § 4 (ASAN).
-			$repoAsanOptions = "alloc_dealloc_mismatch=0:check_malloc_usable_size=0"
-			$env:ASAN_OPTIONS = if ([string]::IsNullOrWhiteSpace($env:ASAN_OPTIONS)) {
-				$repoAsanOptions
-			} else {
-				"${repoAsanOptions}:$($env:ASAN_OPTIONS)"
-			}
-		} else {
-			Write-Warning "[Start-Windows] Microsoft ASan runtime not found under any Visual Studio install; an ASan-instrumented app may abort on startup."
-		}
-	}
+	Initialize-MsvcAsanRuntime -RunnerDir $buildDirReleaseFull
 
 	New-Item -ItemType Directory -Force -Path $logDirPath | Out-Null
 	# Bounded growth for logs/, same retention policy as the build script.

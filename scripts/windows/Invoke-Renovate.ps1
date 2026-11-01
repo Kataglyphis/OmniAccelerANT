@@ -43,18 +43,22 @@ if (-not (Get-Command -Name 'Invoke-InLinuxContainerBuild' -ErrorAction Silently
 # Before the token file is written, so a host without nerdctl stops with nothing to clean up.
 $engine = Resolve-NerdctlExe
 
-$renovateArgs = @()
-if ($Apply) { $renovateArgs += '--apply' }
-if ($DryRun) { $renovateArgs += '--dry-run' }
-if ($Refresh) { $renovateArgs += '--refresh' }
-if ($PrintBin) { $renovateArgs += '--print-bin' }
-if ($Managers) { $renovateArgs += @('--managers', $Managers) }
-foreach ($path in $SubmodulePath) { $renovateArgs += @('--submodule-path', $path) }
+function Get-RenovateArgument {
+	$arguments = @()
+	if ($Apply) { $arguments += '--apply' }
+	if ($DryRun) { $arguments += '--dry-run' }
+	if ($Refresh) { $arguments += '--refresh' }
+	if ($PrintBin) { $arguments += '--print-bin' }
+	if ($Managers) { $arguments += @('--managers', $Managers) }
+	foreach ($path in $SubmodulePath) { $arguments += @('--submodule-path', $path) }
+	if ($Recurse) { $arguments += '--vendored' }
+	return $arguments
+}
+$renovateArgs = @(Get-RenovateArgument)
 
 # -Recurse runs the hub's fleet driver with --vendored: this one-superproject mount makes every repo vendored.
 if ($Recurse) {
 	$entry = 'third_party/ANTfrastructure/linux/scripts/renovate-fleet.sh'
-	$renovateArgs += '--vendored'
 } else {
 	$entry = 'scripts/linux/renovate-local.sh'
 }
