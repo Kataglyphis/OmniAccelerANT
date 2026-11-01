@@ -504,6 +504,12 @@ rather than linked.
 - **A RISC-V board runs the same image natively**: a USB webcam needs `--v4l2`, a udev rule
   for the camera node's ACL and UFW rules, and `serve.sh --producer-host` takes the board's IP,
   never its mDNS name. Detail: [`docs/source/camera-streaming.md`](docs/source/camera-streaming.md) § *Cat detection stream (Rust, native)*.
+- **An ObservANT bundle scans its plugin registry out of process.** The launchers name the bundled
+  `gst-plugin-scanner` in `GST_PLUGIN_SCANNER`, and OxidANT's `ensure_gst_initialized` then adds no
+  `GST_REGISTRY_FORK=no`; never set it for a bundle with webrtcsink. An in-process scan of a fresh
+  registry can register webrtcsink before its encoders, and the stream dies with
+  `No codec available for encoding stream video_0` on hosts whose filesystem lists that plugin first.
+  `test-observant-package.sh` forces that order: [`docs/source/camera-streaming.md`](docs/source/camera-streaming.md) § *Tests*.
 - **Autostart is opt-in.** Boards on the ObservANT package use its systemd unit; the manual
   setups' `~/cat-cam.sh start` removes a stale container first, or the named run fails with
   `name-store error`.

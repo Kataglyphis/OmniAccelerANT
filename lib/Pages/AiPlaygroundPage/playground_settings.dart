@@ -70,5 +70,6 @@ class PlaygroundSettings {
     temperature: temperature,
     topP: 1.0,
     topK: 50,
+    stop: const <String>[],
   );
 }

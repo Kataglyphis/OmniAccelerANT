@@ -68,6 +68,8 @@ DetectionEvent _event({required int boxes, double fps = 0, double ms = 0}) =>
             classId: PlatformInt64Util.from(15),
           ),
       ],
+      backend: 'ort',
+      executionProvider: 'cpu',
       frameSequence: BigInt.one,
       ptsMs: null,
       inferenceMs: ms,

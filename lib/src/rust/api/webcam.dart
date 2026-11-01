@@ -86,6 +86,12 @@ class DetectionBox {
 
 class DetectionEvent {
   final List<DetectionBox> detections;
+
+  /// The inference backend: `ort` or `tract`.
+  final String backend;
+
+  /// The execution provider: `cpu`, or e.g. `xnnpack` or `cuda`.
+  final String executionProvider;
   final BigInt frameSequence;
   final BigInt? ptsMs;
   final double inferenceMs;
@@ -93,6 +99,8 @@ class DetectionEvent {
 
   const DetectionEvent({
     required this.detections,
+    required this.backend,
+    required this.executionProvider,
     required this.frameSequence,
     this.ptsMs,
     required this.inferenceMs,
@@ -102,6 +110,8 @@ class DetectionEvent {
   @override
   int get hashCode =>
       detections.hashCode ^
+      backend.hashCode ^
+      executionProvider.hashCode ^
       frameSequence.hashCode ^
       ptsMs.hashCode ^
       inferenceMs.hashCode ^
@@ -113,6 +123,8 @@ class DetectionEvent {
       other is DetectionEvent &&
           runtimeType == other.runtimeType &&
           detections == other.detections &&
+          backend == other.backend &&
+          executionProvider == other.executionProvider &&
           frameSequence == other.frameSequence &&
           ptsMs == other.ptsMs &&
           inferenceMs == other.inferenceMs &&
@@ -131,6 +143,9 @@ class WebcamStreamConfig {
   final String modelPath;
   final double scoreThreshold;
 
+  /// Class ids to report (see `detector_labels`); empty reports every class.
+  final Int64List classes;
+
   /// Texture id from the native plugin's `create` call; `0` = headless.
   final PlatformInt64 textureId;
 
@@ -145,6 +160,7 @@ class WebcamStreamConfig {
     required this.framerate,
     required this.modelPath,
     required this.scoreThreshold,
+    required this.classes,
     required this.textureId,
     this.textureLibrary,
   });
@@ -158,6 +174,7 @@ class WebcamStreamConfig {
       framerate.hashCode ^
       modelPath.hashCode ^
       scoreThreshold.hashCode ^
+      classes.hashCode ^
       textureId.hashCode ^
       textureLibrary.hashCode;
 
@@ -173,6 +190,7 @@ class WebcamStreamConfig {
           framerate == other.framerate &&
           modelPath == other.modelPath &&
           scoreThreshold == other.scoreThreshold &&
+          classes == other.classes &&
           textureId == other.textureId &&
           textureLibrary == other.textureLibrary;
 }

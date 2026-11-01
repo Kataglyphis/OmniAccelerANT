@@ -99,6 +99,8 @@ class _RustWebcamViewState extends State<RustWebcamView> {
         framerate: 30,
         modelPath: _modelPathController.text.trim(),
         scoreThreshold: _scoreThreshold,
+        // The view boxes persons only, COCO class 0.
+        classes: Int64List.fromList(const <int>[0]),
         textureId: PlatformInt64Util.from(textureId),
       ),
     );

@@ -1185,6 +1185,14 @@ unit runs it, with a scrubbed environment as `omni-observant`:
   maps, every file the server gzips came with its zopfli `.gz`, and the served
   `main.dart.wasm` was that `.gz` byte for byte;
 - SIGTERM exits 0, and no inference fails on the way out;
+- a first start on a fresh registry still streams when the plugin directory lists
+  `libgstrswebrtc.so` first (a tmpfs bind-mounted over the bundle's `lib/gstreamer-1.0`). An
+  in-process registry scan registers webrtcsink before its encoders in that order, its codec list
+  stays empty and the stream fails with `No codec available for encoding stream video_0`; which
+  order a host gets depends on its filesystem, so the other checks pass or fail by chance. The
+  launchers name the bundled scanner in `GST_PLUGIN_SCANNER`, which keeps OxidANT's
+  `ensure_gst_initialized` from switching to the in-process scan (OxidANT's `docs/observant.md`
+  § *A fresh registry and webrtcsink*);
 - the AppImage's `--install`, a second `--install` over it, and `--uninstall --purge` left the
   expected files, and then none;
 - the .deb installed over an edited `observant.toml` with no terminal, kept the edit, and

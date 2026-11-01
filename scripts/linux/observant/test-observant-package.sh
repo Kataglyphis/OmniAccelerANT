@@ -385,6 +385,41 @@ unit_verifies() { if test -z "$(systemd-analyze verify "$1" 2>&1)"; then return 
 unit_sandboxed() { systemd-analyze security --offline=true --threshold=25 "$1" >/dev/null 2>&1; }
 
 in_video_group() { id -nG "${user}" | grep -qw video; }
+
+# tmpfs lists entries newest-first or oldest-first depending on the kernel, so both copy orders are tried.
+plugins_listing_first() {
+  local dir="$1" first="$2" src="$3" f pass
+  for pass in first last; do
+    rm -f "${dir}"/*.so
+    [ "${pass}" = last ] || cp "${src}/${first}" "${dir}/"
+    for f in "${src}"/*.so; do [ "$(basename "${f}")" = "${first}" ] || cp "${f}" "${dir}/"; done
+    [ "${pass}" = first ] || cp "${src}/${first}" "${dir}/"
+    [ "$(find "${dir}" -mindepth 1 -maxdepth 1 -printf '%f\n' | head -n 1)" != "${first}" ] || return 0
+  done
+  printf '      cannot make the directory list %s first\n' "${first}"
+  return 1
+}
+
+# A fresh registry scanned with webrtcsink's plugin first still streams; it does not prove any other scan order.
+fresh_registry_worst_order_streams() {
+  local plugins="${prefix}/lib/gstreamer-1.0" fast="${work}/fast-plugins" home="${work}/order-home" pid rc=0
+  mkdir -p "${fast}" "${home}" && mount -t tmpfs -o size=512m tmpfs "${fast}" || return 1
+  if plugins_listing_first "${fast}" libgstrswebrtc.so "${plugins}" && mount --bind "${fast}" "${plugins}"; then
+    (exec env -i HOME="${home}" GST_REGISTRY="${home}/gst-registry.bin" PATH=/usr/bin:/bin \
+      "${prefix}/observant" --camera test --inference off --http-port 0 >"${work}/worst-order.log" 2>&1) &
+    pid=$!
+    sleep 8
+    kill -0 "${pid}" 2>/dev/null || rc=1
+    kill -TERM "${pid}" 2>/dev/null
+    wait "${pid}" 2>/dev/null
+    log_lacks 'No codec available' "${work}/worst-order.log" || rc=1
+    umount "${plugins}" || rc=1
+  else
+    rc=1
+  fi
+  umount "${fast}" || rc=1
+  return "${rc}"
+}
 log_lacks() { if ! grep -q "$1" "$2"; then return 0; fi; return 1; }
 purged() { if ! test -e "${config}" && ! test -e "${prefix}"; then return 0; fi; return 1; }
 unit_masked() { if test "$(readlink /etc/systemd/system/omni-observant.service)" = /dev/null; then return 0; fi; return 1; }
@@ -473,6 +508,8 @@ check_service "${work}/idle.log" "idle, it maps nothing from outside the bundle"
 stop_service "${pid}"
 check "SIGTERM exits 0" test $? -eq 0
 check "no inference failed at shutdown" log_lacks 'inference failed' "${work}/idle.log"
+check_service "${work}/worst-order.log" "a fresh registry that lists webrtcsink's plugin first still streams" \
+  fresh_registry_worst_order_streams
 
 ip="$(hostname -I | awk '{print $1}')"
 webhook_receiver 18999 "${work}/webhook.jsonl" &

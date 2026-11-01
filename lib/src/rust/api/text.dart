@@ -107,11 +107,23 @@ class TextOptions {
   final double topP;
   final int topK;
 
+  /// Makes sampling repeatable on one model and execution provider.
+  final int? seed;
+
+  /// JSON schema text the answer must match; a lane without llguidance refuses it as `json_schema is unsupported`.
+  final String? jsonSchema;
+
+  /// Generation ends before the first of these strings, which the answer leaves out.
+  final List<String> stop;
+
   const TextOptions({
     required this.maxNewTokens,
     required this.temperature,
     required this.topP,
     required this.topK,
+    this.seed,
+    this.jsonSchema,
+    required this.stop,
   });
 
   @override
@@ -119,7 +131,10 @@ class TextOptions {
       maxNewTokens.hashCode ^
       temperature.hashCode ^
       topP.hashCode ^
-      topK.hashCode;
+      topK.hashCode ^
+      seed.hashCode ^
+      jsonSchema.hashCode ^
+      stop.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -129,7 +144,10 @@ class TextOptions {
           maxNewTokens == other.maxNewTokens &&
           temperature == other.temperature &&
           topP == other.topP &&
-          topK == other.topK;
+          topK == other.topK &&
+          seed == other.seed &&
+          jsonSchema == other.jsonSchema &&
+          stop == other.stop;
 }
 
 /// Where the answer comes from: `model_dir` runs the chain's GenAI in process (Linux and Windows); without it the

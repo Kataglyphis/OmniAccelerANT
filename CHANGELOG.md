@@ -6,6 +6,17 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 ## Unreleased
 
 ### 2026-11-01
+- **ObservANT streams on its first start again.** OxidANT moves to `c1474de`, whose
+  `ensure_gst_initialized` leaves `GST_REGISTRY_FORK` unset when the caller names a plugin scanner.
+  Since OxidANT `c7d3593` it had set `GST_REGISTRY_FORK=no` under the launchers' own
+  `GST_PLUGIN_SCANNER`, so a fresh registry was scanned in process; where the filesystem listed
+  `libgstrswebrtc.so` before the encoders, webrtcsink found no codec and the service exited
+  (`No codec available for encoding stream video_0`, `web.yml` runs 41275429526 and 41278759760,
+  every Linux package format; the Windows x64 MSI failed in the same run, and `install::adopt` names
+  its scanner the same way). `test-observant-package.sh` now starts the service on a
+  fresh registry with that plugin listed first. The move regenerates the bridge's Dart side: the
+  Stream page's view asks for persons (`classes: [0]`), as its engine did before, and the AI
+  Playground passes no stop strings.
 - **A failed ObservANT service check prints the service's log.** `test-observant-package.sh`
   shows the last 40 lines of the service's own log under the idle, user-copy, installed-copy and
   flatpak checks when one fails; before, the CI log only said the process was gone.
