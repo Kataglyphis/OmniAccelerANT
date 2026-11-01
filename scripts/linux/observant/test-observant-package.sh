@@ -77,6 +77,17 @@ check() {
   t_assert_eq 0 "${rc}" "exit code"
 }
 
+# A failed check on a running service shows that service's log, the only record of why it stopped.
+check_service() {
+  local log="$1" before="${failures}"
+  shift
+  check "$@"
+  if [ "${failures}" -gt "${before}" ]; then
+    tail -n 40 "${log}" | sed 's/^/      log: /'
+  fi
+  return 0
+}
+
 # The unit's environment only (its HOME and GST_REGISTRY, systemd's STATE_DIRECTORY), exec'd so $! is the service.
 start_service() {
   local log="$1"; shift
@@ -458,7 +469,7 @@ mkdir -p "${state}" && chown "${user}:" "${state}"
 start_service "${work}/idle.log" "${prefix}/observant" --camera test --inference on --http-port 0
 pid=$!
 sleep 8
-check "idle, it maps nothing from outside the bundle" nothing_outside_bundle "${pid}"
+check_service "${work}/idle.log" "idle, it maps nothing from outside the bundle" nothing_outside_bundle "${pid}"
 stop_service "${pid}"
 check "SIGTERM exits 0" test $? -eq 0
 check "no inference failed at shutdown" log_lacks 'inference failed' "${work}/idle.log"
@@ -542,7 +553,7 @@ check "--install --user sets up the user's copy, units, private settings and ver
 (exec setpriv --reuid=1001 --regid=1001 --clear-groups env -i HOME="${work}/home" PATH=/usr/bin:/bin \
   "${user_home_install}/observant" --camera test --inference off >"${work}/user-stream.log" 2>&1) &
 pid=$!
-check "the user's copy answers /healthz" wait_healthz "${ip}"
+check_service "${work}/user-stream.log" "the user's copy answers /healthz" wait_healthz "${ip}"
 stop_service "${pid}"
 echo 'rotate = 90' >>"${user_config}"
 as_plain "${work}/observant.AppImage" --install --user >/dev/null 2>&1
@@ -556,7 +567,7 @@ check "--install leaves nothing under ${prefix} owned by the builder" test -z "$
 mkdir -p "${state}" && chown "${user}:" "${state}"
 start_service "${work}/ai-stream.log" "${prefix}/observant" --camera test --inference off
 pid=$!
-check "the installed copy answers /healthz" wait_healthz "${ip}"
+check_service "${work}/ai-stream.log" "the installed copy answers /healthz" wait_healthz "${ip}"
 stop_service "${pid}"
 echo 'rotate = 180' >>"${config}"
 "${work}/observant.AppImage" --install >/dev/null 2>&1
@@ -573,7 +584,7 @@ flatpak install --system -y --noninteractive "${flatpak_bundle}" >"${work}/fp-in
 check "flatpak installs it" flatpak info --system "${flatpak_id}"
 flatpak run --command=omni-observant "${flatpak_id}" --camera test --inference off >"${work}/fp-stream.log" 2>&1 &
 pid=$!
-check "in its sandbox it answers /healthz" wait_healthz "${ip}"
+check_service "${work}/fp-stream.log" "in its sandbox it answers /healthz" wait_healthz "${ip}"
 check "it keeps the cat's visits in its own state directory" grep -q "state: .*/\.var/app/${flatpak_id}/" "${work}/fp-stream.log"
 frames="$(chrome_frames "http://${ip}:8080/" 20000)"
 printf '      Chrome played %s frame(s) over %s\n' "${frames}" "${ip}"

@@ -6,6 +6,9 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 ## Unreleased
 
 ### 2026-11-01
+- **A failed ObservANT service check prints the service's log.** `test-observant-package.sh`
+  shows the last 40 lines of the service's own log under the idle, user-copy, installed-copy and
+  flatpak checks when one fails; before, the CI log only said the process was gone.
 - **The WebRTC view tests no longer lose an offer after a reconnect.** The signalling stand-in
   (`test/support/gst_signalling_stand_in.js`) gave every message its own `setTimeout(0)`; Chrome
   clamps a timer nested five deep to 4 ms, so after the reconnect chain the offer's unnested timer
