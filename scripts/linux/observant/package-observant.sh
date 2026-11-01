@@ -1,18 +1,5 @@
 #!/usr/bin/env bash
-# Packages ObservANT: a self-contained bundle (its own GStreamer, ONNX Runtime and C library), a .deb and an
-# AppImage that install it as a systemd service, and a flatpak started at sign-in. Runs privileged in the image;
-# riscv64 gets the .deb and the tarball only.
-#
-# Usage, from the repository root inside the image:
-#   bash scripts/linux/observant/package-observant.sh --web-root build/web [options]
-#
-#   --web-root DIR   the Flutter web build (the web lane's build/web); required
-#   --model FILE     ONNX model to ship (default: OxidANT's models.lock, fetched and checked)
-#   --producer FILE  a built kataglyphis_observant (default: cargo build --release here)
-#   --out DIR        where the packages and the bundle tarball land (default: out/)
-#   --version X.Y.Z  package version (default: pubspec.yaml's, without +build)
-#
-# Details: docs/source/camera-streaming.md § ObservANT package.
+# Packages ObservANT as a bundle, .deb, AppImage and flatpak inside the image; usage() lists the options.
 set -euo pipefail
 
 script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
@@ -31,6 +18,25 @@ producer=""
 out_dir="${repo_root}/out"
 version=""
 
+usage() {
+  cat <<'EOF'
+Packages ObservANT: a self-contained bundle (its own GStreamer, ONNX Runtime and C library), a .deb and an
+AppImage that install it as a systemd service, and a flatpak started at sign-in. Runs privileged in the image;
+riscv64 gets the .deb and the tarball only.
+
+Usage, from the repository root inside the image:
+  bash scripts/linux/observant/package-observant.sh --web-root build/web [options]
+
+  --web-root DIR   the Flutter web build (the web lane's build/web); required
+  --model FILE     ONNX model to ship (default: OxidANT's models.lock, fetched and checked)
+  --producer FILE  a built kataglyphis_observant (default: cargo build --release here)
+  --out DIR        where the packages and the bundle tarball land (default: out/)
+  --version X.Y.Z  package version (default: pubspec.yaml's, without +build)
+
+Details: docs/source/camera-streaming.md § ObservANT package.
+EOF
+}
+
 while [ $# -gt 0 ]; do
   case "$1" in
     --web-root) web_root="${2:?--web-root needs a directory}"; shift 2 ;;
@@ -38,7 +44,7 @@ while [ $# -gt 0 ]; do
     --producer) producer="${2:?--producer needs a file}"; shift 2 ;;
     --out) out_dir="${2:?--out needs a directory}"; shift 2 ;;
     --version) version="${2:?--version needs a value}"; shift 2 ;;
-    -h|--help) sed -n '2,15p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    -h|--help) usage; exit 0 ;;
     *) printf 'unknown argument: %s\n' "$1" >&2; exit 2 ;;
   esac
 done

@@ -151,8 +151,11 @@ wait_cat() {
 }
 
 jpeg_at() {
-  curl -sf "http://$1:8080$2" -o "${work}/got.jpg" &&
-    test "$(head -c 3 "${work}/got.jpg" | od -An -tx1 | tr -d ' \n')" = ffd8ff
+  if curl -sf "http://$1:8080$2" -o "${work}/got.jpg" &&
+    test "$(head -c 3 "${work}/got.jpg" | od -An -tx1 | tr -d ' \n')" = ffd8ff; then
+    return 0
+  fi
+  return 1
 }
 
 # The engine as the browser gets it, gzipped: the packaged zopfli .gz byte for byte, which unzips to the file.
@@ -358,56 +361,74 @@ webhook_got() {
 
 # Every setting the shipped observant.toml documents, uncommented: an unknown key is an error, so this reads them all.
 template_keys_parse() {
-  sed -E 's/^# ([a-z_]+ = )/\1/' "${prefix}/share/omni-observant/observant.toml" >"${work}/all-keys.toml" &&
+  if sed -E 's/^# ([a-z_]+ = )/\1/' "${prefix}/share/omni-observant/observant.toml" >"${work}/all-keys.toml" &&
     test "$(grep -cE '^[a-z_]+ = ' "${work}/all-keys.toml")" -ge 15 &&
-    "${prefix}/observant" --config "${work}/all-keys.toml" --print-config >/dev/null
+    "${prefix}/observant" --config "${work}/all-keys.toml" --print-config >/dev/null; then
+    return 0
+  fi
+  return 1
 }
 
 # The unit loads without warnings and keeps its sandbox: systemd-analyze rates it 1.8 (2026-10-12).
-unit_verifies() { test -z "$(systemd-analyze verify "$1" 2>&1)"; }
+unit_verifies() { if test -z "$(systemd-analyze verify "$1" 2>&1)"; then return 0; fi; return 1; }
 unit_sandboxed() { systemd-analyze security --offline=true --threshold=25 "$1" >/dev/null 2>&1; }
 
 in_video_group() { id -nG "${user}" | grep -qw video; }
-log_lacks() { ! grep -q "$1" "$2"; }
-purged() { ! test -e "${config}" && ! test -e "${prefix}"; }
-unit_masked() { test "$(readlink /etc/systemd/system/omni-observant.service)" = /dev/null; }
+log_lacks() { if ! grep -q "$1" "$2"; then return 0; fi; return 1; }
+purged() { if ! test -e "${config}" && ! test -e "${prefix}"; then return 0; fi; return 1; }
+unit_masked() { if test "$(readlink /etc/systemd/system/omni-observant.service)" = /dev/null; then return 0; fi; return 1; }
 unit_enabled_unmasked() {
-  ! unit_masked && test -e /etc/systemd/system/multi-user.target.wants/omni-observant.service
+  if ! unit_masked && test -e /etc/systemd/system/multi-user.target.wants/omni-observant.service; then
+    return 0
+  fi
+  return 1
 }
 as_plain() {
   setpriv --reuid=1001 --regid=1001 --clear-groups \
     env -i HOME="${work}/home" PATH=/usr/bin:/bin APPIMAGE_EXTRACT_AND_RUN=1 "$@"
 }
 plain_foreground() { as_plain "${work}/observant.AppImage" --print-config | grep -q '^camera = '; }
-plain_install_refused() { ! as_plain "${work}/observant.AppImage" --install >/dev/null 2>&1; }
+plain_install_refused() { if ! as_plain "${work}/observant.AppImage" --install >/dev/null 2>&1; then return 0; fi; return 1; }
 user_home_install="${work}/home/.local/opt/omni-observant"
 user_config="${work}/home/.config/omni-observant/observant.toml"
 user_units="${work}/home/.config/systemd/user"
 user_installed() {
-  test -x "${user_home_install}/observant" && test -s "${user_home_install}/share/omni-observant/version" &&
+  if test -x "${user_home_install}/observant" && test -s "${user_home_install}/share/omni-observant/version" &&
     grep -q '^ExecStart=%h/.local/opt/omni-observant/observant$' "${user_units}/omni-observant.service" &&
     grep -q -- '--user$' "${user_units}/omni-observant-update.service" && test -f "${user_units}/omni-observant-update.timer" &&
-    test "$(stat -c '%a %u' "${user_config}")" = '600 1001'
+    test "$(stat -c '%a %u' "${user_config}")" = '600 1001'; then
+    return 0
+  fi
+  return 1
 }
 user_uninstalled() {
-  ! test -e "${user_home_install}" && ! test -e "${user_units}/omni-observant.service" && ! test -e "${user_config}"
+  if ! test -e "${user_home_install}" && ! test -e "${user_units}/omni-observant.service" && ! test -e "${user_config}"; then
+    return 0
+  fi
+  return 1
 }
-root_user_install_refused() { ! "${work}/observant.AppImage" --install --user >/dev/null 2>&1; }
-user_beside_system_refused() { ! as_plain "${work}/observant.AppImage" --install --user >/dev/null 2>&1; }
+root_user_install_refused() { if ! "${work}/observant.AppImage" --install --user >/dev/null 2>&1; then return 0; fi; return 1; }
+user_beside_system_refused() { if ! as_plain "${work}/observant.AppImage" --install --user >/dev/null 2>&1; then return 0; fi; return 1; }
 appimage_installed() {
-  test -f /etc/systemd/system/omni-observant.service && test -f "${config}" &&
-    test "$(readlink -f /usr/local/bin/omni-observant)" = "${prefix}/observant"
+  if test -f /etc/systemd/system/omni-observant.service && test -f "${config}" &&
+    test "$(readlink -f /usr/local/bin/omni-observant)" = "${prefix}/observant"; then
+    return 0
+  fi
+  return 1
 }
 legacy_visits_moved() {
   test -f "${state}/cat.json" && test "$(stat -c %U "${state}/cat.json")" = "${user}" || return 1
   grep -q '"visits":7' "${state}/cat.json" || return 1
   return 0
 }
-installed_copy_refuses() { ! /usr/local/bin/omni-observant --install >/dev/null 2>&1; }
-flatpak_gone() { ! flatpak info --system "$1" >/dev/null 2>&1; }
+installed_copy_refuses() { if ! /usr/local/bin/omni-observant --install >/dev/null 2>&1; then return 0; fi; return 1; }
+flatpak_gone() { if ! flatpak info --system "$1" >/dev/null 2>&1; then return 0; fi; return 1; }
 uninstalled() {
-  ! test -e "${prefix}" && ! test -e /etc/systemd/system/omni-observant.service &&
-    ! test -e "${config}" && ! id "${user}" >/dev/null 2>&1
+  if ! test -e "${prefix}" && ! test -e /etc/systemd/system/omni-observant.service &&
+    ! test -e "${config}" && ! id "${user}" >/dev/null 2>&1; then
+    return 0
+  fi
+  return 1
 }
 
 printf '=== the .deb ===\n'

@@ -1,10 +1,5 @@
 #!/usr/bin/env bash
-# Builds the ESP32-S3-EYE camera firmware: ESP-WHO/ESP-DL cat detection (C++) plus the
-# Rust USB protocol layer (staticlib), in the official ESP-IDF image.
-#
-#   scripts/linux/esp32/build-eye-demo.sh
-#   scripts/linux/esp32/build-eye-demo.sh --flash
-#   scripts/linux/esp32/build-eye-demo.sh --flash --port /dev/ttyACM0
+# Builds the ESP32-S3-EYE camera firmware in the official ESP-IDF image; usage() lists the options.
 set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
@@ -17,7 +12,14 @@ port="${ESP32_PORT:-/dev/ttyACM0}"
 flash=0
 
 usage() {
-    sed -n '2,7p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+    cat <<'EOF'
+Builds the ESP32-S3-EYE camera firmware: ESP-WHO/ESP-DL cat detection (C++) plus the
+Rust USB protocol layer (staticlib), in the official ESP-IDF image.
+
+  scripts/linux/esp32/build-eye-demo.sh
+  scripts/linux/esp32/build-eye-demo.sh --flash
+  scripts/linux/esp32/build-eye-demo.sh --flash --port /dev/ttyACM0
+EOF
 }
 
 while [[ $# -gt 0 ]]; do

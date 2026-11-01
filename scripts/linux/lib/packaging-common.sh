@@ -10,7 +10,8 @@ export APP_PACKAGING_MAINTAINER="Kataglyphis <dev@kataglyphis.local>"
 export APP_PACKAGING_DESCRIPTION="Kataglyphis inference engine desktop app."
 # The bundle carries glibc, libstdc++ and GStreamer; libepoxy dlopens EGL, GLES and GLX.
 export APP_PACKAGING_DEB_DEPENDS="${APP_PACKAGING_DEB_DEPENDS:-libgtk-3-0, libegl1, libgles2, libgl1}"
-APP_PACKAGING_ICON_FALLBACKS=("assets/icons/kataglyphis_app_icon.png")
+# Read by the sourced app-packaging.sh; Bash keeps an array out of every child's environment anyway.
+export APP_PACKAGING_ICON_FALLBACKS=("assets/icons/kataglyphis_app_icon.png")
 # Flatpak has no --device=video, and the Stream page opens /dev/video*; set empty to drop it (owner, 2026-10-01).
 export KATAGLYPHIS_FLATPAK_FINISH_ARGS="${KATAGLYPHIS_FLATPAK_FINISH_ARGS---device=all}"
 

@@ -14,7 +14,10 @@ antfrastructure_source linux/scripts/05-frameworks/flutter/lane-prologue.sh
 # is_truthy plus a bare "y" and mixed case.
 maybe_truthy() {
   local value="${1:-}"
-  is_truthy "${value,,}" || [[ "${value,,}" == "y" ]]
+  if is_truthy "${value,,}" || [[ "${value,,}" == "y" ]]; then
+    return 0
+  fi
+  return 1
 }
 
 # Tracked files only (AGENTS.md § 4); the driver resolves on its own line, as set -e is off inside run_gate.
@@ -152,9 +155,8 @@ run_cmake_format_check() {
   fi
   antfrastructure_source linux/scripts/lib/code-quality.sh || return 1
 
-  CODE_QUALITY_VENV_DIR="${PWD}/.venv"
   # Bare call: its failures exit via err(), and only run_gate's subshell turns that into a recorded failure.
-  code_quality_ensure_cmake_format
+  CODE_QUALITY_VENV_DIR="${PWD}/.venv" code_quality_ensure_cmake_format
 
   if [[ ! -f .cmake-format.yaml ]]; then
     echo "Error: no .cmake-format.yaml at the repo root; without it cmake-format silently" >&2

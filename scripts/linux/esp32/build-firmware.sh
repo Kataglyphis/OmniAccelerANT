@@ -1,15 +1,5 @@
 #!/usr/bin/env bash
-# Builds (and optionally flashes) the ESP32-S3 companion inside the family image.
-#
-# The first run bootstraps espup's Xtensa toolchain and espflash (scripts/linux/tool-pins.env)
-# into a named volume, so later runs are offline and warm. Firmware sources stay on the host mount; only
-# the toolchain, cargo registry and target tree live on the volume.
-#
-#   scripts/linux/esp32/build-firmware.sh
-#   scripts/linux/esp32/build-firmware.sh --flash
-#   scripts/linux/esp32/build-firmware.sh --flash --port /dev/ttyUSB0 --uart
-#
-# Env: KATAGLYPHIS_IMAGE, KATAGLYPHIS_ENGINE, KATAGLYPHIS_ESP32_VOLUME.
+# Builds and optionally flashes the ESP32-S3 companion inside the family image; usage() lists the options.
 set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
@@ -25,7 +15,19 @@ flash=0
 uart=0
 
 usage() {
-    sed -n '2,12p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+    cat <<'EOF'
+Builds (and optionally flashes) the ESP32-S3 companion inside the family image.
+
+The first run bootstraps espup's Xtensa toolchain and espflash (scripts/linux/tool-pins.env)
+into a named volume, so later runs are offline and warm. Firmware sources stay on the host mount; only
+the toolchain, cargo registry and target tree live on the volume.
+
+  scripts/linux/esp32/build-firmware.sh
+  scripts/linux/esp32/build-firmware.sh --flash
+  scripts/linux/esp32/build-firmware.sh --flash --port /dev/ttyUSB0 --uart
+
+Env: KATAGLYPHIS_IMAGE, KATAGLYPHIS_ENGINE, KATAGLYPHIS_ESP32_VOLUME.
+EOF
 }
 
 while [[ $# -gt 0 ]]; do

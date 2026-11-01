@@ -284,13 +284,8 @@ sizes and decision are in [overview.md](docs/source/overview.md#desktop-c-integr
 Everything here is false or meaningless in another repo — that is why it is written out
 rather than linked.
 
-- **Five scripts print a fixed line range of their own header as `--help`.**
-  `scripts/linux/observant/package-producer-bundle.sh` (`sed -n '2,22p'`),
-  `scripts/linux/observant/package-observant.sh` (`sed -n '2,15p'`),
-  `scripts/linux/esp32/build-firmware.sh` (`sed -n '2,12p'`),
-  `scripts/linux/esp32/build-eye-demo.sh` (`sed -n '2,7p'`) and
-  `scripts/agentic-loop/Run-AgenticLoop.sh` (`head -28 | tail -27`): edit the
-  header and the range together. `comment-size.allow` freezes those headers.
+- **Script help lives in a `usage()` heredoc, never in the header comment.** The header is one
+  line; `--help` prints the heredoc, so the comment-size gate needs no allowlist here.
 - **Six image gaps this repo once worked around are fixed in the image (2026-09-05); never
   bring a workaround back.** A reappearing one is an image regression
   ([`docs/source/platforms.md`](docs/source/platforms.md) § *Image gaps and image-tag history*).

@@ -9,6 +9,14 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 - **The frame-timing history is a bench-history artifact.** The hub's `frontend-perf-report` action now
   delegates to `bench-history` (artifact `bench-history-frontend-perf-x64`, kept 90 days), and
   `quality-report.toml` declares it as a `benchmark` output for fleet-health.
+- **Shell allowlists emptied: trailing-conditional 18 -> 0, comment-size 5 -> 0, shellcheck warnings
+  8 -> 5.** The 18 predicates in `container-steps.sh` and the ObservANT package and update tests end
+  with explicit `return 0`/`return 1`, with the same answers. The two packaging scripts and two ESP32
+  scripts print `--help` from a `usage()` heredoc with byte-identical output, and their headers are one
+  line; `Run-AgenticLoop.sh` matches the hub template. `codeql-android.sh` returns when `cd` fails,
+  `run_cmake_format_check` passes the venv directory to the one call that reads it, and the icon
+  fallback array is exported. Both empty allowlist files are removed. Only the five vendored Cargokit
+  shellcheck rows remain.
 - **The Windows ONNX self-check suite passes on Windows runners.** Its process probe compared the
   working directory with `AppDomain.BaseDirectory` as raw strings; .NET Framework expands the 8.3
   name in the runner's `TEMP` (`RUNNER~1`) only in the working directory, so three tests saw exit
