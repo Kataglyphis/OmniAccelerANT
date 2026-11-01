@@ -6,16 +6,35 @@ Describe 'Windows packaged ONNX self-check' {
     $source = @'
 using System;
 using System.IO;
+using System.Runtime.InteropServices;
+using System.Text;
 using System.Threading;
 class Probe {
+    [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+    static extern uint GetLongPathName(string shortPath, StringBuilder longPath, uint size);
+    // .NET Framework expands 8.3 names such as RUNNER~1 in the current directory but not in BaseDirectory.
+    static string Canonical(string path) {
+        StringBuilder buffer = new StringBuilder(32768);
+        uint length = GetLongPathName(path, buffer, (uint)buffer.Capacity);
+        if (length == 0 || length >= buffer.Capacity) throw new IOException("GetLongPathName failed for " + path);
+        return buffer.ToString().TrimEnd('\\');
+    }
+    static int Mismatch(int code, string expected, string actual) {
+        Console.Error.WriteLine("probe exit " + code + ": expected '" + expected + "', got '" + actual + "'");
+        return code;
+    }
     static int Main(string[] args) {
         if (args.Length != 1 || args[0] != "--onnx-check") return 2;
         if (Environment.GetEnvironmentVariable("KATAGLYPHIS_ORT_DEVICE") != "cpu" ||
             Environment.GetEnvironmentVariable("KATAGLYPHIS_ONNX_BACKEND") != "ort") return 3;
+        string baseDirectory = Canonical(AppDomain.CurrentDomain.BaseDirectory);
+        string ort = Environment.GetEnvironmentVariable("ORT_DYLIB_PATH");
+        string packagedOrt = Canonical(Path.Combine(baseDirectory, "onnxruntime.dll"));
         if (Environment.GetEnvironmentVariable("KATAGLYPHIS_ONNX_MODEL") != null ||
-            Environment.GetEnvironmentVariable("ONNX_ROOT") != null ||
-            Environment.GetEnvironmentVariable("ORT_DYLIB_PATH") != Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "onnxruntime.dll")) return 4;
-        if (Directory.GetCurrentDirectory() != AppDomain.CurrentDomain.BaseDirectory.TrimEnd('\\')) return 5;
+            Environment.GetEnvironmentVariable("ONNX_ROOT") != null) return 4;
+        if (ort == null || !File.Exists(ort) || Canonical(ort) != packagedOrt) return Mismatch(4, packagedOrt, ort);
+        string current = Canonical(Directory.GetCurrentDirectory());
+        if (current != baseDirectory) return Mismatch(5, baseDirectory, current);
         string windows = Environment.GetEnvironmentVariable("SystemRoot");
         if (Environment.GetEnvironmentVariable("PATH") != Path.Combine(windows, "System32") + ";" + windows) return 6;
         switch (Environment.GetEnvironmentVariable("OMNI_FIXTURE_MODE")) {

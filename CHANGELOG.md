@@ -6,6 +6,12 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 ## Unreleased
 
 ### 2026-11-01
+- **The Windows ONNX self-check suite passes on Windows runners.** Its process probe compared the
+  working directory with `AppDomain.BaseDirectory` as raw strings; .NET Framework expands the 8.3
+  name in the runner's `TEMP` (`RUNNER~1`) only in the working directory, so three tests saw exit
+  code 5 on both Windows lanes. The probe now compares long path names for the working directory and
+  `ORT_DYLIB_PATH`, and prints the expected and actual path on a mismatch. `Test-OnnxSelfCheck.ps1`
+  is unchanged: the self-check still runs in the package directory with only the bundled runtime.
 - **PowerShell complexity findings 14 -> 7.** `Build-Windows-Container.ps1`, `Invoke-Renovate.ps1`,
   `Package-OmniAccelerANT.ps1` and `Start-Windows.ps1` build their argument lists, GPU file list,
   runnable-build search, AOT copy and ASan staging in named helper functions;
