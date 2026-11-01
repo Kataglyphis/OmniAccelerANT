@@ -50,6 +50,8 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 - **Dart coverage reaches quality-report.** The lane keeps `logs/coverage/lcov.info` past
   `flutter clean`, `reusable-linux.yml` uploads it as `omni-accelerant-linux-<arch>-coverage`, and
   `quality-report.toml` reads the x64 artifact of the same-SHA `linux-x64.yml` run.
+
+- Flutter's generated `ios/Flutter/ephemeral/flutter_lldb_helper.py` and `flutter_lldbinit` are ignored and untracked like the other ephemeral files; the helper's `lldb` import had counted as a ty diagnostic wherever no system LLDB was installed.
 - **The frame-timing history is a bench-history artifact.** The hub's `frontend-perf-report` action now
   delegates to `bench-history` (artifact `bench-history-frontend-perf-x64`, kept 90 days), and
   `quality-report.toml` declares it as a `benchmark` output for fleet-health.

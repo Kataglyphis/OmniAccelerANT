@@ -79,6 +79,8 @@ third_party/ANThology/.dart_tool/*
 ios/Flutter/Generated.xcconfig
 ios/Flutter/flutter_export_environment.sh
 ios/Flutter/ephemeral/flutter_native_integration.env
+ios/Flutter/ephemeral/flutter_lldb_helper.py
+ios/Flutter/ephemeral/flutter_lldbinit
 macos/Flutter/ephemeral/Flutter-Generated.xcconfig
 macos/Flutter/ephemeral/flutter_export_environment.sh
 macos/Flutter/ephemeral/flutter_native_integration.env
