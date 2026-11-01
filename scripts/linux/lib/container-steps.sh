@@ -157,7 +157,16 @@ run_flatpak_launch_smoke() {
 # A debug build under build/linux/<arch>/debug, so the release bundle stays as packaged; non-incremental cargo is sccache-cacheable.
 run_integration_test() {
   local target="${1:-integration_test/simple_test.dart}"
-  CARGO_INCREMENTAL=0 xvfb-run -a flutter test "$target" -d linux
+  shift || true
+  CARGO_INCREMENTAL=0 xvfb-run -a flutter test "$target" -d linux "$@"
+}
+
+# <dir>: the hub's tiny GenAI model and the language models OxidANT's llm.lock pins, fetched and checked by sha256.
+prepare_text_models() {
+  local dir="${1:?model directory required}"
+  python3 "$(antfrastructure_path linux/scripts/lib/tiny-genai-model.py)" --out "${dir}/tiny"
+  python3 "$(antfrastructure_path linux/scripts/lib/fetch-data-lock.py)" \
+    --lock third_party/OxidANT/resources/models/llm.lock --dest "$dir" --extract
 }
 
 # Frame timings in profile mode, kept in out/perf/frontend.json: the docs step's flutter clean empties build/ afterwards.

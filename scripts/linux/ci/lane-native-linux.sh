@@ -121,6 +121,7 @@ if [[ "$BUILD_MODE" == "release" ]]; then
   assert_gates
 
   # Under the image's xvfb-run: the packaged bundle starts, and the app drives its integration test.
+  prepare_text_models "${REPO_ROOT}/build/text-models"
   gate_reset "app under Xvfb (${MATRIX_ARCH})"
   run_gate "launch smoke" omni_ci_package_smoke run_launch_smoke "${build_dir}/bundle/$(linux_binary_name)"
   run_gate "launch smoke, bundled glibc" omni_ci_package_smoke run_bundled_glibc_launch_smoke "${build_dir}/bundle/$(linux_binary_name)"
@@ -129,6 +130,11 @@ if [[ "$BUILD_MODE" == "release" ]]; then
   run_gate "integration test" omni_ci_package_smoke run_integration_test
   # Rust -> knt_push_frame -> texture with a test pattern: CI has no camera, and the push path needs none.
   run_gate "webcam frame test" omni_ci_package_smoke run_integration_test integration_test/webcam_frame_test.dart
+  # The chain GenAI through OxidANT's bridge: the tiny model's exact tokens and SmolLM2-135M's answer.
+  text_models="${REPO_ROOT}/build/text-models"
+  run_gate "text generation test" omni_ci_package_smoke run_integration_test integration_test/text_generate_test.dart \
+    --dart-define=KATAGLYPHIS_TINY_MODEL_DIR="${text_models}/tiny" \
+    --dart-define=KATAGLYPHIS_LLM_MODEL_DIR="${text_models}/smollm2_135m_instruct-cpu"
   # One arch is enough to track the Dart side, and a profile build costs minutes.
   if [[ "$MATRIX_ARCH" == "x64" ]]; then
     run_gate "frontend performance" omni_ci_package_smoke run_frontend_performance

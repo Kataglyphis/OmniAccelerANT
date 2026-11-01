@@ -132,7 +132,9 @@ class PlaygroundSettings {
     temperature: temperature,
     topP: 1.0,
     topK: 50,
-    stop: const <String>[],
+    seed: seed,
+    jsonSchema: jsonSchema.isEmpty ? null : jsonSchema,
+    stop: stop,
   );
 }
 

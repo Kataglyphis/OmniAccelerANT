@@ -22,8 +22,13 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
   restored at the next start; `PlaygroundSettings.toJson` leaves the key out, so it lives in memory
   only. `test/ai_playground_settings_test.dart` plants a key, scans every saved byte for it and
   restores the rest. `path_provider`, already resolved through ANThology, becomes a direct dependency.
-- **Seed, JSON schema and stop strings in the AI Playground.** The form takes all three; the web
-  build sends them as `seed`, `response_format` and `stop`. See `docs/source/ai-playground.md`.
+- **Seed, JSON schema and stop strings in the AI Playground.** The form takes all three and sends
+  them as `seed`, `response_format` and `stop`: through OxidANT's `text_generate` on native builds,
+  in the fetch body on the web. See `docs/source/ai-playground.md`.
+- **The Linux lanes decode text in the built app.** `integration_test/text_generate_test.dart`
+  runs OxidANT's `text_generate` on the chain GenAI: the hub's tiny model must decode `abc` to
+  exactly `defg`, SmolLM2-135M (from OxidANT's `llm.lock`) must name Paris, and a recording loopback
+  server must see the playground's `seed`, `response_format` and `stop`.
 - **ObservANT streams on its first start again.** OxidANT moves to `c1474de`, whose
   `ensure_gst_initialized` leaves `GST_REGISTRY_FORK` unset when the caller names a plugin scanner.
   Since OxidANT `c7d3593` it had set `GST_REGISTRY_FORK=no` under the launchers' own
