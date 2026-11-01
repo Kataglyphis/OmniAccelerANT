@@ -6,6 +6,9 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 ## Unreleased
 
 ### 2026-11-01
+- **The frame-timing history is a bench-history artifact.** The hub's `frontend-perf-report` action now
+  delegates to `bench-history` (artifact `bench-history-frontend-perf-x64`, kept 90 days), and
+  `quality-report.toml` declares it as a `benchmark` output for fleet-health.
 - **The Windows ONNX self-check suite passes on Windows runners.** Its process probe compared the
   working directory with `AppDomain.BaseDirectory` as raw strings; .NET Framework expands the 8.3
   name in the runner's `TEMP` (`RUNNER~1`) only in the working directory, so three tests saw exit

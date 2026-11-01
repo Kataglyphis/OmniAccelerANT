@@ -686,7 +686,7 @@ that cannot run there; why, lane by lane: [`docs/source/testing.md`](docs/source
 | Launch smoke, 20 s | under Xvfb, on the host's and the bundled glibc, and the app flatpak | host | device | | |
 | Integration test (`integration_test/simple_test.dart`) | under Xvfb | `flutter drive` against the clang-cl app | `flutter drive` (the Debug app) | | |
 | Webcam frame through `knt_push_frame` (`integration_test/webcam_frame_test.dart`) | under Xvfb, test pattern | | | | |
-| Frame timings in profile mode (`integration_test/performance_test.dart`, `flutter drive --profile`), against the median of the last 20 default-branch runs (the hub's `frontend-perf-report` action) | x64, under Xvfb | | | | |
+| Frame timings in profile mode (`integration_test/performance_test.dart`, `flutter drive --profile`), against the median of the last 20 default-branch runs (the hub's `frontend-perf-report` action, bench-history key `frontend-perf-x64`, declared in `quality-report.toml` for fleet-health) | x64, under Xvfb | | | | |
 | Pester (`scripts/windows/tests`) | | `windows-2025` | `windows-11-arm` | | |
 | Plugin JVM test | | | | yes | |
 | APK ABI gate (`check-apk-abi.sh`) and its synthetic-APK suite | | | | yes | |

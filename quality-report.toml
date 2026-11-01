@@ -9,6 +9,11 @@ source = "docs/source"
 kind = "latency"
 path = "out/perf/frontend.json"
 
+[[output]]
+kind = "benchmark"
+path = "bench-history-frontend-perf-x64.json"
+artifact = "bench-history-frontend-perf-x64"
+
 # The native lane deletes build/ after its coverage check, so this is read from a local run.
 [[artifact]]
 name = "lib"
