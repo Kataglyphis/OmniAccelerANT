@@ -1,3 +1,4 @@
+# suite-runner: .github/workflows/windows-x64.yml
 """Exercise Windows provider configuration without building the application."""
 
 import os
@@ -14,9 +15,7 @@ HEADER = ROOT / "windows/runner/ort_device.h"
 
 class OrtDeviceTests(unittest.TestCase):
     def setUp(self):
-        scratch = ROOT.parent / "_implementation"
-        scratch.mkdir(exist_ok=True)
-        self.temp = tempfile.TemporaryDirectory(dir=scratch)
+        self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
         self.path = Path(self.temp.name)
         self.manifest = self.path / "crates/inference/Cargo.toml"

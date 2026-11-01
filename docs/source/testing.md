@@ -73,6 +73,10 @@ the morning before, ahead of the native Stream page and Rust camera view tests),
 2026-10-16. A file no test imports is not in the report at all. The web-only files are tested in
 Chrome and stay outside the figure (*Known gaps* below).
 
+The lane copies the report to `logs/coverage/lcov.info` before `flutter clean` deletes `build/`,
+and `reusable-linux.yml` uploads it as `omni-accelerant-linux-<arch>-coverage`: the x64 one is
+`quality-report.toml`'s coverage row, read from the same-SHA `linux-x64.yml` run.
+
 `flutter test` in the `:latest` image runs the suite in under a minute
 ([AGENTS.md § 5](../../AGENTS.md#5-build-run-test), *The Dart gate in 23 seconds*).
 
@@ -83,6 +87,15 @@ Chrome and stay outside the figure (*Known gaps* below).
   skip becomes a failure; `cargo test` hides a passing test's skip line, so nobody would see it
   otherwise. AccelerANTgine's Linux lane fails on any skipped ctest test, since ctest reports
   "100% tests passed" with skips in it, and UBSan reports are fatal (`halt_on_error=1`).
+- **Script suites are discovered, not listed.** The native lane runs every tracked
+  `scripts/linux/tests/test-*.{sh,py}`, `scripts/windows/tests/test[-_]*.py` and
+  `scripts/licenses/tests/test_*.py` (`scripts/linux/lib/suite-inventory.sh`) and prints
+  `suite inventory: N discovered, R run by this lane, E run elsewhere, 0 unreferenced suites`. A
+  suite that needs another lane names that runner in its first 15 lines (`# suite-runner:
+  scripts/linux/ci/ci-container-run-web-linux.sh`); the gate fails when that runner does not name
+  the suite back, or when nothing is discovered. Naming is not proof that the runner executes the
+  suite on push. `test-ort-device.py` runs in `windows-x64.yml`'s runner job, because it compiles
+  against `windows.h`.
 - **Coverage has floors, per part.** Dart `lib/` fails below 96 % (§ *What the app's Dart suite
   checks*). OxidANT's workspace fails below 70 %, and each crate below its own floor
   (`COVERAGE_FLOORS` in OxidANT's `ci-container-steps.sh`), so one well-tested crate cannot hide

@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 # Run the actual generator wrapper against isolated controlled outputs.
+
+# suite-runner: .github/workflows/linux-x64.yml
 set -euo pipefail
 repo=$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)
 work=$(mktemp -d)

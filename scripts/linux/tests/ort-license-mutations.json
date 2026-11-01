@@ -294,5 +294,69 @@
   "replace": "stem: 'UNKNOWN',",
   "test": "python3 -I scripts/linux/verify-frb-bindings.py third_party/OxidANT/Cargo.toml --dart lib/src/rust/frb_generated.dart --rust third_party/OxidANT/src/frb_generated.rs",
   "why": "The push gate refuses a loader stem the Rust library does not build."
+ },
+ {
+  "id": "consumer.omni-suite-none-found",
+  "target": "scripts/linux/lib/suite-inventory.sh",
+  "find": "if [ \"${discovered}\" -eq 0 ]; then",
+  "replace": "if false; then",
+  "test": "bash scripts/linux/tests/test-suite-inventory.sh",
+  "why": "Discovering no suite must fail the native lane, not pass over nothing."
+ },
+ {
+  "id": "consumer.omni-suite-unreferenced",
+  "target": "scripts/linux/lib/suite-inventory.sh",
+  "find": "if [ \"${unreferenced}\" -gt 0 ]; then",
+  "replace": "if false; then",
+  "test": "bash scripts/linux/tests/test-suite-inventory.sh",
+  "why": "A suite whose declared runner does not name it must fail the inventory."
+ },
+ {
+  "id": "consumer.omni-suite-runner-names-it",
+  "target": "scripts/linux/lib/suite-inventory.sh",
+  "find": "grep -qF -e \"${suite##*/}\" \"${root}/${runner}\"",
+  "replace": "true",
+  "test": "bash scripts/linux/tests/test-suite-inventory.sh",
+  "why": "A declared runner counts only when it names the suite."
+ },
+ {
+  "id": "consumer.omni-suite-native-set",
+  "target": "scripts/linux/lib/suite-inventory.sh",
+  "find": "[ -z \"$(suite_inventory_runner \"${root}/${suite}\")\" ]",
+  "replace": "true",
+  "test": "bash scripts/linux/tests/test-suite-inventory.sh",
+  "why": "A suite that names another runner must leave the native set."
+ },
+ {
+  "id": "consumer.omni-suite-glob",
+  "target": "scripts/linux/lib/suite-inventory.sh",
+  "find": "'scripts/windows/tests/test[-_]*.py'",
+  "replace": "'scripts/windows/tests/none[-_]*.py'",
+  "test": "bash scripts/linux/tests/test-suite-inventory.sh",
+  "why": "Windows Python suites belong to the discovered set."
+ },
+ {
+  "id": "consumer.omni-suite-status",
+  "target": "scripts/linux/lib/suite-inventory.sh",
+  "find": "*.sh) bash \"${root}/${suite}\" ;;",
+  "replace": "*.sh) bash \"${root}/${suite}\" || true ;;",
+  "test": "bash scripts/linux/tests/test-suite-inventory.sh",
+  "why": "A failing suite's status must reach its gate."
+ },
+ {
+  "id": "consumer.omni-suite-lane-gate",
+  "target": "scripts/linux/ci/lane-native-linux.sh",
+  "find": "run_gate \"suite inventory\" suite_inventory_report \"$REPO_ROOT\"",
+  "replace": ":",
+  "test": "bash scripts/linux/tests/test-suite-inventory.sh",
+  "why": "The native lane must run the inventory as a gate."
+ },
+ {
+  "id": "consumer.omni-suite-lane-loop",
+  "target": "scripts/linux/ci/lane-native-linux.sh",
+  "find": "done < <(suite_inventory_native \"$REPO_ROOT\")",
+  "replace": "done < /dev/null",
+  "test": "bash scripts/linux/tests/test-suite-inventory.sh",
+  "why": "The native lane must run every discovered native suite."
  }
 ]

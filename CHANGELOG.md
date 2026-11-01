@@ -6,6 +6,19 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 ## Unreleased
 
 ### 2026-11-01
+- **The native lane discovers its test suites.** `scripts/linux/lib/suite-inventory.sh` replaces
+  the lane's hand list: every tracked script suite runs as its own gate unless it names another
+  runner with `# suite-runner:`, and the inventory gate fails when nothing is discovered or a named
+  runner does not name the suite. It prints `0 unreferenced suites`; before, 15 suites ran in no
+  push lane, and `test-espup-env.sh`, `test-observant-flatpak-verdict.sh` and
+  `scripts/windows/tests/test-ort-device.py` ran nowhere. `test-ort-device.py` now runs on the
+  `windows-x64.yml` runner on the pinned Python, in a system temporary directory instead of a
+  sibling of the checkout. `test-suite-inventory.sh` and eight mutation recipes in
+  `ort-license-mutations.json` prove the gate. `test-espup-env.sh` clears the image's
+  `RUSTUP_HOME` and `CARGO_HOME`, so its fallback case passes inside the lane's image too.
+- **Dart coverage reaches quality-report.** The lane keeps `logs/coverage/lcov.info` past
+  `flutter clean`, `reusable-linux.yml` uploads it as `omni-accelerant-linux-<arch>-coverage`, and
+  `quality-report.toml` reads the x64 artifact of the same-SHA `linux-x64.yml` run.
 - **The frame-timing history is a bench-history artifact.** The hub's `frontend-perf-report` action now
   delegates to `bench-history` (artifact `bench-history-frontend-perf-x64`, kept 90 days), and
   `quality-report.toml` declares it as a `benchmark` output for fleet-health.

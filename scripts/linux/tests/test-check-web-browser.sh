@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 # The compiled-app browser gate must reject console errors, Google requests and missing assets.
+
+# suite-runner: scripts/linux/ci/ci-container-run-web-linux.sh
 set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=scripts/linux/lib/antfrastructure.sh

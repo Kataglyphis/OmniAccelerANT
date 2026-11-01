@@ -14,7 +14,7 @@ trap 'rm -rf -- "${work}"' EXIT
 helper="${ESPUP_ENV_LIB:-${repo}/scripts/linux/lib/espup-env.sh}"
 
 probe() {
-  env HOME="${work}/home" ESPUP_HOME="${work}/espup" bash -c '
+  env -u RUSTUP_HOME -u CARGO_HOME HOME="${work}/home" ESPUP_HOME="${work}/espup" bash -c '
     set -euo pipefail
     source "$1"
     omni_espup_environment

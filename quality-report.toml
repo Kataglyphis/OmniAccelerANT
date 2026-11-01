@@ -19,7 +19,9 @@ artifact = "bench-history-frontend-perf-x64"
 name = "lib"
 kind = "coverage"
 format = "lcov"
-path = "build/coverage/lcov.info"
+path = "logs/coverage/lcov.info"
+artifact = "omni-accelerant-linux-x64-coverage"
+workflow = "linux-x64.yml"
 
 [[artifact]]
 name = "ort-license"

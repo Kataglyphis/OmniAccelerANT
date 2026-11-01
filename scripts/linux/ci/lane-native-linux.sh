@@ -7,6 +7,7 @@ source "$SCRIPT_DIR/../lib/cli-common.sh"
 source "$SCRIPT_DIR/../lib/ci-options.sh"
 source "$SCRIPT_DIR/../lib/container-steps.sh"
 source "$SCRIPT_DIR/../lib/gpu-ci-smoke.sh"
+source "$SCRIPT_DIR/../lib/suite-inventory.sh"
 
 usage() {
   cat <<'EOF'
@@ -69,17 +70,11 @@ require_cmd dart
 
 # One batch: every gate runs and assert_gates fails once; --strict-checks governs only the Dart half.
 gate_reset "code quality (${MATRIX_ARCH})"
-run_gate "CI option parser tests" bash scripts/linux/tests/test-ci-options.sh
-run_gate "Flutter package license tests" bash scripts/linux/tests/test-flutter-package-license.sh
-run_gate "third-party license tests" bash scripts/linux/tests/test-third-party-licenses.sh
-run_gate "brand icon tests" bash scripts/linux/tests/test-check-brand-icons.sh
-run_gate "bundle option parser tests" bash scripts/linux/tests/test-bundle-options.sh
-run_gate "ORT provider staging tests" bash scripts/linux/tests/test-ort-provider-staging.sh
-run_gate "ORT runtime defaults tests" bash scripts/linux/tests/test-ort-runtime-default.sh
-run_gate "GPU host-runtime selection tests" bash scripts/linux/tests/test-gpu-host-runtime.sh
-run_gate "GPU package CPU-smoke tests" bash scripts/linux/tests/test-gpu-ci-smoke.sh
-run_gate "pinned tool download tests" bash scripts/linux/tests/test-pinned-tool-downloads.sh
-run_gate "release asset list tests" bash scripts/linux/tests/test-release-observant-assets.sh
+# Discovered, not listed: a new suite runs here unless it names another runner that names it back.
+run_gate "suite inventory" suite_inventory_report "$REPO_ROOT"
+while IFS= read -r suite; do
+  run_gate "suite ${suite##*/}" suite_inventory_run "$REPO_ROOT" "$suite"
+done < <(suite_inventory_native "$REPO_ROOT")
 # The checks' one test run writes the coverage the floor below reads; a second run cost 55 s.
 dart_lcov="build/coverage/lcov.info"
 rm -f "$dart_lcov"
@@ -87,16 +82,16 @@ run_gate "flutter checks" run_flutter_common_checks "$STRICT_CHECKS" --coverage 
 run_gate "cmake-format --check" run_cmake_format_check
 # The plugin's C++ against its .clang-format, graded only by LLVM_RELEASE's clang-format; its suite plants a deviation.
 run_gate "plugin clang-format --check" bash scripts/linux/check-plugin-cpp-format.sh
-run_gate "plugin format gate tests" bash scripts/linux/tests/test-check-plugin-cpp-format.sh
-# The bundle gate's own mutation suite (synthetic ELFs, no build needed): when G6 runs, and that it decides.
-run_gate "bundle gate tests" bash scripts/linux/tests/test-check-bundle-closure.sh
-run_gate "bundle element gate tests" bash scripts/linux/tests/test-check-bundle-gst-elements.sh
-run_gate "rust toolchain gate tests" bash scripts/linux/tests/test-check-rust-toolchain.sh
 # lib/ was 97.2 % covered on 2026-10-16 (87.4 % on 2026-10-12); raise the floor as it climbs.
 run_gate "dart coverage" bash "$(antfrastructure_path linux/scripts/05-frameworks/flutter/check-dart-coverage.sh)" \
   --min 96 --lcov "$dart_lcov" --exclude lib/src/rust/
 # Title vs manifest, sqlite3.wasm vs the hub's pin, 8-bit icons: what no build step checks.
 run_gate "web artefacts" check_flutter_launcher_artifacts
+# flutter clean below deletes build/; reusable-linux.yml uploads this copy for quality-report.toml's coverage row.
+if [[ -f "$dart_lcov" ]]; then
+  mkdir -p logs/coverage
+  cp "$dart_lcov" logs/coverage/lcov.info
+fi
 assert_gates
 
 flutter config --enable-linux-desktop
