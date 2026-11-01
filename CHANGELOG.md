@@ -16,7 +16,7 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
   its scanner the same way). `test-observant-package.sh` now starts the service on a
   fresh registry with that plugin listed first. The move regenerates the bridge's Dart side: the
   Stream page's view asks for persons (`classes: [0]`), as its engine did before, and the AI
-  Playground passes no stop strings.
+  Playground passes no stop strings. The license inventory records OxidANT's new `Cargo.lock`.
 - **A failed ObservANT service check prints the service's log.** `test-observant-package.sh`
   shows the last 40 lines of the service's own log under the idle, user-copy, installed-copy and
   flatpak checks when one fails; before, the CI log only said the process was gone.
