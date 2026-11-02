@@ -6,8 +6,7 @@ set -uo pipefail
 # shellcheck source=scripts/linux/tests/harness-bootstrap.sh
 source "$(dirname "${BASH_SOURCE[0]}")/harness-bootstrap.sh"
 repo="${KATAGLYPHIS_REPO_ROOT}"
-work="$(mktemp -d)"
-trap 'rm -rf "$work"' EXIT
+t_workdir
 check="${repo}/scripts/linux/check-brand-icons.py"
 
 fresh_tree() {

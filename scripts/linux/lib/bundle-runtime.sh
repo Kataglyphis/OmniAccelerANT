@@ -64,6 +64,18 @@ prepare_gpu_host_runtime() {
   ort_assert_no_bundled_host_runtime "$bundle" "$GPU_RUNTIME_KIND"
 }
 
+# gst_copy_bundle_plugins <dest> <copy-arg>... -- <plugin>...: the hub copies them and fails on a missing required one.
+gst_copy_bundle_plugins() {
+  local dest="$1" copier
+  local -a args=()
+  shift
+  while [[ "$1" != -- ]]; do args+=("$1"); shift; done
+  shift
+  while (($#)); do args+=(--plugin "$1"); shift; done
+  copier="$(antfrastructure_path linux/scripts/06-packaging/gstreamer-bundle.sh)" || return 1
+  bash "$copier" copy --dest "$dest" "${args[@]}"
+}
+
 # bundle_root_programs <bundle>: its executable top-level files without the system loader and libc, which stay byte for byte.
 bundle_root_programs() {
   local file

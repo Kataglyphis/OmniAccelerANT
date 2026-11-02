@@ -10,8 +10,7 @@ param(
     [switch]$VerifyOnly
 )
 
-Set-StrictMode -Version Latest
-$ErrorActionPreference = 'Stop'
+. (Join-Path $PSScriptRoot 'Initialize-EntryScript.ps1')
 $workspace = (Resolve-Path -LiteralPath $WorkspaceDir).Path
 $runner = (Resolve-Path -LiteralPath $RunnerDir).Path
 $fetcher = Join-Path $workspace 'third_party\ANTfrastructure\linux\scripts\lib\fetch-data-lock.py'

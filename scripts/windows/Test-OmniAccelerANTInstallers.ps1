@@ -76,12 +76,8 @@ if ($p.ExitCode -ne 0 -and (Test-Path -LiteralPath $log)) { Get-Content -Literal
 Write-Host "=== the MSIX: $Msix ==="
 $view = Get-CheckedMsixView -Path $Msix -Publisher $Publisher
 $entries = $view.Entries
-$identity = $view.Identity
-# GetAttribute: unambiguous where an attribute shares its name with an XmlNode property.
-Assert-Test -Name "its identity is $identityName for $Arch, published by $Publisher" {
-    $identity.GetAttribute('Name') -eq $identityName -and $identity.GetAttribute('ProcessorArchitecture') -eq $Arch -and
-    $identity.GetAttribute('Publisher') -eq $Publisher
-}
+Assert-MsixIdentity -Identity $view.Identity -Label "its identity is $identityName for $Arch, published by $Publisher" `
+    -Expected @{ Name = $identityName; ProcessorArchitecture = $Arch; Publisher = $Publisher }
 Assert-Test -Name 'it carries the exe and AccelerANTgine.dll side by side' { $entries -contains $exeName -and $entries -contains 'AccelerANTgine.dll' }
 Assert-Test -Name 'the MSIX contains the model and its notices' {
     @($modelFiles | Where-Object { $entries -cnotcontains "resources/models/$_" }).Count -eq 0

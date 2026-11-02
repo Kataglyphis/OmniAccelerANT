@@ -15,7 +15,7 @@ helper="$hub/linux/scripts/lib/gpu-profile-env.sh"
 shared="$hub/shared/python"
 [[ -x "$bundle/omni_accelerant" && -f "$bundle/lib/libonnxruntime.so" && -x "$launcher" && -f "$fixture" && -f "$helper" ]] || gpu_die 1 'Candidate, ONNX Runtime, fixture or pinned GPU environment helper missing'
 ort=$(realpath -e "$bundle/lib/libonnxruntime.so")
-case "$ort" in "$bundle/lib/"*) ;; *) gpu_die 1 'Packaged ONNX Runtime escapes the bundle' ;; esac
+gpu_assert_inside "$ort" "$bundle/lib" 'Packaged ONNX Runtime escapes the bundle'
 image_runtime_root=
 if [[ $# -eq 5 ]]; then
   [[ ${APPIMAGE_EXTRACT_AND_RUN:-} == 1 && -n ${TMPDIR:-} ]] || gpu_die 1 'AppImage profile needs an isolated extraction directory'

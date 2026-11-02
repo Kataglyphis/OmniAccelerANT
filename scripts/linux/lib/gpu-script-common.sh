@@ -10,6 +10,11 @@ gpu_die() {
   exit "$1"
 }
 
+# gpu_assert_inside <path> <dir> <message>: a resolved path outside dir means the package loads someone else's bytes.
+gpu_assert_inside() {
+  case "$1" in "$2"/*) ;; *) gpu_die 1 "$3" ;; esac
+}
+
 # gpu_require_argc <count> <min> <max> <usage>: a wrong call stops with exit 2 before anything is touched.
 gpu_require_argc() {
   if (($1 < $2 || $1 > $3)); then

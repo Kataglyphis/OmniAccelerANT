@@ -32,13 +32,10 @@ $view = Get-CheckedMsixView -Path $Msix -Publisher $Publisher
 $manifest = $view.Manifest
 $entries = $view.Entries
 $ns = $view.Ns
-$identity = $view.Identity
 $ns.AddNamespace('desktop', 'http://schemas.microsoft.com/appx/manifest/desktop/windows10')
 $ns.AddNamespace('desktop2', 'http://schemas.microsoft.com/appx/manifest/desktop/windows10/2')
-# GetAttribute: unambiguous where an attribute shares its name with an XmlNode property.
-Assert-Test -Name 'its identity names ObservANT and the signing publisher' {
-    $identity.GetAttribute('Name') -eq $packageName -and $identity.GetAttribute('Publisher') -eq $Publisher
-}
+Assert-MsixIdentity -Identity $view.Identity -Label 'its identity names ObservANT and the signing publisher' `
+    -Expected @{ Name = $packageName; Publisher = $Publisher }
 Assert-Test -Name 'it starts at logon through a startup task' {
     $task = $manifest.SelectSingleNode('//desktop:StartupTask', $ns)
     $task -and $task.Enabled -eq 'true'
@@ -82,9 +79,7 @@ $taskKey = "HKCU:\Software\Classes\Local Settings\Software\Microsoft\Windows\Cur
 Write-Host "      startup task state: $(if (Test-Path $taskKey) { (Get-ItemProperty $taskKey).State } else { 'not registered yet' })"
 
 $proc = Start-Process -FilePath $alias -ArgumentList '--camera', 'test', '--inference', 'off' -PassThru -WindowStyle Minimized
-$health = Wait-Healthz
-Write-Host "      healthz: $health"
-Assert-Test -Name 'started through the alias, it answers /healthz' { $health -match '"ok":true' }
+$null = Assert-Healthz -Label 'started through the alias, it answers /healthz'
 $running = Get-Process kataglyphis_observant -ErrorAction SilentlyContinue | Select-Object -First 1
 $foreign = @($running.Modules | ForEach-Object FileName | Where-Object {
         -not $_.StartsWith($pkg.InstallLocation, [StringComparison]::OrdinalIgnoreCase) -and

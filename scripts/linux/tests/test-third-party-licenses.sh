@@ -6,8 +6,7 @@ set -uo pipefail
 # shellcheck source=scripts/linux/tests/harness-bootstrap.sh
 source "$(dirname "${BASH_SOURCE[0]}")/harness-bootstrap.sh"
 repo="${KATAGLYPHIS_REPO_ROOT}"
-work="$(mktemp -d)"
-trap 'rm -rf "$work"' EXIT
+t_workdir
 coverage="${repo}/scripts/licenses/check-native-coverage.py"
 
 # fresh_tree: the generator's inputs and outputs, copied so a mutation cannot touch the checkout.

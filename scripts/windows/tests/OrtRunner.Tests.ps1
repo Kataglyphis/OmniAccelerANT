@@ -14,6 +14,16 @@ Describe 'WindowsOrtRunner.Common' {
 
     Import-Module (Join-Path $PSScriptRoot 'OmniTestFixtures.psm1') -Force
 
+    function Test-WheelApi([string] $Parameter) { return (Get-Command Copy-OrtWheelLicenses).Parameters.ContainsKey($Parameter) }
+
+    # A chain ONNX_ROOT with its ORT already staged beside the case's runner.
+    function Invoke-ChainRunnerCase([object] $Case, [scriptblock] $Body) {
+        Invoke-WithOnnxRoot $Case.Root {
+            $null = Copy-ChainOrtBeside -OnnxRoot $Case.Root -Destination $Case.Runner
+            & $Body
+        }
+    }
+
     function Get-ProofError([object] $Case, [hashtable] $Proof) {
         Get-ThrowMessage { Invoke-RunnerOrtProof -RunnerDir $Case.Runner @Proof }
     }
@@ -179,9 +189,8 @@ Describe 'WindowsOrtRunner.Common' {
     It 'requires the DirectML bridge from the core wheel before stamping' {
         $c = New-Case 'directml-bridge'
         $name = 'onnxruntime_providers_shared.dll'
-        Invoke-WithOnnxRoot $c.Root {
-            $null = Copy-ChainOrtBeside -OnnxRoot $c.Root -Destination $c.Runner
-            if (-not (Get-Command Copy-OrtWheelLicenses).Parameters.ContainsKey('ProviderDll')) {
+        Invoke-ChainRunnerCase $c {
+            if (-not (Test-WheelApi 'ProviderDll')) {
                 Get-ProofError $c @{ RequiredProvider = $name } | Should Match 'cannot verify provider DLLs'
                 return
             }
@@ -197,9 +206,8 @@ Describe 'WindowsOrtRunner.Common' {
 
     It 'requires the DirectML runtime from the core wheel before marking it verified' {
         $c = New-Case 'directml-wheel'
-        Invoke-WithOnnxRoot $c.Root {
-            $null = Copy-ChainOrtBeside -OnnxRoot $c.Root -Destination $c.Runner
-            if (-not (Get-Command Copy-OrtWheelLicenses).Parameters.ContainsKey('DirectMlDll')) {
+        Invoke-ChainRunnerCase $c {
+            if (-not (Test-WheelApi 'DirectMlDll')) {
                 Get-ProofError $c @{ RequireDirectMl = $true } | Should Match 'cannot verify DirectML'
                 return
             }
@@ -292,7 +300,7 @@ Describe 'WindowsOrtRunner.Common' {
         $copies.Count | Should Be 1
         $proof = @(Get-TestAstCommands -Ast $ast -Name 'Invoke-RunnerOrtProof')
         $proof.Count | Should Be 1
-        ($copies[0].Extent.StartOffset -gt $proof[0].Extent.StartOffset) | Should Be $true
+        Test-CommandAfter $copies[0] $proof[0] | Should Be $true
     }
 
     It 'lets ORT_DYLIB_PATH name only the proven bytes' {

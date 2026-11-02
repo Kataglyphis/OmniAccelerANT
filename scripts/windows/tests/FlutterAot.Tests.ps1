@@ -3,6 +3,12 @@
 # Byte fixtures in flutter assemble's layout; Pester 3.4.0 dialect, as OrtRunner.Tests.ps1.
 
 Describe 'WindowsFlutterAot.Common' {
+    function Assert-OneStaleReason([object] $Case, [string] $Pattern) {
+        $reasons = @(Get-CaseStaleness $Case)
+        $reasons.Count | Should Be 1
+        ($reasons[0] -match $Pattern) | Should Be $true
+    }
+
     function Get-CaseStaleness([object] $Case) {
         Get-FlutterAotStaleness -DartToolDir $Case.DartTool -RunnerDataDir $Case.Data -AotLibrary $Case.Lib
     }
@@ -53,17 +59,13 @@ Describe 'WindowsFlutterAot.Common' {
     It 'catches the incident: a fresh kernel beside an AOT snapshot from before it' {
         $c = New-Case 'incident'
         Set-Fixture (Join-Path $c.Hash 'app.dill') 'kernel v3' $c.T0.AddMinutes(10)
-        $r = @(Get-CaseStaleness $c)
-        $r.Count | Should Be 1
-        ($r[0] -match 'older than its kernel') | Should Be $true
+        Assert-OneStaleReason $c 'older than its kernel'
     }
 
     It 'catches an installed copy that is not the assembled bytes' {
         $c = New-Case 'installed'
         Set-Fixture (Join-Path $c.Data 'app.so') 'aot v1' $c.T0.AddSeconds(20)
-        $r = @(Get-CaseStaleness $c)
-        $r.Count | Should Be 1
-        ($r[0] -match 'runner\\data\\app\.so is not the bytes') | Should Be $true
+        Assert-OneStaleReason $c 'runner\\data\\app\.so is not the bytes'
     }
 
     It 'catches a stale CMake AOT_LIBRARY copy' {

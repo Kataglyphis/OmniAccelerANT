@@ -29,6 +29,21 @@ function Get-CheckedMsixView {
     }
 }
 
+function Assert-MsixIdentity {
+    # GetAttribute: unambiguous where an attribute shares its name with an XmlNode property.
+    param([Parameter(Mandatory)] $Identity, [Parameter(Mandatory)][string] $Label, [Parameter(Mandatory)][hashtable] $Expected)
+    Assert-Test -Name $Label { @($Expected.Keys | Where-Object { $Identity.GetAttribute($_) -ne $Expected[$_] }).Count -eq 0 }
+}
+
+function Assert-Healthz {
+    # Prints the body so a failing run shows what the service answered; returns it for further checks.
+    param([Parameter(Mandatory)][string] $Label)
+    $health = Wait-Healthz
+    Write-Host "      healthz: $health"
+    Assert-Test -Name $Label { $health -match '"ok":true' }
+    return $health
+}
+
 function Install-MsiSilently {
     <#
     .SYNOPSIS
@@ -59,4 +74,4 @@ function Wait-Healthz {
     return $null
 }
 
-Export-ModuleMember -Function Resolve-OneFile, Get-CheckedMsixView, Install-MsiSilently, Uninstall-MsiSilently, Wait-Healthz
+Export-ModuleMember -Function Resolve-OneFile, Get-CheckedMsixView, Assert-MsixIdentity, Assert-Healthz, Install-MsiSilently, Uninstall-MsiSilently, Wait-Healthz

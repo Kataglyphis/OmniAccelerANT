@@ -3,12 +3,9 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
-source "$SCRIPT_DIR/lib/cli-common.sh"
-# shellcheck source=scripts/linux/lib/bundle-runtime.sh
-source "$SCRIPT_DIR/lib/bundle-runtime.sh"
-# shellcheck source=scripts/linux/lib/antfrastructure.sh
-source "$SCRIPT_DIR/lib/antfrastructure.sh"
+# shellcheck source=scripts/linux/lib/bundle-script-env.sh
+source "$SCRIPT_DIR/lib/bundle-script-env.sh"
+REPO_ROOT="$KATAGLYPHIS_REPO_ROOT"
 
 MATRIX_ARCH="$(detect_arch)"
 BUILD_MODE="release"
@@ -16,8 +13,6 @@ BUNDLE_DIR=""
 # G6's chain reference; empty = the image's chain ORT, which is what the lane grades against.
 ORT_REFERENCE=""
 
-# shellcheck source=scripts/linux/lib/entry-options.sh
-source "$SCRIPT_DIR/lib/entry-options.sh"
 parse_entry_options '[--arch x64|arm64] [--build-mode debug|profile|release] [--bundle-dir DIR] [--ort-reference DIR]' '' \
   '--arch=MATRIX_ARCH' '-a=MATRIX_ARCH' '--build-mode=BUILD_MODE' '--bundle-dir=BUNDLE_DIR' \
   '--ort-reference=ORT_REFERENCE:a directory' -- "$@"

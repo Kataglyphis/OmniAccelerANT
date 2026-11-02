@@ -7,6 +7,8 @@ source "$(dirname -- "${BASH_SOURCE[0]}")/lib/script-paths.sh"
 # shellcheck source=scripts/linux/lib/antfrastructure.sh
 source "${script_dir}/../lib/antfrastructure.sh"
 source "${script_dir}/../lib/flutter-package-license.sh"
+# shellcheck source=scripts/linux/lib/bundle-runtime.sh
+source "${script_dir}/../lib/bundle-runtime.sh"
 antfrastructure_source linux/scripts/06-packaging/ort-wheel-licenses.sh
 
 package=omni-observant
@@ -109,8 +111,7 @@ plugins=(coreelements app videoconvertscale videorate videofilter videotestsrc r
 # H.264 is a second codec offer (VP8 alone streams to every browser); libcamerasrc sits beside the image's libcamera.
 gst_copy_args=(--plugin-dir "${gst_plugin_dir}" --plugin-dir "${LIBCAMERA_PREFIX:-/opt/libcamera}/lib/gstreamer-1.0"
   --optional openh264 --optional libcamera)
-for plugin in "${plugins[@]}"; do gst_copy_args+=(--plugin "${plugin}"); done
-bash "$(antfrastructure_path linux/scripts/06-packaging/gstreamer-bundle.sh)" copy --dest "${bundle}/lib/gstreamer-1.0" "${gst_copy_args[@]}"
+gst_copy_bundle_plugins "${bundle}/lib/gstreamer-1.0" "${gst_copy_args[@]}" -- "${plugins[@]}"
 
 # webrtcsink's codec discovery needs a registry built by the scanner, under the bundled loader too.
 scanner="$(find /opt/gstreamer -name gst-plugin-scanner -type f 2>/dev/null | head -1 || true)"

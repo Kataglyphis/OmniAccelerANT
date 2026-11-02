@@ -18,9 +18,9 @@ case "$kind" in
   bundle)
     [[ $# -eq 2 && -x "$target/omni_accelerant" && -f "$target/lib/libonnxruntime.so" ]] || gpu_die 1 'Missing bundle app or runtime'
     runtime_root=$(realpath -e "$target/lib")
-    case "$runtime_root" in "$target/"*) ;; *) gpu_die 1 'Runtime directory escapes bundle' ;; esac
+    gpu_assert_inside "$runtime_root" "$target" 'Runtime directory escapes bundle'
     resolved=$(realpath -e "$target/lib/libonnxruntime.so")
-    case "$resolved" in "$runtime_root/"*) ;; *) gpu_die 1 'Runtime escapes bundle' ;; esac
+    gpu_assert_inside "$resolved" "$runtime_root" 'Runtime escapes bundle'
     launcher="$target/omni_accelerant"
     ;;
   appimage)

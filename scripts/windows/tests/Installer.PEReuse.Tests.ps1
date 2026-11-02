@@ -33,18 +33,19 @@ function Assert-GpuPackageByteCheck {
     Get-ScriptCommandCount $ast 'Get-WixSourceFileId' | Should Be 1
     $checks = @(Get-TestAstCommands -Ast $ast -Name 'Assert-PackageBinary')
     $checks.Count | Should Be 2
-    @($checks | Where-Object { $_.Extent.Text.Contains('"$base.msi"') -and $_.Extent.Text.Contains('-Member $gpuMsiIds') -and $_.Extent.Text.Contains('-SourcePath $gpuPaths') }).Count | Should Be 1
-    @($checks | Where-Object { $_.Extent.Text.Contains('"$base.msix"') -and $_.Extent.Text.Contains('-Member $gpuFiles') -and $_.Extent.Text.Contains('-SourcePath $gpuPaths') }).Count | Should Be 1
+    Get-CommandTextCount $checks -Contains '"$base.msi"', '-Member $gpuMsiIds', '-SourcePath $gpuPaths' | Should Be 1
+    Get-CommandTextCount $checks -Contains '"$base.msix"', '-Member $gpuFiles', '-SourcePath $gpuPaths' | Should Be 1
     $inventories = @(Get-TestAstCommands -Ast $ast -Name 'Get-PackageOrtProviderNames')
     $inventories.Count | Should Be 2
-    @($inventories | Where-Object { $_.Extent.Text.Contains('-RootDirectoryId APPLICATIONFOLDER') }).Count | Should Be 1
+    Get-CommandTextCount $inventories -Contains '-RootDirectoryId APPLICATIONFOLDER' | Should Be 1
     $proofs = @(Get-TestAstCommands -Ast $ast -Name 'Assert-WindowsInstallerCandidate')
     $proofs.Count | Should Be 3
-    ($proofs[1].Extent.StartOffset -gt $checks[0].Extent.StartOffset) | Should Be $true
-    ($proofs[2].Extent.StartOffset -gt $checks[1].Extent.StartOffset) | Should Be $true
+    Test-CommandAfter $proofs[1] $checks[0] | Should Be $true
+    Test-CommandAfter $proofs[2] $checks[1] | Should Be $true
 }
 
 Describe 'Installer shared Windows checks' {
+    Import-Module (Join-Path $PSScriptRoot 'OmniTestFixtures.psm1') -Force
     . (Join-Path $PSScriptRoot '..\Resolve-BuildModule.ps1')
     Import-BuildModule @('WindowsTargetArch.Common', 'WindowsSmokeTest.Common')
     Import-Module (Join-Path $PSScriptRoot '..\..\..\third_party\ANTfrastructure\windows\scripts\tests\TestHarness.psm1') -Function Get-TestScriptAst, Get-TestAstCommands, New-TestPeFile -ErrorAction Stop
@@ -133,8 +134,8 @@ Describe 'Installer shared Windows checks' {
             $commands[0].Extent.Text.Contains($case.Text) | Should Be $true
             Get-ScriptCommandCount $ast 'Copy-OrtWheelLicenses' | Should Be ([int]($case.Name -eq 'Copy-OrtWheelLicenses'))
             $checks.Count | Should Be $case.Checks
-            @($checks | Where-Object { $_.Extent.Text.Contains('-Format msi') -and $_.Extent.Text.Contains('-WixPath $fragment') }).Count | Should Be 1
-            @($checks | Where-Object { $_.Extent.Text.Contains('-Format archive') }).Count | Should Be ($case.Checks - 1)
+            Get-CommandTextCount $checks -Contains '-Format msi', '-WixPath $fragment' | Should Be 1
+            Get-CommandTextCount $checks -Contains '-Format archive' | Should Be ($case.Checks - 1)
         }
     }
 

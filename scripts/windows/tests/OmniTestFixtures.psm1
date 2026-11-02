@@ -19,6 +19,17 @@ function Test-TextBefore {
     return $true
 }
 
+function Get-CommandTextCount {
+    # How many command ASTs contain every given piece of text.
+    param([object[]] $Commands, [Parameter(Mandatory)][string[]] $Contains)
+    return @($Commands | Where-Object { $text = $_.Extent.Text; @($Contains | Where-Object { -not $text.Contains($_) }).Count -eq 0 }).Count
+}
+
+function Test-CommandAfter {
+    param([Parameter(Mandatory)] $Later, [Parameter(Mandatory)] $Earlier)
+    return $Later.Extent.StartOffset -gt $Earlier.Extent.StartOffset
+}
+
 function Get-GpuChainDllName {
     'onnxruntime.dll', 'onnxruntime_providers_shared.dll', 'onnxruntime_providers_cuda.dll', 'DirectML.dll'
 }
@@ -30,4 +41,4 @@ function New-GpuOxidantFixture {
     Set-Content -LiteralPath (Join-Path $Oxidant 'crates\inference\Cargo.toml') -Value @('[package.metadata.kataglyphis]', 'ort-devices = ["cuda", "directml"]')
 }
 
-Export-ModuleMember -Function Get-ThrowMessage, Test-TextBefore, Get-GpuChainDllName, New-GpuOxidantFixture
+Export-ModuleMember -Function Get-CommandTextCount, Test-CommandAfter, Get-ThrowMessage, Test-TextBefore, Get-GpuChainDllName, New-GpuOxidantFixture

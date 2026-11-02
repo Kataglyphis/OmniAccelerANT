@@ -6,6 +6,13 @@ _harness="$(antfrastructure_path linux/scripts/lib/test-harness.sh)" || exit 1
 # shellcheck source=third_party/ANTfrastructure/linux/scripts/lib/test-harness.sh
 source "${_harness}"
 
+# t_workdir: sets and exports work, removed when the suite exits however it ends.
+t_workdir() {
+  work="$(mktemp -d)"
+  export work
+  trap 'rm -rf "$work"' EXIT
+}
+
 # t_mutant_breaks_suite <case> <lib-variable> <mutant-lib> <suite-flag>: reruns this suite on the mutant; the rerun must fail.
 t_mutant_breaks_suite() {
   local output rc

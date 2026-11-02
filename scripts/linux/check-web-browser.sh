@@ -2,10 +2,8 @@
 # The built web app in the hub's real Chrome check, with an idle ObservANT fixture instead of a physical camera.
 set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# shellcheck source=scripts/linux/lib/antfrastructure.sh
-source "$SCRIPT_DIR/lib/antfrastructure.sh"
-antfrastructure_source linux/scripts/01-core/http-readiness.sh
-cd "$SCRIPT_DIR/../.."
+# shellcheck source=scripts/linux/lib/web-smoke-env.sh
+source "$SCRIPT_DIR/lib/web-smoke-env.sh"
 
 build_dir="${1:-build/web}"
 port="${OMNI_WEB_SMOKE_PORT:-8081}"

@@ -4,10 +4,8 @@
 # suite-runner: scripts/linux/ci/ci-container-run-web-linux.sh
 set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# shellcheck source=scripts/linux/lib/antfrastructure.sh
-source "$SCRIPT_DIR/../lib/antfrastructure.sh"
-antfrastructure_source linux/scripts/01-core/http-readiness.sh
-cd "$SCRIPT_DIR/../../.."
+# shellcheck source=scripts/linux/lib/web-smoke-env.sh
+source "$SCRIPT_DIR/../lib/web-smoke-env.sh"
 work="$(mktemp -d)"
 server=""
 trap '[ -z "$server" ] || { kill "$server" 2>/dev/null || true; wait "$server" 2>/dev/null || true; }; rm -rf "$work"' EXIT

@@ -38,13 +38,19 @@ if ! git -C "$who" rev-parse --verify --quiet "$who_ref" >/dev/null; then
 fi
 git -C "$who" checkout -f "$who_ref"
 
-# The terminal app prints detections a serial monitor can check (the LCD app only shows them); idempotent.
-python3 - "$who/examples/object_detect/main/app_main.cpp" <<'PY'
-import sys
+# patch_source <file> <<'PY': runs the body with `source` holding the file's text, then writes `source` back.
+patch_source() {
+  python3 -c "import sys
 from pathlib import Path
 
 path = Path(sys.argv[1])
 source = path.read_text()
+$(cat)
+path.write_text(source)" "$1"
+}
+
+# The terminal app prints detections a serial monitor can check (the LCD app only shows them); idempotent.
+patch_source "$who/examples/object_detect/main/app_main.cpp" <<'PY'
 if "    run_detect_term();" not in source:
     source = source.replace("    run_detect_lcd();", "    // run_detect_lcd();")
     source = source.replace(
@@ -62,16 +68,10 @@ if "omni_proto_start();" not in source:
         "    vTaskPrioritySet(xTaskGetCurrentTaskHandle(), 5);",
         "    vTaskPrioritySet(xTaskGetCurrentTaskHandle(), 5);\n    omni_proto_start();",
     )
-path.write_text(source)
 PY
 
 # The callback runs on the detect task; count and best score go to the Rust task, which owns the USB frames.
-python3 - "$who/components/who_app/who_detect_app/who_detect_app_term.cpp" <<'PY'
-import sys
-from pathlib import Path
-
-path = Path(sys.argv[1])
-source = path.read_text()
+patch_source "$who/components/who_app/who_detect_app/who_detect_app_term.cpp" <<'PY'
 if '#include "omni_proto.h"' not in source:
     source = source.replace(
         '#include "who_yield2idle.hpp"',
@@ -97,7 +97,6 @@ new = """void WhoDetectAppTerm::detect_result_cb(const detect::WhoDetect::result
 }"""
 if old in source:
     source = source.replace(old, new)
-path.write_text(source)
 PY
 
 # esp-dl 3.3.13 changed the image API (RGB565 LE/BE, img_t::bytes(), sw_decode_jpeg) after the pinned ESP-WHO.

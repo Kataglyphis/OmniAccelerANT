@@ -3,11 +3,9 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
-source "$SCRIPT_DIR/lib/cli-common.sh"
-# shellcheck source=scripts/linux/lib/bundle-runtime.sh
-source "$SCRIPT_DIR/lib/bundle-runtime.sh"
-source "$SCRIPT_DIR/lib/antfrastructure.sh"
+# shellcheck source=scripts/linux/lib/bundle-script-env.sh
+source "$SCRIPT_DIR/lib/bundle-script-env.sh"
+REPO_ROOT="$KATAGLYPHIS_REPO_ROOT"
 
 MATRIX_ARCH="$(detect_arch)"
 BUILD_MODE="release"
@@ -33,8 +31,6 @@ Options:
 EOF
 }
 
-# shellcheck source=scripts/linux/lib/entry-options.sh
-source "$SCRIPT_DIR/lib/entry-options.sh"
 parse_entry_options usage '' '+--no-model=WITH_MODEL=0' \
   '--arch=MATRIX_ARCH' '-a=MATRIX_ARCH' '--build-mode=BUILD_MODE' '--bundle-dir=BUNDLE_DIR' -- "$@"
 
@@ -67,9 +63,7 @@ require_cmd patchelf
 
 # Plugins are dlopen'd, never DT_NEEDED: the hub copies the fixed list (GST_BUNDLED_PLUGIN_NAMES), and a missing one fails.
 mkdir -p "$bundle_lib/gstreamer-1.0"
-gst_copy_args=(--plugin-dir "$gst_plugins_dir")
-for plugin in "${GST_BUNDLED_PLUGIN_NAMES[@]}"; do gst_copy_args+=(--plugin "$plugin"); done
-bash "$(antfrastructure_path linux/scripts/06-packaging/gstreamer-bundle.sh)" copy --dest "$bundle_lib/gstreamer-1.0" "${gst_copy_args[@]}"
+gst_copy_bundle_plugins "$bundle_lib/gstreamer-1.0" --plugin-dir "$gst_plugins_dir" -- "${GST_BUNDLED_PLUGIN_NAMES[@]}"
 
 # cxx_lib_dir <soname>: where the compiler's own copy sits; the image's distro libstdc++ is not the one the code links.
 cxx_lib_dir() {

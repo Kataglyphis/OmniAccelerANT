@@ -11,8 +11,7 @@ param(
     [ValidateRange(1, 600)][int]$TimeoutSeconds = 90
 )
 
-Set-StrictMode -Version Latest
-$ErrorActionPreference = 'Stop'
+. (Join-Path $PSScriptRoot 'Initialize-EntryScript.ps1')
 $dir = (Resolve-Path -LiteralPath $AppDir).Path
 $exe = Join-Path $dir 'omni_accelerant.exe'
 if (-not (Test-Path -LiteralPath $exe -PathType Leaf)) { throw "No omni_accelerant.exe in $dir." }
