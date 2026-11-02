@@ -1,6 +1,8 @@
 @TestOn('vm')
 library;
 
+import 'dart:convert';
+
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:omni_accelerant/src/boot/onnx_self_check.dart';
@@ -69,6 +71,19 @@ class _Detector extends Fake implements RustLibApi {
 }
 
 void main() {
+  testWidgets('runDetectLatency decodes the image and times the bridge', (
+    WidgetTester tester,
+  ) async {
+    final Uint8List png = base64Decode(
+      'iVBORw0KGgoAAAANSUhEUgAAAAIAAAADCAYAAAC56t6BAAAAEUlEQVR4nGMQUDD4D8IMGAwAZpMIO34WcbIAAAAASUVORK5CYII=',
+    );
+    final String? line = await tester.runAsync(() => runDetectLatency(png, 2));
+    final Map<String, dynamic> figures =
+        jsonDecode(line!) as Map<String, dynamic>;
+    expect(figures.keys, <String>['p50_ms', 'p95_ms']);
+    expect(figures['p50_ms'] as double, greaterThanOrEqualTo(0));
+  });
+
   test('latencyLine ranks the samples for --perf-host', () {
     final List<double> samples = <double>[
       for (int i = 20; i >= 1; i--) i.toDouble(),
