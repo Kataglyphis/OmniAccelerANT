@@ -27,6 +27,8 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
   replaces the Linux and Windows copies. Five new `consumer.omni-*` mutation recipes.
 
 ### 2026-11-02 (AGENTS.md matches the tree)
+- **The lint gates hold it there.** `run-lint-gates.sh` and the Linux x64 lint job run the hub's
+  `verify_agents_drift.py`.
 - **`AGENTS.md` names what the tree holds.** Section 5 names every workflow, program, bench-history key
   and `--perf-host`; section 1 names `WindowsGpuBuild.Common` and the eye firmware's protocol crate.
   `generate-docs.sh` publishes `ai-playground.md` and `third-party-components.md`. `BACKLOG.md` lists

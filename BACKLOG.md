@@ -163,3 +163,13 @@ what the owner's goal still lacks.
 
 Adopted 2026-09-13: `scripts/agentic-loop/` (config, runner wrappers, prompt overlays).
 Engine, models and build driver: AGENTS.md § 2. Rules and run commands: AGENTS.md § 5.
+
+## Quality queue
+
+The top 5 of `logs/code-quality/queue.md` (`bash scripts/linux/quality-report.sh`); re-sync when it moves.
+
+- [ ] `large-files.allow:3` budget 740 (allow_budget_total)
+- [ ] `doc-dupes-hub.allow:4` budget 23 (allow_budget_total)
+- [ ] `shellcheck-warnings.allow:11` budget 1 (allow_budget_total)
+- [ ] `shellcheck-warnings.allow:12` budget 1 (allow_budget_total)
+- [ ] `shellcheck-warnings.allow:13` budget 1 (allow_budget_total)
