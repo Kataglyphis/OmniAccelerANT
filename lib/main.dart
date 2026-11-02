@@ -89,6 +89,21 @@ Future<void> main([List<String> args = const <String>[]]) async {
       finishSelfCheck('Detect check failed: $error', 1);
     }
   }
+  if (!kIsWeb && args.length == 3 && args.first == '--detect-latency') {
+    try {
+      WidgetsFlutterBinding.ensureInitialized();
+      await RustLib.init().timeout(const Duration(seconds: 20));
+      finishSelfCheck(
+        await runDetectLatency(
+          await readSelfCheckFile(args[1]),
+          int.parse(args[2]),
+        ),
+        0,
+      );
+    } catch (error) {
+      finishSelfCheck('Detect latency failed: $error', 1);
+    }
+  }
   if (!kIsWeb && args.length == 1 && args.single == '--onnx-check') {
     try {
       await RustLib.init().timeout(const Duration(seconds: 20));

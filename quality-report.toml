@@ -38,3 +38,12 @@ unit = "lines"
 pattern = 'deim_dfine_n_coco'
 paths = ["lib", "scripts", "rust_builder", "linux", "windows"]
 exclude = ["third_party/*", "test/*", "*/test/*", "tests/*", "*/tests/*", "Test/*", "*/Test/*", "docs/*", "*.md", "*LICENSE*", "*NOTICE*"]
+
+# quality-report.sh --perf-host, inside :latest: the shipped bundle's bridge path; OxidANT measures the same detector without Flutter and the providers it adds.
+[perf]
+setup = "bash scripts/linux/perf-host.sh"
+
+[[perf.command]]
+name = "detector_cpu"
+run = "xvfb-run -a build/linux/x64/release/bundle/omni_accelerant --detect-latency third_party/OxidANT/crates/inference/tests/fixtures/two_cats.jpg 30"
+metrics = [{ key = "p50_ms", unit = "ms", better = "lower" }, { key = "p95_ms", unit = "ms", better = "lower" }]

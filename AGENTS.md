@@ -609,7 +609,8 @@ and `queue.md`; `--compare <file>` or `--compare previous-develop` grades it (ex
 `docs/code-quality-tooling.md` § quality-report. A regressed verdict on develop is fixed or recorded
 in `BACKLOG.md` before new feature work. `bash scripts/linux/quality-report.sh --perf-host` runs the
 latency commands that toml declares inside `:latest` and grades them against `perf/baseline-<cpu>.json`;
-it refuses a dirty tree, a loaded host or a running image chain.
+it refuses a dirty tree, a loaded host or a running image chain. It times two-cats p50/p95 through the release bundle's bridge with `--detect-latency`; run it as a
+`systemd-run --user` unit, and `--update-baseline` rewrites the baseline: hub `docs/fleet-health.md` § perf-host.
 
 **bench-history keys:** `frontend-perf-x64` and `frontend-perf-arm64` (artifacts
 `bench-history-frontend-perf-<arch>`), the profile-mode frame timings against the median of earlier

@@ -69,6 +69,13 @@ class _Detector extends Fake implements RustLibApi {
 }
 
 void main() {
+  test('latencyLine ranks the samples for --perf-host', () {
+    final List<double> samples = <double>[
+      for (int i = 20; i >= 1; i--) i.toDouble(),
+    ];
+    expect(latencyLine(samples), '{"p50_ms":11.0,"p95_ms":20.0}');
+  });
+
   final _Detector detector = _Detector();
   setUpAll(() => RustLib.initMock(api: detector));
   setUp(() {

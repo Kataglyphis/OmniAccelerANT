@@ -5,6 +5,9 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ## Unreleased
 
+### 2026-11-02 (perf-host)
+- **`quality-report.sh --perf-host` latency** in `quality-report.toml`, with `scripts/linux/perf-host.sh`, the app's `--detect-latency` and a tracked `perf/baseline-<cpu>.json`.
+
 ### 2026-11-02 (one owner per fact)
 - **The model file name comes from OxidANT's `models.lock`.** `verify_detector_model.py` and the new
   `scripts/windows/Get-DetectorModelFile.ps1` read its first `.onnx` row and require the matching

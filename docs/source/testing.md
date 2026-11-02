@@ -269,3 +269,10 @@ As found on 2026-10-15, so a green run is read for what it is:
 - **Windows does not demand the model**, so its real-model tests pass by skipping: its unit tests
   run before the model is fetched (OxidANT's `BACKLOG.md`). The riscv64 lane fetches and demands
   it since 2026-10-15.
+
+## Latency on a quiet host
+
+`bash scripts/linux/quality-report.sh --perf-host` runs `omni_accelerant --detect-latency IMAGE RUNS`
+from the release bundle in the CI image, against `perf/baseline-<cpu>.json`: hub
+`docs/fleet-health.md` § perf-host. The flag prints warm p50 and p95 through the bridge as one JSON
+line. It is not run in CI, whose hosted wall time varies too much to grade.
