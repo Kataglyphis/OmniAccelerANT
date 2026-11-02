@@ -10,6 +10,11 @@ import 'package:omni_accelerant/src/rust/api/onnx.dart';
 import 'package:omni_accelerant/src/rust/api/webcam.dart';
 import 'package:omni_accelerant/src/rust/frb_generated.dart';
 
+/// A 2x3 RGBA PNG, the frame size the fake detector expects.
+final Uint8List _png = base64Decode(
+  'iVBORw0KGgoAAAANSUhEUgAAAAIAAAADCAYAAAC56t6BAAAAEUlEQVR4nGMQUDD4D8IMGAwAZpMIO34WcbIAAAAASUVORK5CYII=',
+);
+
 class _Detector extends Fake implements RustLibApi {
   bool fail = false;
   int profileCalls = 0;
@@ -105,6 +110,22 @@ void main() {
     detector.catScores = const <double>[];
     expect(countConfidentCats(frame, 2, 3), 0);
     expect(detectCheckMinimum, 2);
+  });
+
+  testWidgets('the detect check decodes an image before counting its cats', (
+    WidgetTester tester,
+  ) async {
+    detector.catScores = const <double>[0.9, 0.5];
+    expect(await tester.runAsync(() => runDetectCheck(_png)), 2);
+    final Object? refused = await tester.runAsync<Object?>(() async {
+      try {
+        await runDetectCheck(Uint8List(4));
+        return null;
+      } on Object catch (error) {
+        return error;
+      }
+    });
+    expect(refused, isNotNull);
   });
 
   test('runs inference through the detector bridge', () {
