@@ -31,8 +31,7 @@ Options:
 EOF
 }
 
-parse_entry_options usage '' '+--no-model=WITH_MODEL=0' \
-  '--arch=MATRIX_ARCH' '-a=MATRIX_ARCH' '--build-mode=BUILD_MODE' '--bundle-dir=BUNDLE_DIR' -- "$@"
+parse_closure_options usage '+--no-model=WITH_MODEL=0' -- "$@"
 
 if ! validate_arch "$MATRIX_ARCH"; then
   exit 2
@@ -118,8 +117,7 @@ patch_origin_rpath() {
 # RUNPATH is not transitive, so every lib that needs a sibling gets its own $ORIGIN.
 needs_sibling_rpath() {
   local file="$1" soname
-  # ORT files must remain byte-identical to their wheel; the GPU launcher supplies its lib path.
-  if [[ -n "$GPU_RUNTIME_KIND" && "$(basename "$file")" == libonnxruntime* ]]; then return 1; fi
+  if is_gpu_ort_file "$file"; then return 1; fi
   while IFS= read -r soname; do
     [[ -n "$soname" ]] || continue
     if [[ -e "$bundle_lib/$soname" ]]; then
@@ -134,10 +132,8 @@ needs_sibling_rpath() {
   return 1
 }
 
-for file in "$bundle_lib"/*.so*; do
-  [[ -f "$file" ]] || continue
-  # glibc stays byte for byte: the loader takes it from --library-path, and a patched loader crashes.
-  is_system_soname "$(basename "$file")" && continue
+mapfile -t lib_files < <(bundle_lib_files "$bundle_lib")
+for file in "${lib_files[@]}"; do
   if needs_sibling_rpath "$file"; then
     patch_origin_rpath "$file" '$ORIGIN'
   fi

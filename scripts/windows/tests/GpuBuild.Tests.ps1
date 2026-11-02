@@ -5,6 +5,12 @@ Describe 'Windows GPU preflight' {
     $workspace = (Resolve-Path (Join-Path $PSScriptRoot '..\..\..')).Path
     Import-Module (Join-Path $PSScriptRoot 'OmniTestFixtures.psm1') -Force
     Import-Module (Join-Path $PSScriptRoot '..\..\..\third_party\ANTfrastructure\windows\scripts\tests\TestHarness.psm1') -Function Invoke-WithTestFunction -ErrorAction Stop
+    function Get-CandidateError([string] $Runner) { Get-ThrowMessage { Assert-WindowsInstallerCandidate -RunnerDir $Runner } }
+    function New-CandidateDir([string] $Name) {
+        $path = Join-Path $TestDrive $Name
+        New-Item -ItemType Directory -Force -Path $path | Out-Null
+        return $path
+    }
     function Read-RepoText([string] $Relative) { return Get-Content -LiteralPath (Join-Path $workspace $Relative) -Raw }
 
     BeforeEach {
@@ -49,19 +55,18 @@ Describe 'Windows GPU preflight' {
     }
 
     It 'rejects GPU-marked runners and CUDA DLLs before host packaging' {
-        $runner = Join-Path $TestDrive 'candidate'
-        New-Item -ItemType Directory -Force -Path $runner | Out-Null
+        $runner = New-CandidateDir 'candidate'
         $exe = Join-Path $runner 'omni_accelerant.exe'
         [IO.File]::WriteAllBytes($exe, [Text.Encoding]::ASCII.GetBytes('ordinary CPU runner'))
-        Get-ThrowMessage { Assert-WindowsInstallerCandidate -RunnerDir $runner } | Should Be ''
+        Get-CandidateError $runner | Should Be ''
         foreach ($provider in 'cuda', 'directml') {
             $bytes = [Text.Encoding]::ASCII.GetBytes(('x' * 65530) + "OMNI_ACCELERANT_GPU_VARIANT_${provider}_V1")
             [IO.File]::WriteAllBytes($exe, $bytes)
-            Get-ThrowMessage { Assert-WindowsInstallerCandidate -RunnerDir $runner } | Should Match 'GPU-marked runner'
+            Get-CandidateError $runner | Should Match 'GPU-marked runner'
         }
         [IO.File]::WriteAllBytes($exe, [Text.Encoding]::ASCII.GetBytes('ordinary CPU runner'))
         Set-Content -LiteralPath (Join-Path $runner 'onnxruntime_providers_cuda.dll') -Value 'fixture'
-        Get-ThrowMessage { Assert-WindowsInstallerCandidate -RunnerDir $runner } | Should Match 'CUDA runner'
+        Get-CandidateError $runner | Should Match 'CUDA runner'
     }
 
     It 'checks the executable before creating installer outputs' {
@@ -80,13 +85,12 @@ Describe 'Windows GPU preflight' {
 
     It 'accepts only an explicit matching x64 GPU installer candidate' {
         Invoke-WithTestFunction -Name Resolve-RunnerOrtLicense -Definition { param($RunnerDir, $RequiredProvider, [switch]$RequireDirectMl) } -Body {
-            $runner = Join-Path $TestDrive 'installer-candidate'
-            New-Item -ItemType Directory -Force -Path $runner | Out-Null
+            $runner = New-CandidateDir 'installer-candidate'
             foreach ($name in 'oxidant.dll', 'AccelerANTgine.dll', 'ort-chain-stamp.json', 'onnxruntime_providers_shared.dll', 'DirectML.dll') {
                 Set-Content -LiteralPath (Join-Path $runner $name) -Value $name
             }
             Set-Content -LiteralPath (Join-Path $runner 'omni_accelerant.exe') -Value 'OMNI_ACCELERANT_GPU_VARIANT_directml_V1'
-            Get-ThrowMessage { Assert-WindowsInstallerCandidate -RunnerDir $runner } | Should Match 'GPU-marked runner'
+            Get-CandidateError $runner | Should Match 'GPU-marked runner'
             Get-ThrowMessage { Assert-WindowsInstallerCandidate -RunnerDir $runner -Provider directml -Arch arm64 } | Should Match 'require x64'
             Get-ThrowMessage { Assert-WindowsInstallerCandidate -RunnerDir $runner -Provider cuda -Arch x64 } | Should Match 'not the requested'
             Get-ThrowMessage { Assert-WindowsInstallerCandidate -RunnerDir $runner -Provider directml -Arch x64 } | Should Be ''
@@ -206,15 +210,7 @@ Describe 'Windows GPU preflight' {
         $workflow.Contains('unverified-omni-windows-x64-${{ matrix.vendor }}-runner') | Should Be $true
         $workflow | Should Match 'name: unverified-omni-windows-x64-\$\{\{ matrix\.vendor \}\}-runner-\$\{\{ needs\.preflight\.outputs\.selection \}\}-\$\{\{ needs\.preflight\.outputs\.scope \}\}-attempt-\$\{\{ github\.run_attempt \}\}\s+overwrite: false'
         $workflow | Should Match 'name: unverified-omni-windows-x64-\$\{\{ matrix\.vendor \}\}-installers-\$\{\{ needs\.preflight\.outputs\.selection \}\}-\$\{\{ needs\.preflight\.outputs\.scope \}\}-attempt-\$\{\{ github\.run_attempt \}\}\s+overwrite: false'
-        $pinCheck = $workflow.IndexOf('Test-WindowsGpuPins.ps1')
-        $pull = $workflow.IndexOf('prepare-windows-container-host@')
-        $imageCheck = $workflow.IndexOf('Test-WindowsGpuImage.ps1')
-        $build = $workflow.IndexOf('Build-Windows.ps1')
-        $upload = $workflow.IndexOf('actions/upload-artifact@')
-        ($pinCheck -ge 0 -and $pinCheck -lt $pull -and $pull -lt $imageCheck -and $imageCheck -lt $build -and $build -lt $upload) | Should Be $true
-        $package = $workflow.IndexOf('Package-OmniAccelerANT.ps1')
-        $install = $workflow.IndexOf('Test-OmniAccelerANTInstallers.ps1')
-        $installerUpload = $workflow.IndexOf('name: unverified-omni-windows-x64-${{ matrix.vendor }}-installers')
-        ($package -gt $build -and $install -gt $package -and $installerUpload -gt $install) | Should Be $true
+        Test-TextOrder -Text $workflow -Marker 'Test-WindowsGpuPins.ps1', 'prepare-windows-container-host@', 'Test-WindowsGpuImage.ps1', 'Build-Windows.ps1', 'actions/upload-artifact@' | Should Be $true
+        Test-TextOrder -Text $workflow -Marker 'Build-Windows.ps1', 'Package-OmniAccelerANT.ps1', 'Test-OmniAccelerANTInstallers.ps1', 'name: unverified-omni-windows-x64-${{ matrix.vendor }}-installers' | Should Be $true
     }
 }

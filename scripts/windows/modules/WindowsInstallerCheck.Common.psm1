@@ -44,6 +44,16 @@ function Assert-Healthz {
     return $health
 }
 
+function Select-ForeignModule {
+    # Loaded files outside every given root; a non-empty -IgnorePattern exempts OS-managed paths the roots cannot name.
+    param([Parameter(Mandatory)] $Process, [Parameter(Mandatory)][string[]] $Root, [string] $IgnorePattern = '')
+    @($Process.Modules | ForEach-Object FileName | Where-Object {
+            $file = $_
+            @($Root | Where-Object { $file.StartsWith($_, [StringComparison]::OrdinalIgnoreCase) }).Count -eq 0 -and
+            (-not $IgnorePattern -or $file -notmatch $IgnorePattern)
+        })
+}
+
 function Install-MsiSilently {
     <#
     .SYNOPSIS
@@ -74,4 +84,4 @@ function Wait-Healthz {
     return $null
 }
 
-Export-ModuleMember -Function Resolve-OneFile, Get-CheckedMsixView, Assert-MsixIdentity, Assert-Healthz, Install-MsiSilently, Uninstall-MsiSilently, Wait-Healthz
+Export-ModuleMember -Function Select-ForeignModule, Resolve-OneFile, Get-CheckedMsixView, Assert-MsixIdentity, Assert-Healthz, Install-MsiSilently, Uninstall-MsiSilently, Wait-Healthz

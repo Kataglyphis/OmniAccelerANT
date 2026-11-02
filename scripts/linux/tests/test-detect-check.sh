@@ -4,9 +4,7 @@ set -euo pipefail
 # shellcheck source=scripts/linux/tests/fixture-common.sh
 source "$(dirname "${BASH_SOURCE[0]}")/fixture-common.sh"
 root="$(fixture_root)"
-fixture_workdir
-mkdir -p "$work/bin"
-fixture_xvfb_stub "$work/bin"
+fixture_xvfb_workdir
 fixture_stub "$work/app" <<'STUB'
 [[ $# == 2 && "$1" == --detect-check && -f "$2" ]]
 if [[ "$2" == *.png ]]; then

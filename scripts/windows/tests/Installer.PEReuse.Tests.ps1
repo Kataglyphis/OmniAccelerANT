@@ -1,6 +1,10 @@
 #requires -Version 7.0
 
 # This guards shared module wiring and byte validation; it does not install MSI or MSIX packages.
+function Get-SiblingScriptAst([string] $Relative) {
+    return Get-TestScriptAst -ScriptPath (Join-Path $PSScriptRoot (Join-Path '..' $Relative))
+}
+
 function Get-ScriptCommandCount([object] $Ast, [string] $Name, [string] $TextPattern = '') {
     $commands = @(Get-TestAstCommands -Ast $Ast -Name $Name)
     return @($commands | Where-Object { -not $TextPattern -or $_.Extent.Text -match $TextPattern }).Count
@@ -12,7 +16,7 @@ function Get-ScriptFunctionCount([object] $Ast, [string] $Name) {
 
 function Assert-InstallerChecksUseHubRunner {
     foreach ($relative in 'Test-OmniAccelerANTInstallers.ps1', 'observant/Test-ObservANTWindows.ps1', 'observant/Test-ObservANTMsix.ps1') {
-        $scriptAst = Get-TestScriptAst -ScriptPath (Join-Path $PSScriptRoot (Join-Path '..' $relative))
+        $scriptAst = Get-SiblingScriptAst $relative
         Get-ScriptCommandCount $scriptAst 'Import-BuildModule' 'WindowsSmokeTest\.Common' | Should Be 1
         Get-ScriptCommandCount $scriptAst 'Initialize-SmokeTestRun' | Should Be 1
         (Get-ScriptCommandCount $scriptAst 'Assert-Test') -gt 0 | Should Be $true
@@ -76,7 +80,7 @@ Describe 'Installer shared Windows checks' {
     It 'reads both MSIX manifests through the shared archive reader' {
         @(Get-Command Get-MsixArchiveInfo -ErrorAction SilentlyContinue).Count | Should Be 1
         foreach ($relative in 'Test-OmniAccelerANTInstallers.ps1', 'observant/Test-ObservANTMsix.ps1') {
-            $ast = Get-TestScriptAst -ScriptPath (Join-Path $PSScriptRoot (Join-Path '..' $relative))
+            $ast = Get-SiblingScriptAst $relative
             Get-ScriptCommandCount $ast 'Get-CheckedMsixView' | Should Be 1
             ($ast.Extent.Text -match 'ZipFile\]::OpenRead') | Should Be $false
         }
@@ -102,7 +106,7 @@ Describe 'Installer shared Windows checks' {
                 @{ Path = 'Package-OmniAccelerANT.ps1'; Msi = 'NOTICES.Z'; Msix = 'flutter_assets/NOTICES.Z' },
                 @{ Path = 'observant/Package-ObservANT.ps1'; Msi = 'NOTICES'; Msix = 'web/assets/NOTICES' }
             )) {
-            $ast = Get-TestScriptAst -ScriptPath (Join-Path $PSScriptRoot (Join-Path '..' $case.Path))
+            $ast = Get-SiblingScriptAst $case.Path
             $msi = @(Get-TestAstCommands -Ast $ast -Name 'Assert-MsiPackageLicense')
             $msix = @(Get-TestAstCommands -Ast $ast -Name 'Assert-PackageLicense')
             $msi.Count | Should Be 1
@@ -116,9 +120,7 @@ Describe 'Installer shared Windows checks' {
 
     It 'gives the x64 host packager a real Python before its native-license gate (mutation)' {
         $yaml = [IO.File]::ReadAllText((Join-Path $PSScriptRoot '..\..\..\.github\workflows\windows-x64.yml'))
-        $python = $yaml.IndexOf('uses: actions/setup-python@')
-        $package = $yaml.IndexOf('Package-OmniAccelerANT.ps1 -AppDir $env:BUILD_DIR_RELEASE')
-        ($python -ge 0 -and $package -gt $python) | Should Be $true
+        Test-TextOrder -Text $yaml -Marker 'uses: actions/setup-python@', 'Package-OmniAccelerANT.ps1 -AppDir $env:BUILD_DIR_RELEASE' | Should Be $true
     }
 
     It 'copies wheel-matched ONNX texts and checks every Windows package' {
@@ -127,7 +129,7 @@ Describe 'Installer shared Windows checks' {
                 @{ Path = 'Package-OmniAccelerANT.ps1'; Checks = 2; Name = 'Resolve-RunnerOrtLicense'; Text = '-RunnerDir $AppDir' },
                 @{ Path = 'observant/Package-ObservANT.ps1'; Checks = 3; Name = 'Copy-OrtWheelLicenses'; Text = 'Get-OrtChainWheelStore' }
             )) {
-            $ast = Get-TestScriptAst -ScriptPath (Join-Path $PSScriptRoot (Join-Path '..' $case.Path))
+            $ast = Get-SiblingScriptAst $case.Path
             $commands = @(Get-TestAstCommands -Ast $ast -Name $case.Name)
             $checks = @(Get-TestAstCommands -Ast $ast -Name 'Assert-OrtWheelLicensesInPackage')
             $commands.Count | Should Be 1

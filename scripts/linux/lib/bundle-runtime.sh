@@ -64,6 +64,12 @@ prepare_gpu_host_runtime() {
   ort_assert_no_bundled_host_runtime "$bundle" "$GPU_RUNTIME_KIND"
 }
 
+# is_gpu_ort_file <file>: ORT files must remain byte-identical to their wheel; the GPU launcher supplies their lib path.
+is_gpu_ort_file() {
+  if [[ -n "$GPU_RUNTIME_KIND" && "$(basename "$1")" == libonnxruntime* ]]; then return 0; fi
+  return 1
+}
+
 # gst_copy_bundle_plugins <dest> <copy-arg>... -- <plugin>...: the hub copies them and fails on a missing required one.
 gst_copy_bundle_plugins() {
   local dest="$1" copier
@@ -74,6 +80,15 @@ gst_copy_bundle_plugins() {
   while (($#)); do args+=(--plugin "$1"); shift; done
   copier="$(antfrastructure_path linux/scripts/06-packaging/gstreamer-bundle.sh)" || return 1
   bash "$copier" copy --dest "$dest" "${args[@]}"
+}
+
+# bundle_lib_files <lib-dir>: its shared objects without glibc, which the loader takes from --library-path byte for byte.
+bundle_lib_files() {
+  local file
+  for file in "$1"/*.so*; do
+    [[ -f "$file" ]] || continue
+    is_system_soname "$(basename "$file")" || printf '%s\n' "$file"
+  done
 }
 
 # bundle_root_programs <bundle>: its executable top-level files without the system loader and libc, which stay byte for byte.

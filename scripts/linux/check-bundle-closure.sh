@@ -13,8 +13,7 @@ BUNDLE_DIR=""
 # G6's chain reference; empty = the image's chain ORT, which is what the lane grades against.
 ORT_REFERENCE=""
 
-parse_entry_options '[--arch x64|arm64] [--build-mode debug|profile|release] [--bundle-dir DIR] [--ort-reference DIR]' '' \
-  '--arch=MATRIX_ARCH' '-a=MATRIX_ARCH' '--build-mode=BUILD_MODE' '--bundle-dir=BUNDLE_DIR' \
+parse_closure_options '[--arch x64|arm64] [--build-mode debug|profile|release] [--bundle-dir DIR] [--ort-reference DIR]' \
   '--ort-reference=ORT_REFERENCE:a directory' -- "$@"
 
 if ! validate_arch "$MATRIX_ARCH"; then
@@ -74,9 +73,7 @@ check_one_elf() {
     return 0
   fi
   # The verified GPU launcher supplies the library path without changing wheel-matched ORT bytes.
-  if [[ -n "$GPU_RUNTIME_KIND" && "$(basename "$file")" == libonnxruntime* ]]; then
-    return 0
-  fi
+  if is_gpu_ort_file "$file"; then return 0; fi
   case "$location" in
     root) token='$ORIGIN/lib' ;;
     plugin) token='$ORIGIN/..' ;;
@@ -99,9 +96,8 @@ for file in "${root_programs[@]}"; do
   fi
   check_one_elf "$file" root
 done
-for file in "$bundle_lib"/*.so*; do
-  [[ -f "$file" ]] || continue
-  is_system_soname "$(basename "$file")" && continue
+mapfile -t lib_files < <(bundle_lib_files "$bundle_lib")
+for file in "${lib_files[@]}"; do
   check_one_elf "$file" lib
 done
 found_plugins=0

@@ -53,9 +53,7 @@ for tuple in nvidia:x64:cuda nvidia:arm64:cuda amd:x64:migraphx; do
   for format in tar deb image; do
     bundle="$work/$format bundle"
     mkdir -p "$bundle/data/resources/models" "$bundle/lib"
-    for name in fixture_detector.onnx fixture_detector.LICENSE fixture_detector.NOTICE; do
-      printf 'fixture %s\n' "$name" > "$bundle/data/resources/models/$name"
-    done
+    fixture_write_models "$bundle/data/resources/models"
     : > "$bundle/lib/libonnxruntime.so"
     printf '%s' "$format" > "$bundle/format"
     cat > "$bundle/omni_accelerant" <<'EOF'
@@ -106,9 +104,7 @@ EOF
     chmod +x "$bundle/omni_accelerant"
   done
   : > "$repo/third_party/OxidANT/resources/models/models.lock"
-  for name in fixture_detector.onnx fixture_detector.LICENSE fixture_detector.NOTICE; do
-    printf '%s  %s  https://example.invalid/%s\n' "$(sha256sum "$work/tar bundle/data/resources/models/$name" | cut -d' ' -f1)" "$name" "$name" >> "$repo/third_party/OxidANT/resources/models/models.lock"
-  done
+  fixture_lock_models "$work/tar bundle/data/resources/models" "$repo/third_party/OxidANT/resources/models/models.lock"
   mkdir -p "$work/tar-root" "$work/deb-root/DEBIAN" "$work/deb-root/opt"
   cp -a "$work/tar bundle" "$work/tar-root/$variant-bundle"
   cp -a "$work/deb bundle" "$work/deb-root/opt/$variant"
@@ -149,10 +145,8 @@ EOF
       }
     done
   done
-  if env GPU_FAKE_PREFLIGHT_FAIL=create PROFILE_EVIDENCE_DIR="$work/failed-evidence-$vendor-$arch" \
-      bash "$check" "$work/packages" "$vendor" "$arch" "$device" >/dev/null 2>&1; then
-    echo 'Preflight failure was accepted' >&2; exit 1
-  fi
+  fixture_refuses_quiet 'Preflight failure was accepted' env GPU_FAKE_PREFLIGHT_FAIL=create PROFILE_EVIDENCE_DIR="$work/failed-evidence-$vendor-$arch" \
+    bash "$check" "$work/packages" "$vendor" "$arch" "$device"
   scratch=("$work/runner"/omni-gpu-packages.*)
   [[ ${#scratch[@]} -eq 0 && -f "$evidence/tar/cpu-1.json" ]] || {
     echo 'Failure cleanup lost evidence or retained scratch' >&2; exit 1;
@@ -173,9 +167,7 @@ EOF
   : > "$work/image bundle/lib/libonnxruntime.so"
   for format in tar deb image; do
     for fault in CPU_FORMAT CPU_SECOND_FORMAT BAD_OUTPUT_FORMAT BAD_REPEAT_FORMAT HOST_RUNTIME_FORMAT MISSING_LOADER_FORMAT MALFORMED_LOADER_FORMAT MIXED_RUNTIME_FORMAT; do
-      if env "$fault=$format" bash "$check" "$work/packages" "$vendor" "$arch" "$device" >/dev/null 2>&1; then
-        echo "$format accepted $fault" >&2; exit 1
-      fi
+      fixture_refuses_quiet "$format accepted $fault" env "$fault=$format" bash "$check" "$work/packages" "$vendor" "$arch" "$device"
       scratch=("$work/runner"/omni-gpu-packages.*)
       [[ ${#scratch[@]} -eq 0 ]] || { echo 'Failed profile retained scratch' >&2; exit 1; }
     done

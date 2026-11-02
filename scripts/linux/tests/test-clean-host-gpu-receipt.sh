@@ -52,7 +52,5 @@ PY
   fixture_refuses_quiet 'Accepted changed candidate bytes' bash "$helper" finish
   rm -rf -- "$GPU_PACKAGES_DIR" "$GPU_BEFORE_RECEIPT" "$GPU_ARCHIVE_DIR/candidate.zip"
 done
-if env GPU_VENDOR=amd GPU_ARCH=arm64 bash "$helper" validate >/dev/null 2>&1; then
-  echo 'Accepted unsupported ARM ROCm' >&2; exit 1
-fi
+fixture_refuses_quiet 'Accepted unsupported ARM ROCm' env GPU_VENDOR=amd GPU_ARCH=arm64 bash "$helper" validate
 echo 'PASS: clean-host receipts bind candidate bytes and run identity for supported tuples'

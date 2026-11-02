@@ -15,12 +15,8 @@ cp "$repo/scripts/linux/lib/gpu-script-common.sh" "$fixture_repo/scripts/linux/l
 cp "$repo/scripts/linux/verify-gpu-candidate.sh" "$verifier"
 cp "$repo/scripts/windows/verify_detector_model.py" "$fixture_repo/scripts/windows/"
 export ANTFRASTRUCTURE_DIR="${ANTFRASTRUCTURE_DIR:-$repo/third_party/ANTfrastructure}"
-for name in fixture_detector.onnx fixture_detector.LICENSE fixture_detector.NOTICE; do
-  printf 'fixture %s\n' "$name" > "$work/bundle/data/resources/models/$name"
-  printf '%s  %s  https://example.invalid/%s\n' \
-    "$(sha256sum "$work/bundle/data/resources/models/$name" | cut -d ' ' -f1)" "$name" "$name" \
-    >> "$fixture_repo/third_party/OxidANT/resources/models/models.lock"
-done
+fixture_write_models "$work/bundle/data/resources/models"
+fixture_lock_models "$work/bundle/data/resources/models" "$fixture_repo/third_party/OxidANT/resources/models/models.lock"
 printf 'int fixture(void) { return 17; }\n' > "$work/fixture.c"
 for name in libonnxruntime.so.1 libonnxruntime_providers_shared.so libonnxruntime_providers_cuda.so; do
   cc -shared -fPIC -g "$work/fixture.c" -o "$work/bundle/lib/$name"
@@ -43,10 +39,8 @@ touch "$work/bundle/include/onnxruntime_cxx_api.h"
 ORT_LIB_LOCATION="$work/bundle/lib" ORT_CHAIN_WHEEL_DIR="$work/wheels" \
   bash "$repo/scripts/linux/check-gpu-image-runtime.sh" cuda >/dev/null
 printf x >> "$work/bundle/lib/libonnxruntime_providers_cuda.so"
-if ORT_LIB_LOCATION="$work/bundle/lib" ORT_CHAIN_WHEEL_DIR="$work/wheels" \
-  bash "$repo/scripts/linux/check-gpu-image-runtime.sh" cuda >/dev/null 2>&1; then
-  echo 'changed image provider passed' >&2; exit 1
-fi
+fixture_refuses_quiet 'changed image provider passed' env ORT_LIB_LOCATION="$work/bundle/lib" ORT_CHAIN_WHEEL_DIR="$work/wheels" \
+  bash "$repo/scripts/linux/check-gpu-image-runtime.sh" cuda
 cc -shared -fPIC -g "$work/fixture.c" -o "$work/bundle/lib/libonnxruntime_providers_cuda.so"
 variant=omni-accelerant-nvidia
 mkdir -p "$work/tar/$variant-bundle" "$work/deb/DEBIAN" "$work/deb/opt/$variant" "$work/appimage/usr/lib/$variant"

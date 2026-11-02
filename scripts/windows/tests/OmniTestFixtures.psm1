@@ -30,6 +30,15 @@ function Test-CommandAfter {
     return $Later.Extent.StartOffset -gt $Earlier.Extent.StartOffset
 }
 
+function Test-TextOrder {
+    # Every marker is present and each first occurrence follows the one before it.
+    param([Parameter(Mandatory)][string] $Text, [Parameter(Mandatory)][string[]] $Marker)
+    for ($i = 0; $i -lt $Marker.Count - 1; $i++) {
+        if (-not (Test-TextBefore -Text $Text -First $Marker[$i] -Later $Marker[$i + 1])) { return $false }
+    }
+    return $true
+}
+
 function Get-GpuChainDllName {
     'onnxruntime.dll', 'onnxruntime_providers_shared.dll', 'onnxruntime_providers_cuda.dll', 'DirectML.dll'
 }
@@ -41,4 +50,4 @@ function New-GpuOxidantFixture {
     Set-Content -LiteralPath (Join-Path $Oxidant 'crates\inference\Cargo.toml') -Value @('[package.metadata.kataglyphis]', 'ort-devices = ["cuda", "directml"]')
 }
 
-Export-ModuleMember -Function Get-CommandTextCount, Test-CommandAfter, Get-ThrowMessage, Test-TextBefore, Get-GpuChainDllName, New-GpuOxidantFixture
+Export-ModuleMember -Function Test-TextOrder, Get-CommandTextCount, Test-CommandAfter, Get-ThrowMessage, Test-TextBefore, Get-GpuChainDllName, New-GpuOxidantFixture

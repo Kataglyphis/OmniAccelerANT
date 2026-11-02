@@ -81,10 +81,7 @@ Write-Host "      startup task state: $(if (Test-Path $taskKey) { (Get-ItemPrope
 $proc = Start-Process -FilePath $alias -ArgumentList '--camera', 'test', '--inference', 'off' -PassThru -WindowStyle Minimized
 $null = Assert-Healthz -Label 'started through the alias, it answers /healthz'
 $running = Get-Process kataglyphis_observant -ErrorAction SilentlyContinue | Select-Object -First 1
-$foreign = @($running.Modules | ForEach-Object FileName | Where-Object {
-        -not $_.StartsWith($pkg.InstallLocation, [StringComparison]::OrdinalIgnoreCase) -and
-        -not $_.StartsWith($env:SystemRoot, [StringComparison]::OrdinalIgnoreCase)
-    })
+$foreign = @(Select-ForeignModule -Process $running -Root $pkg.InstallLocation, $env:SystemRoot)
 if ($foreign) { Write-Host "      outside: $($foreign -join ', ')" }
 Assert-Test -Name 'it loads modules only from its package and Windows' { $running -and $foreign.Count -eq 0 }
 Get-Process kataglyphis_observant -ErrorAction SilentlyContinue | Stop-Process -Force

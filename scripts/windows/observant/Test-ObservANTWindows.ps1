@@ -64,11 +64,7 @@ $microsoftStore = '^' + [regex]::Escape("$env:ProgramFiles\WindowsApps\") + 'Mic
 function Get-ForeignModule {
     param([System.Diagnostics.Process]$Process)
     $Process.Refresh()
-    @($Process.Modules | ForEach-Object FileName | Where-Object {
-            -not $_.StartsWith($prefix, [StringComparison]::OrdinalIgnoreCase) -and
-            -not $_.StartsWith($env:SystemRoot, [StringComparison]::OrdinalIgnoreCase) -and
-            $_ -notmatch $microsoftStore
-        })
+    Select-ForeignModule -Process $Process -Root $prefix, $env:SystemRoot -IgnorePattern $microsoftStore
 }
 
 # Rows of the MSI's own tables, through the Windows Installer COM API, read-only.

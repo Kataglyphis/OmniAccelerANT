@@ -37,6 +37,8 @@ function New-GpuImageWheel([string] $Path, [string] $Bin) {
 Describe 'Windows GPU image wheel proof' {
     Import-Module (Join-Path $PSScriptRoot 'OmniTestFixtures.psm1') -Force
 
+    function Assert-NoProofScratch { @(Get-ChildItem -LiteralPath $caseRoot -Filter 'omni-gpu-image-proof-*').Count | Should Be 0 }
+
     function Set-ChainDll([string] $Name, [int] $Marker, [bool] $Arm = $false) {
         New-GpuImagePe -Path (Join-Path $bin $Name) -Marker $Marker -Arm $Arm
     }
@@ -71,7 +73,7 @@ Describe 'Windows GPU image wheel proof' {
         Set-ChainDll 'DirectML.dll' 4 -Arm $true
         (Get-PeFileMachine -Path (Join-Path $bin 'DirectML.dll')) | Should Be 43620
         Get-ImageProofError directml | Should Match 'PE machine'
-        @(Get-ChildItem -LiteralPath $caseRoot -Filter 'omni-gpu-image-proof-*').Count | Should Be 0
+        Assert-NoProofScratch
     }
 
     It 'requires CUDA and the bridge to match the same wheel' -Skip:(-not $hasProviderApi) {
@@ -82,6 +84,6 @@ Describe 'Windows GPU image wheel proof' {
         Get-ImageProofError cuda | Should Be ''
         New-GpuImagePe -Path (Join-Path $lib 'onnxruntime_providers_cuda.dll') -Marker 9
         Get-ImageProofError cuda | Should Match 'differs from the matching wheel'
-        @(Get-ChildItem -LiteralPath $caseRoot -Filter 'omni-gpu-image-proof-*').Count | Should Be 0
+        Assert-NoProofScratch
     }
 }

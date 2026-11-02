@@ -239,12 +239,16 @@ picture_by_arrival() {
   return 0
 }
 
+post_ignored_boxes() {
+  curl -sf -X POST -H 'content-type: application/json' -d "{\"ignore\": $2}" "http://$1:8080/settings" >/dev/null
+}
+
 # "Not a cat" over the boxes the photo shows ends the visit, as the page's button does.
 not_a_cat_ends_the_visit() {
   local boxes _
   boxes="$(curl -sf "http://$1:8080/healthz" | jq -c '.detection.boxes')" || return 1
   [ "$(jq length <<<"${boxes}")" -ge 1 ] || return 1
-  curl -sf -X POST -H 'content-type: application/json' -d "{\"ignore\": ${boxes}}" "http://$1:8080/settings" >/dev/null || return 1
+  post_ignored_boxes "$1" "${boxes}" || return 1
   for _ in $(seq 1 40); do
     healthz_holds "$1" '.detection.in_view == false and .detection.boxes == []' && return 0
     sleep 0.25
@@ -257,7 +261,7 @@ still_cat_starts_no_visit() {
   local visits
   while [ $(($(date +%s) - $2)) -lt 20 ]; do sleep 1; done
   visits="$(curl -sf "http://$1:8080/healthz" | jq '.detection.visits')" || return 1
-  curl -sf -X POST -H 'content-type: application/json' -d '{"ignore": []}' "http://$1:8080/settings" >/dev/null || return 1
+  post_ignored_boxes "$1" '[]' || return 1
   sleep 12
   healthz_holds "$1" ".detection.in_view == false and .detection.visits == ${visits}" || return 1
   return 0

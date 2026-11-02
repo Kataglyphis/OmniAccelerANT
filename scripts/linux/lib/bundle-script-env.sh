@@ -9,3 +9,10 @@ source "${_bundle_script_env_dir}/bundle-runtime.sh"
 source "${_bundle_script_env_dir}/antfrastructure.sh"
 # shellcheck source=scripts/linux/lib/entry-options.sh
 source "${_bundle_script_env_dir}/entry-options.sh"
+
+# parse_closure_options <usage> <extra-spec>... -- "$@": the flags both closure scripts take, plus the caller's own.
+parse_closure_options() {
+  local usage="$1"
+  shift
+  parse_entry_options "$usage" '' '--arch=MATRIX_ARCH' '-a=MATRIX_ARCH' '--build-mode=BUILD_MODE' '--bundle-dir=BUNDLE_DIR' "$@"
+}

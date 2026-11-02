@@ -11,6 +11,13 @@ fixture_workdir() {
   trap 'rm -rf -- "$work"' EXIT
 }
 
+# fixture_xvfb_workdir: a workdir whose bin/ already holds the xvfb stub, for suites that start a display-needing app.
+fixture_xvfb_workdir() {
+  fixture_workdir
+  mkdir -p "$work/bin"
+  fixture_xvfb_stub "$work/bin"
+}
+
 # fixture_stub <path> <<'BODY': a strict Bash executable, so a stub cannot pass by ignoring its own failing check.
 fixture_stub() {
   { printf '#!/usr/bin/env bash\nset -euo pipefail\n'; cat; } > "$1"
@@ -62,6 +69,22 @@ fixture_refuses_logged() {
 fixture_real_provider_dir() {
   case "$ORT_TEST_REAL_PROVIDER" in cuda|migraphx) ;; *) echo 'Invalid real provider' >&2; exit 2 ;; esac
   printf '%s\n' "${ORT_TEST_REAL_DIR:?ORT_TEST_REAL_DIR is required}"
+}
+
+# fixture_write_models <dir>: the detector's three locked files, with placeholder bytes.
+fixture_write_models() {
+  local name
+  for name in fixture_detector.onnx fixture_detector.LICENSE fixture_detector.NOTICE; do
+    printf 'fixture %s\n' "$name" > "$1/$name"
+  done
+}
+
+# fixture_lock_models <dir> <lock>: appends a models.lock row per file, so a later byte change fails verification.
+fixture_lock_models() {
+  local file
+  for file in "$1"/fixture_detector.onnx "$1"/fixture_detector.LICENSE "$1"/fixture_detector.NOTICE; do
+    printf '%s  %s  https://example.invalid/%s\n' "$(sha256sum "$file" | cut -d ' ' -f1)" "${file##*/}" "${file##*/}" >> "$2"
+  done
 }
 
 # fixture_gpu_launcher <path>: an external-runtime launcher with both loader branches, which the host-runtime gate looks for.

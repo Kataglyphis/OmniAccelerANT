@@ -4,9 +4,8 @@ set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/fixture-common.sh"
 root="$(fixture_root)"
 check="$root/scripts/linux/check-packaged-onnx-runtime.sh"
-fixture_workdir
-mkdir -p "$work/bin" "$work/bundle/lib" "$work/runner"
-fixture_xvfb_stub "$work/bin"
+fixture_xvfb_workdir
+mkdir -p "$work/bundle/lib" "$work/runner"
 fixture_stub "$work/bundle/omni_accelerant" <<'STUB'
 [[ $# == 1 && "$1" == --onnx-check && ${KATAGLYPHIS_ORT_DEVICE:-} == cpu && ${KATAGLYPHIS_ONNX_BACKEND:-} == ort ]]
 [[ -z ${LD_LIBRARY_PATH+x} && -z ${ORT_DYLIB_PATH+x} && -z ${ONNX_ROOT+x} ]]
