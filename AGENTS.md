@@ -40,10 +40,10 @@ inference plugin.
 | `third_party/OxidANT` | Rust core, bridged via `flutter_rust_bridge`. `lib/src/rust/` is committed generated code — no build lane regenerates it; how to regenerate: § 4, *The frb Dart bindings* |
 | `packages/kataglyphis_native_inference` | C++ inference plugin — **plain files, not a submodule**; a `pubspec.yaml` path dependency. Links AccelerANTgine (ONNX Runtime); GStreamer only on Android, from its SDK |
 | `third_party/AccelerANTgine` | The inference core the plugin builds. Its own submodule, sibling to the plugin rather than nested inside it |
-| `scripts/windows/`, `scripts/linux/` | Thin wrappers over ANTfrastructure drivers + this repo's own glue |
+| `scripts/windows/`, `scripts/linux/` | Thin wrappers over ANTfrastructure drivers + this repo's own glue; `scripts/windows/modules/WindowsGpuBuild.Common.psm1` holds the GPU candidate build's shared steps |
 | `third_party/ANTfrastructure` | The submodule owning every reusable script, module and doc |
 | `firmware/esp32-s3` | Rust firmware for the ESP32-S3 companion — its own crate, `esp` toolchain and `Cargo.lock`, never a workspace member |
-| `firmware/esp32-s3-eye` | ESP32-S3-EYE camera firmware: ESP-IDF/ESP-WHO/ESP-DL (C/C++) plus the Rust USB protocol staticlib |
+| `firmware/esp32-s3-eye` | ESP32-S3-EYE camera firmware: ESP-IDF/ESP-WHO/ESP-DL (C/C++) plus the Rust USB protocol staticlib, `firmware/esp32-s3-eye/rust_protocol` |
 | `firmware/esp32-s3-probe` | One-boot hardware probe: PSRAM and the OV2640 SCCB scan (XCLK on GPIO15) |
 
 **ESP32-S3 USB companion and camera (2026-10-18).** A board on its native USB port
@@ -600,7 +600,24 @@ rather than linked.
 and `queue.md`; `--compare <file>` or `--compare previous-develop` grades it (exit 0 ok, 1 regressed,
 2 incomplete). `quality-report.toml` declares this repo's lane outputs and metrics: hub
 `docs/code-quality-tooling.md` § quality-report. A regressed verdict on develop is fixed or recorded
-in `BACKLOG.md` before new feature work.
+in `BACKLOG.md` before new feature work. `bash scripts/linux/quality-report.sh --perf-host` runs the
+latency commands that toml declares inside `:latest` and grades them against `perf/baseline-<cpu>.json`;
+it refuses a dirty tree, a loaded host or a running image chain.
+
+**bench-history keys:** `frontend-perf-x64` and `frontend-perf-arm64` (artifacts
+`bench-history-frontend-perf-<arch>`), the profile-mode frame timings against the median of earlier
+default-branch runs.
+
+Programs: the app `omni_accelerant`, and the firmware binaries `omni-esp32s3` (`firmware/esp32-s3`) and
+`omni-esp32s3-probe` (`firmware/esp32-s3-probe`).
+
+Workflows outside the lanes below: `on-request.yml` starts what a commit message's `[ci <lane>]` asks
+for; `release.yml` is every push to `main`; `docs.yml` builds and publishes the site;
+`code-quality-report.yml` runs `quality-report.sh`; `ort-license-mutations.yml` proves the license and
+ORT recipes; `python-refactor.yml` is an on-demand preview that publishes nothing;
+`renovate-entrypoint.yml` checks the Renovate wrapper and config; `submodule-pins.yml` runs the hub's pin
+suite when a gitlink moves; `linux-gpu-candidates.yml` and `windows-gpu-candidates.yml` are dispatch-only,
+unverified GPU candidates.
 
 **Both lanes run the same thing locally and in CI; reproduce locally first, CI is not a
 debugger.** **Run one lane at a time**: every local lane bind-mounts the same checkout and its

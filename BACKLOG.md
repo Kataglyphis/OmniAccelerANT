@@ -126,12 +126,22 @@ what the owner's goal still lacks.
 
 ## Language AI
 
+- [ ] **LAI-F4: microphone input in the app** (M, ★★). Hub language-AI milestone 3 (`docs/language-ai.md`).
+- [ ] **LAI-F5: questions on the Stream page** (M, ★★). Hub language-AI milestone 4.
+
 - **llguidance accepts the hub tiny model's tokenizer** (probe 2026-11-01, GenAI 0.17.0 in
   `:latest` 7d4d4129). `set_guidance("json_schema", ...)` loaded on both the tiny model and
   SmolLM2-135M; a schema with `maxLength`, no extra properties and fixed whitespace makes the tiny
   model decode `{"a":"#$%"}` and stop at its end token, so schema tests need no SmolLM2 fallback.
   An unbounded schema lets the tiny model emit whitespace until the budget ends. Windows' GenAI is
   built without guidance (hub LAI-H2), so a schema there answers the unsupported error.
+
+## Open — packaging
+
+- [ ] **A bundle with `GST_REGISTRY_FORK=no` and no scanner can give webrtcsink an empty codec list** (M, ★★).
+  `packages/kataglyphis_native_inference/linux/runtime_paths.cc` sets it; on a fresh registry an in-process
+  scan builds the pad templates while webrtcsink reads them (OxidANT `docs/observant.md`). Ship
+  `gst-plugin-scanner` in the bundle or prove the fresh-registry path.
 
 ## Open — waiting on the owner
 

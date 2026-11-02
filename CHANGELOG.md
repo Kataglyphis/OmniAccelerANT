@@ -5,6 +5,12 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ## Unreleased
 
+### 2026-11-02 (AGENTS.md matches the tree)
+- **`AGENTS.md` names what the tree holds.** Section 5 names every workflow, program, bench-history key
+  and `--perf-host`; section 1 names `WindowsGpuBuild.Common` and the eye firmware's protocol crate.
+  `generate-docs.sh` publishes `ai-playground.md` and `third-party-components.md`. `BACKLOG.md` lists
+  LAI-F4, LAI-F5 and the fresh-registry webrtcsink risk.
+
 ### 2026-11-01 (cv)
 - **Class ids reach the Rust core.** `RustWebcamView` passes `WebcamStreamConfig.classes`, `[0]` by
   default, with a picker over OxidANT's `detectorLabels()`; boxes are labelled with class names, and
