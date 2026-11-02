@@ -91,6 +91,6 @@ Describe 'Windows detector model staging' {
         $afterMsix = $package.IndexOf($modelCheck, $msix)
         ($msi -ge 0 -and $afterMsi -gt $msi -and $afterMsi -lt $msix -and
             $afterMsix -gt $msix -and $afterMsix -lt $publish) | Should Be $true
-        foreach ($name in $names) { $package | Should Match ([regex]::Escape("resources/models/$name")) }
+        $package | Should Match "Get-DetectorModelFile\.ps1'\) \| ForEach-Object \{ `"resources/models/\`$_`" \}"
     }
 }
