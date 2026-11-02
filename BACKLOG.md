@@ -143,6 +143,22 @@ what the owner's goal still lacks.
   scan builds the pad templates while webrtcsink reads them (OxidANT `docs/observant.md`). Ship
   `gst-plugin-scanner` in the bundle or prove the fresh-registry path.
 
+- [ ] **Take `deim_dfine_n_coco-v2` with OxidANT's lock** (S, ★★★). On DirectML, v1 finds nothing: an RX 9070 XT ran every profiled operator on `DmlExecutionProvider` and returned no detection, where the CPU
+  finds two cats (hub CON220). v2, sha256 `0bf16e85…`, gives the CPU's detections there.
+  This repo ships the model `third_party/OxidANT/resources/models/models.lock` names, so move the pin once that
+  lock has moved, then run `--detect-check` on the AMD package. v2 passed it from a candidate file only.
+
+- [ ] **A clear failure or a CPU fallback when CUDA has no kernel for the card** (M, ★★). Seen on an RTX 2080 with OxidANT's package; these packages use the
+  same image and are untested on such a card.
+  `CUDAExecutionProvider` creates its session, then the first node stops with
+  `cudaErrorNoKernelImageForDevice`: no detection, no fallback. The images build `86;87;89;120`, so RTX 20xx
+  cards fail until hub CON217. Any card outside the list should get a message naming it, or the CPU.
+
+- [ ] **The NVIDIA packages have not run on a GPU they support** (S, ★★★). The Linux and Windows packages are built and
+  passed on the CPU, and hosted runners have no GPU. Done on an RTX 30xx or newer when
+  `compare_detector_parity.py` passes against the CPU and the profile shows the provider; the hub's
+  `docs/gpu-artifact-receipts.md` has the commands. DirectML on an NVIDIA card is unproven too.
+
 ## Open — waiting on the owner
 
 - [b] **False arrivals on himbeere2: nearly gone, one mark left.** On 2026-10-12 and 13 a drying rack at
