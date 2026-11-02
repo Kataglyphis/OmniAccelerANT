@@ -34,6 +34,15 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 - **Suites share their setup.** `tests/harness-bootstrap.sh` and `tests/fixture-common.sh` own the
   hub-harness bootstrap, mutant reruns, stub writers and refusal checks; the brand-icon mirror case
   now gets its PNG frame from the hub's `t_write_png`.
+- **Windows scripts share their checks.** `Initialize-EntryScript.ps1` owns the strict preamble,
+  `WindowsInstallerCheck.Common.psm1` the MSI, MSIX and `/healthz` assertions, and
+  `tests/OmniTestFixtures.psm1` the Pester helpers; `WindowsOrtRunner.Common` reports through one
+  finding verdict, and `Resolve-RunnerOrtLicense` leaves provider validation to `Assert-RunnerOrtStamp`.
+- The commented-out blocks in `assets/documents/README.md` are gone; the rendered text is unchanged.
+- **Copies kept on purpose.** `observant/bench/model.sh` stays free of a helper file because it runs alone
+  on a board. `package-producer-bundle.sh` keeps its soname loop because it runs inside the build
+  container, outside the repo's library tree. The `Package-*` license calls stay in each script
+  because `Installer.PEReuse.Tests.ps1` pins them per package. Third-party license texts are verbatim.
 
 ### 2026-11-01 (cv)
 - **Class ids reach the Rust core.** `RustWebcamView` passes `WebcamStreamConfig.classes`, `[0]` by

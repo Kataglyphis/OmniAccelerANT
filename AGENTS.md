@@ -347,9 +347,10 @@ rather than linked.
 - **Linux bundle fixtures come from the hub.** The closure and GStreamer element tests source
   `synthetic-elf-fixture.sh` and `gst-inspect-fixture.sh`; preserve their DT_STRSZ and Name-field
   options when changing a test, and keep the helper import fatal.
-- **Linux bundle check options reuse the hub parser.** `check-bundle-gst-elements.sh` and
-  `check-knt-abi.sh` call `scripts/linux/lib/bundle-options.sh`, which delegates value flags to
-  ANTfrastructure's `parse_cli_value_options`; keep each gate's accepted path flag, error code,
+- **Linux entry scripts share one flag loop.** `check-bundle-gst-elements.sh` and
+  `check-knt-abi.sh` call `scripts/linux/lib/bundle-options.sh`, and it and the other non-lane entry
+  scripts use `scripts/linux/lib/entry-options.sh`, which must work before the hub submodule
+  exists; keep each gate's accepted path flag, error code,
   help text and the shared build-mode verdict. The native lane runs
   `scripts/linux/tests/test-bundle-options.sh`, including a mutated option destination.
 - **The Rust binaries name the chain ORT's directory, and G6 must read them as importers.**

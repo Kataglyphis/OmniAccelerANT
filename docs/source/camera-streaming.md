@@ -394,7 +394,7 @@ sources; OxidANT's `capture.rs` adds `videoscale`. A new element goes into that 
 plugin into `GST_BUNDLED_PLUGIN_NAMES`, or the lane fails.
 
 The GStreamer-element and knt-ABI check CLIs share `scripts/linux/lib/bundle-options.sh`,
-which uses ANTfrastructure's value-option parser; `cli-common.sh` owns their architecture and
+which uses the [shared flag loop](project-operations.md#entry-script-flags); `cli-common.sh` owns their architecture and
 build-mode verdicts. The native lane tests help, invalid values and a mutated option target
 with `scripts/linux/tests/test-bundle-options.sh` before it builds.
 

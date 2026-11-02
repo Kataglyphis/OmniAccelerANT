@@ -85,7 +85,7 @@ Describe 'WindowsFlutterAot.Common' {
 
     It 'grades against the newest kernel when several presets left assemble trees' {
         $c = New-Case 'presets'
-        $other = Add-OtherPresetTree $c
+        $null = Add-OtherPresetTree $c
         Get-FlutterAotBuildDir -DartToolDir $c.DartTool | Should Be $c.Hash
         @(Get-CaseStaleness $c).Count | Should Be 0
     }

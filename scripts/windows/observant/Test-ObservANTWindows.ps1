@@ -147,7 +147,7 @@ if ($firewallOn) {
 
 Write-Host '=== the installed service, scrubbed environment ==='
 $svc = Start-Installed -Arguments @('--camera', 'test', '--inference', 'off') -LogName 'service.log'
-$health = Assert-Healthz -Label '/healthz answers on :8080'
+$null = Assert-Healthz -Label '/healthz answers on :8080'
 Assert-Test -Name 'the page is served from the install' { (Invoke-WebRequest -UseBasicParsing -TimeoutSec 5 http://127.0.0.1:8080/).Content -match '<html' }
 $web = Join-Path $prefix 'web'
 Assert-Test -Name 'the page leaves out the renderers its loader never asks for, and the debug maps' {
