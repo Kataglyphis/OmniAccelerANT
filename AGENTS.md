@@ -23,6 +23,8 @@ GPU candidate artifact names include the current run attempt and cannot be overw
 GPU candidate selectors and caller scopes must be validated before concurrency; uploads and Linux clean-host downloads use the same selection, scope and attempt.
 Linux GPU candidate verification reads the DEB package identity and architecture from its control metadata, not only from its filename.
 Every launcher icon derives from `images/logo.svg`; `scripts/linux/check-brand-icons.py` gates it.
+COCO class names come only from OxidANT's `detectorLabels()`; keep German names in id order in `class_labels.dart`, never an English copy.
+`rust_builder/linux/oxidant-ort-devices.cmake` is the one reader of OxidANT's `ort-devices`, on both lanes.
 
 Laid out per ANTfrastructure's
 [`shared/templates/AGENTS.md.template`](third_party/ANTfrastructure/shared/templates/README.md).
@@ -376,8 +378,10 @@ rather than linked.
   pin the image carries — never a floating latest, and never `--force`.
 - **The built web app gets a real browser check.** `scripts/linux/check-web-browser.sh`
   delegates to the hub's Node/Chrome check; its idle ObservANT fixture answers signalling,
-  snapshots and API requests without weakening error checks. Keep the static branch routes
-  there current; configured blog routes are read from their settings. Fallback glyph fonts
+  snapshots and API requests without weakening error checks. Navigation routes come from
+  `lib/app_pages.dart`, the one page table (route, rail entry, widget) that routing and
+  `test/app_layout_test.dart` read too; add a page there, never a per-page config. Keep the footer
+  routes there current; configured blog routes are read from their settings. Fallback glyph fonts
   need both `web/flutter_bootstrap.js` and the hub's locked font fetcher. Commands and scope:
   [project-operations.md](docs/source/project-operations.md#the-web-lanes-canvaskit-source).
 - **Renaming the Rust crate touches committed generated code.**
@@ -394,7 +398,9 @@ rather than linked.
   `third_party/OxidANT/scripts/linux/fetch-models.sh` (`--dest DIR`; Windows:
   `scripts\windows\Get-Models.ps1`) is the only way in. A checkout has no model until it
   runs, so the Rust webcam view on a dev build fails to load one: the native lane runs it
-  before the build, the bundle and package scripts call it themselves. A new model goes
+  before the build, the bundle and package scripts call it themselves. No script names the
+  model: `verify_detector_model.py` and `scripts/windows/Get-DetectorModelFile.ps1` read the
+  lock's first `.onnx` row, and `runtime_paths.cc` the bundle's only `.onnx`. A new model goes
   into ModelANT and only the lock moves here; the old AGPL files left the history on 2026-10-17.
   Detail: `docs/source/camera-streaming.md` § *The detection model*.
 - **The app version is written twice, and both move together.** `version:` in

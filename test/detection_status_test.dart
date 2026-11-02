@@ -4,6 +4,9 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:omni_accelerant/Pages/StreamPage/detection_status.dart';
 import 'package:omni_accelerant/l10n/app_localizations.dart';
 import 'package:url_launcher/link.dart';
+import 'package:omni_accelerant/src/rust/frb_generated.dart';
+
+import 'support/fake_detector_labels.dart';
 
 const _inView =
     '{"ok":true,"name":"Garden Cam","cat":{"in_view":true,"last_seen":1791763273,"visits":3,'
@@ -35,6 +38,7 @@ Future<void> _pumpLine(WidgetTester tester, Future<String?> Function() fetch) {
 }
 
 void main() {
+  setUpAll(() => RustLib.initMock(api: FakeDetectorLabelsApi()));
   setUpAll(() async {
     await initializeDateFormatting('en');
     await initializeDateFormatting('de');

@@ -64,7 +64,7 @@ Dart package texts are in Flutter's `NOTICES`. Maintenance and limits:
 | toml++ | MIT | https://github.com/marzer/tomlplusplus | Compiled into AccelerANTgine. |
 | Microsoft GSL | MIT | https://github.com/microsoft/GSL | Header-only, compiled into AccelerANTgine. |
 | Noto Color Emoji and Noto Sans Symbols 2 | OFL-1.1 | https://github.com/notofonts | Web fallback fonts; the OFL text ships as assets/licenses/noto-fallback-fonts-OFL.txt and is on the app's licenses page. |
-| DEIM-D-FINE-N COCO detection model | Apache-2.0 | https://github.com/Kataglyphis/ModelANT | Data, not code: the model's own LICENSE and NOTICE ship beside deim_dfine_n_coco.onnx in every package that bundles it. |
+| DEIM-D-FINE-N COCO detection model | Apache-2.0 | https://github.com/Kataglyphis/ModelANT | Data, not code: the model's own LICENSE and NOTICE ship beside its .onnx file in every package that bundles it. |
 
 ## Rust crates (341)
 

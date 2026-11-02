@@ -4,6 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:omni_accelerant/Pages/CameraSettingsPage/camera_settings.dart';
 import 'package:omni_accelerant/l10n/app_localizations.dart';
+import 'package:omni_accelerant/src/rust/frb_generated.dart';
+
+import 'support/fake_detector_labels.dart';
 
 const _healthz =
     '{"ok":true,"name":"Cat Cam Futtertrog","rotate":270,"score":0.45,'
@@ -69,6 +72,7 @@ Future<void> _pump(
 }
 
 void main() {
+  setUpAll(() => RustLib.initMock(api: FakeDetectorLabelsApi()));
   group('ObservantSettings.parse', () {
     test('reads name, rotation and score', () {
       final settings = ObservantSettings.parse(

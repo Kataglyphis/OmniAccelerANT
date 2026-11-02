@@ -24,6 +24,7 @@ Initialize-SmokeTestRun
 $product = 'ObservANT'
 $prefix = Join-Path $env:ProgramFiles $product
 $exe = Join-Path $prefix 'kataglyphis_observant.exe'
+$modelFile = @(& (Join-Path $PSScriptRoot '..\Get-DetectorModelFile.ps1'))[0]
 $startup = Join-Path $env:ProgramData "Microsoft\Windows\Start Menu\Programs\StartUp\$product.lnk"
 $work = Join-Path $env:TEMP "observant-test-$PID"
 $null = New-Item -ItemType Directory -Force -Path $work
@@ -146,7 +147,7 @@ $p = Start-Process msiexec.exe -ArgumentList '/i', "`"$Msi`"", '/qn', '/l*v', "`
 Assert-Test -Name 'msiexec installs it silently' { $p.ExitCode -eq 0 }
 Assert-Test -Name 'the exe, its plugins, the model and the page are installed' {
     (Test-Path $exe) -and (Test-Path (Join-Path $prefix 'lib\gstreamer-1.0\gstrswebrtc.dll')) -and
-    (Test-Path (Join-Path $prefix 'models\deim_dfine_n_coco.onnx')) -and (Test-Path (Join-Path $prefix 'web\index.html')) -and
+    (Test-Path (Join-Path $prefix "models\$modelFile")) -and (Test-Path (Join-Path $prefix 'web\index.html')) -and
     (Test-Path (Join-Path $prefix 'onnxruntime.dll'))
 }
 Assert-Test -Name 'the all-users Startup folder starts it at logon' { Test-Path $startup }
@@ -231,7 +232,7 @@ $infer.Process.WaitForExit()
 Get-Content -LiteralPath $infer.Log -ErrorAction SilentlyContinue | Select-String -Pattern 'model:|ONNX Runtime loaded|ORT session|ERROR|cat in view' | Select-Object -First 5 | ForEach-Object { Write-Host "      $($_.Line)" }
 Assert-Test -Name 'it runs its own model on its own ONNX Runtime and finds a cat' {
     $log = Get-Content -LiteralPath $infer.Log -Raw
-    $log -match [regex]::Escape("$prefix\models\deim_dfine_n_coco.onnx") -and $log -match [regex]::Escape("$prefix\onnxruntime.dll") -and $log -match 'cat in view'
+    $log -match [regex]::Escape("$prefix\models\$modelFile") -and $log -match [regex]::Escape("$prefix\onnxruntime.dll") -and $log -match 'cat in view'
 }
 
 Write-Host '=== uninstall ==='

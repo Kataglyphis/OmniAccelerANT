@@ -57,7 +57,7 @@ for tuple in nvidia:x64:cuda nvidia:arm64:cuda amd:x64:migraphx; do
   for format in tar deb image; do
     bundle="$work/$format bundle"
     mkdir -p "$bundle/data/resources/models" "$bundle/lib"
-    for name in deim_dfine_n_coco.onnx deim_dfine_n_coco.LICENSE deim_dfine_n_coco.NOTICE; do
+    for name in fixture_detector.onnx fixture_detector.LICENSE fixture_detector.NOTICE; do
       printf 'fixture %s\n' "$name" > "$bundle/data/resources/models/$name"
     done
     : > "$bundle/lib/libonnxruntime.so"
@@ -110,7 +110,7 @@ EOF
     chmod +x "$bundle/omni_accelerant"
   done
   : > "$repo/third_party/OxidANT/resources/models/models.lock"
-  for name in deim_dfine_n_coco.onnx deim_dfine_n_coco.LICENSE deim_dfine_n_coco.NOTICE; do
+  for name in fixture_detector.onnx fixture_detector.LICENSE fixture_detector.NOTICE; do
     printf '%s  %s  https://example.invalid/%s\n' "$(sha256sum "$work/tar bundle/data/resources/models/$name" | cut -d' ' -f1)" "$name" "$name" >> "$repo/third_party/OxidANT/resources/models/models.lock"
   done
   mkdir -p "$work/tar-root" "$work/deb-root/DEBIAN" "$work/deb-root/opt"

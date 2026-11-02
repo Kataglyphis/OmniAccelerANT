@@ -16,7 +16,7 @@ $ErrorActionPreference = 'Stop'
 $dir = (Resolve-Path -LiteralPath $AppDir).Path
 $exe = Join-Path $dir 'omni_accelerant.exe'
 if (-not (Test-Path -LiteralPath $exe -PathType Leaf)) { throw "No omni_accelerant.exe in $dir." }
-$model = Join-Path $dir 'resources\models\deim_dfine_n_coco.onnx'
+$model = Join-Path $dir "resources\models\$(@(& (Join-Path $PSScriptRoot 'Get-DetectorModelFile.ps1'))[0])"
 if (-not (Test-Path -LiteralPath $model -PathType Leaf)) { throw "No bundled ONNX model in $dir." }
 $ort = Join-Path $dir 'onnxruntime.dll'
 if (-not (Test-Path -LiteralPath $ort -PathType Leaf)) { throw "No bundled ONNX Runtime in $dir." }

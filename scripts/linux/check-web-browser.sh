@@ -17,8 +17,10 @@ trap 'kill "$server" 2>/dev/null || true; wait "$server" 2>/dev/null || true; ca
 wait_for_http "$base/" "web smoke fixture (pid $server)"
 
 # Hash paths are the app's GoRouter URL strategy; all branches, including every configured blog post.
-routes=(/ /#/stream /#/cameraSettings /#/device /#/landingPage /#/aboutMe
-  /#/imprint /#/contact /#/privacyPolicy /#/cookieDeclaration /#/declarationOnAccessibility
+rail="$(bash "$SCRIPT_DIR/app-page-routes.sh")"
+routes=(/)
+while IFS= read -r route; do routes+=("/#${route}"); done <<<"$rail"
+routes+=(/#/imprint /#/contact /#/privacyPolicy /#/cookieDeclaration /#/declarationOnAccessibility
   /#/copyright /#/openSourceLicenses /#/errorPage /#/blockEntries)
 while IFS= read -r route; do routes+=("/#${route}"); done < <(
   python3 -c 'import json; print("\n".join(item["routingName"] for item in json.load(open("assets/settings/blog_settings.json"))))'

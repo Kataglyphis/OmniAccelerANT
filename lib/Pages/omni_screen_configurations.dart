@@ -1,11 +1,6 @@
-import 'package:omni_accelerant/Pages/AboutMePage/about_me_page_navbar_config.dart';
-import 'package:omni_accelerant/Pages/AiPlaygroundPage/ai_playground_navbar_config.dart';
-import 'package:omni_accelerant/Pages/CameraSettingsPage/camera_settings_navbar_config.dart';
-import 'package:omni_accelerant/Pages/DevicePage/device_page_navbar_config.dart';
+import 'package:omni_accelerant/app_pages.dart';
 import 'package:omni_accelerant/Pages/DataPage/BlockOverviewPage/block_overview_page_config.dart';
-import 'package:omni_accelerant/Pages/StreamPage/stream_page_navbar_config.dart';
 import 'package:anthology/Pages/ErrorPage/error_page_stateful_branch_info_provider.dart';
-import 'package:omni_accelerant/Pages/LandingPage/landing_page_navbar_page_config.dart';
 import 'package:anthology/Pages/blog_dependent_screen_configurations.dart';
 import 'package:anthology/blog_page_config.dart';
 import 'package:anthology/Pages/Footer/default_footer_pages.dart';
@@ -21,16 +16,7 @@ class OmniScreenConfigurations extends ScreenConfigurations
   OmniScreenConfigurations({required this.blogPageConfigs});
 
   @override
-  List<NavBarPageConfig> getNavRailPagesConfig() {
-    return [
-      StreamPageNavBarConfig(),
-      CameraSettingsNavBarConfig(),
-      DeviceNavBarConfig(),
-      AiPlaygroundNavBarConfig(),
-      LandingPageNavBarConfig(),
-      AboutMePageNavBarConfig(),
-    ];
-  }
+  List<NavBarPageConfig> getNavRailPagesConfig() => appPages;
 
   @override
   List<StatefulBranchInfoProvider> getErrorPagesConfig() {

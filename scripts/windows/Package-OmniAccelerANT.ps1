@@ -37,7 +37,7 @@ Import-BuildModule @('WindowsBuild.Common', 'WindowsMsix.Common', 'WindowsMsix.S
 function Get-GpuPackageFile {
     param([Parameter(Mandatory)][string]$RunnerDir, [Parameter(Mandatory)][string]$Provider)
     $files = @('omni_accelerant.exe', 'oxidant.dll', 'AccelerANTgine.dll', 'kataglyphis_native_inference_plugin.dll', 'onnxruntime.dll', 'onnxruntime_providers_shared.dll', 'ort-chain-stamp.json')
-    $files += @('resources/models/deim_dfine_n_coco.onnx', 'resources/models/deim_dfine_n_coco.LICENSE', 'resources/models/deim_dfine_n_coco.NOTICE')
+    $files += @(& (Join-Path $PSScriptRoot 'Get-DetectorModelFile.ps1') | ForEach-Object { "resources/models/$_" })
     if ($Provider -eq 'cuda') { $files += 'onnxruntime_providers_cuda.dll' }
     if (Test-Path -LiteralPath (Join-Path $RunnerDir 'DirectML.dll') -PathType Leaf) { $files += 'DirectML.dll' }
     return $files

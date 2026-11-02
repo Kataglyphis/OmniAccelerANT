@@ -174,7 +174,7 @@ cat > "${bundle_dir}/run.sh" <<'RUN_SH'
 # Runs the cat producer from the bundle with its own GStreamer, without a
 # container. Pass producer flags through, e.g.:
 #   ./run.sh --no-inference --libcamera
-#   ./run.sh --libcamera --model models/deim_dfine_n_coco.onnx
+#   ./run.sh --libcamera --model models/<file>.onnx
 set -euo pipefail
 
 here="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"

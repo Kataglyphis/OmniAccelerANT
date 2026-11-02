@@ -447,7 +447,8 @@ over HTTP (`CHECK_FALLBACK_FONTS=1`) and lists their OFL notice on the licences 
 
 `bash scripts/linux/check-web-browser.sh` runs the hub's
 [Node/Chrome check](../../third_party/ANTfrastructure/docs/ftp-deploys.md#the-live-site-check)
-over all branches and configured blog routes. It serves an idle ObservANT fixture with the
+over all branches and configured blog routes; `scripts/linux/app-page-routes.sh` reads the
+navigation routes from `lib/app_pages.dart` and fails on a table it cannot read. It serves an idle ObservANT fixture with the
 real signalling handshake, empty producer lists, settings, health and a valid snapshot; a
 physical camera is unnecessary. External hosts and browser errors stay forbidden. The fixture
 does not test media playback; the ObservANT package tests do.

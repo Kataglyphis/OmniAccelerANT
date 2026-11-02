@@ -1,0 +1,21 @@
+# One reader for both lanes: a pin that does not advertise a provider must fail the configure, never fall back to CPU.
+function(omni_oxidant_advertises_ort_device output oxidant_dir device)
+  set(_supported FALSE)
+  set(_manifest "${oxidant_dir}/crates/inference/Cargo.toml")
+  if(EXISTS "${_manifest}")
+    file(STRINGS "${_manifest}" _lines)
+    set(_in_metadata FALSE)
+    foreach(_line IN LISTS _lines)
+      if(_line MATCHES "^[ \t]*\\[package\\.metadata\\.kataglyphis\\][ \t]*$")
+        set(_in_metadata TRUE)
+      elseif(_line MATCHES "^[ \t]*\\[")
+        set(_in_metadata FALSE)
+      elseif(_in_metadata AND _line MATCHES "^[ \t]*ort-devices[ \t]*=[^\r\n]*\"${device}\"")
+        set(_supported TRUE)
+      endif()
+    endforeach()
+  endif()
+  set(${output}
+      "${_supported}"
+      PARENT_SCOPE)
+endfunction()

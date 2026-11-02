@@ -4,7 +4,7 @@ Describe 'Windows detector model staging' {
     $stage = Join-Path $PSScriptRoot '..\Stage-DetectorModel.ps1'
     $root = (Resolve-Path (Join-Path $PSScriptRoot '..\..\..')).Path
     $shared = Join-Path $root 'third_party\ANTfrastructure\linux\scripts\lib\fetch-data-lock.py'
-    $names = @('deim_dfine_n_coco.onnx', 'deim_dfine_n_coco.LICENSE', 'deim_dfine_n_coco.NOTICE')
+    $names = @('fixture_detector.onnx', 'fixture_detector.LICENSE', 'fixture_detector.NOTICE')
     BeforeEach {
         $script:oldCache = $env:KATAGLYPHIS_MODEL_CACHE
         $script:workspace = Join-Path $TestDrive 'workspace'
@@ -38,17 +38,17 @@ Describe 'Windows detector model staging' {
     }
     It 'rejects a corrupted model and a missing notice without fetching in verify-only mode' {
         & $stage -WorkspaceDir $script:workspace -RunnerDir $script:runner
-        Set-Content -LiteralPath (Join-Path $script:runner 'resources\models\deim_dfine_n_coco.onnx') -Value 'corrupt'
+        Set-Content -LiteralPath (Join-Path $script:runner 'resources\models\fixture_detector.onnx') -Value 'corrupt'
         $archive = Join-Path $TestDrive 'matching-mutated-model.zip'
-        Compress-Archive -LiteralPath (Join-Path $script:runner 'resources\models\deim_dfine_n_coco.onnx') -DestinationPath $archive
+        Compress-Archive -LiteralPath (Join-Path $script:runner 'resources\models\fixture_detector.onnx') -DestinationPath $archive
         $extracted = Join-Path $TestDrive 'matching-mutated-model'
         Expand-Archive -LiteralPath $archive -DestinationPath $extracted
-        (Get-FileHash -LiteralPath (Join-Path $extracted 'deim_dfine_n_coco.onnx')).Hash |
-            Should Be (Get-FileHash -LiteralPath (Join-Path $script:runner 'resources\models\deim_dfine_n_coco.onnx')).Hash
+        (Get-FileHash -LiteralPath (Join-Path $extracted 'fixture_detector.onnx')).Hash |
+            Should Be (Get-FileHash -LiteralPath (Join-Path $script:runner 'resources\models\fixture_detector.onnx')).Hash
         $message = try { & $stage -WorkspaceDir $script:workspace -RunnerDir $script:runner -VerifyOnly; '' } catch { $_.Exception.Message }
         $message | Should Match 'verification failed'
         & $stage -WorkspaceDir $script:workspace -RunnerDir $script:runner
-        Remove-Item -LiteralPath (Join-Path $script:runner 'resources\models\deim_dfine_n_coco.NOTICE')
+        Remove-Item -LiteralPath (Join-Path $script:runner 'resources\models\fixture_detector.NOTICE')
         $message = try { & $stage -WorkspaceDir $script:workspace -RunnerDir $script:runner -VerifyOnly; '' } catch { $_.Exception.Message }
         $message | Should Match 'verification failed'
     }

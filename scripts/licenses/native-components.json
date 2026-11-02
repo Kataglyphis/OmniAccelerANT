@@ -1063,7 +1063,7 @@
    "source": "https://github.com/Kataglyphis/ModelANT",
    "files": {},
    "texts": [],
-   "note": "Data, not code: the model's own LICENSE and NOTICE ship beside deim_dfine_n_coco.onnx in every package that bundles it."
+   "note": "Data, not code: the model's own LICENSE and NOTICE ship beside its .onnx file in every package that bundles it."
   }
  ]
 }

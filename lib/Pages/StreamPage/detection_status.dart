@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:omni_accelerant/l10n/app_localizations.dart';
-import 'package:omni_accelerant/Pages/CameraSettingsPage/coco_classes.dart';
+import 'package:omni_accelerant/Pages/CameraSettingsPage/class_labels.dart';
 import 'package:omni_accelerant/utils/json_utils.dart';
 import 'package:url_launcher/link.dart';
 

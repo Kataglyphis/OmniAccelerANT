@@ -35,7 +35,7 @@ $exeName = 'omni_accelerant.exe'
 $identityName = 'Kataglyphis.OmniAccelerANT'
 $prefix = Join-Path $env:ProgramFiles $product
 $machine = Get-PeMachineType -Arch $Arch
-$modelFiles = @('deim_dfine_n_coco.onnx', 'deim_dfine_n_coco.LICENSE', 'deim_dfine_n_coco.NOTICE')
+$modelFiles = @(& (Join-Path $PSScriptRoot 'Get-DetectorModelFile.ps1'))
 
 function Resolve-One([string]$Pattern, [string]$What) {
     $found = @(Get-ChildItem -Path $Pattern -File)

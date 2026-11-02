@@ -5,6 +5,20 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ## Unreleased
 
+### 2026-11-02 (one owner per fact)
+- **The model file name comes from OxidANT's `models.lock`.** `verify_detector_model.py` and the new
+  `scripts/windows/Get-DetectorModelFile.ps1` read its first `.onnx` row and require the matching
+  LICENSE and NOTICE; packaging, its installer checks and `observant.toml` no longer name the file,
+  `runtime_paths.cc` takes a bundle's only `.onnx`, and `License.rtf` names the model, not its file.
+  The package fixtures now run on a lock naming another file.
+- **COCO names come from `detectorLabels()`.** `coco_classes.dart` is gone; `class_labels.dart` keeps
+  only the German names by class id, and shows the given name where the Rust core did not load.
+- **One page table.** `lib/app_pages.dart` replaces six navbar configs and the router's positional
+  page list; `test/app_layout_test.dart` and `check-web-browser.sh` (through `app-page-routes.sh`)
+  read it, so `/aiPlayground` is now covered by both.
+- **One CMake reader of OxidANT's `ort-devices`**, `rust_builder/linux/oxidant-ort-devices.cmake`,
+  replaces the Linux and Windows copies. Five new `consumer.omni-*` mutation recipes.
+
 ### 2026-11-02 (AGENTS.md matches the tree)
 - **`AGENTS.md` names what the tree holds.** Section 5 names every workflow, program, bench-history key
   and `--perf-host`; section 1 names `WindowsGpuBuild.Common` and the eye firmware's protocol crate.

@@ -65,4 +65,31 @@ env -u ORT_DYLIB_PATH -u KATAGLYPHIS_ORT_DEVICE bash -c 'check_ort_path "$@"' _ 
 ln -s libonnxruntime.so.1 "$work/libonnxruntime.so"
 env -u ORT_DYLIB_PATH -u KATAGLYPHIS_ORT_DEVICE bash -c 'check_ort_path "$@"' _ "$work/cuda.so" "$work/libonnxruntime.so"
 ORT_DYLIB_PATH=/explicit/path env -u KATAGLYPHIS_ORT_DEVICE bash -c 'check_ort_path "$@"' _ "$work/cuda.so" /explicit/path
+# The bundle's model is whatever .onnx its lock put there; two of them name no default.
+check_model() {
+  python3 - "$1" "$2" <<'PY'
+import ctypes
+import sys
+
+ctypes.CDLL(sys.argv[1])
+getenv = ctypes.CDLL(None).getenv
+getenv.argtypes = [ctypes.c_char_p]
+getenv.restype = ctypes.c_char_p
+value = getenv(b"KATAGLYPHIS_ONNX_MODEL")
+actual = None if value is None else value.decode()
+expected = None if sys.argv[2] == "<unset>" else sys.argv[2]
+if actual != expected:
+    raise SystemExit(f"KATAGLYPHIS_ONNX_MODEL: expected {expected!r}, got {actual!r}")
+PY
+}
+export -f check_model
+mkdir -p "$work/bundle/lib" "$work/bundle/data/resources/models"
+cp "$work/cpu.so" "$work/bundle/lib/plugin.so"
+env -u KATAGLYPHIS_ONNX_MODEL bash -c 'check_model "$@"' _ "$work/bundle/lib/plugin.so" '<unset>'
+: > "$work/bundle/data/resources/models/fixture_detector.onnx"
+env -u KATAGLYPHIS_ONNX_MODEL bash -c 'check_model "$@"' _ "$work/bundle/lib/plugin.so" \
+  "$work/bundle/lib/../data/resources/models/fixture_detector.onnx"
+KATAGLYPHIS_ONNX_MODEL=/explicit bash -c 'check_model "$@"' _ "$work/bundle/lib/plugin.so" /explicit
+: > "$work/bundle/data/resources/models/second.onnx"
+env -u KATAGLYPHIS_ONNX_MODEL bash -c 'check_model "$@"' _ "$work/bundle/lib/plugin.so" '<unset>'
 echo 'ONNX Runtime default-device checks passed'

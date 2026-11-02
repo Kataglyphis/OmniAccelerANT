@@ -12,7 +12,7 @@ mkdir -p "$work/out" "$work/wheels" "$work/bundle/lib" "$work/bundle/licenses/on
 cp "$repo/scripts/linux/verify-gpu-candidate.sh" "$verifier"
 cp "$repo/scripts/windows/verify_detector_model.py" "$fixture_repo/scripts/windows/"
 export ANTFRASTRUCTURE_DIR="${ANTFRASTRUCTURE_DIR:-$repo/third_party/ANTfrastructure}"
-for name in deim_dfine_n_coco.onnx deim_dfine_n_coco.LICENSE deim_dfine_n_coco.NOTICE; do
+for name in fixture_detector.onnx fixture_detector.LICENSE fixture_detector.NOTICE; do
   printf 'fixture %s\n' "$name" > "$work/bundle/data/resources/models/$name"
   printf '%s  %s  https://example.invalid/%s\n' \
     "$(sha256sum "$work/bundle/data/resources/models/$name" | cut -d ' ' -f1)" "$name" "$name" \
@@ -108,10 +108,10 @@ dpkg-deb --build "$work/deb" "$work/out/${variant}_1.0_amd64.deb" >/dev/null
 if bash "$verifier" nvidia x64 >/dev/null 2>&1; then echo 'changed DEB notice passed' >&2; exit 1; fi
 cp "$work/bundle/licenses/onnxruntime/LICENSE" "$work/deb/opt/$variant/licenses/onnxruntime/"
 dpkg-deb --build "$work/deb" "$work/out/${variant}_1.0_amd64.deb" >/dev/null
-printf bad > "$work/tar/$variant-bundle/data/resources/models/deim_dfine_n_coco.onnx"
+printf bad > "$work/tar/$variant-bundle/data/resources/models/fixture_detector.onnx"
 tar -C "$work/tar" -czf "$work/out/$variant-linux-x64.tar.gz" "$variant-bundle"
 if bash "$verifier" nvidia x64 >/dev/null 2>&1; then echo 'changed tar model passed' >&2; exit 1; fi
-cp "$work/bundle/data/resources/models/deim_dfine_n_coco.onnx" "$work/tar/$variant-bundle/data/resources/models/"
+cp "$work/bundle/data/resources/models/fixture_detector.onnx" "$work/tar/$variant-bundle/data/resources/models/"
 tar -C "$work/tar" -czf "$work/out/$variant-linux-x64.tar.gz" "$variant-bundle"
 mv "$work/tar/$variant-bundle/data/resources/models" "$work/model-outside"
 ln -s "$work/model-outside" "$work/tar/$variant-bundle/data/resources/models"
@@ -120,14 +120,14 @@ if bash "$verifier" nvidia x64 >/dev/null 2>&1; then echo 'tar model directory e
 rm "$work/tar/$variant-bundle/data/resources/models"
 mv "$work/model-outside" "$work/tar/$variant-bundle/data/resources/models"
 tar -C "$work/tar" -czf "$work/out/$variant-linux-x64.tar.gz" "$variant-bundle"
-rm "$work/deb/opt/$variant/data/resources/models/deim_dfine_n_coco.NOTICE"
+rm "$work/deb/opt/$variant/data/resources/models/fixture_detector.NOTICE"
 dpkg-deb --build "$work/deb" "$work/out/${variant}_1.0_amd64.deb" >/dev/null
 if bash "$verifier" nvidia x64 >/dev/null 2>&1; then echo 'missing DEB model notice passed' >&2; exit 1; fi
-cp "$work/bundle/data/resources/models/deim_dfine_n_coco.NOTICE" "$work/deb/opt/$variant/data/resources/models/"
+cp "$work/bundle/data/resources/models/fixture_detector.NOTICE" "$work/deb/opt/$variant/data/resources/models/"
 dpkg-deb --build "$work/deb" "$work/out/${variant}_1.0_amd64.deb" >/dev/null
-printf bad > "$work/appimage/usr/lib/$variant/data/resources/models/deim_dfine_n_coco.LICENSE"
+printf bad > "$work/appimage/usr/lib/$variant/data/resources/models/fixture_detector.LICENSE"
 if bash "$verifier" nvidia x64 >/dev/null 2>&1; then echo 'changed AppImage model license passed' >&2; exit 1; fi
-cp "$work/bundle/data/resources/models/deim_dfine_n_coco.LICENSE" "$work/appimage/usr/lib/$variant/data/resources/models/"
+cp "$work/bundle/data/resources/models/fixture_detector.LICENSE" "$work/appimage/usr/lib/$variant/data/resources/models/"
 printf x >> "$work/appimage/usr/lib/$variant/lib/libonnxruntime_providers_cuda.so"
 if bash "$verifier" nvidia x64 >/dev/null 2>&1; then echo 'changed AppImage provider passed' >&2; exit 1; fi
 if bash "$verifier" amd arm64 >/dev/null 2>&1; then echo 'unsupported AMD arm64 passed' >&2; exit 1; fi

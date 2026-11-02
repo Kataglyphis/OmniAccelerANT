@@ -6,7 +6,7 @@ work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
 mkdir -p "$work/project/linux" "$work/project/cargokit/cmake" "$work/ort" "$work/third_party/OxidANT/crates/inference"
 cp "$root/rust_builder/linux/CMakeLists.txt" "$work/project/linux/CMakeLists.txt"
-cp "$root/rust_builder/linux/ort-device.cmake" "$work/project/linux/ort-device.cmake"
+cp "$root/rust_builder/linux/ort-device.cmake" "$root/rust_builder/linux/oxidant-ort-devices.cmake" "$work/project/linux/"
 printf '[package.metadata.kataglyphis]\n# Provider capabilities.\nort-devices = ["cuda", "migraphx", "directml"]\n' > "$work/third_party/OxidANT/crates/inference/Cargo.toml"
 cat > "$work/project/CMakeLists.txt" <<'EOF'
 cmake_minimum_required(VERSION 3.10)

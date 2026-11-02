@@ -374,5 +374,45 @@
   "replace": "  if false; then",
   "test": "bash scripts/linux/tests/test-detect-check.sh",
   "why": "The launch smoke fails when a blank frame passes the detect check."
+ },
+ {
+  "id": "consumer.omni-model-name-from-lock",
+  "target": "scripts/windows/verify_detector_model.py",
+  "find": "stem = model.removesuffix(\".onnx\")",
+  "replace": "stem = \"deim_dfine_n_coco\"",
+  "test": "python3 -I scripts/windows/tests/test_verify_detector_model.py",
+  "why": "The notices follow the model the lock names, so a fixture lock naming another file still verifies."
+ },
+ {
+  "id": "consumer.omni-runtime-model-is-the-only-onnx",
+  "target": "packages/kataglyphis_native_inference/linux/runtime_paths.cc",
+  "find": "return count == 1 ? found : std::string{};",
+  "replace": "return found;",
+  "test": "bash scripts/linux/tests/test-ort-runtime-default.sh",
+  "why": "A bundle with several models names no default rather than the first readdir returns."
+ },
+ {
+  "id": "consumer.omni-one-ort-device-reader",
+  "target": "rust_builder/linux/oxidant-ort-devices.cmake",
+  "find": "elseif(_in_metadata AND _line MATCHES",
+  "replace": "elseif(_line MATCHES",
+  "test": "bash scripts/linux/tests/test-ort-provider-staging.sh",
+  "why": "Only OxidANT's own metadata table advertises a provider; another table's key must not unlock a GPU build."
+ },
+ {
+  "id": "consumer.omni-page-routes-from-the-table",
+  "target": "scripts/linux/app-page-routes.sh",
+  "find": "s|^    route: '\\(/[A-Za-z]*\\)',\\$|\\1|p",
+  "replace": "s|^    route: '\\(/[a-z]*\\)',\\$|\\1|p",
+  "test": "bash scripts/linux/tests/test-app-page-routes.sh",
+  "why": "The web check must read every rail route, or a camel-case page such as /aiPlayground silently loses coverage."
+ },
+ {
+  "id": "consumer.omni-web-check-reads-the-table",
+  "target": "scripts/linux/check-web-browser.sh",
+  "find": "rail=\"$(bash \"$SCRIPT_DIR/app-page-routes.sh\")\"",
+  "replace": "rail=/stream",
+  "test": "bash scripts/linux/tests/test-app-page-routes.sh",
+  "why": "The web check takes its rail routes from the page table, not from a copy."
  }
 ]

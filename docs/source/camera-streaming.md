@@ -64,7 +64,10 @@ and OxidANT's git trees. It is DEIM's COCO checkpoint: 80 classes, 4 M parameter
   `~/.cache/kataglyphis-models`, and fails on any other bytes; on Windows,
   `scripts\windows\Get-Models.ps1`. The native lane, the Linux bundle, the ObservANT
   packages and OxidANT's Windows build call it, so a fresh clone needs the network once.
-  Before you start the app from a checkout, run it yourself.
+  Before you start the app from a checkout, run it yourself. Packaging and its tests take the
+  file names from the lock's first `.onnx` row, so a lock naming another model needs no script edit;
+  `test-verify-gpu-candidate.sh`, `test-profile-gpu-packages.sh` and the detector model suites run
+  on a fixture lock that does.
 - **What it changed on the boards** (2026-10-14, against YOLO26n, ONNX Runtime on 2
   threads on a Pi 5, 12 arrival pictures from the three ObservANT cameras and one cat
   photo): it found the cats more often and more surely. A cat at the feeding trough went from

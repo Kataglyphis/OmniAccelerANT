@@ -55,7 +55,7 @@ Assert-Test -Name 'it opens 8080/tcp and the ICE range on private and domain net
 }
 Assert-Test -Name 'it carries the exe, its plugins, the scanner, ORT, the model and the page' {
     foreach ($e in 'kataglyphis_observant.exe', 'onnxruntime.dll', 'lib/gstreamer-1.0/gstrswebrtc.dll',
-        'libexec/gstreamer-1.0/gst-plugin-scanner.exe', 'models/deim_dfine_n_coco.onnx', 'web/index.html') {
+        'libexec/gstreamer-1.0/gst-plugin-scanner.exe', "models/$(@(& (Join-Path $PSScriptRoot '..\Get-DetectorModelFile.ps1'))[0])", 'web/index.html') {
         if ($entries -notcontains $e) { throw "missing from the package: $e" }
     }
     $true

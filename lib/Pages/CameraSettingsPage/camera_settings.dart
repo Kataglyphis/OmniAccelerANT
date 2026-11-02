@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter/material.dart';
 import 'package:omni_accelerant/l10n/app_localizations.dart';
-import 'package:omni_accelerant/Pages/CameraSettingsPage/coco_classes.dart';
+import 'package:omni_accelerant/Pages/CameraSettingsPage/class_labels.dart';
 import 'package:omni_accelerant/Pages/StreamPage/detection_status.dart'
     show formatLastSeen;
 import 'package:omni_accelerant/utils/json_utils.dart';
@@ -568,7 +568,9 @@ class _ClassesEditor extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final addable = cocoClasses.where((c) => !classes.contains(c)).toList();
+    final addable = detectorClassNames()
+        .where((c) => !classes.contains(c))
+        .toList();
     final language = Localizations.localeOf(context).languageCode;
     return ConstrainedBox(
       constraints: const BoxConstraints(maxWidth: 560),
