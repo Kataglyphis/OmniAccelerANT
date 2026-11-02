@@ -11,7 +11,9 @@ source "$script_dir/lib/verify-onnx-loader-trace.sh"
 kind=$1
 target=$(realpath -e "$2")
 work=$(mktemp -d "${RUNNER_TEMP:-${TMPDIR:-/tmp}}/omni-ort-check.XXXXXXXX")
-trap 'rm -rf -- "$work"' EXIT
+# A packaged app's helper can still be writing its loader log when the launcher returns.
+cleanup() { for _ in 1 2 3 4 5; do rm -rf -- "$work" 2>/dev/null && return 0; sleep 1; done; rm -rf -- "$work" || true; }
+trap cleanup EXIT
 work=$(realpath -e "$work")
 mkdir "$work/logs"
 case "$kind" in
