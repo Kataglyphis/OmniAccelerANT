@@ -5,6 +5,7 @@ Describe 'Windows GPU preflight' {
     $workspace = (Resolve-Path (Join-Path $PSScriptRoot '..\..\..')).Path
     Import-Module (Join-Path $PSScriptRoot 'OmniTestFixtures.psm1') -Force
     Import-Module (Join-Path $PSScriptRoot '..\..\..\third_party\ANTfrastructure\windows\scripts\tests\TestHarness.psm1') -Function Invoke-WithTestFunction -ErrorAction Stop
+    function Read-RepoText([string] $Relative) { return Get-Content -LiteralPath (Join-Path $workspace $Relative) -Raw }
 
     BeforeEach {
         $script:oldCopy = Get-Item Function:\global:Copy-ChainOrtBeside -ErrorAction SilentlyContinue
@@ -64,18 +65,15 @@ Describe 'Windows GPU preflight' {
     }
 
     It 'checks the executable before creating installer outputs' {
-        $packager = Get-Content -LiteralPath (Join-Path $workspace 'scripts\windows\Package-OmniAccelerANT.ps1') -Raw
-        $check = $packager.IndexOf('Assert-WindowsInstallerCandidate -RunnerDir $AppDir')
-        ($check -ge 0 -and $check -lt $packager.IndexOf('New-AppMsi') -and
-            $check -lt $packager.IndexOf('New-AppMsix')) | Should Be $true
+        $packager = Read-RepoText 'scripts\windows\Package-OmniAccelerANT.ps1'
+        Test-TextBefore -Text $packager -First 'Assert-WindowsInstallerCandidate -RunnerDir $AppDir' -Later 'New-AppMsi', 'New-AppMsix' | Should Be $true
     }
 
     It 'publishes GPU installer candidates only after both finished-package checks' {
-        $packager = Get-Content -LiteralPath (Join-Path $workspace 'scripts\windows\Package-OmniAccelerANT.ps1') -Raw
-        $msi = $packager.IndexOf('Assert-PackageBinary -Path "$base.msi"')
-        $msix = $packager.IndexOf('Assert-PackageBinary -Path "$base.msix"')
-        $publish = $packager.IndexOf('Move-Item -LiteralPath $outRoot -Destination $gpuDestination')
-        ($msi -ge 0 -and $msi -lt $msix -and $msix -lt $publish) | Should Be $true
+        $packager = Read-RepoText 'scripts\windows\Package-OmniAccelerANT.ps1'
+        $publish = 'Move-Item -LiteralPath $outRoot -Destination $gpuDestination'
+        Test-TextBefore -Text $packager -First 'Assert-PackageBinary -Path "$base.msi"' -Later 'Assert-PackageBinary -Path "$base.msix"' | Should Be $true
+        Test-TextBefore -Text $packager -First 'Assert-PackageBinary -Path "$base.msix"' -Later $publish | Should Be $true
         $packager.Contains('unverified-omni-windows-x64-$vendor-installers') | Should Be $true
         $packager.Contains('.pending-omni-$vendor-') | Should Be $true
     }
@@ -98,19 +96,17 @@ Describe 'Windows GPU preflight' {
     }
 
     It 'preflights before initializing either compiler cache' {
-        $driver = Get-Content -LiteralPath (Join-Path $workspace 'scripts\windows\Build-Windows.ps1') -Raw
-        $check = $driver.IndexOf('Assert-WindowsGpuBuild -Provider $OrtProvider')
-        ($check -ge 0 -and $check -lt $driver.IndexOf('Initialize-BuildCacheEnvironment') -and
-            $check -lt $driver.IndexOf('Restore-CiCompilerCache')) | Should Be $true
+        $driver = Read-RepoText 'scripts\windows\Build-Windows.ps1'
+        Test-TextBefore -Text $driver -First 'Assert-WindowsGpuBuild -Provider $OrtProvider' -Later 'Initialize-BuildCacheEnvironment', 'Restore-CiCompilerCache' | Should Be $true
     }
 
     It 'gates every GPU preset after the host sync even when errors may continue' {
-        $driver = Get-Content -LiteralPath (Join-Path $workspace 'scripts\windows\Build-Windows.ps1') -Raw
-        $sync = $driver.IndexOf('Sync-FastLocalArtifactsToHost -Context')
+        $driver = Read-RepoText 'scripts\windows\Build-Windows.ps1'
         $proof = $driver.IndexOf('-StepName "Verify GPU Delivery" -Critical')
         $check = $driver.IndexOf('Assert-WindowsGpuDelivery -SourceDir')
-        $fail = $driver.IndexOf('if (-not $gpuDelivered)')
-        ($sync -ge 0 -and $sync -lt $proof -and $proof -lt $check -and $check -lt $fail) | Should Be $true
+        Test-TextBefore -Text $driver -First 'Sync-FastLocalArtifactsToHost -Context' -Later '-StepName "Verify GPU Delivery" -Critical' | Should Be $true
+        ($proof -ge 0 -and $proof -lt $check) | Should Be $true
+        Test-TextBefore -Text $driver -First 'Assert-WindowsGpuDelivery -SourceDir' -Later 'if (-not $gpuDelivered)' | Should Be $true
         $driver.Substring($proof, $check - $proof).Contains('foreach ($currentPreset in $presetsToRun)') | Should Be $true
     }
 
@@ -198,7 +194,7 @@ Describe 'Windows GPU preflight' {
     }
 
     It 'keeps the Windows GPU candidates x64, separately labelled and preflighted' {
-        $workflow = Get-Content -LiteralPath (Join-Path $workspace '.github\workflows\windows-gpu-candidates.yml') -Raw
+        $workflow = Read-RepoText '.github\workflows\windows-gpu-candidates.yml'
         $workflow.Contains('options: [all, nvidia, amd]') | Should Be $true
         @([regex]::Matches($workflow, '(?m)^\s+default: all\r?$')).Count | Should Be 2
         $workflow | Should Not Match '(?m)^concurrency:'

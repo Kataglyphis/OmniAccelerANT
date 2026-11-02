@@ -3,6 +3,14 @@
 
 Set-StrictMode -Version Latest
 
+function Resolve-OneFile {
+    # A wildcard argument must select exactly one file, because the check would otherwise grade an arbitrary build.
+    param([Parameter(Mandatory)][string] $Pattern, [Parameter(Mandatory)][string] $What, [string] $Noun = 'file')
+    $found = @(Get-ChildItem -Path $Pattern -File)
+    if ($found.Count -ne 1) { throw "-$What must name exactly one $Noun; $Pattern matches $($found.Count)" }
+    return $found[0].FullName
+}
+
 function Get-CheckedMsixView {
     <#
     .SYNOPSIS
@@ -51,4 +59,4 @@ function Wait-Healthz {
     return $null
 }
 
-Export-ModuleMember -Function Get-CheckedMsixView, Install-MsiSilently, Uninstall-MsiSilently, Wait-Healthz
+Export-ModuleMember -Function Resolve-OneFile, Get-CheckedMsixView, Install-MsiSilently, Uninstall-MsiSilently, Wait-Healthz

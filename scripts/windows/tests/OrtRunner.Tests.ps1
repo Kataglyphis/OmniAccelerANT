@@ -6,13 +6,17 @@ Describe 'WindowsOrtRunner.Common' {
 
     . (Join-Path $PSScriptRoot '..\Resolve-BuildModule.ps1')
     Import-BuildModule @('WindowsOrtRunner.Common', 'WindowsGpuBuild.Common', 'WindowsOrtProvenance.Common', 'WindowsOrtPayload.Common', 'WindowsOrtLicense.Common')
-    Import-Module (Join-Path $PSScriptRoot '..\..\..\third_party\ANTfrastructure\windows\scripts\tests\TestHarness.psm1') -Function Get-TestScriptAst, New-OrtTestPe -ErrorAction Stop
+    Import-Module (Join-Path $PSScriptRoot '..\..\..\third_party\ANTfrastructure\windows\scripts\tests\TestHarness.psm1') -Function Get-TestScriptAst, Get-TestAstCommands, New-OrtTestPe -ErrorAction Stop
 
     # NUL-terminated like a compiler's __FILE__: G6 takes only a whole terminated path as a fingerprint.
     $chainSrc = 'C:\temp\onnx-src\onnxruntime\core\session\inference_session.cc'
     $foreignSrc = 'C:\__w\1\s\onnxruntime\core\session\inference_session.cc'
 
     Import-Module (Join-Path $PSScriptRoot 'OmniTestFixtures.psm1') -Force
+
+    function Get-ProofError([object] $Case, [hashtable] $Proof) {
+        Get-ThrowMessage { Invoke-RunnerOrtProof -RunnerDir $Case.Runner @Proof }
+    }
 
     # Replaces the case's single wheel, which holds the core DLL and any -ProviderDll given.
     function Reset-CaseWheel([object] $Case, [string[]] $ProviderDll = @()) {
@@ -140,17 +144,17 @@ Describe 'WindowsOrtRunner.Common' {
         $name = 'onnxruntime_providers_cuda.dll'
         Invoke-WithOnnxRoot $c.Root {
             $null = Copy-ChainOrtBeside -OnnxRoot $c.Root -Destination $c.Runner
-            Get-ThrowMessage { Invoke-RunnerOrtProof -RunnerDir $c.Runner -RequiredProvider $name } | Should Match 'MISSING required ONNX Runtime provider'
+            Get-ProofError $c @{ RequiredProvider = $name } | Should Match 'MISSING required ONNX Runtime provider'
             New-OrtTestPe -Path (Join-Path $c.Root "bin\$name") -Text "$chainSrc`0CUDA provider"
             Copy-Item -LiteralPath (Join-Path $c.Root "bin\$name") -Destination $c.Runner
             Get-ThrowMessage { Invoke-RunnerOrtProof -RunnerDir $c.Runner } | Should Match 'STRAY .*onnxruntime_providers_cuda'
             if (-not (Get-Command Copy-OrtWheelLicenses).Parameters.ContainsKey('ProviderDll')) {
-                Get-ThrowMessage { Invoke-RunnerOrtProof -RunnerDir $c.Runner -RequiredProvider $name } | Should Match 'cannot verify provider DLLs'
+                Get-ProofError $c @{ RequiredProvider = $name } | Should Match 'cannot verify provider DLLs'
                 return
             }
             Reset-CaseWheel $c @((Join-Path $c.Root 'bin\onnxruntime_providers_shared.dll'), (Join-Path $c.Root "bin\$name"))
             New-OrtTestPe -Path (Join-Path $c.Runner $name) -Text "$chainSrc`0stale CUDA provider"
-            Get-ThrowMessage { Invoke-RunnerOrtProof -RunnerDir $c.Runner -RequiredProvider $name } | Should Match 'STALE .*onnxruntime_providers_cuda'
+            Get-ProofError $c @{ RequiredProvider = $name } | Should Match 'STALE .*onnxruntime_providers_cuda'
             Copy-Item -LiteralPath (Join-Path $c.Root "bin\$name") -Destination $c.Runner -Force
             $proof = Invoke-RunnerOrtProof -RunnerDir $c.Runner -RequiredProvider $name
             $proof.Stamp.sha256.ContainsKey($name) | Should Be $true
@@ -178,13 +182,13 @@ Describe 'WindowsOrtRunner.Common' {
         Invoke-WithOnnxRoot $c.Root {
             $null = Copy-ChainOrtBeside -OnnxRoot $c.Root -Destination $c.Runner
             if (-not (Get-Command Copy-OrtWheelLicenses).Parameters.ContainsKey('ProviderDll')) {
-                Get-ThrowMessage { Invoke-RunnerOrtProof -RunnerDir $c.Runner -RequiredProvider $name } | Should Match 'cannot verify provider DLLs'
+                Get-ProofError $c @{ RequiredProvider = $name } | Should Match 'cannot verify provider DLLs'
                 return
             }
             $wrong = Join-Path $c.Root "wrong\$name"
             New-OrtTestPe -Path $wrong -Text 'wrong provider bridge'
             Reset-CaseWheel $c $wrong
-            Get-ThrowMessage { Invoke-RunnerOrtProof -RunnerDir $c.Runner -RequiredProvider $name } | Should Match 'differs from the matching wheel'
+            Get-ProofError $c @{ RequiredProvider = $name } | Should Match 'differs from the matching wheel'
             Reset-CaseWheel $c (Join-Path $c.Root "bin\$name")
             $proof = Invoke-RunnerOrtProof -RunnerDir $c.Runner -RequiredProvider $name
             $proof.Stamp.sha256.ContainsKey($name) | Should Be $true
@@ -196,15 +200,15 @@ Describe 'WindowsOrtRunner.Common' {
         Invoke-WithOnnxRoot $c.Root {
             $null = Copy-ChainOrtBeside -OnnxRoot $c.Root -Destination $c.Runner
             if (-not (Get-Command Copy-OrtWheelLicenses).Parameters.ContainsKey('DirectMlDll')) {
-                Get-ThrowMessage { Invoke-RunnerOrtProof -RunnerDir $c.Runner -RequireDirectMl } | Should Match 'cannot verify DirectML'
+                Get-ProofError $c @{ RequireDirectMl = $true } | Should Match 'cannot verify DirectML'
                 return
             }
             Reset-CaseWheel $c
-            Get-ThrowMessage { Invoke-RunnerOrtProof -RunnerDir $c.Runner -RequireDirectMl } | Should Match 'matched 0 entries'
+            Get-ProofError $c @{ RequireDirectMl = $true } | Should Match 'matched 0 entries'
             $wrong = Join-Path $c.Root 'wrong\DirectML.dll'
             New-OrtTestPe -Path $wrong -Text 'wrong directml'
             Reset-CaseWheel $c $wrong
-            Get-ThrowMessage { Invoke-RunnerOrtProof -RunnerDir $c.Runner -RequireDirectMl } | Should Match 'DirectML runtime differs'
+            Get-ProofError $c @{ RequireDirectMl = $true } | Should Match 'DirectML runtime differs'
             Reset-CaseWheel $c (Join-Path $c.Root 'bin\DirectML.dll')
             $proof = Invoke-RunnerOrtProof -RunnerDir $c.Runner -RequireDirectMl
             $proof.Stamp.verified_directml | Should Be $true
@@ -284,10 +288,9 @@ Describe 'WindowsOrtRunner.Common' {
 
     It 'carries the arm64 proof copy''s matched texts into the natives artifact with its stamp (mutation)' {
         $ast = Get-TestScriptAst -ScriptPath (Join-Path $PSScriptRoot '..\Build-WindowsArm64Natives.ps1')
-        $copies = @($ast.FindAll({ param($n) $n -is [System.Management.Automation.Language.CommandAst] -and $n.GetCommandName() -eq 'Copy-Item' -and
-                    $n.Extent.Text -match [regex]::Escape("(Join-Path `$proofDir 'licenses') -Destination `$runtime -Recurse") }, $true))
+        $copies = @(Get-TestAstCommands -Ast $ast -Name 'Copy-Item' | Where-Object { $_.Extent.Text -match [regex]::Escape("(Join-Path `$proofDir 'licenses') -Destination `$runtime -Recurse") })
         $copies.Count | Should Be 1
-        $proof = @($ast.FindAll({ param($n) $n -is [System.Management.Automation.Language.CommandAst] -and $n.GetCommandName() -eq 'Invoke-RunnerOrtProof' }, $true))
+        $proof = @(Get-TestAstCommands -Ast $ast -Name 'Invoke-RunnerOrtProof')
         $proof.Count | Should Be 1
         ($copies[0].Extent.StartOffset -gt $proof[0].Extent.StartOffset) | Should Be $true
     }
@@ -308,8 +311,7 @@ Describe 'WindowsOrtRunner.Common' {
         $step = @(Get-MsixPackagingStep)
         $step.Count | Should Be 1
         $text = $step[0].Extent.Text
-        $proof = $text.IndexOf('Invoke-RunnerOrtProof -RunnerDir (Resolve-NormalizedPath -Path (Join-Path $workspace "build/windows/x64/runner/Release"))')
-        ($proof -ge 0 -and $proof -lt $text.IndexOf('msix:create')) | Should Be $true
+        Test-TextBefore -Text $text -First 'Invoke-RunnerOrtProof -RunnerDir (Resolve-NormalizedPath -Path (Join-Path $workspace "build/windows/x64/runner/Release"))' -Later 'msix:create' | Should Be $true
     }
 
     It 'rejects malformed build source before inspecting MSIX wiring (mutation)' {

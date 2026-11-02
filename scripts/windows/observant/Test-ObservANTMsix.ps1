@@ -25,9 +25,7 @@ Import-BuildModule 'WindowsInstallerCheck.Common'
 Initialize-SmokeTestRun
 
 $packageName = 'Kataglyphis.OmniAccelerANTObservANT'
-$msixFiles = @(Get-ChildItem -Path $Msix -File)
-if ($msixFiles.Count -ne 1) { throw "-Msix must name exactly one MSIX; $Msix matches $($msixFiles.Count)" }
-$Msix = $msixFiles[0].FullName
+$Msix = Resolve-OneFile $Msix 'Msix' 'MSIX'
 
 Write-Host '=== the package ==='
 $view = Get-CheckedMsixView -Path $Msix -Publisher $Publisher

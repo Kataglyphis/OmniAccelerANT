@@ -38,13 +38,8 @@ $prefix = Join-Path $env:ProgramFiles $product
 $machine = Get-PeMachineType -Arch $Arch
 $modelFiles = @(& (Join-Path $PSScriptRoot 'Get-DetectorModelFile.ps1'))
 
-function Resolve-One([string]$Pattern, [string]$What) {
-    $found = @(Get-ChildItem -Path $Pattern -File)
-    if ($found.Count -ne 1) { throw "-$What must name exactly one file; $Pattern matches $($found.Count)" }
-    return $found[0].FullName
-}
-$Msi = Resolve-One $Msi 'Msi'
-$Msix = Resolve-One $Msix 'Msix'
+$Msi = Resolve-OneFile $Msi 'Msi'
+$Msix = Resolve-OneFile $Msix 'Msix'
 $launch = Join-Path $PSScriptRoot 'Test-LaunchSmoke.ps1'
 $selfCheck = Join-Path $PSScriptRoot 'Test-OnnxSelfCheck.ps1'
 

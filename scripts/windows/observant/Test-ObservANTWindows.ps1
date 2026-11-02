@@ -29,9 +29,7 @@ $modelFile = @(& (Join-Path $PSScriptRoot '..\Get-DetectorModelFile.ps1'))[0]
 $startup = Join-Path $env:ProgramData "Microsoft\Windows\Start Menu\Programs\StartUp\$product.lnk"
 $work = Join-Path $env:TEMP "observant-test-$PID"
 $null = New-Item -ItemType Directory -Force -Path $work
-$msis = @(Get-ChildItem -Path $Msi -File)
-if ($msis.Count -ne 1) { throw "-Msi must name exactly one MSI; $Msi matches $($msis.Count)" }
-$Msi = $msis[0].FullName
+$Msi = Resolve-OneFile $Msi 'Msi' 'MSI'
 # A wildcard is fine, and the copy has a plain name: an & in a path splits cmd's command line, which docker run goes through.
 $source = Get-ChildItem -Path $Photo -File | Select-Object -First 1
 if (-not $source) { throw "no photo at $Photo" }

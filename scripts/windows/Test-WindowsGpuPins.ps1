@@ -2,10 +2,8 @@
 [CmdletBinding()]
 param()
 
-$ErrorActionPreference = 'Stop'
-Set-StrictMode -Version Latest
-$workspace = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
-. (Join-Path $PSScriptRoot 'Resolve-BuildModule.ps1')
+. (Join-Path $PSScriptRoot 'Initialize-EntryScript.ps1')
+$workspace = Get-EntryRepoRoot
 Import-BuildModule @('WindowsOrtPayload.Common', 'WindowsOrtLicense.Common', 'WindowsMsiLicense.Common', 'WindowsPackageBinary.Common', 'WindowsGpuBuild.Common')
 foreach ($command in 'Assert-PackageBinary', 'Get-PackageOrtProviderNames', 'Get-WixSourceFileId') { $null = Get-Command $command -ErrorAction Stop }
 foreach ($provider in 'cuda', 'directml') {

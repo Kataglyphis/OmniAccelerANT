@@ -37,11 +37,9 @@ param(
     [string]$MsixPublisher = 'CN=Kataglyphis',
     [string]$Arch = ''
 )
-$ErrorActionPreference = 'Stop'
-Set-StrictMode -Version Latest
+. (Join-Path $PSScriptRoot '..\Initialize-EntryScript.ps1')
 
-$repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..\..')).Path
-. (Join-Path $PSScriptRoot '..\Resolve-BuildModule.ps1')
+$repoRoot = Get-EntryRepoRoot
 Import-BuildModule @('WindowsBuild.Common', 'WindowsTargetArch.Common', 'WindowsCrossBundle.Common',
     'WindowsOrtProvenance.Common', 'WindowsOrtPayload.Common', 'WindowsMsix.Common', 'WindowsAppInstallers.Common', 'WindowsMsiLicense.Common', 'WindowsOrtLicense.Common', 'WindowsThirdPartyLicense.Common')
 

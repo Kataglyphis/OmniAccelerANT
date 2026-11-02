@@ -37,6 +37,10 @@ function New-GpuImageWheel([string] $Path, [string] $Bin) {
 Describe 'Windows GPU image wheel proof' {
     Import-Module (Join-Path $PSScriptRoot 'OmniTestFixtures.psm1') -Force
 
+    function Set-ChainDll([string] $Name, [int] $Marker, [bool] $Arm = $false) {
+        New-GpuImagePe -Path (Join-Path $bin $Name) -Marker $Marker -Arm $Arm
+    }
+
     # The proof over this case's fixture; reads the variables BeforeEach set for the running test.
     function Get-ImageProofError([string] $Provider) {
         Get-ThrowMessage { Assert-WindowsGpuImage -Provider $Provider -Workspace $workspace -OxidantDir $oxidant -OnnxRoot (Split-Path $bin) -WheelDir $wheels -ScratchRoot $caseRoot }
@@ -59,12 +63,12 @@ Describe 'Windows GPU image wheel proof' {
 
     It 'requires the DirectML core, bridge and runtime to match its wheel and rejects wrong architecture' -Skip:(-not $hasDirectMlApi) {
         Get-ImageProofError directml | Should Be ''
-        New-GpuImagePe -Path (Join-Path $bin 'onnxruntime_providers_shared.dll') -Marker 9
+        Set-ChainDll 'onnxruntime_providers_shared.dll' 9
         Get-ImageProofError directml | Should Match 'differs from the matching wheel'
-        New-GpuImagePe -Path (Join-Path $bin 'onnxruntime_providers_shared.dll') -Marker 2
-        New-GpuImagePe -Path (Join-Path $bin 'DirectML.dll') -Marker 9
+        Set-ChainDll 'onnxruntime_providers_shared.dll' 2
+        Set-ChainDll 'DirectML.dll' 9
         Get-ImageProofError directml | Should Match 'DirectML runtime differs'
-        New-GpuImagePe -Path (Join-Path $bin 'DirectML.dll') -Marker 4 -Arm $true
+        Set-ChainDll 'DirectML.dll' 4 -Arm $true
         (Get-PeFileMachine -Path (Join-Path $bin 'DirectML.dll')) | Should Be 43620
         Get-ImageProofError directml | Should Match 'PE machine'
         @(Get-ChildItem -LiteralPath $caseRoot -Filter 'omni-gpu-image-proof-*').Count | Should Be 0

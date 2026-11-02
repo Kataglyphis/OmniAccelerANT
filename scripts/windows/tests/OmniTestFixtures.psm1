@@ -10,6 +10,15 @@ function Get-ThrowMessage {
     return ''
 }
 
+function Test-TextBefore {
+    # First is present and precedes every Later marker; a missing Later marker reads -1 and fails.
+    param([Parameter(Mandatory)][string] $Text, [Parameter(Mandatory)][string] $First, [Parameter(Mandatory)][string[]] $Later)
+    $at = $Text.IndexOf($First)
+    if ($at -lt 0) { return $false }
+    foreach ($marker in $Later) { if ($at -ge $Text.IndexOf($marker)) { return $false } }
+    return $true
+}
+
 function Get-GpuChainDllName {
     'onnxruntime.dll', 'onnxruntime_providers_shared.dll', 'onnxruntime_providers_cuda.dll', 'DirectML.dll'
 }
@@ -21,4 +30,4 @@ function New-GpuOxidantFixture {
     Set-Content -LiteralPath (Join-Path $Oxidant 'crates\inference\Cargo.toml') -Value @('[package.metadata.kataglyphis]', 'ort-devices = ["cuda", "directml"]')
 }
 
-Export-ModuleMember -Function Get-ThrowMessage, Get-GpuChainDllName, New-GpuOxidantFixture
+Export-ModuleMember -Function Get-ThrowMessage, Test-TextBefore, Get-GpuChainDllName, New-GpuOxidantFixture

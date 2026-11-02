@@ -3,6 +3,10 @@
 # Byte fixtures in flutter assemble's layout; Pester 3.4.0 dialect, as OrtRunner.Tests.ps1.
 
 Describe 'WindowsFlutterAot.Common' {
+    function Get-CaseStaleness([object] $Case) {
+        Get-FlutterAotStaleness -DartToolDir $Case.DartTool -RunnerDataDir $Case.Data -AotLibrary $Case.Lib
+    }
+
 
     . (Join-Path $PSScriptRoot '..\Resolve-BuildModule.ps1')
     Import-BuildModule 'WindowsFlutterAot.Common'
@@ -37,19 +41,19 @@ Describe 'WindowsFlutterAot.Common' {
 
     It 'passes a fresh release build' {
         $c = New-Case 'fresh'
-        @(Get-FlutterAotStaleness -DartToolDir $c.DartTool -RunnerDataDir $c.Data -AotLibrary $c.Lib).Count | Should Be 0
+        @(Get-CaseStaleness $c).Count | Should Be 0
     }
 
     It 'does not grade a JIT (Debug) runner, which has no data\app.so' {
         $c = New-Case 'debug'
         Remove-Item -LiteralPath (Join-Path $c.Data 'app.so')
-        @(Get-FlutterAotStaleness -DartToolDir $c.DartTool -RunnerDataDir $c.Data -AotLibrary $c.Lib).Count | Should Be 0
+        @(Get-CaseStaleness $c).Count | Should Be 0
     }
 
     It 'catches the incident: a fresh kernel beside an AOT snapshot from before it' {
         $c = New-Case 'incident'
         Set-Fixture (Join-Path $c.Hash 'app.dill') 'kernel v3' $c.T0.AddMinutes(10)
-        $r = @(Get-FlutterAotStaleness -DartToolDir $c.DartTool -RunnerDataDir $c.Data -AotLibrary $c.Lib)
+        $r = @(Get-CaseStaleness $c)
         $r.Count | Should Be 1
         ($r[0] -match 'older than its kernel') | Should Be $true
     }
@@ -57,7 +61,7 @@ Describe 'WindowsFlutterAot.Common' {
     It 'catches an installed copy that is not the assembled bytes' {
         $c = New-Case 'installed'
         Set-Fixture (Join-Path $c.Data 'app.so') 'aot v1' $c.T0.AddSeconds(20)
-        $r = @(Get-FlutterAotStaleness -DartToolDir $c.DartTool -RunnerDataDir $c.Data -AotLibrary $c.Lib)
+        $r = @(Get-CaseStaleness $c)
         $r.Count | Should Be 1
         ($r[0] -match 'runner\\data\\app\.so is not the bytes') | Should Be $true
     }
@@ -65,7 +69,7 @@ Describe 'WindowsFlutterAot.Common' {
     It 'catches a stale CMake AOT_LIBRARY copy' {
         $c = New-Case 'aotlib'
         Set-Fixture $c.Lib 'aot v1' $c.T0.AddSeconds(15)
-        $r = @(Get-FlutterAotStaleness -DartToolDir $c.DartTool -RunnerDataDir $c.Data -AotLibrary $c.Lib)
+        $r = @(Get-CaseStaleness $c)
         ($r -join ' ') -match 'build\\windows\\app\.so is not the bytes' | Should Be $true
     }
 
@@ -81,13 +85,13 @@ Describe 'WindowsFlutterAot.Common' {
         $c = New-Case 'presets'
         $other = Add-OtherPresetTree $c
         Get-FlutterAotBuildDir -DartToolDir $c.DartTool | Should Be $c.Hash
-        @(Get-FlutterAotStaleness -DartToolDir $c.DartTool -RunnerDataDir $c.Data -AotLibrary $c.Lib).Count | Should Be 0
+        @(Get-CaseStaleness $c).Count | Should Be 0
     }
 
     It 'reports an AOT runner with no kernel to check against' {
         $c = New-Case 'nokernel'
         Remove-Item -LiteralPath (Join-Path $c.DartTool 'flutter_build') -Recurse
-        $r = @(Get-FlutterAotStaleness -DartToolDir $c.DartTool -RunnerDataDir $c.Data -AotLibrary $c.Lib)
+        $r = @(Get-CaseStaleness $c)
         ($r[0] -match 'no app.dill') | Should Be $true
     }
 

@@ -149,12 +149,7 @@ tab_returns_after_silence() {
 }
 
 wait_cat() {
-  local _
-  for _ in $(seq 1 120); do
-    curl -sf "http://$1:8080/healthz" 2>/dev/null | jq -e '.detection.in_view and .detection.visits >= 1' >/dev/null 2>&1 && return 0
-    sleep 0.25
-  done
-  return 1
+  healthz_within "$1" 120 '.detection.in_view and .detection.visits >= 1'
 }
 
 jpeg_at() {

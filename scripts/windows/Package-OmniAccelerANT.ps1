@@ -25,10 +25,8 @@ param(
     [string]$MsixPublisher = 'CN=Kataglyphis',
     [ValidateSet('cpu', 'cuda', 'directml')][string]$OrtProvider = 'cpu'
 )
-$ErrorActionPreference = 'Stop'
-Set-StrictMode -Version Latest
-$repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
-. (Join-Path $PSScriptRoot 'Resolve-BuildModule.ps1')
+. (Join-Path $PSScriptRoot 'Initialize-EntryScript.ps1')
+$repoRoot = Get-EntryRepoRoot
 Import-BuildModule @('WindowsBuild.Common', 'WindowsMsix.Common', 'WindowsMsix.Signing', 'WindowsAppInstallers.Common',
     'WindowsMsiLicense.Common', 'WindowsOrtProvenance.Common', 'WindowsOrtPayload.Common', 'WindowsOrtLicense.Common',
     'WindowsOrtRunner.Common', 'WindowsGpuBuild.Common', 'WindowsThirdPartyLicense.Common')

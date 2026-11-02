@@ -30,7 +30,7 @@ function Assert-GpuPackageByteCheck {
     $text.Contains("[ValidateSet('cpu', 'cuda', 'directml')][string]`$OrtProvider = 'cpu'") | Should Be $true
     $text.Contains("Resolve-BuildModule -Name 'WindowsPackageBinary.Common'") | Should Be $true
     $text.Contains('"$base-$vendor"') | Should Be $true
-    @(Get-TestAstCommands -Ast $ast -Name 'Get-WixSourceFileId').Count | Should Be 1
+    Get-ScriptCommandCount $ast 'Get-WixSourceFileId' | Should Be 1
     $checks = @(Get-TestAstCommands -Ast $ast -Name 'Assert-PackageBinary')
     $checks.Count | Should Be 2
     @($checks | Where-Object { $_.Extent.Text.Contains('"$base.msi"') -and $_.Extent.Text.Contains('-Member $gpuMsiIds') -and $_.Extent.Text.Contains('-SourcePath $gpuPaths') }).Count | Should Be 1
@@ -89,7 +89,7 @@ Describe 'Installer shared Windows checks' {
         $source | Should Be 'WindowsScripts.Shared'
         $modulePath = if ($env:OMNI_APP_INSTALLERS_SOURCE) { $env:OMNI_APP_INSTALLERS_SOURCE } else { Join-Path $PSScriptRoot '..\modules\WindowsAppInstallers.Common.psm1' }
         $ast = Get-TestScriptAst -ScriptPath $modulePath
-        $calls = @($ast.FindAll({ param($node) $node -is [System.Management.Automation.Language.CommandAst] -and $node.GetCommandName() -eq 'Initialize-BuildDirectory' }, $true))
+        $calls = @(Get-TestAstCommands -Ast $ast -Name 'Initialize-BuildDirectory')
         $calls.Count | Should Be 1
         $parameters = @($calls[0].CommandElements | Where-Object { $_ -is [System.Management.Automation.Language.CommandParameterAst] } | ForEach-Object ParameterName)
         @($parameters | Where-Object { $_ -eq 'Path' }).Count | Should Be 1
@@ -102,9 +102,8 @@ Describe 'Installer shared Windows checks' {
                 @{ Path = 'observant/Package-ObservANT.ps1'; Msi = 'NOTICES'; Msix = 'web/assets/NOTICES' }
             )) {
             $ast = Get-TestScriptAst -ScriptPath (Join-Path $PSScriptRoot (Join-Path '..' $case.Path))
-            $commands = @($ast.FindAll({ param($node) $node -is [System.Management.Automation.Language.CommandAst] }, $true))
-            $msi = @($commands | Where-Object { $_.GetCommandName() -eq 'Assert-MsiPackageLicense' })
-            $msix = @($commands | Where-Object { $_.GetCommandName() -eq 'Assert-PackageLicense' })
+            $msi = @(Get-TestAstCommands -Ast $ast -Name 'Assert-MsiPackageLicense')
+            $msix = @(Get-TestAstCommands -Ast $ast -Name 'Assert-PackageLicense')
             $msi.Count | Should Be 1
             $msix.Count | Should Be 1
             $msi[0].Extent.Text.Contains($case.Msi) | Should Be $true
@@ -132,7 +131,7 @@ Describe 'Installer shared Windows checks' {
             $checks = @(Get-TestAstCommands -Ast $ast -Name 'Assert-OrtWheelLicensesInPackage')
             $commands.Count | Should Be 1
             $commands[0].Extent.Text.Contains($case.Text) | Should Be $true
-            @(Get-TestAstCommands -Ast $ast -Name 'Copy-OrtWheelLicenses').Count | Should Be ([int]($case.Name -eq 'Copy-OrtWheelLicenses'))
+            Get-ScriptCommandCount $ast 'Copy-OrtWheelLicenses' | Should Be ([int]($case.Name -eq 'Copy-OrtWheelLicenses'))
             $checks.Count | Should Be $case.Checks
             @($checks | Where-Object { $_.Extent.Text.Contains('-Format msi') -and $_.Extent.Text.Contains('-WixPath $fragment') }).Count | Should Be 1
             @($checks | Where-Object { $_.Extent.Text.Contains('-Format archive') }).Count | Should Be ($case.Checks - 1)
