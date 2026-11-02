@@ -41,12 +41,9 @@ env -u KATAGLYPHIS_ONNX_BACKEND KATAGLYPHIS_ORT_DEVICE=CUDA bash -c 'check "$@"'
 env -u KATAGLYPHIS_ONNX_BACKEND KATAGLYPHIS_ORT_DEVICE=MiGraphX bash -c 'check "$@"' _ "$work/migraphx.so" MiGraphX ort
 env KATAGLYPHIS_ORT_DEVICE=cuda KATAGLYPHIS_ONNX_BACKEND=tract bash -c 'check "$@"' _ "$work/cuda.so" cuda tract
 for invalid in migraphx typo ''; do
-  if env -u KATAGLYPHIS_ONNX_BACKEND KATAGLYPHIS_ORT_DEVICE="$invalid" \
-    bash -c 'check "$@"' _ "$work/cuda.so" "$invalid" '<unset>' > "$work/invalid.log" 2>&1; then
-    echo "Unsupported device '$invalid' unexpectedly succeeded" >&2
-    exit 1
-  fi
-  grep -Fq 'Unsupported KATAGLYPHIS_ORT_DEVICE for this GPU package:' "$work/invalid.log"
+  fixture_refuses_logged "$work/invalid.log" 'Unsupported KATAGLYPHIS_ORT_DEVICE for this GPU package:' \
+    "Unsupported device '$invalid' unexpectedly succeeded" \
+    env -u KATAGLYPHIS_ONNX_BACKEND KATAGLYPHIS_ORT_DEVICE="$invalid" bash -c 'check "$@"' _ "$work/cuda.so" "$invalid" '<unset>'
 done
 touch "$work/libonnxruntime.so.1"
 check_ort_path() { check_env "$1" "ORT_DYLIB_PATH=$2"; }
@@ -56,22 +53,7 @@ ln -s libonnxruntime.so.1 "$work/libonnxruntime.so"
 env -u ORT_DYLIB_PATH -u KATAGLYPHIS_ORT_DEVICE bash -c 'check_ort_path "$@"' _ "$work/cuda.so" "$work/libonnxruntime.so"
 ORT_DYLIB_PATH=/explicit/path env -u KATAGLYPHIS_ORT_DEVICE bash -c 'check_ort_path "$@"' _ "$work/cuda.so" /explicit/path
 # The bundle's model is whatever .onnx its lock put there; two of them name no default.
-check_model() {
-  python3 - "$1" "$2" <<'PY'
-import ctypes
-import sys
-
-ctypes.CDLL(sys.argv[1])
-getenv = ctypes.CDLL(None).getenv
-getenv.argtypes = [ctypes.c_char_p]
-getenv.restype = ctypes.c_char_p
-value = getenv(b"KATAGLYPHIS_ONNX_MODEL")
-actual = None if value is None else value.decode()
-expected = None if sys.argv[2] == "<unset>" else sys.argv[2]
-if actual != expected:
-    raise SystemExit(f"KATAGLYPHIS_ONNX_MODEL: expected {expected!r}, got {actual!r}")
-PY
-}
+check_model() { check_env "$1" "KATAGLYPHIS_ONNX_MODEL=$2"; }
 export -f check_model
 mkdir -p "$work/bundle/lib" "$work/bundle/data/resources/models"
 cp "$work/cpu.so" "$work/bundle/lib/plugin.so"
