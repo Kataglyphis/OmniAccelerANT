@@ -54,6 +54,8 @@ jobs:
           Import-Module Pester -RequiredVersion 3.4.0
           $result = Invoke-Pester -Script scripts/windows/tests/DetectorModel.Tests.ps1 -PassThru
           if ($result.FailedCount -ne 0 -or $result.PassedCount -ne 5) { throw 'Model staging fixtures failed or did not all run' }
+          # The negative fixtures leave the verifier's exit 1 in LASTEXITCODE, which the runner's wrapper would return.
+          exit 0
       - name: Check recorded GPU dependencies before pulling images
         shell: pwsh
         run: ./scripts/windows/Test-WindowsGpuPins.ps1
