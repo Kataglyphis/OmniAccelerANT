@@ -46,6 +46,10 @@ class CandidatePreflightTests(unittest.TestCase):
             "ort_host_runtime_needed()\nort_assert_no_bundled_host_runtime()",
         )
         self.write(
+            base + "06-packaging/ort-package-proof.sh",
+            "ort_package_collect_libraries()\nort_package_verify_notices()",
+        )
+        self.write(
             base + "06-packaging/elf-closure.sh", "--direct-only --reject-source-root"
         )
         self.write(base + "06-packaging/bundle-loader.sh", "--external-library-path")

@@ -151,6 +151,11 @@ def validate(root: Path) -> str:
         "ort_host_runtime_needed()",
         "ort_assert_no_bundled_host_runtime()",
     )
+    require_text(
+        packaging / "ort-package-proof.sh",
+        "ort_package_collect_libraries()",
+        "ort_package_verify_notices()",
+    )
     require_text(packaging / "elf-closure.sh", "--direct-only", "--reject-source-root")
     require_text(packaging / "bundle-loader.sh", "--external-library-path")
     require_text(packaging / "stage-ort-wheel-licenses.py", "--require-unstripped")

@@ -5,6 +5,10 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ## Unreleased
 
+- **`verify-gpu-candidate.sh` calls the hub's `ort-package-proof.sh`** instead of carrying its ORT library and
+  notice checks; the GPU preflight requires that file. The arm64 ObservANT install test also fetches OxidANT,
+  whose `models.lock` its detector model reader needs.
+
 ### 2026-11-02 (perf-host)
 - **`quality-report.sh --perf-host` latency** in `quality-report.toml`, with `scripts/linux/perf-host.sh`, the app's `--detect-latency` and a tracked `perf/baseline-<cpu>.json`.
 
