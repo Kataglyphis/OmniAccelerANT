@@ -122,6 +122,9 @@ jobs:
         --skip *-natives-*
         --skip gstreamer-ai-web-frontend
         --skip *-test-results
+        --skip bench-history-*
+        --skip code-duplication-*
+        --skip *-coverage
         --skip *-tests
         --include omni-observant-*/*
         --include omni-accelerant-installers-windows-*/*
