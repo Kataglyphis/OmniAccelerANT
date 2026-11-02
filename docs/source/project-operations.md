@@ -465,6 +465,14 @@ build files returned 200 and `version.json` matched. The HTTP smoke served all 1
 all three planted failures were rejected. The new scrolling check caught fallback-font
 requests on About and the blog overview before the local-font fix.
 
+## Entry-script flags
+
+`scripts/linux/lib/entry-options.sh` is the flag loop of the APK, closure, toolchain, format, ESP32
+and ObservANT scripts. A spec is `--flag=var`, `--flag=var:phrase` (also refuses an empty value, as
+`--flag needs phrase`) or `+--flag=var=value` (takes no argument). `other-fn` receives each remaining
+argument and returns 0 when it consumed it. It runs before the hub submodule exists and does not
+validate what it assigns. `test-entry-options.sh` grades the contract, each script's suite its values.
+
 ## CI/CD Notes
 
 - API docs use the hub's pinned generator and isolated tool cache; `generate-docs.sh` leaves

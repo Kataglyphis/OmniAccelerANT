@@ -9,10 +9,7 @@ _entry_options_help() {
   fi
 }
 
-# parse_entry_options <usage-text-or-fn> <other-fn-or-empty> <spec>... -- "$@"
-# A spec is --flag=var or --flag=var:phrase; a phrased flag also refuses an empty value, as "--flag needs phrase".
-# A spec +--flag=var=value takes no argument and assigns value.
-# other-fn gets each remaining argument and returns 0 when it consumed that one argument.
+# parse_entry_options <usage-text-or-fn> <other-fn-or-empty> <spec>... -- "$@"; spec forms and contract: docs/source/project-operations.md#entry-script-flags
 parse_entry_options() {
   local usage="$1" other="$2" spec flag target
   local -A _entry_values=() _entry_phrases=() _entry_switches=()

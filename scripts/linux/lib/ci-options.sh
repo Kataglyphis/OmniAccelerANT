@@ -5,40 +5,44 @@
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/antfrastructure.sh"
 antfrastructure_source linux/scripts/lib/cli-value-options.sh
 
-# omni_ci_usage <lane> <option-key>...; each help line lives once below, so lanes cannot describe one flag differently by accident.
-_omni_ci_option_help() {
-  case "$1" in
-    arch-label-required) printf '%s\n' '  -a, --arch <x64|arm64>        Target architecture label (required)' ;;
-    build-mode-apk-image) printf '%s\n' '  --build-mode <debug|profile|release> Build mode for flutter build apk (default: release)' ;;
-    flutter-dir-image) printf '%s\n' '      --flutter-dir <path>      Flutter SDK directory (default: /opt/flutter, baked into the image)' ;;
-    app-name-required) printf '%s\n' '  -n, --app-name <name>         Artifact base name (required)' ;;
-    emulator-smoke) printf '%s\n' '      --emulator-smoke <bool>   Run the APK on the image'\''s AVD (needs /dev/kvm; default: false)' ;;
-    run-codeql-manual) printf '%s\n' '      --run-codeql <bool>       Run CodeQL scan (default: false; the scan is' '                                hours and is a manual/local run since 2026-09-17)' ;;
-    help) printf '%s\n' '  -h, --help                    Show this help' ;;
-    arch-required) printf '%s\n' '  -a, --arch <x64|arm64>        Target architecture (required)' ;;
-    build-mode-linux) printf '%s\n' '  --build-mode <debug|profile|release> Build mode for flutter build linux (default: release)' ;;
-    package-formats-tar) printf '%s\n' '      --package-formats <csv>   Packaging formats (default: tar)' ;;
-    install-packaging-deps) printf '%s\n' '      --install-packaging-deps <bool> Install the flathub runtime; only consulted when --package-formats has flatpak (default: false)' ;;
-    strict-checks) printf '%s\n' '      --strict-checks <bool>    Fail on format/analyze/test errors (default: true in CI, false locally)' ;;
-    run-codeql-refused) printf '%s\n' '      --run-codeql <bool>       Must be false: no CodeQL scan is implemented here' ;;
-    run-docs) printf '%s\n' '      --run-docs <bool>         Run generate-docs.sh, x64 only (default: false; docs.yml builds the site)' ;;
-    arch-label-auto) printf '%s\n' '  -a, --arch <x64|arm64>        Host architecture label for artifact naming (default: auto-detect)' ;;
-    build-mode-apk) printf '%s\n' '      --build-mode <debug|profile|release> Build mode for flutter build apk (default: release)' ;;
-    app-name-apk) printf '%s\n' '  -n, --app-name <name>         Artifact base name (default: pubspec name + -apk)' ;;
-    flutter-dir-optional) printf '%s\n' '      --flutter-dir <path>      Optional Flutter SDK directory (uses <path>/bin/flutter)' ;;
-    arch-auto) printf '%s\n' '  -a, --arch <x64|arm64>        Target architecture (default: auto-detect)' ;;
-    app-name-default) printf '%s\n' '  -n, --app-name <name>         Artifact base name (default: pubspec name)' ;;
-    package-formats-all) printf '%s\n' '      --package-formats <csv>   Packaging formats (default: tar,appimage,flatpak,deb)' ;;
-    no-package) printf '%s\n' '      --no-package              Build only (skip packaging)' ;;
-    *) echo "Error: unknown usage key: $1" >&2; return 2 ;;
-  esac
-}
+# Each help line lives once, so lanes cannot describe one flag differently by accident.
+declare -A _OMNI_CI_OPTION_HELP=(
+  [arch-label-required]=$'  -a, --arch <x64|arm64>        Target architecture label (required)'
+  [build-mode-apk-image]=$'  --build-mode <debug|profile|release> Build mode for flutter build apk (default: release)'
+  [flutter-dir-image]=$'      --flutter-dir <path>      Flutter SDK directory (default: /opt/flutter, baked into the image)'
+  [app-name-required]=$'  -n, --app-name <name>         Artifact base name (required)'
+  [emulator-smoke]=$'      --emulator-smoke <bool>   Run the APK on the image\'s AVD (needs /dev/kvm; default: false)'
+  [run-codeql-manual]=$'      --run-codeql <bool>       Run CodeQL scan (default: false; the scan is\n                                hours and is a manual/local run since 2026-09-17)'
+  [help]=$'  -h, --help                    Show this help'
+  [arch-required]=$'  -a, --arch <x64|arm64>        Target architecture (required)'
+  [build-mode-linux]=$'  --build-mode <debug|profile|release> Build mode for flutter build linux (default: release)'
+  [package-formats-tar]=$'      --package-formats <csv>   Packaging formats (default: tar)'
+  [install-packaging-deps]=$'      --install-packaging-deps <bool> Install the flathub runtime; only consulted when --package-formats has flatpak (default: false)'
+  [strict-checks]=$'      --strict-checks <bool>    Fail on format/analyze/test errors (default: true in CI, false locally)'
+  [run-codeql-refused]=$'      --run-codeql <bool>       Must be false: no CodeQL scan is implemented here'
+  [run-docs]=$'      --run-docs <bool>         Run generate-docs.sh, x64 only (default: false; docs.yml builds the site)'
+  [arch-label-auto]=$'  -a, --arch <x64|arm64>        Host architecture label for artifact naming (default: auto-detect)'
+  [build-mode-apk]=$'      --build-mode <debug|profile|release> Build mode for flutter build apk (default: release)'
+  [app-name-apk]=$'  -n, --app-name <name>         Artifact base name (default: pubspec name + -apk)'
+  [flutter-dir-optional]=$'      --flutter-dir <path>      Optional Flutter SDK directory (uses <path>/bin/flutter)'
+  [arch-auto]=$'  -a, --arch <x64|arm64>        Target architecture (default: auto-detect)'
+  [app-name-default]=$'  -n, --app-name <name>         Artifact base name (default: pubspec name)'
+  [package-formats-all]=$'      --package-formats <csv>   Packaging formats (default: tar,appimage,flatpak,deb)'
+  [no-package]=$'      --no-package              Build only (skip packaging)'
+)
 
+# omni_ci_usage <lane> <option-key>...
 omni_ci_usage() {
   local lane="$1" key
   shift
   printf 'Usage:\n  bash scripts/linux/ci/%s.sh [options]\n\nOptions:\n' "$lane"
-  for key in "$@"; do _omni_ci_option_help "$key"; done
+  for key in "$@"; do
+    if [[ -z "${_OMNI_CI_OPTION_HELP[$key]:-}" ]]; then
+      echo "Error: unknown usage key: $key" >&2
+      return 2
+    fi
+    printf '%s\n' "${_OMNI_CI_OPTION_HELP[$key]}"
+  done
 }
 
 # omni_ci_lane_notes <body-sentence>: the two note lines a direct lane adds under its options.

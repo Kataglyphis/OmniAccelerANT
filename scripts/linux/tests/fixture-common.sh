@@ -2,7 +2,10 @@
 # Stubs and refusal checks for suites that stop at their first failure; they prove test wiring, not the real tools.
 
 # fixture_root: the checkout this suite belongs to, from wherever it was started.
-fixture_root() { cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd; }
+fixture_root() {
+  cd "$(dirname "${BASH_SOURCE[0]}")/../../.." || return 1
+  pwd
+}
 
 # fixture_workdir: sets and exports work, removed when the suite exits however it ends.
 fixture_workdir() {

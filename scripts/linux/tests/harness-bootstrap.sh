@@ -24,6 +24,6 @@ t_mutant_breaks_suite() {
 
 # t_mutant_dir <suite-name>: a directory under the repo's logs, so a mutant still resolves the checkout's relative paths.
 t_mutant_dir() {
-  mkdir -p "${KATAGLYPHIS_REPO_ROOT}/logs/test-results" &&
-    mktemp -d "${KATAGLYPHIS_REPO_ROOT}/logs/test-results/$1-mutant.XXXXXX"
+  mkdir -p "${KATAGLYPHIS_REPO_ROOT}/logs/test-results" || return 1
+  mktemp -d "${KATAGLYPHIS_REPO_ROOT}/logs/test-results/$1-mutant.XXXXXX"
 }
