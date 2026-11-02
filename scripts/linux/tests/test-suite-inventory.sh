@@ -3,11 +3,8 @@
 set -uo pipefail
 
 repo="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
-# shellcheck source=scripts/linux/lib/antfrastructure.sh
-source "${repo}/scripts/linux/lib/antfrastructure.sh"
-_harness="$(antfrastructure_path linux/scripts/lib/test-harness.sh)" || exit 1
-# shellcheck source=third_party/ANTfrastructure/linux/scripts/lib/test-harness.sh
-source "${_harness}"
+# shellcheck source=scripts/linux/tests/harness-bootstrap.sh
+source "$(dirname "${BASH_SOURCE[0]}")/harness-bootstrap.sh"
 # shellcheck source=scripts/linux/lib/suite-inventory.sh
 source "${SUITE_INVENTORY_LIB:-${repo}/scripts/linux/lib/suite-inventory.sh}"
 work="$(mktemp -d)" || exit 1
@@ -26,6 +23,14 @@ track() {
   git -C "${dir}" add -- "${path}"
 }
 
+# assert_report <dir> <rc> <text>...: the report's verdict and the lines an operator reads.
+assert_report() {
+  local out rc text
+  out="$(suite_inventory_report "$1" 2>&1)" && rc=0 || rc=$?
+  t_assert_eq "$2" "${rc}"
+  for text in "${@:3}"; do t_assert_contains "${out}" "${text}"; done
+}
+
 t_case 'every undeclared suite runs here and a named runner counts as elsewhere'
 ok="$(fixture ok)"
 track "${ok}" scripts/linux/tests/test-a.sh $'#!/usr/bin/env bash\nexit 0'
@@ -34,9 +39,7 @@ track "${ok}" scripts/windows/tests/test_c.py '"""c"""'
 track "${ok}" scripts/licenses/tests/test_d.py '"""d"""'
 track "${ok}" scripts/linux/ci/web.sh 'bash scripts/linux/tests/test-b.py'
 track "${ok}" scripts/linux/tests/helper.sh 'not a suite'
-out="$(suite_inventory_report "${ok}" 2>&1)" && rc=0 || rc=$?
-t_assert_eq 0 "${rc}"
-t_assert_contains "${out}" '4 discovered, 3 run by this lane, 1 run elsewhere, 0 unreferenced suites'
+assert_report "${ok}" 0 '4 discovered, 3 run by this lane, 1 run elsewhere, 0 unreferenced suites'
 native="$(suite_inventory_native "${ok}")"
 t_assert_eq $'scripts/licenses/tests/test_d.py\nscripts/linux/tests/test-a.sh\nscripts/windows/tests/test_c.py' "${native}"
 
@@ -44,25 +47,18 @@ t_case 'a declared runner that does not name the suite is unreferenced and fails
 bad="$(fixture bad)"
 track "${bad}" scripts/linux/tests/test-a.sh $'#!/usr/bin/env bash\n# suite-runner: scripts/linux/ci/web.sh'
 track "${bad}" scripts/linux/ci/web.sh 'bash scripts/linux/tests/test-other.sh'
-out="$(suite_inventory_report "${bad}" 2>&1)" && rc=0 || rc=$?
-t_assert_eq 1 "${rc}"
-t_assert_contains "${out}" 'UNREFERENCED scripts/linux/tests/test-a.sh'
-t_assert_contains "${out}" '1 discovered, 0 run by this lane, 0 run elsewhere, 1 unreferenced suites'
+assert_report "${bad}" 1 'UNREFERENCED scripts/linux/tests/test-a.sh' '1 discovered, 0 run by this lane, 0 run elsewhere, 1 unreferenced suites'
 t_assert_eq '' "$(suite_inventory_native "${bad}")"
 
 t_case 'a declared runner that does not exist is unreferenced'
 gone="$(fixture gone)"
 track "${gone}" scripts/linux/tests/test-a.sh $'#!/usr/bin/env bash\n# suite-runner: scripts/linux/ci/missing.sh'
-out="$(suite_inventory_report "${gone}" 2>&1)" && rc=0 || rc=$?
-t_assert_eq 1 "${rc}"
-t_assert_contains "${out}" '1 unreferenced suites'
+assert_report "${gone}" 1 '1 unreferenced suites'
 
 t_case 'discovering no suite fails'
 empty="$(fixture empty)"
 track "${empty}" scripts/linux/tests/helper.sh 'not a suite'
-out="$(suite_inventory_report "${empty}" 2>&1)" && rc=0 || rc=$?
-t_assert_eq 1 "${rc}"
-t_assert_contains "${out}" '0 discovered'
+assert_report "${empty}" 1 '0 discovered'
 
 t_case 'an untracked suite is not discovered'
 untracked="$(fixture untracked)"
@@ -83,10 +79,7 @@ tree="${work}/tree"
 mkdir -p "${tree}"
 cp -R "${repo}/scripts" "${repo}/.github" "${repo}/.gitignore" "${tree}/"
 git -C "${tree}" init -q && git -C "${tree}" add -A
-out="$(suite_inventory_report "${tree}" 2>&1)" && rc=0 || rc=$?
-t_assert_eq 0 "${rc}"
-t_assert_contains "${out}" ' 0 unreferenced suites'
-t_assert_contains "${out}" 'scripts/windows/tests/test-ort-device.py runs in .github/workflows/windows-x64.yml'
+assert_report "${tree}" 0 ' 0 unreferenced suites' 'scripts/windows/tests/test-ort-device.py runs in .github/workflows/windows-x64.yml'
 lane="${repo}/scripts/linux/ci/lane-native-linux.sh"
 t_assert_grep "${lane}" "^run_gate \"suite inventory\" suite_inventory_report \"\\\$REPO_ROOT\"\$"
 t_assert_grep "${lane}" "^done < <\\(suite_inventory_native \"\\\$REPO_ROOT\"\\)\$"

@@ -1,18 +1,14 @@
 #!/usr/bin/env bash
 # run_detect_check against a fake app: a photo without two cats, or a blank frame that does not exit 1, fails it.
 set -euo pipefail
-root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)
+# shellcheck source=scripts/linux/tests/fixture-common.sh
+source "$(dirname "${BASH_SOURCE[0]}")/fixture-common.sh"
+root="$(fixture_root)"
 work=$(mktemp -d)
 trap 'rm -rf -- "$work"' EXIT
 mkdir -p "$work/bin"
-cat > "$work/bin/xvfb-run" <<'STUB'
-#!/usr/bin/env bash
-[[ "$1" == -a ]] && shift
-exec "$@"
-STUB
-cat > "$work/app" <<'STUB'
-#!/usr/bin/env bash
-set -euo pipefail
+fixture_xvfb_stub "$work/bin"
+fixture_stub "$work/app" <<'STUB'
 [[ $# == 2 && "$1" == --detect-check && -f "$2" ]]
 if [[ "$2" == *.png ]]; then
   python3 -I -c 'import struct, sys; d = open(sys.argv[1], "rb").read(); assert d[:8] == b"\x89PNG\r\n\x1a\n" and struct.unpack(">II", d[16:24]) == (64, 64)' "$2"
@@ -22,7 +18,7 @@ fi
 printf 'photo\n' >> "$SEEN"
 exit "${FAKE_PHOTO_RC:-0}"
 STUB
-chmod +x "$work/bin/xvfb-run" "$work/app"
+chmod +x "$work/app"
 printf 'jpeg' > "$work/two_cats.jpg"
 export PATH="$work/bin:$PATH" SEEN="$work/seen"
 failures=0

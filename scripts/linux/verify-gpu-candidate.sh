@@ -1,13 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
-if [[ $# -ne 2 ]]; then echo 'usage: verify-gpu-candidate.sh nvidia|amd x64|arm64' >&2; exit 2; fi
+# shellcheck source=scripts/linux/lib/gpu-script-common.sh
+source "$(dirname "${BASH_SOURCE[0]}")/lib/gpu-script-common.sh"
+gpu_require_argc $# 2 2 'verify-gpu-candidate.sh nvidia|amd x64|arm64'
 vendor=$1 arch=$2
-case "$vendor:$arch" in
-  nvidia:x64) machine=x86_64; deb=amd64; provider=cuda ;;
-  nvidia:arm64) machine=aarch64; deb=arm64; provider=cuda ;;
-  amd:x64) machine=x86_64; deb=amd64; provider=migraphx ;;
-  *) echo 'Unsupported GPU candidate' >&2; exit 2 ;;
-esac
+facts="$(gpu_target_facts "$vendor" "$arch")" || exit 2
+read -r machine deb provider <<< "$facts"
 repo="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 hub="${ANTFRASTRUCTURE_DIR:-$repo/third_party/ANTfrastructure}/linux/scripts/06-packaging"
 # shellcheck source=/dev/null
@@ -21,12 +19,8 @@ if [[ ${#tarballs[@]} -ne 1 || ! -f ${tarballs[0]} || ${#debs[@]} -ne 1 || ${#im
   echo "Expected one $vendor $arch tar, DEB and AppImage candidate" >&2
   exit 1
 fi
-[[ "$(dpkg-deb --field "${debs[0]}" Architecture)" == "$deb" ]] || {
-  echo "DEB architecture does not match $arch" >&2; exit 1;
-}
-[[ "$(dpkg-deb --field "${debs[0]}" Package)" == "$variant" ]] || {
-  echo "DEB package identity does not match $variant" >&2; exit 1;
-}
+gpu_deb_field_is "${debs[0]}" Architecture "$deb" || { echo "DEB architecture does not match $arch" >&2; exit 1; }
+gpu_deb_field_is "${debs[0]}" Package "$variant" || { echo "DEB package identity does not match $variant" >&2; exit 1; }
 work="$(mktemp -d)"
 trap 'rm -rf -- "$work"' EXIT
 

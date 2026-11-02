@@ -22,25 +22,12 @@ Rust USB protocol layer (staticlib), in the official ESP-IDF image.
 EOF
 }
 
-while [[ $# -gt 0 ]]; do
-    case "$1" in
-        --flash) flash=1; shift ;;
-        --port) port="${2:?--port needs a device}"; shift 2 ;;
-        --image) image="${2:?--image needs a tag}"; shift 2 ;;
-        --engine) engine="${2:?--engine needs a binary}"; shift 2 ;;
-        -h|--help) usage; exit 0 ;;
-        *) echo "unknown argument: $1" >&2; usage >&2; exit 2 ;;
-    esac
-done
+# shellcheck source=scripts/linux/esp32/firmware-cli.sh
+source "$(dirname "${BASH_SOURCE[0]}")/firmware-cli.sh"
+parse_entry_options usage esp32_refuse_argument '+--flash=flash=1' \
+    '--port=port:a device' '--image=image:a tag' '--engine=engine:a binary' -- "$@"
 
-command -v "$engine" >/dev/null 2>&1 || {
-    echo "container engine not found: $engine" >&2
-    exit 2
-}
-if [[ "$flash" == 1 && ! -c "$port" ]]; then
-    echo "flash requested but $port is not a character device" >&2
-    exit 2
-fi
+esp32_check_host "$engine" "$flash" "$port"
 
 if [[ ! -d "$who/.git" ]]; then
     echo "cloning ESP-WHO into $who"

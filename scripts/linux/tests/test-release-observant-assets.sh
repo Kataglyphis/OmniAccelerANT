@@ -3,11 +3,8 @@
 set -uo pipefail
 
 repo="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
-# shellcheck source=scripts/linux/lib/antfrastructure.sh
-source "${repo}/scripts/linux/lib/antfrastructure.sh"
-_harness="$(antfrastructure_path linux/scripts/lib/test-harness.sh)" || exit 1
-# shellcheck source=third_party/ANTfrastructure/linux/scripts/lib/test-harness.sh
-source "${_harness}"
+# shellcheck source=scripts/linux/tests/harness-bootstrap.sh
+source "$(dirname "${BASH_SOURCE[0]}")/harness-bootstrap.sh"
 updater="${RELEASE_ASSETS_UPDATER:-${repo}/scripts/linux/observant/package/omni-observant-update}"
 release="${RELEASE_ASSETS_WORKFLOW:-${repo}/.github/workflows/release.yml}"
 lane="${RELEASE_ASSETS_LANE:-${repo}/.github/workflows/web.yml}"

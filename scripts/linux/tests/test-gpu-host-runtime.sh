@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # Exercises the app's host-runtime integration; actual GPU inference needs hardware.
 set -euo pipefail
+# shellcheck source=scripts/linux/tests/fixture-common.sh
+source "$(dirname "${BASH_SOURCE[0]}")/fixture-common.sh"
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 source "$root/scripts/linux/lib/antfrastructure.sh"
 source "$root/scripts/linux/lib/bundle-runtime.sh"
@@ -10,54 +12,33 @@ mkdir -p "$work/cpu/lib" "$work/gpu/lib" "$work/old"
 [[ "$(gpu_package_name omni-accelerant cuda)" == omni-accelerant-nvidia ]]
 [[ "$(gpu_package_name omni-accelerant migraphx)" == omni-accelerant-amd ]]
 [[ "$(gpu_package_name omni-accelerant-nvidia cuda)" == omni-accelerant-nvidia ]]
-if gpu_package_name omni-accelerant unsupported >/dev/null; then
-  echo 'An unknown GPU package name unexpectedly succeeded' >&2
-  exit 1
-fi
+fixture_refuses 'An unknown GPU package name unexpectedly succeeded' gpu_package_name omni-accelerant unsupported >/dev/null
 
-( export ANTFRASTRUCTURE_DIR="$work/old" KATAGLYPHIS_ORT_PROVIDER=cpu; prepare_gpu_host_runtime "$work/cpu" )
-if ( export ANTFRASTRUCTURE_DIR="$work/old" KATAGLYPHIS_ORT_PROVIDER=cuda; prepare_gpu_host_runtime "$work/cpu" ) 2>/dev/null; then
-  echo 'A missing requested GPU provider unexpectedly passed' >&2
-  exit 1
-fi
+# host_runtime <hub> <provider> <bundle>: prepares in a subshell, so one case's exports and results stay out of the next.
+host_runtime() { ( export ANTFRASTRUCTURE_DIR="$1" KATAGLYPHIS_ORT_PROVIDER="$2"; prepare_gpu_host_runtime "$3" ); }
+host_runtime_quiet() { host_runtime "$@" 2>/dev/null; }
+host_runtime "$work/old" cpu "$work/cpu"
+fixture_refuses 'A missing requested GPU provider unexpectedly passed' host_runtime_quiet "$work/old" cuda "$work/cpu"
 printf 'void fixture(void) {}\n' > "$work/fixture.c"
 "${CC:-cc}" -shared -fPIC -Wl,-soname,libcuda.so.1 "$work/fixture.c" -o "$work/libcuda.so.1"
 "${CC:-cc}" -shared -fPIC -Wl,--no-as-needed "$work/fixture.c" "$work/libcuda.so.1" \
   -o "$work/gpu/lib/libonnxruntime_providers_cuda.so"
 : > "$work/gpu/lib/libonnxruntime_providers_shared.so"
-if ( export ANTFRASTRUCTURE_DIR="$work/old" KATAGLYPHIS_ORT_PROVIDER=cuda; prepare_gpu_host_runtime "$work/gpu" ) 2>/dev/null; then
-  echo 'A GPU bundle unexpectedly passed with an old hub' >&2
-  exit 1
-fi
+fixture_refuses 'A GPU bundle unexpectedly passed with an old hub' host_runtime_quiet "$work/old" cuda "$work/gpu"
 : > "$work/gpu/lib/libonnxruntime_providers_migraphx.so"
-if ( export KATAGLYPHIS_ORT_PROVIDER=; prepare_gpu_host_runtime "$work/gpu" ) 2>/dev/null; then
-  echo 'A bundle containing both GPU providers unexpectedly passed' >&2
-  exit 1
-fi
+fixture_refuses 'A bundle containing both GPU providers unexpectedly passed' host_runtime_quiet "$ANTFRASTRUCTURE_DIR" '' "$work/gpu"
 rm "$work/gpu/lib/libonnxruntime_providers_migraphx.so"
 
-cat > "$work/gpu/omni_accelerant" <<'EOF'
-#!/bin/bash
-external_library_path=""
-export LD_LIBRARY_PATH="$here/lib${external_library_path}"
-exec "$here/loader" --library-path "$here/lib/glibc:$here/lib${external_library_path}" "$@"
-EOF
-chmod +x "$work/gpu/omni_accelerant"
+fixture_gpu_launcher "$work/gpu/omni_accelerant"
 : > "$work/gpu/omni_accelerant.bin"
 verify_gpu_host_launchers "$work/gpu"
 sed -i 's/export LD_LIBRARY_PATH=/export BROKEN_PATH=/' "$work/gpu/omni_accelerant"
-if verify_gpu_host_launchers "$work/gpu" 2>/dev/null; then
-  echo 'A broken GPU launcher unexpectedly passed' >&2
-  exit 1
-fi
+fixture_refuses 'A broken GPU launcher unexpectedly passed' verify_gpu_host_launchers "$work/gpu" 2>/dev/null
 sed -i 's/export BROKEN_PATH=/export LD_LIBRARY_PATH=/' "$work/gpu/omni_accelerant"
 printf '\177ELF' > "$work/gpu/unwrapped"
 chmod +x "$work/gpu/unwrapped"
-if verify_gpu_host_launchers "$work/gpu" 2>"$work/unwrapped.log"; then
-  echo 'An unwrapped GPU bundle executable unexpectedly passed' >&2
-  exit 1
-fi
-grep -Fq 'GPU bundle executable is not an external-runtime launcher' "$work/unwrapped.log"
+fixture_refuses_logged "$work/unwrapped.log" 'GPU bundle executable is not an external-runtime launcher' \
+  'An unwrapped GPU bundle executable unexpectedly passed' verify_gpu_host_launchers "$work/gpu"
 rm "$work/gpu/unwrapped"
 
 hub="${ORT_TEST_SHARED_HUB:-$root/third_party/ANTfrastructure}"
@@ -69,18 +50,12 @@ if [[ -f "$helper" ]] && grep -q '^ort_host_runtime_needed()' "$helper"; then
     [[ " ${GPU_RUNTIME_SONAMES[*]} " == *' libcuda.so.1 '* ]]
   )
   cp "$work/libcuda.so.1" "$work/gpu/lib/libcuda.so.1"
-  if ( export ANTFRASTRUCTURE_DIR="$hub" KATAGLYPHIS_ORT_PROVIDER=cuda; prepare_gpu_host_runtime "$work/gpu" ) 2>/dev/null; then
-    echo 'A bundled host GPU runtime unexpectedly passed' >&2
-    exit 1
-  fi
+  fixture_refuses 'A bundled host GPU runtime unexpectedly passed' host_runtime_quiet "$hub" cuda "$work/gpu"
   rm "$work/gpu/lib/libcuda.so.1"
-  if ANTFRASTRUCTURE_DIR="$hub" KATAGLYPHIS_ORT_PROVIDER=cuda APP_PACKAGING_BUNDLE_DIR="$work/gpu" \
-    bash "$root/scripts/linux/package-linux.sh" --arch x64 --app-name omni-accelerant --formats flatpak \
-    > "$work/flatpak.log" 2>&1; then
-    echo 'GPU packaging unexpectedly accepted Flatpak' >&2
-    exit 1
-  fi
-  grep -Fq 'GPU packages require the host runtime and do not support Flatpak' "$work/flatpak.log"
+  fixture_refuses_logged "$work/flatpak.log" 'GPU packages require the host runtime and do not support Flatpak' \
+    'GPU packaging unexpectedly accepted Flatpak' \
+    env ANTFRASTRUCTURE_DIR="$hub" KATAGLYPHIS_ORT_PROVIDER=cuda APP_PACKAGING_BUNDLE_DIR="$work/gpu" \
+    bash "$root/scripts/linux/package-linux.sh" --arch x64 --app-name omni-accelerant --formats flatpak
   mkdir -p "$work/actual/lib"
   cat > "$work/launcher.c" <<'EOF'
 #include <stdio.h>
@@ -94,8 +69,7 @@ EOF
   [[ "$(LD_LIBRARY_PATH=/sdk "$work/actual/omni_accelerant")" == "$work/actual/lib:/sdk" ]]
   [[ "$(KATAGLYPHIS_BUNDLED_GLIBC=1 LD_LIBRARY_PATH=/sdk "$work/actual/omni_accelerant")" == "$work/actual/lib:/sdk" ]]
   if [[ -n "${ORT_TEST_REAL_PROVIDER:-}" ]]; then
-    case "$ORT_TEST_REAL_PROVIDER" in cuda|migraphx) ;; *) echo 'Invalid real provider' >&2; exit 2 ;; esac
-    real_dir="${ORT_TEST_REAL_DIR:?ORT_TEST_REAL_DIR is required}"
+    real_dir="$(fixture_real_provider_dir)" || exit $?
     mkdir -p "$work/real/lib"
     cp "$real_dir/libonnxruntime_providers_shared.so" "$real_dir/libonnxruntime_providers_${ORT_TEST_REAL_PROVIDER}.so" "$work/real/lib/"
     ( export ANTFRASTRUCTURE_DIR="$hub" KATAGLYPHIS_ORT_PROVIDER="$ORT_TEST_REAL_PROVIDER"

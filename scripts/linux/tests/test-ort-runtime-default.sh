@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
+# shellcheck source=scripts/linux/tests/fixture-common.sh
+source "$(dirname "${BASH_SOURCE[0]}")/fixture-common.sh"
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 work="$(mktemp -d)"
@@ -11,8 +13,9 @@ source_file="$root/packages/kataglyphis_native_inference/linux/runtime_paths.cc"
 "${CXX:-c++}" -std=c++20 -shared -fPIC -DKATAGLYPHIS_DEFAULT_ORT_DEVICE='"migraphx"' \
   "$source_file" -ldl -o "$work/migraphx.so"
 
-check() {
-  python3 - "$1" "$2" "$3" <<'PY'
+# check_env <library> <NAME=expected>...: what the library's load-time constructor left in the environment.
+check_env() {
+  python3 - "$@" <<'PY'
 import ctypes
 import sys
 
@@ -20,15 +23,17 @@ ctypes.CDLL(sys.argv[1])
 getenv = ctypes.CDLL(None).getenv
 getenv.argtypes = [ctypes.c_char_p]
 getenv.restype = ctypes.c_char_p
-for name, expected in zip(("KATAGLYPHIS_ORT_DEVICE", "KATAGLYPHIS_ONNX_BACKEND"), sys.argv[2:]):
+for spec in sys.argv[2:]:
+    name, wanted = spec.split("=", 1)
     value = getenv(name.encode())
     actual = None if value is None else value.decode()
-    expected = None if expected == "<unset>" else expected
+    expected = None if wanted == "<unset>" else wanted
     if actual != expected:
         raise SystemExit(f"{name}: expected {expected!r}, got {actual!r}")
 PY
 }
-export -f check
+check() { check_env "$1" "KATAGLYPHIS_ORT_DEVICE=$2" "KATAGLYPHIS_ONNX_BACKEND=$3"; }
+export -f check_env check
 env -u KATAGLYPHIS_ORT_DEVICE -u KATAGLYPHIS_ONNX_BACKEND bash -c 'check "$@"' _ "$work/cpu.so" '<unset>' '<unset>'
 env -u KATAGLYPHIS_ORT_DEVICE -u KATAGLYPHIS_ONNX_BACKEND bash -c 'check "$@"' _ "$work/cuda.so" cuda ort
 env -u KATAGLYPHIS_ONNX_BACKEND KATAGLYPHIS_ORT_DEVICE=cpu bash -c 'check "$@"' _ "$work/cuda.so" cpu '<unset>'
@@ -44,22 +49,7 @@ for invalid in migraphx typo ''; do
   grep -Fq 'Unsupported KATAGLYPHIS_ORT_DEVICE for this GPU package:' "$work/invalid.log"
 done
 touch "$work/libonnxruntime.so.1"
-check_ort_path() {
-  python3 - "$1" "$2" <<'PY'
-import ctypes
-import sys
-
-ctypes.CDLL(sys.argv[1])
-getenv = ctypes.CDLL(None).getenv
-getenv.argtypes = [ctypes.c_char_p]
-getenv.restype = ctypes.c_char_p
-value = getenv(b"ORT_DYLIB_PATH")
-actual = None if value is None else value.decode()
-expected = None if sys.argv[2] == "<unset>" else sys.argv[2]
-if actual != expected:
-    raise SystemExit(f"ORT_DYLIB_PATH: expected {expected!r}, got {actual!r}")
-PY
-}
+check_ort_path() { check_env "$1" "ORT_DYLIB_PATH=$2"; }
 export -f check_ort_path
 env -u ORT_DYLIB_PATH -u KATAGLYPHIS_ORT_DEVICE bash -c 'check_ort_path "$@"' _ "$work/cuda.so" '<unset>'
 ln -s libonnxruntime.so.1 "$work/libonnxruntime.so"

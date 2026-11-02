@@ -2,22 +2,11 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "$SCRIPT_DIR/../lib/container-steps.sh"
-source "$SCRIPT_DIR/../lib/cli-common.sh"
-source "$SCRIPT_DIR/../lib/ci-options.sh"
+# shellcheck source=scripts/linux/lib/ci-lane-libs.sh
+source "$SCRIPT_DIR/../lib/ci-lane-libs.sh"
 
 usage() {
-  cat <<'EOF'
-Usage:
-  bash scripts/linux/ci/ci-container-run-web-linux.sh [options]
-
-Options:
-  -a, --arch <x64|arm64>        Target architecture (required)
-      --flutter-dir <path>      Flutter SDK directory (default: /opt/flutter, baked into the image)
-      --strict-checks <bool>    Fail on format/analyze/test errors (default: true in CI, false locally)
-      --run-codeql <bool>       Must be false: no CodeQL scan is implemented here
-  -h, --help                    Show this help
-EOF
+  omni_ci_usage ci-container-run-web-linux arch-required flutter-dir-image strict-checks run-codeql-refused help
 }
 
 MATRIX_ARCH=""
@@ -27,10 +16,7 @@ RUN_CODEQL="0"
 
 parse_omni_ci_options ci-container-run-web-linux "$@"
 
-if ! validate_arch "$MATRIX_ARCH"; then
-  usage >&2
-  exit 2
-fi
+omni_ci_require validate_arch "$MATRIX_ARCH"
 
 STRICT_CHECKS="$(resolve_strict_checks "$STRICT_CHECKS")"
 
@@ -41,11 +27,7 @@ if maybe_truthy "$RUN_CODEQL"; then
 fi
 
 # Dynamische Wahl des Arbeitsverzeichnisses: /workspace (CI) oder lokal
-REPO_ROOT="$(resolve_repo_root /workspace)"
-if [[ "$REPO_ROOT" != "/workspace" ]]; then
-  echo "[Info] /workspace nicht gefunden, benutze stattdessen $REPO_ROOT als Arbeitsverzeichnis."
-fi
-cd "$REPO_ROOT"
+omni_ci_enter_workspace
 
 bash scripts/linux/tests/test-ci-options.sh
 

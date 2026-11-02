@@ -3,28 +3,13 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
-source "$SCRIPT_DIR/../lib/cli-common.sh"
-source "$SCRIPT_DIR/../lib/ci-options.sh"
+# shellcheck source=scripts/linux/lib/ci-lane-libs.sh
+source "$SCRIPT_DIR/../lib/ci-lane-libs.sh"
 source "$SCRIPT_DIR/../lib/packaging-common.sh"
-source "$SCRIPT_DIR/../lib/container-steps.sh"
 
 usage() {
-  cat <<'EOF'
-Usage:
-  bash scripts/linux/ci/lane-android.sh [options]
-
-Options:
-  -a, --arch <x64|arm64>        Host architecture label for artifact naming (default: auto-detect)
-      --build-mode <debug|profile|release> Build mode for flutter build apk (default: release)
-  -n, --app-name <name>         Artifact base name (default: pubspec name + -apk)
-      --flutter-dir <path>      Optional Flutter SDK directory (uses <path>/bin/flutter)
-      --emulator-smoke <bool>   Run the APK on the image's AVD (needs /dev/kvm; default: false)
-  -h, --help                    Show this help
-
-Notes:
-  - The android lane's body: ci-container-run-android.sh runs it inside the CI image. It starts no container.
-  - Requires flutter + dart available (either on PATH or via --flutter-dir).
-EOF
+  omni_ci_usage lane-android arch-label-auto build-mode-apk app-name-apk flutter-dir-optional emulator-smoke help
+  omni_ci_lane_notes "The android lane's body: ci-container-run-android.sh runs it inside the CI image. It starts no container."
 }
 
 APP_NAME="$(resolve_app_name)-apk"
@@ -35,22 +20,7 @@ EMULATOR_SMOKE="false"
 
 parse_omni_ci_options lane-android "$@"
 
-if [[ -z "$APP_NAME" ]]; then
-  echo "Error: --app-name must not be empty" >&2
-  exit 2
-fi
-
-if ! validate_arch "$MATRIX_ARCH"; then
-  exit 2
-fi
-
-case "$BUILD_MODE" in
-  debug|profile|release) ;;
-  *)
-    echo "Error: --build-mode must be one of: debug, profile, release (got: ${BUILD_MODE:-<empty>})" >&2
-    exit 2
-    ;;
-esac
+omni_ci_validate_lane_args "$APP_NAME" "$MATRIX_ARCH" "$BUILD_MODE" || exit 2
 
 ensure_flutter_bin_on_path "$FLUTTER_DIR"
 

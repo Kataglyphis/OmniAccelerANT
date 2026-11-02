@@ -5,10 +5,8 @@
 set -uo pipefail
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 repo="$(cd "${script_dir}/../../.." && pwd)"
-source "${script_dir}/../lib/antfrastructure.sh"
-_harness="$(antfrastructure_path linux/scripts/lib/test-harness.sh)" || exit 1
-# shellcheck source=third_party/ANTfrastructure/linux/scripts/lib/test-harness.sh
-source "${_harness}"
+# shellcheck source=scripts/linux/tests/harness-bootstrap.sh
+source "$(dirname "${BASH_SOURCE[0]}")/harness-bootstrap.sh"
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
 coverage="${repo}/scripts/licenses/check-native-coverage.py"

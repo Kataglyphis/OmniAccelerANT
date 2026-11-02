@@ -3,32 +3,14 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
-source "$SCRIPT_DIR/../lib/cli-common.sh"
-source "$SCRIPT_DIR/../lib/ci-options.sh"
-source "$SCRIPT_DIR/../lib/container-steps.sh"
+# shellcheck source=scripts/linux/lib/ci-lane-libs.sh
+source "$SCRIPT_DIR/../lib/ci-lane-libs.sh"
 source "$SCRIPT_DIR/../lib/gpu-ci-smoke.sh"
 source "$SCRIPT_DIR/../lib/suite-inventory.sh"
 
 usage() {
-  cat <<'EOF'
-Usage:
-  bash scripts/linux/ci/lane-native-linux.sh [options]
-
-Options:
-  -a, --arch <x64|arm64>        Target architecture (default: auto-detect)
-  --build-mode <debug|profile|release> Build mode for flutter build linux (default: release)
-  -n, --app-name <name>         Artifact base name (default: pubspec name)
-      --package-formats <csv>   Packaging formats (default: tar,appimage,flatpak,deb)
-      --no-package              Build only (skip packaging)
-      --strict-checks <bool>    Fail on format/analyze/test errors (default: true in CI, false locally)
-      --run-docs <bool>         Run generate-docs.sh, x64 only (default: false; docs.yml builds the site)
-      --flutter-dir <path>      Optional Flutter SDK directory (uses <path>/bin/flutter)
-  -h, --help                    Show this help
-
-Notes:
-  - The native lane's body: ci-container-run-native-linux.sh runs it inside the CI image, agentic-build.sh too. It starts no container.
-  - Requires flutter + dart available (either on PATH or via --flutter-dir).
-EOF
+  omni_ci_usage lane-native-linux arch-auto build-mode-linux app-name-default package-formats-all no-package strict-checks run-docs flutter-dir-optional help
+  omni_ci_lane_notes "The native lane's body: ci-container-run-native-linux.sh runs it inside the CI image, agentic-build.sh too. It starts no container."
 }
 
 APP_NAME="$(resolve_app_name)"
@@ -42,22 +24,7 @@ STRICT_CHECKS=""
 
 parse_omni_ci_options lane-native-linux "$@"
 
-if [[ -z "$APP_NAME" ]]; then
-  echo "Error: --app-name must not be empty" >&2
-  exit 2
-fi
-
-if ! validate_arch "$MATRIX_ARCH"; then
-  exit 2
-fi
-
-case "$BUILD_MODE" in
-  debug|profile|release) ;;
-  *)
-    echo "Error: --build-mode must be one of: debug, profile, release (got: ${BUILD_MODE:-<empty>})" >&2
-    exit 2
-    ;;
-esac
+omni_ci_validate_lane_args "$APP_NAME" "$MATRIX_ARCH" "$BUILD_MODE" || exit 2
 
 STRICT_CHECKS="$(resolve_strict_checks "$STRICT_CHECKS")"
 

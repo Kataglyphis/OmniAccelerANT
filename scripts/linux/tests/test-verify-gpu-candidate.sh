@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 # Finished-package fixture: match all three payloads and reject independent mutations.
 set -euo pipefail
-repo="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
+# shellcheck source=scripts/linux/tests/fixture-common.sh
+source "$(dirname "${BASH_SOURCE[0]}")/fixture-common.sh"
+repo="$(fixture_root)"
 work="$(mktemp -d)"
 trap 'rm -rf -- "$work"' EXIT
 fixture_repo="$work/repo"
@@ -9,6 +11,8 @@ verifier="$fixture_repo/scripts/linux/verify-gpu-candidate.sh"
 mkdir -p "$work/out" "$work/wheels" "$work/bundle/lib" "$work/bundle/licenses/onnxruntime" \
   "$work/bundle/data/resources/models" "$fixture_repo/scripts/linux" "$fixture_repo/scripts/windows" \
   "$fixture_repo/third_party/OxidANT/resources/models"
+mkdir -p "$fixture_repo/scripts/linux/lib"
+cp "$repo/scripts/linux/lib/gpu-script-common.sh" "$fixture_repo/scripts/linux/lib/"
 cp "$repo/scripts/linux/verify-gpu-candidate.sh" "$verifier"
 cp "$repo/scripts/windows/verify_detector_model.py" "$fixture_repo/scripts/windows/"
 export ANTFRASTRUCTURE_DIR="${ANTFRASTRUCTURE_DIR:-$repo/third_party/ANTfrastructure}"
@@ -59,9 +63,7 @@ Description: Package verifier fixture
 CONTROL
 tar -C "$work/tar" -czf "$work/out/$variant-linux-x64.tar.gz" "$variant-bundle"
 dpkg-deb --build "$work/deb" "$work/out/${variant}_1.0_amd64.deb" >/dev/null
-cat > "$work/out/$variant-1.0-x86_64.AppImage" <<'IMAGE'
-#!/usr/bin/env bash
-set -euo pipefail
+fixture_stub "$work/out/$variant-1.0-x86_64.AppImage" <<'IMAGE'
 [[ "$#" -ge 1 && "$#" -le 2 && "$1" == --appimage-extract ]]
 mkdir squashfs-root
 cp -a "$FIXTURE_APPDIR/." squashfs-root/

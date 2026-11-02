@@ -2,14 +2,10 @@
 # The plugin's C++ format gate on a throwaway package: one green, and each way it must go red or refuse.
 set -uo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# shellcheck source=scripts/linux/lib/antfrastructure.sh
-source "${SCRIPT_DIR}/../lib/antfrastructure.sh"
-_harness="$(antfrastructure_path linux/scripts/lib/test-harness.sh)" || exit 1
-# shellcheck source=third_party/ANTfrastructure/linux/scripts/lib/test-harness.sh
-source "${_harness}"
-gate="${SCRIPT_DIR}/../check-plugin-cpp-format.sh"
-config="${SCRIPT_DIR}/../../../packages/kataglyphis_native_inference/.clang-format"
+# shellcheck source=scripts/linux/tests/harness-bootstrap.sh
+source "$(dirname "${BASH_SOURCE[0]}")/harness-bootstrap.sh"
+gate="${KATAGLYPHIS_REPO_ROOT}/scripts/linux/check-plugin-cpp-format.sh"
+config="${KATAGLYPHIS_REPO_ROOT}/packages/kataglyphis_native_inference/.clang-format"
 work="$(mktemp -d)"
 trap 'rm -rf "${work}"' EXIT
 
@@ -84,15 +80,15 @@ LLVM_RELEASE=99.9.9 t_assert_rc 2 bash "${gate}" --package-dir "${work}/clean"
 none="${work}/no-such-clang-format"
 pinned="$(command -v clang-format)"
 
-fake_clang_format "${work}/bin-21" "Ubuntu clang-format version 21.1.8 (6ubuntu1)"
-t_case "the distro's clang-format 21"
-CODE_QUALITY_CLANG_FORMAT_CANDIDATES="${none}" PATH="${work}/bin-21:${PATH}" LLVM_RELEASE=23.1.3 \
-  t_assert_rc 2 bash "${gate}" --package-dir "${work}/clean"
-
-fake_clang_format "${work}/bin-prefix" "clang-format version 23.1.30 (https://github.com/llvm/llvm-project.git)"
-t_case "23.1.30 is not 23.1.3"
-CODE_QUALITY_CLANG_FORMAT_CANDIDATES="${none}" PATH="${work}/bin-prefix:${PATH}" LLVM_RELEASE=23.1.3 \
-  t_assert_rc 2 bash "${gate}" --package-dir "${work}/clean"
+# wrong_release_refused <case> <bin-name> <version-line>: the fake is the only clang-format found, and it must not grade.
+wrong_release_refused() {
+  fake_clang_format "${work}/$2" "$3"
+  t_case "$1"
+  CODE_QUALITY_CLANG_FORMAT_CANDIDATES="${none}" PATH="${work}/$2:${PATH}" LLVM_RELEASE=23.1.3 \
+    t_assert_rc 2 bash "${gate}" --package-dir "${work}/clean"
+}
+wrong_release_refused "the distro's clang-format 21" bin-21 "Ubuntu clang-format version 21.1.8 (6ubuntu1)"
+wrong_release_refused "23.1.30 is not 23.1.3" bin-prefix "clang-format version 23.1.30 (https://github.com/llvm/llvm-project.git)"
 
 t_case "the pinned candidate wins over another release first on PATH"
 CODE_QUALITY_CLANG_FORMAT_CANDIDATES="${pinned}" PATH="${work}/bin-21:${PATH}" \

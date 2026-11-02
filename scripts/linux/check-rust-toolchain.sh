@@ -9,20 +9,16 @@ apk=""
 abi="arm64-v8a"
 files=()
 
-while [ $# -gt 0 ]; do
+# shellcheck source=scripts/linux/lib/entry-options.sh
+source "${SCRIPT_DIR}/lib/entry-options.sh"
+add_elf_argument() {
   case "$1" in
-    --crate-dir) crate_dir="${2:?--crate-dir needs a path}"; shift 2 ;;
-    --expect) expect="${2:?--expect needs a version}"; shift 2 ;;
-    --apk) apk="${2:?--apk needs a path}"; shift 2 ;;
-    --abi) abi="${2:?--abi needs a value}"; shift 2 ;;
-    -h|--help)
-      printf 'usage: %s [--crate-dir DIR] [--expect VERSION] [--apk FILE [--abi ABI]] [ELF...]\n' "$0"
-      exit 0
-      ;;
-    -*) printf 'unknown argument: %s\n' "$1" >&2; exit 2 ;;
-    *) files+=("$1"); shift ;;
+    -*) return 1 ;;
+    *) files+=("$1") ;;
   esac
-done
+}
+parse_entry_options '[--crate-dir DIR] [--expect VERSION] [--apk FILE [--abi ABI]] [ELF...]' add_elf_argument \
+  '--crate-dir=crate_dir:a path' '--expect=expect:a version' '--apk=apk:a path' '--abi=abi:a value' -- "$@"
 
 work="$(mktemp -d)"
 trap 'rm -rf "${work}"' EXIT

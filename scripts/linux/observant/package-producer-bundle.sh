@@ -2,8 +2,8 @@
 # Exports the cat producer as a native aarch64 bundle for hosts too small for the image; usage() lists the options.
 set -euo pipefail
 
-script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-repo_root="$(cd -- "${script_dir}/../../.." && pwd)"
+# shellcheck source=scripts/linux/observant/lib/script-paths.sh
+source "$(dirname -- "${BASH_SOURCE[0]}")/lib/script-paths.sh"
 
 # The image ref comes only from the hub; two assignments, since set -e misses a substitution failing mid-expansion.
 # shellcheck source=scripts/linux/lib/antfrastructure.sh
@@ -47,15 +47,11 @@ On the target:
 EOF
 }
 
-while [ $# -gt 0 ]; do
-  case "$1" in
-    --build) do_build=true; shift ;;
-    --platform) platform_args=(--platform "${2:?--platform needs a value, e.g. linux/arm64}"); shift 2 ;;
-    --deploy) deploy="${2:?--deploy needs a host}"; shift 2 ;;
-    -h|--help) usage; exit 0 ;;
-    *) printf 'unknown argument: %s\n' "$1" >&2; exit 2 ;;
-  esac
-done
+# shellcheck source=scripts/linux/lib/entry-options.sh
+source "${script_dir}/../lib/entry-options.sh"
+platform_value=""
+parse_entry_options usage '' '+--build=do_build=true' '--platform=platform_value:a value, e.g. linux/arm64' '--deploy=deploy:a host' -- "$@"
+if [ -n "${platform_value}" ]; then platform_args=(--platform "${platform_value}"); fi
 
 command -v nerdctl >/dev/null 2>&1 || { printf 'nerdctl not found\n' >&2; exit 1; }
 

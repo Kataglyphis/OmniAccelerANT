@@ -3,7 +3,9 @@
 
 # suite-runner: .github/workflows/linux-x64.yml
 set -euo pipefail
-repo=$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)
+# shellcheck source=scripts/linux/tests/fixture-common.sh
+source "$(dirname "${BASH_SOURCE[0]}")/fixture-common.sh"
+repo="$(fixture_root)"
 work=$(mktemp -d)
 trap 'rm -rf -- "$work"' EXIT
 mkdir -p "$work/bin" "$work/repo/scripts/linux" "$work/repo/third_party/OxidANT/src" "$work/repo/lib/src/rust" \
@@ -19,9 +21,7 @@ flutter_rust_bridge = "=2.13.0"
 [lib]
 name = "oxidant"
 TOML
-cat > "$work/bin/git" <<'FAKE'
-#!/usr/bin/env bash
-set -euo pipefail
+fixture_stub "$work/bin/git" <<'FAKE'
 case "$1" in
   ls-files)
     if [[ "$2" == --stage ]]; then
@@ -62,9 +62,7 @@ if [[ "$1" == expand ]]; then echo 'cargo-expand 1.0.127'; exit 0; fi
 [[ "$1" == metadata ]]
 [[ ${FAKE_METADATA_FAIL:-0} != 1 ]]
 FAKE
-cat > "$work/bin/flutter_rust_bridge_codegen" <<'FAKE'
-#!/usr/bin/env bash
-set -euo pipefail
+fixture_stub "$work/bin/flutter_rust_bridge_codegen" <<'FAKE'
 if [[ "$1" == --version ]]; then
   printf 'flutter_rust_bridge_codegen %s\n' "${FAKE_BINARY_VERSION:-2.13.0}"
   exit 0

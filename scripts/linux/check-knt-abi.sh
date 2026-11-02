@@ -42,6 +42,15 @@ cat > "${work}/check.c" <<'EOF'
 typedef int32_t (*api_version_fn)(void);
 typedef int32_t (*push_frame_fn)(int64_t, const uint8_t*, uint32_t, uint32_t);
 
+static int push_returns(push_frame_fn push, int64_t id, const uint8_t* pixel, uint32_t width,
+                        int32_t expected, const char* label) {
+  if (push(id, pixel, width, 1) != expected) {
+    fprintf(stderr, "FAIL knt_push_frame(%s) should be %d\n", label, expected);
+    return 0;
+  }
+  return 1;
+}
+
 int main(int argc, char** argv) {
   if (argc < 2) return 2;
 
@@ -74,20 +83,15 @@ int main(int argc, char** argv) {
   // Bad arguments: null buffer, and zero dimensions. Both must be -1, and must
   // not touch the registry — this is the branch that runs before any lookup.
   const uint8_t pixel[4] = {0, 0, 0, 255};
-  if (push_frame(0, NULL, 1, 1) != -1) {
-    fprintf(stderr, "FAIL knt_push_frame(null buffer) should be -1\n");
-    return 1;
-  }
-  if (push_frame(0, pixel, 0, 1) != -1) {
-    fprintf(stderr, "FAIL knt_push_frame(width 0) should be -1\n");
+  if (!push_returns(push_frame, 0, NULL, 1, -1, "null buffer") ||
+      !push_returns(push_frame, 0, pixel, 0, -1, "width 0")) {
     return 1;
   }
   printf("ok   knt_push_frame    bad args -> -1\n");
 
   // No texture has been created in this process, so every id is unknown. -2
   // rather than a crash is what proves the registry lookup is guarded.
-  if (push_frame(424242, pixel, 1, 1) != -2) {
-    fprintf(stderr, "FAIL knt_push_frame(unknown id) should be -2\n");
+  if (!push_returns(push_frame, 424242, pixel, 1, -2, "unknown id")) {
     return 1;
   }
   printf("ok   knt_push_frame    unknown texture -> -2\n");

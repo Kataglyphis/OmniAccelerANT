@@ -16,19 +16,11 @@ BUNDLE_DIR=""
 # G6's chain reference; empty = the image's chain ORT, which is what the lane grades against.
 ORT_REFERENCE=""
 
-while [[ $# -gt 0 ]]; do
-  case "$1" in
-    -a|--arch) MATRIX_ARCH="${2:-}"; shift 2 ;;
-    --build-mode) BUILD_MODE="${2:-}"; shift 2 ;;
-    --bundle-dir) BUNDLE_DIR="${2:-}"; shift 2 ;;
-    --ort-reference) ORT_REFERENCE="${2:?--ort-reference needs a directory}"; shift 2 ;;
-    -h|--help)
-      printf 'usage: %s [--arch x64|arm64] [--build-mode debug|profile|release] [--bundle-dir DIR] [--ort-reference DIR]\n' "$0"
-      exit 0
-      ;;
-    *) printf 'unknown argument: %s\n' "$1" >&2; exit 2 ;;
-  esac
-done
+# shellcheck source=scripts/linux/lib/entry-options.sh
+source "$SCRIPT_DIR/lib/entry-options.sh"
+parse_entry_options '[--arch x64|arm64] [--build-mode debug|profile|release] [--bundle-dir DIR] [--ort-reference DIR]' '' \
+  '--arch=MATRIX_ARCH' '-a=MATRIX_ARCH' '--build-mode=BUILD_MODE' '--bundle-dir=BUNDLE_DIR' \
+  '--ort-reference=ORT_REFERENCE:a directory' -- "$@"
 
 if ! validate_arch "$MATRIX_ARCH"; then
   exit 2

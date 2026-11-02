@@ -2,8 +2,8 @@
 # Packages ObservANT as a bundle, .deb, AppImage and flatpak inside the image; usage() lists the options.
 set -euo pipefail
 
-script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-repo_root="$(cd -- "${script_dir}/../../.." && pwd)"
+# shellcheck source=scripts/linux/observant/lib/script-paths.sh
+source "$(dirname -- "${BASH_SOURCE[0]}")/lib/script-paths.sh"
 # shellcheck source=scripts/linux/lib/antfrastructure.sh
 source "${script_dir}/../lib/antfrastructure.sh"
 source "${script_dir}/../lib/flutter-package-license.sh"
@@ -37,17 +37,10 @@ Details: docs/source/camera-streaming.md § ObservANT package.
 EOF
 }
 
-while [ $# -gt 0 ]; do
-  case "$1" in
-    --web-root) web_root="${2:?--web-root needs a directory}"; shift 2 ;;
-    --model) model="${2:?--model needs a file}"; shift 2 ;;
-    --producer) producer="${2:?--producer needs a file}"; shift 2 ;;
-    --out) out_dir="${2:?--out needs a directory}"; shift 2 ;;
-    --version) version="${2:?--version needs a value}"; shift 2 ;;
-    -h|--help) usage; exit 0 ;;
-    *) printf 'unknown argument: %s\n' "$1" >&2; exit 2 ;;
-  esac
-done
+# shellcheck source=scripts/linux/lib/entry-options.sh
+source "${script_dir}/../lib/entry-options.sh"
+parse_entry_options usage '' '--web-root=web_root:a directory' '--model=model:a file' '--producer=producer:a file' \
+  '--out=out_dir:a directory' '--version=version:a value' -- "$@"
 
 [ -n "${web_root}" ] || { printf -- '--web-root is required\n' >&2; exit 2; }
 [ -f "${web_root}/index.html" ] || { printf 'no index.html in %s\n' "${web_root}" >&2; exit 1; }
@@ -282,16 +275,20 @@ appdir="${work}/appdir"
 cp -a "${bundle}" "${appdir}"
 ln -s observant "${appdir}/AppRun"
 install -m 644 "${repo_root}/images/logo.svg" "${appdir}/${package}.svg"
-cat > "${appdir}/${package}.desktop" <<DESKTOP
+# write_desktop_entry <file> <exec> <icon>: AppImage and Flatpak differ only in what they start and which icon they name.
+write_desktop_entry() {
+  cat > "$1" <<DESKTOP
 [Desktop Entry]
 Type=Application
 Name=ObservANT
 Comment=Camera, cat detection boxes and a WebRTC stream for any browser on the network
-Exec=observant
-Icon=${package}
+Exec=$2
+Icon=$3
 Categories=AudioVideo;Video;
 Terminal=true
 DESKTOP
+}
+write_desktop_entry "${appdir}/${package}.desktop" observant "${package}"
 antfrastructure_source linux/scripts/lib/app-packaging.sh
 runtime_file="$(app_packaging_appimage_runtime_file)"
 appimage_file="${out_dir}/${package}-${version}-$(uname -m).AppImage"
@@ -311,16 +308,7 @@ package_observant_flatpak() {
   cp -a "${bundle}/." "${flatpak_work}/files/bundle/"
   install -m 755 "${script_dir}/package/flatpak-omni-observant" "${flatpak_work}/files/omni-observant"
   install -m 644 "${repo_root}/images/logo.svg" "${flatpak_work}/files/${flatpak_id}.svg"
-  cat > "${flatpak_work}/files/${flatpak_id}.desktop" <<DESKTOP
-[Desktop Entry]
-Type=Application
-Name=ObservANT
-Comment=Camera, cat detection boxes and a WebRTC stream for any browser on the network
-Exec=omni-observant
-Icon=${flatpak_id}
-Categories=AudioVideo;Video;
-Terminal=true
-DESKTOP
+  write_desktop_entry "${flatpak_work}/files/${flatpak_id}.desktop" omni-observant "${flatpak_id}"
   runtime_version="$(sed -n 's/^FLATPAK_RUNTIME_VERSION=//p' "$(antfrastructure_path linux/scripts/01-core/versions.env)")"
   [ -n "${runtime_version}" ] || { printf 'no FLATPAK_RUNTIME_VERSION in the hub versions.env\n' >&2; exit 1; }
   # The image may lag the hub's pin, so fetch the runtime pair from Flathub.

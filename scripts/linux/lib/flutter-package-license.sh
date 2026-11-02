@@ -14,23 +14,29 @@ third_party_license_requires() {
   done <<< "$assets"
 }
 
+# flutter_license_rules <member>: the project LICENSE rule first, then each third-party text, as MEMBER=FILE lines.
+flutter_license_rules() {
+  local requires
+  requires="$(third_party_license_requires "$1")" || return $?
+  printf '%s\n%s\n' "$1=${KATAGLYPHIS_REPO_ROOT}/LICENSE" "$requires"
+}
+
 verify_flutter_package_license() {
-  local artifact="${1:?artifact required}" pattern="${2:?license member pattern required}" verifier requires rule
-  local -a args=(--require "${pattern}=${KATAGLYPHIS_REPO_ROOT}/LICENSE")
+  local artifact="${1:?artifact required}" pattern="${2:?license member pattern required}" verifier rules rule
+  local -a args=()
   verifier="$(antfrastructure_path linux/scripts/verify_package_license.py)" || return $?
-  requires="$(third_party_license_requires "$pattern")" || return $?
-  while IFS= read -r rule; do args+=(--require "$rule"); done <<< "$requires"
+  rules="$(flutter_license_rules "$pattern")" || return $?
+  while IFS= read -r rule; do args+=(--require "$rule"); done <<< "$rules"
   python3 "$verifier" "$artifact" "${args[@]}"
 }
 
 verify_flutter_appimage_license() {
-  local artifact="${1:?artifact required}" arch="${2:?arch required}" entry="${3:?license entry required}" verifier requires rule
+  local artifact="${1:?artifact required}" arch="${2:?arch required}" entry="${3:?license entry required}" verifier rules rule
   verifier="$(antfrastructure_path linux/scripts/06-packaging/verify-native-appimage-license.sh)" || return $?
-  bash "$verifier" "$artifact" "$arch" "$entry" "${KATAGLYPHIS_REPO_ROOT}/LICENSE" || return $?
-  requires="$(third_party_license_requires "$entry")" || return $?
+  rules="$(flutter_license_rules "$entry")" || return $?
   while IFS= read -r rule; do
     bash "$verifier" "$artifact" "$arch" "${rule%%=*}" "${rule#*=}" || return $?
-  done <<< "$requires"
+  done <<< "$rules"
 }
 
 # <payload> <linux|windows|android>: every shipped native binary needs an entry in the inventory's native table.

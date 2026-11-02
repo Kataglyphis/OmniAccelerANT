@@ -5,18 +5,10 @@ set -euo pipefail
 apk=""
 package=""
 seconds=20
-while [ $# -gt 0 ]; do
-  case "$1" in
-    --apk) apk="${2:?--apk needs a path}"; shift 2 ;;
-    --package) package="${2:?--package needs an application id}"; shift 2 ;;
-    --seconds) seconds="${2:?--seconds needs a number}"; shift 2 ;;
-    -h|--help)
-      printf 'usage: %s --apk FILE --package APPLICATION_ID [--seconds N]\n' "$0"
-      exit 0
-      ;;
-    *) printf 'unknown argument: %s\n' "$1" >&2; exit 2 ;;
-  esac
-done
+# shellcheck source=scripts/linux/lib/entry-options.sh
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib/entry-options.sh"
+parse_entry_options '--apk FILE --package APPLICATION_ID [--seconds N]' '' \
+  '--apk=apk:a path' '--package=package:an application id' '--seconds=seconds:a number' -- "$@"
 
 if [ -z "$apk" ] || [ -z "$package" ]; then
   printf 'Error: --apk and --package are required\n' >&2

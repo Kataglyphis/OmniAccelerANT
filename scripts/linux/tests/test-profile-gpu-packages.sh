@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 # Exercise all supported package routes and reject missing or misleading profile evidence.
 set -euo pipefail
+# shellcheck source=scripts/linux/tests/fixture-common.sh
+source "$(dirname "${BASH_SOURCE[0]}")/fixture-common.sh"
 shopt -s nullglob
-root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)
+root="$(fixture_root)"
 hub=${ANTFRASTRUCTURE_DIR:-"$root/third_party/ANTfrastructure"}
 oxidant=${OXIDANT_DIR:-"$root/third_party/OxidANT"}
 work=$(mktemp -d)
@@ -13,18 +15,13 @@ mkdir -p "$repo/scripts/linux/lib" "$repo/scripts/windows" "$repo/third_party/AN
   "$repo/third_party/OxidANT/crates/inference/tests/fixtures" "$work/bin" "$work/packages" "$work/runner"
 cp "$root/scripts/linux/profile-gpu-candidate.sh" "$root/scripts/linux/profile-gpu-packages.sh" "$repo/scripts/linux/"
 cp "$root/scripts/linux/preflight-profile-packages.py" "$repo/scripts/linux/"
-cp "$root/scripts/linux/lib/verify-onnx-loader-trace.sh" "$repo/scripts/linux/lib/"
+cp "$root/scripts/linux/lib/verify-onnx-loader-trace.sh" "$root/scripts/linux/lib/gpu-script-common.sh" "$repo/scripts/linux/lib/"
 cp "$root/scripts/windows/verify_detector_model.py" "$repo/scripts/windows/"
 cp "$hub/shared/python/verify_ort_profile.py" "$hub/shared/python/compare_detector_parity.py" "$repo/third_party/ANTfrastructure/shared/python/"
 cp "$hub/linux/scripts/lib/fetch-data-lock.py" "$hub/linux/scripts/lib/gpu-profile-env.sh" \
   "$hub/linux/scripts/lib/log-bootstrap.sh" "$repo/third_party/ANTfrastructure/linux/scripts/lib/"
 cp "$oxidant/crates/inference/tests/fixtures/two_cats.jpg" "$repo/third_party/OxidANT/crates/inference/tests/fixtures/"
-cat > "$work/bin/xvfb-run" <<'EOF'
-#!/usr/bin/env bash
-[[ "$1" = -a ]] && shift
-exec "$@"
-EOF
-chmod +x "$work/bin/xvfb-run"
+fixture_xvfb_stub "$work/bin"
 REAL_PYTHON=$(command -v python3)
 export REAL_PYTHON
 cat > "$work/bin/python3" <<'EOF'
@@ -126,9 +123,7 @@ EOF
   tar -czf "$work/packages/$variant-linux-$arch.tar.gz" -C "$work/tar-root" "$variant-bundle"
   dpkg-deb --root-owner-group --build "$work/deb-root" "$work/packages/${variant}_1_${deb}.deb" >/dev/null
   export FAKE_IMAGE_SOURCE="$work/image bundle" FAKE_VARIANT="$variant"
-  cat > "$work/packages/$variant-1-$machine.AppImage" <<'EOF'
-#!/usr/bin/env bash
-set -euo pipefail
+  fixture_stub "$work/packages/$variant-1-$machine.AppImage" <<'EOF'
 if [[ ${1:-} = --appimage-extract ]]; then
   mkdir -p "squashfs-root/usr/lib/$FAKE_VARIANT"
   cp -a "$FAKE_IMAGE_SOURCE/." "squashfs-root/usr/lib/$FAKE_VARIANT/"

@@ -7,6 +7,8 @@ source "${TESTS_DIR}/../lib/antfrastructure.sh"
 _harness="$(antfrastructure_path linux/scripts/tests/test-harness.sh)" || exit 1
 # shellcheck source=third_party/ANTfrastructure/linux/scripts/tests/test-harness.sh
 source "${_harness}"
+# shellcheck source=scripts/linux/tests/fixture-common.sh
+source "${TESTS_DIR}/fixture-common.sh"
 antfrastructure_source linux/scripts/tests/synthetic-elf-fixture.sh || exit 1
 # shellcheck source=scripts/linux/lib/bundle-runtime.sh
 source "${TESTS_DIR}/../lib/bundle-runtime.sh"
@@ -98,13 +100,7 @@ if [[ -n "${ORT_TEST_SHARED_HUB:-}" ]]; then
   _elf "${_gpu}/lib/libstdc++.so.6" '' ''
   _elf "${_gpu}/omni_accelerant.bin" '' ''
   chmod +x "${_gpu}/omni_accelerant.bin"
-  cat > "${_gpu}/omni_accelerant" <<'EOF'
-#!/bin/bash
-external_library_path=""
-export LD_LIBRARY_PATH="$here/lib${external_library_path}"
-exec "$here/loader" --library-path "$here/lib/glibc:$here/lib${external_library_path}" "$@"
-EOF
-  chmod +x "${_gpu}/omni_accelerant"
+  fixture_gpu_launcher "${_gpu}/omni_accelerant"
   t_assert_eq 0 "$(ANTFRASTRUCTURE_DIR="$ORT_TEST_SHARED_HUB" _gate_rc "${_gpu}")" "GPU closure"
   sed -i 's/export LD_LIBRARY_PATH=/export BROKEN_PATH=/' "${_gpu}/omni_accelerant"
   t_assert_eq 1 "$(ANTFRASTRUCTURE_DIR="$ORT_TEST_SHARED_HUB" _gate_rc "${_gpu}")" "broken GPU launcher"

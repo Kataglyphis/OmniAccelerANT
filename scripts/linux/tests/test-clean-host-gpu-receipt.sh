@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 # Exercise the pinned shared clean-host receipt helper without installing packages.
 set -euo pipefail
-repo=$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)
+# shellcheck source=scripts/linux/tests/fixture-common.sh
+source "$(dirname "${BASH_SOURCE[0]}")/fixture-common.sh"
+repo="$(fixture_root)"
 hub=${ANTFRASTRUCTURE_DIR:-"$repo/third_party/ANTfrastructure"}
 helper="$hub/.github/actions/clean-host-package-check/clean-host-gpu-receipt.sh"
 receipt="$hub/shared/python/gpu_artifact_receipt.py"

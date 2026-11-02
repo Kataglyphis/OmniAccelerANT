@@ -1,10 +1,9 @@
 #!/usr/bin/env bash
 # Run the existing CPU self-check and verify its loaded ORT belongs to the package.
 set -euo pipefail
-if [[ $# -ne 2 && $# -ne 3 ]]; then
-  echo 'usage: check-packaged-onnx-runtime.sh bundle BUNDLE | appimage APPIMAGE PACKAGE_NAME' >&2
-  exit 2
-fi
+# shellcheck source=scripts/linux/lib/gpu-script-common.sh
+source "$(dirname "${BASH_SOURCE[0]}")/lib/gpu-script-common.sh"
+gpu_require_argc $# 2 3 'check-packaged-onnx-runtime.sh bundle BUNDLE | appimage APPIMAGE PACKAGE_NAME'
 unset LD_PRELOAD LD_AUDIT LD_DEBUG LD_DEBUG_OUTPUT
 script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 # shellcheck source=/dev/null

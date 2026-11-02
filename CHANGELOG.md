@@ -24,6 +24,16 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
   and `--perf-host`; section 1 names `WindowsGpuBuild.Common` and the eye firmware's protocol crate.
   `generate-docs.sh` publishes `ai-playground.md` and `third-party-components.md`. `BACKLOG.md` lists
   LAI-F4, LAI-F5 and the fresh-registry webrtcsink risk.
+### 2026-11-02 (shared script helpers)
+- **Entry scripts share one flag loop.** `scripts/linux/lib/entry-options.sh` replaces the copied
+  `while`/`case` parsers in the APK, closure, toolchain, format, ESP32 and ObservANT scripts and in
+  `bundle-options.sh`; flags, messages and exit codes stay, and a trailing value flag on the closure
+  scripts now says it needs a value where it stopped silently. New `test-entry-options.sh`.
+- **Lanes and GPU scripts share their checks.** `ci-options.sh` holds every lane's help lines and
+  refusals, `ci-lane-libs.sh` their library set, `gpu-script-common.sh` the candidate target table.
+- **Suites share their setup.** `tests/harness-bootstrap.sh` and `tests/fixture-common.sh` own the
+  hub-harness bootstrap, mutant reruns, stub writers and refusal checks; the brand-icon mirror case
+  now gets its PNG frame from the hub's `t_write_png`.
 
 ### 2026-11-01 (cv)
 - **Class ids reach the Rust core.** `RustWebcamView` passes `WebcamStreamConfig.classes`, `[0]` by

@@ -2,8 +2,8 @@
 # HTTPS (or --http) + COOP/COEP front proxying /webrtc-ws. See docs/source/camera-streaming.md § Cat detection stream (Rust, native)
 set -euo pipefail
 
-script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-repo_root="$(cd -- "${script_dir}/../../.." && pwd)"
+# shellcheck source=scripts/linux/observant/lib/script-paths.sh
+source "$(dirname -- "${BASH_SOURCE[0]}")/lib/script-paths.sh"
 
 port=8444
 producer_host=127.0.0.1
@@ -12,21 +12,12 @@ web_root="${repo_root}/build/web"
 state_dir="${repo_root}/build/observant"
 plain_http=false
 
-while [ $# -gt 0 ]; do
-  case "$1" in
-    --http) plain_http=true; shift ;;
-    --port) port="${2:?--port needs a value}"; shift 2 ;;
-    --producer-host) producer_host="${2:?--producer-host needs a value}"; shift 2 ;;
-    --producer-port) producer_port="${2:?--producer-port needs a value}"; shift 2 ;;
-    --web-root) web_root="${2:?--web-root needs a value}"; shift 2 ;;
-    --state-dir) state_dir="${2:?--state-dir needs a value}"; shift 2 ;;
-    -h|--help)
-      printf 'usage: %s [--http] [--port N] [--producer-host HOST] [--producer-port N] [--web-root DIR] [--state-dir DIR]\n' "$0"
-      exit 0
-      ;;
-    *) printf 'unknown argument: %s\n' "$1" >&2; exit 2 ;;
-  esac
-done
+# shellcheck source=scripts/linux/lib/entry-options.sh
+source "${repo_root}/scripts/linux/lib/entry-options.sh"
+parse_entry_options '[--http] [--port N] [--producer-host HOST] [--producer-port N] [--web-root DIR] [--state-dir DIR]' '' \
+  '+--http=plain_http=true' \
+  '--port=port:a value' '--producer-host=producer_host:a value' '--producer-port=producer_port:a value' \
+  '--web-root=web_root:a value' '--state-dir=state_dir:a value' -- "$@"
 
 command -v nginx >/dev/null 2>&1 || {
   printf 'nginx not found — install it (e.g. apt install nginx)\n' >&2

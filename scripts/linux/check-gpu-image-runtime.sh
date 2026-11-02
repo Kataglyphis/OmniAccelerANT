@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
-if [[ $# -ne 1 ]]; then echo 'usage: check-gpu-image-runtime.sh cuda|migraphx' >&2; exit 2; fi
+# shellcheck source=scripts/linux/lib/gpu-script-common.sh
+source "$(dirname "${BASH_SOURCE[0]}")/lib/gpu-script-common.sh"
+gpu_require_argc $# 1 1 'check-gpu-image-runtime.sh cuda|migraphx'
 case "$1" in cuda|migraphx) provider=$1 ;; *) echo 'Invalid GPU provider' >&2; exit 2 ;; esac
 lib="${ORT_LIB_LOCATION:?ORT_LIB_LOCATION must name the GPU chain runtime}"
 repo="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"

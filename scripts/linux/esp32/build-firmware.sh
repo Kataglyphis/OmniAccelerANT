@@ -30,27 +30,12 @@ Env: KATAGLYPHIS_IMAGE, KATAGLYPHIS_ENGINE, KATAGLYPHIS_ESP32_VOLUME.
 EOF
 }
 
-while [[ $# -gt 0 ]]; do
-    case "$1" in
-        --flash) flash=1; shift ;;
-        --port) port="${2:?--port needs a device}"; shift 2 ;;
-        --uart) uart=1; shift ;;
-        --image) image="${2:?--image needs a tag}"; shift 2 ;;
-        --engine) engine="${2:?--engine needs a binary}"; shift 2 ;;
-        --volume) volume="${2:?--volume needs a name}"; shift 2 ;;
-        -h|--help) usage; exit 0 ;;
-        *) echo "unknown argument: $1" >&2; usage >&2; exit 2 ;;
-    esac
-done
+# shellcheck source=scripts/linux/esp32/firmware-cli.sh
+source "$(dirname "${BASH_SOURCE[0]}")/firmware-cli.sh"
+parse_entry_options usage esp32_refuse_argument '+--flash=flash=1' '+--uart=uart=1' \
+    '--port=port:a device' '--image=image:a tag' '--engine=engine:a binary' '--volume=volume:a name' -- "$@"
 
-command -v "$engine" >/dev/null 2>&1 || {
-    echo "container engine not found: $engine" >&2
-    exit 2
-}
-if [[ "$flash" == 1 && ! -c "$port" ]]; then
-    echo "flash requested but $port is not a character device" >&2
-    exit 2
-fi
+esp32_check_host "$engine" "$flash" "$port"
 
 # The lane's rule: a volume mounted into the image belongs to its user, not root.
 "$engine" volume create "$volume" >/dev/null 2>&1 || true
@@ -89,7 +74,8 @@ case \"\$(uname -m)\" in
 esac
 
 # A tool on the volume from another pin is replaced, never trusted.
-if [ \"\$(/opt/esp32/bin/espup --version 2>/dev/null || true)\" != \"espup \${ESPUP_VERSION#v}\" ]; then
+tool_off_pin() { [ \"\$(/opt/esp32/bin/\$1 --version 2>/dev/null || true)\" != \"\$1 \${2#v}\" ]; }
+if tool_off_pin espup \"\$ESPUP_VERSION\"; then
   download_verified_file \"https://github.com/esp-rs/espup/releases/download/\${ESPUP_VERSION:?}/espup-\${host}\" \
     \"\$espup_sha\" /opt/esp32/downloads/espup
   install -m 0755 /opt/esp32/downloads/espup /opt/esp32/bin/espup
@@ -100,7 +86,7 @@ if [ ! -d /opt/esp32/rustup/toolchains/esp ]; then
     --export-file /opt/esp32/export.sh --disable-timeouts
 fi
 
-if [ \"\$(/opt/esp32/bin/espflash --version 2>/dev/null || true)\" != \"espflash \${ESPFLASH_VERSION#v}\" ]; then
+if tool_off_pin espflash \"\$ESPFLASH_VERSION\"; then
   download_verified_file \"https://github.com/esp-rs/espflash/releases/download/\${ESPFLASH_VERSION:?}/espflash-\${host}.zip\" \
     \"\$espflash_sha\" /opt/esp32/downloads/espflash.zip
   python3 -m zipfile -e /opt/esp32/downloads/espflash.zip /opt/esp32/bin/

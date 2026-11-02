@@ -3,16 +3,12 @@
 set -uo pipefail
 
 repo="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
-# shellcheck source=scripts/linux/lib/antfrastructure.sh
-source "${repo}/scripts/linux/lib/antfrastructure.sh"
-_harness="$(antfrastructure_path linux/scripts/lib/test-harness.sh)" || exit 1
-# shellcheck source=third_party/ANTfrastructure/linux/scripts/lib/test-harness.sh
-source "${_harness}"
+# shellcheck source=scripts/linux/tests/harness-bootstrap.sh
+source "$(dirname "${BASH_SOURCE[0]}")/harness-bootstrap.sh"
 
 probe() {
   local library="${OMNI_CI_OPTIONS_LIB:-${repo}/scripts/linux/lib/ci-options.sh}"
-  KATAGLYPHIS_REPO_ROOT="${repo}" ANTFRASTRUCTURE_DIR="${repo}/third_party/ANTfrastructure" \
-    bash -c '
+  bash -c '
       set -euo pipefail
       source "$1"
       usage() { printf "Usage: probe\n"; }
@@ -94,15 +90,12 @@ web_error="$(bash "$web" --arch x64 --run-codeql true 2>&1)" || :
 t_assert_contains "$web_error" 'implements no CodeQL scan'
 t_assert_rc 0 bash "$web" --run-codeql false --help
 
-mkdir -p "${repo}/logs/test-results"
-mutant_dir="$(mktemp -d "${repo}/logs/test-results/ci-options-mutant.XXXXXX")" || exit 1
+mutant_dir="$(t_mutant_dir ci-options)" || exit 1
 trap 'rm -rf -- "${mutant_dir}"' EXIT
 cp "${repo}/scripts/linux/lib/"{ci-options.sh,antfrastructure.sh,renovate-git-mode.sh} "${mutant_dir}/"
 sed -i 's/_omni_ci_values\[--run-codeql\]=RUN_CODEQL/_omni_ci_values[--run-codeql]=FLUTTER_DIR/g' "${mutant_dir}/ci-options.sh"
 grep -Fq '_omni_ci_values[--run-codeql]=FLUTTER_DIR' "${mutant_dir}/ci-options.sh" || exit 1
-t_case 'a changed value destination fails the real parser assertions'
-mutant_output="$(OMNI_CI_OPTIONS_LIB="${mutant_dir}/ci-options.sh" bash "$0" --value-only 2>&1)" && mutant_rc=0 || mutant_rc=$?
-t_assert_eq 1 "$mutant_rc"
-t_assert_contains "$mutant_output" 'FAIL'
+t_mutant_breaks_suite 'a changed value destination fails the real parser assertions' \
+  OMNI_CI_OPTIONS_LIB "${mutant_dir}/ci-options.sh" --value-only
 
 t_summary

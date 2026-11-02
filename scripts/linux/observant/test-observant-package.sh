@@ -2,13 +2,10 @@
 # Installs ObservANT .deb, AppImage and flatpak the way a user does and checks what each promises; privileged root in :latest.
 set -uo pipefail
 
-script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-repo_root="$(cd -- "${script_dir}/../../.." && pwd)"
-# shellcheck source=scripts/linux/lib/antfrastructure.sh
-source "${script_dir}/../lib/antfrastructure.sh"
-_harness="$(antfrastructure_path linux/scripts/lib/test-harness.sh)" || exit 1
-# shellcheck source=third_party/ANTfrastructure/linux/scripts/lib/test-harness.sh
-source "${_harness}"
+# shellcheck source=scripts/linux/observant/lib/script-paths.sh
+source "$(dirname -- "${BASH_SOURCE[0]}")/lib/script-paths.sh"
+# shellcheck source=scripts/linux/tests/harness-bootstrap.sh
+source "$(dirname "${BASH_SOURCE[0]}")/../tests/harness-bootstrap.sh"
 deb=""
 appimage=""
 flatpak_bundle=""
@@ -27,16 +24,10 @@ Chrome). Each check prints PASS or FAIL and its seconds; it exits 0 only when ev
 EOF
 }
 
-while [ $# -gt 0 ]; do
-  case "$1" in
-    --deb) deb="${2:?--deb needs a file}"; shift 2 ;;
-    --appimage) appimage="${2:?--appimage needs a file}"; shift 2 ;;
-    --flatpak) flatpak_bundle="${2:?--flatpak needs a file}"; shift 2 ;;
-    --photo) photo="${2:?--photo needs a file}"; shift 2 ;;
-    -h|--help) usage; exit 0 ;;
-    *) usage >&2; exit 2 ;;
-  esac
-done
+# shellcheck source=scripts/linux/lib/entry-options.sh
+source "${script_dir}/../lib/entry-options.sh"
+usage_refusal() { usage >&2; exit 2; }
+parse_entry_options usage usage_refusal '--deb=deb:a file' '--appimage=appimage:a file' '--flatpak=flatpak_bundle:a file' '--photo=photo:a file' -- "$@"
 case "$(uname -m)" in
   x86_64) deb_arch=amd64 ;;
   aarch64) deb_arch=arm64 ;;
@@ -117,13 +108,20 @@ wait_healthz() {
   return 1
 }
 
+test_chrome() { find /opt/chrome-for-testing -maxdepth 3 -type f -name chrome -perm -u+x 2>/dev/null | head -1; }
+
+# start_chrome <binary> <debug-port> <profile>: backgrounded so the caller owns its PID and its stop.
+start_chrome() {
+  "$1" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage \
+    --autoplay-policy=no-user-gesture-required --remote-debugging-port="$2" \
+    --user-data-dir="$3" about:blank >/dev/null 2>&1 &
+}
+
 chrome_frames() {
   local chrome probe
-  chrome="$(find /opt/chrome-for-testing -maxdepth 3 -type f -name chrome -perm -u+x 2>/dev/null | head -1)"
+  chrome="$(test_chrome)"
   [ -n "${chrome}" ] || { printf 'no Chrome for Testing in the image\n' >&2; echo 0; return; }
-  "${chrome}" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage \
-    --autoplay-policy=no-user-gesture-required --remote-debugging-port=9222 \
-    --user-data-dir="${work}/chrome" about:blank >/dev/null 2>&1 &
+  start_chrome "${chrome}" 9222 "${work}/chrome"
   local browser=$!
   sleep 3
   probe="$(node "${script_dir}/lib/cdp-video-probe.mjs" 9222 "$1" "$2" 2>&1 | sed -n 's/^PROBE //p')"
@@ -135,13 +133,11 @@ chrome_frames() {
 # A tab that comes back after its sockets died unnoticed plays again (the owner's stuck tab, 2026-10-14).
 tab_returns_after_silence() {
   local chrome result
-  chrome="$(find /opt/chrome-for-testing -maxdepth 3 -type f -name chrome -perm -u+x 2>/dev/null | head -1)"
+  chrome="$(test_chrome)"
   [ -n "${chrome}" ] || return 1
   python3 "${script_dir}/lib/silencing-proxy.py" 18097 8080 "${work}/silence" &
   local proxy=$!
-  "${chrome}" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage \
-    --autoplay-policy=no-user-gesture-required --remote-debugging-port=9223 \
-    --user-data-dir="${work}/chrome-return" about:blank >/dev/null 2>&1 &
+  start_chrome "${chrome}" 9223 "${work}/chrome-return"
   local browser=$!
   sleep 3
   result="$(node "${script_dir}/lib/cdp-tab-return.mjs" 9223 "http://127.0.0.1:18097/#/stream" "${work}/silence" 2>&1 | sed -n 's/^RETURN //p')"
@@ -313,26 +309,25 @@ visit_remembered() {
   curl -sf "http://$1:8080/healthz" | jq -e '.detection.visits >= 1 and .detection.last_seen != null' >/dev/null
 }
 
-# The live service has seen the cat for $2 s of its current visit; up to 10 s.
-seen_for() {
-  local _
-  for _ in $(seq 1 40); do
-    curl -sf "http://$1:8080/healthz" 2>/dev/null \
-      | jq -e --argjson s "$2" '.detection.last_seen - .detection.recent[0].arrived >= $s' >/dev/null 2>&1 && return 0
+# healthz_within <host> <tries> <jq-args>...: polls every 0.25 s until the service's /healthz satisfies the filter.
+healthz_within() {
+  local host="$1" tries="$2" _
+  shift 2
+  for _ in $(seq 1 "${tries}"); do
+    curl -sf "http://${host}:8080/healthz" 2>/dev/null | jq -e "$@" >/dev/null 2>&1 && return 0
     sleep 0.25
   done
   return 1
 }
 
+# The live service has seen the cat for $2 s of its current visit; up to 10 s.
+seen_for() {
+  healthz_within "$1" 40 --argjson s "$2" '.detection.last_seen - .detection.recent[0].arrived >= $s'
+}
+
 # The arrival's clip, recorded 7 s past the arrival and then encoded, is named in /healthz; up to 30 s.
 clip_ready() {
-  local _
-  for _ in $(seq 1 120); do
-    curl -sf "http://$1:8080/healthz" 2>/dev/null \
-      | jq -e '.detection.clip != null and .detection.clip == .detection.recent[0].arrived and .detection.clips[0] == .detection.clip' >/dev/null 2>&1 && return 0
-    sleep 0.25
-  done
-  return 1
+  healthz_within "$1" 120 '.detection.clip != null and .detection.clip == .detection.recent[0].arrived and .detection.clips[0] == .detection.clip'
 }
 
 # $2 serves an MP4 (its first box is ftyp) and answers a byte range with 206, which Safari's <video> needs.

@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # Check packaged detector outputs and ORT placement on CPU and the requested GPU.
 set -euo pipefail
-if [[ $# -lt 4 || $# -gt 5 ]]; then
-  echo 'usage: profile-gpu-candidate.sh BUNDLE cuda|migraphx FIXTURE NEW_EVIDENCE_DIR [LAUNCHER]' >&2; exit 2
-fi
+# shellcheck source=scripts/linux/lib/gpu-script-common.sh
+source "$(dirname "${BASH_SOURCE[0]}")/lib/gpu-script-common.sh"
+gpu_require_argc $# 4 5 'profile-gpu-candidate.sh BUNDLE cuda|migraphx FIXTURE NEW_EVIDENCE_DIR [LAUNCHER]'
 bundle=$(realpath -e "$1") provider=$2 fixture=$(realpath -e "$3") evidence=$4 launcher=${5:-"$bundle/omni_accelerant"}
 case "$provider" in cuda|migraphx) ;; *) echo 'Unsupported GPU provider' >&2; exit 2 ;; esac
 repo=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
