@@ -21,6 +21,7 @@ $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 . (Join-Path $PSScriptRoot '..\Resolve-BuildModule.ps1')
 Import-BuildModule 'WindowsSmokeTest.Common'
+Import-BuildModule 'WindowsInstallerCheck.Common'
 Initialize-SmokeTestRun
 
 $packageName = 'Kataglyphis.OmniAccelerANTObservANT'
@@ -29,15 +30,13 @@ if ($msixFiles.Count -ne 1) { throw "-Msix must name exactly one MSIX; $Msix mat
 $Msix = $msixFiles[0].FullName
 
 Write-Host '=== the package ==='
-Assert-Test -Name "it is signed by $Publisher" { (Get-AuthenticodeSignature -LiteralPath $Msix).SignerCertificate.Subject -eq $Publisher }
-$facts = Get-MsixArchiveInfo -Path $Msix
-$manifest = $facts.Manifest
-$entries = $facts.Entries
-$ns = [System.Xml.XmlNamespaceManager]::new($manifest.NameTable)
-$ns.AddNamespace('m', 'http://schemas.microsoft.com/appx/manifest/foundation/windows10')
+$view = Get-CheckedMsixView -Path $Msix -Publisher $Publisher
+$manifest = $view.Manifest
+$entries = $view.Entries
+$ns = $view.Ns
+$identity = $view.Identity
 $ns.AddNamespace('desktop', 'http://schemas.microsoft.com/appx/manifest/desktop/windows10')
 $ns.AddNamespace('desktop2', 'http://schemas.microsoft.com/appx/manifest/desktop/windows10/2')
-$identity = $manifest.SelectSingleNode('/m:Package/m:Identity', $ns)
 # GetAttribute: unambiguous where an attribute shares its name with an XmlNode property.
 Assert-Test -Name 'its identity names ObservANT and the signing publisher' {
     $identity.GetAttribute('Name') -eq $packageName -and $identity.GetAttribute('Publisher') -eq $Publisher
@@ -85,12 +84,7 @@ $taskKey = "HKCU:\Software\Classes\Local Settings\Software\Microsoft\Windows\Cur
 Write-Host "      startup task state: $(if (Test-Path $taskKey) { (Get-ItemProperty $taskKey).State } else { 'not registered yet' })"
 
 $proc = Start-Process -FilePath $alias -ArgumentList '--camera', 'test', '--inference', 'off' -PassThru -WindowStyle Minimized
-$health = $null
-$deadline = (Get-Date).AddSeconds(40)
-do {
-    $health = try { (Invoke-WebRequest -UseBasicParsing -TimeoutSec 2 http://127.0.0.1:8080/healthz).Content } catch { $null }
-    if (-not $health) { Start-Sleep -Milliseconds 500 }
-} until ($health -or (Get-Date) -gt $deadline)
+$health = Wait-Healthz
 Write-Host "      healthz: $health"
 Assert-Test -Name 'started through the alias, it answers /healthz' { $health -match '"ok":true' }
 $running = Get-Process kataglyphis_observant -ErrorAction SilentlyContinue | Select-Object -First 1

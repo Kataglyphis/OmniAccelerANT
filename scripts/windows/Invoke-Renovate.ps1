@@ -78,22 +78,23 @@ bash __ENTRY__ __ARGS__
 '@
 $inner = $inner.Replace('__ENTRY__', $entry).Replace('__ARGS__', $quotedArgs)
 
-$autocrlf = ''
-$gitCmd = Get-Command 'git' -ErrorAction SilentlyContinue
-if ($gitCmd) {
-	$value = (& $gitCmd.Source -C $repoRoot config --get core.autocrlf 2>$null | Select-Object -First 1)
-	if ($value) { $autocrlf = "git config --global core.autocrlf $value" }
+# Both reads are optional: a host without the tool, or a failing tool, just adds nothing to the run.
+function Get-ToolFirstLine {
+	param([Parameter(Mandatory)][string] $Tool, [Parameter(Mandatory)][string[]] $ToolArgs)
+	$command = Get-Command $Tool -ErrorAction SilentlyContinue
+	if ($command) { & $command.Source @ToolArgs 2>$null | Select-Object -First 1 }
 }
+
+$autocrlf = ''
+$value = Get-ToolFirstLine -Tool 'git' -ToolArgs @('-C', $repoRoot, 'config', '--get', 'core.autocrlf')
+if ($value) { $autocrlf = "git config --global core.autocrlf $value" }
 $inner = $inner.Replace('__AUTOCRLF__', $autocrlf)
 
 $envFile = ''
-$ghCmd = Get-Command 'gh' -ErrorAction SilentlyContinue
-if ($ghCmd) {
-	$token = (& $ghCmd.Source auth token 2>$null | Select-Object -First 1)
-	if ($token) {
-		$envFile = Join-Path ([System.IO.Path]::GetTempPath()) "kataglyphis-renovate-$([guid]::NewGuid().ToString('N')).env"
-		Set-Content -LiteralPath $envFile -Value "GITHUB_COM_TOKEN=$token" -NoNewline
-	}
+$token = Get-ToolFirstLine -Tool 'gh' -ToolArgs @('auth', 'token')
+if ($token) {
+	$envFile = Join-Path ([System.IO.Path]::GetTempPath()) "kataglyphis-renovate-$([guid]::NewGuid().ToString('N')).env"
+	Set-Content -LiteralPath $envFile -Value "GITHUB_COM_TOKEN=$token" -NoNewline
 }
 
 $runnerArgs = @{

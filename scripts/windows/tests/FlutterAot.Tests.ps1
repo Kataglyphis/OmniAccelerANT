@@ -69,11 +69,17 @@ Describe 'WindowsFlutterAot.Common' {
         ($r -join ' ') -match 'build\\windows\\app\.so is not the bytes' | Should Be $true
     }
 
+    # Another preset's older assemble tree, which neither the grade nor the reset may touch.
+    function Add-OtherPresetTree([object] $Case) {
+        $other = Join-Path $Case.DartTool 'flutter_build\0000000000000000000000000000beef'
+        Set-Fixture (Join-Path $other 'app.dill') 'profile kernel' $Case.T0.AddMinutes(-30)
+        Set-Fixture (Join-Path $other 'app.so') 'profile aot' $Case.T0.AddMinutes(-29)
+        return $other
+    }
+
     It 'grades against the newest kernel when several presets left assemble trees' {
         $c = New-Case 'presets'
-        $other = Join-Path $c.DartTool 'flutter_build\0000000000000000000000000000beef'
-        Set-Fixture (Join-Path $other 'app.dill') 'profile kernel' $c.T0.AddMinutes(-30)
-        Set-Fixture (Join-Path $other 'app.so') 'profile aot' $c.T0.AddMinutes(-29)
+        $other = Add-OtherPresetTree $c
         Get-FlutterAotBuildDir -DartToolDir $c.DartTool | Should Be $c.Hash
         @(Get-FlutterAotStaleness -DartToolDir $c.DartTool -RunnerDataDir $c.Data -AotLibrary $c.Lib).Count | Should Be 0
     }
@@ -87,9 +93,7 @@ Describe 'WindowsFlutterAot.Common' {
 
     It 'reset removes the AOT outputs and their stamps, and leaves the kernel and other presets' {
         $c = New-Case 'reset'
-        $other = Join-Path $c.DartTool 'flutter_build\0000000000000000000000000000beef'
-        Set-Fixture (Join-Path $other 'app.dill') 'profile kernel' $c.T0.AddMinutes(-30)
-        Set-Fixture (Join-Path $other 'app.so') 'profile aot' $c.T0.AddMinutes(-29)
+        $other = Add-OtherPresetTree $c
         $removed = @(Reset-FlutterAotOutput -DartToolDir $c.DartTool -AotLibrary $c.Lib)
         $removed.Count | Should Be 4
         Test-Path -LiteralPath (Join-Path $c.Hash 'app.so') | Should Be $false

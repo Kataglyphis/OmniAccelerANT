@@ -29,6 +29,7 @@ $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 . (Join-Path $PSScriptRoot 'Resolve-BuildModule.ps1')
 Import-BuildModule @('WindowsTargetArch.Common', 'WindowsSmokeTest.Common')
+Import-BuildModule 'WindowsInstallerCheck.Common'
 Initialize-SmokeTestRun
 $product = 'OmniAccelerANT'
 $exeName = 'omni_accelerant.exe'
@@ -49,8 +50,7 @@ $selfCheck = Join-Path $PSScriptRoot 'Test-OnnxSelfCheck.ps1'
 
 Write-Host "=== the MSI: $Msi ==="
 $log = Join-Path $env:TEMP "omni-accelerant-msi-$PID.log"
-$p = Start-Process msiexec.exe -ArgumentList '/i', "`"$Msi`"", '/qn', '/l*v', "`"$log`"" -Wait -PassThru
-Assert-Test -Name 'msiexec installs it silently' { $p.ExitCode -eq 0 }
+$p = Install-MsiSilently -Msi $Msi -LogPath $log
 Assert-Test -Name "it installs into $prefix, AccelerANTgine.dll beside the exe and no bin\" {
     (Test-Path -LiteralPath (Join-Path $prefix $exeName)) -and (Test-Path -LiteralPath (Join-Path $prefix 'AccelerANTgine.dll')) -and
     -not (Test-Path -LiteralPath (Join-Path $prefix 'bin'))
@@ -74,18 +74,14 @@ if ($CheckOnnx) {
         $true
     }
 }
-$u = Start-Process msiexec.exe -ArgumentList '/x', "`"$Msi`"", '/qn' -Wait -PassThru
+$u = Uninstall-MsiSilently -Msi $Msi
 Assert-Test -Name 'msiexec removes it silently, and the exe with it' { $u.ExitCode -eq 0 -and -not (Test-Path -LiteralPath (Join-Path $prefix $exeName)) }
 if ($p.ExitCode -ne 0 -and (Test-Path -LiteralPath $log)) { Get-Content -LiteralPath $log -Tail 40 | ForEach-Object { Write-Host "      $_" } }
 
 Write-Host "=== the MSIX: $Msix ==="
-Assert-Test -Name "it is signed by $Publisher" { (Get-AuthenticodeSignature -LiteralPath $Msix).SignerCertificate.Subject -eq $Publisher }
-$facts = Get-MsixArchiveInfo -Path $Msix
-$manifest = $facts.Manifest
-$entries = $facts.Entries
-$ns = [System.Xml.XmlNamespaceManager]::new($manifest.NameTable)
-$ns.AddNamespace('m', 'http://schemas.microsoft.com/appx/manifest/foundation/windows10')
-$identity = $manifest.SelectSingleNode('/m:Package/m:Identity', $ns)
+$view = Get-CheckedMsixView -Path $Msix -Publisher $Publisher
+$entries = $view.Entries
+$identity = $view.Identity
 # GetAttribute: unambiguous where an attribute shares its name with an XmlNode property.
 Assert-Test -Name "its identity is $identityName for $Arch, published by $Publisher" {
     $identity.GetAttribute('Name') -eq $identityName -and $identity.GetAttribute('ProcessorArchitecture') -eq $Arch -and

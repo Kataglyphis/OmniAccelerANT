@@ -1,16 +1,23 @@
 #requires -Version 7.0
 
 # This guards shared module wiring and byte validation; it does not install MSI or MSIX packages.
+function Get-ScriptCommandCount([object] $Ast, [string] $Name, [string] $TextPattern = '') {
+    $commands = @(Get-TestAstCommands -Ast $Ast -Name $Name)
+    return @($commands | Where-Object { -not $TextPattern -or $_.Extent.Text -match $TextPattern }).Count
+}
+
+function Get-ScriptFunctionCount([object] $Ast, [string] $Name) {
+    return @($Ast.FindAll({ param($node) $node -is [System.Management.Automation.Language.FunctionDefinitionAst] -and $node.Name -eq $Name }, $true)).Count
+}
+
 function Assert-InstallerChecksUseHubRunner {
     foreach ($relative in 'Test-OmniAccelerANTInstallers.ps1', 'observant/Test-ObservANTWindows.ps1', 'observant/Test-ObservANTMsix.ps1') {
-        $path = Join-Path $PSScriptRoot (Join-Path '..' $relative)
-        $scriptAst = Get-TestScriptAst -ScriptPath $path
-        $commands = @($scriptAst.FindAll({ param($node) $node -is [System.Management.Automation.Language.CommandAst] }, $true))
-        @($commands | Where-Object { $_.GetCommandName() -eq 'Import-BuildModule' -and $_.Extent.Text -match 'WindowsSmokeTest\.Common' }).Count | Should Be 1
-        @($commands | Where-Object { $_.GetCommandName() -eq 'Initialize-SmokeTestRun' }).Count | Should Be 1
-        @($commands | Where-Object { $_.GetCommandName() -eq 'Assert-Test' }).Count -gt 0 | Should Be $true
-        @($commands | Where-Object { $_.GetCommandName() -eq 'Get-SmokeTestSummary' }).Count -gt 0 | Should Be $true
-        @($scriptAst.FindAll({ param($node) $node -is [System.Management.Automation.Language.FunctionDefinitionAst] -and $node.Name -eq 'Test-Check' }, $true)).Count | Should Be 0
+        $scriptAst = Get-TestScriptAst -ScriptPath (Join-Path $PSScriptRoot (Join-Path '..' $relative))
+        Get-ScriptCommandCount $scriptAst 'Import-BuildModule' 'WindowsSmokeTest\.Common' | Should Be 1
+        Get-ScriptCommandCount $scriptAst 'Initialize-SmokeTestRun' | Should Be 1
+        (Get-ScriptCommandCount $scriptAst 'Assert-Test') -gt 0 | Should Be $true
+        (Get-ScriptCommandCount $scriptAst 'Get-SmokeTestSummary') -gt 0 | Should Be $true
+        Get-ScriptFunctionCount $scriptAst 'Test-Check' | Should Be 0
     }
 }
 
@@ -43,13 +50,11 @@ Describe 'Installer shared Windows checks' {
     Import-Module (Join-Path $PSScriptRoot '..\..\..\third_party\ANTfrastructure\windows\scripts\tests\TestHarness.psm1') -Function Get-TestScriptAst, Get-TestAstCommands, New-TestPeFile -ErrorAction Stop
 
     It 'parses and calls the shared target facts and PE reader' {
-        $installer = Join-Path $PSScriptRoot '..\Test-OmniAccelerANTInstallers.ps1'
-        $ast = Get-TestScriptAst -ScriptPath $installer
-        $commands = @($ast.FindAll({ param($node) $node -is [System.Management.Automation.Language.CommandAst] }, $true))
-        @($commands | Where-Object { $_.GetCommandName() -eq 'Import-BuildModule' -and $_.Extent.Text -match "WindowsTargetArch\.Common" }).Count | Should Be 1
-        @($commands | Where-Object { $_.GetCommandName() -eq 'Get-PeMachineType' }).Count | Should Be 1
-        @($commands | Where-Object { $_.GetCommandName() -eq 'Get-PeFileMachine' }).Count | Should Be 1
-        @($ast.FindAll({ param($node) $node -is [System.Management.Automation.Language.FunctionDefinitionAst] -and $node.Name -eq 'Get-PeMachine' }, $true)).Count | Should Be 0
+        $ast = Get-TestScriptAst -ScriptPath (Join-Path $PSScriptRoot '..\Test-OmniAccelerANTInstallers.ps1')
+        Get-ScriptCommandCount $ast 'Import-BuildModule' 'WindowsTargetArch\.Common' | Should Be 1
+        Get-ScriptCommandCount $ast 'Get-PeMachineType' | Should Be 1
+        Get-ScriptCommandCount $ast 'Get-PeFileMachine' | Should Be 1
+        Get-ScriptFunctionCount $ast 'Get-PeMachine' | Should Be 0
     }
 
     It 'reads x64 and arm64 target facts and rejects a malformed binary' {
@@ -71,10 +76,11 @@ Describe 'Installer shared Windows checks' {
         @(Get-Command Get-MsixArchiveInfo -ErrorAction SilentlyContinue).Count | Should Be 1
         foreach ($relative in 'Test-OmniAccelerANTInstallers.ps1', 'observant/Test-ObservANTMsix.ps1') {
             $ast = Get-TestScriptAst -ScriptPath (Join-Path $PSScriptRoot (Join-Path '..' $relative))
-            $calls = @($ast.FindAll({ param($node) $node -is [System.Management.Automation.Language.CommandAst] -and $node.GetCommandName() -eq 'Get-MsixArchiveInfo' }, $true))
-            $calls.Count | Should Be 1
+            Get-ScriptCommandCount $ast 'Get-CheckedMsixView' | Should Be 1
             ($ast.Extent.Text -match 'ZipFile\]::OpenRead') | Should Be $false
         }
+        $module = Get-TestScriptAst -ScriptPath (Join-Path $PSScriptRoot '..\modules\WindowsInstallerCheck.Common.psm1')
+        Get-ScriptCommandCount $module 'Get-MsixArchiveInfo' | Should Be 1
     }
 
     It 'uses the shared directory reset for MSIX signing and staging' {

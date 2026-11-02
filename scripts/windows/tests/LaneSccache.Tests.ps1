@@ -43,25 +43,22 @@ Describe 'WindowsLaneSccache.Common' {
         Remove-LaneSccacheS3Secret $file
     }
 
-    It 'reads a Linux host file under the names set-sccache-s3-level.sh writes' {
-        $hostFile = Join-Path $work 'sccache-s3.env'
-        Set-Content -LiteralPath $hostFile -Value @(
-            "SCCACHE_BUCKET=sccache", "SCCACHE_ENDPOINT=$endpoint", 'SCCACHE_REGION=garage',
-            'SCCACHE_S3_USE_SSL=false', 'AWS_ACCESS_KEY_ID=GKfile', 'AWS_SECRET_ACCESS_KEY=fromfile')
-        $file = New-LaneSccacheS3Secret -Directory $work -HostFile $hostFile -EnvLookup { '' }
-        ((Get-Content -LiteralPath $file) -join '|') | Should Match 'AWS_ACCESS_KEY_ID=GKfile\|AWS_SECRET_ACCESS_KEY=fromfile$'
+    # The secret file from a host file holding the given extra lines, checked against the key pair it must end with.
+    function Assert-HostFileSecret([string] $Name, [string[]] $Extra, [scriptblock] $EnvLookup, [string] $Expected) {
+        $hostFile = Join-Path $work $Name
+        Set-Content -LiteralPath $hostFile -Value (@("SCCACHE_BUCKET=sccache", "SCCACHE_ENDPOINT=$endpoint", 'SCCACHE_REGION=garage') + $Extra + @('AWS_ACCESS_KEY_ID=GKfile', 'AWS_SECRET_ACCESS_KEY=fromfile'))
+        $file = New-LaneSccacheS3Secret -Directory $work -HostFile $hostFile -EnvLookup $EnvLookup
+        ((Get-Content -LiteralPath $file) -join '|') | Should Match $Expected
         Remove-LaneSccacheS3Secret $file
     }
 
+    It 'reads a Linux host file under the names set-sccache-s3-level.sh writes' {
+        Assert-HostFileSecret 'sccache-s3.env' @('SCCACHE_S3_USE_SSL=false') { '' } 'AWS_ACCESS_KEY_ID=GKfile\|AWS_SECRET_ACCESS_KEY=fromfile$'
+    }
+
     It 'prefers the host environment over the host file' {
-        $hostFile = Join-Path $work 'sccache-s3-env-wins.env'
-        Set-Content -LiteralPath $hostFile -Value @(
-            "SCCACHE_BUCKET=sccache", "SCCACHE_ENDPOINT=$endpoint", 'SCCACHE_REGION=garage',
-            'AWS_ACCESS_KEY_ID=GKfile', 'AWS_SECRET_ACCESS_KEY=fromfile')
         $envKey = { param($name) if ($name -like '*ACCESS_KEY_ID') { 'GKenv' } else { '' } }
-        $file = New-LaneSccacheS3Secret -Directory $work -HostFile $hostFile -EnvLookup $envKey
-        ((Get-Content -LiteralPath $file) -join '|') | Should Match 'AWS_ACCESS_KEY_ID=GKenv\|AWS_SECRET_ACCESS_KEY=fromfile$'
-        Remove-LaneSccacheS3Secret $file
+        Assert-HostFileSecret 'sccache-s3-env-wins.env' @() $envKey 'AWS_ACCESS_KEY_ID=GKenv\|AWS_SECRET_ACCESS_KEY=fromfile$'
     }
 
     It 'writes nothing without a key, for an unreachable bucket, or when switched off' {

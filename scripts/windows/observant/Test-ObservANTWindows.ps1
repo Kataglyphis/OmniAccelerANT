@@ -19,6 +19,7 @@ $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 . (Join-Path $PSScriptRoot '..\Resolve-BuildModule.ps1')
 Import-BuildModule 'WindowsSmokeTest.Common'
+Import-BuildModule 'WindowsInstallerCheck.Common'
 Initialize-SmokeTestRun
 
 $product = 'ObservANT'
@@ -125,16 +126,6 @@ function Test-SameBytes {
     return $null -ne $A -and $null -ne $B -and [System.Linq.Enumerable]::SequenceEqual($A, $B)
 }
 
-function Wait-Healthz {
-    $deadline = (Get-Date).AddSeconds(40)
-    do {
-        $body = try { (Invoke-WebRequest -UseBasicParsing -TimeoutSec 2 http://127.0.0.1:8080/healthz).Content } catch { $null }
-        if ($body) { return $body }
-        Start-Sleep -Milliseconds 500
-    } until ((Get-Date) -gt $deadline)
-    return $null
-}
-
 Write-Host '=== install ==='
 Assert-Test -Name 'the MSI opens the firewall to the local subnet for its exe, and installs where it cannot' {
     $rows = @(Get-MsiRow -Path $Msi -Query 'SELECT `Program`, `RemoteAddresses`, `Attributes` FROM `Wix5FirewallException`')
@@ -143,8 +134,7 @@ Assert-Test -Name 'the MSI opens the firewall to the local subnet for its exe, a
 # A container has no firewall service; the MSI then skips the rule, and only a host can show it.
 $firewallOn = (Get-Service MpsSvc -ErrorAction SilentlyContinue).Status -eq 'Running'
 $installLog = Join-Path $work 'install.log'
-$p = Start-Process msiexec.exe -ArgumentList '/i', "`"$Msi`"", '/qn', '/l*v', "`"$installLog`"" -Wait -PassThru
-Assert-Test -Name 'msiexec installs it silently' { $p.ExitCode -eq 0 }
+$null = Install-MsiSilently -Msi $Msi -LogPath $installLog
 Assert-Test -Name 'the exe, its plugins, the model and the page are installed' {
     (Test-Path $exe) -and (Test-Path (Join-Path $prefix 'lib\gstreamer-1.0\gstrswebrtc.dll')) -and
     (Test-Path (Join-Path $prefix "models\$modelFile")) -and (Test-Path (Join-Path $prefix 'web\index.html')) -and
@@ -236,7 +226,7 @@ Assert-Test -Name 'it runs its own model on its own ONNX Runtime and finds a cat
 }
 
 Write-Host '=== uninstall ==='
-$u = Start-Process msiexec.exe -ArgumentList '/x', "`"$Msi`"", '/qn' -Wait -PassThru
+$u = Uninstall-MsiSilently -Msi $Msi
 Assert-Test -Name 'msiexec removes it silently' { $u.ExitCode -eq 0 }
 Assert-Test -Name 'nothing is left: the folder, the Startup entry, the Start menu folder' {
     -not (Test-Path $exe) -and -not (Test-Path $startup) -and -not (Test-Path (Join-Path $env:ProgramData "Microsoft\Windows\Start Menu\Programs\$product"))

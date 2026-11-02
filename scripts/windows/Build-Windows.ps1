@@ -73,11 +73,15 @@ if (-not $PSBoundParameters.ContainsKey('RustDllName')) {
 }
 
 if ([string]::IsNullOrWhiteSpace($BuildRootDir)) {
-    if ($windowsBuildConfig.ContainsKey('BuildRootDir') -and -not [string]::IsNullOrWhiteSpace($windowsBuildConfig.BuildRootDir)) {
-        $BuildRootDir = $windowsBuildConfig.BuildRootDir
-    } else {
-        throw "Build root directory is not configured. Set BuildRootDir in Get-WindowsBuildConfig.ps1 or pass -BuildRootDir."
-    }
+    $BuildRootDir = Get-KataglyphisBuildConfigValue -WindowsBuildConfig $windowsBuildConfig -Key 'BuildRootDir'
+    if (-not $BuildRootDir) { throw "Build root directory is not configured. Set BuildRootDir in Get-WindowsBuildConfig.ps1 or pass -BuildRootDir." }
+}
+
+# CI names no preset, so an empty one means the configured default.
+function Get-EffectivePreset {
+    param([AllowEmptyString()][string] $Preset)
+    if ([string]::IsNullOrEmpty($Preset)) { return $windowsBuildConfig.CMakeConfiguration }
+    return $Preset
 }
 
 $workspace = Resolve-WorkspacePath -Path $WorkspaceDir
@@ -616,11 +620,7 @@ try {
         $hostReleaseDir = Resolve-NormalizedPath -Path (Join-Path $originalBuildRoot "windows/x64/runner/Release")
         foreach ($currentPreset in $presetsToRun) {
             # CI names no preset; fall back to the default — see AGENTS.md § 5.
-            $currentPreset = if ([string]::IsNullOrEmpty($currentPreset)) {
-                $windowsBuildConfig.CMakeConfiguration
-            } else {
-                $currentPreset
-            }
+            $currentPreset = Get-EffectivePreset -Preset $currentPreset
 
             $msixSourceDir = Resolve-NormalizedPath -Path (Join-Path $buildRoot "windows/x64/runner/$currentPreset")
             if ($msixSourceDir -eq $msixReleaseDir -or -not (Test-Path -LiteralPath $msixSourceDir -PathType Container)) { continue }
@@ -698,11 +698,7 @@ try {
         # A green build is not delivery: each preset's runner exe must exist in both trees (AGENTS.md § 5).
         $missingArtifacts = @()
         foreach ($currentPreset in $presetsToRun) {
-            $effectivePreset = if ([string]::IsNullOrEmpty($currentPreset)) {
-                $windowsBuildConfig.CMakeConfiguration
-            } else {
-                $currentPreset
-            }
+            $effectivePreset = Get-EffectivePreset -Preset $currentPreset
             foreach ($deliveryRoot in @($buildRoot, $originalBuildRoot)) {
                 $presetLayout = Resolve-KataglyphisWindowsLayout -BuildRootFull $deliveryRoot -WindowsBuildConfig $windowsBuildConfig -Configuration $effectivePreset
                 $exePath = Join-Path $presetLayout.RunnerDir $windowsBuildConfig.RunnerExeName

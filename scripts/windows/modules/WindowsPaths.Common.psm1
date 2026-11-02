@@ -4,6 +4,13 @@
 
 Set-StrictMode -Version Latest
 
+function Get-KataglyphisBuildConfigValue {
+    # An absent key and a blank value are the same to every caller: empty.
+    param([Parameter(Mandatory)][hashtable] $WindowsBuildConfig, [Parameter(Mandatory)][string] $Key)
+    if ($WindowsBuildConfig.ContainsKey($Key) -and -not [string]::IsNullOrWhiteSpace($WindowsBuildConfig[$Key])) { return $WindowsBuildConfig[$Key] }
+    return ''
+}
+
 function Resolve-KataglyphisWindowsBuildRootCandidates {
     param(
         [Parameter(Mandatory = $true)]
@@ -25,9 +32,7 @@ function Resolve-KataglyphisWindowsBuildRootCandidates {
         $candidateInputs.Add($BuildRootDir)
     }
 
-    if ($WindowsBuildConfig.ContainsKey('BuildRootDir') -and -not [string]::IsNullOrWhiteSpace($WindowsBuildConfig.BuildRootDir)) {
-        $candidateInputs.Add($WindowsBuildConfig.BuildRootDir)
-    }
+    $candidateInputs.Add((Get-KataglyphisBuildConfigValue -WindowsBuildConfig $WindowsBuildConfig -Key 'BuildRootDir'))
 
     if ($IncludeDefaultFallbacks) {
         $candidateInputs.Add('out')
@@ -68,21 +73,17 @@ function Resolve-KataglyphisWindowsLayout {
         [string] $Configuration = ""
     )
 
-    if (-not $WindowsBuildConfig.ContainsKey('RunnerExeName') -or [string]::IsNullOrWhiteSpace($WindowsBuildConfig.RunnerExeName)) {
-        throw "RunnerExeName is missing in Windows build config."
-    }
-
-    if (-not $WindowsBuildConfig.ContainsKey('RustDllName') -or [string]::IsNullOrWhiteSpace($WindowsBuildConfig.RustDllName)) {
-        throw "RustDllName is missing in Windows build config."
+    foreach ($required in 'RunnerExeName', 'RustDllName') {
+        if (-not (Get-KataglyphisBuildConfigValue -WindowsBuildConfig $WindowsBuildConfig -Key $required)) {
+            throw "$required is missing in Windows build config."
+        }
     }
 
     # An explicit -Configuration wins; the config file's CMakeConfiguration is only the fallback.
     $cmakeConfig = if (-not [string]::IsNullOrWhiteSpace($Configuration)) {
         $Configuration
-    } elseif ($WindowsBuildConfig.ContainsKey('CMakeConfiguration') -and -not [string]::IsNullOrWhiteSpace($WindowsBuildConfig.CMakeConfiguration)) {
-        $WindowsBuildConfig.CMakeConfiguration
     } else {
-        ""
+        Get-KataglyphisBuildConfigValue -WindowsBuildConfig $WindowsBuildConfig -Key 'CMakeConfiguration'
     }
 
     $buildRootNormalized = [System.IO.Path]::GetFullPath($BuildRootFull)
@@ -102,11 +103,8 @@ function Resolve-KataglyphisWindowsLayout {
         [System.IO.Path]::GetFullPath((Join-Path $pluginDirBase $cmakeConfig))
     }
 
-    $rustPluginSubDir = if ($WindowsBuildConfig.ContainsKey('RustPluginSubDir') -and -not [string]::IsNullOrWhiteSpace($WindowsBuildConfig.RustPluginSubDir)) {
-        $WindowsBuildConfig.RustPluginSubDir
-    } else {
-        [System.IO.Path]::GetFileNameWithoutExtension($WindowsBuildConfig.RustDllName)
-    }
+    $rustPluginSubDir = Get-KataglyphisBuildConfigValue -WindowsBuildConfig $WindowsBuildConfig -Key 'RustPluginSubDir'
+    if (-not $rustPluginSubDir) { $rustPluginSubDir = [System.IO.Path]::GetFileNameWithoutExtension($WindowsBuildConfig.RustDllName) }
     
     $rustPluginDir = [System.IO.Path]::GetFullPath((Join-Path $pluginDir $rustPluginSubDir))
     
@@ -142,4 +140,4 @@ function Resolve-KataglyphisWindowsLayout {
     }
 }
 
-Export-ModuleMember -Function Resolve-KataglyphisWindowsBuildRootCandidates, Resolve-KataglyphisWindowsLayout
+Export-ModuleMember -Function Get-KataglyphisBuildConfigValue, Resolve-KataglyphisWindowsBuildRootCandidates, Resolve-KataglyphisWindowsLayout
