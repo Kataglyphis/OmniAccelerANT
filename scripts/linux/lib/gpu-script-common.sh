@@ -1,6 +1,15 @@
 #!/usr/bin/env bash
 # Argument and target checks the Linux GPU candidate scripts share; they prove nothing about GPU execution.
 
+GPU_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+export GPU_SCRIPT_DIR
+
+# gpu_die <status> <message>: stops the whole script, so call it in the main shell and not inside a substitution.
+gpu_die() {
+  echo "$2" >&2
+  exit "$1"
+}
+
 # gpu_require_argc <count> <min> <max> <usage>: a wrong call stops with exit 2 before anything is touched.
 gpu_require_argc() {
   if (($1 < $2 || $1 > $3)); then

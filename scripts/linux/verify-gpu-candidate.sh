@@ -19,8 +19,8 @@ if [[ ${#tarballs[@]} -ne 1 || ! -f ${tarballs[0]} || ${#debs[@]} -ne 1 || ${#im
   echo "Expected one $vendor $arch tar, DEB and AppImage candidate" >&2
   exit 1
 fi
-gpu_deb_field_is "${debs[0]}" Architecture "$deb" || { echo "DEB architecture does not match $arch" >&2; exit 1; }
-gpu_deb_field_is "${debs[0]}" Package "$variant" || { echo "DEB package identity does not match $variant" >&2; exit 1; }
+gpu_deb_field_is "${debs[0]}" Architecture "$deb" || gpu_die 1 "DEB architecture does not match $arch"
+gpu_deb_field_is "${debs[0]}" Package "$variant" || gpu_die 1 "DEB package identity does not match $variant"
 work="$(mktemp -d)"
 trap 'rm -rf -- "$work"' EXIT
 
@@ -99,8 +99,8 @@ mkdir "$work/appimage-ort"
   "$image" --appimage-extract "usr/lib/$variant/lib/libonnxruntime.so*" > /dev/null
   root="$(realpath -e squashfs-root)"
   alias="$root/usr/lib/$variant/lib/libonnxruntime.so"
-  [[ -f "$alias" ]] || { echo 'AppImage is missing the ORT dynamic-load alias' >&2; exit 1; }
+  [[ -f "$alias" ]] || gpu_die 1 'AppImage is missing the ORT dynamic-load alias'
   resolved="$(realpath -e "$alias")"
-  case "$resolved" in "$root/"*) ;; *) echo 'AppImage ORT alias escapes package' >&2; exit 1 ;; esac
+  case "$resolved" in "$root/"*) ;; *) gpu_die 1 'AppImage ORT alias escapes package' ;; esac
 )
 echo 'PASS: unverified GPU candidates carry the wheel-matched runtime and locked model'

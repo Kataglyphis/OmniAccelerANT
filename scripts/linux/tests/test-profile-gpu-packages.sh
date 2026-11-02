@@ -7,8 +7,7 @@ shopt -s nullglob
 root="$(fixture_root)"
 hub=${ANTFRASTRUCTURE_DIR:-"$root/third_party/ANTfrastructure"}
 oxidant=${OXIDANT_DIR:-"$root/third_party/OxidANT"}
-work=$(mktemp -d)
-trap 'rm -rf -- "$work"' EXIT
+fixture_workdir
 repo="$work/repo"
 mkdir -p "$repo/scripts/linux/lib" "$repo/scripts/windows" "$repo/third_party/ANTfrastructure/shared/python" \
   "$repo/third_party/ANTfrastructure/linux/scripts/lib" "$repo/third_party/OxidANT/resources/models" \
@@ -163,13 +162,13 @@ EOF
   rm "$work/tar-root/$variant-bundle/lib/libonnxruntime.so"
   ln -s /etc/hosts "$work/tar-root/$variant-bundle/lib/libonnxruntime.so"
   tar -czf "$work/packages/$variant-linux-$arch.tar.gz" -C "$work/tar-root" "$variant-bundle"
-  if bash "$check" "$work/packages" "$vendor" "$arch" "$device" >/dev/null 2>&1; then echo 'Escaping runtime symlink accepted' >&2; exit 1; fi
+  fixture_refuses_quiet 'Escaping runtime symlink accepted' bash "$check" "$work/packages" "$vendor" "$arch" "$device"
   rm "$work/tar-root/$variant-bundle/lib/libonnxruntime.so"
   : > "$work/tar-root/$variant-bundle/lib/libonnxruntime.so"
   tar -czf "$work/packages/$variant-linux-$arch.tar.gz" -C "$work/tar-root" "$variant-bundle"
   rm "$work/image bundle/lib/libonnxruntime.so"
   ln -s /etc/hosts "$work/image bundle/lib/libonnxruntime.so"
-  if bash "$check" "$work/packages" "$vendor" "$arch" "$device" >/dev/null 2>&1; then echo 'Escaping AppImage runtime symlink accepted' >&2; exit 1; fi
+  fixture_refuses_quiet 'Escaping AppImage runtime symlink accepted' bash "$check" "$work/packages" "$vendor" "$arch" "$device"
   rm "$work/image bundle/lib/libonnxruntime.so"
   : > "$work/image bundle/lib/libonnxruntime.so"
   for format in tar deb image; do
@@ -182,8 +181,8 @@ EOF
     done
   done
   cp "$work/packages/$variant-1-$machine.AppImage" "$work/packages/$variant-2-$machine.AppImage"
-  if bash "$check" "$work/packages" "$vendor" "$arch" "$device" >/dev/null 2>&1; then echo 'Duplicate AppImages accepted' >&2; exit 1; fi
+  fixture_refuses_quiet 'Duplicate AppImages accepted' bash "$check" "$work/packages" "$vendor" "$arch" "$device"
   rm -rf -- "$work/tar bundle" "$work/deb bundle" "$work/image bundle" "$work/tar-root" "$work/deb-root" "$work/packages/"*
 done
-if bash "$check" "$work/packages" amd arm64 migraphx >/dev/null 2>&1; then echo 'Unsupported Linux ARM ROCm accepted' >&2; exit 1; fi
+fixture_refuses_quiet 'Unsupported Linux ARM ROCm accepted' bash "$check" "$work/packages" amd arm64 migraphx
 echo 'PASS: all supported package formats require CPU/GPU parity and two GPU profile runs'

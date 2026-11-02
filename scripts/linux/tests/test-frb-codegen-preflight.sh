@@ -6,8 +6,7 @@ set -euo pipefail
 # shellcheck source=scripts/linux/tests/fixture-common.sh
 source "$(dirname "${BASH_SOURCE[0]}")/fixture-common.sh"
 repo="$(fixture_root)"
-work=$(mktemp -d)
-trap 'rm -rf -- "$work"' EXIT
+fixture_workdir
 mkdir -p "$work/bin" "$work/repo/scripts/linux" "$work/repo/third_party/OxidANT/src" "$work/repo/lib/src/rust" \
   "$work/repo/third_party/OxidANT/scripts/linux" "$work/repo/third_party/ANTfrastructure/linux/scripts/01-core"
 cp "$repo/scripts/linux/generate-frb-bindings.sh" "$work/repo/scripts/linux/"

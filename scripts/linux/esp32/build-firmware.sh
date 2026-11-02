@@ -74,10 +74,12 @@ case \"\$(uname -m)\" in
 esac
 
 # A tool on the volume from another pin is replaced, never trusted.
+fetch_esp_tool() {
+  download_verified_file \"https://github.com/esp-rs/\$1/releases/download/\$2/\$3\" \"\$4\" \"/opt/esp32/downloads/\$5\"
+}
 tool_off_pin() { [ \"\$(/opt/esp32/bin/\$1 --version 2>/dev/null || true)\" != \"\$1 \${2#v}\" ]; }
 if tool_off_pin espup \"\$ESPUP_VERSION\"; then
-  download_verified_file \"https://github.com/esp-rs/espup/releases/download/\${ESPUP_VERSION:?}/espup-\${host}\" \
-    \"\$espup_sha\" /opt/esp32/downloads/espup
+  fetch_esp_tool espup \"\${ESPUP_VERSION:?}\" \"espup-\${host}\" \"\$espup_sha\" espup
   install -m 0755 /opt/esp32/downloads/espup /opt/esp32/bin/espup
 fi
 
@@ -87,8 +89,7 @@ if [ ! -d /opt/esp32/rustup/toolchains/esp ]; then
 fi
 
 if tool_off_pin espflash \"\$ESPFLASH_VERSION\"; then
-  download_verified_file \"https://github.com/esp-rs/espflash/releases/download/\${ESPFLASH_VERSION:?}/espflash-\${host}.zip\" \
-    \"\$espflash_sha\" /opt/esp32/downloads/espflash.zip
+  fetch_esp_tool espflash \"\${ESPFLASH_VERSION:?}\" \"espflash-\${host}.zip\" \"\$espflash_sha\" espflash.zip
   python3 -m zipfile -e /opt/esp32/downloads/espflash.zip /opt/esp32/bin/
   chmod +x /opt/esp32/bin/espflash
 fi

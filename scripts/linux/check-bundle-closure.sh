@@ -95,9 +95,8 @@ check_one_elf() {
   return 0
 }
 
-for file in "$BUNDLE_DIR"/*; do
-  [[ -f "$file" && -x "$file" ]] || continue
-  is_system_soname "$(basename "$file")" && continue
+mapfile -t root_programs < <(bundle_root_programs "$BUNDLE_DIR")
+for file in "${root_programs[@]}"; do
   # bundle-loader.sh's launcher: the program it starts is the .bin beside it, checked here too.
   if [[ "$(head -c 2 -- "$file")" == '#!' ]] && grep -q -- '--library-path' "$file"; then
     [[ -f "$file.bin" ]] || { printf 'FAIL %s is a launcher without %s.bin\n' "${file#"$BUNDLE_DIR"/}" "$(basename "$file")"; failures=$((failures + 1)); }

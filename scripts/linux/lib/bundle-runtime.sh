@@ -64,6 +64,15 @@ prepare_gpu_host_runtime() {
   ort_assert_no_bundled_host_runtime "$bundle" "$GPU_RUNTIME_KIND"
 }
 
+# bundle_root_programs <bundle>: its executable top-level files without the system loader and libc, which stay byte for byte.
+bundle_root_programs() {
+  local file
+  for file in "$1"/*; do
+    [[ -f "$file" && -x "$file" ]] || continue
+    is_system_soname "$(basename "$file")" || printf '%s\n' "$file"
+  done
+}
+
 # Both loader branches must see the bundled libraries and the caller's host SDK path.
 verify_gpu_host_launchers() {
   local bundle="${1:?bundle required}" launcher count=0

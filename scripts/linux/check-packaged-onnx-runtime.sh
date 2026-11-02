@@ -5,7 +5,7 @@ set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/lib/gpu-script-common.sh"
 gpu_require_argc $# 2 3 'check-packaged-onnx-runtime.sh bundle BUNDLE | appimage APPIMAGE PACKAGE_NAME'
 unset LD_PRELOAD LD_AUDIT LD_DEBUG LD_DEBUG_OUTPUT
-script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+script_dir=$GPU_SCRIPT_DIR
 # shellcheck source=/dev/null
 source "$script_dir/lib/verify-onnx-loader-trace.sh"
 kind=$1
@@ -16,21 +16,21 @@ work=$(realpath -e "$work")
 mkdir "$work/logs"
 case "$kind" in
   bundle)
-    [[ $# -eq 2 && -x "$target/omni_accelerant" && -f "$target/lib/libonnxruntime.so" ]] || { echo 'Missing bundle app or runtime' >&2; exit 1; }
+    [[ $# -eq 2 && -x "$target/omni_accelerant" && -f "$target/lib/libonnxruntime.so" ]] || gpu_die 1 'Missing bundle app or runtime'
     runtime_root=$(realpath -e "$target/lib")
-    case "$runtime_root" in "$target/"*) ;; *) echo 'Runtime directory escapes bundle' >&2; exit 1 ;; esac
+    case "$runtime_root" in "$target/"*) ;; *) gpu_die 1 'Runtime directory escapes bundle' ;; esac
     resolved=$(realpath -e "$target/lib/libonnxruntime.so")
-    case "$resolved" in "$runtime_root/"*) ;; *) echo 'Runtime escapes bundle' >&2; exit 1 ;; esac
+    case "$resolved" in "$runtime_root/"*) ;; *) gpu_die 1 'Runtime escapes bundle' ;; esac
     launcher="$target/omni_accelerant"
     ;;
   appimage)
-    [[ $# -eq 3 && -x "$target" && "$3" =~ ^omni-accelerant(-(nvidia|amd))?$ ]] || { echo 'Invalid AppImage or package name' >&2; exit 1; }
+    [[ $# -eq 3 && -x "$target" && "$3" =~ ^omni-accelerant(-(nvidia|amd))?$ ]] || gpu_die 1 'Invalid AppImage or package name'
     variant=$3
     runtime_root=$work
     launcher=$target
     export APPIMAGE_EXTRACT_AND_RUN=1 TMPDIR="$work"
     ;;
-  *) echo 'Unsupported package type' >&2; exit 2 ;;
+  *) gpu_die 2 'Unsupported package type' ;;
 esac
 env -u LD_PRELOAD -u LD_AUDIT -u LD_LIBRARY_PATH -u LD_DEBUG -u LD_DEBUG_OUTPUT \
   -u KATAGLYPHIS_ONNX_MODEL -u KATAGLYPHIS_DIRECTML_DEVICE_ID -u ORT_DYLIB_PATH \

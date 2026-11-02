@@ -150,9 +150,8 @@ for file in "$bundle_lib"/*.so*; do
 done
 
 # flatpak puts the runner in /app/bin and the libs in /app/lib, hence $ORIGIN/../lib (AGENTS.md § 5).
-for file in "$BUNDLE_DIR"/*; do
-  [[ -f "$file" && -x "$file" ]] || continue
-  is_system_soname "$(basename "$file")" && continue
+mapfile -t root_programs < <(bundle_root_programs "$BUNDLE_DIR")
+for file in "${root_programs[@]}"; do
   if readelf -h "$file" >/dev/null 2>&1 && ! runpath_has_token "$file" '$ORIGIN/../lib'; then
     patchelf --set-rpath "\$ORIGIN/lib:\$ORIGIN/../lib:$(elf_runpath "$file")" "$file"
   fi

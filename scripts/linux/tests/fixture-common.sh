@@ -4,6 +4,13 @@
 # fixture_root: the checkout this suite belongs to, from wherever it was started.
 fixture_root() { cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd; }
 
+# fixture_workdir: sets and exports work, removed when the suite exits however it ends.
+fixture_workdir() {
+  work="$(mktemp -d)"
+  export work
+  trap 'rm -rf -- "$work"' EXIT
+}
+
 # fixture_stub <path> <<'BODY': a strict Bash executable, so a stub cannot pass by ignoring its own failing check.
 fixture_stub() {
   { printf '#!/usr/bin/env bash\nset -euo pipefail\n'; cat; } > "$1"
@@ -25,6 +32,16 @@ fixture_refuses() {
   local message="$1"
   shift
   if "$@"; then
+    echo "$message" >&2
+    exit 1
+  fi
+}
+
+# fixture_refuses_quiet <message> <command>...: as fixture_refuses, for a command whose own refusal is expected noise.
+fixture_refuses_quiet() {
+  local message="$1"
+  shift
+  if "$@" >/dev/null 2>&1; then
     echo "$message" >&2
     exit 1
   fi

@@ -4,8 +4,7 @@ set -euo pipefail
 # shellcheck source=scripts/linux/tests/fixture-common.sh
 source "$(dirname "${BASH_SOURCE[0]}")/fixture-common.sh"
 repo="$(fixture_root)"
-work="$(mktemp -d)"
-trap 'rm -rf -- "$work"' EXIT
+fixture_workdir
 fixture_repo="$work/repo"
 verifier="$fixture_repo/scripts/linux/verify-gpu-candidate.sh"
 mkdir -p "$work/out" "$work/wheels" "$work/bundle/lib" "$work/bundle/licenses/onnxruntime" \
@@ -74,63 +73,63 @@ cd "$work"
 bash "$verifier" nvidia x64 >/dev/null
 sed -i 's/^Architecture: amd64$/Architecture: arm64/' "$work/deb/DEBIAN/control"
 dpkg-deb --build "$work/deb" "$work/out/${variant}_1.0_amd64.deb" >/dev/null
-if bash "$verifier" nvidia x64 >/dev/null 2>&1; then echo 'DEB with wrong embedded architecture passed' >&2; exit 1; fi
+fixture_refuses_quiet 'DEB with wrong embedded architecture passed' bash "$verifier" nvidia x64
 sed -i 's/^Architecture: arm64$/Architecture: amd64/; s/^Package: omni-accelerant-nvidia$/Package: omni-accelerant-amd/' "$work/deb/DEBIAN/control"
 dpkg-deb --build "$work/deb" "$work/out/${variant}_1.0_amd64.deb" >/dev/null
-if bash "$verifier" nvidia x64 >/dev/null 2>&1; then echo 'DEB with wrong embedded package identity passed' >&2; exit 1; fi
+fixture_refuses_quiet 'DEB with wrong embedded package identity passed' bash "$verifier" nvidia x64
 sed -i 's/^Package: omni-accelerant-amd$/Package: omni-accelerant-nvidia/' "$work/deb/DEBIAN/control"
 dpkg-deb --build "$work/deb" "$work/out/${variant}_1.0_amd64.deb" >/dev/null
 rm "$work/tar/$variant-bundle/lib/libonnxruntime.so"
 tar -C "$work/tar" -czf "$work/out/$variant-linux-x64.tar.gz" "$variant-bundle"
-if bash "$verifier" nvidia x64 >/dev/null 2>&1; then echo 'missing tar ORT dynamic-load alias passed' >&2; exit 1; fi
+fixture_refuses_quiet 'missing tar ORT dynamic-load alias passed' bash "$verifier" nvidia x64
 ln -s libonnxruntime.so.1 "$work/tar/$variant-bundle/lib/libonnxruntime.so"
 tar -C "$work/tar" -czf "$work/out/$variant-linux-x64.tar.gz" "$variant-bundle"
 rm "$work/deb/opt/$variant/lib/libonnxruntime.so"
 dpkg-deb --build "$work/deb" "$work/out/${variant}_1.0_amd64.deb" >/dev/null
-if bash "$verifier" nvidia x64 >/dev/null 2>&1; then echo 'missing DEB ORT dynamic-load alias passed' >&2; exit 1; fi
+fixture_refuses_quiet 'missing DEB ORT dynamic-load alias passed' bash "$verifier" nvidia x64
 ln -s libonnxruntime.so.1 "$work/deb/opt/$variant/lib/libonnxruntime.so"
 dpkg-deb --build "$work/deb" "$work/out/${variant}_1.0_amd64.deb" >/dev/null
 rm "$work/appimage/usr/lib/$variant/lib/libonnxruntime.so"
-if bash "$verifier" nvidia x64 >/dev/null 2>&1; then echo 'missing AppImage ORT dynamic-load alias passed' >&2; exit 1; fi
+fixture_refuses_quiet 'missing AppImage ORT dynamic-load alias passed' bash "$verifier" nvidia x64
 ln -s libonnxruntime.so.1 "$work/appimage/usr/lib/$variant/lib/libonnxruntime.so"
 printf x >> "$work/tar/$variant-bundle/lib/libonnxruntime_providers_cuda.so"
 tar -C "$work/tar" -czf "$work/out/$variant-linux-x64.tar.gz" "$variant-bundle"
-if bash "$verifier" nvidia x64 >/dev/null 2>&1; then echo 'changed tar provider passed' >&2; exit 1; fi
+fixture_refuses_quiet 'changed tar provider passed' bash "$verifier" nvidia x64
 cp "$work/bundle/lib/libonnxruntime_providers_cuda.so" "$work/tar/$variant-bundle/lib/"
 tar -C "$work/tar" -czf "$work/out/$variant-linux-x64.tar.gz" "$variant-bundle"
 mv "$work/tar/$variant-bundle/licenses/onnxruntime" "$work/tar-notices"
 ln -s "$work/bundle/licenses/onnxruntime" "$work/tar/$variant-bundle/licenses/onnxruntime"
 tar -C "$work/tar" -czf "$work/out/$variant-linux-x64.tar.gz" "$variant-bundle"
-if bash "$verifier" nvidia x64 >/dev/null 2>&1; then echo 'tar notice directory escaping package passed' >&2; exit 1; fi
+fixture_refuses_quiet 'tar notice directory escaping package passed' bash "$verifier" nvidia x64
 rm "$work/tar/$variant-bundle/licenses/onnxruntime"
 mv "$work/tar-notices" "$work/tar/$variant-bundle/licenses/onnxruntime"
 tar -C "$work/tar" -czf "$work/out/$variant-linux-x64.tar.gz" "$variant-bundle"
 printf changed > "$work/deb/opt/$variant/licenses/onnxruntime/LICENSE"
 dpkg-deb --build "$work/deb" "$work/out/${variant}_1.0_amd64.deb" >/dev/null
-if bash "$verifier" nvidia x64 >/dev/null 2>&1; then echo 'changed DEB notice passed' >&2; exit 1; fi
+fixture_refuses_quiet 'changed DEB notice passed' bash "$verifier" nvidia x64
 cp "$work/bundle/licenses/onnxruntime/LICENSE" "$work/deb/opt/$variant/licenses/onnxruntime/"
 dpkg-deb --build "$work/deb" "$work/out/${variant}_1.0_amd64.deb" >/dev/null
 printf bad > "$work/tar/$variant-bundle/data/resources/models/fixture_detector.onnx"
 tar -C "$work/tar" -czf "$work/out/$variant-linux-x64.tar.gz" "$variant-bundle"
-if bash "$verifier" nvidia x64 >/dev/null 2>&1; then echo 'changed tar model passed' >&2; exit 1; fi
+fixture_refuses_quiet 'changed tar model passed' bash "$verifier" nvidia x64
 cp "$work/bundle/data/resources/models/fixture_detector.onnx" "$work/tar/$variant-bundle/data/resources/models/"
 tar -C "$work/tar" -czf "$work/out/$variant-linux-x64.tar.gz" "$variant-bundle"
 mv "$work/tar/$variant-bundle/data/resources/models" "$work/model-outside"
 ln -s "$work/model-outside" "$work/tar/$variant-bundle/data/resources/models"
 tar -C "$work/tar" -czf "$work/out/$variant-linux-x64.tar.gz" "$variant-bundle"
-if bash "$verifier" nvidia x64 >/dev/null 2>&1; then echo 'tar model directory escaping package passed' >&2; exit 1; fi
+fixture_refuses_quiet 'tar model directory escaping package passed' bash "$verifier" nvidia x64
 rm "$work/tar/$variant-bundle/data/resources/models"
 mv "$work/model-outside" "$work/tar/$variant-bundle/data/resources/models"
 tar -C "$work/tar" -czf "$work/out/$variant-linux-x64.tar.gz" "$variant-bundle"
 rm "$work/deb/opt/$variant/data/resources/models/fixture_detector.NOTICE"
 dpkg-deb --build "$work/deb" "$work/out/${variant}_1.0_amd64.deb" >/dev/null
-if bash "$verifier" nvidia x64 >/dev/null 2>&1; then echo 'missing DEB model notice passed' >&2; exit 1; fi
+fixture_refuses_quiet 'missing DEB model notice passed' bash "$verifier" nvidia x64
 cp "$work/bundle/data/resources/models/fixture_detector.NOTICE" "$work/deb/opt/$variant/data/resources/models/"
 dpkg-deb --build "$work/deb" "$work/out/${variant}_1.0_amd64.deb" >/dev/null
 printf bad > "$work/appimage/usr/lib/$variant/data/resources/models/fixture_detector.LICENSE"
-if bash "$verifier" nvidia x64 >/dev/null 2>&1; then echo 'changed AppImage model license passed' >&2; exit 1; fi
+fixture_refuses_quiet 'changed AppImage model license passed' bash "$verifier" nvidia x64
 cp "$work/bundle/data/resources/models/fixture_detector.LICENSE" "$work/appimage/usr/lib/$variant/data/resources/models/"
 printf x >> "$work/appimage/usr/lib/$variant/lib/libonnxruntime_providers_cuda.so"
-if bash "$verifier" nvidia x64 >/dev/null 2>&1; then echo 'changed AppImage provider passed' >&2; exit 1; fi
-if bash "$verifier" amd arm64 >/dev/null 2>&1; then echo 'unsupported AMD arm64 passed' >&2; exit 1; fi
+fixture_refuses_quiet 'changed AppImage provider passed' bash "$verifier" nvidia x64
+fixture_refuses_quiet 'unsupported AMD arm64 passed' bash "$verifier" amd arm64
 echo 'GPU candidate package verification fixtures passed'

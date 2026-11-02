@@ -4,8 +4,7 @@ set -euo pipefail
 # shellcheck source=scripts/linux/tests/fixture-common.sh
 source "$(dirname "${BASH_SOURCE[0]}")/fixture-common.sh"
 root="$(fixture_root)"
-work=$(mktemp -d)
-trap 'rm -rf -- "$work"' EXIT
+fixture_workdir
 mkdir -p "$work/bin"
 fixture_xvfb_stub "$work/bin"
 fixture_stub "$work/app" <<'STUB'

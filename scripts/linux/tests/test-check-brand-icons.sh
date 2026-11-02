@@ -3,10 +3,9 @@
 # SPDX-License-Identifier: MIT
 # Tests that every committed launcher icon must derive from the repo logo; the SVG-to-PNG render is not checked.
 set -uo pipefail
-script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-repo="$(cd "${script_dir}/../../.." && pwd)"
 # shellcheck source=scripts/linux/tests/harness-bootstrap.sh
 source "$(dirname "${BASH_SOURCE[0]}")/harness-bootstrap.sh"
+repo="${KATAGLYPHIS_REPO_ROOT}"
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
 check="${repo}/scripts/linux/check-brand-icons.py"

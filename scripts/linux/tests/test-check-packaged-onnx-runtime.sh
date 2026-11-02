@@ -4,8 +4,7 @@ set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/fixture-common.sh"
 root="$(fixture_root)"
 check="$root/scripts/linux/check-packaged-onnx-runtime.sh"
-work=$(mktemp -d)
-trap 'rm -rf -- "$work"' EXIT
+fixture_workdir
 mkdir -p "$work/bin" "$work/bundle/lib" "$work/runner"
 fixture_xvfb_stub "$work/bin"
 fixture_stub "$work/bundle/omni_accelerant" <<'STUB'
@@ -41,11 +40,11 @@ for fault in outside malformed missing mixed; do
 done
 rm "$work/bundle/lib/libonnxruntime.so"
 ln -s /etc/hosts "$work/bundle/lib/libonnxruntime.so"
-if bash "$check" bundle "$work/bundle" >/dev/null 2>&1; then echo 'Escaping runtime symlink accepted' >&2; exit 1; fi
+fixture_refuses_quiet 'Escaping runtime symlink accepted' bash "$check" bundle "$work/bundle"
 rm "$work/bundle/lib/libonnxruntime.so"
 rmdir "$work/bundle/lib"
 mkdir "$work/external"
 touch "$work/external/libonnxruntime.so"
 ln -s "$work/external" "$work/bundle/lib"
-if bash "$check" bundle "$work/bundle" >/dev/null 2>&1; then echo 'Escaping runtime directory accepted' >&2; exit 1; fi
+fixture_refuses_quiet 'Escaping runtime directory accepted' bash "$check" bundle "$work/bundle"
 echo 'Packaged ONNX Runtime loader checks passed'

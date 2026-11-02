@@ -2,9 +2,9 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 # shellcheck source=scripts/linux/lib/ci-lane-libs.sh
 source "$SCRIPT_DIR/../lib/ci-lane-libs.sh"
+REPO_ROOT="$OMNI_LANE_REPO_ROOT"
 source "$SCRIPT_DIR/../lib/packaging-common.sh"
 
 usage() {
