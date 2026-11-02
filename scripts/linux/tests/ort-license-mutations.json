@@ -82,7 +82,7 @@
  {
   "id": "consumer.omni-license-verifier",
   "target": "scripts/linux/lib/flutter-package-license.sh",
-  "find": "  python3 \"$verifier\" \"$artifact\" \"${args[@]}\"",
+  "find": "  python3 \"$verifier\" \"$artifact\" \"${_license_args[@]}\"",
   "replace": "  return 0",
   "test": "bash scripts/linux/tests/test-flutter-package-license.sh",
   "why": "The Flutter artifact and launcher checks must remain effective."
@@ -218,8 +218,8 @@
  {
   "id": "consumer.omni-third-party-assets",
   "target": "scripts/linux/lib/flutter-package-license.sh",
-  "find": "  while IFS= read -r rule; do args+=(--require \"$rule\"); done <<< \"$requires\"",
-  "replace": "  :",
+  "find": "  printf '%s\\n%s\\n' \"$1=${KATAGLYPHIS_REPO_ROOT}/LICENSE\" \"$requires\"",
+  "replace": "  printf '%s\\n' \"$1=${KATAGLYPHIS_REPO_ROOT}/LICENSE\"",
   "test": "bash scripts/linux/tests/test-flutter-package-license.sh",
   "why": "Every package carries the third-party inventory assets."
  },
@@ -258,18 +258,26 @@
  {
   "id": "consumer.espup-verified",
   "target": "scripts/linux/esp32/build-firmware.sh",
-  "find": "download_verified_file \\\"https://github.com/esp-rs/espup/releases/download/\\${ESPUP_VERSION:?}/espup-\\${host}\\\" \\\n    \\\"\\$espup_sha\\\" /opt/esp32/downloads/espup",
-  "replace": "download_file \\\"https://github.com/esp-rs/espup/releases/download/\\${ESPUP_VERSION:?}/espup-\\${host}\\\" \\\n    /opt/esp32/downloads/espup",
+  "find": "fetch_esp_tool espup \\\"\\${ESPUP_VERSION:?}\\\" \\\"espup-\\${host}\\\" \\\"\\$espup_sha\\\" espup",
+  "replace": "download_file \\\"https://github.com/esp-rs/espup/releases/download/\\${ESPUP_VERSION:?}/espup-\\${host}\\\" /opt/esp32/downloads/espup",
   "test": "bash scripts/linux/tests/test-pinned-tool-downloads.sh",
   "why": "espup runs only after its pinned sha256 matches."
  },
  {
   "id": "consumer.espflash-verified",
   "target": "scripts/linux/esp32/build-firmware.sh",
-  "find": "download_verified_file \\\"https://github.com/esp-rs/espflash/releases/download/\\${ESPFLASH_VERSION:?}/espflash-\\${host}.zip\\\" \\\n    \\\"\\$espflash_sha\\\" /opt/esp32/downloads/espflash.zip",
-  "replace": "download_file \\\"https://github.com/esp-rs/espflash/releases/download/\\${ESPFLASH_VERSION:?}/espflash-\\${host}.zip\\\" \\\n    /opt/esp32/downloads/espflash.zip",
+  "find": "fetch_esp_tool espflash \\\"\\${ESPFLASH_VERSION:?}\\\" \\\"espflash-\\${host}.zip\\\" \\\"\\$espflash_sha\\\" espflash.zip",
+  "replace": "download_file \\\"https://github.com/esp-rs/espflash/releases/download/\\${ESPFLASH_VERSION:?}/espflash-\\${host}.zip\\\" /opt/esp32/downloads/espflash.zip",
   "test": "bash scripts/linux/tests/test-pinned-tool-downloads.sh",
   "why": "espflash is unpacked only after its pinned sha256 matches."
+ },
+ {
+  "id": "consumer.esp-tool-helper-verified",
+  "target": "scripts/linux/esp32/build-firmware.sh",
+  "find": "  download_verified_file \\\"https://github.com/esp-rs/\\$1/releases/download/\\$2/\\$3\\\" \\\"\\$4\\\" \\\"/opt/esp32/downloads/\\$5\\\"",
+  "replace": "  download_file \\\"https://github.com/esp-rs/\\$1/releases/download/\\$2/\\$3\\\" \\\"/opt/esp32/downloads/\\$5\\\"",
+  "test": "bash scripts/linux/tests/test-pinned-tool-downloads.sh",
+  "why": "The one firmware tool download must stay checksum-verified."
  },
  {
   "id": "consumer.omni-frb-version",

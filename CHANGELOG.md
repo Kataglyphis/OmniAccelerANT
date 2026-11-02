@@ -42,6 +42,7 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
   `tests/OmniTestFixtures.psm1` the Pester helpers; `WindowsOrtRunner.Common` reports through one
   finding verdict, and `Resolve-RunnerOrtLicense` leaves provider validation to `Assert-RunnerOrtStamp`.
 - The commented-out blocks in `assets/documents/README.md` are gone; the rendered text is unchanged.
+- The license mutation recipes follow the shared helpers, and a new recipe guards the one verified firmware-tool download.
 - **Copies kept on purpose.** `observant/bench/model.sh` stays free of a helper file because it runs alone
   on a board. `package-producer-bundle.sh` keeps its soname loop because it runs inside the build
   container, outside the repo's library tree. The `Package-*` license calls stay in each script
