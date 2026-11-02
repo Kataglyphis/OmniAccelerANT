@@ -20,6 +20,7 @@ probe() {
 t_case 'values, aliases, switches and other arguments land in caller order'
 t_assert_eq 'two|p|on|x y' "$(probe x --value one --switch --phrased p -a two y)"
 t_assert_eq 'default0|default1|off|' "$(probe)"
+t_assert_eq 'default0|default1|off|' "$(probe '')"
 t_assert_eq '-h|default1|off|' "$(probe --value -h)"
 
 t_case 'an unphrased flag accepts an empty value and refuses a missing one'
@@ -36,7 +37,6 @@ t_case 'help exits 0 with the usage text, unknown exits 2'
 t_assert_rc 0 probe --help
 t_assert_contains "$(probe -h)" 'usage: _ --value V'
 t_assert_rc 2 probe --unknown
-t_assert_rc 2 probe ''
 t_assert_contains "$(probe --unknown 2>&1)" 'unknown argument: --unknown'
 
 if [[ "${1:-}" == --values-only ]]; then t_summary; exit; fi
