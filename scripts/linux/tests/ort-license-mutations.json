@@ -422,5 +422,13 @@
   "replace": "rail=/stream",
   "test": "bash scripts/linux/tests/test-app-page-routes.sh",
   "why": "The web check takes its rail routes from the page table, not from a copy."
+ },
+ {
+  "id": "consumer.omni-package-model-from-lock",
+  "target": "scripts/linux/observant/lib/locked-model.sh",
+  "find": "name=\"$(awk '!/^[[:space:]]*#/ && $2 ~ /\\.onnx$/ { print $2; exit }' \"${1:?lock required}\")\"",
+  "replace": "name=deim_dfine_n_coco.onnx",
+  "test": "bash scripts/linux/tests/test-observant-locked-model.sh",
+  "why": "The Linux packager takes the model from the lock, so a lock naming another file needs no script edit."
  }
 ]

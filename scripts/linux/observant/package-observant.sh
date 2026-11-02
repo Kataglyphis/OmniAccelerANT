@@ -9,6 +9,8 @@ source "${script_dir}/../lib/antfrastructure.sh"
 source "${script_dir}/../lib/flutter-package-license.sh"
 # shellcheck source=scripts/linux/lib/bundle-runtime.sh
 source "${script_dir}/../lib/bundle-runtime.sh"
+# shellcheck source=scripts/linux/observant/lib/locked-model.sh
+source "${script_dir}/lib/locked-model.sh"
 antfrastructure_source linux/scripts/06-packaging/ort-wheel-licenses.sh
 
 package=omni-observant
@@ -31,6 +33,7 @@ Usage, from the repository root inside the image:
 
   --web-root DIR   the Flutter web build (the web lane's build/web); required
   --model FILE     ONNX model to ship (default: OxidANT's models.lock, fetched and checked)
+  --models-lock FILE  the lock to fetch from instead of OxidANT's
   --producer FILE  a built kataglyphis_observant (default: cargo build --release here)
   --out DIR        where the packages and the bundle tarball land (default: out/)
   --version X.Y.Z  package version (default: pubspec.yaml's, without +build)
@@ -41,7 +44,7 @@ EOF
 
 # shellcheck source=scripts/linux/lib/entry-options.sh
 source "${script_dir}/../lib/entry-options.sh"
-parse_entry_options usage '' '--web-root=web_root:a directory' '--model=model:a file' '--producer=producer:a file' \
+parse_entry_options usage '' '--web-root=web_root:a directory' '--model=model:a file' '--models-lock=models_lock:a file' '--producer=producer:a file' \
   '--out=out_dir:a directory' '--version=version:a value' -- "$@"
 
 [ -n "${web_root}" ] || { printf -- '--web-root is required\n' >&2; exit 2; }
@@ -100,7 +103,7 @@ if [ -n "${model}" ]; then
   model_name="$(basename "${model}")"
 else
   bash "${repo_root}/third_party/OxidANT/scripts/linux/fetch-models.sh" --lock "${models_lock}" --dest "${bundle}/models"
-  model_name="$(awk '$2 ~ /\.onnx$/ { print $2; exit }' "${models_lock}")"
+  model_name="$(locked_model_name "${models_lock}")"
   mv "${bundle}/models/${model_name%.onnx}.LICENSE" "${bundle}/models/${model_name%.onnx}.NOTICE" "${bundle}/share/doc/${package}/"
 fi
 

@@ -67,7 +67,10 @@ and OxidANT's git trees. It is DEIM's COCO checkpoint: 80 classes, 4 M parameter
   Before you start the app from a checkout, run it yourself. Packaging and its tests take the
   file names from the lock's first `.onnx` row, so a lock naming another model needs no script edit;
   `test-verify-gpu-candidate.sh`, `test-profile-gpu-packages.sh` and the detector model suites run
-  on a fixture lock that does.
+  on a fixture lock that does. `web.yml`'s package jobs also run the real packagers on such a lock
+  (`test-observant-fixture-lock.sh`, `Test-ObservANTFixtureLock.ps1`), reusing the producer just built
+  (about 2 minutes on Linux), and check the finished tar, .deb, AppImage and Windows zip; the flatpak's
+  model files, the fixture MSI and MSIX, and running that model are not covered.
 - **What it changed on the boards** (2026-10-14, against YOLO26n, ONNX Runtime on 2
   threads on a Pi 5, 12 arrival pictures from the three ObservANT cameras and one cat
   photo): it found the cats more often and more surely. A cat at the feeding trough went from

@@ -145,6 +145,15 @@ jobs:
           script: >-
             bash /workspace/scripts/linux/observant/test-observant-update.sh
 
+      # A fresh container, the same flags as Package; the real packager must follow a lock naming another model.
+      - name: Package from a fixture lock
+        uses: Kataglyphis/ANTfrastructure/.github/actions/run-in-linux-container@develop
+        with:
+          extra-args: --privileged --platform "${{ matrix.platform }}"
+          script: >-
+            bash /workspace/scripts/linux/observant/test-observant-fixture-lock.sh
+            /workspace/${{ env.BUILD_DIR_RELEASE }}
+
   # The Windows ObservANT (docs/source/camera-streaming.md § The Windows ObservANT): the MSI around this run's web build, installed in :winamd64.
   observant-windows:
     name: ObservANT package (windows x64)
@@ -214,6 +223,17 @@ jobs:
           file-args: |
             -Msix
             C:\ws\out\omni-observant-*-windows-x64.msix
+
+      # A fresh container; the real packager, without MSI or MSIX, must follow a lock naming another model.
+      - name: Package from a fixture lock
+        uses: Kataglyphis/ANTfrastructure/.github/actions/run-in-windows-container@develop
+        with:
+          file: C:\ws\scripts\windows\observant\Test-ObservANTFixtureLock.ps1
+          file-args: |
+            -WebRoot
+            C:\ws\build\web
+            -Packages
+            C:\ws\out
 
   # Cross-built in the image's arm64 bundle; this x64 host cannot run it, so windows-11-arm installs and tests it.
   observant-windows-arm64:

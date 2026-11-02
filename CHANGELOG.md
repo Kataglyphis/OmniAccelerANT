@@ -12,6 +12,14 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 ### 2026-11-02 (perf-host)
 - **`quality-report.sh --perf-host` latency** in `quality-report.toml`, with `scripts/linux/perf-host.sh`, the app's `--detect-latency` and a tracked `perf/baseline-<cpu>.json`.
 
+### 2026-11-02 (packaging follows the lock)
+- **The real ObservANT packagers run on a fixture lock.** `package-observant.sh --models-lock` and
+  `Package-ObservANT.ps1 -ModelsLock` take the lock to fetch from. `web.yml`'s package jobs repackage
+  with the producer just built and check that the finished tar, .deb, AppImage and Windows zip carry
+  the fixture model and not the shipped one. `windows-x64.yml` also runs
+  `DetectorModelFile.Tests.ps1` by name. New `scripts/linux/observant/lib/locked-model.sh`,
+  `test-observant-locked-model.sh` and recipe `consumer.omni-package-model-from-lock`.
+
 ### 2026-11-02 (one owner per fact)
 - **The model file name comes from OxidANT's `models.lock`.** `verify_detector_model.py` and the new
   `scripts/windows/Get-DetectorModelFile.ps1` read its first `.onnx` row and require the matching

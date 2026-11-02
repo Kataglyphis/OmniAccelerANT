@@ -311,3 +311,11 @@ jobs:
         with:
           path: scripts/windows/tests
           version: '3.4.0'
+
+      # The suite above prints totals only; this one's case names are the model-lock proof.
+      - name: Model file names follow the lock (named)
+        shell: pwsh
+        run: |
+          Import-Module Pester -RequiredVersion 3.4.0
+          $result = Invoke-Pester -Script scripts/windows/tests/DetectorModelFile.Tests.ps1 -PassThru
+          if ($result.FailedCount -ne 0 -or $result.PassedCount -ne 4) { throw 'Model file name fixtures failed or did not all run' }

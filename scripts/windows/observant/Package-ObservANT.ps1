@@ -12,6 +12,8 @@
     The Flutter web build (the web lane's build\web). Required.
 .PARAMETER Model
     An ONNX model to ship instead; default: what OxidANT's resources\models\models.lock names, fetched and checked.
+.PARAMETER ModelsLock
+    The lock to fetch from; default: OxidANT's resources\models\models.lock.
 .PARAMETER Producer
     A built kataglyphis_observant.exe; default: cargo build --release in third_party\OxidANT.
 .PARAMETER Msix
@@ -28,6 +30,7 @@
 param(
     [Parameter(Mandatory)][string]$WebRoot,
     [string]$Model = '',
+    [string]$ModelsLock = '',
     [string]$Producer = '',
     [string]$OutDir = '',
     [string]$Version = '',
@@ -44,7 +47,7 @@ Import-BuildModule @('WindowsBuild.Common', 'WindowsTargetArch.Common', 'Windows
     'WindowsOrtProvenance.Common', 'WindowsOrtPayload.Common', 'WindowsMsix.Common', 'WindowsAppInstallers.Common', 'WindowsMsiLicense.Common', 'WindowsOrtLicense.Common', 'WindowsThirdPartyLicense.Common')
 
 $package = 'omni-observant'
-$modelsLock = Join-Path $repoRoot 'third_party\OxidANT\resources\models\models.lock'
+if (-not $ModelsLock) { $ModelsLock = Join-Path $repoRoot 'third_party\OxidANT\resources\models\models.lock' }
 if (-not $OutDir) { $OutDir = Join-Path $repoRoot 'out' }
 if (-not (Test-Path -LiteralPath (Join-Path $WebRoot 'index.html'))) { throw "no index.html in $WebRoot" }
 if ($Model -and -not (Test-Path -LiteralPath $Model)) { throw "model not found: $Model" }
@@ -135,7 +138,7 @@ if ($Model) {
     $modelName = Split-Path $Model -Leaf
     $modelNotice = 'It was chosen at package time (-Model) and carries its own license.'
 } else {
-    & (Join-Path $repoRoot 'third_party\OxidANT\scripts\windows\Get-Models.ps1') -Lock $modelsLock -Destination $modelDir
+    & (Join-Path $repoRoot 'third_party\OxidANT\scripts\windows\Get-Models.ps1') -Lock $ModelsLock -Destination $modelDir
     $modelName = (Get-ChildItem -LiteralPath $modelDir -Filter '*.onnx' | Select-Object -First 1).Name
     $base = [IO.Path]::GetFileNameWithoutExtension($modelName)
     Move-Item -LiteralPath (Join-Path $modelDir "$base.LICENSE"), (Join-Path $modelDir "$base.NOTICE") -Destination $shareDir
