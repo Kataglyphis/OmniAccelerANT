@@ -25,6 +25,8 @@ class StandInSocket {
     this.onmessage = null;
     this.onclose = null;
     this.onerror = null;
+    this.queue = [];
+    this.scheduled = false;
     server.sockets.push(this);
     if (!server.holdWelcome) this.welcome();
   }
@@ -33,10 +35,22 @@ class StandInSocket {
     this.deliver({ type: "welcome", peerId: this.viewerId });
   }
 
+  // One queue per socket: Chrome clamps nested timers to 4 ms, so a timer per message could overtake an earlier one.
   deliver(msg) {
-    setTimeout(() => {
-      if (this.open && this.onmessage) this.onmessage({ data: JSON.stringify(msg) });
-    }, 0);
+    this.queue.push(msg);
+    if (this.scheduled) return;
+    this.scheduled = true;
+    setTimeout(() => this.deliverNext(), 0);
+  }
+
+  deliverNext() {
+    const msg = this.queue.shift();
+    if (this.queue.length > 0) {
+      setTimeout(() => this.deliverNext(), 0);
+    } else {
+      this.scheduled = false;
+    }
+    if (this.open && this.onmessage) this.onmessage({ data: JSON.stringify(msg) });
   }
 
   send(text) {

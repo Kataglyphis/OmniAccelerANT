@@ -1,10 +1,5 @@
 #!/usr/bin/env bash
-# Builds the ESP32-S3-EYE camera firmware: ESP-WHO/ESP-DL cat detection (C++) plus the
-# Rust USB protocol layer (staticlib), in the official ESP-IDF image.
-#
-#   scripts/linux/esp32/build-eye-demo.sh
-#   scripts/linux/esp32/build-eye-demo.sh --flash
-#   scripts/linux/esp32/build-eye-demo.sh --flash --port /dev/ttyACM0
+# Builds the ESP32-S3-EYE camera firmware in the official ESP-IDF image; usage() lists the options.
 set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
@@ -17,28 +12,22 @@ port="${ESP32_PORT:-/dev/ttyACM0}"
 flash=0
 
 usage() {
-    sed -n '2,7p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+    cat <<'EOF'
+Builds the ESP32-S3-EYE camera firmware: ESP-WHO/ESP-DL cat detection (C++) plus the
+Rust USB protocol layer (staticlib), in the official ESP-IDF image.
+
+  scripts/linux/esp32/build-eye-demo.sh
+  scripts/linux/esp32/build-eye-demo.sh --flash
+  scripts/linux/esp32/build-eye-demo.sh --flash --port /dev/ttyACM0
+EOF
 }
 
-while [[ $# -gt 0 ]]; do
-    case "$1" in
-        --flash) flash=1; shift ;;
-        --port) port="${2:?--port needs a device}"; shift 2 ;;
-        --image) image="${2:?--image needs a tag}"; shift 2 ;;
-        --engine) engine="${2:?--engine needs a binary}"; shift 2 ;;
-        -h|--help) usage; exit 0 ;;
-        *) echo "unknown argument: $1" >&2; usage >&2; exit 2 ;;
-    esac
-done
+# shellcheck source=scripts/linux/esp32/firmware-cli.sh
+source "$(dirname "${BASH_SOURCE[0]}")/firmware-cli.sh"
+parse_entry_options usage esp32_refuse_argument '+--flash=flash=1' \
+    '--port=port:a device' '--image=image:a tag' '--engine=engine:a binary' -- "$@"
 
-command -v "$engine" >/dev/null 2>&1 || {
-    echo "container engine not found: $engine" >&2
-    exit 2
-}
-if [[ "$flash" == 1 && ! -c "$port" ]]; then
-    echo "flash requested but $port is not a character device" >&2
-    exit 2
-fi
+esp32_check_host "$engine" "$flash" "$port"
 
 if [[ ! -d "$who/.git" ]]; then
     echo "cloning ESP-WHO into $who"
@@ -49,13 +38,19 @@ if ! git -C "$who" rev-parse --verify --quiet "$who_ref" >/dev/null; then
 fi
 git -C "$who" checkout -f "$who_ref"
 
-# The terminal app prints detections a serial monitor can check (the LCD app only shows them); idempotent.
-python3 - "$who/examples/object_detect/main/app_main.cpp" <<'PY'
-import sys
+# patch_source <file> <<'PY': runs the body with `source` holding the file's text, then writes `source` back.
+patch_source() {
+  python3 -c "import sys
 from pathlib import Path
 
 path = Path(sys.argv[1])
 source = path.read_text()
+$(cat)
+path.write_text(source)" "$1"
+}
+
+# The terminal app prints detections a serial monitor can check (the LCD app only shows them); idempotent.
+patch_source "$who/examples/object_detect/main/app_main.cpp" <<'PY'
 if "    run_detect_term();" not in source:
     source = source.replace("    run_detect_lcd();", "    // run_detect_lcd();")
     source = source.replace(
@@ -73,16 +68,10 @@ if "omni_proto_start();" not in source:
         "    vTaskPrioritySet(xTaskGetCurrentTaskHandle(), 5);",
         "    vTaskPrioritySet(xTaskGetCurrentTaskHandle(), 5);\n    omni_proto_start();",
     )
-path.write_text(source)
 PY
 
 # The callback runs on the detect task; count and best score go to the Rust task, which owns the USB frames.
-python3 - "$who/components/who_app/who_detect_app/who_detect_app_term.cpp" <<'PY'
-import sys
-from pathlib import Path
-
-path = Path(sys.argv[1])
-source = path.read_text()
+patch_source "$who/components/who_app/who_detect_app/who_detect_app_term.cpp" <<'PY'
 if '#include "omni_proto.h"' not in source:
     source = source.replace(
         '#include "who_yield2idle.hpp"',
@@ -108,7 +97,6 @@ new = """void WhoDetectAppTerm::detect_result_cb(const detect::WhoDetect::result
 }"""
 if old in source:
     source = source.replace(old, new)
-path.write_text(source)
 PY
 
 # esp-dl 3.3.13 changed the image API (RGB565 LE/BE, img_t::bytes(), sw_decode_jpeg) after the pinned ESP-WHO.

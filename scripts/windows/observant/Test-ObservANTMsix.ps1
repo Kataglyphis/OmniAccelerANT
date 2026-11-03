@@ -21,27 +21,21 @@ $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 . (Join-Path $PSScriptRoot '..\Resolve-BuildModule.ps1')
 Import-BuildModule 'WindowsSmokeTest.Common'
+Import-BuildModule 'WindowsInstallerCheck.Common'
 Initialize-SmokeTestRun
 
 $packageName = 'Kataglyphis.OmniAccelerANTObservANT'
-$msixFiles = @(Get-ChildItem -Path $Msix -File)
-if ($msixFiles.Count -ne 1) { throw "-Msix must name exactly one MSIX; $Msix matches $($msixFiles.Count)" }
-$Msix = $msixFiles[0].FullName
+$Msix = Resolve-OneFile $Msix 'Msix' 'MSIX'
 
 Write-Host '=== the package ==='
-Assert-Test -Name "it is signed by $Publisher" { (Get-AuthenticodeSignature -LiteralPath $Msix).SignerCertificate.Subject -eq $Publisher }
-$facts = Get-MsixArchiveInfo -Path $Msix
-$manifest = $facts.Manifest
-$entries = $facts.Entries
-$ns = [System.Xml.XmlNamespaceManager]::new($manifest.NameTable)
-$ns.AddNamespace('m', 'http://schemas.microsoft.com/appx/manifest/foundation/windows10')
+$view = Get-CheckedMsixView -Path $Msix -Publisher $Publisher
+$manifest = $view.Manifest
+$entries = $view.Entries
+$ns = $view.Ns
 $ns.AddNamespace('desktop', 'http://schemas.microsoft.com/appx/manifest/desktop/windows10')
 $ns.AddNamespace('desktop2', 'http://schemas.microsoft.com/appx/manifest/desktop/windows10/2')
-$identity = $manifest.SelectSingleNode('/m:Package/m:Identity', $ns)
-# GetAttribute: unambiguous where an attribute shares its name with an XmlNode property.
-Assert-Test -Name 'its identity names ObservANT and the signing publisher' {
-    $identity.GetAttribute('Name') -eq $packageName -and $identity.GetAttribute('Publisher') -eq $Publisher
-}
+Assert-MsixIdentity -Identity $view.Identity -Label 'its identity names ObservANT and the signing publisher' `
+    -Expected @{ Name = $packageName; Publisher = $Publisher }
 Assert-Test -Name 'it starts at logon through a startup task' {
     $task = $manifest.SelectSingleNode('//desktop:StartupTask', $ns)
     $task -and $task.Enabled -eq 'true'
@@ -55,7 +49,7 @@ Assert-Test -Name 'it opens 8080/tcp and the ICE range on private and domain net
 }
 Assert-Test -Name 'it carries the exe, its plugins, the scanner, ORT, the model and the page' {
     foreach ($e in 'kataglyphis_observant.exe', 'onnxruntime.dll', 'lib/gstreamer-1.0/gstrswebrtc.dll',
-        'libexec/gstreamer-1.0/gst-plugin-scanner.exe', 'models/deim_dfine_n_coco.onnx', 'web/index.html') {
+        'libexec/gstreamer-1.0/gst-plugin-scanner.exe', "models/$(@(& (Join-Path $PSScriptRoot '..\Get-DetectorModelFile.ps1'))[0])", 'web/index.html') {
         if ($entries -notcontains $e) { throw "missing from the package: $e" }
     }
     $true
@@ -85,19 +79,9 @@ $taskKey = "HKCU:\Software\Classes\Local Settings\Software\Microsoft\Windows\Cur
 Write-Host "      startup task state: $(if (Test-Path $taskKey) { (Get-ItemProperty $taskKey).State } else { 'not registered yet' })"
 
 $proc = Start-Process -FilePath $alias -ArgumentList '--camera', 'test', '--inference', 'off' -PassThru -WindowStyle Minimized
-$health = $null
-$deadline = (Get-Date).AddSeconds(40)
-do {
-    $health = try { (Invoke-WebRequest -UseBasicParsing -TimeoutSec 2 http://127.0.0.1:8080/healthz).Content } catch { $null }
-    if (-not $health) { Start-Sleep -Milliseconds 500 }
-} until ($health -or (Get-Date) -gt $deadline)
-Write-Host "      healthz: $health"
-Assert-Test -Name 'started through the alias, it answers /healthz' { $health -match '"ok":true' }
+$null = Assert-Healthz -Label 'started through the alias, it answers /healthz'
 $running = Get-Process kataglyphis_observant -ErrorAction SilentlyContinue | Select-Object -First 1
-$foreign = @($running.Modules | ForEach-Object FileName | Where-Object {
-        -not $_.StartsWith($pkg.InstallLocation, [StringComparison]::OrdinalIgnoreCase) -and
-        -not $_.StartsWith($env:SystemRoot, [StringComparison]::OrdinalIgnoreCase)
-    })
+$foreign = @(Select-ForeignModule -Process $running -Root $pkg.InstallLocation, $env:SystemRoot)
 if ($foreign) { Write-Host "      outside: $($foreign -join ', ')" }
 Assert-Test -Name 'it loads modules only from its package and Windows' { $running -and $foreign.Count -eq 0 }
 Get-Process kataglyphis_observant -ErrorAction SilentlyContinue | Stop-Process -Force

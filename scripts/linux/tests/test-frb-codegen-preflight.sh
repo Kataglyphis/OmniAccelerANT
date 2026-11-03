@@ -1,9 +1,12 @@
 #!/usr/bin/env bash
 # Run the actual generator wrapper against isolated controlled outputs.
+
+# suite-runner: .github/workflows/linux-x64.yml
 set -euo pipefail
-repo=$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)
-work=$(mktemp -d)
-trap 'rm -rf -- "$work"' EXIT
+# shellcheck source=scripts/linux/tests/fixture-common.sh
+source "$(dirname "${BASH_SOURCE[0]}")/fixture-common.sh"
+repo="$(fixture_root)"
+fixture_workdir
 mkdir -p "$work/bin" "$work/repo/scripts/linux" "$work/repo/third_party/OxidANT/src" "$work/repo/lib/src/rust" \
   "$work/repo/third_party/OxidANT/scripts/linux" "$work/repo/third_party/ANTfrastructure/linux/scripts/01-core"
 cp "$repo/scripts/linux/generate-frb-bindings.sh" "$work/repo/scripts/linux/"
@@ -17,9 +20,7 @@ flutter_rust_bridge = "=2.13.0"
 [lib]
 name = "oxidant"
 TOML
-cat > "$work/bin/git" <<'FAKE'
-#!/usr/bin/env bash
-set -euo pipefail
+fixture_stub "$work/bin/git" <<'FAKE'
 case "$1" in
   ls-files)
     if [[ "$2" == --stage ]]; then
@@ -60,9 +61,7 @@ if [[ "$1" == expand ]]; then echo 'cargo-expand 1.0.127'; exit 0; fi
 [[ "$1" == metadata ]]
 [[ ${FAKE_METADATA_FAIL:-0} != 1 ]]
 FAKE
-cat > "$work/bin/flutter_rust_bridge_codegen" <<'FAKE'
-#!/usr/bin/env bash
-set -euo pipefail
+fixture_stub "$work/bin/flutter_rust_bridge_codegen" <<'FAKE'
 if [[ "$1" == --version ]]; then
   printf 'flutter_rust_bridge_codegen %s\n' "${FAKE_BINARY_VERSION:-2.13.0}"
   exit 0

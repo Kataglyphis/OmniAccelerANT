@@ -241,6 +241,19 @@ jobs:
           path: ${{ runner.temp }}/omni-clean-receipt.json
           overwrite: false
           if-no-files-found: error
+      # Only reached when this job's checks passed; release.yml collects this name.
+      - name: Download the checked GPU packages
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: unverified-omni-${{ matrix.vendor }}-linux-${{ matrix.arch }}-${{ needs.preflight.outputs.selection }}-${{ needs.preflight.outputs.scope }}-attempt-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/gpu-release-packages
+      - name: Upload the checked GPU packages
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: omni-accelerant-gpu-${{ matrix.vendor }}-linux-${{ matrix.arch }}-${{ needs.preflight.outputs.scope }}
+          overwrite: true
+          if-no-files-found: error
+          path: ${{ runner.temp }}/gpu-release-packages/*
 
   gpu-profile:
     if: ${{ !cancelled() && inputs.verify-gpu && needs.preflight.result == 'success' && (needs.candidate.result == 'success' || needs.candidate.result == 'failure') && (needs.clean-host.result == 'success' || needs.clean-host.result == 'failure') }}

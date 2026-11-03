@@ -472,7 +472,8 @@ over HTTP (`CHECK_FALLBACK_FONTS=1`) and lists their OFL notice on the licences 
 
 `bash scripts/linux/check-web-browser.sh` runs the hub's
 [Node/Chrome check](../../third_party/ANTfrastructure/docs/ftp-deploys.md#the-live-site-check)
-over all branches and configured blog routes. It serves an idle ObservANT fixture with the
+over all branches and configured blog routes; `scripts/linux/app-page-routes.sh` reads the
+navigation routes from `lib/app_pages.dart` and fails on a table it cannot read. It serves an idle ObservANT fixture with the
 real signalling handshake, empty producer lists, settings, health and a valid snapshot; a
 physical camera is unnecessary. External hosts and browser errors stay forbidden. The fixture
 does not test media playback; the ObservANT package tests do.
@@ -488,6 +489,14 @@ Measured on 2026-10-22 in image digest `sha256:3c558d8828553ea2e3feedb97c99e15bb
 build files returned 200 and `version.json` matched. The HTTP smoke served all 18 locked fonts;
 all three planted failures were rejected. The new scrolling check caught fallback-font
 requests on About and the blog overview before the local-font fix.
+
+## Entry-script flags
+
+`scripts/linux/lib/entry-options.sh` is the flag loop of the APK, closure, toolchain, format, ESP32
+and ObservANT scripts. A spec is `--flag=var`, `--flag=var:phrase` (also refuses an empty value, as
+`--flag needs phrase`) or `+--flag=var=value` (takes no argument). `other-fn` receives each remaining
+argument and returns 0 when it consumed it. It runs before the hub submodule exists and does not
+validate what it assigns. `test-entry-options.sh` grades the contract, each script's suite its values.
 
 ## CI/CD Notes
 

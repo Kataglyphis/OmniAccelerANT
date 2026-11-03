@@ -1,25 +1,16 @@
 #!/usr/bin/env bash
-# Packages ObservANT: a self-contained bundle (its own GStreamer, ONNX Runtime and C library), a .deb and an
-# AppImage that install it as a systemd service, and a flatpak started at sign-in. Runs privileged in the image;
-# riscv64 gets the .deb and the tarball only.
-#
-# Usage, from the repository root inside the image:
-#   bash scripts/linux/observant/package-observant.sh --web-root build/web [options]
-#
-#   --web-root DIR   the Flutter web build (the web lane's build/web); required
-#   --model FILE     ONNX model to ship (default: OxidANT's models.lock, fetched and checked)
-#   --producer FILE  a built kataglyphis_observant (default: cargo build --release here)
-#   --out DIR        where the packages and the bundle tarball land (default: out/)
-#   --version X.Y.Z  package version (default: pubspec.yaml's, without +build)
-#
-# Details: docs/source/camera-streaming.md § ObservANT package.
+# Packages ObservANT as a bundle, .deb, AppImage and flatpak inside the image; usage() lists the options.
 set -euo pipefail
 
-script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-repo_root="$(cd -- "${script_dir}/../../.." && pwd)"
+# shellcheck source=scripts/linux/observant/lib/script-paths.sh
+source "$(dirname -- "${BASH_SOURCE[0]}")/lib/script-paths.sh"
 # shellcheck source=scripts/linux/lib/antfrastructure.sh
 source "${script_dir}/../lib/antfrastructure.sh"
 source "${script_dir}/../lib/flutter-package-license.sh"
+# shellcheck source=scripts/linux/lib/bundle-runtime.sh
+source "${script_dir}/../lib/bundle-runtime.sh"
+# shellcheck source=scripts/linux/observant/lib/locked-model.sh
+source "${script_dir}/lib/locked-model.sh"
 antfrastructure_source linux/scripts/06-packaging/ort-wheel-licenses.sh
 
 package=omni-observant
@@ -31,17 +22,30 @@ producer=""
 out_dir="${repo_root}/out"
 version=""
 
-while [ $# -gt 0 ]; do
-  case "$1" in
-    --web-root) web_root="${2:?--web-root needs a directory}"; shift 2 ;;
-    --model) model="${2:?--model needs a file}"; shift 2 ;;
-    --producer) producer="${2:?--producer needs a file}"; shift 2 ;;
-    --out) out_dir="${2:?--out needs a directory}"; shift 2 ;;
-    --version) version="${2:?--version needs a value}"; shift 2 ;;
-    -h|--help) sed -n '2,15p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit 0 ;;
-    *) printf 'unknown argument: %s\n' "$1" >&2; exit 2 ;;
-  esac
-done
+usage() {
+  cat <<'EOF'
+Packages ObservANT: a self-contained bundle (its own GStreamer, ONNX Runtime and C library), a .deb and an
+AppImage that install it as a systemd service, and a flatpak started at sign-in. Runs privileged in the image;
+riscv64 gets the .deb and the tarball only.
+
+Usage, from the repository root inside the image:
+  bash scripts/linux/observant/package-observant.sh --web-root build/web [options]
+
+  --web-root DIR   the Flutter web build (the web lane's build/web); required
+  --model FILE     ONNX model to ship (default: OxidANT's models.lock, fetched and checked)
+  --models-lock FILE  the lock to fetch from instead of OxidANT's
+  --producer FILE  a built kataglyphis_observant (default: cargo build --release here)
+  --out DIR        where the packages and the bundle tarball land (default: out/)
+  --version X.Y.Z  package version (default: pubspec.yaml's, without +build)
+
+Details: docs/source/camera-streaming.md § ObservANT package.
+EOF
+}
+
+# shellcheck source=scripts/linux/lib/entry-options.sh
+source "${script_dir}/../lib/entry-options.sh"
+parse_entry_options usage '' '--web-root=web_root:a directory' '--model=model:a file' '--models-lock=models_lock:a file' '--producer=producer:a file' \
+  '--out=out_dir:a directory' '--version=version:a value' -- "$@"
 
 [ -n "${web_root}" ] || { printf -- '--web-root is required\n' >&2; exit 2; }
 [ -f "${web_root}/index.html" ] || { printf 'no index.html in %s\n' "${web_root}" >&2; exit 1; }
@@ -99,7 +103,7 @@ if [ -n "${model}" ]; then
   model_name="$(basename "${model}")"
 else
   bash "${repo_root}/third_party/OxidANT/scripts/linux/fetch-models.sh" --lock "${models_lock}" --dest "${bundle}/models"
-  model_name="$(awk '$2 ~ /\.onnx$/ { print $2; exit }' "${models_lock}")"
+  model_name="$(locked_model_name "${models_lock}")"
   mv "${bundle}/models/${model_name%.onnx}.LICENSE" "${bundle}/models/${model_name%.onnx}.NOTICE" "${bundle}/share/doc/${package}/"
 fi
 
@@ -110,8 +114,7 @@ plugins=(coreelements app videoconvertscale videorate videofilter videotestsrc r
 # H.264 is a second codec offer (VP8 alone streams to every browser); libcamerasrc sits beside the image's libcamera.
 gst_copy_args=(--plugin-dir "${gst_plugin_dir}" --plugin-dir "${LIBCAMERA_PREFIX:-/opt/libcamera}/lib/gstreamer-1.0"
   --optional openh264 --optional libcamera)
-for plugin in "${plugins[@]}"; do gst_copy_args+=(--plugin "${plugin}"); done
-bash "$(antfrastructure_path linux/scripts/06-packaging/gstreamer-bundle.sh)" copy --dest "${bundle}/lib/gstreamer-1.0" "${gst_copy_args[@]}"
+gst_copy_bundle_plugins "${bundle}/lib/gstreamer-1.0" "${gst_copy_args[@]}" -- "${plugins[@]}"
 
 # webrtcsink's codec discovery needs a registry built by the scanner, under the bundled loader too.
 scanner="$(find /opt/gstreamer -name gst-plugin-scanner -type f 2>/dev/null | head -1 || true)"
@@ -276,16 +279,20 @@ appdir="${work}/appdir"
 cp -a "${bundle}" "${appdir}"
 ln -s observant "${appdir}/AppRun"
 install -m 644 "${repo_root}/images/logo.svg" "${appdir}/${package}.svg"
-cat > "${appdir}/${package}.desktop" <<DESKTOP
+# write_desktop_entry <file> <exec> <icon>: AppImage and Flatpak differ only in what they start and which icon they name.
+write_desktop_entry() {
+  cat > "$1" <<DESKTOP
 [Desktop Entry]
 Type=Application
 Name=ObservANT
 Comment=Camera, cat detection boxes and a WebRTC stream for any browser on the network
-Exec=observant
-Icon=${package}
+Exec=$2
+Icon=$3
 Categories=AudioVideo;Video;
 Terminal=true
 DESKTOP
+}
+write_desktop_entry "${appdir}/${package}.desktop" observant "${package}"
 antfrastructure_source linux/scripts/lib/app-packaging.sh
 runtime_file="$(app_packaging_appimage_runtime_file)"
 appimage_file="${out_dir}/${package}-${version}-$(uname -m).AppImage"
@@ -305,16 +312,7 @@ package_observant_flatpak() {
   cp -a "${bundle}/." "${flatpak_work}/files/bundle/"
   install -m 755 "${script_dir}/package/flatpak-omni-observant" "${flatpak_work}/files/omni-observant"
   install -m 644 "${repo_root}/images/logo.svg" "${flatpak_work}/files/${flatpak_id}.svg"
-  cat > "${flatpak_work}/files/${flatpak_id}.desktop" <<DESKTOP
-[Desktop Entry]
-Type=Application
-Name=ObservANT
-Comment=Camera, cat detection boxes and a WebRTC stream for any browser on the network
-Exec=omni-observant
-Icon=${flatpak_id}
-Categories=AudioVideo;Video;
-Terminal=true
-DESKTOP
+  write_desktop_entry "${flatpak_work}/files/${flatpak_id}.desktop" omni-observant "${flatpak_id}"
   runtime_version="$(sed -n 's/^FLATPAK_RUNTIME_VERSION=//p' "$(antfrastructure_path linux/scripts/01-core/versions.env)")"
   [ -n "${runtime_version}" ] || { printf 'no FLATPAK_RUNTIME_VERSION in the hub versions.env\n' >&2; exit 1; }
   # The image may lag the hub's pin, so fetch the runtime pair from Flathub.

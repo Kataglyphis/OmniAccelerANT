@@ -4,17 +4,14 @@
 set -uo pipefail
 
 repo="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
-# shellcheck source=scripts/linux/lib/antfrastructure.sh
-source "${repo}/scripts/linux/lib/antfrastructure.sh"
-_harness="$(antfrastructure_path linux/scripts/lib/test-harness.sh)" || exit 1
-# shellcheck source=third_party/ANTfrastructure/linux/scripts/lib/test-harness.sh
-source "${_harness}"
+# shellcheck source=scripts/linux/tests/harness-bootstrap.sh
+source "$(dirname "${BASH_SOURCE[0]}")/harness-bootstrap.sh"
 work="$(mktemp -d)" || exit 1
 trap 'rm -rf -- "${work}"' EXIT
 helper="${ESPUP_ENV_LIB:-${repo}/scripts/linux/lib/espup-env.sh}"
 
 probe() {
-  env HOME="${work}/home" ESPUP_HOME="${work}/espup" bash -c '
+  env -u RUSTUP_HOME -u CARGO_HOME HOME="${work}/home" ESPUP_HOME="${work}/espup" bash -c '
     set -euo pipefail
     source "$1"
     omni_espup_environment
@@ -52,9 +49,7 @@ if [[ "${1:-}" == --values-only ]]; then t_summary; fi
 printf 'export ESPUP_MARK=preferred\n' > "${work}/espup/export.sh"
 sed 's|export CARGO_HOME="${espup_home}/cargo"|export CARGO_HOME=broken|' "$helper" > "${work}/mutant.sh"
 grep -Fq 'export CARGO_HOME=broken' "${work}/mutant.sh" || exit 1
-t_case 'a wrong Cargo home breaks the shared environment assertions'
-mutant_output="$(ESPUP_ENV_LIB="${work}/mutant.sh" bash "$0" --values-only 2>&1)" && mutant_rc=0 || mutant_rc=$?
-t_assert_eq 1 "$mutant_rc"
-t_assert_contains "$mutant_output" 'FAIL'
+t_mutant_breaks_suite 'a wrong Cargo home breaks the shared environment assertions' \
+  ESPUP_ENV_LIB "${work}/mutant.sh" --values-only
 
 t_summary

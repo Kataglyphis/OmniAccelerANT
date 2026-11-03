@@ -14,7 +14,10 @@ antfrastructure_source linux/scripts/05-frameworks/flutter/lane-prologue.sh
 # is_truthy plus a bare "y" and mixed case.
 maybe_truthy() {
   local value="${1:-}"
-  is_truthy "${value,,}" || [[ "${value,,}" == "y" ]]
+  if is_truthy "${value,,}" || [[ "${value,,}" == "y" ]]; then
+    return 0
+  fi
+  return 1
 }
 
 # Tracked files only (AGENTS.md § 4); the driver resolves on its own line, as set -e is off inside run_gate.
@@ -100,6 +103,27 @@ run_launch_smoke() {
   launch_for "${2:-20}" "$(basename "$exe")" "$exe"
 }
 
+# <exe> <photo>: two confident cats in the photo pass and a blank frame fails, through the app's own decoder and bridge.
+run_detect_check() {
+  local exe="${1:?executable required}" photo="${2:?photo required}" blank rc=0
+  blank="$(mktemp --suffix=.png)"
+  # A subshell keeps the harness's handlers out of the lane; a flat-colour frame has nothing to detect.
+  (antfrastructure_source linux/scripts/lib/test-harness.sh && t_write_png "$blank" 64 64) || { rm -f "$blank"; return 1; }
+  xvfb-run -a timeout 120 "$exe" --detect-check "$photo" || rc=$?
+  if [[ "$rc" -ne 0 ]]; then
+    rm -f "$blank"
+    echo "[Error] --detect-check ${photo} exited ${rc}: fewer than two confident cats" >&2
+    return 1
+  fi
+  xvfb-run -a timeout 120 "$exe" --detect-check "$blank" || rc=$?
+  rm -f "$blank"
+  if [[ "$rc" -ne 1 ]]; then
+    echo "[Error] --detect-check on a blank image exited ${rc}, not 1" >&2
+    return 1
+  fi
+  echo "[Info] --detect-check passed on ${photo} and failed on a blank image"
+}
+
 # The image's glibc is the bundled one, so the launcher takes the host's path; this forces the bundled loader.
 run_bundled_glibc_launch_smoke() {
   local exe="${1:?executable required}"
@@ -133,7 +157,16 @@ run_flatpak_launch_smoke() {
 # A debug build under build/linux/<arch>/debug, so the release bundle stays as packaged; non-incremental cargo is sccache-cacheable.
 run_integration_test() {
   local target="${1:-integration_test/simple_test.dart}"
-  CARGO_INCREMENTAL=0 xvfb-run -a flutter test "$target" -d linux
+  shift || true
+  CARGO_INCREMENTAL=0 xvfb-run -a flutter test "$target" -d linux "$@"
+}
+
+# <dir>: the hub's tiny GenAI model and the language models OxidANT's llm.lock pins, fetched and checked by sha256.
+prepare_text_models() {
+  local dir="${1:?model directory required}"
+  python3 "$(antfrastructure_path linux/scripts/lib/tiny-genai-model.py)" --out "${dir}/tiny"
+  python3 "$(antfrastructure_path linux/scripts/lib/fetch-data-lock.py)" \
+    --lock third_party/OxidANT/resources/models/llm.lock --dest "$dir" --extract
 }
 
 # Frame timings in profile mode, kept in out/perf/frontend.json: the docs step's flutter clean empties build/ afterwards.
@@ -152,9 +185,8 @@ run_cmake_format_check() {
   fi
   antfrastructure_source linux/scripts/lib/code-quality.sh || return 1
 
-  CODE_QUALITY_VENV_DIR="${PWD}/.venv"
   # Bare call: its failures exit via err(), and only run_gate's subshell turns that into a recorded failure.
-  code_quality_ensure_cmake_format
+  CODE_QUALITY_VENV_DIR="${PWD}/.venv" code_quality_ensure_cmake_format
 
   if [[ ! -f .cmake-format.yaml ]]; then
     echo "Error: no .cmake-format.yaml at the repo root; without it cmake-format silently" >&2

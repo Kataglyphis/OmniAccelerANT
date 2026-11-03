@@ -1,35 +1,31 @@
 #!/usr/bin/env bash
 # Check packaged detector outputs and ORT placement on CPU and the requested GPU.
 set -euo pipefail
-if [[ $# -lt 4 || $# -gt 5 ]]; then
-  echo 'usage: profile-gpu-candidate.sh BUNDLE cuda|migraphx FIXTURE NEW_EVIDENCE_DIR [LAUNCHER]' >&2; exit 2
-fi
+# shellcheck source=scripts/linux/lib/gpu-script-common.sh
+source "$(dirname "${BASH_SOURCE[0]}")/lib/gpu-script-common.sh"
+gpu_require_argc $# 4 5 'profile-gpu-candidate.sh BUNDLE cuda|migraphx FIXTURE NEW_EVIDENCE_DIR [LAUNCHER]'
 bundle=$(realpath -e "$1") provider=$2 fixture=$(realpath -e "$3") evidence=$4 launcher=${5:-"$bundle/omni_accelerant"}
-case "$provider" in cuda|migraphx) ;; *) echo 'Unsupported GPU provider' >&2; exit 2 ;; esac
+case "$provider" in cuda|migraphx) ;; *) gpu_die 2 'Unsupported GPU provider' ;; esac
 repo=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
-script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+script_dir=$GPU_SCRIPT_DIR
 # shellcheck source=/dev/null
 source "$script_dir/lib/verify-onnx-loader-trace.sh"
 hub="$repo/third_party/ANTfrastructure"
 helper="$hub/linux/scripts/lib/gpu-profile-env.sh"
 shared="$hub/shared/python"
-[[ -x "$bundle/omni_accelerant" && -f "$bundle/lib/libonnxruntime.so" && -x "$launcher" && -f "$fixture" && -f "$helper" ]] || {
-  echo 'Candidate, ONNX Runtime, fixture or pinned GPU environment helper missing' >&2; exit 1;
-}
+[[ -x "$bundle/omni_accelerant" && -f "$bundle/lib/libonnxruntime.so" && -x "$launcher" && -f "$fixture" && -f "$helper" ]] || gpu_die 1 'Candidate, ONNX Runtime, fixture or pinned GPU environment helper missing'
 ort=$(realpath -e "$bundle/lib/libonnxruntime.so")
-case "$ort" in "$bundle/lib/"*) ;; *) echo 'Packaged ONNX Runtime escapes the bundle' >&2; exit 1 ;; esac
+gpu_assert_inside "$ort" "$bundle/lib" 'Packaged ONNX Runtime escapes the bundle'
 image_runtime_root=
 if [[ $# -eq 5 ]]; then
-  [[ ${APPIMAGE_EXTRACT_AND_RUN:-} == 1 && -n ${TMPDIR:-} ]] || { echo 'AppImage profile needs an isolated extraction directory' >&2; exit 1; }
+  [[ ${APPIMAGE_EXTRACT_AND_RUN:-} == 1 && -n ${TMPDIR:-} ]] || gpu_die 1 'AppImage profile needs an isolated extraction directory'
   image_runtime_root=$(realpath -e "$TMPDIR")
 fi
 # shellcheck source=/dev/null
 source "$helper"
-declare -F gpu_without_migraphx_overrides >/dev/null || { echo 'Pinned GPU environment helper lacks its API' >&2; exit 1; }
-[[ -f "$shared/verify_ort_profile.py" && -f "$shared/compare_detector_parity.py" ]] || { echo 'Pinned profiling or parity helper missing' >&2; exit 1; }
-[[ $(python3 -I "$shared/verify_ort_profile.py" --help) == *--min-runs* && $(python3 -I "$shared/compare_detector_parity.py" --help) == *--pairwise* ]] || {
-  echo 'Pinned profiling or parity helper is too old' >&2; exit 1;
-}
+declare -F gpu_without_migraphx_overrides >/dev/null || gpu_die 1 'Pinned GPU environment helper lacks its API'
+[[ -f "$shared/verify_ort_profile.py" && -f "$shared/compare_detector_parity.py" ]] || gpu_die 1 'Pinned profiling or parity helper missing'
+[[ $(python3 -I "$shared/verify_ort_profile.py" --help) == *--min-runs* && $(python3 -I "$shared/compare_detector_parity.py" --help) == *--pairwise* ]] || gpu_die 1 'Pinned profiling or parity helper is too old'
 printf '%s  %s\n' '6d375ac20fadfd400b3033084f8b0581dcc145f7c14e3b24b97975e379c52999' "$fixture" | sha256sum -c -
 python3 -I "$repo/scripts/windows/verify_detector_model.py" "$hub/linux/scripts/lib/fetch-data-lock.py" \
   "$repo/third_party/OxidANT/resources/models/models.lock" "$bundle/data/resources/models" --root "$bundle"
@@ -66,7 +62,7 @@ for mode in cpu gpu; do
     omni_verify_ort_loader_trace bundle "$bundle/lib" '' "$evidence/$mode-loader"
   fi
   profiles=("$evidence/$mode-profile"*.json)
-  [[ ${#profiles[@]} -eq 1 ]] || { echo "Expected one $mode ORT profile" >&2; exit 1; }
+  [[ ${#profiles[@]} -eq 1 ]] || gpu_die 1 "Expected one $mode ORT profile"
   python3 -I "$shared/verify_ort_profile.py" "${profiles[0]}" --device "$device" --min-runs 2
 done
 python3 -I "$shared/compare_detector_parity.py" "$evidence/cpu-1.json" "$evidence/cpu-2.json"

@@ -14,6 +14,14 @@ function Get-RunnerOrtFatal {
     return @($Census.Findings | Where-Object Fatal | ForEach-Object { "$($_.Verdict) $($_.Path) -- $($_.Detail)" })
 }
 
+function Stop-RunnerOrtFinding {
+    # Nothing found returns; anything found is one error naming the header and each finding.
+    param([Parameter(Mandatory)][string] $Header, [string[]] $Finding = @())
+    if ($Finding.Count -eq 0) { return }
+    $separator = [Environment]::NewLine + '  '
+    throw ($Header + $separator + ($Finding -join $separator))
+}
+
 function Get-RunnerOrtFamilyFinding {
     # Every ORT-family file anywhere under RunnerDir must be a stamped name with its stamped bytes.
     param([Parameter(Mandatory)][string] $RunnerDir, [Parameter(Mandatory)][hashtable] $Stamped)
@@ -68,9 +76,7 @@ function Invoke-RunnerOrtProof {
         if (Test-Path -LiteralPath $path -PathType Leaf) { $stamped[$name] = (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant() }
     }
     $fatal += @(Get-RunnerOrtFamilyFinding -RunnerDir $RunnerDir -Stamped $stamped)
-    if ($fatal.Count -gt 0) {
-        throw ("ONNX Runtime in $RunnerDir is not the image's chain build (G6):" + [Environment]::NewLine + '  ' + ($fatal -join ([Environment]::NewLine + '  ')))
-    }
+    Stop-RunnerOrtFinding -Header "ONNX Runtime in $RunnerDir is not the image's chain build (G6):" -Finding $fatal
     # Only the image has the wheel store, so the texts are matched here and the host re-checks their stamped bytes.
     $licenseArgs = @{ OrtDll = (Join-Path $RunnerDir 'onnxruntime.dll'); WheelDir = (Get-OrtChainWheelStore); Destination = $RunnerDir }
     if ($RequiredProvider.Count -gt 0) {
@@ -122,6 +128,43 @@ function Assert-RunnerOrtStampVerified {
     }
 }
 
+function Get-RunnerOrtCopyFinding {
+    # G6's reference is the stamped copy itself, which the fingerprint must still tie to the chain.
+    param([Parameter(Mandatory)][string] $RunnerDir, [Parameter(Mandatory)][hashtable] $Stamped)
+    $ref = Join-Path ([System.IO.Path]::GetTempPath()) "ort-runner-ref-$([guid]::NewGuid().ToString('N'))"
+    New-Item -ItemType Directory -Path $ref | Out-Null
+    try {
+        foreach ($name in @($Stamped.Keys | Where-Object { Test-OrtInstanceName -Name $_ })) { Copy-Item -LiteralPath (Join-Path $RunnerDir $name) -Destination $ref }
+        $census = Test-OrtProvenanceTree -Root $RunnerDir -ReferenceDir @($ref) -PassThru
+    } finally { Remove-Item -LiteralPath $ref -Recurse -Force -ErrorAction SilentlyContinue }
+    Get-RunnerOrtFatal -Census $census
+    # G6 already calls a foreign-rooted reference FOREIGN; a reference with no root at all it cannot judge.
+    $core = @($census.Reference | Where-Object { $_.Name -eq 'onnxruntime.dll' }) | Select-Object -First 1
+    if ($null -eq $core -or @($core.Roots).Count -eq 0) {
+        "UNPROVEN $RunnerDir\onnxruntime.dll embeds no ORT source root, so nothing ties it to the chain ($(@(Get-OrtChainSourceRoot) -join ', '))"
+    }
+}
+
+function Get-RunnerOrtStampFinding {
+    # G6 runs only over a tree already holding exactly the stamped bytes.
+    param([Parameter(Mandatory)][string] $RunnerDir, [Parameter(Mandatory)][hashtable] $Stamped)
+    $absent = @($Stamped.Keys | Where-Object { -not (Test-Path -LiteralPath (Join-Path $RunnerDir $_) -PathType Leaf) } | ForEach-Object { "MISSING $_ is stamped but absent from $RunnerDir" })
+    $family = @(Get-RunnerOrtFamilyFinding -RunnerDir $RunnerDir -Stamped $Stamped)
+    $absent + $family
+    if ($absent.Count + $family.Count -eq 0) { Get-RunnerOrtCopyFinding -RunnerDir $RunnerDir -Stamped $Stamped }
+}
+
+function Get-RunnerOrtLicenseFinding {
+    param([Parameter(Mandatory)][string] $Directory, [Parameter(Mandatory)][hashtable] $Stamped)
+    foreach ($name in $script:RunnerOrtLicenseNames) {
+        $path = Join-Path $Directory $name
+        $item = Get-Item -LiteralPath $path -Force -ErrorAction SilentlyContinue
+        if ($null -eq $item -or $item.PSIsContainer) { "MISSING $path"; continue }
+        if ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) { "LINK $path"; continue }
+        if ((Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant() -ne $Stamped[$name]) { "CHANGED $path differs from the wheel text the image matched" }
+    }
+}
+
 function Assert-RunnerOrtStamp {
     <#
     .SYNOPSIS
@@ -137,29 +180,7 @@ function Assert-RunnerOrtStamp {
         throw "UNSTAMPED $RunnerDir has no $($script:RunnerOrtStampName) of schema $($script:RunnerOrtStampSchema): it was not staged and proved by Build-Windows.ps1."
     }
     Assert-RunnerOrtStampVerified -RunnerDir $RunnerDir -Stamped $stamped -RequiredProvider $RequiredProvider -RequireDirectMl:$RequireDirectMl
-    $findings = [System.Collections.Generic.List[string]]::new()
-    foreach ($name in $stamped.Keys) {
-        if (-not (Test-Path -LiteralPath (Join-Path $RunnerDir $name) -PathType Leaf)) { $findings.Add("MISSING $name is stamped but absent from $RunnerDir") }
-    }
-    foreach ($f in @(Get-RunnerOrtFamilyFinding -RunnerDir $RunnerDir -Stamped $stamped)) { $findings.Add($f) }
-    if ($findings.Count -eq 0) {
-        # G6's reference is the stamped copy itself, which the fingerprint must still tie to the chain.
-        $ref = Join-Path ([System.IO.Path]::GetTempPath()) "ort-runner-ref-$([guid]::NewGuid().ToString('N'))"
-        New-Item -ItemType Directory -Path $ref | Out-Null
-        try {
-            foreach ($name in @($stamped.Keys | Where-Object { Test-OrtInstanceName -Name $_ })) { Copy-Item -LiteralPath (Join-Path $RunnerDir $name) -Destination $ref }
-            $census = Test-OrtProvenanceTree -Root $RunnerDir -ReferenceDir @($ref) -PassThru
-        } finally { Remove-Item -LiteralPath $ref -Recurse -Force -ErrorAction SilentlyContinue }
-        foreach ($f in @(Get-RunnerOrtFatal -Census $census)) { $findings.Add($f) }
-        # G6 already calls a foreign-rooted reference FOREIGN; a reference with no root at all it cannot judge.
-        $core = @($census.Reference | Where-Object { $_.Name -eq 'onnxruntime.dll' }) | Select-Object -First 1
-        if ($null -eq $core -or @($core.Roots).Count -eq 0) {
-            $findings.Add("UNPROVEN $RunnerDir\onnxruntime.dll embeds no ORT source root, so nothing ties it to the chain ($(@(Get-OrtChainSourceRoot) -join ', '))")
-        }
-    }
-    if ($findings.Count -gt 0) {
-        throw ("ONNX Runtime in $RunnerDir is not the stamped chain build:" + [Environment]::NewLine + '  ' + ($findings -join ([Environment]::NewLine + '  ')))
-    }
+    Stop-RunnerOrtFinding -Header "ONNX Runtime in $RunnerDir is not the stamped chain build:" -Finding @(Get-RunnerOrtStampFinding -RunnerDir $RunnerDir -Stamped $stamped)
 }
 
 function Resolve-RunnerOrtLicense {
@@ -169,9 +190,7 @@ function Resolve-RunnerOrtLicense {
     #>
     [CmdletBinding()]
     [OutputType([string])]
-    param([Parameter(Mandatory)][string] $RunnerDir,
-        [ValidateSet('onnxruntime_providers_shared.dll', 'onnxruntime_providers_cuda.dll')][string[]] $RequiredProvider = @(),
-        [switch] $RequireDirectMl)
+    param([Parameter(Mandatory)][string] $RunnerDir, [string[]] $RequiredProvider = @(), [switch] $RequireDirectMl)
 
     Assert-RunnerOrtStamp -RunnerDir $RunnerDir -RequiredProvider $RequiredProvider -RequireDirectMl:$RequireDirectMl
     $stamped = Read-RunnerOrtStamp -RunnerDir $RunnerDir -Section licenses
@@ -179,17 +198,7 @@ function Resolve-RunnerOrtLicense {
         throw "UNSTAMPED $RunnerDir\$($script:RunnerOrtStampName) records no wheel-matched ONNX Runtime license texts: it was not staged by Build-Windows.ps1 or Build-WindowsArm64Natives.ps1."
     }
     $dir = Join-Path $RunnerDir 'licenses\onnxruntime'
-    $findings = [System.Collections.Generic.List[string]]::new()
-    foreach ($name in $script:RunnerOrtLicenseNames) {
-        $path = Join-Path $dir $name
-        $item = Get-Item -LiteralPath $path -Force -ErrorAction SilentlyContinue
-        if ($null -eq $item -or $item.PSIsContainer) { $findings.Add("MISSING $path"); continue }
-        if ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) { $findings.Add("LINK $path"); continue }
-        if ((Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant() -ne $stamped[$name]) { $findings.Add("CHANGED $path differs from the wheel text the image matched") }
-    }
-    if ($findings.Count -gt 0) {
-        throw ("ONNX Runtime license texts in $RunnerDir are not the stamped wheel texts:" + [Environment]::NewLine + '  ' + ($findings -join ([Environment]::NewLine + '  ')))
-    }
+    Stop-RunnerOrtFinding -Header "ONNX Runtime license texts in $RunnerDir are not the stamped wheel texts:" -Finding @(Get-RunnerOrtLicenseFinding -Directory $dir -Stamped $stamped)
     return $dir
 }
 

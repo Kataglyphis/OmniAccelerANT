@@ -3,16 +3,12 @@
 set -uo pipefail
 
 repo="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
-# shellcheck source=scripts/linux/lib/antfrastructure.sh
-source "${repo}/scripts/linux/lib/antfrastructure.sh"
-_harness="$(antfrastructure_path linux/scripts/lib/test-harness.sh)" || exit 1
-# shellcheck source=third_party/ANTfrastructure/linux/scripts/lib/test-harness.sh
-source "${_harness}"
+# shellcheck source=scripts/linux/tests/harness-bootstrap.sh
+source "$(dirname "${BASH_SOURCE[0]}")/harness-bootstrap.sh"
 
 probe() {
   local library="${BUNDLE_OPTIONS_LIB:-${repo}/scripts/linux/lib/bundle-options.sh}"
-  KATAGLYPHIS_REPO_ROOT="${repo}" ANTFRASTRUCTURE_DIR="${repo}/third_party/ANTfrastructure" \
-    bash -c '
+  bash -c '
       set -euo pipefail
       source "$1"
       source "$2"
@@ -65,16 +61,13 @@ t_case 'the closure builder uses the same build-mode validator'
 t_assert_rc 2 bash "${repo}/scripts/linux/bundle-runtime-closure.sh" --build-mode invalid
 t_assert_rc 0 bash "${repo}/scripts/linux/bundle-runtime-closure.sh" --help
 
-mkdir -p "${repo}/logs/test-results"
-mutant_dir="$(mktemp -d "${repo}/logs/test-results/bundle-options-mutant.XXXXXX")" || exit 1
+mutant_dir="$(t_mutant_dir bundle-options)" || exit 1
 trap 'rm -rf -- "${mutant_dir}"' EXIT
-cp "${repo}/scripts/linux/lib/"{bundle-options.sh,antfrastructure.sh,renovate-git-mode.sh} "${mutant_dir}/"
-sed -i 's/_bundle_gate_values\[--bundle-lib\]=bundle_lib/_bundle_gate_values[--bundle-lib]=bundle_dir/' \
+cp "${repo}/scripts/linux/lib/"{bundle-options.sh,entry-options.sh} "${mutant_dir}/"
+sed -i "s/--bundle-lib=bundle_lib:/--bundle-lib=bundle_dir:/" \
   "${mutant_dir}/bundle-options.sh"
-grep -Fq '_bundle_gate_values[--bundle-lib]=bundle_dir' "${mutant_dir}/bundle-options.sh" || exit 1
-t_case 'a wrong ABI option destination fails the real parser assertions (mutation)'
-mutant_output="$(BUNDLE_OPTIONS_LIB="${mutant_dir}/bundle-options.sh" bash "$0" --values-only 2>&1)" && mutant_rc=0 || mutant_rc=$?
-t_assert_eq 1 "$mutant_rc"
-t_assert_contains "$mutant_output" 'FAIL'
+grep -Fq -e '--bundle-lib=bundle_dir:' "${mutant_dir}/bundle-options.sh" || exit 1
+t_mutant_breaks_suite 'a wrong ABI option destination fails the real parser assertions (mutation)' \
+  BUNDLE_OPTIONS_LIB "${mutant_dir}/bundle-options.sh" --values-only
 
 t_summary

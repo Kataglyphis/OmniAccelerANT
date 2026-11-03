@@ -2,28 +2,12 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "$SCRIPT_DIR/../lib/container-steps.sh"
-source "$SCRIPT_DIR/../lib/cli-common.sh"
-source "$SCRIPT_DIR/../lib/ci-options.sh"
+# shellcheck source=scripts/linux/lib/ci-lane-libs.sh
+source "$SCRIPT_DIR/../lib/ci-lane-libs.sh"
 source "$SCRIPT_DIR/../lib/packaging-common.sh"
 
 usage() {
-  cat <<'EOF'
-Usage:
-  bash scripts/linux/ci/ci-container-run-native-linux.sh [options]
-
-Options:
-  -a, --arch <x64|arm64>        Target architecture (required)
-  --build-mode <debug|profile|release> Build mode for flutter build linux (default: release)
-      --flutter-dir <path>      Flutter SDK directory (default: /opt/flutter, baked into the image)
-  -n, --app-name <name>         Artifact base name (required)
-      --package-formats <csv>   Packaging formats (default: tar)
-      --install-packaging-deps <bool> Install the flathub runtime; only consulted when --package-formats has flatpak (default: false)
-      --strict-checks <bool>    Fail on format/analyze/test errors (default: true in CI, false locally)
-      --run-codeql <bool>       Must be false: no CodeQL scan is implemented here
-      --run-docs <bool>         Run generate-docs.sh, x64 only (default: false; docs.yml builds the site)
-  -h, --help                    Show this help
-EOF
+  omni_ci_usage ci-container-run-native-linux arch-required build-mode-linux flutter-dir-image app-name-required package-formats-tar install-packaging-deps strict-checks run-codeql-refused run-docs help
 }
 
 MATRIX_ARCH=""
@@ -38,23 +22,13 @@ STRICT_CHECKS=""
 
 parse_omni_ci_options ci-container-run-native-linux "$@"
 
-if ! validate_arch "$MATRIX_ARCH"; then
-  usage >&2
-  exit 2
-fi
+omni_ci_require validate_arch "$MATRIX_ARCH"
 
-if ! validate_non_empty "--app-name" "$APP_NAME"; then
-  usage >&2
-  exit 2
-fi
+omni_ci_require validate_non_empty "--app-name" "$APP_NAME"
 
 STRICT_CHECKS="$(resolve_strict_checks "$STRICT_CHECKS")"
 
-REPO_ROOT="$(resolve_repo_root /workspace)"
-if [[ "$REPO_ROOT" != "/workspace" ]]; then
-  echo "[Info] /workspace nicht gefunden, benutze stattdessen $REPO_ROOT als Arbeitsverzeichnis."
-fi
-cd "$REPO_ROOT"
+omni_ci_enter_workspace
 
 # See lib/container-steps.sh for what this replaces.
 flutter_lane_prepare_env "$FLUTTER_DIR" || exit 2
@@ -80,12 +54,9 @@ export_toolchain_env "$MATRIX_ARCH"
 setup_linker
 
 # Checks, build and packaging live in lane-native-linux.sh.
+mapfile -t lane_args < <(omni_ci_lane_args "$MATRIX_ARCH" "$BUILD_MODE" "$APP_NAME" "$FLUTTER_DIR")
 app_packaging_run_command_with_runtime "$PACKAGE_FORMATS" \
-  bash scripts/linux/ci/lane-native-linux.sh \
-    --arch "$MATRIX_ARCH" \
-    --build-mode "$BUILD_MODE" \
-    --app-name "$APP_NAME" \
-    --flutter-dir "$FLUTTER_DIR" \
+  bash scripts/linux/ci/lane-native-linux.sh "${lane_args[@]}" \
     --package-formats "$PACKAGE_FORMATS" \
     --strict-checks "$STRICT_CHECKS" \
     --run-docs "$RUN_DOCS"

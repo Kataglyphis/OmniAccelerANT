@@ -19,17 +19,17 @@ $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 . (Join-Path $PSScriptRoot '..\Resolve-BuildModule.ps1')
 Import-BuildModule 'WindowsSmokeTest.Common'
+Import-BuildModule 'WindowsInstallerCheck.Common'
 Initialize-SmokeTestRun
 
 $product = 'ObservANT'
 $prefix = Join-Path $env:ProgramFiles $product
 $exe = Join-Path $prefix 'kataglyphis_observant.exe'
+$modelFile = @(& (Join-Path $PSScriptRoot '..\Get-DetectorModelFile.ps1'))[0]
 $startup = Join-Path $env:ProgramData "Microsoft\Windows\Start Menu\Programs\StartUp\$product.lnk"
 $work = Join-Path $env:TEMP "observant-test-$PID"
 $null = New-Item -ItemType Directory -Force -Path $work
-$msis = @(Get-ChildItem -Path $Msi -File)
-if ($msis.Count -ne 1) { throw "-Msi must name exactly one MSI; $Msi matches $($msis.Count)" }
-$Msi = $msis[0].FullName
+$Msi = Resolve-OneFile $Msi 'Msi' 'MSI'
 # A wildcard is fine, and the copy has a plain name: an & in a path splits cmd's command line, which docker run goes through.
 $source = Get-ChildItem -Path $Photo -File | Select-Object -First 1
 if (-not $source) { throw "no photo at $Photo" }
@@ -64,11 +64,7 @@ $microsoftStore = '^' + [regex]::Escape("$env:ProgramFiles\WindowsApps\") + 'Mic
 function Get-ForeignModule {
     param([System.Diagnostics.Process]$Process)
     $Process.Refresh()
-    @($Process.Modules | ForEach-Object FileName | Where-Object {
-            -not $_.StartsWith($prefix, [StringComparison]::OrdinalIgnoreCase) -and
-            -not $_.StartsWith($env:SystemRoot, [StringComparison]::OrdinalIgnoreCase) -and
-            $_ -notmatch $microsoftStore
-        })
+    Select-ForeignModule -Process $Process -Root $prefix, $env:SystemRoot -IgnorePattern $microsoftStore
 }
 
 # Rows of the MSI's own tables, through the Windows Installer COM API, read-only.
@@ -124,16 +120,6 @@ function Test-SameBytes {
     return $null -ne $A -and $null -ne $B -and [System.Linq.Enumerable]::SequenceEqual($A, $B)
 }
 
-function Wait-Healthz {
-    $deadline = (Get-Date).AddSeconds(40)
-    do {
-        $body = try { (Invoke-WebRequest -UseBasicParsing -TimeoutSec 2 http://127.0.0.1:8080/healthz).Content } catch { $null }
-        if ($body) { return $body }
-        Start-Sleep -Milliseconds 500
-    } until ((Get-Date) -gt $deadline)
-    return $null
-}
-
 Write-Host '=== install ==='
 Assert-Test -Name 'the MSI opens the firewall to the local subnet for its exe, and installs where it cannot' {
     $rows = @(Get-MsiRow -Path $Msi -Query 'SELECT `Program`, `RemoteAddresses`, `Attributes` FROM `Wix5FirewallException`')
@@ -142,11 +128,10 @@ Assert-Test -Name 'the MSI opens the firewall to the local subnet for its exe, a
 # A container has no firewall service; the MSI then skips the rule, and only a host can show it.
 $firewallOn = (Get-Service MpsSvc -ErrorAction SilentlyContinue).Status -eq 'Running'
 $installLog = Join-Path $work 'install.log'
-$p = Start-Process msiexec.exe -ArgumentList '/i', "`"$Msi`"", '/qn', '/l*v', "`"$installLog`"" -Wait -PassThru
-Assert-Test -Name 'msiexec installs it silently' { $p.ExitCode -eq 0 }
+$null = Install-MsiSilently -Msi $Msi -LogPath $installLog
 Assert-Test -Name 'the exe, its plugins, the model and the page are installed' {
     (Test-Path $exe) -and (Test-Path (Join-Path $prefix 'lib\gstreamer-1.0\gstrswebrtc.dll')) -and
-    (Test-Path (Join-Path $prefix 'models\deim_dfine_n_coco.onnx')) -and (Test-Path (Join-Path $prefix 'web\index.html')) -and
+    (Test-Path (Join-Path $prefix "models\$modelFile")) -and (Test-Path (Join-Path $prefix 'web\index.html')) -and
     (Test-Path (Join-Path $prefix 'onnxruntime.dll'))
 }
 Assert-Test -Name 'the all-users Startup folder starts it at logon' { Test-Path $startup }
@@ -162,9 +147,7 @@ if ($firewallOn) {
 
 Write-Host '=== the installed service, scrubbed environment ==='
 $svc = Start-Installed -Arguments @('--camera', 'test', '--inference', 'off') -LogName 'service.log'
-$health = Wait-Healthz
-Write-Host "      healthz: $health"
-Assert-Test -Name '/healthz answers on :8080' { $health -match '"ok":true' }
+$null = Assert-Healthz -Label '/healthz answers on :8080'
 Assert-Test -Name 'the page is served from the install' { (Invoke-WebRequest -UseBasicParsing -TimeoutSec 5 http://127.0.0.1:8080/).Content -match '<html' }
 $web = Join-Path $prefix 'web'
 Assert-Test -Name 'the page leaves out the renderers its loader never asks for, and the debug maps' {
@@ -231,11 +214,11 @@ $infer.Process.WaitForExit()
 Get-Content -LiteralPath $infer.Log -ErrorAction SilentlyContinue | Select-String -Pattern 'model:|ONNX Runtime loaded|ORT session|ERROR|cat in view' | Select-Object -First 5 | ForEach-Object { Write-Host "      $($_.Line)" }
 Assert-Test -Name 'it runs its own model on its own ONNX Runtime and finds a cat' {
     $log = Get-Content -LiteralPath $infer.Log -Raw
-    $log -match [regex]::Escape("$prefix\models\deim_dfine_n_coco.onnx") -and $log -match [regex]::Escape("$prefix\onnxruntime.dll") -and $log -match 'cat in view'
+    $log -match [regex]::Escape("$prefix\models\$modelFile") -and $log -match [regex]::Escape("$prefix\onnxruntime.dll") -and $log -match 'cat in view'
 }
 
 Write-Host '=== uninstall ==='
-$u = Start-Process msiexec.exe -ArgumentList '/x', "`"$Msi`"", '/qn' -Wait -PassThru
+$u = Uninstall-MsiSilently -Msi $Msi
 Assert-Test -Name 'msiexec removes it silently' { $u.ExitCode -eq 0 }
 Assert-Test -Name 'nothing is left: the folder, the Startup entry, the Start menu folder' {
     -not (Test-Path $exe) -and -not (Test-Path $startup) -and -not (Test-Path (Join-Path $env:ProgramData "Microsoft\Windows\Start Menu\Programs\$product"))

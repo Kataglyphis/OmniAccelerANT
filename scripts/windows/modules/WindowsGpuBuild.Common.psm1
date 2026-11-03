@@ -119,6 +119,14 @@ function Assert-WindowsGpuDependencies {
     }
 }
 
+function Get-WindowsGpuRuntimeName {
+    # Core first: the image proof passes the first entry to the wheel match as the core DLL.
+    param([Parameter(Mandatory)][string] $Provider)
+    'onnxruntime.dll'
+    'onnxruntime_providers_shared.dll'
+    if ($Provider -eq 'cuda') { 'onnxruntime_providers_cuda.dll' } else { 'DirectML.dll' }
+}
+
 function Assert-WindowsGpuBuild {
     [CmdletBinding()]
     param(
@@ -131,13 +139,7 @@ function Assert-WindowsGpuBuild {
     if ($Provider -eq 'cpu') { return }
     Assert-WindowsGpuDependencies -Provider $Provider -Workspace $Workspace -OxidantDir $OxidantDir
     if ([string]::IsNullOrWhiteSpace($OnnxRoot)) { throw 'GPU builds require ONNX_ROOT to name the chain runtime.' }
-    $required = @('onnxruntime.dll', 'onnxruntime_providers_shared.dll')
-    if ($Provider -eq 'cuda') {
-        $required += 'onnxruntime_providers_cuda.dll'
-    } else {
-        $required += 'DirectML.dll'
-    }
-    foreach ($name in $required) { $null = Get-ChainOrtRuntimeFile -OnnxRoot $OnnxRoot -Name $name }
+    foreach ($name in Get-WindowsGpuRuntimeName -Provider $Provider) { $null = Get-ChainOrtRuntimeFile -OnnxRoot $OnnxRoot -Name $name }
 }
 
 function Assert-WindowsGpuImage {
@@ -152,10 +154,7 @@ function Assert-WindowsGpuImage {
     )
     $Provider = $Provider.ToLowerInvariant()
     Assert-WindowsGpuBuild -Provider $Provider -Workspace $Workspace -OxidantDir $OxidantDir -OnnxRoot $OnnxRoot
-    $names = @('onnxruntime.dll', 'onnxruntime_providers_shared.dll')
-    if ($Provider -eq 'cuda') { $names += 'onnxruntime_providers_cuda.dll' }
-    else { $names += 'DirectML.dll' }
-    $files = @($names | ForEach-Object { Get-ChainOrtRuntimeFile -OnnxRoot $OnnxRoot -Name $_ })
+    $files = @(Get-WindowsGpuRuntimeName -Provider $Provider | ForEach-Object { Get-ChainOrtRuntimeFile -OnnxRoot $OnnxRoot -Name $_ })
     $null = Assert-PeTargetMachine -Path $files -Arch 'amd64' -Context 'Windows GPU inputs require x64'
     $parent = (Resolve-Path -LiteralPath $ScratchRoot -ErrorAction Stop).ProviderPath
     if (-not (Test-Path -LiteralPath $parent -PathType Container)) { throw "Scratch root is not a directory: $parent" }

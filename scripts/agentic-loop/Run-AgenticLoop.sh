@@ -1,31 +1,5 @@
 #!/usr/bin/env bash
-# ─────────────────────────────────────────────────────────────────────────
-# Agentic loop (Linux). Thin wrapper: sources the reusable library from the
-# ANTfrastructure submodule, parses flags into the env vars the library reads,
-# and calls run_agentic_loop. Task prompts default to ANTfrastructure's
-# shared/agentic-loop/prompts/*.md - do not hard-code prompt text here.
-#
-# Library: third_party/ANTfrastructure/linux/scripts/lib/agentic-loop.sh
-#
-# Engines (config .engine, or --engine / AGENTIC_ENGINE):
-#   claude   — Claude Code CLI; models come from the config
-#   opencode — OpenCode v2 CLI (v1 is refused); models come from the config
-#
-# Usage:
-#   ./scripts/agentic-loop/Run-AgenticLoop.sh [options]
-#
-# Options:
-#   --config PATH        Config JSON path (default: AgenticLoop.config.json)
-#   --engine NAME        Engine override: claude | opencode
-#   --dry-run            Print actions without invoking agents or builds
-#   --max-iterations N   Override max iterations (0 = unlimited)
-#   --skip-build         Skip the build phase
-#   --skip-tests         Skip the test phase
-#   --skip-quality       Skip clang-tidy / cmake-format
-#   --planner-only       Run the planner once and exit
-#   --executor-only      Drain the current queue and exit
-#   --help               Show this help
-# ─────────────────────────────────────────────────────────────────────────
+# Keep task prompts in the shared library; see shared/agentic-loop/templates/README.md.
 set -euo pipefail
 
 _agentic_template_usage() {

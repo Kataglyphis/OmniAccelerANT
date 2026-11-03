@@ -5,7 +5,145 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ## Unreleased
 
+### 2026-11-03 (hub units)
+- **Windows model staging takes its scratch directory from the hub's `New-TemporaryDirectory`**, imported only when it
+  fetches; `-VerifyOnly` loads nothing new. `Installer.PEReuse.Tests.ps1` reads through the harness's
+  `Get-TestFunctionNames` and `Assert-TestAstCommand`, which now pins the literal `Initialize-BuildDirectory` call, and
+  `OrtRunner.Tests.ps1` writes its wheel with `Write-TestFileTree` and `New-TestZipFile`.
+
+### 2026-11-03 (model v2)
+
+- **The shipped detector is `deim_dfine_n_coco-v2`**, through the OxidANT pin and its `models.lock`. The third-party
+  inventory is regenerated for the moved gitlinks. `--detect-check` on the AMD package from run
+  41583499149 finds two cats on an RX 9070 XT with DirectML.
+
+- **`verify-gpu-candidate.sh` calls the hub's `ort-package-proof.sh`** instead of carrying its ORT library and
+  notice checks; the GPU preflight requires that file. The arm64 ObservANT install test also fetches OxidANT,
+  whose `models.lock` its detector model reader needs.
+
+### 2026-11-02 (perf-host)
+- **`quality-report.sh --perf-host` latency** in `quality-report.toml`, with `scripts/linux/perf-host.sh`, the app's `--detect-latency` and a tracked `perf/baseline-<cpu>.json`.
+
+### 2026-11-02 (packaging follows the lock)
+- **The real ObservANT packagers run on a fixture lock.** `package-observant.sh --models-lock` and
+  `Package-ObservANT.ps1 -ModelsLock` take the lock to fetch from. `web.yml`'s package jobs repackage
+  with the producer just built and check that the finished tar, .deb, AppImage and Windows zip carry
+  the fixture model and not the shipped one. `windows-x64.yml` also runs
+  `DetectorModelFile.Tests.ps1` by name. New `scripts/linux/observant/lib/locked-model.sh`,
+  `test-observant-locked-model.sh` and recipe `consumer.omni-package-model-from-lock`.
+
+### 2026-11-02 (one owner per fact)
+- **The model file name comes from OxidANT's `models.lock`.** `verify_detector_model.py` and the new
+  `scripts/windows/Get-DetectorModelFile.ps1` read its first `.onnx` row and require the matching
+  LICENSE and NOTICE; packaging, its installer checks and `observant.toml` no longer name the file,
+  `runtime_paths.cc` takes a bundle's only `.onnx`, and `License.rtf` names the model, not its file.
+  The package fixtures now run on a lock naming another file.
+- **COCO names come from `detectorLabels()`.** `coco_classes.dart` is gone; `class_labels.dart` keeps
+  only the German names by class id, and shows the given name where the Rust core did not load.
+- **One page table.** `lib/app_pages.dart` replaces six navbar configs and the router's positional
+  page list; `test/app_layout_test.dart` and `check-web-browser.sh` (through `app-page-routes.sh`)
+  read it, so `/aiPlayground` is now covered by both.
+- **One CMake reader of OxidANT's `ort-devices`**, `rust_builder/linux/oxidant-ort-devices.cmake`,
+  replaces the Linux and Windows copies. Five new `consumer.omni-*` mutation recipes.
+
+### 2026-11-02 (AGENTS.md matches the tree)
+- **The lint gates hold it there.** `run-lint-gates.sh` and the Linux x64 lint job run the hub's
+  `verify_agents_drift.py`.
+- **`AGENTS.md` names what the tree holds.** Section 5 names every workflow, program, bench-history key
+  and `--perf-host`; section 1 names `WindowsGpuBuild.Common` and the eye firmware's protocol crate.
+  `generate-docs.sh` publishes `ai-playground.md` and `third-party-components.md`. `BACKLOG.md` lists
+  LAI-F4, LAI-F5 and the fresh-registry webrtcsink risk.
+### 2026-11-02 (shared script helpers)
+- **Entry scripts share one flag loop.** `scripts/linux/lib/entry-options.sh` replaces the copied
+  `while`/`case` parsers in the APK, closure, toolchain, format, ESP32 and ObservANT scripts and in
+  `bundle-options.sh`; flags, messages and exit codes stay, and a trailing value flag on the closure
+  scripts now says it needs a value where it stopped silently. New `test-entry-options.sh`.
+- **Lanes and GPU scripts share their checks.** `ci-options.sh` holds every lane's help lines and
+  refusals, `ci-lane-libs.sh` their library set, `gpu-script-common.sh` the candidate target table.
+- **Suites share their setup.** `tests/harness-bootstrap.sh` and `tests/fixture-common.sh` own the
+  hub-harness bootstrap, mutant reruns, stub writers and refusal checks; the brand-icon mirror case
+  now gets its PNG frame from the hub's `t_write_png`.
+- **Windows scripts share their checks.** `Initialize-EntryScript.ps1` owns the strict preamble,
+  `WindowsInstallerCheck.Common.psm1` the MSI, MSIX and `/healthz` assertions, and
+  `tests/OmniTestFixtures.psm1` the Pester helpers; `WindowsOrtRunner.Common` reports through one
+  finding verdict, and `Resolve-RunnerOrtLicense` leaves provider validation to `Assert-RunnerOrtStamp`.
+- The commented-out blocks in `assets/documents/README.md` are gone; the rendered text is unchanged.
+- The license mutation recipes follow the shared helpers, and a new recipe guards the one verified firmware-tool download.
+- **Copies kept on purpose.** `observant/bench/model.sh` stays free of a helper file because it runs alone
+  on a board. `package-producer-bundle.sh` keeps its soname loop because it runs inside the build
+  container, outside the repo's library tree. The `Package-*` license calls stay in each script
+  because `Installer.PEReuse.Tests.ps1` pins them per package. Third-party license texts are verbatim.
+
+### 2026-11-01 (cv)
+- **Class ids reach the Rust core.** `RustWebcamView` passes `WebcamStreamConfig.classes`, `[0]` by
+  default, with a picker over OxidANT's `detectorLabels()`; boxes are labelled with class names, and
+  the view shows each `DetectionEvent`'s backend and execution provider. It uses the bindings that
+  `generate-frb-bindings.sh` produced for the OxidANT pin carrying `detect_rgba`, `detector_labels`,
+  `WebcamStreamConfig.classes` and the event's `backend`/`execution_provider`.
+- **`--detect-check IMAGE` and its release-lane gate.** The app decodes the image and requires at least
+  two class-15 boxes at score 0.4 or more; the lane runs it on `two_cats.jpg` and on a blank frame,
+  which must fail. New `test-detect-check.sh`, recipes `consumer.omni-detect-check-photo` and `-blank`.
+- The webcam frame integration test requires `ort on cpu` from the real core's event.
+
 ### 2026-11-01
+- **The AI Playground saves its settings, never the API key.** Each change is written to
+  `ai_playground_settings.json` in the app's support directory (local storage on the web) and
+  restored at the next start; `PlaygroundSettings.toJson` leaves the key out, so it lives in memory
+  only. `test/ai_playground_settings_test.dart` plants a key, scans every saved byte for it and
+  restores the rest. `path_provider`, already resolved through ANThology, becomes a direct dependency.
+- **Seed, JSON schema and stop strings in the AI Playground.** The form takes all three and sends
+  them as `seed`, `response_format` and `stop`: through OxidANT's `text_generate` on native builds,
+  in the fetch body on the web. See `docs/source/ai-playground.md`.
+- **The Linux lanes decode text in the built app.** `integration_test/text_generate_test.dart`
+  runs OxidANT's `text_generate` on the chain GenAI: the hub's tiny model must decode `abc` to
+  exactly `defg`, SmolLM2-135M (from OxidANT's `llm.lock`) must name Paris, and a recording loopback
+  server must see the playground's `seed`, `response_format` and `stop`.
+- **ObservANT streams on its first start again.** OxidANT moves to `c1474de`, whose
+  `ensure_gst_initialized` leaves `GST_REGISTRY_FORK` unset when the caller names a plugin scanner.
+  Since OxidANT `c7d3593` it had set `GST_REGISTRY_FORK=no` under the launchers' own
+  `GST_PLUGIN_SCANNER`, so a fresh registry was scanned in process; where the filesystem listed
+  `libgstrswebrtc.so` before the encoders, webrtcsink found no codec and the service exited
+  (`No codec available for encoding stream video_0`, `web.yml` runs 41275429526 and 41278759760,
+  every Linux package format; the Windows x64 MSI failed in the same run, and `install::adopt` names
+  its scanner the same way). `test-observant-package.sh` now starts the service on a
+  fresh registry with that plugin listed first. The move regenerates the bridge's Dart side: the
+  Stream page's view asks for persons (`classes: [0]`), as its engine did before, and the AI
+  Playground passes no stop strings. The license inventory records OxidANT's new `Cargo.lock`.
+- **A failed ObservANT service check prints the service's log.** `test-observant-package.sh`
+  shows the last 40 lines of the service's own log under the idle, user-copy, installed-copy and
+  flatpak checks when one fails; before, the CI log only said the process was gone.
+- **The WebRTC view tests no longer lose an offer after a reconnect.** The signalling stand-in
+  (`test/support/gst_signalling_stand_in.js`) gave every message its own `setTimeout(0)`; Chrome
+  clamps a timer nested five deep to 4 ms, so after the reconnect chain the offer's unnested timer
+  could overtake `sessionStarted`, gstwebrtc-api dropped it, and `webrtc_view_test.dart` hung at
+  "Negotiating" from the frozen-picture case on. Each socket now delivers from one FIFO queue, one
+  message per task, as a real socket orders them.
+- **The native lane discovers its test suites.** `scripts/linux/lib/suite-inventory.sh` replaces
+  the lane's hand list: every tracked script suite runs as its own gate unless it names another
+  runner with `# suite-runner:`, and the inventory gate fails when nothing is discovered or a named
+  runner does not name the suite. It prints `0 unreferenced suites`; before, 15 suites ran in no
+  push lane, and `test-espup-env.sh`, `test-observant-flatpak-verdict.sh` and
+  `scripts/windows/tests/test-ort-device.py` ran nowhere. `test-ort-device.py` now runs on the
+  `windows-x64.yml` runner on the pinned Python, in a system temporary directory instead of a
+  sibling of the checkout. `test-suite-inventory.sh` and eight mutation recipes in
+  `ort-license-mutations.json` prove the gate. `test-espup-env.sh` clears the image's
+  `RUSTUP_HOME` and `CARGO_HOME`, so its fallback case passes inside the lane's image too.
+- **Dart coverage reaches quality-report.** The lane keeps `logs/coverage/lcov.info` past
+  `flutter clean`, `reusable-linux.yml` uploads it as `omni-accelerant-linux-<arch>-coverage`, and
+  `quality-report.toml` reads the x64 artifact of the same-SHA `linux-x64.yml` run.
+
+- Flutter's generated `ios/Flutter/ephemeral/flutter_lldb_helper.py` and `flutter_lldbinit` are ignored and untracked like the other ephemeral files; the helper's `lldb` import had counted as a ty diagnostic wherever no system LLDB was installed.
+- **The frame-timing history is a bench-history artifact.** The hub's `frontend-perf-report` action now
+  delegates to `bench-history` (artifact `bench-history-frontend-perf-x64`, kept 90 days), and
+  `quality-report.toml` declares it as a `benchmark` output for fleet-health.
+- **Shell allowlists emptied: trailing-conditional 18 -> 0, comment-size 5 -> 0, shellcheck warnings
+  8 -> 5.** The 18 predicates in `container-steps.sh` and the ObservANT package and update tests end
+  with explicit `return 0`/`return 1`, with the same answers. The two packaging scripts and two ESP32
+  scripts print `--help` from a `usage()` heredoc with byte-identical output, and their headers are one
+  line; `Run-AgenticLoop.sh` matches the hub template. `codeql-android.sh` returns when `cd` fails,
+  `run_cmake_format_check` passes the venv directory to the one call that reads it, and the icon
+  fallback array is exported. Both empty allowlist files are removed. Only the five vendored Cargokit
+  shellcheck rows remain.
 - **The Windows ONNX self-check suite passes on Windows runners.** Its process probe compared the
   working directory with `AppDomain.BaseDirectory` as raw strings; .NET Framework expands the 8.3
   name in the runner's `TEMP` (`RUNNER~1`) only in the working directory, so three tests saw exit

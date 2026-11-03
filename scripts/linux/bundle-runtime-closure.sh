@@ -3,11 +3,9 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
-source "$SCRIPT_DIR/lib/cli-common.sh"
-# shellcheck source=scripts/linux/lib/bundle-runtime.sh
-source "$SCRIPT_DIR/lib/bundle-runtime.sh"
-source "$SCRIPT_DIR/lib/antfrastructure.sh"
+# shellcheck source=scripts/linux/lib/bundle-script-env.sh
+source "$SCRIPT_DIR/lib/bundle-script-env.sh"
+REPO_ROOT="$KATAGLYPHIS_REPO_ROOT"
 
 MATRIX_ARCH="$(detect_arch)"
 BUILD_MODE="release"
@@ -33,16 +31,7 @@ Options:
 EOF
 }
 
-while [[ $# -gt 0 ]]; do
-  case "$1" in
-    -a|--arch) MATRIX_ARCH="${2:-}"; shift 2 ;;
-    --build-mode) BUILD_MODE="${2:-}"; shift 2 ;;
-    --bundle-dir) BUNDLE_DIR="${2:-}"; shift 2 ;;
-    --no-model) WITH_MODEL=0; shift ;;
-    -h|--help) usage; exit 0 ;;
-    *) printf 'unknown argument: %s\n' "$1" >&2; exit 2 ;;
-  esac
-done
+parse_closure_options usage '+--no-model=WITH_MODEL=0' -- "$@"
 
 if ! validate_arch "$MATRIX_ARCH"; then
   exit 2
@@ -73,9 +62,7 @@ require_cmd patchelf
 
 # Plugins are dlopen'd, never DT_NEEDED: the hub copies the fixed list (GST_BUNDLED_PLUGIN_NAMES), and a missing one fails.
 mkdir -p "$bundle_lib/gstreamer-1.0"
-gst_copy_args=(--plugin-dir "$gst_plugins_dir")
-for plugin in "${GST_BUNDLED_PLUGIN_NAMES[@]}"; do gst_copy_args+=(--plugin "$plugin"); done
-bash "$(antfrastructure_path linux/scripts/06-packaging/gstreamer-bundle.sh)" copy --dest "$bundle_lib/gstreamer-1.0" "${gst_copy_args[@]}"
+gst_copy_bundle_plugins "$bundle_lib/gstreamer-1.0" --plugin-dir "$gst_plugins_dir" -- "${GST_BUNDLED_PLUGIN_NAMES[@]}"
 
 # cxx_lib_dir <soname>: where the compiler's own copy sits; the image's distro libstdc++ is not the one the code links.
 cxx_lib_dir() {
@@ -130,8 +117,7 @@ patch_origin_rpath() {
 # RUNPATH is not transitive, so every lib that needs a sibling gets its own $ORIGIN.
 needs_sibling_rpath() {
   local file="$1" soname
-  # ORT files must remain byte-identical to their wheel; the GPU launcher supplies its lib path.
-  if [[ -n "$GPU_RUNTIME_KIND" && "$(basename "$file")" == libonnxruntime* ]]; then return 1; fi
+  if is_gpu_ort_file "$file"; then return 1; fi
   while IFS= read -r soname; do
     [[ -n "$soname" ]] || continue
     if [[ -e "$bundle_lib/$soname" ]]; then
@@ -146,19 +132,16 @@ needs_sibling_rpath() {
   return 1
 }
 
-for file in "$bundle_lib"/*.so*; do
-  [[ -f "$file" ]] || continue
-  # glibc stays byte for byte: the loader takes it from --library-path, and a patched loader crashes.
-  is_system_soname "$(basename "$file")" && continue
+mapfile -t lib_files < <(bundle_lib_files "$bundle_lib")
+for file in "${lib_files[@]}"; do
   if needs_sibling_rpath "$file"; then
     patch_origin_rpath "$file" '$ORIGIN'
   fi
 done
 
 # flatpak puts the runner in /app/bin and the libs in /app/lib, hence $ORIGIN/../lib (AGENTS.md § 5).
-for file in "$BUNDLE_DIR"/*; do
-  [[ -f "$file" && -x "$file" ]] || continue
-  is_system_soname "$(basename "$file")" && continue
+mapfile -t root_programs < <(bundle_root_programs "$BUNDLE_DIR")
+for file in "${root_programs[@]}"; do
   if readelf -h "$file" >/dev/null 2>&1 && ! runpath_has_token "$file" '$ORIGIN/../lib'; then
     patchelf --set-rpath "\$ORIGIN/lib:\$ORIGIN/../lib:$(elf_runpath "$file")" "$file"
   fi

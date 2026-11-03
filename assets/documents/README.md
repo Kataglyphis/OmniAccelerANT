@@ -6,22 +6,9 @@
   <br>
 </h1>
 
-<!-- <h1 align="center">
-  <br>
-  <a href="https://jotrockenmitlocken.de"><img src="vulkan-logo.png" alt="VulkanEngine" width="200"></a>
-  <a href="https://jotrockenmitlocken.de"><img src="images/VulkanRenderer/Engine_logo.png" alt="VulkanEngine" width="200"></a>
-  <a href="https://jotrockenmitlocken.de"><img src="images/glm_logo.png" alt="VulkanEngine" width="200"></a>
-</h1> -->
 
 <h4 align="center">A graphics engine built on top of Vulkan <a href="https://jotrockenmitlocken.de" target="_blank"></a>.</h4>
 
-<!-- [![Linux build](https://github.com/Kataglyphis/BeschleunigerBallett/actions/workflows/Linux.yml/badge.svg)](https://github.com/Kataglyphis/BeschleunigerBallett/actions/workflows/Linux.yml)
-[![Windows build](https://github.com/Kataglyphis/BeschleunigerBallett/actions/workflows/Windows.yml/badge.svg)](https://github.com/Kataglyphis/BeschleunigerBallett/actions/workflows/Windows.yml)
-[![codecov](https://codecov.io/gh/Kataglyphis/BeschleunigerBallett/branch/main/graph/badge.svg?token=JTQFXPWWJH)](https://codecov.io/gh/Kataglyphis/BeschleunigerBallett)
-[![TopLang](https://img.shields.io/github/languages/top/Kataglyphis/BeschleunigerBallett)]()
-[![Donate](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://www.paypal.com/donate/?hosted_button_id=BX9AVVES2P9LN)
-[![Twitter](https://img.shields.io/twitter/follow/Cataglyphis_?style=social)](https://twitter.com/Cataglyphis_)
-[![YouTube](https://img.shields.io/youtube/channel/subscribers/UC3LZiH4sZzzaVBCUV8knYeg?style=social)](https://www.youtube.com/channel/UC3LZiH4sZzzaVBCUV8knYeg) -->
 
 > **_NOTE:_** CI on windows fails due to an bug in the MSB. Use the cmake-gui rather than the command line.
 
@@ -69,16 +56,7 @@
 <!-- ABOUT THE PROJECT -->
 ## About The Project
 
-<!-- <h1 align="center">
-  <br>
-  <a href="https://jotrockenmitlocken.de"><img src="images/Screenshot1.png" alt="VulkanEngine" width="400"></a>
-  <a href="https://jotrockenmitlocken.de"><img src="images/Screenshot2.png" alt="VulkanEngine" width="400"></a>
-  <a href="https://jotrockenmitlocken.de"><img src="images/Screenshot3.png" alt="VulkanEngine" width="700"></a>
-</h1> -->
 
-<!-- [![Kataglyphis Engine][product-screenshot1]](https://jotrockenmitlocken.de)
-[![Kataglyphis Engine][product-screenshot2]](https://jotrockenmitlocken.de)
-[![Kataglyphis Engine][product-screenshot3]](https://jotrockenmitlocken.de) -->
 
 This project provides me a solid Vulkan renderer starting point
 for implementing modern established rendering techniques and getting quickly
@@ -176,12 +154,6 @@ files as `#include` in your shaders you have to modify the files: (should be sel
 appropriately.</br>
 
 
-<!-- # Tests
-<h3>Code coverage results</h3>
-<h1 align="center">
-  <a href="https://jotrockenmitlocken.de"><img src="https://codecov.io/gh/Kataglyphis/BeschleunigerBallett/branch/main/graphs/sunburst.svg?token=JTQFXPWWJH" alt="VulkanEngine" width="350"></a>
-  <a href="https://jotrockenmitlocken.de"><img src="https://codecov.io/gh/Kataglyphis/BeschleunigerBallett/branch/main/graphs/tree.svg?token=JTQFXPWWJH" alt="VulkanEngine" width="350"></a>
-</h1> -->
 
 <!-- ROADMAP -->
 ## Roadmap

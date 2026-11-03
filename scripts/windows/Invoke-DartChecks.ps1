@@ -79,11 +79,13 @@ $formatCmd = if ($Fix) {
 	'dart format --output=none --set-exit-if-changed lib test integration_test test_driver'
 }
 
-$steps = @()
-if (-not $SkipFormat) { $steps += "echo '=== format ==='; $formatCmd" }
-if (-not $SkipAnalyze) { $steps += "echo '=== analyze ==='; flutter analyze" }
-# The plugin is its own package with its own lock, so the root's `flutter test` never reaches its suite.
-if (-not $SkipTest) { $steps += "echo '=== test ==='; flutter test; (cd packages/kataglyphis_native_inference && flutter test)" }
+$selected = @(
+	if (-not $SkipFormat) { @{ Name = $(if ($Fix) { 'format (fix)' } else { 'format' }); Run = "echo '=== format ==='; $formatCmd" } }
+	if (-not $SkipAnalyze) { @{ Name = 'analyze'; Run = "echo '=== analyze ==='; flutter analyze" } }
+	# The plugin is its own package with its own lock, so the root's `flutter test` never reaches its suite.
+	if (-not $SkipTest) { @{ Name = 'test'; Run = "echo '=== test ==='; flutter test; (cd packages/kataglyphis_native_inference && flutter test)" } }
+)
+$steps = @($selected | ForEach-Object { $_.Run })
 if ($steps.Count -eq 0) { throw 'Nothing to do: every step was skipped.' }
 
 # The runner's set -e makes the first failing step the exit code; safe.directory, as the host user owns the checkout.
@@ -95,14 +97,9 @@ $script = @(
 	'(cd packages/kataglyphis_native_inference && flutter pub get)'
 ) + $steps -join '; '
 
-$stepNames = @()
-if (-not $SkipFormat) { $stepNames += if ($Fix) { 'format (fix)' } else { 'format' } }
-if (-not $SkipAnalyze) { $stepNames += 'analyze' }
-if (-not $SkipTest) { $stepNames += 'test' }
-
 Write-Host "engine: $Engine ($engineExe)"
 Write-Host "image : $Image"
-Write-Host "steps : $($stepNames -join ', ')"
+Write-Host "steps : $(@($selected | ForEach-Object { $_.Name }) -join ', ')"
 Write-Host ''
 
 # It creates the pub-cache volume and chowns it to uid 1001 with $Image: no stock image (owner rule 2026-10-05).

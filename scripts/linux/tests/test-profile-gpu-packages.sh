@@ -1,30 +1,26 @@
 #!/usr/bin/env bash
 # Exercise all supported package routes and reject missing or misleading profile evidence.
 set -euo pipefail
+# shellcheck source=scripts/linux/tests/fixture-common.sh
+source "$(dirname "${BASH_SOURCE[0]}")/fixture-common.sh"
 shopt -s nullglob
-root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)
+root="$(fixture_root)"
 hub=${ANTFRASTRUCTURE_DIR:-"$root/third_party/ANTfrastructure"}
 oxidant=${OXIDANT_DIR:-"$root/third_party/OxidANT"}
-work=$(mktemp -d)
-trap 'rm -rf -- "$work"' EXIT
+fixture_workdir
 repo="$work/repo"
 mkdir -p "$repo/scripts/linux/lib" "$repo/scripts/windows" "$repo/third_party/ANTfrastructure/shared/python" \
   "$repo/third_party/ANTfrastructure/linux/scripts/lib" "$repo/third_party/OxidANT/resources/models" \
   "$repo/third_party/OxidANT/crates/inference/tests/fixtures" "$work/bin" "$work/packages" "$work/runner"
 cp "$root/scripts/linux/profile-gpu-candidate.sh" "$root/scripts/linux/profile-gpu-packages.sh" "$repo/scripts/linux/"
 cp "$root/scripts/linux/preflight-profile-packages.py" "$repo/scripts/linux/"
-cp "$root/scripts/linux/lib/verify-onnx-loader-trace.sh" "$repo/scripts/linux/lib/"
+cp "$root/scripts/linux/lib/verify-onnx-loader-trace.sh" "$root/scripts/linux/lib/gpu-script-common.sh" "$repo/scripts/linux/lib/"
 cp "$root/scripts/windows/verify_detector_model.py" "$repo/scripts/windows/"
 cp "$hub/shared/python/verify_ort_profile.py" "$hub/shared/python/compare_detector_parity.py" "$repo/third_party/ANTfrastructure/shared/python/"
 cp "$hub/linux/scripts/lib/fetch-data-lock.py" "$hub/linux/scripts/lib/gpu-profile-env.sh" \
   "$hub/linux/scripts/lib/log-bootstrap.sh" "$repo/third_party/ANTfrastructure/linux/scripts/lib/"
 cp "$oxidant/crates/inference/tests/fixtures/two_cats.jpg" "$repo/third_party/OxidANT/crates/inference/tests/fixtures/"
-cat > "$work/bin/xvfb-run" <<'EOF'
-#!/usr/bin/env bash
-[[ "$1" = -a ]] && shift
-exec "$@"
-EOF
-chmod +x "$work/bin/xvfb-run"
+fixture_xvfb_stub "$work/bin"
 REAL_PYTHON=$(command -v python3)
 export REAL_PYTHON
 cat > "$work/bin/python3" <<'EOF'
@@ -57,9 +53,7 @@ for tuple in nvidia:x64:cuda nvidia:arm64:cuda amd:x64:migraphx; do
   for format in tar deb image; do
     bundle="$work/$format bundle"
     mkdir -p "$bundle/data/resources/models" "$bundle/lib"
-    for name in deim_dfine_n_coco.onnx deim_dfine_n_coco.LICENSE deim_dfine_n_coco.NOTICE; do
-      printf 'fixture %s\n' "$name" > "$bundle/data/resources/models/$name"
-    done
+    fixture_write_models "$bundle/data/resources/models"
     : > "$bundle/lib/libonnxruntime.so"
     printf '%s' "$format" > "$bundle/format"
     cat > "$bundle/omni_accelerant" <<'EOF'
@@ -110,9 +104,7 @@ EOF
     chmod +x "$bundle/omni_accelerant"
   done
   : > "$repo/third_party/OxidANT/resources/models/models.lock"
-  for name in deim_dfine_n_coco.onnx deim_dfine_n_coco.LICENSE deim_dfine_n_coco.NOTICE; do
-    printf '%s  %s  https://example.invalid/%s\n' "$(sha256sum "$work/tar bundle/data/resources/models/$name" | cut -d' ' -f1)" "$name" "$name" >> "$repo/third_party/OxidANT/resources/models/models.lock"
-  done
+  fixture_lock_models "$work/tar bundle/data/resources/models" "$repo/third_party/OxidANT/resources/models/models.lock"
   mkdir -p "$work/tar-root" "$work/deb-root/DEBIAN" "$work/deb-root/opt"
   cp -a "$work/tar bundle" "$work/tar-root/$variant-bundle"
   cp -a "$work/deb bundle" "$work/deb-root/opt/$variant"
@@ -126,9 +118,7 @@ EOF
   tar -czf "$work/packages/$variant-linux-$arch.tar.gz" -C "$work/tar-root" "$variant-bundle"
   dpkg-deb --root-owner-group --build "$work/deb-root" "$work/packages/${variant}_1_${deb}.deb" >/dev/null
   export FAKE_IMAGE_SOURCE="$work/image bundle" FAKE_VARIANT="$variant"
-  cat > "$work/packages/$variant-1-$machine.AppImage" <<'EOF'
-#!/usr/bin/env bash
-set -euo pipefail
+  fixture_stub "$work/packages/$variant-1-$machine.AppImage" <<'EOF'
 if [[ ${1:-} = --appimage-extract ]]; then
   mkdir -p "squashfs-root/usr/lib/$FAKE_VARIANT"
   cp -a "$FAKE_IMAGE_SOURCE/." "squashfs-root/usr/lib/$FAKE_VARIANT/"
@@ -155,10 +145,8 @@ EOF
       }
     done
   done
-  if env GPU_FAKE_PREFLIGHT_FAIL=create PROFILE_EVIDENCE_DIR="$work/failed-evidence-$vendor-$arch" \
-      bash "$check" "$work/packages" "$vendor" "$arch" "$device" >/dev/null 2>&1; then
-    echo 'Preflight failure was accepted' >&2; exit 1
-  fi
+  fixture_refuses_quiet 'Preflight failure was accepted' env GPU_FAKE_PREFLIGHT_FAIL=create PROFILE_EVIDENCE_DIR="$work/failed-evidence-$vendor-$arch" \
+    bash "$check" "$work/packages" "$vendor" "$arch" "$device"
   scratch=("$work/runner"/omni-gpu-packages.*)
   [[ ${#scratch[@]} -eq 0 && -f "$evidence/tar/cpu-1.json" ]] || {
     echo 'Failure cleanup lost evidence or retained scratch' >&2; exit 1;
@@ -168,27 +156,25 @@ EOF
   rm "$work/tar-root/$variant-bundle/lib/libonnxruntime.so"
   ln -s /etc/hosts "$work/tar-root/$variant-bundle/lib/libonnxruntime.so"
   tar -czf "$work/packages/$variant-linux-$arch.tar.gz" -C "$work/tar-root" "$variant-bundle"
-  if bash "$check" "$work/packages" "$vendor" "$arch" "$device" >/dev/null 2>&1; then echo 'Escaping runtime symlink accepted' >&2; exit 1; fi
+  fixture_refuses_quiet 'Escaping runtime symlink accepted' bash "$check" "$work/packages" "$vendor" "$arch" "$device"
   rm "$work/tar-root/$variant-bundle/lib/libonnxruntime.so"
   : > "$work/tar-root/$variant-bundle/lib/libonnxruntime.so"
   tar -czf "$work/packages/$variant-linux-$arch.tar.gz" -C "$work/tar-root" "$variant-bundle"
   rm "$work/image bundle/lib/libonnxruntime.so"
   ln -s /etc/hosts "$work/image bundle/lib/libonnxruntime.so"
-  if bash "$check" "$work/packages" "$vendor" "$arch" "$device" >/dev/null 2>&1; then echo 'Escaping AppImage runtime symlink accepted' >&2; exit 1; fi
+  fixture_refuses_quiet 'Escaping AppImage runtime symlink accepted' bash "$check" "$work/packages" "$vendor" "$arch" "$device"
   rm "$work/image bundle/lib/libonnxruntime.so"
   : > "$work/image bundle/lib/libonnxruntime.so"
   for format in tar deb image; do
     for fault in CPU_FORMAT CPU_SECOND_FORMAT BAD_OUTPUT_FORMAT BAD_REPEAT_FORMAT HOST_RUNTIME_FORMAT MISSING_LOADER_FORMAT MALFORMED_LOADER_FORMAT MIXED_RUNTIME_FORMAT; do
-      if env "$fault=$format" bash "$check" "$work/packages" "$vendor" "$arch" "$device" >/dev/null 2>&1; then
-        echo "$format accepted $fault" >&2; exit 1
-      fi
+      fixture_refuses_quiet "$format accepted $fault" env "$fault=$format" bash "$check" "$work/packages" "$vendor" "$arch" "$device"
       scratch=("$work/runner"/omni-gpu-packages.*)
       [[ ${#scratch[@]} -eq 0 ]] || { echo 'Failed profile retained scratch' >&2; exit 1; }
     done
   done
   cp "$work/packages/$variant-1-$machine.AppImage" "$work/packages/$variant-2-$machine.AppImage"
-  if bash "$check" "$work/packages" "$vendor" "$arch" "$device" >/dev/null 2>&1; then echo 'Duplicate AppImages accepted' >&2; exit 1; fi
+  fixture_refuses_quiet 'Duplicate AppImages accepted' bash "$check" "$work/packages" "$vendor" "$arch" "$device"
   rm -rf -- "$work/tar bundle" "$work/deb bundle" "$work/image bundle" "$work/tar-root" "$work/deb-root" "$work/packages/"*
 done
-if bash "$check" "$work/packages" amd arm64 migraphx >/dev/null 2>&1; then echo 'Unsupported Linux ARM ROCm accepted' >&2; exit 1; fi
+fixture_refuses_quiet 'Unsupported Linux ARM ROCm accepted' bash "$check" "$work/packages" amd arm64 migraphx
 echo 'PASS: all supported package formats require CPU/GPU parity and two GPU profile runs'

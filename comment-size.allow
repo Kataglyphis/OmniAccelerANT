@@ -1,9 +1,0 @@
-# Comment blocks over the one-line limit that stay: help text a script prints from its own header.
-# Format: <file>	<first comment line>. Two-way: a row whose block is gone or fits is STALE; delete it.
-# third_party/ANTfrastructure/docs/code-quality-tooling.md#comment-size-comment-size
-
-scripts/agentic-loop/Run-AgenticLoop.sh	# ──────────────────────────────────────────────────────────
-scripts/linux/observant/package-producer-bundle.sh	# Packages a self-contained aarch64 runtime bundle of the ca
-scripts/linux/observant/package-observant.sh	# Packages ObservANT: a self-contained bundle (its own GStre
-scripts/linux/esp32/build-eye-demo.sh	# Builds the ESP32-S3-EYE camera firmware: ESP-WHO/ESP-DL ca
-scripts/linux/esp32/build-firmware.sh	# Builds (and optionally flashes) the ESP32-S3 companion ins

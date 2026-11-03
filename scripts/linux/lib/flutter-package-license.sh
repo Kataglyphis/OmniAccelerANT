@@ -14,23 +14,39 @@ third_party_license_requires() {
   done <<< "$assets"
 }
 
+# flutter_license_rules <member>: the project LICENSE rule first, then each third-party text, as MEMBER=FILE lines.
+flutter_license_rules() {
+  local requires
+  requires="$(third_party_license_requires "$1")" || return $?
+  printf '%s\n%s\n' "$1=${KATAGLYPHIS_REPO_ROOT}/LICENSE" "$requires"
+}
+
+# for_each_license_rule <member> <callback> [args...]: stops at the first callback failure and returns its status.
+for_each_license_rule() {
+  local rules rule callback="$2" member="$1"
+  shift 2
+  rules="$(flutter_license_rules "$member")" || return $?
+  while IFS= read -r rule; do
+    "$callback" "$rule" "$@" || return $?
+  done <<< "$rules"
+}
+
+_append_license_require() { _license_args+=(--require "$1"); }
+
+_verify_appimage_rule() { bash "$2" "$3" "$4" "${1%%=*}" "${1#*=}"; }
+
 verify_flutter_package_license() {
-  local artifact="${1:?artifact required}" pattern="${2:?license member pattern required}" verifier requires rule
-  local -a args=(--require "${pattern}=${KATAGLYPHIS_REPO_ROOT}/LICENSE")
+  local artifact="${1:?artifact required}" pattern="${2:?license member pattern required}" verifier
+  local -a _license_args=()
   verifier="$(antfrastructure_path linux/scripts/verify_package_license.py)" || return $?
-  requires="$(third_party_license_requires "$pattern")" || return $?
-  while IFS= read -r rule; do args+=(--require "$rule"); done <<< "$requires"
-  python3 "$verifier" "$artifact" "${args[@]}"
+  for_each_license_rule "$pattern" _append_license_require || return $?
+  python3 "$verifier" "$artifact" "${_license_args[@]}"
 }
 
 verify_flutter_appimage_license() {
-  local artifact="${1:?artifact required}" arch="${2:?arch required}" entry="${3:?license entry required}" verifier requires rule
+  local artifact="${1:?artifact required}" arch="${2:?arch required}" entry="${3:?license entry required}" verifier
   verifier="$(antfrastructure_path linux/scripts/06-packaging/verify-native-appimage-license.sh)" || return $?
-  bash "$verifier" "$artifact" "$arch" "$entry" "${KATAGLYPHIS_REPO_ROOT}/LICENSE" || return $?
-  requires="$(third_party_license_requires "$entry")" || return $?
-  while IFS= read -r rule; do
-    bash "$verifier" "$artifact" "$arch" "${rule%%=*}" "${rule#*=}" || return $?
-  done <<< "$requires"
+  for_each_license_rule "$entry" _verify_appimage_rule "$verifier" "$artifact" "$arch"
 }
 
 # <payload> <linux|windows|android>: every shipped native binary needs an entry in the inventory's native table.

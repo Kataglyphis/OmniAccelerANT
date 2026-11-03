@@ -88,6 +88,8 @@ jobs:
           Import-Module Pester -RequiredVersion 3.4.0
           $result = Invoke-Pester -Script scripts/windows/tests/DetectorModel.Tests.ps1 -PassThru
           if ($result.FailedCount -ne 0 -or $result.PassedCount -ne 5) { throw 'Model staging fixtures failed or did not all run' }
+          # The negative fixtures leave the verifier's exit 1 in LASTEXITCODE, which the runner's wrapper would return.
+          exit 0
       - name: Check recorded GPU dependencies before pulling images
         shell: pwsh
         run: ./scripts/windows/Test-WindowsGpuPins.ps1
@@ -222,6 +224,17 @@ jobs:
           overwrite: false
           if-no-files-found: error
           path: ${{ steps.prep.outputs.workspace }}/out/unverified-omni-windows-x64-${{ matrix.vendor }}-installers/*
+      # Only reached when the installers passed their checks; release.yml collects this name.
+      - name: Upload the checked GPU installers
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: omni-accelerant-gpu-${{ matrix.vendor }}-windows-x64-${{ needs.preflight.outputs.scope }}
+          overwrite: true
+          if-no-files-found: error
+          path: |
+            ${{ steps.prep.outputs.workspace }}/out/unverified-omni-windows-x64-${{ matrix.vendor }}-installers/*.msi
+            ${{ steps.prep.outputs.workspace }}/out/unverified-omni-windows-x64-${{ matrix.vendor }}-installers/*.msix
+            ${{ steps.prep.outputs.workspace }}/out/unverified-omni-windows-x64-${{ matrix.vendor }}-installers/*.cer
 
   gpu-profile:
     if: ${{ !cancelled() && inputs.verify-gpu && needs.preflight.result == 'success' && (needs.candidate.result == 'success' || needs.candidate.result == 'failure') }}

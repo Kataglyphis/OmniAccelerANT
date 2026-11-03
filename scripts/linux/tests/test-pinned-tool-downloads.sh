@@ -3,11 +3,8 @@
 set -uo pipefail
 
 repo="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
-# shellcheck source=scripts/linux/lib/antfrastructure.sh
-source "${repo}/scripts/linux/lib/antfrastructure.sh"
-_harness="$(antfrastructure_path linux/scripts/lib/test-harness.sh)" || exit 1
-# shellcheck source=third_party/ANTfrastructure/linux/scripts/lib/test-harness.sh
-source "${_harness}"
+# shellcheck source=scripts/linux/tests/harness-bootstrap.sh
+source "$(dirname "${BASH_SOURCE[0]}")/harness-bootstrap.sh"
 pins="${repo}/scripts/linux/tool-pins.env"
 codeql_lib="${PINNED_TOOLS_CODEQL:-${repo}/scripts/linux/codeql/codeql-common.sh}"
 firmware="${PINNED_TOOLS_FIRMWARE:-${repo}/scripts/linux/esp32/build-firmware.sh}"
@@ -63,10 +60,16 @@ install_codeql() {
   ' _ "${repo}/scripts/linux/lib/antfrastructure.sh" "${codeql_lib}" "${work}/dl-${label}"
 }
 
+# assert_checksum_refused <command>...: the command stops on the hash check, the only proof nothing unverified ran.
+assert_checksum_refused() {
+  local refused refused_rc
+  refused="$("$@" 2>&1)" && refused_rc=0 || refused_rc=$?
+  t_assert_eq 1 "${refused_rc}"
+  t_assert_contains "${refused}" 'Checksum verification FAILED'
+}
+
 t_case 'the CodeQL CLI is refused when its bytes miss the pinned sha256'
-refused="$(install_codeql refused 2>&1)" && refused_rc=0 || refused_rc=$?
-t_assert_eq 1 "${refused_rc}"
-t_assert_contains "${refused}" 'Checksum verification FAILED'
+assert_checksum_refused install_codeql refused
 t_assert_fails test -e "${work}/cli-refused"
 
 t_case 'the CodeQL CLI installs from the pinned release URL when its sha256 matches'
@@ -102,18 +105,14 @@ build_firmware() {
 }
 
 t_case 'the firmware tools are refused when their bytes miss the pinned sha256'
-refused="$(build_firmware refused 2>&1)" && refused_rc=0 || refused_rc=$?
-t_assert_eq 1 "${refused_rc}"
-t_assert_contains "${refused}" 'Checksum verification FAILED'
+assert_checksum_refused build_firmware refused
 t_assert_fails test -e "${work}/esp-refused/bin/espup"
 t_assert_fails test -e "${work}/esp-refused/bin/espflash"
 
 espup_sha="ESPUP_${esp_var}_SHA256=$(sha_of "${served}/${espup_url}")"
 espflash_sha="ESPFLASH_${esp_var}_SHA256=$(sha_of "${served}/${espflash_url}")"
 t_case 'espflash is refused on its own when only its bytes miss the pinned sha256'
-refused="$(build_firmware espflash-refused "${espup_sha}" 2>&1)" && refused_rc=0 || refused_rc=$?
-t_assert_eq 1 "${refused_rc}"
-t_assert_contains "${refused}" 'Checksum verification FAILED'
+assert_checksum_refused build_firmware espflash-refused "${espup_sha}"
 t_assert_ok test -x "${work}/esp-espflash-refused/bin/espup"
 t_assert_fails test -e "${work}/esp-espflash-refused/bin/espflash"
 

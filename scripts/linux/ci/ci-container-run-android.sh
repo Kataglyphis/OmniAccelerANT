@@ -2,28 +2,14 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "$SCRIPT_DIR/../lib/container-steps.sh"
-source "$SCRIPT_DIR/../lib/cli-common.sh"
-source "$SCRIPT_DIR/../lib/ci-options.sh"
+# shellcheck source=scripts/linux/lib/ci-lane-libs.sh
+source "$SCRIPT_DIR/../lib/ci-lane-libs.sh"
 source "$SCRIPT_DIR/../lib/packaging-common.sh"
 source "$SCRIPT_DIR/../codeql/codeql-common.sh"
 source "$SCRIPT_DIR/../codeql/codeql-android.sh"
 
 usage() {
-  cat <<'EOF'
-Usage:
-  bash scripts/linux/ci/ci-container-run-android.sh [options]
-
-Options:
-  -a, --arch <x64|arm64>        Target architecture label (required)
-  --build-mode <debug|profile|release> Build mode for flutter build apk (default: release)
-      --flutter-dir <path>      Flutter SDK directory (default: /opt/flutter, baked into the image)
-  -n, --app-name <name>         Artifact base name (required)
-      --emulator-smoke <bool>   Run the APK on the image's AVD (needs /dev/kvm; default: false)
-      --run-codeql <bool>       Run CodeQL scan (default: false; the scan is
-                                hours and is a manual/local run since 2026-09-17)
-  -h, --help                    Show this help
-EOF
+  omni_ci_usage ci-container-run-android arch-label-required build-mode-apk-image flutter-dir-image app-name-required emulator-smoke run-codeql-manual help
 }
 
 MATRIX_ARCH=""
@@ -35,25 +21,12 @@ EMULATOR_SMOKE="false"
 
 parse_omni_ci_options ci-container-run-android "$@"
 
-if ! validate_arch "$MATRIX_ARCH"; then
-  usage >&2
-  exit 2
-fi
+omni_ci_require validate_arch "$MATRIX_ARCH"
 
-case "$BUILD_MODE" in
-  debug|profile|release) ;;
-  *)
-    echo "Error: --build-mode must be one of: debug, profile, release (got: ${BUILD_MODE:-<empty>})" >&2
-    usage >&2
-    exit 2
-    ;;
-esac
+omni_ci_require omni_ci_validate_build_mode "$BUILD_MODE"
 
 
-if ! validate_non_empty "--app-name" "$APP_NAME"; then
-  usage >&2
-  exit 2
-fi
+omni_ci_require validate_non_empty "--app-name" "$APP_NAME"
 
 # Strict, as in lane-android.sh: a failing Dart check reds this lane like the others (AGENTS.md § 5).
 STRICT_CHECKS="1"
@@ -99,10 +72,7 @@ if maybe_truthy "$RUN_CODEQL"; then
   fi
 else
   # The same entry point a developer runs, so the CI and local paths cannot drift.
-  bash "$REPO_ROOT/scripts/linux/ci/lane-android.sh" \
-    --arch "$MATRIX_ARCH" \
-    --build-mode "$BUILD_MODE" \
-    --app-name "$APP_NAME" \
-    --flutter-dir "$FLUTTER_DIR" \
+  mapfile -t lane_args < <(omni_ci_lane_args "$MATRIX_ARCH" "$BUILD_MODE" "$APP_NAME" "$FLUTTER_DIR")
+  bash "$REPO_ROOT/scripts/linux/ci/lane-android.sh" "${lane_args[@]}" \
     --emulator-smoke "$EMULATOR_SMOKE"
 fi

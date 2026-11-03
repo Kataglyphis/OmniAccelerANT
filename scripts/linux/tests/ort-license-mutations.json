@@ -82,7 +82,7 @@
  {
   "id": "consumer.omni-license-verifier",
   "target": "scripts/linux/lib/flutter-package-license.sh",
-  "find": "  python3 \"$verifier\" \"$artifact\" \"${args[@]}\"",
+  "find": "  python3 \"$verifier\" \"$artifact\" \"${_license_args[@]}\"",
   "replace": "  return 0",
   "test": "bash scripts/linux/tests/test-flutter-package-license.sh",
   "why": "The Flutter artifact and launcher checks must remain effective."
@@ -218,8 +218,8 @@
  {
   "id": "consumer.omni-third-party-assets",
   "target": "scripts/linux/lib/flutter-package-license.sh",
-  "find": "  while IFS= read -r rule; do args+=(--require \"$rule\"); done <<< \"$requires\"",
-  "replace": "  :",
+  "find": "  printf '%s\\n%s\\n' \"$1=${KATAGLYPHIS_REPO_ROOT}/LICENSE\" \"$requires\"",
+  "replace": "  printf '%s\\n' \"$1=${KATAGLYPHIS_REPO_ROOT}/LICENSE\"",
   "test": "bash scripts/linux/tests/test-flutter-package-license.sh",
   "why": "Every package carries the third-party inventory assets."
  },
@@ -258,18 +258,26 @@
  {
   "id": "consumer.espup-verified",
   "target": "scripts/linux/esp32/build-firmware.sh",
-  "find": "download_verified_file \\\"https://github.com/esp-rs/espup/releases/download/\\${ESPUP_VERSION:?}/espup-\\${host}\\\" \\\n    \\\"\\$espup_sha\\\" /opt/esp32/downloads/espup",
-  "replace": "download_file \\\"https://github.com/esp-rs/espup/releases/download/\\${ESPUP_VERSION:?}/espup-\\${host}\\\" \\\n    /opt/esp32/downloads/espup",
+  "find": "fetch_esp_tool espup \\\"\\${ESPUP_VERSION:?}\\\" \\\"espup-\\${host}\\\" \\\"\\$espup_sha\\\" espup",
+  "replace": "download_file \\\"https://github.com/esp-rs/espup/releases/download/\\${ESPUP_VERSION:?}/espup-\\${host}\\\" /opt/esp32/downloads/espup",
   "test": "bash scripts/linux/tests/test-pinned-tool-downloads.sh",
   "why": "espup runs only after its pinned sha256 matches."
  },
  {
   "id": "consumer.espflash-verified",
   "target": "scripts/linux/esp32/build-firmware.sh",
-  "find": "download_verified_file \\\"https://github.com/esp-rs/espflash/releases/download/\\${ESPFLASH_VERSION:?}/espflash-\\${host}.zip\\\" \\\n    \\\"\\$espflash_sha\\\" /opt/esp32/downloads/espflash.zip",
-  "replace": "download_file \\\"https://github.com/esp-rs/espflash/releases/download/\\${ESPFLASH_VERSION:?}/espflash-\\${host}.zip\\\" \\\n    /opt/esp32/downloads/espflash.zip",
+  "find": "fetch_esp_tool espflash \\\"\\${ESPFLASH_VERSION:?}\\\" \\\"espflash-\\${host}.zip\\\" \\\"\\$espflash_sha\\\" espflash.zip",
+  "replace": "download_file \\\"https://github.com/esp-rs/espflash/releases/download/\\${ESPFLASH_VERSION:?}/espflash-\\${host}.zip\\\" /opt/esp32/downloads/espflash.zip",
   "test": "bash scripts/linux/tests/test-pinned-tool-downloads.sh",
   "why": "espflash is unpacked only after its pinned sha256 matches."
+ },
+ {
+  "id": "consumer.esp-tool-helper-verified",
+  "target": "scripts/linux/esp32/build-firmware.sh",
+  "find": "  download_verified_file \\\"https://github.com/esp-rs/\\$1/releases/download/\\$2/\\$3\\\" \\\"\\$4\\\" \\\"/opt/esp32/downloads/\\$5\\\"",
+  "replace": "  download_file \\\"https://github.com/esp-rs/\\$1/releases/download/\\$2/\\$3\\\" \\\"/opt/esp32/downloads/\\$5\\\"",
+  "test": "bash scripts/linux/tests/test-pinned-tool-downloads.sh",
+  "why": "The one firmware tool download must stay checksum-verified."
  },
  {
   "id": "consumer.omni-frb-version",
@@ -294,5 +302,133 @@
   "replace": "stem: 'UNKNOWN',",
   "test": "python3 -I scripts/linux/verify-frb-bindings.py third_party/OxidANT/Cargo.toml --dart lib/src/rust/frb_generated.dart --rust third_party/OxidANT/src/frb_generated.rs",
   "why": "The push gate refuses a loader stem the Rust library does not build."
+ },
+ {
+  "id": "consumer.omni-suite-none-found",
+  "target": "scripts/linux/lib/suite-inventory.sh",
+  "find": "if [ \"${discovered}\" -eq 0 ]; then",
+  "replace": "if false; then",
+  "test": "bash scripts/linux/tests/test-suite-inventory.sh",
+  "why": "Discovering no suite must fail the native lane, not pass over nothing."
+ },
+ {
+  "id": "consumer.omni-suite-unreferenced",
+  "target": "scripts/linux/lib/suite-inventory.sh",
+  "find": "if [ \"${unreferenced}\" -gt 0 ]; then",
+  "replace": "if false; then",
+  "test": "bash scripts/linux/tests/test-suite-inventory.sh",
+  "why": "A suite whose declared runner does not name it must fail the inventory."
+ },
+ {
+  "id": "consumer.omni-suite-runner-names-it",
+  "target": "scripts/linux/lib/suite-inventory.sh",
+  "find": "grep -qF -e \"${suite##*/}\" \"${root}/${runner}\"",
+  "replace": "true",
+  "test": "bash scripts/linux/tests/test-suite-inventory.sh",
+  "why": "A declared runner counts only when it names the suite."
+ },
+ {
+  "id": "consumer.omni-suite-native-set",
+  "target": "scripts/linux/lib/suite-inventory.sh",
+  "find": "[ -z \"$(suite_inventory_runner \"${root}/${suite}\")\" ]",
+  "replace": "true",
+  "test": "bash scripts/linux/tests/test-suite-inventory.sh",
+  "why": "A suite that names another runner must leave the native set."
+ },
+ {
+  "id": "consumer.omni-suite-glob",
+  "target": "scripts/linux/lib/suite-inventory.sh",
+  "find": "'scripts/windows/tests/test[-_]*.py'",
+  "replace": "'scripts/windows/tests/none[-_]*.py'",
+  "test": "bash scripts/linux/tests/test-suite-inventory.sh",
+  "why": "Windows Python suites belong to the discovered set."
+ },
+ {
+  "id": "consumer.omni-suite-status",
+  "target": "scripts/linux/lib/suite-inventory.sh",
+  "find": "*.sh) bash \"${root}/${suite}\" ;;",
+  "replace": "*.sh) bash \"${root}/${suite}\" || true ;;",
+  "test": "bash scripts/linux/tests/test-suite-inventory.sh",
+  "why": "A failing suite's status must reach its gate."
+ },
+ {
+  "id": "consumer.omni-suite-lane-gate",
+  "target": "scripts/linux/ci/lane-native-linux.sh",
+  "find": "run_gate \"suite inventory\" suite_inventory_report \"$REPO_ROOT\"",
+  "replace": ":",
+  "test": "bash scripts/linux/tests/test-suite-inventory.sh",
+  "why": "The native lane must run the inventory as a gate."
+ },
+ {
+  "id": "consumer.omni-suite-lane-loop",
+  "target": "scripts/linux/ci/lane-native-linux.sh",
+  "find": "done < <(suite_inventory_native \"$REPO_ROOT\")",
+  "replace": "done < /dev/null",
+  "test": "bash scripts/linux/tests/test-suite-inventory.sh",
+  "why": "The native lane must run every discovered native suite."
+ },
+ {
+  "id": "consumer.omni-detect-check-photo",
+  "target": "scripts/linux/lib/container-steps.sh",
+  "find": "  xvfb-run -a timeout 120 \"$exe\" --detect-check \"$photo\" || rc=$?\n  if [[ \"$rc\" -ne 0 ]]; then",
+  "replace": "  xvfb-run -a timeout 120 \"$exe\" --detect-check \"$photo\" || rc=$?\n  if false; then",
+  "test": "bash scripts/linux/tests/test-detect-check.sh",
+  "why": "The launch smoke fails when the photo shows fewer than two confident cats."
+ },
+ {
+  "id": "consumer.omni-detect-check-blank",
+  "target": "scripts/linux/lib/container-steps.sh",
+  "find": "  if [[ \"$rc\" -ne 1 ]]; then",
+  "replace": "  if false; then",
+  "test": "bash scripts/linux/tests/test-detect-check.sh",
+  "why": "The launch smoke fails when a blank frame passes the detect check."
+ },
+ {
+  "id": "consumer.omni-model-name-from-lock",
+  "target": "scripts/windows/verify_detector_model.py",
+  "find": "stem = model.removesuffix(\".onnx\")",
+  "replace": "stem = \"deim_dfine_n_coco\"",
+  "test": "python3 -I scripts/windows/tests/test_verify_detector_model.py",
+  "why": "The notices follow the model the lock names, so a fixture lock naming another file still verifies."
+ },
+ {
+  "id": "consumer.omni-runtime-model-is-the-only-onnx",
+  "target": "packages/kataglyphis_native_inference/linux/runtime_paths.cc",
+  "find": "return count == 1 ? found : std::string{};",
+  "replace": "return found;",
+  "test": "bash scripts/linux/tests/test-ort-runtime-default.sh",
+  "why": "A bundle with several models names no default rather than the first readdir returns."
+ },
+ {
+  "id": "consumer.omni-one-ort-device-reader",
+  "target": "rust_builder/linux/oxidant-ort-devices.cmake",
+  "find": "elseif(_in_metadata AND _line MATCHES",
+  "replace": "elseif(_line MATCHES",
+  "test": "bash scripts/linux/tests/test-ort-provider-staging.sh",
+  "why": "Only OxidANT's own metadata table advertises a provider; another table's key must not unlock a GPU build."
+ },
+ {
+  "id": "consumer.omni-page-routes-from-the-table",
+  "target": "scripts/linux/app-page-routes.sh",
+  "find": "s|^    route: '\\(/[A-Za-z]*\\)',\\$|\\1|p",
+  "replace": "s|^    route: '\\(/[a-z]*\\)',\\$|\\1|p",
+  "test": "bash scripts/linux/tests/test-app-page-routes.sh",
+  "why": "The web check must read every rail route, or a camel-case page such as /aiPlayground silently loses coverage."
+ },
+ {
+  "id": "consumer.omni-web-check-reads-the-table",
+  "target": "scripts/linux/check-web-browser.sh",
+  "find": "rail=\"$(bash \"$SCRIPT_DIR/app-page-routes.sh\")\"",
+  "replace": "rail=/stream",
+  "test": "bash scripts/linux/tests/test-app-page-routes.sh",
+  "why": "The web check takes its rail routes from the page table, not from a copy."
+ },
+ {
+  "id": "consumer.omni-package-model-from-lock",
+  "target": "scripts/linux/observant/lib/locked-model.sh",
+  "find": "name=\"$(awk '!/^[[:space:]]*#/ && $2 ~ /\\.onnx$/ { print $2; exit }' \"${1:?lock required}\")\"",
+  "replace": "name=deim_dfine_n_coco.onnx",
+  "test": "bash scripts/linux/tests/test-observant-locked-model.sh",
+  "why": "The Linux packager takes the model from the lock, so a lock naming another file needs no script edit."
  }
 ]

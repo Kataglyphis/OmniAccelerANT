@@ -3,14 +3,12 @@
 set -uo pipefail
 
 repo="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
-# shellcheck source=scripts/linux/lib/antfrastructure.sh
-source "${repo}/scripts/linux/lib/antfrastructure.sh"
-_harness="$(antfrastructure_path linux/scripts/lib/test-harness.sh)" || exit 1
-# shellcheck source=third_party/ANTfrastructure/linux/scripts/lib/test-harness.sh
-source "${_harness}"
+# shellcheck source=scripts/linux/tests/harness-bootstrap.sh
+source "$(dirname "${BASH_SOURCE[0]}")/harness-bootstrap.sh"
 subject="${OBSERVANT_FLATPAK_SOURCE:-${repo}/scripts/linux/observant/package-observant.sh}"
 hub_packaging="$(antfrastructure_path linux/scripts/lib/app-packaging.sh)" || exit 1
-flatpak_fn="$(t_fn_src "${subject}" package_observant_flatpak)" || exit 1
+desktop_fn="$(t_fn_src "${subject}" write_desktop_entry)" || exit 1
+flatpak_fn="${desktop_fn}"$'\n'"$(t_fn_src "${subject}" package_observant_flatpak)" || exit 1
 commit_fn="$(t_fn_src "${hub_packaging}" app_packaging_assert_flatpak_committed)" || exit 1
 artifact_fn="$(t_fn_src "${hub_packaging}" app_packaging_assert_artifact)" || exit 1
 root="$(mktemp -d "${TMPDIR:-/tmp}/observant-flatpak-verdict.XXXXXX")" || exit 1

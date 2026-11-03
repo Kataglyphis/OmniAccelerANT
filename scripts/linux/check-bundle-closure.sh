@@ -3,12 +3,9 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
-source "$SCRIPT_DIR/lib/cli-common.sh"
-# shellcheck source=scripts/linux/lib/bundle-runtime.sh
-source "$SCRIPT_DIR/lib/bundle-runtime.sh"
-# shellcheck source=scripts/linux/lib/antfrastructure.sh
-source "$SCRIPT_DIR/lib/antfrastructure.sh"
+# shellcheck source=scripts/linux/lib/bundle-script-env.sh
+source "$SCRIPT_DIR/lib/bundle-script-env.sh"
+REPO_ROOT="$KATAGLYPHIS_REPO_ROOT"
 
 MATRIX_ARCH="$(detect_arch)"
 BUILD_MODE="release"
@@ -16,19 +13,8 @@ BUNDLE_DIR=""
 # G6's chain reference; empty = the image's chain ORT, which is what the lane grades against.
 ORT_REFERENCE=""
 
-while [[ $# -gt 0 ]]; do
-  case "$1" in
-    -a|--arch) MATRIX_ARCH="${2:-}"; shift 2 ;;
-    --build-mode) BUILD_MODE="${2:-}"; shift 2 ;;
-    --bundle-dir) BUNDLE_DIR="${2:-}"; shift 2 ;;
-    --ort-reference) ORT_REFERENCE="${2:?--ort-reference needs a directory}"; shift 2 ;;
-    -h|--help)
-      printf 'usage: %s [--arch x64|arm64] [--build-mode debug|profile|release] [--bundle-dir DIR] [--ort-reference DIR]\n' "$0"
-      exit 0
-      ;;
-    *) printf 'unknown argument: %s\n' "$1" >&2; exit 2 ;;
-  esac
-done
+parse_closure_options '[--arch x64|arm64] [--build-mode debug|profile|release] [--bundle-dir DIR] [--ort-reference DIR]' \
+  '--ort-reference=ORT_REFERENCE:a directory' -- "$@"
 
 if ! validate_arch "$MATRIX_ARCH"; then
   exit 2
@@ -87,9 +73,7 @@ check_one_elf() {
     return 0
   fi
   # The verified GPU launcher supplies the library path without changing wheel-matched ORT bytes.
-  if [[ -n "$GPU_RUNTIME_KIND" && "$(basename "$file")" == libonnxruntime* ]]; then
-    return 0
-  fi
+  if is_gpu_ort_file "$file"; then return 0; fi
   case "$location" in
     root) token='$ORIGIN/lib' ;;
     plugin) token='$ORIGIN/..' ;;
@@ -103,9 +87,8 @@ check_one_elf() {
   return 0
 }
 
-for file in "$BUNDLE_DIR"/*; do
-  [[ -f "$file" && -x "$file" ]] || continue
-  is_system_soname "$(basename "$file")" && continue
+mapfile -t root_programs < <(bundle_root_programs "$BUNDLE_DIR")
+for file in "${root_programs[@]}"; do
   # bundle-loader.sh's launcher: the program it starts is the .bin beside it, checked here too.
   if [[ "$(head -c 2 -- "$file")" == '#!' ]] && grep -q -- '--library-path' "$file"; then
     [[ -f "$file.bin" ]] || { printf 'FAIL %s is a launcher without %s.bin\n' "${file#"$BUNDLE_DIR"/}" "$(basename "$file")"; failures=$((failures + 1)); }
@@ -113,9 +96,8 @@ for file in "$BUNDLE_DIR"/*; do
   fi
   check_one_elf "$file" root
 done
-for file in "$bundle_lib"/*.so*; do
-  [[ -f "$file" ]] || continue
-  is_system_soname "$(basename "$file")" && continue
+mapfile -t lib_files < <(bundle_lib_files "$bundle_lib")
+for file in "${lib_files[@]}"; do
   check_one_elf "$file" lib
 done
 found_plugins=0

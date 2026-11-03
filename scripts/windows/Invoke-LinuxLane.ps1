@@ -49,6 +49,8 @@ $ErrorActionPreference = 'Stop'
 
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 
+function Get-LineIndent([string] $Line) { return $Line.Length - $Line.TrimStart().Length }
+
 # Reads the folded script:, the one-line extra-args: and every env: block, unresolved; deliberately no YAML parser.
 function Get-LaneWorkflowSpec {
 	param([Parameter(Mandatory)][string] $Path)
@@ -71,7 +73,7 @@ function Get-LaneWorkflowSpec {
 		}
 		if ($envIndent -ge 0) {
 			if ($line -match '^\s*$') { continue }
-			$indent = $line.Length - $line.TrimStart().Length
+			$indent = Get-LineIndent $line
 			if ($indent -le $envIndent) {
 				$envIndent = -1
 			}
@@ -84,7 +86,7 @@ function Get-LaneWorkflowSpec {
 			continue
 		}
 		if ($line -match '^\s*$') { continue }
-		$indent = $line.Length - $line.TrimStart().Length
+		$indent = Get-LineIndent $line
 		if ($indent -le $scriptIndent) { break }
 		$scriptParts += $line.Trim()
 	}
@@ -119,7 +121,7 @@ function Get-LaneCallerInputs {
 	$first = $call.Line
 	while ($first -gt 0) {
 		$previous = $lines[$first - 1]
-		if ($previous -notmatch '^\s*(#|$)' -and ($previous.Length - $previous.TrimStart().Length) -lt $call.Indent) { break }
+		if ($previous -notmatch '^\s*(#|$)' -and (Get-LineIndent $previous) -lt $call.Indent) { break }
 		$first--
 	}
 	$withMap = @{}
@@ -127,7 +129,7 @@ function Get-LaneCallerInputs {
 	for ($i = $first; $i -lt $lines.Count; $i++) {
 		$line = $lines[$i]
 		if ($line -match '^\s*(#|$)') { continue }
-		$indent = $line.Length - $line.TrimStart().Length
+		$indent = Get-LineIndent $line
 		if ($indent -lt $call.Indent) { break }
 		if ($indent -eq $call.Indent) {
 			$inWith = $line -match '^\s*with:\s*$'

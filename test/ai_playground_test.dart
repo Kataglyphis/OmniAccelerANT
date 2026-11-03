@@ -338,6 +338,14 @@ void main() {
       (options.maxNewTokens, options.temperature, options.topP, options.topK),
       (9, 0.5, 1.0, 50),
     );
+    expect((options.seed, options.jsonSchema), (null, null));
+    expect(options.stop, isEmpty);
+    final shaped = settings
+        .copyWith(seed: 11, jsonSchema: '{"type":"object"}', stop: ['END'])
+        .options();
+    expect((shaped.seed, shaped.jsonSchema), (11, '{"type":"object"}'));
+    expect(shaped.stop, <String>['END']);
+    expect(settings.copyWith(seed: 11, clearSeed: true).options().seed, isNull);
   });
 
   test(

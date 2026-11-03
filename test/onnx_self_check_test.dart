@@ -1,10 +1,19 @@
 @TestOn('vm')
 library;
 
+import 'dart:convert';
+
+import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:omni_accelerant/src/boot/onnx_self_check.dart';
 import 'package:omni_accelerant/src/rust/api/onnx.dart';
+import 'package:omni_accelerant/src/rust/api/webcam.dart';
 import 'package:omni_accelerant/src/rust/frb_generated.dart';
+
+/// A 2x3 RGBA PNG, the frame size the fake detector expects.
+final Uint8List _png = base64Decode(
+  'iVBORw0KGgoAAAANSUhEUgAAAAIAAAADCAYAAAC56t6BAAAAEUlEQVR4nGMQUDD4D8IMGAwAZpMIO34WcbIAAAAASUVORK5CYII=',
+);
 
 class _Detector extends Fake implements RustLibApi {
   bool fail = false;
@@ -40,14 +49,83 @@ class _Detector extends Fake implements RustLibApi {
     if (fail) throw StateError('model unavailable');
     return <Detection>[];
   }
+
+  List<double> catScores = const <double>[];
+
+  @override
+  List<DetectionBox> crateApiOnnxDetectRgba({
+    required List<int> rgba,
+    required int width,
+    required int height,
+    required Int64List classes,
+  }) {
+    expect(<int>[for (final c in classes) c.toInt()], <int>[15]);
+    expect((rgba.length, width, height), (2 * 3 * 4, 2, 3));
+    return <DetectionBox>[
+      for (final double score in catScores)
+        DetectionBox(
+          x1: 0,
+          y1: 0,
+          x2: 1,
+          y2: 1,
+          score: score,
+          classId: PlatformInt64Util.from(15),
+        ),
+    ];
+  }
 }
 
 void main() {
+  testWidgets('runDetectLatency decodes the image and times the bridge', (
+    WidgetTester tester,
+  ) async {
+    final Uint8List png = base64Decode(
+      'iVBORw0KGgoAAAANSUhEUgAAAAIAAAADCAYAAAC56t6BAAAAEUlEQVR4nGMQUDD4D8IMGAwAZpMIO34WcbIAAAAASUVORK5CYII=',
+    );
+    final String? line = await tester.runAsync(() => runDetectLatency(png, 2));
+    final Map<String, dynamic> figures =
+        jsonDecode(line!) as Map<String, dynamic>;
+    expect(figures.keys, <String>['p50_ms', 'p95_ms']);
+    expect(figures['p50_ms'] as double, greaterThanOrEqualTo(0));
+  });
+
+  test('latencyLine ranks the samples for --perf-host', () {
+    final List<double> samples = <double>[
+      for (int i = 20; i >= 1; i--) i.toDouble(),
+    ];
+    expect(latencyLine(samples), '{"p50_ms":11.0,"p95_ms":20.0}');
+  });
+
   final _Detector detector = _Detector();
   setUpAll(() => RustLib.initMock(api: detector));
   setUp(() {
     detector.fail = false;
     detector.profileCalls = 0;
+  });
+
+  test('the detect check counts only cats at score 0.4 or more', () {
+    final Uint8List frame = Uint8List(2 * 3 * 4);
+    detector.catScores = const <double>[0.95, 0.4, 0.39];
+    expect(countConfidentCats(frame, 2, 3), 2);
+    detector.catScores = const <double>[];
+    expect(countConfidentCats(frame, 2, 3), 0);
+    expect(detectCheckMinimum, 2);
+  });
+
+  testWidgets('the detect check decodes an image before counting its cats', (
+    WidgetTester tester,
+  ) async {
+    detector.catScores = const <double>[0.9, 0.5];
+    expect(await tester.runAsync(() => runDetectCheck(_png)), 2);
+    final Object? refused = await tester.runAsync<Object?>(() async {
+      try {
+        await runDetectCheck(Uint8List(4));
+        return null;
+      } on Object catch (error) {
+        return error;
+      }
+    });
+    expect(refused, isNotNull);
   });
 
   test('runs inference through the detector bridge', () {

@@ -53,26 +53,41 @@ class _FakeRustApi extends Fake implements RustLibApi {
 
   @override
   void crateApiWebcamStopWebcamInference() => stops++;
+
+  /// Enough names to pick class 15; the real list comes from the core.
+  @override
+  List<String> crateApiOnnxDetectorLabels() => <String>[
+    for (int id = 0; id < 16; id++) id == 15 ? 'cat' : 'class $id',
+  ];
 }
 
-DetectionEvent _event({required int boxes, double fps = 0, double ms = 0}) =>
-    DetectionEvent(
-      detections: <DetectionBox>[
-        for (int i = 0; i < boxes; i++)
-          DetectionBox(
-            x1: 10,
-            y1: 10,
-            x2: 50,
-            y2: 50,
-            score: 0.8,
-            classId: PlatformInt64Util.from(15),
-          ),
-      ],
-      frameSequence: BigInt.one,
-      ptsMs: null,
-      inferenceMs: ms,
-      fps: fps,
-    );
+DetectionEvent _event({
+  required int boxes,
+  double fps = 0,
+  double ms = 0,
+  String provider = 'cpu',
+}) => DetectionEvent(
+  detections: <DetectionBox>[
+    for (int i = 0; i < boxes; i++)
+      DetectionBox(
+        x1: 10,
+        y1: 10,
+        x2: 50,
+        y2: 50,
+        score: 0.8,
+        classId: PlatformInt64Util.from(15),
+      ),
+  ],
+  backend: 'ort',
+  executionProvider: provider,
+  frameSequence: BigInt.one,
+  ptsMs: null,
+  inferenceMs: ms,
+  fps: fps,
+);
+
+/// Class ids as plain ints; the bridge's Int64List holds BigInt on every platform.
+List<int> _ids(Int64List classes) => <int>[for (final c in classes) c.toInt()];
 
 /// Mounts the view at 640x480; `create` answers [textureId], or fails when it is null.
 Future<List<MethodCall>> _pump(
@@ -150,6 +165,43 @@ void main() {
     expect(rust.stops, stopsBefore + 1);
     expect(rust.session!.hasListener, isFalse);
     expect(find.textContaining('Stopped'), findsOneWidget);
+  });
+
+  testWidgets(
+    'person is the default class and a picked class reaches the core',
+    (WidgetTester tester) async {
+      await _pump(tester);
+      await tester.tap(find.text('Start'));
+      await tester.pump();
+      expect(_ids(rust.started.single.classes), <int>[0]);
+
+      await tester.tap(find.text('Stop'));
+      await tester.pump();
+      await tester.tap(find.byKey(const ValueKey<String>('classPicker')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('cat').last);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Start'));
+      await tester.pump();
+      expect(_ids(rust.started.last.classes), <int>[15]);
+    },
+  );
+
+  testWidgets('each event names its backend and execution provider', (
+    WidgetTester tester,
+  ) async {
+    await _pump(tester);
+    await tester.tap(find.text('Start'));
+    await tester.pump();
+    final DetectionEvent event = _event(boxes: 1);
+    expect(event.executionProvider, 'cpu');
+    rust.session!.add(event);
+    await tester.pump();
+    expect(find.text('ort on cpu'), findsOneWidget);
+
+    rust.session!.add(_event(boxes: 1, provider: 'xnnpack'));
+    await tester.pump();
+    expect(find.text('ort on xnnpack'), findsOneWidget);
   });
 
   testWidgets('Webcam asks the core for cameras and streams the first one', (

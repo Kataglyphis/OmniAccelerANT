@@ -23,6 +23,8 @@ GPU candidate artifact names include the current run attempt and cannot be overw
 GPU candidate selectors and caller scopes must be validated before concurrency; uploads and Linux clean-host downloads use the same selection, scope and attempt.
 Linux GPU candidate verification reads the DEB package identity and architecture from its control metadata, not only from its filename.
 Every launcher icon derives from `images/logo.svg`; `scripts/linux/check-brand-icons.py` gates it.
+COCO class names come only from OxidANT's `detectorLabels()`; keep German names in id order in `class_labels.dart`, never an English copy.
+`rust_builder/linux/oxidant-ort-devices.cmake` is the one reader of OxidANT's `ort-devices`, on both lanes.
 
 Laid out per ANTfrastructure's
 [`shared/templates/AGENTS.md.template`](third_party/ANTfrastructure/shared/templates/README.md).
@@ -40,10 +42,10 @@ inference plugin.
 | `third_party/OxidANT` | Rust core, bridged via `flutter_rust_bridge`. `lib/src/rust/` is committed generated code — no build lane regenerates it; how to regenerate: § 4, *The frb Dart bindings* |
 | `packages/kataglyphis_native_inference` | C++ inference plugin — **plain files, not a submodule**; a `pubspec.yaml` path dependency. Links AccelerANTgine (ONNX Runtime); GStreamer only on Android, from its SDK |
 | `third_party/AccelerANTgine` | The inference core the plugin builds. Its own submodule, sibling to the plugin rather than nested inside it |
-| `scripts/windows/`, `scripts/linux/` | Thin wrappers over ANTfrastructure drivers + this repo's own glue |
+| `scripts/windows/`, `scripts/linux/` | Thin wrappers over ANTfrastructure drivers + this repo's own glue; `scripts/windows/modules/WindowsGpuBuild.Common.psm1` holds the GPU candidate build's shared steps |
 | `third_party/ANTfrastructure` | The submodule owning every reusable script, module and doc |
 | `firmware/esp32-s3` | Rust firmware for the ESP32-S3 companion — its own crate, `esp` toolchain and `Cargo.lock`, never a workspace member |
-| `firmware/esp32-s3-eye` | ESP32-S3-EYE camera firmware: ESP-IDF/ESP-WHO/ESP-DL (C/C++) plus the Rust USB protocol staticlib |
+| `firmware/esp32-s3-eye` | ESP32-S3-EYE camera firmware: ESP-IDF/ESP-WHO/ESP-DL (C/C++) plus the Rust USB protocol staticlib, `firmware/esp32-s3-eye/rust_protocol` |
 | `firmware/esp32-s3-probe` | One-boot hardware probe: PSRAM and the OV2640 SCCB scan (XCLK on GPIO15) |
 
 **ESP32-S3 USB companion and camera (2026-10-18).** A board on its native USB port
@@ -90,6 +92,15 @@ manual check. `scripts/linux/check-knt-abi.sh` dlopens the built plugin and chec
 symbols and error codes. Since 2026-10-01 the lane also starts the packaged bundle under Xvfb
 and drives `integration_test/simple_test.dart` there (§ 5, *What each lane tests*). The
 packaged artifacts carry their GStreamer/ONNX Runtime/model closure.
+
+**The class list goes to the core; person stays the default.** `RustWebcamView.classes`
+defaults to `[0]` and its class picker lists `detectorLabels()` from OxidANT, the one owner of
+the class names: never add a Dart copy. Each `DetectionEvent` names its `backend` and
+`executionProvider`; the webcam frame test requires `ort on cpu` from the real core. After the
+launch smoke, the release lane runs `--detect-check` on OxidANT's `two_cats.jpg` (at least two
+class-15 boxes at score 0.4 or more) and on a generated blank frame, which must exit 1.
+Regenerate `lib/src/rust/` with `scripts/linux/generate-frb-bindings.sh` in the same commit as
+any OxidANT pin that changes `src/api`.
 
 **Linux/web cat detection stream.** The same Stream page plays a WebRTC stream from
 `third_party/OxidANT/crates/observant` (`kataglyphis_observant`): V4L2/libcamera → ONNX (cat
@@ -284,13 +295,8 @@ sizes and decision are in [overview.md](docs/source/overview.md#desktop-c-integr
 Everything here is false or meaningless in another repo — that is why it is written out
 rather than linked.
 
-- **Five scripts print a fixed line range of their own header as `--help`.**
-  `scripts/linux/observant/package-producer-bundle.sh` (`sed -n '2,22p'`),
-  `scripts/linux/observant/package-observant.sh` (`sed -n '2,15p'`),
-  `scripts/linux/esp32/build-firmware.sh` (`sed -n '2,12p'`),
-  `scripts/linux/esp32/build-eye-demo.sh` (`sed -n '2,7p'`) and
-  `scripts/agentic-loop/Run-AgenticLoop.sh` (`head -28 | tail -27`): edit the
-  header and the range together. `comment-size.allow` freezes those headers.
+- **Script help lives in a `usage()` heredoc, never in the header comment.** The header is one
+  line; `--help` prints the heredoc, so the comment-size gate needs no allowlist here.
 - **Six image gaps this repo once worked around are fixed in the image (2026-09-05); never
   bring a workaround back.** A reappearing one is an image regression
   ([`docs/source/platforms.md`](docs/source/platforms.md) § *Image gaps and image-tag history*).
@@ -341,9 +347,10 @@ rather than linked.
 - **Linux bundle fixtures come from the hub.** The closure and GStreamer element tests source
   `synthetic-elf-fixture.sh` and `gst-inspect-fixture.sh`; preserve their DT_STRSZ and Name-field
   options when changing a test, and keep the helper import fatal.
-- **Linux bundle check options reuse the hub parser.** `check-bundle-gst-elements.sh` and
-  `check-knt-abi.sh` call `scripts/linux/lib/bundle-options.sh`, which delegates value flags to
-  ANTfrastructure's `parse_cli_value_options`; keep each gate's accepted path flag, error code,
+- **Linux entry scripts share one flag loop.** `check-bundle-gst-elements.sh` and
+  `check-knt-abi.sh` call `scripts/linux/lib/bundle-options.sh`, and it and the other non-lane entry
+  scripts use `scripts/linux/lib/entry-options.sh`, which must work before the hub submodule
+  exists; keep each gate's accepted path flag, error code,
   help text and the shared build-mode verdict. The native lane runs
   `scripts/linux/tests/test-bundle-options.sh`, including a mutated option destination.
 - **The Rust binaries name the chain ORT's directory, and G6 must read them as importers.**
@@ -372,8 +379,10 @@ rather than linked.
   pin the image carries — never a floating latest, and never `--force`.
 - **The built web app gets a real browser check.** `scripts/linux/check-web-browser.sh`
   delegates to the hub's Node/Chrome check; its idle ObservANT fixture answers signalling,
-  snapshots and API requests without weakening error checks. Keep the static branch routes
-  there current; configured blog routes are read from their settings. Fallback glyph fonts
+  snapshots and API requests without weakening error checks. Navigation routes come from
+  `lib/app_pages.dart`, the one page table (route, rail entry, widget) that routing and
+  `test/app_layout_test.dart` read too; add a page there, never a per-page config. Keep the footer
+  routes there current; configured blog routes are read from their settings. Fallback glyph fonts
   need both `web/flutter_bootstrap.js` and the hub's locked font fetcher. Commands and scope:
   [project-operations.md](docs/source/project-operations.md#the-web-lanes-canvaskit-source).
 - **Renaming the Rust crate touches committed generated code.**
@@ -390,7 +399,9 @@ rather than linked.
   `third_party/OxidANT/scripts/linux/fetch-models.sh` (`--dest DIR`; Windows:
   `scripts\windows\Get-Models.ps1`) is the only way in. A checkout has no model until it
   runs, so the Rust webcam view on a dev build fails to load one: the native lane runs it
-  before the build, the bundle and package scripts call it themselves. A new model goes
+  before the build, the bundle and package scripts call it themselves. No script names the
+  model: `verify_detector_model.py` and `scripts/windows/Get-DetectorModelFile.ps1` read the
+  lock's first `.onnx` row, and `runtime_paths.cc` the bundle's only `.onnx`. A new model goes
   into ModelANT and only the lock moves here; the old AGPL files left the history on 2026-10-17.
   Detail: `docs/source/camera-streaming.md` § *The detection model*.
 - **The app version is written twice, and both move together.** `version:` in
@@ -509,6 +520,12 @@ rather than linked.
 - **A RISC-V board runs the same image natively**: a USB webcam needs `--v4l2`, a udev rule
   for the camera node's ACL and UFW rules, and `serve.sh --producer-host` takes the board's IP,
   never its mDNS name. Detail: [`docs/source/camera-streaming.md`](docs/source/camera-streaming.md) § *Cat detection stream (Rust, native)*.
+- **An ObservANT bundle scans its plugin registry out of process.** The launchers name the bundled
+  `gst-plugin-scanner` in `GST_PLUGIN_SCANNER`, and OxidANT's `ensure_gst_initialized` then adds no
+  `GST_REGISTRY_FORK=no`; never set it for a bundle with webrtcsink. An in-process scan of a fresh
+  registry can register webrtcsink before its encoders, and the stream dies with
+  `No codec available for encoding stream video_0` on hosts whose filesystem lists that plugin first.
+  `test-observant-package.sh` forces that order: [`docs/source/camera-streaming.md`](docs/source/camera-streaming.md) § *Tests*.
 - **Autostart is opt-in.** Boards on the ObservANT package use its systemd unit; the manual
   setups' `~/cat-cam.sh start` removes a stale container first, or the named run fails with
   `name-store error`.
@@ -568,6 +585,10 @@ rather than linked.
     `bsp_camera_cfg_t` API while its lock and defaults are still 5.0.2. The script also
     disables the example's BSP LED block (absent from 5.0.2) and patches the esp-dl 3.3.13
     API.
+- **The AI Playground never writes its API key.** Its settings persist through
+  `PlaygroundSettings.toJson`, which leaves the key out; a new store or field writes that encoding
+  only, and `test/ai_playground_settings_test.dart` scans every saved byte for a planted key:
+  [`docs/source/ai-playground.md`](docs/source/ai-playground.md) § *Saved settings*.
 - **Windows host only: the webcam reaches WSL over usbipd, and WebRTC needs mirrored
   networking.** `usbipd attach --wsl --busid <id>` (bus ids change) plus `modprobe uvcvideo`
   gives the container `/dev/video0`; `[wsl2] networkingMode=mirrored` in
@@ -580,13 +601,31 @@ rather than linked.
 
 **Security audit lane.** `.github/workflows/security-audit.yml` calls the hub's reusable `security-audit.yml` on push, pull request, Mondays and dispatch. It scans both `pubspec.lock` files, `rust_builder/cargokit/build_tool/pubspec.lock` and the three firmware `Cargo.lock` files with the hub-pinned osv-scanner, records `cargo_security_checks.sh` for each `Cargo.lock`, fails a push or PR that adds a HIGH or CRITICAL advisory absent from the base commit, lists every finding on the weekly and dispatched runs, and uploads `security-audit.json`. Locally: `bash third_party/ANTfrastructure/linux/scripts/security-audit.sh`. The lint gates enforce the hub's `sha-pin` workflow convention (`workflow-conventions: sha-pin`): every third-party `uses:` names a 40-hex commit SHA.
 
-**Python static analysis is strict.** `.github/workflows/python-static.yml` calls the hub's reusable `python-static.yml` with `strict: true` on push, PR and dispatch: one Ruff finding or ty diagnostic in a tracked `.py` file fails the lane. Locally: `bash third_party/ANTfrastructure/linux/scripts/python-static.sh --root "$PWD" --strict`. Fix a finding in the code; never add a suppression, and give a script with a shebang the executable mode. The tracked Flutter `ios/Flutter/ephemeral/flutter_lldb_helper.py` is in that scope: re-check it after Flutter regenerates the platform files.
+**Python static analysis is strict.** `.github/workflows/python-static.yml` calls the hub's reusable `python-static.yml` with `strict: true` on push, PR and dispatch: one Ruff finding or ty diagnostic in a tracked `.py` file fails the lane. Locally: `bash third_party/ANTfrastructure/linux/scripts/python-static.sh --root "$PWD" --strict`. Fix a finding in the code; never add a suppression, and give a script with a shebang the executable mode. Flutter's generated `ios/Flutter/ephemeral/` LLDB helpers are ignored, like the other ephemeral files, so they never enter that scope.
 
 `bash scripts/linux/quality-report.sh` measures this checkout into `logs/code-quality/measurements.json`
 and `queue.md`; `--compare <file>` or `--compare previous-develop` grades it (exit 0 ok, 1 regressed,
 2 incomplete). `quality-report.toml` declares this repo's lane outputs and metrics: hub
 `docs/code-quality-tooling.md` § quality-report. A regressed verdict on develop is fixed or recorded
-in `BACKLOG.md` before new feature work.
+in `BACKLOG.md` before new feature work. `bash scripts/linux/quality-report.sh --perf-host` runs the
+latency commands that toml declares inside `:latest` and grades them against `perf/baseline-<cpu>.json`;
+it refuses a dirty tree, a loaded host or a running image chain. It times two-cats p50/p95 through the release bundle's bridge with `--detect-latency`; run it as a
+`systemd-run --user` unit, and `--update-baseline` rewrites the baseline: hub `docs/fleet-health.md` § perf-host.
+
+**bench-history keys:** `frontend-perf-x64` and `frontend-perf-arm64` (artifacts
+`bench-history-frontend-perf-<arch>`), the profile-mode frame timings against the median of earlier
+default-branch runs.
+
+Programs: the app `omni_accelerant`, and the firmware binaries `omni-esp32s3` (`firmware/esp32-s3`) and
+`omni-esp32s3-probe` (`firmware/esp32-s3-probe`).
+
+Workflows outside the lanes below: `on-request.yml` starts what a commit message's `[ci <lane>]` asks
+for; `release.yml` is every push to `main`; `docs.yml` builds and publishes the site;
+`code-quality-report.yml` runs `quality-report.sh`; `ort-license-mutations.yml` proves the license and
+ORT recipes; `python-refactor.yml` is an on-demand preview that publishes nothing;
+`renovate-entrypoint.yml` checks the Renovate wrapper and config; `submodule-pins.yml` runs the hub's pin
+suite when a gitlink moves; `linux-gpu-candidates.yml` and `windows-gpu-candidates.yml` are dispatch-only,
+unverified GPU candidates.
 
 **Both lanes run the same thing locally and in CI; reproduce locally first, CI is not a
 debugger.** **Run one lane at a time**: every local lane bind-mounts the same checkout and its
@@ -679,19 +718,22 @@ that cannot run there; why, lane by lane: [`docs/source/testing.md`](docs/source
 | G6 over the shipped tree | `check-bundle-closure.sh` | at build, again on the host | at the natives build, again on the device | | |
 | Every pipeline element from the bundled plugins alone (`check-bundle-gst-elements.sh`) | yes | | | | |
 | Bundle gate's mutation suite, the element gate's stub suite | yes | | | | |
-| Dart coverage of `lib/` against a floor (the hub's `check-dart-coverage.sh`) | yes | | | | |
+| Script and fixture suites, discovered (`lib/suite-inventory.sh`; 0 unreferenced, a `# suite-runner:` suite runs where that file names it) | yes | `test-ort-device.py`, on the runner | | | |
+| Dart coverage of `lib/` against a floor (the hub's `check-dart-coverage.sh`), uploaded as `omni-accelerant-linux-<arch>-coverage` for `quality-report.toml` | yes | | | | |
 | Web artefacts: `<title>` vs manifest name, `sqlite3.wasm` vs its pin, 8-bit icons (the hub's `check-web-artefacts.py`) | yes | | | | |
 | Plugin C++ format (`check-plugin-cpp-format.sh`) and its planted-deviation suite | yes | | | | |
 | Import walk | (the closure gate) | host, `-Standalone` | device | | |
 | Launch smoke, 20 s | under Xvfb, on the host's and the bundled glibc, and the app flatpak | host | device | | |
 | Integration test (`integration_test/simple_test.dart`) | under Xvfb | `flutter drive` against the clang-cl app | `flutter drive` (the Debug app) | | |
 | Webcam frame through `knt_push_frame` (`integration_test/webcam_frame_test.dart`) | under Xvfb, test pattern | | | | |
-| Frame timings in profile mode (`integration_test/performance_test.dart`, `flutter drive --profile`), against the median of the last 20 default-branch runs (the hub's `frontend-perf-report` action) | x64, under Xvfb | | | | |
+| Text generation through OxidANT's bridge (`integration_test/text_generate_test.dart`): the tiny model's `defg`, SmolLM2-135M's `Paris`, the playground's request body | under Xvfb | | | | |
+| Frame timings in profile mode (`integration_test/performance_test.dart`, `flutter drive --profile`), against the median of the last 20 default-branch runs (the hub's `frontend-perf-report` action, bench-history key `frontend-perf-x64`, declared in `quality-report.toml` for fleet-health) | x64, under Xvfb | | | | |
 | Pester (`scripts/windows/tests`) | | `windows-2025` | `windows-11-arm` | | |
 | Plugin JVM test | | | | yes | |
 | APK ABI gate (`check-apk-abi.sh`) and its synthetic-APK suite | | | | yes | |
 | `liboxidant`'s rustc stamp (`check-rust-toolchain.sh`) and its suite | yes | | | yes, in the APK | |
 | APK on the emulator, 20 s (`check-apk-on-emulator.sh`) and its stub suite | | | | yes, API 35 x86_64 + ARM translation, on KVM | |
+| The real ObservANT packagers on a fixture lock naming another model (`test-observant-fixture-lock.sh`, `Test-ObservANTFixtureLock.ps1`); not the flatpak's model files, the fixture MSI or MSIX | | | | | in `web.yml`'s `observant-*` jobs |
 | ObservANT .deb, AppImage and flatpak install checks (`test-observant-package.sh`) | | | | | in `web.yml`'s `observant` jobs, x64 and arm64 |
 | ObservANT MSI install checks (`Test-ObservANTWindows.ps1`) | | | | | x64 in `web.yml`'s `observant-windows` job, in `:winamd64`; arm64 on `windows-11-arm` after the hub's arch gate (`observant-windows-arm64-test`) |
 | ObservANT MSIX package checks (`Test-ObservANTMsix.ps1`, without `-Install`) | | | | | in `web.yml`'s `observant-windows` jobs, in `:winamd64` and `:winarm64` |
@@ -802,6 +844,10 @@ gitlinks in every superproject that vendors it. How Renovate detects and `--appl
 runner: [`docs/source/project-operations.md`](docs/source/project-operations.md) § *Dependency upgrades, in detail*.
 
 ## 6. Docs owned by this repo
+
+**`run-lint-gates.sh --agents-drift` holds this file to the tree**: section 1 names every package and
+module, section 5 every workflow and program, the docs build list every page, and `BACKLOG.md` every open
+`LAI-F` ID. A finding is fixed by naming the thing, never by an exception.
 
 **Write docs like a developer: short and precise** (owner, 2026-10-19). Say what a thing does,
 how to run it and what breaks; no filler, no marketing, no repetition.

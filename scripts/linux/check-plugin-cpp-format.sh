@@ -10,16 +10,9 @@ antfrastructure_source linux/scripts/lib/code-quality.sh
 
 package_dir="${KATAGLYPHIS_REPO_ROOT}/packages/kataglyphis_native_inference"
 
-while [ $# -gt 0 ]; do
-  case "$1" in
-    --package-dir) package_dir="${2:?--package-dir needs a path}"; shift 2 ;;
-    -h|--help)
-      printf 'usage: %s [--package-dir DIR]\n' "$0"
-      exit 0
-      ;;
-    *) printf 'unknown argument: %s\n' "$1" >&2; exit 2 ;;
-  esac
-done
+# shellcheck source=scripts/linux/lib/entry-options.sh
+source "${SCRIPT_DIR}/lib/entry-options.sh"
+parse_entry_options '[--package-dir DIR]' '' '--package-dir=package_dir:a path' -- "$@"
 
 # Exit 2 is "could not grade", which is red too: a gate that did not run must not read as a clean tree.
 refuse() {

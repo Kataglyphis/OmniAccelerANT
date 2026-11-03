@@ -2,16 +2,12 @@
 # check-bundle-gst-elements.sh against a stub gst-inspect: one green, and each way it must go red.
 set -uo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# shellcheck source=scripts/linux/lib/antfrastructure.sh
-source "${SCRIPT_DIR}/../lib/antfrastructure.sh"
-_harness="$(antfrastructure_path linux/scripts/lib/test-harness.sh)" || exit 1
-# shellcheck source=third_party/ANTfrastructure/linux/scripts/lib/test-harness.sh
-source "${_harness}"
+# shellcheck source=scripts/linux/tests/harness-bootstrap.sh
+source "$(dirname "${BASH_SOURCE[0]}")/harness-bootstrap.sh"
 antfrastructure_source linux/scripts/tests/gst-inspect-fixture.sh || exit 1
-gate="${SCRIPT_DIR}/../check-bundle-gst-elements.sh"
+gate="${KATAGLYPHIS_REPO_ROOT}/scripts/linux/check-bundle-gst-elements.sh"
 # shellcheck source=scripts/linux/lib/bundle-runtime.sh
-source "${SCRIPT_DIR}/../lib/bundle-runtime.sh"
+source "${KATAGLYPHIS_REPO_ROOT}/scripts/linux/lib/bundle-runtime.sh"
 work="$(mktemp -d)"
 trap 'rm -rf "${work}"' EXIT
 mkdir -p "${work}/bundle/lib/gstreamer-1.0" "${work}/no-plugins/lib"

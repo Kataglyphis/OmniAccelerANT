@@ -830,6 +830,24 @@ abstract class AppLocalizations {
   /// **'Temperature'**
   String get aiTemperature;
 
+  /// No description provided for @aiSeed.
+  ///
+  /// In en, this message translates to:
+  /// **'Seed (empty: a fresh answer each time)'**
+  String get aiSeed;
+
+  /// No description provided for @aiJsonSchema.
+  ///
+  /// In en, this message translates to:
+  /// **'JSON schema for the answer (empty: free text)'**
+  String get aiJsonSchema;
+
+  /// No description provided for @aiStop.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop strings, one per line'**
+  String get aiStop;
+
   /// No description provided for @aiClear.
   ///
   /// In en, this message translates to:

@@ -5,6 +5,95 @@
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/antfrastructure.sh"
 antfrastructure_source linux/scripts/lib/cli-value-options.sh
 
+# Each help line lives once, so lanes cannot describe one flag differently by accident.
+declare -A _OMNI_CI_OPTION_HELP=(
+  [arch-label-required]=$'  -a, --arch <x64|arm64>        Target architecture label (required)'
+  [build-mode-apk-image]=$'  --build-mode <debug|profile|release> Build mode for flutter build apk (default: release)'
+  [flutter-dir-image]=$'      --flutter-dir <path>      Flutter SDK directory (default: /opt/flutter, baked into the image)'
+  [app-name-required]=$'  -n, --app-name <name>         Artifact base name (required)'
+  [emulator-smoke]=$'      --emulator-smoke <bool>   Run the APK on the image\'s AVD (needs /dev/kvm; default: false)'
+  [run-codeql-manual]=$'      --run-codeql <bool>       Run CodeQL scan (default: false; the scan is\n                                hours and is a manual/local run since 2026-09-17)'
+  [help]=$'  -h, --help                    Show this help'
+  [arch-required]=$'  -a, --arch <x64|arm64>        Target architecture (required)'
+  [build-mode-linux]=$'  --build-mode <debug|profile|release> Build mode for flutter build linux (default: release)'
+  [package-formats-tar]=$'      --package-formats <csv>   Packaging formats (default: tar)'
+  [install-packaging-deps]=$'      --install-packaging-deps <bool> Install the flathub runtime; only consulted when --package-formats has flatpak (default: false)'
+  [strict-checks]=$'      --strict-checks <bool>    Fail on format/analyze/test errors (default: true in CI, false locally)'
+  [run-codeql-refused]=$'      --run-codeql <bool>       Must be false: no CodeQL scan is implemented here'
+  [run-docs]=$'      --run-docs <bool>         Run generate-docs.sh, x64 only (default: false; docs.yml builds the site)'
+  [arch-label-auto]=$'  -a, --arch <x64|arm64>        Host architecture label for artifact naming (default: auto-detect)'
+  [build-mode-apk]=$'      --build-mode <debug|profile|release> Build mode for flutter build apk (default: release)'
+  [app-name-apk]=$'  -n, --app-name <name>         Artifact base name (default: pubspec name + -apk)'
+  [flutter-dir-optional]=$'      --flutter-dir <path>      Optional Flutter SDK directory (uses <path>/bin/flutter)'
+  [arch-auto]=$'  -a, --arch <x64|arm64>        Target architecture (default: auto-detect)'
+  [app-name-default]=$'  -n, --app-name <name>         Artifact base name (default: pubspec name)'
+  [package-formats-all]=$'      --package-formats <csv>   Packaging formats (default: tar,appimage,flatpak,deb)'
+  [no-package]=$'      --no-package              Build only (skip packaging)'
+)
+
+# omni_ci_usage <lane> <option-key>...
+omni_ci_usage() {
+  local lane="$1" key
+  shift
+  printf 'Usage:\n  bash scripts/linux/ci/%s.sh [options]\n\nOptions:\n' "$lane"
+  for key in "$@"; do
+    if [[ -z "${_OMNI_CI_OPTION_HELP[$key]:-}" ]]; then
+      echo "Error: unknown usage key: $key" >&2
+      return 2
+    fi
+    printf '%s\n' "${_OMNI_CI_OPTION_HELP[$key]}"
+  done
+}
+
+# omni_ci_lane_notes <body-sentence>: the two note lines a direct lane adds under its options.
+omni_ci_lane_notes() {
+  printf '\nNotes:\n  - %s\n  - Requires flutter + dart available (either on PATH or via --flutter-dir).\n' "$1"
+}
+
+# omni_ci_validate_lane_args <app-name> <arch> <build-mode>: the direct lanes' refusals, in the order they always ran.
+omni_ci_validate_lane_args() {
+  if [[ -z "$1" ]]; then
+    echo "Error: --app-name must not be empty" >&2
+    exit 2
+  fi
+  if ! validate_arch "$2"; then
+    exit 2
+  fi
+  omni_ci_validate_build_mode "$3"
+}
+
+omni_ci_validate_build_mode() {
+  case "$1" in
+    debug|profile|release) ;;
+    *)
+      echo "Error: --build-mode must be one of: debug, profile, release (got: ${1:-<empty>})" >&2
+      return 2
+      ;;
+  esac
+}
+
+# omni_ci_require <check> <args>...: a container wrapper refuses bad input with its usage on stderr.
+omni_ci_require() {
+  if ! "$@"; then
+    usage >&2
+    exit 2
+  fi
+}
+
+# omni_ci_lane_args <arch> <build-mode> <app-name> <flutter-dir>: one argument per line, what every wrapper hands its lane.
+omni_ci_lane_args() {
+  printf '%s\n' --arch "$1" --build-mode "$2" --app-name "$3" --flutter-dir "$4"
+}
+
+# omni_ci_enter_workspace: sets REPO_ROOT, says when /workspace is absent, and changes into it.
+omni_ci_enter_workspace() {
+  REPO_ROOT="$(resolve_repo_root /workspace)"
+  if [[ "$REPO_ROOT" != "/workspace" ]]; then
+    echo "[Info] /workspace nicht gefunden, benutze stattdessen $REPO_ROOT als Arbeitsverzeichnis."
+  fi
+  cd "$REPO_ROOT" || exit
+}
+
 _omni_ci_other_arg() {
   case "$1" in
     --no-package)

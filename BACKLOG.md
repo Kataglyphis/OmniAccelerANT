@@ -124,6 +124,43 @@ what the owner's goal still lacks.
   still halves the capture cost at once, at a less smooth stream. Blocked on the owner: 15 fps
   or not.
 
+## Language AI
+
+- [ ] **LAI-F4: microphone input in the app** (M, ★★). Hub language-AI milestone 3 (`docs/language-ai.md`).
+- [ ] **LAI-F5: questions on the Stream page** (M, ★★). Hub language-AI milestone 4.
+
+- **llguidance accepts the hub tiny model's tokenizer** (probe 2026-11-01, GenAI 0.17.0 in
+  `:latest` 7d4d4129). `set_guidance("json_schema", ...)` loaded on both the tiny model and
+  SmolLM2-135M; a schema with `maxLength`, no extra properties and fixed whitespace makes the tiny
+  model decode `{"a":"#$%"}` and stop at its end token, so schema tests need no SmolLM2 fallback.
+  An unbounded schema lets the tiny model emit whitespace until the budget ends. Windows' GenAI is
+  built without guidance (hub LAI-H2), so a schema there answers the unsupported error.
+
+## Open — packaging
+
+- [ ] **A bundle with `GST_REGISTRY_FORK=no` and no scanner can give webrtcsink an empty codec list** (M, ★★).
+  `packages/kataglyphis_native_inference/linux/runtime_paths.cc` sets it; on a fresh registry an in-process
+  scan builds the pad templates while webrtcsink reads them (OxidANT `docs/observant.md`). Ship
+  `gst-plugin-scanner` in the bundle or prove the fresh-registry path.
+
+
+- [ ] **A clear failure or a CPU fallback when CUDA has no kernel for the card** (M, ★★). Seen on an RTX 2080 with OxidANT's package; these packages use the
+  same image and are untested on such a card.
+  `CUDAExecutionProvider` creates its session, then the first node stops with
+  `cudaErrorNoKernelImageForDevice`: no detection, no fallback. The images build `86;87;89;120`, so RTX 20xx
+  cards fail until hub CON217. Any card outside the list should get a message naming it, or the CPU.
+
+- [ ] **The NVIDIA packages have not run on a GPU they support** (S, ★★★). The Linux and Windows packages are built and
+  passed on the CPU, and hosted runners have no GPU. Done on an RTX 30xx or newer when
+  `compare_detector_parity.py` passes against the CPU and the profile shows the provider; the hub's
+  `docs/gpu-artifact-receipts.md` has the commands. DirectML on an NVIDIA card is unproven too.
+  The owner runs this on a machine with an NVIDIA GPU. No release until this and the Linux AMD check are done.
+
+- [ ] **The Linux AMD packages have not run on a GPU** (S, ★★★). They are built and passed on the CPU, and hosted runners
+  have no GPU. Under WSL on the RX 9070 XT even a plain HIP copy does not return (hub CON202), so this takes native
+  Linux: the owner runs it under Ubuntu on that machine. Done when `compare_detector_parity.py` passes against the
+  CPU and the profile shows MIGraphX; the hub's `docs/gpu-artifact-receipts.md` has the commands.
+
 ## Open — waiting on the owner
 
 - [b] **False arrivals on himbeere2: nearly gone, one mark left.** On 2026-10-12 and 13 a drying rack at
@@ -144,3 +181,13 @@ what the owner's goal still lacks.
 
 Adopted 2026-09-13: `scripts/agentic-loop/` (config, runner wrappers, prompt overlays).
 Engine, models and build driver: AGENTS.md § 2. Rules and run commands: AGENTS.md § 5.
+
+## Quality queue
+
+The top 5 of `logs/code-quality/queue.md` (`bash scripts/linux/quality-report.sh`); re-sync when it moves.
+
+- [ ] `large-files.allow:3` budget 740 (allow_budget_total)
+- [ ] `doc-dupes-hub.allow:4` budget 23 (allow_budget_total)
+- [ ] `shellcheck-warnings.allow:11` budget 1 (allow_budget_total)
+- [ ] `shellcheck-warnings.allow:12` budget 1 (allow_budget_total)
+- [ ] `shellcheck-warnings.allow:13` budget 1 (allow_budget_total)

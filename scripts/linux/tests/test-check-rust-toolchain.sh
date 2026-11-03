@@ -2,13 +2,9 @@
 # The rustc-stamp gate on synthetic ELFs whose .comment is written by objcopy: one green, and each way it must go red.
 set -uo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# shellcheck source=scripts/linux/lib/antfrastructure.sh
-source "${SCRIPT_DIR}/../lib/antfrastructure.sh"
-_harness="$(antfrastructure_path linux/scripts/lib/test-harness.sh)" || exit 1
-# shellcheck source=third_party/ANTfrastructure/linux/scripts/lib/test-harness.sh
-source "${_harness}"
-gate="${SCRIPT_DIR}/../check-rust-toolchain.sh"
+# shellcheck source=scripts/linux/tests/harness-bootstrap.sh
+source "$(dirname "${BASH_SOURCE[0]}")/harness-bootstrap.sh"
+gate="${KATAGLYPHIS_REPO_ROOT}/scripts/linux/check-rust-toolchain.sh"
 work="$(mktemp -d)"
 trap 'rm -rf "${work}"' EXIT
 
@@ -25,18 +21,8 @@ make_elf() {
   objcopy --remove-section .comment --add-section .comment="${work}/comment" "${work}/base.so" "$out"
 }
 
-# make_apk <out> <member=file>...: a zip holding each file under its member name.
-make_apk() {
-  local out="$1"
-  shift
-  python3 - "$out" "$@" <<'EOF'
-import sys, zipfile
-with zipfile.ZipFile(sys.argv[1], "w") as z:
-    for spec in sys.argv[2:]:
-        member, path = spec.split("=", 1)
-        z.write(path, member)
-EOF
-}
+# shellcheck source=scripts/linux/tests/fixture-common.sh
+source "$(dirname "${BASH_SOURCE[0]}")/fixture-common.sh"
 
 make_elf "${work}/pinned.so" "GCC: (GNU) 16.2.0" "rustc version 1.98.1 (48a229cea 2026-09-01)"
 make_elf "${work}/floating.so" "rustc version 1.99.0 (b940084d7 2026-09-28)"
@@ -67,9 +53,9 @@ PATH="${work}/bin:${PATH}" t_assert_rc 0 bash "$gate" --crate-dir "${work}/crate
 t_case "the crate's resolved rustc, missed"
 PATH="${work}/bin:${PATH}" t_assert_rc 1 bash "$gate" --crate-dir "${work}/crate" "${work}/floating.so"
 
-make_apk "${work}/good.apk" "lib/arm64-v8a/liboxidant.so=${work}/pinned.so" "classes.dex=${work}/f.c"
-make_apk "${work}/drifted.apk" "lib/arm64-v8a/liboxidant.so=${work}/floating.so"
-make_apk "${work}/norust.apk" "lib/arm64-v8a/libflutter.so=${work}/c-only.so"
+fixture_make_apk "${work}/good.apk" "lib/arm64-v8a/liboxidant.so=${work}/pinned.so" "classes.dex=${work}/f.c"
+fixture_make_apk "${work}/drifted.apk" "lib/arm64-v8a/liboxidant.so=${work}/floating.so"
+fixture_make_apk "${work}/norust.apk" "lib/arm64-v8a/libflutter.so=${work}/c-only.so"
 t_case "an APK whose liboxidant matches"
 t_assert_rc 0 bash "$gate" --expect 1.98.1 --apk "${work}/good.apk"
 t_case "an APK whose liboxidant drifted"

@@ -3,14 +3,10 @@
 # SPDX-License-Identifier: MIT
 # Tests that every committed launcher icon must derive from the repo logo; the SVG-to-PNG render is not checked.
 set -uo pipefail
-script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-repo="$(cd "${script_dir}/../../.." && pwd)"
-source "${script_dir}/../lib/antfrastructure.sh"
-_harness="$(antfrastructure_path linux/scripts/lib/test-harness.sh)" || exit 1
-# shellcheck source=third_party/ANTfrastructure/linux/scripts/lib/test-harness.sh
-source "${_harness}"
-work="$(mktemp -d)"
-trap 'rm -rf "$work"' EXIT
+# shellcheck source=scripts/linux/tests/harness-bootstrap.sh
+source "$(dirname "${BASH_SOURCE[0]}")/harness-bootstrap.sh"
+repo="${KATAGLYPHIS_REPO_ROOT}"
+t_workdir
 check="${repo}/scripts/linux/check-brand-icons.py"
 
 fresh_tree() {
@@ -33,7 +29,8 @@ t_assert_fails python3 "$check" --repo-root "$work/tree"
 
 t_case 'a mirrored logo fails'
 fresh_tree
-python3 - "$check" "$work/tree/web/icons/Icon-512.png" <<'PY'
+t_write_png "$work/frame.png" 512 512
+python3 - "$check" "$work/tree/web/icons/Icon-512.png" "$work/frame.png" <<'PY'
 import importlib.util
 import struct
 import sys
@@ -44,16 +41,12 @@ spec = importlib.util.spec_from_file_location("icons", sys.argv[1])
 icons = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(icons)
 width, height, rows = icons.decode_png(Path(sys.argv[2]).read_bytes())
-raw = b"".join(b"\x00" + b"".join(bytes(row[x * 4:x * 4 + 4]) for x in reversed(range(width))) for row in rows)
-
-
-def chunk(kind: bytes, data: bytes) -> bytes:
-    return struct.pack(">I", len(data)) + kind + data + struct.pack(">I", zlib.crc32(kind + data))
-
-
-header = struct.pack(">IIBBBBB", width, height, 8, 6, 0, 0, 0)
-png = b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", header) + chunk(b"IDAT", zlib.compress(raw)) + chunk(b"IEND", b"")
-Path(sys.argv[2]).write_bytes(png)
+frame = Path(sys.argv[3]).read_bytes()
+# A size mismatch would fail the gate for the wrong reason, so the mirror must fit the frame's header.
+assert struct.unpack(">II", frame[16:24]) == (width, height)
+pixels = zlib.compress(b"".join(b"\x00" + b"".join(bytes(row[x * 4:x * 4 + 4]) for x in reversed(range(width))) for row in rows))
+idat = struct.pack(">I", len(pixels)) + b"IDAT" + pixels + struct.pack(">I", zlib.crc32(b"IDAT" + pixels))
+Path(sys.argv[2]).write_bytes(frame[:33] + idat + frame[-12:])
 PY
 t_assert_fails python3 "$check" --repo-root "$work/tree"
 

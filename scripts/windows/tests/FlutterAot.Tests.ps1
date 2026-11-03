@@ -3,6 +3,16 @@
 # Byte fixtures in flutter assemble's layout; Pester 3.4.0 dialect, as OrtRunner.Tests.ps1.
 
 Describe 'WindowsFlutterAot.Common' {
+    function Assert-OneStaleReason([object] $Case, [string] $Pattern) {
+        $reasons = @(Get-CaseStaleness $Case)
+        $reasons.Count | Should Be 1
+        ($reasons[0] -match $Pattern) | Should Be $true
+    }
+
+    function Get-CaseStaleness([object] $Case) {
+        Get-FlutterAotStaleness -DartToolDir $Case.DartTool -RunnerDataDir $Case.Data -AotLibrary $Case.Lib
+    }
+
 
     . (Join-Path $PSScriptRoot '..\Resolve-BuildModule.ps1')
     Import-BuildModule 'WindowsFlutterAot.Common'
@@ -37,59 +47,59 @@ Describe 'WindowsFlutterAot.Common' {
 
     It 'passes a fresh release build' {
         $c = New-Case 'fresh'
-        @(Get-FlutterAotStaleness -DartToolDir $c.DartTool -RunnerDataDir $c.Data -AotLibrary $c.Lib).Count | Should Be 0
+        @(Get-CaseStaleness $c).Count | Should Be 0
     }
 
     It 'does not grade a JIT (Debug) runner, which has no data\app.so' {
         $c = New-Case 'debug'
         Remove-Item -LiteralPath (Join-Path $c.Data 'app.so')
-        @(Get-FlutterAotStaleness -DartToolDir $c.DartTool -RunnerDataDir $c.Data -AotLibrary $c.Lib).Count | Should Be 0
+        @(Get-CaseStaleness $c).Count | Should Be 0
     }
 
     It 'catches the incident: a fresh kernel beside an AOT snapshot from before it' {
         $c = New-Case 'incident'
         Set-Fixture (Join-Path $c.Hash 'app.dill') 'kernel v3' $c.T0.AddMinutes(10)
-        $r = @(Get-FlutterAotStaleness -DartToolDir $c.DartTool -RunnerDataDir $c.Data -AotLibrary $c.Lib)
-        $r.Count | Should Be 1
-        ($r[0] -match 'older than its kernel') | Should Be $true
+        Assert-OneStaleReason $c 'older than its kernel'
     }
 
     It 'catches an installed copy that is not the assembled bytes' {
         $c = New-Case 'installed'
         Set-Fixture (Join-Path $c.Data 'app.so') 'aot v1' $c.T0.AddSeconds(20)
-        $r = @(Get-FlutterAotStaleness -DartToolDir $c.DartTool -RunnerDataDir $c.Data -AotLibrary $c.Lib)
-        $r.Count | Should Be 1
-        ($r[0] -match 'runner\\data\\app\.so is not the bytes') | Should Be $true
+        Assert-OneStaleReason $c 'runner\\data\\app\.so is not the bytes'
     }
 
     It 'catches a stale CMake AOT_LIBRARY copy' {
         $c = New-Case 'aotlib'
         Set-Fixture $c.Lib 'aot v1' $c.T0.AddSeconds(15)
-        $r = @(Get-FlutterAotStaleness -DartToolDir $c.DartTool -RunnerDataDir $c.Data -AotLibrary $c.Lib)
+        $r = @(Get-CaseStaleness $c)
         ($r -join ' ') -match 'build\\windows\\app\.so is not the bytes' | Should Be $true
+    }
+
+    # Another preset's older assemble tree, which neither the grade nor the reset may touch.
+    function Add-OtherPresetTree([object] $Case) {
+        $other = Join-Path $Case.DartTool 'flutter_build\0000000000000000000000000000beef'
+        Set-Fixture (Join-Path $other 'app.dill') 'profile kernel' $Case.T0.AddMinutes(-30)
+        Set-Fixture (Join-Path $other 'app.so') 'profile aot' $Case.T0.AddMinutes(-29)
+        return $other
     }
 
     It 'grades against the newest kernel when several presets left assemble trees' {
         $c = New-Case 'presets'
-        $other = Join-Path $c.DartTool 'flutter_build\0000000000000000000000000000beef'
-        Set-Fixture (Join-Path $other 'app.dill') 'profile kernel' $c.T0.AddMinutes(-30)
-        Set-Fixture (Join-Path $other 'app.so') 'profile aot' $c.T0.AddMinutes(-29)
+        $null = Add-OtherPresetTree $c
         Get-FlutterAotBuildDir -DartToolDir $c.DartTool | Should Be $c.Hash
-        @(Get-FlutterAotStaleness -DartToolDir $c.DartTool -RunnerDataDir $c.Data -AotLibrary $c.Lib).Count | Should Be 0
+        @(Get-CaseStaleness $c).Count | Should Be 0
     }
 
     It 'reports an AOT runner with no kernel to check against' {
         $c = New-Case 'nokernel'
         Remove-Item -LiteralPath (Join-Path $c.DartTool 'flutter_build') -Recurse
-        $r = @(Get-FlutterAotStaleness -DartToolDir $c.DartTool -RunnerDataDir $c.Data -AotLibrary $c.Lib)
+        $r = @(Get-CaseStaleness $c)
         ($r[0] -match 'no app.dill') | Should Be $true
     }
 
     It 'reset removes the AOT outputs and their stamps, and leaves the kernel and other presets' {
         $c = New-Case 'reset'
-        $other = Join-Path $c.DartTool 'flutter_build\0000000000000000000000000000beef'
-        Set-Fixture (Join-Path $other 'app.dill') 'profile kernel' $c.T0.AddMinutes(-30)
-        Set-Fixture (Join-Path $other 'app.so') 'profile aot' $c.T0.AddMinutes(-29)
+        $other = Add-OtherPresetTree $c
         $removed = @(Reset-FlutterAotOutput -DartToolDir $c.DartTool -AotLibrary $c.Lib)
         $removed.Count | Should Be 4
         Test-Path -LiteralPath (Join-Path $c.Hash 'app.so') | Should Be $false

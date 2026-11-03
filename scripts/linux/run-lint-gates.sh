@@ -13,4 +13,5 @@ export WORKFLOW_CONVENTIONS_GATE="${WORKFLOW_CONVENTIONS_GATE:-sha-pin}"
 antfrastructure_exec linux/scripts/run-lint-gates.sh "${KATAGLYPHIS_REPO_ROOT}" \
   --exclude third_party \
   --ratchets \
+  --agents-drift \
   "$@"

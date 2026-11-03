@@ -3,14 +3,10 @@
 # SPDX-License-Identifier: MIT
 # Tests the inventory drift check and native coverage gate offline; regeneration with cargo is not run here.
 set -uo pipefail
-script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-repo="$(cd "${script_dir}/../../.." && pwd)"
-source "${script_dir}/../lib/antfrastructure.sh"
-_harness="$(antfrastructure_path linux/scripts/lib/test-harness.sh)" || exit 1
-# shellcheck source=third_party/ANTfrastructure/linux/scripts/lib/test-harness.sh
-source "${_harness}"
-work="$(mktemp -d)"
-trap 'rm -rf "$work"' EXIT
+# shellcheck source=scripts/linux/tests/harness-bootstrap.sh
+source "$(dirname "${BASH_SOURCE[0]}")/harness-bootstrap.sh"
+repo="${KATAGLYPHIS_REPO_ROOT}"
+t_workdir
 coverage="${repo}/scripts/licenses/check-native-coverage.py"
 
 # fresh_tree: the generator's inputs and outputs, copied so a mutation cannot touch the checkout.

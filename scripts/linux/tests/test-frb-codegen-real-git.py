@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Exercise FRB preflight against real Git indexes without running codegen."""
+# suite-runner: .github/workflows/linux-x64.yml
 
 import os
 import shutil

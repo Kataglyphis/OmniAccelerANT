@@ -10,8 +10,7 @@ param(
     [switch]$VerifyOnly
 )
 
-Set-StrictMode -Version Latest
-$ErrorActionPreference = 'Stop'
+. (Join-Path $PSScriptRoot 'Initialize-EntryScript.ps1')
 $workspace = (Resolve-Path -LiteralPath $WorkspaceDir).Path
 $runner = (Resolve-Path -LiteralPath $RunnerDir).Path
 $fetcher = Join-Path $workspace 'third_party\ANTfrastructure\linux\scripts\lib\fetch-data-lock.py'
@@ -24,9 +23,8 @@ foreach ($file in $fetcher, $lock, $verifier) {
 if (-not $VerifyOnly) {
     & python -I $verifier $fetcher $lock $models --root $runner --check-directory
     if ($LASTEXITCODE -ne 0) { throw "Unsafe model staging directory (exit $LASTEXITCODE)." }
-    $tempRoot = [IO.Path]::GetFullPath([IO.Path]::GetTempPath()).TrimEnd('\') + '\'
-    $staged = [IO.Path]::GetFullPath((Join-Path $tempRoot "omni-detector-$([guid]::NewGuid().ToString('N'))"))
-    if (-not $staged.StartsWith($tempRoot, [StringComparison]::OrdinalIgnoreCase)) { throw 'Invalid model staging path.' }
+    Import-Module (Resolve-BuildModule -Name 'WindowsScripts.Shared') -DisableNameChecking -ErrorAction Stop
+    $staged = New-TemporaryDirectory -Prefix 'omni-detector-'
     try {
         & python -I $fetcher --lock $lock --dest $staged
         if ($LASTEXITCODE -ne 0) { throw "Locked model fetch failed (exit $LASTEXITCODE)." }

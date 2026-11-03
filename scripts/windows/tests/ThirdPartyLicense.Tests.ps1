@@ -4,11 +4,7 @@
 
 Describe 'WindowsThirdPartyLicense.Common' {
 
-    # Pester 3.4 under pwsh 7 has no working `Should Throw`.
-    function Get-ThrowMessage([scriptblock] $Block) {
-        try { & $Block | Out-Null } catch { return "$($_.Exception.Message)" }
-        return ''
-    }
+    Import-Module (Join-Path $PSScriptRoot 'OmniTestFixtures.psm1') -Force
 
     . (Join-Path $PSScriptRoot '..\Resolve-BuildModule.ps1')
     Import-BuildModule @('WindowsMsiLicense.Common', 'WindowsThirdPartyLicense.Common')

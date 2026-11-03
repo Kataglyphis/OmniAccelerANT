@@ -33,12 +33,6 @@ try { Import-BuildModule @('WindowsOrtProvenance.Common', 'WindowsOrtPayload.Com
 
 $repoRoot = (Resolve-Path $WorkspaceDir).Path
 
-if ([string]::IsNullOrWhiteSpace($BuildRootDir)) {
-	if ($windowsBuildConfig.ContainsKey('BuildRootDir') -and -not [string]::IsNullOrWhiteSpace($windowsBuildConfig.BuildRootDir)) {
-		$BuildRootDir = $windowsBuildConfig.BuildRootDir
-	}
-}
-
 $resolvedBuildRoots = Resolve-KataglyphisWindowsBuildRootCandidates `
 	-RepoRoot $repoRoot `
 	-BuildRootDir $BuildRootDir `

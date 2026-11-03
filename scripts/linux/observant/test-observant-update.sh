@@ -169,7 +169,7 @@ user_update() {
   setpriv --reuid=1001 --regid=1001 --clear-groups env -i HOME="${user_home}" PATH="${1:-/usr/bin:/bin}" \
     OMNI_OBSERVANT_RELEASES="${OMNI_OBSERVANT_RELEASES}" bash "${updater}" --user >"${work}/update.log" 2>&1
 }
-user_update_fails() { ! user_update "$@"; }
+user_update_fails() { if ! user_update "$@"; then return 0; fi; return 1; }
 check "with no user install, it does nothing" user_update
 check "and says so" grep -q 'not installed as a user install' "${work}/update.log"
 mkdir -p "$(dirname "${user_version}")" && printf '2.0.0\n' > "${user_version}" && chown -R 1001:1001 "${user_home}"

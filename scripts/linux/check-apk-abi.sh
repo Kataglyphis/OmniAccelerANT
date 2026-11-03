@@ -4,17 +4,10 @@ set -euo pipefail
 
 apk=""
 abi="arm64-v8a"
-while [ $# -gt 0 ]; do
-  case "$1" in
-    --apk) apk="${2:?--apk needs a path}"; shift 2 ;;
-    --abi) abi="${2:?--abi needs a value}"; shift 2 ;;
-    -h|--help)
-      printf 'usage: %s --apk FILE [--abi ABI]\n' "$0"
-      exit 0
-      ;;
-    *) printf 'unknown argument: %s\n' "$1" >&2; exit 2 ;;
-  esac
-done
+# shellcheck source=scripts/linux/lib/entry-options.sh
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib/entry-options.sh"
+parse_entry_options '--apk FILE [--abi ABI]' '' \
+  '--apk=apk:a path' '--abi=abi:a value' -- "$@"
 
 if [ -z "$apk" ]; then
   printf 'Error: --apk is required\n' >&2

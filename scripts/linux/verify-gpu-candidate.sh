@@ -1,17 +1,17 @@
 #!/usr/bin/env bash
 set -euo pipefail
-if [[ $# -ne 2 ]]; then echo 'usage: verify-gpu-candidate.sh nvidia|amd x64|arm64' >&2; exit 2; fi
+# shellcheck source=scripts/linux/lib/gpu-script-common.sh
+source "$(dirname "${BASH_SOURCE[0]}")/lib/gpu-script-common.sh"
+gpu_require_argc $# 2 2 'verify-gpu-candidate.sh nvidia|amd x64|arm64'
 vendor=$1 arch=$2
-case "$vendor:$arch" in
-  nvidia:x64) machine=x86_64; deb=amd64; provider=cuda ;;
-  nvidia:arm64) machine=aarch64; deb=arm64; provider=cuda ;;
-  amd:x64) machine=x86_64; deb=amd64; provider=migraphx ;;
-  *) echo 'Unsupported GPU candidate' >&2; exit 2 ;;
-esac
+facts="$(gpu_target_facts "$vendor" "$arch")" || exit 2
+read -r machine deb provider <<< "$facts"
 repo="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 hub="${ANTFRASTRUCTURE_DIR:-$repo/third_party/ANTfrastructure}/linux/scripts/06-packaging"
 # shellcheck source=/dev/null
 source "$hub/ort-runtime-bundle.sh"
+# shellcheck source=/dev/null
+source "$hub/ort-package-proof.sh"
 variant="omni-accelerant-$vendor"
 shopt -s nullglob
 tarballs=("out/$variant-linux-$arch.tar.gz")
@@ -21,43 +21,10 @@ if [[ ${#tarballs[@]} -ne 1 || ! -f ${tarballs[0]} || ${#debs[@]} -ne 1 || ${#im
   echo "Expected one $vendor $arch tar, DEB and AppImage candidate" >&2
   exit 1
 fi
-[[ "$(dpkg-deb --field "${debs[0]}" Architecture)" == "$deb" ]] || {
-  echo "DEB architecture does not match $arch" >&2; exit 1;
-}
-[[ "$(dpkg-deb --field "${debs[0]}" Package)" == "$variant" ]] || {
-  echo "DEB package identity does not match $variant" >&2; exit 1;
-}
+gpu_deb_field_is "${debs[0]}" Architecture "$deb" || gpu_die 1 "DEB architecture does not match $arch"
+gpu_deb_field_is "${debs[0]}" Package "$variant" || gpu_die 1 "DEB package identity does not match $variant"
 work="$(mktemp -d)"
 trap 'rm -rf -- "$work"' EXIT
-
-collect_ort_libraries() {
-  local root="$1" lib="$2/lib" file resolved name
-  for name in libonnxruntime.so libonnxruntime.so.1 libonnxruntime_providers_shared.so "libonnxruntime_providers_${provider}.so"; do
-    [[ -f "$lib/$name" ]] || { echo "Missing GPU ORT library: $name" >&2; return 1; }
-  done
-  for file in "$lib"/libonnxruntime*.so*; do
-    [[ -f "$file" ]] || continue
-    resolved="$(realpath -e "$file")"
-    case "$resolved" in "$root/"*) ;; *) echo 'ORT library escapes package' >&2; return 1 ;; esac
-    name="${file##*/}"
-    case "$name" in
-      libonnxruntime_providers_*) [[ ! -L "$file" ]] || { echo 'ORT provider is a symlink' >&2; return 1; } ;;
-      libonnxruntime.so*) [[ "${resolved##*/}" =~ ^libonnxruntime\.so(\.[0-9]+)*$ ]] || { echo 'ORT core aliases another component' >&2; return 1; } ;;
-    esac
-    libs+=(--library "$file")
-  done
-}
-
-verify_ort_notices() {
-  local root="$1" bundle="$2" name notice resolved
-  for name in LICENSE ThirdPartyNotices.txt; do
-    notice="$bundle/licenses/onnxruntime/$name"
-    [[ -f "$notice" && ! -L "$notice" ]] || { echo "Missing or symlinked ORT notice: $notice" >&2; return 1; }
-    resolved="$(realpath -e "$notice")"
-    case "$resolved" in "$root/"*) ;; *) echo 'ORT notice escapes package' >&2; return 1 ;; esac
-    cmp "$notice" "$work/proven/licenses/onnxruntime/$name"
-  done
-}
 
 verify_detector_model() {
   local root="$1" bundle="$2" directory resolved
@@ -75,12 +42,13 @@ verify_tree() {
   bundle="$(realpath -e "$bundle")"
   case "$bundle/" in "$root/"*) ;; *) echo 'Bundle escapes extracted package' >&2; return 1 ;; esac
   ort_assert_no_bundled_host_runtime "$root" "$provider"
-  collect_ort_libraries "$root" "$bundle"
+  ort_package_collect_libraries "$root" "$bundle/lib" libs libonnxruntime.so libonnxruntime.so.1 \
+    libonnxruntime_providers_shared.so "libonnxruntime_providers_${provider}.so"
   mkdir -p "$work/proven"
   python3 "$hub/stage-ort-wheel-licenses.py" --require-unstripped \
     --wheel-dir "${ORT_CHAIN_WHEEL_DIR:-/opt/onnxruntime-wheels}" --destination "$work/proven" \
     --strip "${STRIP:-strip}" "${libs[@]}"
-  verify_ort_notices "$root" "$bundle"
+  ort_package_verify_notices "$root" "$bundle/licenses/onnxruntime" "$work/proven/licenses/onnxruntime"
   verify_detector_model "$root" "$bundle"
 }
 
@@ -105,8 +73,8 @@ mkdir "$work/appimage-ort"
   "$image" --appimage-extract "usr/lib/$variant/lib/libonnxruntime.so*" > /dev/null
   root="$(realpath -e squashfs-root)"
   alias="$root/usr/lib/$variant/lib/libonnxruntime.so"
-  [[ -f "$alias" ]] || { echo 'AppImage is missing the ORT dynamic-load alias' >&2; exit 1; }
+  [[ -f "$alias" ]] || gpu_die 1 'AppImage is missing the ORT dynamic-load alias'
   resolved="$(realpath -e "$alias")"
-  case "$resolved" in "$root/"*) ;; *) echo 'AppImage ORT alias escapes package' >&2; exit 1 ;; esac
+  case "$resolved" in "$root/"*) ;; *) gpu_die 1 'AppImage ORT alias escapes package' ;; esac
 )
 echo 'PASS: unverified GPU candidates carry the wheel-matched runtime and locked model'

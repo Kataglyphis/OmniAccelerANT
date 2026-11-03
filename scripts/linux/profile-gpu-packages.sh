@@ -1,18 +1,15 @@
 #!/usr/bin/env bash
 # Check each finished Linux candidate format on the CPU and requested GPU.
 set -euo pipefail
-if [[ $# -ne 4 ]]; then
-  echo 'usage: profile-gpu-packages.sh PACKAGE_DIR nvidia|amd x64|arm64 cuda|migraphx' >&2; exit 2
-fi
+# shellcheck source=scripts/linux/lib/gpu-script-common.sh
+source "$(dirname "${BASH_SOURCE[0]}")/lib/gpu-script-common.sh"
+gpu_require_argc $# 4 4 'profile-gpu-packages.sh PACKAGE_DIR nvidia|amd x64|arm64 cuda|migraphx'
 unset LD_PRELOAD LD_AUDIT
 package_dir=$(realpath -e "$1") vendor=$2 arch=$3 provider=$4
-case "$vendor:$arch:$provider" in
-  nvidia:x64:cuda) deb=amd64; machine=x86_64 ;;
-  nvidia:arm64:cuda) deb=arm64; machine=aarch64 ;;
-  amd:x64:migraphx) deb=amd64; machine=x86_64 ;;
-  *) echo 'Unsupported GPU candidate' >&2; exit 2 ;;
-esac
-script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+facts="$(gpu_target_facts "$vendor" "$arch")" || exit 2
+read -r machine deb target_provider <<< "$facts"
+[[ "$provider" == "$target_provider" ]] || gpu_die 2 'Unsupported GPU candidate'
+script_dir=$GPU_SCRIPT_DIR
 repo=$(cd "$script_dir/../.." && pwd)
 fixture="$repo/third_party/OxidANT/crates/inference/tests/fixtures/two_cats.jpg"
 variant="omni-accelerant-$vendor"
@@ -20,17 +17,15 @@ shopt -s nullglob
 tarball="$package_dir/$variant-linux-$arch.tar.gz"
 debs=("$package_dir/${variant}_"*"_${deb}.deb")
 images=("$package_dir/${variant}-"*"-${machine}.AppImage")
-[[ -f "$tarball" && ${#debs[@]} -eq 1 && ${#images[@]} -eq 1 ]] || { echo 'Expected one candidate tarball, DEB and AppImage' >&2; exit 1; }
-[[ $(dpkg-deb --field "${debs[0]}" Architecture) == "$deb" && $(dpkg-deb --field "${debs[0]}" Package) == "$variant" ]] || {
-  echo 'DEB package or architecture does not match target' >&2; exit 1;
-}
+[[ -f "$tarball" && ${#debs[@]} -eq 1 && ${#images[@]} -eq 1 ]] || gpu_die 1 'Expected one candidate tarball, DEB and AppImage'
+gpu_deb_field_is "${debs[0]}" Architecture "$deb" && gpu_deb_field_is "${debs[0]}" Package "$variant" || gpu_die 1 'DEB package or architecture does not match target'
 work=$(mktemp -d "${RUNNER_TEMP:-${TMPDIR:-/tmp}}/omni-gpu-packages.XXXXXXXX")
 work=$(realpath -e "$work")
 trap 'rm -rf -- "$work"' EXIT
 evidence=${PROFILE_EVIDENCE_DIR:-"$work/evidence"}
 mkdir -- "$evidence"
 evidence=$(realpath -e "$evidence")
-case "$evidence" in "$work/tar"|"$work/tar/"*|"$work/deb"|"$work/deb/"*) echo 'Evidence must be outside temporary extraction directories' >&2; exit 1 ;; esac
+case "$evidence" in "$work/tar"|"$work/tar/"*|"$work/deb"|"$work/deb/"*) gpu_die 1 'Evidence must be outside temporary extraction directories' ;; esac
 mkdir -p "$work/tar" "$work/deb" "$work/image" "$work/image-tmp"
 preflight="$script_dir/preflight-profile-packages.py"
 export PROFILE_DISK_PLAN="$work/space-plan.json" PROFILE_DISK_ROOT="$work"

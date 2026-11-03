@@ -78,27 +78,17 @@ codeql_create_db_cluster() {
 }
 
 # paths-ignore travels inside the database; the suite is explicit as analyze has no --codescanning-config.
-codeql_analyze_cpp() {
+_codeql_analyze() {
   mkdir -p /workspace/codeql-results
-  "$CODEQL" database analyze /tmp/codeql-db-cluster/cpp \
+  "$CODEQL" database analyze "/tmp/codeql-db-cluster/$1" \
     --format=sarif-latest \
-    --output=/workspace/codeql-results/cpp.sarif \
-    codeql/cpp-queries:codeql-suites/cpp-security-and-quality.qls
+    --output="/workspace/codeql-results/$1.sarif" \
+    "codeql/$1-queries:codeql-suites/$1-security-and-quality.qls"
 }
 
-codeql_analyze_rust() {
-  mkdir -p /workspace/codeql-results
-  "$CODEQL" database analyze /tmp/codeql-db-cluster/rust \
-    --format=sarif-latest \
-    --output=/workspace/codeql-results/rust.sarif \
-    codeql/rust-queries:codeql-suites/rust-security-and-quality.qls
-}
+codeql_analyze_cpp() { _codeql_analyze cpp; }
+
+codeql_analyze_rust() { _codeql_analyze rust; }
 
 # Kotlin goes through the Java extractor; callerless on purpose, so restoring the scan is one line in codeql-android.sh.
-codeql_analyze_java() {
-  mkdir -p /workspace/codeql-results
-  "$CODEQL" database analyze /tmp/codeql-db-cluster/java \
-    --format=sarif-latest \
-    --output=/workspace/codeql-results/java.sarif \
-    codeql/java-queries:codeql-suites/java-security-and-quality.qls
-}
+codeql_analyze_java() { _codeql_analyze java; }

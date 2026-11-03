@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """The copied Cargo workspace must retain a single, truthful MIT license."""
+# suite-runner: scripts/linux/tests/test-third-party-licenses.sh
 
 import importlib.util
 import os

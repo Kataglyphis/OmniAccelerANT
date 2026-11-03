@@ -9,12 +9,19 @@ source = "docs/source"
 kind = "latency"
 path = "out/perf/frontend.json"
 
+[[output]]
+kind = "benchmark"
+path = "bench-history-frontend-perf-x64.json"
+artifact = "bench-history-frontend-perf-x64"
+
 # The native lane deletes build/ after its coverage check, so this is read from a local run.
 [[artifact]]
 name = "lib"
 kind = "coverage"
 format = "lcov"
-path = "build/coverage/lcov.info"
+path = "logs/coverage/lcov.info"
+artifact = "omni-accelerant-linux-x64-coverage"
+workflow = "linux-x64.yml"
 
 [[artifact]]
 name = "ort-license"
@@ -31,3 +38,12 @@ unit = "lines"
 pattern = 'deim_dfine_n_coco'
 paths = ["lib", "scripts", "rust_builder", "linux", "windows"]
 exclude = ["third_party/*", "test/*", "*/test/*", "tests/*", "*/tests/*", "Test/*", "*/Test/*", "docs/*", "*.md", "*LICENSE*", "*NOTICE*"]
+
+# quality-report.sh --perf-host, inside :latest: the shipped bundle's bridge path; OxidANT measures the same detector without Flutter and the providers it adds.
+[perf]
+setup = "bash scripts/linux/perf-host.sh"
+
+[[perf.command]]
+name = "detector_cpu"
+run = "xvfb-run -a build/linux/x64/release/bundle/omni_accelerant --detect-latency third_party/OxidANT/crates/inference/tests/fixtures/two_cats.jpg 30"
+metrics = [{ key = "p50_ms", unit = "ms", better = "lower" }, { key = "p95_ms", unit = "ms", better = "lower" }]

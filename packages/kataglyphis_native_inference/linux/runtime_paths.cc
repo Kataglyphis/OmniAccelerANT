@@ -1,5 +1,6 @@
 // ELF constructor: runs at load, before any reader. See docs/source/camera-streaming.md § Relocatable Linux bundles
 
+#include <dirent.h>
 #include <dlfcn.h>
 #include <sys/stat.h>
 
@@ -19,6 +20,24 @@ void set_if_present(const char *name, const std::string &value)
 {
     if (value.empty() || ::getenv(name) != nullptr) { return; }
     ::setenv(name, value.c_str(), 1);
+}
+
+// The only ONNX file in a bundle's model directory, whose name its models.lock decides; empty with none or several.
+std::string bundled_model(const std::string &directory)
+{
+    DIR *entries = ::opendir(directory.c_str());
+    if (entries == nullptr) { return {}; }
+    std::string found;
+    int count = 0;
+    while (const dirent *entry = ::readdir(entries)) {
+        const std::string name = entry->d_name;
+        if (name.size() > 5 && name.ends_with(".onnx")) {
+            found = directory + "/" + name;
+            ++count;
+        }
+    }
+    ::closedir(entries);
+    return count == 1 ? found : std::string{};
 }
 
 // This shared object's directory; empty (trust nothing) when dladdr cannot say.
@@ -65,8 +84,7 @@ void configure_bundle_paths()
     }
     const std::string onnxruntime = dir + "/libonnxruntime.so";
     if (path_exists(onnxruntime)) { set_if_present("ORT_DYLIB_PATH", onnxruntime); }
-    const std::string model = dir + "/../data/resources/models/deim_dfine_n_coco.onnx";
-    if (path_exists(model)) { set_if_present("KATAGLYPHIS_ONNX_MODEL", model); }
+    set_if_present("KATAGLYPHIS_ONNX_MODEL", bundled_model(dir + "/../data/resources/models"));
 }
 
 }// namespace

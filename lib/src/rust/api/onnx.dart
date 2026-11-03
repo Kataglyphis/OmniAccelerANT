@@ -7,8 +7,27 @@ import '../frb_generated.dart';
 
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-// These functions are ignored because they are not marked as `pub`: `detect_persons_rgba_impl`, `get_or_load`, `new`, `profile_person_detection_impl`
+import 'webcam.dart';
+
+// These functions are ignored because they are not marked as `pub`: `detect_rgba_impl`, `get_or_load`, `new`, `profile_person_detection_impl`
 // These types are ignored because they are neither used by any `pub` functions nor (for structs and enums) marked `#[frb(unignore)]`: `ModelCache`
+
+/// The detector's class names, at their class ids.
+List<String> detectorLabels() =>
+    RustLib.instance.api.crateApiOnnxDetectorLabels();
+
+/// Detect `classes` (class ids, see [`detector_labels`]; empty keeps every class) in an RGBA frame with the default model.
+List<DetectionBox> detectRgba({
+  required List<int> rgba,
+  required int width,
+  required int height,
+  required Int64List classes,
+}) => RustLib.instance.api.crateApiOnnxDetectRgba(
+  rgba: rgba,
+  width: width,
+  height: height,
+  classes: classes,
+);
 
 /// Run the packaged detector twice in one profiled session on a real image.
 void profileDetectorImage({

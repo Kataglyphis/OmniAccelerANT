@@ -15,7 +15,7 @@ that table (written after the test audit of 2026-10-15).
 | Property tests | OxidANT `crates/observant` (`mod properties`) | A rule holds for every input, not a few examples: no request path, however encoded, leaves the web root; a served byte range stays inside the file; a public host name is refused; a config that validates keeps its numbers in range | With the Rust unit tests, 256 random inputs per rule and run |
 | C++ unit tests | AccelerANTgine `Test/commit` (97 gtests) | The ONNX engine, the detector's decoding, the config loaders, the GStreamer pipeline; under ASan and UBSan, and once more under TSan | AccelerANTgine's Linux and Windows lanes |
 | C++ fuzz tests | AccelerANTgine `Test/fuzz` (FuzzTest) | The JSON and TOML config readers and the box decoder survive arbitrary input | Linux clang lane, about a second per property |
-| Integration tests | `integration_test/` | The app starts in a real window; a test-pattern frame travels Rust → `knt_push_frame` → the Linux texture | Linux under Xvfb; Windows through `flutter drive` |
+| Integration tests | `integration_test/` | The app starts in a real window; a test-pattern frame travels Rust → `knt_push_frame` → the Linux texture; the chain GenAI decodes the tiny model to `defg` and SmolLM2-135M names Paris (`text_generate_test.dart`, [ai-playground.md](ai-playground.md) § *Tests*) | Linux under Xvfb; Windows through `flutter drive` |
 | End-to-end | `scripts/linux/observant/test-observant-package.sh`, `scripts/windows/observant/Test-ObservANTWindows.ps1` | The installed .deb, AppImage, flatpak and MSI start, answer every endpoint, detect, notify, and a real headless Chrome plays at least 200 frames of the stream | `web.yml`'s `observant` jobs; the Windows arm64 MSI on `windows-11-arm` |
 | Clean host | the `clean-host` job of `linux-x64.yml` and `linux-arm64.yml` (ANTfrastructure's `clean-host-package-check`) | The `.deb` installs with apt on a bare Ubuntu 26.04, every ELF it installs resolves, and the app stays up 20 s under Xvfb from the `.deb`, the AppImage and the unpacked tarball. Inside the image every library exists, so only a bare host shows a missing one: its first run caught the `.deb` lacking `libegl1` (2026-10-16) | Linux x64 and arm64, on the bare runner after the lane |
 | Performance | `integration_test/performance_test.dart`; OxidANT's Criterion benches | The app's frame build times at start, page switches and resizes; what a frame costs before the model, and a whole detection | Linux x64 (Flutter); OxidANT's Linux lanes |
@@ -73,8 +73,12 @@ the morning before, ahead of the native Stream page and Rust camera view tests),
 2026-10-16. A file no test imports is not in the report at all. The web-only files are tested in
 Chrome and stay outside the figure (*Known gaps* below).
 
-`flutter test` in the `:latest` image runs the suite in under a minute
-([AGENTS.md § 5](../../AGENTS.md#5-build-run-test), *The Dart gate in 23 seconds*).
+The lane copies the report to `logs/coverage/lcov.info` before `flutter clean` deletes `build/`,
+and `reusable-linux.yml` uploads it as `omni-accelerant-linux-<arch>-coverage`: the x64 one is
+`quality-report.toml`'s coverage row, read from the same-SHA `linux-x64.yml` run.
+
+`flutter test` in the `:latest` image runs the suite in under a minute; the command is in
+[Getting started](getting-started.md#1-prerequisites).
 
 ## Rules that keep a green run honest
 
@@ -83,6 +87,15 @@ Chrome and stay outside the figure (*Known gaps* below).
   skip becomes a failure; `cargo test` hides a passing test's skip line, so nobody would see it
   otherwise. AccelerANTgine's Linux lane fails on any skipped ctest test, since ctest reports
   "100% tests passed" with skips in it, and UBSan reports are fatal (`halt_on_error=1`).
+- **Script suites are discovered, not listed.** The native lane runs every tracked
+  `scripts/linux/tests/test-*.{sh,py}`, `scripts/windows/tests/test[-_]*.py` and
+  `scripts/licenses/tests/test_*.py` (`scripts/linux/lib/suite-inventory.sh`) and prints
+  `suite inventory: N discovered, R run by this lane, E run elsewhere, 0 unreferenced suites`. A
+  suite that needs another lane names that runner in its first 15 lines (`# suite-runner:
+  scripts/linux/ci/ci-container-run-web-linux.sh`); the gate fails when that runner does not name
+  the suite back, or when nothing is discovered. Naming is not proof that the runner executes the
+  suite on push. `test-ort-device.py` runs in `windows-x64.yml`'s runner job, because it compiles
+  against `windows.h`.
 - **Coverage has floors, per part.** Dart `lib/` fails below 96 % (§ *What the app's Dart suite
   checks*). OxidANT's workspace fails below 70 %, and each crate below its own floor
   (`COVERAGE_FLOORS` in OxidANT's `ci-container-steps.sh`), so one well-tested crate cannot hide
@@ -151,6 +164,10 @@ The notes under AGENTS.md's lane table, moved here on 2026-10-15.
   the run's summary (thresholds: § *Rules that keep a green run honest*).
 - The webcam frame test is Linux-only: `hasPushedFrame` is the Linux plugin's, and the Windows
   drives run `simple_test.dart`.
+- The release lane's `detect check` gate follows the launch smoke: the packaged app must find two
+  cats in `two_cats.jpg` and must fail on a blank frame; `test-detect-check.sh` holds the gate's
+  wiring with a fake app (recipes `consumer.omni-detect-check-*`). The webcam frame test also
+  requires the real core's first event to read `ort on cpu`.
 - The web lane runs both Dart suites in Chrome since 2026-10-05 (`--test-platform chrome` to the
   hub's gate); the VM-only files are `@TestOn('vm')` and still run on every native lane. Chrome
   still *compiles* them, so a VM-only test must compile for web too: a plain `int` for a Rust
@@ -252,3 +269,10 @@ As found on 2026-10-15, so a green run is read for what it is:
 - **Windows does not demand the model**, so its real-model tests pass by skipping: its unit tests
   run before the model is fetched (OxidANT's `BACKLOG.md`). The riscv64 lane fetches and demands
   it since 2026-10-15.
+
+## Latency on a quiet host
+
+`bash scripts/linux/quality-report.sh --perf-host` runs `omni_accelerant --detect-latency IMAGE RUNS`
+from the release bundle in the CI image, against `perf/baseline-<cpu>.json`: hub
+`docs/fleet-health.md` § perf-host. The flag prints warm p50 and p95 through the bridge as one JSON
+line. It is not run in CI, whose hosted wall time varies too much to grade.

@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
 # Exercise the pinned shared clean-host receipt helper without installing packages.
 set -euo pipefail
-repo=$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)
+# shellcheck source=scripts/linux/tests/fixture-common.sh
+source "$(dirname "${BASH_SOURCE[0]}")/fixture-common.sh"
+repo="$(fixture_root)"
 hub=${ANTFRASTRUCTURE_DIR:-"$repo/third_party/ANTfrastructure"}
 helper="$hub/.github/actions/clean-host-package-check/clean-host-gpu-receipt.sh"
 receipt="$hub/shared/python/gpu_artifact_receipt.py"
-work=$(mktemp -d)
-trap 'rm -rf -- "$work"' EXIT
+fixture_workdir
 export GITHUB_REPOSITORY=Kataglyphis/OmniAccelerANT GITHUB_SHA=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 export GITHUB_RUN_ID=123 GITHUB_RUN_ATTEMPT=2 GPU_ARTIFACT_ID=456 GPU_CHECK_NAME=clean-host-inference
 export GPU_MAX_BYTES=100000 GPU_MAX_RATIO=1000 GPU_RECEIPT="$work/receipt.json"
@@ -45,13 +46,11 @@ PY
     --check clean-host-inference "${identity[@]}"
   for mutation in 'GPU_ARTIFACT_ID=999' 'GITHUB_RUN_ATTEMPT=3' 'GPU_ARTIFACT_DIGEST=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'; do
     rm -f -- "$GPU_RECEIPT"
-    if env "$mutation" bash "$helper" finish >/dev/null 2>&1; then echo "Accepted $mutation" >&2; exit 1; fi
+    fixture_refuses_quiet "Accepted $mutation" env "$mutation" bash "$helper" finish
   done
   printf changed >> "$GPU_PACKAGES_DIR/$debfile"
-  if bash "$helper" finish >/dev/null 2>&1; then echo 'Accepted changed candidate bytes' >&2; exit 1; fi
+  fixture_refuses_quiet 'Accepted changed candidate bytes' bash "$helper" finish
   rm -rf -- "$GPU_PACKAGES_DIR" "$GPU_BEFORE_RECEIPT" "$GPU_ARCHIVE_DIR/candidate.zip"
 done
-if env GPU_VENDOR=amd GPU_ARCH=arm64 bash "$helper" validate >/dev/null 2>&1; then
-  echo 'Accepted unsupported ARM ROCm' >&2; exit 1
-fi
+fixture_refuses_quiet 'Accepted unsupported ARM ROCm' env GPU_VENDOR=amd GPU_ARCH=arm64 bash "$helper" validate
 echo 'PASS: clean-host receipts bind candidate bytes and run identity for supported tuples'

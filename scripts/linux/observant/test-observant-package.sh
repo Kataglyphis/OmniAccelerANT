@@ -2,13 +2,10 @@
 # Installs ObservANT .deb, AppImage and flatpak the way a user does and checks what each promises; privileged root in :latest.
 set -uo pipefail
 
-script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-repo_root="$(cd -- "${script_dir}/../../.." && pwd)"
-# shellcheck source=scripts/linux/lib/antfrastructure.sh
-source "${script_dir}/../lib/antfrastructure.sh"
-_harness="$(antfrastructure_path linux/scripts/lib/test-harness.sh)" || exit 1
-# shellcheck source=third_party/ANTfrastructure/linux/scripts/lib/test-harness.sh
-source "${_harness}"
+# shellcheck source=scripts/linux/observant/lib/script-paths.sh
+source "$(dirname -- "${BASH_SOURCE[0]}")/lib/script-paths.sh"
+# shellcheck source=scripts/linux/tests/harness-bootstrap.sh
+source "$(dirname "${BASH_SOURCE[0]}")/../tests/harness-bootstrap.sh"
 deb=""
 appimage=""
 flatpak_bundle=""
@@ -27,16 +24,10 @@ Chrome). Each check prints PASS or FAIL and its seconds; it exits 0 only when ev
 EOF
 }
 
-while [ $# -gt 0 ]; do
-  case "$1" in
-    --deb) deb="${2:?--deb needs a file}"; shift 2 ;;
-    --appimage) appimage="${2:?--appimage needs a file}"; shift 2 ;;
-    --flatpak) flatpak_bundle="${2:?--flatpak needs a file}"; shift 2 ;;
-    --photo) photo="${2:?--photo needs a file}"; shift 2 ;;
-    -h|--help) usage; exit 0 ;;
-    *) usage >&2; exit 2 ;;
-  esac
-done
+# shellcheck source=scripts/linux/lib/entry-options.sh
+source "${script_dir}/../lib/entry-options.sh"
+usage_refusal() { usage >&2; exit 2; }
+parse_entry_options usage usage_refusal '--deb=deb:a file' '--appimage=appimage:a file' '--flatpak=flatpak_bundle:a file' '--photo=photo:a file' -- "$@"
 case "$(uname -m)" in
   x86_64) deb_arch=amd64 ;;
   aarch64) deb_arch=arm64 ;;
@@ -77,6 +68,17 @@ check() {
   t_assert_eq 0 "${rc}" "exit code"
 }
 
+# A failed check on a running service shows that service's log, the only record of why it stopped.
+check_service() {
+  local log="$1" before="${failures}"
+  shift
+  check "$@"
+  if [ "${failures}" -gt "${before}" ]; then
+    tail -n 40 "${log}" | sed 's/^/      log: /'
+  fi
+  return 0
+}
+
 # The unit's environment only (its HOME and GST_REGISTRY, systemd's STATE_DIRECTORY), exec'd so $! is the service.
 start_service() {
   local log="$1"; shift
@@ -106,13 +108,20 @@ wait_healthz() {
   return 1
 }
 
+test_chrome() { find /opt/chrome-for-testing -maxdepth 3 -type f -name chrome -perm -u+x 2>/dev/null | head -1; }
+
+# start_chrome <binary> <debug-port> <profile>: backgrounded so the caller owns its PID and its stop.
+start_chrome() {
+  "$1" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage \
+    --autoplay-policy=no-user-gesture-required --remote-debugging-port="$2" \
+    --user-data-dir="$3" about:blank >/dev/null 2>&1 &
+}
+
 chrome_frames() {
   local chrome probe
-  chrome="$(find /opt/chrome-for-testing -maxdepth 3 -type f -name chrome -perm -u+x 2>/dev/null | head -1)"
+  chrome="$(test_chrome)"
   [ -n "${chrome}" ] || { printf 'no Chrome for Testing in the image\n' >&2; echo 0; return; }
-  "${chrome}" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage \
-    --autoplay-policy=no-user-gesture-required --remote-debugging-port=9222 \
-    --user-data-dir="${work}/chrome" about:blank >/dev/null 2>&1 &
+  start_chrome "${chrome}" 9222 "${work}/chrome"
   local browser=$!
   sleep 3
   probe="$(node "${script_dir}/lib/cdp-video-probe.mjs" 9222 "$1" "$2" 2>&1 | sed -n 's/^PROBE //p')"
@@ -124,13 +133,11 @@ chrome_frames() {
 # A tab that comes back after its sockets died unnoticed plays again (the owner's stuck tab, 2026-10-14).
 tab_returns_after_silence() {
   local chrome result
-  chrome="$(find /opt/chrome-for-testing -maxdepth 3 -type f -name chrome -perm -u+x 2>/dev/null | head -1)"
+  chrome="$(test_chrome)"
   [ -n "${chrome}" ] || return 1
   python3 "${script_dir}/lib/silencing-proxy.py" 18097 8080 "${work}/silence" &
   local proxy=$!
-  "${chrome}" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage \
-    --autoplay-policy=no-user-gesture-required --remote-debugging-port=9223 \
-    --user-data-dir="${work}/chrome-return" about:blank >/dev/null 2>&1 &
+  start_chrome "${chrome}" 9223 "${work}/chrome-return"
   local browser=$!
   sleep 3
   result="$(node "${script_dir}/lib/cdp-tab-return.mjs" 9223 "http://127.0.0.1:18097/#/stream" "${work}/silence" 2>&1 | sed -n 's/^RETURN //p')"
@@ -142,17 +149,15 @@ tab_returns_after_silence() {
 }
 
 wait_cat() {
-  local _
-  for _ in $(seq 1 120); do
-    curl -sf "http://$1:8080/healthz" 2>/dev/null | jq -e '.detection.in_view and .detection.visits >= 1' >/dev/null 2>&1 && return 0
-    sleep 0.25
-  done
-  return 1
+  healthz_within "$1" 120 '.detection.in_view and .detection.visits >= 1'
 }
 
 jpeg_at() {
-  curl -sf "http://$1:8080$2" -o "${work}/got.jpg" &&
-    test "$(head -c 3 "${work}/got.jpg" | od -An -tx1 | tr -d ' \n')" = ffd8ff
+  if curl -sf "http://$1:8080$2" -o "${work}/got.jpg" &&
+    test "$(head -c 3 "${work}/got.jpg" | od -An -tx1 | tr -d ' \n')" = ffd8ff; then
+    return 0
+  fi
+  return 1
 }
 
 # The engine as the browser gets it, gzipped: the packaged zopfli .gz byte for byte, which unzips to the file.
@@ -234,12 +239,16 @@ picture_by_arrival() {
   return 0
 }
 
+post_ignored_boxes() {
+  curl -sf -X POST -H 'content-type: application/json' -d "{\"ignore\": $2}" "http://$1:8080/settings" >/dev/null
+}
+
 # "Not a cat" over the boxes the photo shows ends the visit, as the page's button does.
 not_a_cat_ends_the_visit() {
   local boxes _
   boxes="$(curl -sf "http://$1:8080/healthz" | jq -c '.detection.boxes')" || return 1
   [ "$(jq length <<<"${boxes}")" -ge 1 ] || return 1
-  curl -sf -X POST -H 'content-type: application/json' -d "{\"ignore\": ${boxes}}" "http://$1:8080/settings" >/dev/null || return 1
+  post_ignored_boxes "$1" "${boxes}" || return 1
   for _ in $(seq 1 40); do
     healthz_holds "$1" '.detection.in_view == false and .detection.boxes == []' && return 0
     sleep 0.25
@@ -252,7 +261,7 @@ still_cat_starts_no_visit() {
   local visits
   while [ $(($(date +%s) - $2)) -lt 20 ]; do sleep 1; done
   visits="$(curl -sf "http://$1:8080/healthz" | jq '.detection.visits')" || return 1
-  curl -sf -X POST -H 'content-type: application/json' -d '{"ignore": []}' "http://$1:8080/settings" >/dev/null || return 1
+  post_ignored_boxes "$1" '[]' || return 1
   sleep 12
   healthz_holds "$1" ".detection.in_view == false and .detection.visits == ${visits}" || return 1
   return 0
@@ -299,26 +308,25 @@ visit_remembered() {
   curl -sf "http://$1:8080/healthz" | jq -e '.detection.visits >= 1 and .detection.last_seen != null' >/dev/null
 }
 
-# The live service has seen the cat for $2 s of its current visit; up to 10 s.
-seen_for() {
-  local _
-  for _ in $(seq 1 40); do
-    curl -sf "http://$1:8080/healthz" 2>/dev/null \
-      | jq -e --argjson s "$2" '.detection.last_seen - .detection.recent[0].arrived >= $s' >/dev/null 2>&1 && return 0
+# healthz_within <host> <tries> <jq-args>...: polls every 0.25 s until the service's /healthz satisfies the filter.
+healthz_within() {
+  local host="$1" tries="$2" _
+  shift 2
+  for _ in $(seq 1 "${tries}"); do
+    curl -sf "http://${host}:8080/healthz" 2>/dev/null | jq -e "$@" >/dev/null 2>&1 && return 0
     sleep 0.25
   done
   return 1
 }
 
+# The live service has seen the cat for $2 s of its current visit; up to 10 s.
+seen_for() {
+  healthz_within "$1" 40 --argjson s "$2" '.detection.last_seen - .detection.recent[0].arrived >= $s'
+}
+
 # The arrival's clip, recorded 7 s past the arrival and then encoded, is named in /healthz; up to 30 s.
 clip_ready() {
-  local _
-  for _ in $(seq 1 120); do
-    curl -sf "http://$1:8080/healthz" 2>/dev/null \
-      | jq -e '.detection.clip != null and .detection.clip == .detection.recent[0].arrived and .detection.clips[0] == .detection.clip' >/dev/null 2>&1 && return 0
-    sleep 0.25
-  done
-  return 1
+  healthz_within "$1" 120 '.detection.clip != null and .detection.clip == .detection.recent[0].arrived and .detection.clips[0] == .detection.clip'
 }
 
 # $2 serves an MP4 (its first box is ftyp) and answers a byte range with 206, which Safari's <video> needs.
@@ -358,56 +366,109 @@ webhook_got() {
 
 # Every setting the shipped observant.toml documents, uncommented: an unknown key is an error, so this reads them all.
 template_keys_parse() {
-  sed -E 's/^# ([a-z_]+ = )/\1/' "${prefix}/share/omni-observant/observant.toml" >"${work}/all-keys.toml" &&
+  if sed -E 's/^# ([a-z_]+ = )/\1/' "${prefix}/share/omni-observant/observant.toml" >"${work}/all-keys.toml" &&
     test "$(grep -cE '^[a-z_]+ = ' "${work}/all-keys.toml")" -ge 15 &&
-    "${prefix}/observant" --config "${work}/all-keys.toml" --print-config >/dev/null
+    "${prefix}/observant" --config "${work}/all-keys.toml" --print-config >/dev/null; then
+    return 0
+  fi
+  return 1
 }
 
 # The unit loads without warnings and keeps its sandbox: systemd-analyze rates it 1.8 (2026-10-12).
-unit_verifies() { test -z "$(systemd-analyze verify "$1" 2>&1)"; }
+unit_verifies() { if test -z "$(systemd-analyze verify "$1" 2>&1)"; then return 0; fi; return 1; }
 unit_sandboxed() { systemd-analyze security --offline=true --threshold=25 "$1" >/dev/null 2>&1; }
 
 in_video_group() { id -nG "${user}" | grep -qw video; }
-log_lacks() { ! grep -q "$1" "$2"; }
-purged() { ! test -e "${config}" && ! test -e "${prefix}"; }
-unit_masked() { test "$(readlink /etc/systemd/system/omni-observant.service)" = /dev/null; }
+
+# tmpfs lists entries newest-first or oldest-first depending on the kernel, so both copy orders are tried.
+plugins_listing_first() {
+  local dir="$1" first="$2" src="$3" f pass
+  for pass in first last; do
+    rm -f "${dir}"/*.so
+    [ "${pass}" = last ] || cp "${src}/${first}" "${dir}/"
+    for f in "${src}"/*.so; do [ "$(basename "${f}")" = "${first}" ] || cp "${f}" "${dir}/"; done
+    [ "${pass}" = first ] || cp "${src}/${first}" "${dir}/"
+    [ "$(find "${dir}" -mindepth 1 -maxdepth 1 -printf '%f\n' | head -n 1)" != "${first}" ] || return 0
+  done
+  printf '      cannot make the directory list %s first\n' "${first}"
+  return 1
+}
+
+# A fresh registry scanned with webrtcsink's plugin first still streams; it does not prove any other scan order.
+fresh_registry_worst_order_streams() {
+  local plugins="${prefix}/lib/gstreamer-1.0" fast="${work}/fast-plugins" home="${work}/order-home" pid rc=0
+  mkdir -p "${fast}" "${home}" && mount -t tmpfs -o size=512m tmpfs "${fast}" || return 1
+  if plugins_listing_first "${fast}" libgstrswebrtc.so "${plugins}" && mount --bind "${fast}" "${plugins}"; then
+    (exec env -i HOME="${home}" GST_REGISTRY="${home}/gst-registry.bin" PATH=/usr/bin:/bin \
+      "${prefix}/observant" --camera test --inference off --http-port 0 >"${work}/worst-order.log" 2>&1) &
+    pid=$!
+    sleep 8
+    kill -0 "${pid}" 2>/dev/null || rc=1
+    kill -TERM "${pid}" 2>/dev/null
+    wait "${pid}" 2>/dev/null
+    log_lacks 'No codec available' "${work}/worst-order.log" || rc=1
+    umount "${plugins}" || rc=1
+  else
+    rc=1
+  fi
+  umount "${fast}" || rc=1
+  return "${rc}"
+}
+log_lacks() { if ! grep -q "$1" "$2"; then return 0; fi; return 1; }
+purged() { if ! test -e "${config}" && ! test -e "${prefix}"; then return 0; fi; return 1; }
+unit_masked() { if test "$(readlink /etc/systemd/system/omni-observant.service)" = /dev/null; then return 0; fi; return 1; }
 unit_enabled_unmasked() {
-  ! unit_masked && test -e /etc/systemd/system/multi-user.target.wants/omni-observant.service
+  if ! unit_masked && test -e /etc/systemd/system/multi-user.target.wants/omni-observant.service; then
+    return 0
+  fi
+  return 1
 }
 as_plain() {
   setpriv --reuid=1001 --regid=1001 --clear-groups \
     env -i HOME="${work}/home" PATH=/usr/bin:/bin APPIMAGE_EXTRACT_AND_RUN=1 "$@"
 }
 plain_foreground() { as_plain "${work}/observant.AppImage" --print-config | grep -q '^camera = '; }
-plain_install_refused() { ! as_plain "${work}/observant.AppImage" --install >/dev/null 2>&1; }
+plain_install_refused() { if ! as_plain "${work}/observant.AppImage" --install >/dev/null 2>&1; then return 0; fi; return 1; }
 user_home_install="${work}/home/.local/opt/omni-observant"
 user_config="${work}/home/.config/omni-observant/observant.toml"
 user_units="${work}/home/.config/systemd/user"
 user_installed() {
-  test -x "${user_home_install}/observant" && test -s "${user_home_install}/share/omni-observant/version" &&
+  if test -x "${user_home_install}/observant" && test -s "${user_home_install}/share/omni-observant/version" &&
     grep -q '^ExecStart=%h/.local/opt/omni-observant/observant$' "${user_units}/omni-observant.service" &&
     grep -q -- '--user$' "${user_units}/omni-observant-update.service" && test -f "${user_units}/omni-observant-update.timer" &&
-    test "$(stat -c '%a %u' "${user_config}")" = '600 1001'
+    test "$(stat -c '%a %u' "${user_config}")" = '600 1001'; then
+    return 0
+  fi
+  return 1
 }
 user_uninstalled() {
-  ! test -e "${user_home_install}" && ! test -e "${user_units}/omni-observant.service" && ! test -e "${user_config}"
+  if ! test -e "${user_home_install}" && ! test -e "${user_units}/omni-observant.service" && ! test -e "${user_config}"; then
+    return 0
+  fi
+  return 1
 }
-root_user_install_refused() { ! "${work}/observant.AppImage" --install --user >/dev/null 2>&1; }
-user_beside_system_refused() { ! as_plain "${work}/observant.AppImage" --install --user >/dev/null 2>&1; }
+root_user_install_refused() { if ! "${work}/observant.AppImage" --install --user >/dev/null 2>&1; then return 0; fi; return 1; }
+user_beside_system_refused() { if ! as_plain "${work}/observant.AppImage" --install --user >/dev/null 2>&1; then return 0; fi; return 1; }
 appimage_installed() {
-  test -f /etc/systemd/system/omni-observant.service && test -f "${config}" &&
-    test "$(readlink -f /usr/local/bin/omni-observant)" = "${prefix}/observant"
+  if test -f /etc/systemd/system/omni-observant.service && test -f "${config}" &&
+    test "$(readlink -f /usr/local/bin/omni-observant)" = "${prefix}/observant"; then
+    return 0
+  fi
+  return 1
 }
 legacy_visits_moved() {
   test -f "${state}/cat.json" && test "$(stat -c %U "${state}/cat.json")" = "${user}" || return 1
   grep -q '"visits":7' "${state}/cat.json" || return 1
   return 0
 }
-installed_copy_refuses() { ! /usr/local/bin/omni-observant --install >/dev/null 2>&1; }
-flatpak_gone() { ! flatpak info --system "$1" >/dev/null 2>&1; }
+installed_copy_refuses() { if ! /usr/local/bin/omni-observant --install >/dev/null 2>&1; then return 0; fi; return 1; }
+flatpak_gone() { if ! flatpak info --system "$1" >/dev/null 2>&1; then return 0; fi; return 1; }
 uninstalled() {
-  ! test -e "${prefix}" && ! test -e /etc/systemd/system/omni-observant.service &&
-    ! test -e "${config}" && ! id "${user}" >/dev/null 2>&1
+  if ! test -e "${prefix}" && ! test -e /etc/systemd/system/omni-observant.service &&
+    ! test -e "${config}" && ! id "${user}" >/dev/null 2>&1; then
+    return 0
+  fi
+  return 1
 }
 
 printf '=== the .deb ===\n'
@@ -437,10 +498,12 @@ mkdir -p "${state}" && chown "${user}:" "${state}"
 start_service "${work}/idle.log" "${prefix}/observant" --camera test --inference on --http-port 0
 pid=$!
 sleep 8
-check "idle, it maps nothing from outside the bundle" nothing_outside_bundle "${pid}"
+check_service "${work}/idle.log" "idle, it maps nothing from outside the bundle" nothing_outside_bundle "${pid}"
 stop_service "${pid}"
 check "SIGTERM exits 0" test $? -eq 0
 check "no inference failed at shutdown" log_lacks 'inference failed' "${work}/idle.log"
+check_service "${work}/worst-order.log" "a fresh registry that lists webrtcsink's plugin first still streams" \
+  fresh_registry_worst_order_streams
 
 ip="$(hostname -I | awk '{print $1}')"
 webhook_receiver 18999 "${work}/webhook.jsonl" &
@@ -521,7 +584,7 @@ check "--install --user sets up the user's copy, units, private settings and ver
 (exec setpriv --reuid=1001 --regid=1001 --clear-groups env -i HOME="${work}/home" PATH=/usr/bin:/bin \
   "${user_home_install}/observant" --camera test --inference off >"${work}/user-stream.log" 2>&1) &
 pid=$!
-check "the user's copy answers /healthz" wait_healthz "${ip}"
+check_service "${work}/user-stream.log" "the user's copy answers /healthz" wait_healthz "${ip}"
 stop_service "${pid}"
 echo 'rotate = 90' >>"${user_config}"
 as_plain "${work}/observant.AppImage" --install --user >/dev/null 2>&1
@@ -535,7 +598,7 @@ check "--install leaves nothing under ${prefix} owned by the builder" test -z "$
 mkdir -p "${state}" && chown "${user}:" "${state}"
 start_service "${work}/ai-stream.log" "${prefix}/observant" --camera test --inference off
 pid=$!
-check "the installed copy answers /healthz" wait_healthz "${ip}"
+check_service "${work}/ai-stream.log" "the installed copy answers /healthz" wait_healthz "${ip}"
 stop_service "${pid}"
 echo 'rotate = 180' >>"${config}"
 "${work}/observant.AppImage" --install >/dev/null 2>&1
@@ -552,7 +615,7 @@ flatpak install --system -y --noninteractive "${flatpak_bundle}" >"${work}/fp-in
 check "flatpak installs it" flatpak info --system "${flatpak_id}"
 flatpak run --command=omni-observant "${flatpak_id}" --camera test --inference off >"${work}/fp-stream.log" 2>&1 &
 pid=$!
-check "in its sandbox it answers /healthz" wait_healthz "${ip}"
+check_service "${work}/fp-stream.log" "in its sandbox it answers /healthz" wait_healthz "${ip}"
 check "it keeps the cat's visits in its own state directory" grep -q "state: .*/\.var/app/${flatpak_id}/" "${work}/fp-stream.log"
 frames="$(chrome_frames "http://${ip}:8080/" 20000)"
 printf '      Chrome played %s frame(s) over %s\n' "${frames}" "${ip}"

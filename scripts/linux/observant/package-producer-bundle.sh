@@ -1,29 +1,9 @@
 #!/usr/bin/env bash
-# Packages a self-contained aarch64 runtime bundle of the cat producer for a
-# host that cannot run the :latest container (e.g. a Raspberry Pi Zero
-# 2 W with 512 MB RAM). The producer, its GStreamer subset and the transitive
-# closure of their shared libraries are exported from the image into
-# build/observant/pi-bundle/; the bundle runs natively with its own run.sh.
-#
-# It uses the target host's libcamera (same 0.7 soname as the image's), so the
-# camera stack stays the one Raspberry Pi OS ships for that board, while the
-# image's glibc is bundled and invoked explicitly - the host's glibc version
-# does not matter, only libcamera with its IPA and tuning files must be there.
-#
-# Usage:
-#   scripts/linux/observant/package-producer-bundle.sh [--build] [--platform P] [--deploy HOST]
-#
-# --build        build the producer in the container first
-# --platform P   run the image as P; linux/arm64 builds the bundle on an x64 host, through QEMU
-# --deploy HOST  rsync the finished bundle to HOST:observant/ afterwards
-#
-# On the target:
-#   ~/observant/run.sh --no-inference --libcamera          # no AI, camera only
-#   ~/observant/run.sh --libcamera                         # needs models/ (OxidANT fetch-models.sh --dest)
+# Exports the cat producer as a native aarch64 bundle for hosts too small for the image; usage() lists the options.
 set -euo pipefail
 
-script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-repo_root="$(cd -- "${script_dir}/../../.." && pwd)"
+# shellcheck source=scripts/linux/observant/lib/script-paths.sh
+source "$(dirname -- "${BASH_SOURCE[0]}")/lib/script-paths.sh"
 
 # The image ref comes only from the hub; two assignments, since set -e misses a substitution failing mid-expansion.
 # shellcheck source=scripts/linux/lib/antfrastructure.sh
@@ -41,15 +21,37 @@ do_build=false
 platform_args=()
 deploy=""
 
-while [ $# -gt 0 ]; do
-  case "$1" in
-    --build) do_build=true; shift ;;
-    --platform) platform_args=(--platform "${2:?--platform needs a value, e.g. linux/arm64}"); shift 2 ;;
-    --deploy) deploy="${2:?--deploy needs a host}"; shift 2 ;;
-    -h|--help) sed -n '2,22p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit 0 ;;
-    *) printf 'unknown argument: %s\n' "$1" >&2; exit 2 ;;
-  esac
-done
+usage() {
+  cat <<'EOF'
+Packages a self-contained aarch64 runtime bundle of the cat producer for a
+host that cannot run the :latest container (e.g. a Raspberry Pi Zero
+2 W with 512 MB RAM). The producer, its GStreamer subset and the transitive
+closure of their shared libraries are exported from the image into
+build/observant/pi-bundle/; the bundle runs natively with its own run.sh.
+
+It uses the target host's libcamera (same 0.7 soname as the image's), so the
+camera stack stays the one Raspberry Pi OS ships for that board, while the
+image's glibc is bundled and invoked explicitly - the host's glibc version
+does not matter, only libcamera with its IPA and tuning files must be there.
+
+Usage:
+  scripts/linux/observant/package-producer-bundle.sh [--build] [--platform P] [--deploy HOST]
+
+--build        build the producer in the container first
+--platform P   run the image as P; linux/arm64 builds the bundle on an x64 host, through QEMU
+--deploy HOST  rsync the finished bundle to HOST:observant/ afterwards
+
+On the target:
+  ~/observant/run.sh --no-inference --libcamera          # no AI, camera only
+  ~/observant/run.sh --libcamera                         # needs models/ (OxidANT fetch-models.sh --dest)
+EOF
+}
+
+# shellcheck source=scripts/linux/lib/entry-options.sh
+source "${script_dir}/../lib/entry-options.sh"
+platform_value=""
+parse_entry_options usage '' '+--build=do_build=true' '--platform=platform_value:a value, e.g. linux/arm64' '--deploy=deploy:a host' -- "$@"
+if [ -n "${platform_value}" ]; then platform_args=(--platform "${platform_value}"); fi
 
 command -v nerdctl >/dev/null 2>&1 || { printf 'nerdctl not found\n' >&2; exit 1; }
 
@@ -168,7 +170,7 @@ cat > "${bundle_dir}/run.sh" <<'RUN_SH'
 # Runs the cat producer from the bundle with its own GStreamer, without a
 # container. Pass producer flags through, e.g.:
 #   ./run.sh --no-inference --libcamera
-#   ./run.sh --libcamera --model models/deim_dfine_n_coco.onnx
+#   ./run.sh --libcamera --model models/<file>.onnx
 set -euo pipefail
 
 here="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"

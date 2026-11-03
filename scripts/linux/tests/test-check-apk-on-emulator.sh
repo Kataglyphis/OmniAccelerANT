@@ -2,13 +2,9 @@
 # The emulator gate against stub adb/android-avd.sh: one green run, and each way it must go red.
 set -uo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# shellcheck source=scripts/linux/lib/antfrastructure.sh
-source "${SCRIPT_DIR}/../lib/antfrastructure.sh"
-_harness="$(antfrastructure_path linux/scripts/lib/test-harness.sh)" || exit 1
-# shellcheck source=third_party/ANTfrastructure/linux/scripts/lib/test-harness.sh
-source "${_harness}"
-gate="${SCRIPT_DIR}/../check-apk-on-emulator.sh"
+# shellcheck source=scripts/linux/tests/harness-bootstrap.sh
+source "$(dirname "${BASH_SOURCE[0]}")/harness-bootstrap.sh"
+gate="${KATAGLYPHIS_REPO_ROOT}/scripts/linux/check-apk-on-emulator.sh"
 work="$(mktemp -d)"
 trap 'rm -rf "${work}"' EXIT
 pkg="org.example.app"

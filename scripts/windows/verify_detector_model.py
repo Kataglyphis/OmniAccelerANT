@@ -8,11 +8,14 @@ import stat
 import sys
 from pathlib import Path
 
-REQUIRED = {
-    "deim_dfine_n_coco.onnx",
-    "deim_dfine_n_coco.LICENSE",
-    "deim_dfine_n_coco.NOTICE",
-}
+
+def required_files(names) -> set[str]:
+    """The lock's first ONNX model and the license and notice named after it."""
+    model = next((name for name in names if name.endswith(".onnx")), None)
+    if model is None:
+        raise ValueError("model lock names no ONNX model")
+    stem = model.removesuffix(".onnx")
+    return {model, f"{stem}.LICENSE", f"{stem}.NOTICE"}
 
 
 def is_link(path: Path, metadata: os.stat_result) -> bool:
@@ -48,9 +51,10 @@ def verify_directory(
 
 def verify_files(directory: Path, checksums: dict[str, str], matches) -> None:
     """Require each locked model and notice to be a regular unlinked file."""
-    if not REQUIRED.issubset(checksums):
+    required = required_files(checksums)
+    if not required.issubset(checksums):
         raise ValueError("model lock is missing required model or notices")
-    for name in sorted(REQUIRED):
+    for name in sorted(required):
         path = directory / name
         try:
             metadata = path.lstat()
