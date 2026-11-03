@@ -5,6 +5,12 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ## Unreleased
 
+### 2026-11-03 (hub units)
+- **Windows model staging takes its scratch directory from the hub's `New-TemporaryDirectory`**, imported only when it
+  fetches; `-VerifyOnly` loads nothing new. `Installer.PEReuse.Tests.ps1` reads through the harness's
+  `Get-TestFunctionNames` and `Assert-TestAstCommand`, which now pins the literal `Initialize-BuildDirectory` call, and
+  `OrtRunner.Tests.ps1` writes its wheel with `Write-TestFileTree` and `New-TestZipFile`.
+
 ### 2026-11-03 (model v2)
 
 - **The shipped detector is `deim_dfine_n_coco-v2`**, through the OxidANT pin and its `models.lock`. The third-party

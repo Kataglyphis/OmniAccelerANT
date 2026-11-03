@@ -6,7 +6,7 @@ Describe 'WindowsOrtRunner.Common' {
 
     . (Join-Path $PSScriptRoot '..\Resolve-BuildModule.ps1')
     Import-BuildModule @('WindowsOrtRunner.Common', 'WindowsGpuBuild.Common', 'WindowsOrtProvenance.Common', 'WindowsOrtPayload.Common', 'WindowsOrtLicense.Common')
-    Import-Module (Join-Path $PSScriptRoot '..\..\..\third_party\ANTfrastructure\windows\scripts\tests\TestHarness.psm1') -Function Get-TestScriptAst, Get-TestAstCommands, New-OrtTestPe -ErrorAction Stop
+    Import-Module (Join-Path $PSScriptRoot '..\..\..\third_party\ANTfrastructure\windows\scripts\tests\TestHarness.psm1') -Function Get-TestScriptAst, Get-TestAstCommands, New-OrtTestPe, New-TestZipFile, Remove-TestDir, Write-TestFileTree -ErrorAction Stop
 
     # NUL-terminated like a compiler's __FILE__: G6 takes only a whole terminated path as a fingerprint.
     $chainSrc = 'C:\temp\onnx-src\onnxruntime\core\session\inference_session.cc'
@@ -61,15 +61,17 @@ Describe 'WindowsOrtRunner.Common' {
 
     # The image's chain wheel: the core DLL's exact bytes beside ORT's own two texts.
     function New-OrtCaseWheel([string] $Path, [string] $Dll, [string] $Notice = 'chain notices', [string[]] $ProviderDll = @()) {
-        $tree = "$Path.tree"
-        $null = New-Item -ItemType Directory -Force -Path (Join-Path $tree 'onnxruntime\capi'), (Split-Path $Path -Parent)
-        Copy-Item -LiteralPath $Dll -Destination (Join-Path $tree 'onnxruntime\capi\onnxruntime.dll')
-        foreach ($provider in $ProviderDll) { Copy-Item -LiteralPath $provider -Destination (Join-Path $tree 'onnxruntime\capi') }
-        [IO.File]::WriteAllText((Join-Path $tree 'onnxruntime\LICENSE'), 'chain MIT text')
-        [IO.File]::WriteAllText((Join-Path $tree 'onnxruntime\ThirdPartyNotices.txt'), $Notice)
+        $texts = "$Path.texts"
+        Write-TestFileTree -Root $texts -Files @{ LICENSE = 'chain MIT text'; 'ThirdPartyNotices.txt' = $Notice }
+        $member = @{
+            'onnxruntime/capi/onnxruntime.dll' = $Dll
+            'onnxruntime/LICENSE' = Join-Path $texts 'LICENSE'
+            'onnxruntime/ThirdPartyNotices.txt' = Join-Path $texts 'ThirdPartyNotices.txt'
+        }
+        foreach ($provider in $ProviderDll) { $member["onnxruntime/capi/$(Split-Path $provider -Leaf)"] = $provider }
         Add-Type -AssemblyName System.IO.Compression.FileSystem
-        [IO.Compression.ZipFile]::CreateFromDirectory($tree, $Path)
-        Remove-Item -LiteralPath $tree -Recurse -Force
+        New-TestZipFile -Path $Path -Member $member -FileValues
+        Remove-TestDir -Path $texts
     }
 
     function Invoke-WithOnnxRoot([string] $Root, [scriptblock] $Block) {

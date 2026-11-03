@@ -11,7 +11,7 @@ function Get-ScriptCommandCount([object] $Ast, [string] $Name, [string] $TextPat
 }
 
 function Get-ScriptFunctionCount([object] $Ast, [string] $Name) {
-    return @($Ast.FindAll({ param($node) $node -is [System.Management.Automation.Language.FunctionDefinitionAst] -and $node.Name -eq $Name }, $true)).Count
+    return @(Get-TestFunctionNames -Ast $Ast | Where-Object { $_ -eq $Name }).Count
 }
 
 function Assert-InstallerChecksUseHubRunner {
@@ -52,7 +52,7 @@ Describe 'Installer shared Windows checks' {
     Import-Module (Join-Path $PSScriptRoot 'OmniTestFixtures.psm1') -Force
     . (Join-Path $PSScriptRoot '..\Resolve-BuildModule.ps1')
     Import-BuildModule @('WindowsTargetArch.Common', 'WindowsSmokeTest.Common')
-    Import-Module (Join-Path $PSScriptRoot '..\..\..\third_party\ANTfrastructure\windows\scripts\tests\TestHarness.psm1') -Function Get-TestScriptAst, Get-TestAstCommands, New-TestPeFile -ErrorAction Stop
+    Import-Module (Join-Path $PSScriptRoot '..\..\..\third_party\ANTfrastructure\windows\scripts\tests\TestHarness.psm1') -Function Get-TestScriptAst, Get-TestAstCommands, Assert-TestAstCommand, Get-TestFunctionNames, New-TestPeFile -ErrorAction Stop
 
     It 'parses and calls the shared target facts and PE reader' {
         $ast = Get-TestScriptAst -ScriptPath (Join-Path $PSScriptRoot '..\Test-OmniAccelerANTInstallers.ps1')
@@ -95,10 +95,7 @@ Describe 'Installer shared Windows checks' {
         $modulePath = if ($env:OMNI_APP_INSTALLERS_SOURCE) { $env:OMNI_APP_INSTALLERS_SOURCE } else { Join-Path $PSScriptRoot '..\modules\WindowsAppInstallers.Common.psm1' }
         $ast = Get-TestScriptAst -ScriptPath $modulePath
         $calls = @(Get-TestAstCommands -Ast $ast -Name 'Initialize-BuildDirectory')
-        $calls.Count | Should Be 1
-        $parameters = @($calls[0].CommandElements | Where-Object { $_ -is [System.Management.Automation.Language.CommandParameterAst] } | ForEach-Object ParameterName)
-        @($parameters | Where-Object { $_ -eq 'Path' }).Count | Should Be 1
-        @($parameters | Where-Object { $_ -eq 'Empty' }).Count | Should Be 1
+        Assert-TestAstCommand -Command $calls -Text 'Initialize-BuildDirectory -Path @($signing, $stage) -Empty'
     }
 
     It 'checks the project license in the built MSI and MSIX through the hub' {
