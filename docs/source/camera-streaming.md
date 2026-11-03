@@ -390,6 +390,9 @@ chain's source path.
 bundled plugins, each unless set; AccelerANTgine's library does the same from its own constructor
 and adds `GST_REGISTRY`, one per installed copy (AccelerANTgine `24de58f`). The lane's launch
 smokes fail on GStreamer's `External plugin loader failed` warning.
+This plugin's bundle has no scanner and no webrtcsink, and `check-bundle-gst-elements.sh` refuses
+`libgstrswebrtc.so` there: an in-process scan of a fresh registry can leave webrtcsink without codecs.
+The ObservANT and producer bundles carry webrtcsink, so they must ship the scanner.
 `scripts/linux/check-bundle-gst-elements.sh` hands the hub's `gstreamer-bundle.sh check` every
 element the pipelines name (`GST_PIPELINE_ELEMENTS` in `scripts/linux/lib/bundle-runtime.sh`).
 `test/pinned_artefacts_test.dart` keeps that list in step with the Dart pipelines' Linux

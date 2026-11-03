@@ -103,18 +103,15 @@ bash /hub-scripts/06-packaging/gstreamer-bundle.sh copy --dest /out/gstreamer-1.
 # the plugin scanner, and the scanner must run under the bundled glibc too -
 # hence the wrapper.
 scanner="$(find /opt/gstreamer -name gst-plugin-scanner -type f 2>/dev/null | head -1 || true)"
-if [ -n "${scanner}" ]; then
-  install -m 755 "${scanner}" /out/libexec/gst-plugin-scanner
-  cat > /out/libexec/gst-plugin-scanner-wrapper <<'WRAPPER'
+[ -n "${scanner}" ] || { printf 'gst-plugin-scanner not found in the image\n' >&2; exit 1; }
+install -m 755 "${scanner}" /out/libexec/gst-plugin-scanner
+cat > /out/libexec/gst-plugin-scanner-wrapper <<'WRAPPER'
 #!/bin/sh
 here="$(cd -- "$(dirname -- "$0")/.." && pwd)"
 exec "$here/lib/ld-linux-aarch64.so.1" --library-path "$here/lib" \
   "$here/libexec/gst-plugin-scanner" "$@"
 WRAPPER
-  chmod 755 /out/libexec/gst-plugin-scanner-wrapper
-else
-  printf 'warning: gst-plugin-scanner not found in the image\n' >&2
-fi
+chmod 755 /out/libexec/gst-plugin-scanner-wrapper
 
 # Core GStreamer libraries (and GES and friends, a few MB - not worth pruning).
 for lib in "${gst_lib_dir}"/libgst*.so* "${gst_lib_dir}"/libges*.so*; do

@@ -138,11 +138,6 @@ what the owner's goal still lacks.
 
 ## Open — packaging
 
-- [ ] **A bundle with `GST_REGISTRY_FORK=no` and no scanner can give webrtcsink an empty codec list** (M, ★★).
-  `packages/kataglyphis_native_inference/linux/runtime_paths.cc` sets it; on a fresh registry an in-process
-  scan builds the pad templates while webrtcsink reads them (OxidANT `docs/observant.md`). Ship
-  `gst-plugin-scanner` in the bundle or prove the fresh-registry path.
-
 
 - [ ] **A clear failure or a CPU fallback when CUDA has no kernel for the card** (M, ★★). Seen on an RTX 2080 with OxidANT's package; these packages use the
   same image and are untested on such a card.

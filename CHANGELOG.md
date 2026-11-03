@@ -5,6 +5,11 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ## Unreleased
 
+### 2026-11-03 (fresh registry)
+- **No bundle pairs webrtcsink with an in-process scan.** The Flutter plugin's bundle carries neither webrtcsink nor a
+  scanner, and `check-bundle-gst-elements.sh` now refuses `libgstrswebrtc.so` there. `package-producer-bundle.sh` fails
+  without `gst-plugin-scanner` instead of warning and naming a wrapper it did not write.
+
 ### 2026-11-03 (hub units)
 - **Windows model staging takes its scratch directory from the hub's `New-TemporaryDirectory`**, imported only when it
   fetches; `-VerifyOnly` loads nothing new. `Installer.PEReuse.Tests.ps1` reads through the harness's

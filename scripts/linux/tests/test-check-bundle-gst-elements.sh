@@ -33,5 +33,17 @@ t_case "an element loaded from outside the bundle"
 t_assert_rc 1 elements "${work}/bundle" STUB_ELEMENTS="${all}" STUB_DIR=/opt/gstreamer/lib/gstreamer-1.0
 t_case "a bundle without plugins"
 t_assert_rc 2 elements "${work}/no-plugins" STUB_ELEMENTS="${all}"
+t_case "webrtcsink in a bundle that scans in process"
+mkdir -p "${work}/webrtc/lib/gstreamer-1.0"
+: >"${work}/webrtc/lib/gstreamer-1.0/libgstrswebrtc.so"
+t_assert_rc 1 elements "${work}/webrtc" STUB_ELEMENTS="${all}"
+t_case "the refused plugin is named"
+t_assert_grep "${work}/out" 'FAIL libgstrswebrtc.so'
+t_case "the Windows plugin list carries no webrtcsink either: that bundle has no scanner"
+t_assert_rc 0 grep -q 'gstvideotestsrc.dll' "${KATAGLYPHIS_REPO_ROOT}/scripts/windows/Build-Windows.ps1"
+t_assert_rc 1 grep -q 'gstrswebrtc' "${KATAGLYPHIS_REPO_ROOT}/scripts/windows/Build-Windows.ps1"
+t_case "the producer bundle refuses to ship without its scanner"
+t_assert_rc 0 grep -q "gst-plugin-scanner not found in the image.*exit 1" \
+  "${KATAGLYPHIS_REPO_ROOT}/scripts/linux/observant/package-producer-bundle.sh"
 
 t_summary

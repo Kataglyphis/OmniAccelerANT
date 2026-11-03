@@ -34,6 +34,12 @@ if [ ! -d "$plugin_dir" ]; then
 fi
 require_cmd "$gst_inspect" || exit 2
 
+# runtime_paths.cc scans in process, where a fresh registry can give webrtcsink an empty codec list.
+if [ -e "${plugin_dir}/libgstrswebrtc.so" ]; then
+  printf 'FAIL libgstrswebrtc.so in %s: this bundle has no plugin scanner\n' "$plugin_dir" >&2
+  exit 1
+fi
+
 # The hub's check, under runtime_paths.cc's environment; a missing element's plugin goes into GST_BUNDLED_PLUGIN_NAMES.
 GST_INSPECT="$gst_inspect" bash "$(antfrastructure_path linux/scripts/06-packaging/gstreamer-bundle.sh)" check \
   --plugins "$plugin_dir" --lib-dir "${bundle_dir}/lib" "${GST_PIPELINE_ELEMENTS[@]}"
