@@ -139,11 +139,10 @@ what the owner's goal still lacks.
 ## Open — packaging
 
 
-- [ ] **A clear failure or a CPU fallback when CUDA has no kernel for the card** (M, ★★). Seen on an RTX 2080 with OxidANT's package; these packages use the
-  same image and are untested on such a card.
-  `CUDAExecutionProvider` creates its session, then the first node stops with
-  `cudaErrorNoKernelImageForDevice`: no detection, no fallback. The images build `86;87;89;120`, so RTX 20xx
-  cards fail until hub CON217. Any card outside the list should get a message naming it, or the CPU.
+- [ ] **A clear failure or a CPU fallback when CUDA has no kernel for the card** (S, ★★). `--onnx-check` on an RTX 2080
+  with this package still stops on its first node with `cudaErrorNoKernelImageForDevice`. OxidANT and AccelerANTgine now
+  run one kernel first and name the card (third_party/ANTfrastructure/docs/linux-accelerator-images.md, A card without a CUDA kernel); only the
+  OxidANT and AccelerANTgine pins are left to move. Done when `--onnx-check` from a package with those pins names the card.
 
 - [ ] **The NVIDIA packages have not run on a GPU they support** (S, ★★★). The Linux and Windows packages are built and
   passed on the CPU, and hosted runners have no GPU. Done on an RTX 30xx or newer when
