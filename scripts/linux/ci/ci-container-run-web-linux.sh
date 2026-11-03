@@ -41,6 +41,10 @@ export_toolchain_env "$MATRIX_ARCH"
 echo "=== Flutter doctor ==="
 flutter doctor -v
 
+echo "=== The pinned sqlite3.wasm, against the lock ==="
+bash "$(antfrastructure_path linux/scripts/05-frameworks/flutter/setup-sqlite3-wasm.sh)" "$PWD"
+check_flutter_launcher_artifacts
+
 echo "=== Dart checks: dependencies, format, analyze, test (in Chrome) ==="
 # The native lanes keep the VM run; @TestOn('vm') marks the files that read the checkout.
 run_flutter_common_checks "$STRICT_CHECKS" --extra-package third_party/ANThology --test-platform chrome
@@ -70,12 +74,12 @@ flutter_build_web --wasm --no-web-resources-cdn
 python3 "$(antfrastructure_path linux/scripts/05-frameworks/flutter/fetch-fallback-fonts.py)" \
   --dest build/web/fallback-fonts
 
-# Missing frb wasm artefacts do not fail the build; the page hangs at boot, so assert them here.
-for artefact in pkg/oxidant.js pkg/oxidant_bg.wasm main.dart.wasm; do
+# Missing wasm artefacts do not fail the build; the page hangs at boot, so assert them here.
+for artefact in pkg/oxidant.js pkg/oxidant_bg.wasm main.dart.wasm sqlite3.wasm; do
   if [[ ! -s "build/web/${artefact}" ]]; then
     echo "Error: build/web/${artefact} is missing or empty after a successful build." >&2
     echo "       The page would load and then hang. Check the" >&2
-    echo "       'flutter_rust_bridge_codegen build-web' step above." >&2
+    echo "       'flutter_rust_bridge_codegen build-web' and sqlite3.wasm steps above." >&2
     exit 1
   fi
 done

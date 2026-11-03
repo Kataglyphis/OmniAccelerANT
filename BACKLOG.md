@@ -180,8 +180,8 @@ Engine, models and build driver: AGENTS.md § 2. Rules and run commands: AGENTS.
 
 The top 5 of `logs/code-quality/queue.md` (`bash scripts/linux/quality-report.sh`); re-sync when it moves.
 
-- [ ] `large-files.allow:3` budget 740 (allow_budget_total)
 - [ ] `doc-dupes-hub.allow:4` budget 23 (allow_budget_total)
-- [ ] `shellcheck-warnings.allow:11` budget 1 (allow_budget_total)
-- [ ] `shellcheck-warnings.allow:12` budget 1 (allow_budget_total)
-- [ ] `shellcheck-warnings.allow:13` budget 1 (allow_budget_total)
+- [ ] `scripts/licenses/texts/native/libjpeg-turbo/LICENSE.md:137` 103 shared shingles with scripts/licenses/texts/native/pcre2/LICENCE.md:84 (duplicated_blocks)
+- [ ] `docs/source/overview.md:69` 71 shared shingles with docs/source/overview.md:89 (duplicated_blocks)
+- [ ] `scripts/windows/Package-OmniAccelerANT.ps1:86` 46 shared shingles with scripts/windows/observant/Package-ObservANT.ps1:190 (duplicated_blocks)
+- [ ] `scripts/windows/observant/Test-ObservANTFixtureLock.ps1:31` 41 shared shingles with scripts/windows/observant/Test-ObservANTFixtureLock.ps1:44 (duplicated_blocks)

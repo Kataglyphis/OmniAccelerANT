@@ -5,6 +5,14 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ## Unreleased
 
+### 2026-11-03 (allow debt)
+- **`web/sqlite3.wasm` is no longer tracked.** The native and web lanes fetch it through the hub's checksum-verified
+  `setup-sqlite3-wasm.sh`, then run `check-web-artefacts.py`, which reads the lock against the pin; the web lane fails a
+  build without the file. For a local web run, fetch it once ([Getting Started](docs/source/getting-started.md)).
+  `large-files.allow` is gone.
+- **`rust_builder/cargokit/build_pod.sh` is POSIX sh**, which the podspecs run it with: no array, `[[` or `source`.
+  `test-cargokit-build-pod.sh` runs it under this host's sh, not on macOS. `shellcheck-warnings.allow` has no rows left.
+
 ### 2026-11-03 (fresh registry)
 - **No bundle pairs webrtcsink with an in-process scan.** The Flutter plugin's bundle carries neither webrtcsink nor a
   scanner, and `check-bundle-gst-elements.sh` now refuses `libgstrswebrtc.so` there. `package-producer-bundle.sh` fails

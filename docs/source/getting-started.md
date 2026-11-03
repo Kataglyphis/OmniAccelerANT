@@ -98,7 +98,7 @@ v4l2-ctl --device=/dev/video0 --list-formats-ext
 
 ## 5) Run the app (web profile)
 
-The web build needs `web/sqlite3.wasm`. It is committed; this refreshes it:
+The web build needs `web/sqlite3.wasm`, and git does not track it. Fetch it once, and again when the hub's pin moves; without it the page loads and then hangs:
 
 ```bash
 bash third_party/ANTfrastructure/linux/scripts/05-frameworks/flutter/setup-sqlite3-wasm.sh .
@@ -106,8 +106,8 @@ bash third_party/ANTfrastructure/linux/scripts/05-frameworks/flutter/setup-sqlit
 
 The fetcher lives in ANTfrastructure, not in a per-app copy, and reads the version and its SHA256
 from ANTfrastructure's `versions.env`. The download is checksum-verified, so a tampered,
-truncated or *wrong-version* asset fails here, not in a browser. It happened: the copy that was
-committed did not match the version the script claimed to fetch.
+truncated or *wrong-version* asset fails here, not in a browser. A committed copy once did not
+match the version this script claimed to fetch.
 
 It also wants `web/pkg/`, the Rust core built for wasm (generated, gitignored): without it the
 page waits 20 s for the core, then starts without it, and only the About page's Rust demo is

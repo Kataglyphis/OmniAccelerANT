@@ -8,8 +8,3 @@
 #
 # Every row below was read before it was written. None is "shellcheck is noisy".
 
-rust_builder/cargokit/build_pod.sh | SC1090 | 1 | VENDORED Cargokit (rust_builder/cargokit/README), not this repo's code and not this repo's to fix. Non-constant source of a sibling the tool cannot resolve statically. Upstream it at flutter-rust-bridge/cargokit or leave it; every other gate here already exempts this tree, and the shell gate deliberately does NOT, because rust_builder also holds 13 first-party files (run-lint-gates.sh:11).
-rust_builder/cargokit/build_pod.sh | SC3010 | 1 | VENDORED Cargokit, `#!/bin/sh` with a bash-ism: `[[ ]]` is undefined in POSIX sh. Real, and real upstream; changing the shebang or the test in a vendored tree is exactly the local patch that makes the next Cargokit bump a merge conflict.
-rust_builder/cargokit/build_pod.sh | SC3030 | 1 | VENDORED Cargokit, same shebang mismatch: array assignment in POSIX sh.
-rust_builder/cargokit/build_pod.sh | SC3046 | 1 | VENDORED Cargokit, same shebang mismatch: `set -o pipefail` in POSIX sh.
-rust_builder/cargokit/build_pod.sh | SC3054 | 1 | VENDORED Cargokit, same shebang mismatch: array element expansion in POSIX sh.

@@ -1,4 +1,4 @@
-// Pins on committed artefacts that no build step checks; the web ones (title, sqlite3.wasm, 8-bit icons) are ANTfrastructure's check-web-artefacts.py.
+// Pins on committed artefacts that no build step checks; the web ones (title, fetched sqlite3.wasm, 8-bit icons) are ANTfrastructure's check-web-artefacts.py.
 @TestOn('vm')
 library;
 

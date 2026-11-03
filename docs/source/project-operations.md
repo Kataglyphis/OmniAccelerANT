@@ -360,11 +360,10 @@ an unpinned root file next to a pinned shared one is exactly the drift that remo
 
 Measured 2026-10-17: **1.5 MiB in 22 tracked binary files**, after the 8-bit app icon and the
 removal of two images nothing referenced (below); 2026-10-12 counted 4.7 MiB and 2026-09-15
-148 MiB. The inventory:
+148 MiB. The 0.7 MiB `web/sqlite3.wasm` left it afterwards. The inventory:
 
 | What | Size | Why it is tracked |
 |------|------|-------------------|
-| `web/sqlite3.wasm` | 0.7 MiB | The sqlite3 WASM build the web app loads. Fetched and checksum-verified by ANTfrastructure's `setup-sqlite3-wasm.sh`; the committed copy is a convenience, and it has been wrong before (see [Getting Started](getting-started.md)). |
 | `assets/icons/kataglyphis_app_icon.png` | 0.26 MiB | Load-bearing: `flutter_launcher_icons` generates every platform icon set from it (`pubspec.yaml` names it four times, one of them msix's `logo_path`), so it stays at its 1024 px source resolution. It was 1.9 MiB as 16-bit RGBA until 2026-10-17; the 8-bit file is pixel-identical to what every icon tool decodes from that one. |
 
 **The history was rewritten on 2026-10-17** (owner, reversing the earlier "document it and stop
@@ -393,10 +392,10 @@ Having to type `-f` is the whole mechanism.
 On 2026-10-17 `images/overview.gif` (1.6 MiB) and `images/Engine_logo.png` went too: no README
 or page ever showed either.
 
-What the table lists now is load-bearing. Its one entry over 500 KiB is frozen in
-`large-files.allow` for ANTfrastructure's `large-files` gate, which fails on any new data file
-over 500 KiB once the hub pin moves past the gate: a new model, scene or document goes to
-ModelANT or AssetANT and is fetched by lock instead.
+What the table lists now is load-bearing, and none of it passes 500 KiB. ANTfrastructure's
+`large-files` gate fails on any new data file over that: a new model, scene or document goes to
+ModelANT or AssetANT and is fetched by lock instead. `web/sqlite3.wasm` is fetched too
+([Getting Started](getting-started.md)).
 
 ## Serving the web build
 

@@ -37,15 +37,12 @@ export CARGOKIT_TOOL_TEMP_DIR=$TARGET_TEMP_DIR/build_tool
 # Directory inside root project. Not necessarily the top level directory of root project.
 export CARGOKIT_ROOT_PROJECT_DIR=$SRCROOT
 
-FLUTTER_EXPORT_BUILD_ENVIRONMENT=(
-  "$PODS_ROOT/../Flutter/ephemeral/flutter_export_environment.sh" # macOS
-  "$PODS_ROOT/../Flutter/flutter_export_environment.sh" # iOS
-)
-
-for path in "${FLUTTER_EXPORT_BUILD_ENVIRONMENT[@]}"
+# Flutter writes this one at pub get: macOS's, then iOS's, and the podspec calls this script with sh.
+for path in "$PODS_ROOT/../Flutter/ephemeral/flutter_export_environment.sh" "$PODS_ROOT/../Flutter/flutter_export_environment.sh"
 do
-  if [[ -f "$path" ]]; then
-    source "$path"
+  if [ -f "$path" ]; then
+    # shellcheck source=macos/Flutter/ephemeral/flutter_export_environment.sh
+    . "$path"
   fi
 done
 

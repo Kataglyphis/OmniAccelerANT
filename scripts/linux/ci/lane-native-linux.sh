@@ -52,7 +52,9 @@ run_gate "plugin clang-format --check" bash scripts/linux/check-plugin-cpp-forma
 # lib/ was 97.2 % covered on 2026-10-16 (87.4 % on 2026-10-12); raise the floor as it climbs.
 run_gate "dart coverage" bash "$(antfrastructure_path linux/scripts/05-frameworks/flutter/check-dart-coverage.sh)" \
   --min 96 --lcov "$dart_lcov" --exclude lib/src/rust/
-# Title vs manifest, sqlite3.wasm vs the hub's pin, 8-bit icons: what no build step checks.
+# The fetch gives the check its file; without one the lock-against-pin half would pass unread.
+run_gate "sqlite3.wasm" bash "$(antfrastructure_path linux/scripts/05-frameworks/flutter/setup-sqlite3-wasm.sh)" "$PWD"
+# Title vs manifest, sqlite3 lock vs the hub's pin, 8-bit icons: what no build step checks.
 run_gate "web artefacts" check_flutter_launcher_artifacts
 # flutter clean below deletes build/; reusable-linux.yml uploads this copy for quality-report.toml's coverage row.
 if [[ -f "$dart_lcov" ]]; then

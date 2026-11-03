@@ -130,3 +130,6 @@ docs/build/*
 
 # The frontend performance baseline CI restores from its cache.
 /.perf-baseline/
+
+# Fetched and checked: bash third_party/ANTfrastructure/linux/scripts/05-frameworks/flutter/setup-sqlite3-wasm.sh .
+web/sqlite3.wasm

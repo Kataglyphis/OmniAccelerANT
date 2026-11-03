@@ -720,7 +720,7 @@ that cannot run there; why, lane by lane: [`docs/source/testing.md`](docs/source
 | Bundle gate's mutation suite, the element gate's stub suite | yes | | | | |
 | Script and fixture suites, discovered (`lib/suite-inventory.sh`; 0 unreferenced, a `# suite-runner:` suite runs where that file names it) | yes | `test-ort-device.py`, on the runner | | | |
 | Dart coverage of `lib/` against a floor (the hub's `check-dart-coverage.sh`), uploaded as `omni-accelerant-linux-<arch>-coverage` for `quality-report.toml` | yes | | | | |
-| Web artefacts: `<title>` vs manifest name, `sqlite3.wasm` vs its pin, 8-bit icons (the hub's `check-web-artefacts.py`) | yes | | | | |
+| Web artefacts: `<title>` vs manifest name, the fetched `sqlite3.wasm` vs its pin and the lock, 8-bit icons (the hub's `check-web-artefacts.py`) | yes | | | | |
 | Plugin C++ format (`check-plugin-cpp-format.sh`) and its planted-deviation suite | yes | | | | |
 | Import walk | (the closure gate) | host, `-Standalone` | device | | |
 | Launch smoke, 20 s | under Xvfb, on the host's and the bundled glibc, and the app flatpak | host | device | | |

@@ -63,8 +63,9 @@ From the README (2026-10-19). `test/` checks, among the rest:
   (`bootstrap_settings_test.dart`).
 
 The SQLite line, the boot overlay, the locale helpers, the footer list and the routing helpers are
-ANThology's since 2026-10-21, and so are their tests. The sqlite3 wasm, the icons and the title are
-the hub's `check-web-artefacts.py`, which the native lane runs.
+ANThology's since 2026-10-21, and so are their tests. The sqlite3 wasm against the lock, the icons
+and the title are the hub's `check-web-artefacts.py`, which the native lane runs after fetching that
+wasm; the web lane fetches it too and fails a build without it.
 
 The native Linux lane measures how much of `lib/` these reach (without the generated bridge and
 localizations) and fails below a floor of 96 % (`--min` in `lane-native-linux.sh`, stated once
