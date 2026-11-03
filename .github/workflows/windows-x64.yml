@@ -240,15 +240,7 @@ jobs:
       - name: Flutter (the image's version)
         working-directory: ${{ steps.prep.outputs.workspace }}
         run: |
-          $line = Select-String -LiteralPath third_party\ANTfrastructure\linux\scripts\01-core\versions.env -Pattern '^FLUTTER_VERSION=' | Select-Object -First 1
-          if (-not $line) { throw 'versions.env names no FLUTTER_VERSION' }
-          $version = $line.Line.Split('=', 2)[1].Trim()
-          $sdk = Join-Path $env:RUNNER_TEMP 'flutter'
-          git clone --depth 1 --branch $version https://github.com/flutter/flutter.git $sdk
-          if ($LASTEXITCODE) { throw "cloning Flutter $version failed" }
-          Add-Content -LiteralPath $env:GITHUB_PATH -Value (Join-Path $sdk 'bin')
-          & (Join-Path $sdk 'bin\flutter.bat') --version
-          if ($LASTEXITCODE) { throw 'flutter --version failed' }
+          & third_party\ANTfrastructure\windows\scripts\host\Install-PinnedFlutter.ps1 -Destination (Join-Path $env:RUNNER_TEMP 'flutter')
 
       # flutter test -d windows would build with MSVC; drive the clang-cl app the container built instead.
       - name: Integration test (x64)
