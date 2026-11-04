@@ -31,7 +31,7 @@ what the owner's goal still lacks.
   arrivals at 0.45 or more to the phone with `/arrival.jpg`, and updates that notification
   with a tap to `/arrival.mp4?t=` once the clip's event comes. Test arrivals posted to that
   webhook reached the phone; the service's own arrival and clip POSTs are proven against
-  a loopback stand-in (`test-observant-package.sh`, 69 checks; OxidANT's `notify.rs`), and a
+  a loopback stand-in (`test-observant-package.sh`; OxidANT's `notify.rs`), and a
   clip from the packaged service on the cat photo played (16:21, 603 kB). The visit
   statistics, the outage alert, the departure that updates the notification with the stay
   and the 21:00 summary run in the same Home Assistant; the summary's first run (21:00)
@@ -67,9 +67,8 @@ what the owner's goal still lacks.
       task; the shell ran the shortcut, no logon did, and the task stays unregistered
       until one;
     - an MSIX signed by a certificate users already trust; `-MsixPfx` takes the owner's;
-    - the arrival clip: `Package-ObservANT.ps1` takes `isomp4` as optional, and whether
-      `:winamd64` carries it is unchecked; without it the service records no clip and says
-      so at start.
+    - the arrival clip: the MSIX packs `gstisomp4.dll` from `:winamd64` (run 41720025415), but no
+      recorded clip has been shown on Windows.
   - **The web build as Linux ships it** (2026-10-17): `Package-ObservANT.ps1` cuts the same
     renderers and maps, and on x64 runs `--precompress`, which `Test-ObservANTWindows.ps1` checks
     (camera-streaming.md, *The Windows ObservANT*). `web.yml` has run it since (2.2.1's release
@@ -103,7 +102,7 @@ what the owner's goal still lacks.
   (2026-10-13; camera-streaming.md § *Field tests on real boards*), but no lane builds or install-tests it:
   GitHub has no riscv64 runner, `test-observant-package.sh` needs the AppImage, the flatpak and a
   Chrome for Testing that riscv64 lacks, and a Raspberry Pi 5 cannot emulate the image (16 KiB
-  pages, `third_party/OxidANT/AGENTS.md` § *The riscv64 lane*). A 4 KiB-page host could run
+  pages, `third_party/OxidANT/docs/ci.md` § *The riscv64 lane*). A 4 KiB-page host could run
   `package-observant.sh` in the riscv64 `:latest` under QEMU, 20 to 30 times slower than the
   board's 8 min. Blocked on a runner, or on the hub making that QEMU path a lane.
 - [b] **A cheaper model, or a cheaper picture.** Measured 2026-10-14 at 01:00, one minute
