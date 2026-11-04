@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:js_interop';
 
@@ -35,6 +36,46 @@ Future<String?> fetchVisits() => _get('/visits');
 
 /// ObservANT's `/settings`.
 Future<String?> fetchObservantSettings() => _get('/settings');
+
+/// ObservANT's answer to a POST: its status and body.
+typedef ObservantReply = ({int status, String body});
+
+/// Longer than ObservANT's own 300 s, so its answer to a slow model arrives before this gives up.
+const Duration _modelTimeout = Duration(seconds: 310);
+
+/// POSTs [body] to [path] and returns the answer whatever its status; `null` when none came or [cancel] ended it.
+Future<ObservantReply?> postToObservant(
+  String path,
+  Map<String, Object> body, {
+  Future<void>? cancel,
+}) async {
+  final abort = web.AbortController();
+  final timer = Timer(_modelTimeout, () => abort.abort());
+  unawaited(cancel?.then((_) => abort.abort()));
+  try {
+    final response = await web.window
+        .fetch(
+          path.toJS,
+          web.RequestInit(
+            signal: abort.signal,
+            method: 'POST',
+            headers:
+                <String, String>{'content-type': 'application/json'}.jsify()
+                    as web.HeadersInit,
+            body: jsonEncode(body).toJS,
+          ),
+        )
+        .toDart;
+    return (
+      status: response.status,
+      body: (await response.text().toDart).toDart,
+    );
+  } on Object {
+    return null;
+  } finally {
+    timer.cancel();
+  }
+}
 
 /// Changes the values in [update] on ObservANT; JSON, as it takes no other body.
 Future<bool> saveObservantSettings(Map<String, Object> update) async {

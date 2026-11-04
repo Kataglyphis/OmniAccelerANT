@@ -859,6 +859,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'The model failed: {detail}'**
   String aiError(String detail);
+
+  /// The button that opens questions about the camera's visit log
+  ///
+  /// In en, this message translates to:
+  /// **'Ask about the visits'**
+  String get visitQuestions;
+
+  /// Asks the language model for a summary of today's visits
+  ///
+  /// In en, this message translates to:
+  /// **'Summarise today'**
+  String get visitQuestionsSummarise;
+
+  /// Shown above the questions
+  ///
+  /// In en, this message translates to:
+  /// **'Answers come from the visit figures. A language model can be wrong, and it does not see the picture.'**
+  String get visitQuestionsHint;
+
+  /// Heading of the facts behind the last answer
+  ///
+  /// In en, this message translates to:
+  /// **'What the model was told'**
+  String get visitQuestionsFacts;
+
+  /// The summary of a day without visits
+  ///
+  /// In en, this message translates to:
+  /// **'No visits today.'**
+  String get visitQuestionsNoVisits;
+
+  /// No reply came from the camera
+  ///
+  /// In en, this message translates to:
+  /// **'The camera did not answer.'**
+  String get visitQuestionsUnreachable;
+
+  /// The camera answered with an error
+  ///
+  /// In en, this message translates to:
+  /// **'The camera could not answer: {reason}'**
+  String visitQuestionsFailed(String reason);
 }
 
 class _AppLocalizationsDelegate

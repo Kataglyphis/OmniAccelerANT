@@ -457,4 +457,28 @@ class AppLocalizationsDe extends AppLocalizations {
   String aiError(String detail) {
     return 'Das Modell ist fehlgeschlagen: $detail';
   }
+
+  @override
+  String get visitQuestions => 'Fragen zu den Besuchen';
+
+  @override
+  String get visitQuestionsSummarise => 'Heute zusammenfassen';
+
+  @override
+  String get visitQuestionsHint =>
+      'Die Antworten stammen aus den Besuchszahlen. Ein Sprachmodell kann sich irren, und es sieht das Bild nicht.';
+
+  @override
+  String get visitQuestionsFacts => 'Was das Modell erfahren hat';
+
+  @override
+  String get visitQuestionsNoVisits => 'Heute keine Besuche.';
+
+  @override
+  String get visitQuestionsUnreachable => 'Die Kamera hat nicht geantwortet.';
+
+  @override
+  String visitQuestionsFailed(String reason) {
+    return 'Die Kamera konnte nicht antworten: $reason';
+  }
 }

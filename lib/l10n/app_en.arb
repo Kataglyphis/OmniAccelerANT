@@ -304,5 +304,19 @@
   "@aiError": {
     "description": "Shown above the chat when a generation fails.",
     "placeholders": { "detail": { "type": "String" } }
-  }
+  },
+  "visitQuestions": "Ask about the visits",
+  "@visitQuestions": {"description": "The button that opens questions about the camera's visit log"},
+  "visitQuestionsSummarise": "Summarise today",
+  "@visitQuestionsSummarise": {"description": "Asks the language model for a summary of today's visits"},
+  "visitQuestionsHint": "Answers come from the visit figures. A language model can be wrong, and it does not see the picture.",
+  "@visitQuestionsHint": {"description": "Shown above the questions"},
+  "visitQuestionsFacts": "What the model was told",
+  "@visitQuestionsFacts": {"description": "Heading of the facts behind the last answer"},
+  "visitQuestionsNoVisits": "No visits today.",
+  "@visitQuestionsNoVisits": {"description": "The summary of a day without visits"},
+  "visitQuestionsUnreachable": "The camera did not answer.",
+  "@visitQuestionsUnreachable": {"description": "No reply came from the camera"},
+  "visitQuestionsFailed": "The camera could not answer: {reason}",
+  "@visitQuestionsFailed": {"description": "The camera answered with an error", "placeholders": {"reason": {"type": "String"}}}
 }

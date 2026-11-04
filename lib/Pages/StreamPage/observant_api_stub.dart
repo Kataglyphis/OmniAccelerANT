@@ -9,3 +9,12 @@ Future<String?> fetchVisits() async => null;
 Future<String?> fetchObservantSettings() async => null;
 
 Future<bool> saveObservantSettings(Map<String, Object> update) async => false;
+
+/// ObservANT's answer to a POST: its status and body.
+typedef ObservantReply = ({int status, String body});
+
+Future<ObservantReply?> postToObservant(
+  String path,
+  Map<String, Object> body, {
+  Future<void>? cancel,
+}) async => null;

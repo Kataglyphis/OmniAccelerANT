@@ -221,7 +221,7 @@ Dart package texts are in Flutter's `NOTICES`. Maintenance and limits:
 | kataglyphis_media | 3.0.0 | MIT | kataglyphis_observant, oxidant |
 | kataglyphis_observant | 3.0.0 | MIT | kataglyphis_observant |
 | kataglyphis_telemetry | 3.0.0 | MIT | oxidant |
-| kataglyphis_text | 3.0.0 | MIT | oxidant |
+| kataglyphis_text | 3.0.0 | MIT | kataglyphis_observant, oxidant |
 | kstring | 2.0.5 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
 | lazy_static | 1.5.1 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
 | lebe | 0.5.3 | BSD-3-Clause | kataglyphis_observant, oxidant |

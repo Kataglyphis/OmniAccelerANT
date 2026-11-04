@@ -35,6 +35,7 @@ on port 8080.
     - [Arrival picture, video and webhook](#arrival-picture-video-and-webhook)
     - [Home Assistant](#home-assistant)
     - [The Stream page](#the-stream-page)
+    - [Questions on the Stream page](#questions-on-the-stream-page)
     - [What it detects](#what-it-detects)
     - [Stats for developers](#stats-for-developers)
     - [The privacy filter](#the-privacy-filter)
@@ -1115,6 +1116,27 @@ list stays empty: real credentials go into the served copy, `assets/assets/setti
 under the web root (`build/web` before a deploy, `/opt/omni-observant/web` on a board, where a
 package upgrade replaces it), never into a repository. Every viewer's browser receives them, so
 give the relay a user of its own.
+
+#### Questions on the Stream page
+
+When `/healthz` says `"ask": true`, the Stream page under *Visits* offers **Ask about the visits**: a
+question field from ANThology's chat widgets and a **Summarise today** button. They call ObservANT's
+[`/ask` and `/summary`](https://github.com/Kataglyphis/OxidANT/blob/develop/docs/observant.md#questions-about-the-visits)
+on the page's own origin, with the browser's offset from UTC and the app's language.
+
+- **A camera without a model shows nothing.** So does an older camera, and every native build,
+  whose Stream page plays the local webcam and has no ObservANT to ask.
+- **The answer comes from the visit figures**, not the picture, and a language model can be wrong.
+  The panel says so, and *What the model was told* shows the figures behind the last answer.
+- **Failures read as the camera's words**: no model answering, a question already running, a model
+  that failed. The stop button closes the request, which cancels the answer on the camera.
+- **A camera needs a model named in its config.** An ObservANT package carries no GenAI library
+  and no weights, so name an endpoint (`llm_base_url`, `llm_model`) or a chain install through
+  `ONNX_GENAI_ROOT` and `llm_model_dir`.
+- A camera's overview of its peers offers no questions: `/ask` takes only its own page.
+
+Tests: `test/visit_questions_test.dart` (the conversation and the panel on a fake camera) and, in
+Chrome, `test/observant_api_web_test.dart` (the POST, its status and the cancel).
 
 #### What it detects
 

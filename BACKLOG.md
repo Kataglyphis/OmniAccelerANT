@@ -127,7 +127,6 @@ what the owner's goal still lacks.
 ## Language AI
 
 - [ ] **LAI-F4: microphone input in the app** (M, ★★). Hub language-AI milestone 3 (`docs/language-ai.md`).
-- [ ] **LAI-F5: questions on the Stream page** (M, ★★). Hub language-AI milestone 4.
 
 - **llguidance accepts the hub tiny model's tokenizer** (probe 2026-11-01, GenAI 0.17.0 in
   `:latest` 7d4d4129). `set_guidance("json_schema", ...)` loaded on both the tiny model and

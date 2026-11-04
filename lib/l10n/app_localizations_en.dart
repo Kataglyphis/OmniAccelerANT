@@ -454,4 +454,28 @@ class AppLocalizationsEn extends AppLocalizations {
   String aiError(String detail) {
     return 'The model failed: $detail';
   }
+
+  @override
+  String get visitQuestions => 'Ask about the visits';
+
+  @override
+  String get visitQuestionsSummarise => 'Summarise today';
+
+  @override
+  String get visitQuestionsHint =>
+      'Answers come from the visit figures. A language model can be wrong, and it does not see the picture.';
+
+  @override
+  String get visitQuestionsFacts => 'What the model was told';
+
+  @override
+  String get visitQuestionsNoVisits => 'No visits today.';
+
+  @override
+  String get visitQuestionsUnreachable => 'The camera did not answer.';
+
+  @override
+  String visitQuestionsFailed(String reason) {
+    return 'The camera could not answer: $reason';
+  }
 }

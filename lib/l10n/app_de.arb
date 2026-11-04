@@ -125,5 +125,12 @@
   "aiJsonSchema": "JSON-Schema der Antwort (leer: freier Text)",
   "aiStop": "Stoppzeichenfolgen, eine pro Zeile",
   "aiClear": "Neues Gespräch",
-  "aiError": "Das Modell ist fehlgeschlagen: {detail}"
+  "aiError": "Das Modell ist fehlgeschlagen: {detail}",
+  "visitQuestions": "Fragen zu den Besuchen",
+  "visitQuestionsSummarise": "Heute zusammenfassen",
+  "visitQuestionsHint": "Die Antworten stammen aus den Besuchszahlen. Ein Sprachmodell kann sich irren, und es sieht das Bild nicht.",
+  "visitQuestionsFacts": "Was das Modell erfahren hat",
+  "visitQuestionsNoVisits": "Heute keine Besuche.",
+  "visitQuestionsUnreachable": "Die Kamera hat nicht geantwortet.",
+  "visitQuestionsFailed": "Die Kamera konnte nicht antworten: {reason}"
 }

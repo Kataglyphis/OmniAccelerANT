@@ -28,7 +28,7 @@ Stream<TextEvent> textGenerate({
 /// Ends the running generation after its current token; its `done` event says `cancelled`.
 void textCancel() => RustLib.instance.api.crateApiTextTextCancel();
 
-/// One L2-normalised vector per text, from the endpoint the source names.
+/// One L2-normalised vector per text, from the model directory or the endpoint the source names.
 Future<List<Float32List>> textEmbed({
   required TextSource source,
   required List<String> texts,

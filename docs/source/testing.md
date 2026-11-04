@@ -42,7 +42,8 @@ From the README (2026-10-19). `test/` checks, among the rest:
 - the camera stream's state across remounts, page changes, lost signalling and failed sessions
   (`webrtc_stream_controller_test.dart`);
 - the cat status line, its visits, its arrival picture and video, and the earlier videos
-  (`detection_status_test.dart`), and the visit statistics per day and hour (`visit_stats_test.dart`);
+  (`detection_status_test.dart`), the visit statistics per day and hour (`visit_stats_test.dart`),
+  and the Stream page's questions on a fake camera (`visit_questions_test.dart`);
 - in Chrome, the requests the Camera page sends ObservANT (`observant_api_web_test.dart`), and the
   Stream page's video view against the gstwebrtc-api build the page ships (`webrtc_view_test.dart`,
   `webrtc_view_first_view_test.dart`; § *The WebRTC view in Chrome*);

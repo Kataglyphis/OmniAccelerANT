@@ -16,6 +16,7 @@ import 'package:omni_accelerant/Pages/StreamPage/rust_webcam_view.dart';
 import 'package:omni_accelerant/Pages/StreamPage/detection_status.dart';
 import 'package:omni_accelerant/Pages/StreamPage/camera_peers.dart';
 import 'package:omni_accelerant/Pages/StreamPage/dev_stats.dart';
+import 'package:omni_accelerant/Pages/StreamPage/visit_questions.dart';
 import 'package:omni_accelerant/Pages/StreamPage/visit_stats.dart';
 // Nothing on native; on web ObservANT that serves the page (its /healthz, here).
 import 'package:omni_accelerant/Pages/StreamPage/observant_api_stub.dart'
@@ -367,6 +368,10 @@ class StreamPageState extends State<StreamPage> {
                 saveSettings: saveObservantSettings,
               ),
               const VisitStatsPanel(fetch: fetchVisits),
+              const VisitQuestionsPanel(
+                fetchHealth: fetchHealthz,
+                post: postToObservant,
+              ),
               const DevStatsPanel(
                 fetch: fetchHealthz,
                 playback: webrtc_import.playbackStats,

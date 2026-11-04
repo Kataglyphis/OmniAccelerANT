@@ -1,6 +1,7 @@
 @TestOn('browser')
 library;
 
+import 'dart:async';
 import 'dart:convert';
 import 'dart:js_interop';
 import 'dart:js_interop_unsafe';
@@ -90,4 +91,36 @@ void main() {
       );
     },
   );
+
+  test('a question is a JSON POST whose answer keeps its status', () async {
+    final requests = _fakeFetch(
+      (url) => _respond('no language model', status: 503),
+    );
+    final reply = await postToObservant('/ask', <String, Object>{
+      'question': 'hi',
+    });
+    expect(reply?.status, 503);
+    expect(reply?.body, 'no language model');
+    expect(requests.single.url, '/ask');
+    expect(requests.single.init?.method, 'POST');
+    expect(requests.single.init?.body?.dartify(), '{"question":"hi"}');
+  });
+
+  test('a question with no reply is null, not an answer', () async {
+    _fakeFetch((_) => null);
+    expect(
+      await postToObservant('/ask', <String, Object>{'question': 'hi'}),
+      isNull,
+    );
+  });
+
+  test('a cancelled question aborts its request', () async {
+    final requests = _fakeFetch((_) => _respond('{}'));
+    final cancel = Completer<void>()..complete();
+    await postToObservant('/ask', <String, Object>{
+      'question': 'hi',
+    }, cancel: cancel.future);
+    await Future<void>.delayed(Duration.zero);
+    expect(requests.single.init?.signal?.aborted, isTrue);
+  });
 }

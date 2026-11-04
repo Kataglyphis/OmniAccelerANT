@@ -5,6 +5,13 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ## Unreleased
 
+### 2026-11-04 (LAI-F5)
+- **Questions on the Stream page.** A camera whose `/healthz` says `"ask": true` offers *Ask about the visits* and
+  *Summarise today* under its visit statistics, through OxidANT's `/ask` and `/summary`. The panel states that the answer
+  comes from the visit figures and may be wrong, shows those figures, and shows the camera's own words on a failure
+  ([Questions on the Stream page](docs/source/camera-streaming.md#questions-on-the-stream-page)). OxidANT's pin moves for
+  it, with the bridge regenerated; its `text_embed` also reaches a local model now.
+
 ### 2026-11-03 (allow debt)
 - **`web/sqlite3.wasm` is no longer tracked.** The native and web lanes fetch it through the hub's checksum-verified
   `setup-sqlite3-wasm.sh`, then run `check-web-artefacts.py`, which reads the lock against the pin; the web lane fails a
