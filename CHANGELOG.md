@@ -5,6 +5,12 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ## Unreleased
 
+### 2026-11-04 (AccelerANTgine pin)
+- **AccelerANTgine moves to 82597da, with its CUDA probe.** It also takes that repo's `gst-plugin-scanner` packaging, which
+  only a top-level AccelerANTgine installs: this app's bundles still have no scanner and keep the fork off, and no script
+  here calls its CLI, whose `--webrtc` now exits 1 on a failed stream. The third-party inventory and the bridge are unchanged.
+  A real NVIDIA package with these pins is still open ([`BACKLOG.md`](BACKLOG.md)).
+
 ### 2026-11-04 (LAI-F5)
 - **Questions on the Stream page.** A camera whose `/healthz` says `"ask": true` offers *Ask about the visits* and
   *Summarise today* under its visit statistics, through OxidANT's `/ask` and `/summary`. The panel states that the answer

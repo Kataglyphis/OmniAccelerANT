@@ -138,10 +138,13 @@ what the owner's goal still lacks.
 ## Open — packaging
 
 
-- [ ] **A clear failure or a CPU fallback when CUDA has no kernel for the card** (S, ★★). `--onnx-check` on an RTX 2080
-  with this package still stops on its first node with `cudaErrorNoKernelImageForDevice`. OxidANT and AccelerANTgine now
-  run one kernel first and name the card (third_party/ANTfrastructure/docs/linux-accelerator-images.md, A card without a CUDA kernel); only the
-  OxidANT and AccelerANTgine pins are left to move. Done when `--onnx-check` from a package with those pins names the card.
+- [ ] **`--onnx-check` from a real NVIDIA package with the pinned CUDA probe** (S, ★★). The OxidANT (02d1d88) and
+  AccelerANTgine (82597da) pins run one kernel first and name the card
+  (third_party/ANTfrastructure/docs/linux-accelerator-images.md, A card without a CUDA kernel). An older NVIDIA package with
+  those pins' `liboxidant.so`, `libAccelerANTgine.so`, plugin, `libapp.so` and Flutter assets swapped in names the RTX 2080
+  and exits 1 where the unmodified one stops on `cudaErrorNoKernelImageForDevice` (2026-11-04, in the CI image with the
+  host's CUDA libraries). `--onnx-check` does not reach AccelerANTgine's own probe. Done when a real NVIDIA package with
+  those pins, from an owner-dispatched `linux-gpu-candidates.yml` run, names the card the same way.
 
 - [ ] **The NVIDIA packages have not run on a GPU they support** (S, ★★★). The Linux and Windows packages are built and
   passed on the CPU, and hosted runners have no GPU. Done on an RTX 30xx or newer when
