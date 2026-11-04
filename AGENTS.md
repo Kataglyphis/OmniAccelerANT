@@ -624,7 +624,7 @@ for; `release.yml` is every push to `main`; `docs.yml` builds and publishes the 
 `code-quality-report.yml` runs `quality-report.sh`; `ort-license-mutations.yml` proves the license and
 ORT recipes; `python-refactor.yml` is an on-demand preview that publishes nothing;
 `renovate-entrypoint.yml` checks the Renovate wrapper and config; `submodule-pins.yml` runs the hub's pin
-suite when a gitlink moves; `linux-gpu-candidates.yml` and `windows-gpu-candidates.yml` are dispatch-only,
+suite when a gitlink moves; `retry-disk-refusal.yml` re-runs a job refused for runner disk; `linux-gpu-candidates.yml` and `windows-gpu-candidates.yml` are dispatch-only,
 unverified GPU candidates.
 
 **Both lanes run the same thing locally and in CI; reproduce locally first, CI is not a
