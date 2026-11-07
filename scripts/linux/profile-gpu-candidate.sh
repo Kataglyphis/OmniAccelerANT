@@ -32,6 +32,7 @@ python3 -I "$repo/scripts/windows/verify_detector_model.py" "$hub/linux/scripts/
 mkdir -- "$evidence"
 evidence=$(realpath -e "$evidence")
 launcher=$(realpath -e "$launcher")
+# A cold MIGraphX kernel compile of the detector took 370 s on a gfx1201, and the AppImage lane is cold on every run (hub failure-modes.md § An AppImage GPU profile times out).
 for mode in cpu gpu; do
   clean=(env -u LD_PRELOAD -u LD_AUDIT -u KATAGLYPHIS_DIRECTML_DEVICE_ID -u KATAGLYPHIS_ONNX_MODEL
     -u LD_DEBUG -u LD_DEBUG_OUTPUT
@@ -53,7 +54,7 @@ for mode in cpu gpu; do
       --root "${PROFILE_DISK_ROOT:?}" --stage "$disk_stage"
   fi
   (cd "$evidence" && gpu_without_migraphx_overrides "${clean[@]}" "${extra[@]}" \
-    GST_REGISTRY_1_0="$evidence/$mode-gst-registry.bin" LD_DEBUG=libs LD_DEBUG_OUTPUT="$evidence/$mode-loader" xvfb-run -a timeout 180 "$launcher" \
+    GST_REGISTRY_1_0="$evidence/$mode-gst-registry.bin" LD_DEBUG=libs LD_DEBUG_OUTPUT="$evidence/$mode-loader" xvfb-run -a timeout "${PROFILE_GPU_TIMEOUT:-900}" "$launcher" \
     --onnx-profile-image "$fixture" "$evidence/$mode-1.json" "$evidence/$mode-2.json" "$evidence/$mode-profile")
   shopt -s nullglob
   if [[ -n "$image_runtime_root" ]]; then

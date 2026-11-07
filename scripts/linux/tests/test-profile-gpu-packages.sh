@@ -21,6 +21,15 @@ cp "$hub/linux/scripts/lib/fetch-data-lock.py" "$hub/linux/scripts/lib/gpu-profi
   "$hub/linux/scripts/lib/log-bootstrap.sh" "$repo/third_party/ANTfrastructure/linux/scripts/lib/"
 cp "$oxidant/crates/inference/tests/fixtures/two_cats.jpg" "$repo/third_party/OxidANT/crates/inference/tests/fixtures/"
 fixture_xvfb_stub "$work/bin"
+# The stub records the launch timeout, so the cold-compile budget and its knob are asserted below.
+cat > "$work/bin/xvfb-run" <<'STUB'
+#!/usr/bin/env bash
+[[ "$1" == -a ]] && shift
+[[ "$1" == timeout ]] && printf '%s\n' "$2" >> "${TIMEOUTS_SEEN:?}"
+exec "$@"
+STUB
+chmod +x "$work/bin/xvfb-run"
+export TIMEOUTS_SEEN="$work/timeouts"
 REAL_PYTHON=$(command -v python3)
 export REAL_PYTHON
 cat > "$work/bin/python3" <<'EOF'
@@ -153,6 +162,11 @@ EOF
   }
   printf 'tar cpu\ntar gpu\ndeb cpu\ndeb gpu\nimage cpu\nimage gpu\n' > "$work/expected"
   cmp "$work/expected" "$SEEN"
+  [[ $(sort -u "$TIMEOUTS_SEEN") == 900 ]] || { echo 'Launch timeout is not the 900 s cold-compile budget' >&2; exit 1; }
+  : > "$TIMEOUTS_SEEN"
+  PROFILE_GPU_TIMEOUT=1234 PROFILE_EVIDENCE_DIR="$work/knob-evidence-$vendor-$arch" bash "$check" "$work/packages" "$vendor" "$arch" "$device" >/dev/null
+  [[ $(sort -u "$TIMEOUTS_SEEN") == 1234 ]] || { echo 'PROFILE_GPU_TIMEOUT does not reach the launch' >&2; exit 1; }
+  : > "$TIMEOUTS_SEEN"
   rm "$work/tar-root/$variant-bundle/lib/libonnxruntime.so"
   ln -s /etc/hosts "$work/tar-root/$variant-bundle/lib/libonnxruntime.so"
   tar -czf "$work/packages/$variant-linux-$arch.tar.gz" -C "$work/tar-root" "$variant-bundle"
