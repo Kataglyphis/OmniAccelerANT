@@ -275,6 +275,24 @@ void main() {
     },
   );
 
+  testWidgets(
+    'a tab hidden and shown again after its last view left still closes the session',
+    (WidgetTester tester) async {
+      final (WebRTCStreamController controller, _FakeClient client) =
+          _streaming();
+      controller.detach();
+      // Hiding replaces the keep-alive with the hidden grace; showing must not leave neither.
+      await tester.pump(const Duration(seconds: 5));
+      controller.pageHidden(true);
+      await tester.pump(const Duration(seconds: 5));
+      controller.pageHidden(false);
+      expect(client.sessions.single.closed, isFalse);
+      await tester.pump(const Duration(seconds: 31));
+      expect(client.sessions.single.closed, isTrue);
+      controller.dispose();
+    },
+  );
+
   testWidgets('a view attached while hidden does not keep the session open', (
     WidgetTester tester,
   ) async {

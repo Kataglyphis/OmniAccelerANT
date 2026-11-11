@@ -173,8 +173,9 @@ class _VisitStatsPanelState extends State<VisitStatsPanel> {
                         ),
                         _Bars(
                           counts: stats.perDay,
+                          // Calendar days, not 24 h steps: those land a day off around a clock change.
                           label: (i) =>
-                              '${today.subtract(Duration(days: stats.days - 1 - i)).day}.',
+                              '${DateTime(today.year, today.month, today.day - (stats.days - 1 - i)).day}.',
                           labelEvery: 2,
                         ),
                         Text(

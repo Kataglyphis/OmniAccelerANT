@@ -8,6 +8,27 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'package:omni_accelerant/src/rust/api/onnx.dart';
 import 'package:omni_accelerant/src/rust/api/webcam.dart';
 
+/// What the newest inference event said; empty while no session runs.
+@immutable
+class _Live {
+  final List<DetectionBox> detections;
+  final double fps;
+  final double inferenceMs;
+
+  /// The backend and execution provider the last session ran on.
+  final String? provider;
+
+  const _Live({
+    this.detections = const <DetectionBox>[],
+    this.fps = 0,
+    this.inferenceMs = 0,
+    this.provider,
+  });
+
+  /// No boxes and no rates, on the same provider.
+  _Live cleared() => _Live(provider: provider);
+}
+
 /// Rust-driven webcam inference view; frames reach the [Texture] natively, only detections cross the bridge.
 class RustWebcamView extends StatefulWidget {
   /// Capture/texture size.
@@ -16,6 +37,9 @@ class RustWebcamView extends StatefulWidget {
 
   /// Class ids the stream reports at start; the class picker replaces them.
   final List<int> classes;
+
+  /// A running session without an event for this long says so instead of showing its last numbers.
+  static const Duration stallAfter = Duration(seconds: 5);
 
   const RustWebcamView({
     super.key,
@@ -38,10 +62,11 @@ class _RustWebcamViewState extends State<RustWebcamView> {
   bool _running = false;
 
   StreamSubscription<DetectionEvent>? _subscription;
-  List<DetectionBox> _detections = const [];
-  double _fps = 0;
-  double _inferenceMs = 0;
-  String? _provider;
+  // A notifier, not setState: an event per inferred frame would rebuild the whole form.
+  final ValueNotifier<_Live> _live = ValueNotifier<_Live>(const _Live());
+  Timer? _stallTimer;
+  bool _stalled = false;
+  int _events = 0;
 
   late List<int> _classes = widget.classes;
   List<String> _labels = const [];
@@ -86,11 +111,12 @@ class _RustWebcamViewState extends State<RustWebcamView> {
       if (!mounted) return;
       setState(() {
         _cameras = cameras;
-        _error = null;
-        if (cameras.isNotEmpty) {
-          _selectedCameraIndex ??= cameras.first.index;
-          _useTestSource = false;
+        _error = cameras.isEmpty ? 'No camera found' : null;
+        // A camera unplugged since the last listing is no selection any more.
+        if (!cameras.any((c) => c.index == _selectedCameraIndex)) {
+          _selectedCameraIndex = cameras.isEmpty ? null : cameras.first.index;
         }
+        _useTestSource = cameras.isEmpty;
       });
     } catch (e) {
       if (!mounted) return;
@@ -121,44 +147,71 @@ class _RustWebcamViewState extends State<RustWebcamView> {
         textureId: PlatformInt64Util.from(textureId),
       ),
     );
+    _events = 0;
     _subscription = stream.listen(
       (event) {
         if (!mounted) return;
-        setState(() {
-          _detections = event.detections;
-          _fps = event.fps;
-          _inferenceMs = event.inferenceMs;
-          _provider = '${event.backend} on ${event.executionProvider}';
-          _error = null;
-        });
+        _events++;
+        _live.value = _Live(
+          detections: event.detections,
+          fps: event.fps,
+          inferenceMs: event.inferenceMs,
+          provider: '${event.backend} on ${event.executionProvider}',
+        );
+        _armStallTimer();
+        if (_stalled) setState(() => _stalled = false);
       },
       onError: (Object e) {
         if (!mounted) return;
-        setState(() {
-          _error = '$e';
-          _running = false;
-        });
+        _ended(error: '$e');
       },
       onDone: () {
         if (!mounted) return;
-        setState(() => _running = false);
+        // A start the core refused closes the stream without an event; its reason is in the log.
+        _ended(
+          error: _events == 0 && _error == null
+              ? 'The session ended before its first frame; check the model and the camera'
+              : _error,
+        );
       },
     );
+    _armStallTimer();
     setState(() {
       _running = true;
+      _stalled = false;
       _error = null;
-      _detections = const [];
+    });
+  }
+
+  void _armStallTimer() {
+    _stallTimer?.cancel();
+    _stallTimer = Timer(RustWebcamView.stallAfter, () {
+      if (!mounted || !_running) return;
+      _live.value = _live.value.cleared();
+      setState(() => _stalled = true);
+    });
+  }
+
+  /// The session is over: no boxes or rates of it stay on screen beside "Stopped".
+  void _ended({String? error}) {
+    _stallTimer?.cancel();
+    _live.value = _live.value.cleared();
+    setState(() {
+      _running = false;
+      _stalled = false;
+      _error = error;
     });
   }
 
   void _stop() {
     _release();
-    if (_running) setState(() => _running = false);
+    if (_running) _ended(error: _error);
   }
 
   /// Stops the core's session and drops its stream, without touching the UI.
   void _release() {
     stopWebcamInference();
+    _stallTimer?.cancel();
     _subscription?.cancel();
     _subscription = null;
   }
@@ -167,6 +220,7 @@ class _RustWebcamViewState extends State<RustWebcamView> {
   void dispose() {
     // No setState from here: the element is already defunct, so _stop's rebuild failed an assertion.
     _release();
+    _live.dispose();
     _modelPathController.dispose();
     super.dispose();
   }
@@ -204,12 +258,19 @@ class _RustWebcamViewState extends State<RustWebcamView> {
                 fit: StackFit.expand,
                 children: [
                   Texture(textureId: _textureId!),
-                  CustomPaint(
-                    painter: DetectionOverlayPainter(
-                      detections: _detections,
-                      labels: _labels,
-                      sourceWidth: widget.width.toDouble(),
-                      sourceHeight: widget.height.toDouble(),
+                  // Its own layer: new boxes repaint the overlay, not the page around it.
+                  RepaintBoundary(
+                    child: ValueListenableBuilder<_Live>(
+                      valueListenable: _live,
+                      builder: (BuildContext context, _Live live, _) =>
+                          CustomPaint(
+                            painter: DetectionOverlayPainter(
+                              detections: live.detections,
+                              labels: _labels,
+                              sourceWidth: widget.width.toDouble(),
+                              sourceHeight: widget.height.toDouble(),
+                            ),
+                          ),
                     ),
                   ),
                 ],
@@ -219,23 +280,30 @@ class _RustWebcamViewState extends State<RustWebcamView> {
   }
 
   Widget _buildStats() {
+    final TextStyle style = TextStyle(
+      fontWeight: FontWeight.bold,
+      color: _running && !_stalled ? Colors.green : Colors.orange,
+    );
+    if (_stalled) {
+      final int seconds = RustWebcamView.stallAfter.inSeconds;
+      return Text('Running • no frames for $seconds s', style: style);
+    }
     final String status = _running ? 'Running' : 'Stopped';
-    final String? provider = _provider;
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          '$status • ${_fps.toStringAsFixed(1)} fps • '
-          '${_inferenceMs.toStringAsFixed(1)} ms inference • '
-          '${_detections.length} detection(s)',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: _running ? Colors.green : Colors.orange,
+    return ValueListenableBuilder<_Live>(
+      valueListenable: _live,
+      builder: (BuildContext context, _Live live, _) => Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            '$status • ${live.fps.toStringAsFixed(1)} fps • '
+            '${live.inferenceMs.toStringAsFixed(1)} ms inference • '
+            '${live.detections.length} detection(s)',
+            style: style,
           ),
-        ),
-        if (provider != null)
-          Text(provider, key: const ValueKey<String>('inferenceProvider')),
-      ],
+          if (live.provider case final String provider)
+            Text(provider, key: const ValueKey<String>('inferenceProvider')),
+        ],
+      ),
     );
   }
 

@@ -224,7 +224,11 @@ crates/media (gstreamer-rs)     src/webcam_engine.rs            src/api/webcam.r
   C ABI (`knt_create_texture` implied via the `create` method, `knt_push_frame`,
   `knt_api_version`) that Rust resolves with `libloading`. The Flutter UI is a
   `Texture(textureId)` with a `CustomPaint` box overlay fed by the
-  `DetectionEvent` stream (`lib/Pages/StreamPage/rust_webcam_view.dart`).
+  `DetectionEvent` stream (`lib/Pages/StreamPage/rust_webcam_view.dart`). The view shows a
+  stream error as it comes, says when a session closed before its first frame (the core
+  refused the start: no model, camera busy; its reason is in the log until the OxidANT pin
+  carries the change that sends it through the stream), and reports "no frames" after 5 s
+  without an event.
 
 **Run it:** launch the app (`Start-Windows.ps1`), open the **Stream** tab, pick a camera
 (or *Test pattern*), optionally set a model path + score threshold, and press **Start**.

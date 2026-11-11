@@ -98,6 +98,8 @@ WebRTCStreamController _ensureSharedObjects(WebRTCView widget) {
     reconnectionTimeoutMs: widget.settings.reconnectionTimeoutMs,
     producerId: widget.producerIdToConsume,
   );
+  // A tab opened in the background raises no event until it is shown; without this it streams for nobody.
+  controller.pageHidden(web.document.hidden);
   web.document.addEventListener(
     'visibilitychange',
     ((web.Event _) => controller.pageHidden(web.document.hidden)).toJS,

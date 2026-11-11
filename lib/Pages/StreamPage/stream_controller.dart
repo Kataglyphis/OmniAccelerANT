@@ -162,7 +162,11 @@ class WebRTCStreamController extends ChangeNotifier {
     if (hidden == _hidden) return;
     _hidden = hidden;
     _closeTimer?.cancel();
-    _closeTimer = hidden ? Timer(hiddenGrace, _closeIdleSession) : null;
+    // Shown again without a view, the keep-alive that hiding replaced runs anew, or the session never closes.
+    final Duration? idle = hidden
+        ? hiddenGrace
+        : (_views == 0 ? keepAlive : null);
+    _closeTimer = idle == null ? null : Timer(idle, _closeIdleSession);
     if (hidden) return;
     // A sleeping laptop or a changed Wi-Fi leaves a socket that looks open and carries nothing.
     if (_closedWhileHidden) {

@@ -5,6 +5,20 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ## Unreleased
 
+### 2026-11-11 (webcam view, web stream lifetime)
+- The Rust webcam view says when a session ends before its first frame (a missing model, a busy
+  camera): the status only flipped to "Stopped". A running session without an event for 5 s
+  shows "no frames" instead of its last rates, a stopped one keeps no boxes or rates on screen,
+  and a camera-listing error is no longer wiped by the next detection.
+- Refreshing the camera list drops a selection that is gone, falls back to the test pattern when
+  no camera is left and says so; the dropdown no longer holds a value its list lacks.
+- Detection events update the overlay and the status line through a notifier in their own
+  repaint layer, instead of rebuilding the whole form for every inferred frame.
+- Web stream: a tab opened in the background no longer starts a session nobody watches, and a
+  tab hidden and shown again after its last view left still closes its session after the
+  keep-alive.
+- The visit chart labels its bars by calendar day, so they stay right around a clock change.
+
 ### 2026-11-04 (AccelerANTgine pin)
 - **AccelerANTgine moves to 82597da, with its CUDA probe.** It also takes that repo's `gst-plugin-scanner` packaging, which
   only a top-level AccelerANTgine installs: this app's bundles still have no scanner and keep the fork off, and no script

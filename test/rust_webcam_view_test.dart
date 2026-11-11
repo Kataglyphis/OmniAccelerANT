@@ -264,6 +264,142 @@ void main() {
     expect(find.textContaining('Stopped'), findsOneWidget);
   });
 
+  testWidgets('a session the core closes before its first frame says so', (
+    WidgetTester tester,
+  ) async {
+    await _pump(tester);
+    await tester.tap(find.text('Start'));
+    await tester.pump();
+    expect(find.textContaining('Running'), findsOneWidget);
+
+    // What a refused start looks like from Dart: the stream just ends.
+    await rust.session!.close();
+    await tester.pump();
+    expect(find.textContaining('ended before its first frame'), findsOneWidget);
+    expect(find.textContaining('Stopped'), findsOneWidget);
+  });
+
+  testWidgets('a session that ends after frames keeps the error it was given', (
+    WidgetTester tester,
+  ) async {
+    await _pump(tester);
+    await tester.tap(find.text('Start'));
+    await tester.pump();
+    rust.session!.add(_event(boxes: 1, fps: 10, ms: 90));
+    await tester.pump();
+
+    rust.session!.addError('camera unplugged');
+    await rust.session!.close();
+    await tester.pump();
+    expect(find.text('camera unplugged'), findsOneWidget);
+    expect(find.textContaining('first frame'), findsNothing);
+  });
+
+  testWidgets('a stopped session leaves no boxes or rates behind', (
+    WidgetTester tester,
+  ) async {
+    await _pump(tester);
+    await tester.tap(find.text('Start'));
+    await tester.pump();
+    rust.session!.add(_event(boxes: 2, fps: 29.5, ms: 12.3));
+    await tester.pump();
+    DetectionOverlayPainter overlay() =>
+        tester
+                .widget<CustomPaint>(
+                  find.byWidgetPredicate(
+                    (Widget w) =>
+                        w is CustomPaint &&
+                        w.painter is DetectionOverlayPainter,
+                  ),
+                )
+                .painter!
+            as DetectionOverlayPainter;
+    expect(overlay().detections, hasLength(2));
+
+    await tester.tap(find.text('Stop'));
+    await tester.pump();
+    expect(
+      find.text('Stopped • 0.0 fps • 0.0 ms inference • 0 detection(s)'),
+      findsOneWidget,
+    );
+    expect(overlay().detections, isEmpty);
+  });
+
+  testWidgets('an enumeration error outlives the next detection event', (
+    WidgetTester tester,
+  ) async {
+    await _pump(tester);
+    await tester.tap(find.text('Start'));
+    await tester.pump();
+
+    rust.listError = 'no V4L2 devices';
+    await tester.tap(find.byTooltip('Refresh cameras'));
+    await tester.pump();
+    rust.session!.add(_event(boxes: 1, fps: 30, ms: 10));
+    await tester.pump();
+    expect(
+      find.text('Camera enumeration failed: no V4L2 devices'),
+      findsOneWidget,
+    );
+    expect(find.textContaining('Running • 30.0 fps'), findsOneWidget);
+  });
+
+  testWidgets('a running session without events says so, until one comes', (
+    WidgetTester tester,
+  ) async {
+    await _pump(tester);
+    await tester.tap(find.text('Start'));
+    await tester.pump();
+    rust.session!.add(_event(boxes: 1, fps: 30, ms: 10));
+    await tester.pump(RustWebcamView.stallAfter - const Duration(seconds: 1));
+    expect(find.textContaining('Running • 30.0 fps'), findsOneWidget);
+
+    await tester.pump(const Duration(seconds: 2));
+    expect(find.text('Running • no frames for 5 s'), findsOneWidget);
+
+    rust.session!.add(_event(boxes: 0, fps: 4, ms: 10));
+    await tester.pump();
+    await tester.pump();
+    expect(find.textContaining('Running • 4.0 fps'), findsOneWidget);
+  });
+
+  testWidgets(
+    'a refresh drops a camera that is gone and says when none is left',
+    (WidgetTester tester) async {
+      rust.cameras = const <CameraDesc>[
+        CameraDesc(index: 0, name: 'Built-in'),
+        CameraDesc(index: 1, name: 'C270'),
+      ];
+      await _pump(tester);
+      await tester.tap(find.text('Webcam'));
+      await tester.pump();
+      await tester.tap(find.text('0: Built-in'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('1: C270').last);
+      await tester.pumpAndSettle();
+
+      // The selected camera is unplugged: the list no longer has index 1.
+      rust.cameras = const <CameraDesc>[CameraDesc(index: 0, name: 'Built-in')];
+      await tester.tap(find.byTooltip('Refresh cameras'));
+      await tester.pump();
+      expect(tester.takeException(), isNull);
+      await tester.tap(find.text('Start'));
+      await tester.pump();
+      expect(rust.started.single.deviceIndex, 0);
+      await tester.tap(find.text('Stop'));
+      await tester.pump();
+
+      rust.cameras = const <CameraDesc>[];
+      await tester.tap(find.byTooltip('Refresh cameras'));
+      await tester.pump();
+      expect(find.text('No camera found'), findsOneWidget);
+      await tester.tap(find.text('Start'));
+      await tester.pump();
+      expect(rust.started.last.useTestSource, isTrue);
+      expect(rust.started.last.deviceIndex, isNull);
+    },
+  );
+
   testWidgets('without a texture Start says so and starts nothing', (
     WidgetTester tester,
   ) async {
