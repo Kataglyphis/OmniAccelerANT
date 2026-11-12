@@ -5,6 +5,13 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ## Unreleased
 
+### 2026-11-12 (the Windows installer test says why its viewer got no picture)
+- Since the Windows image carries the VP8 plugin, the packaged camera service offers VP8 beside H.264 and the test's
+  `webrtcsrc` viewer connects without decoding 60 frames in 90 s. The test only printed the viewer's last lines. It now
+  runs the viewer with `-v` and GStreamer's warnings, and on a failure prints the negotiated caps and the service's own
+  log. Its end-of-run log dump never printed anything (`Get-ChildItem -Filter -Exclude` on a bare directory matches
+  nothing); it filters by name now. VP8 stays in the package: this finds the cause first.
+
 ### 2026-11-12 (hub pin, Android NDK 30)
 - **The hub moves to d66d390 and the APK builds with NDK 30.0.16248370.** The CI image is built from the hub's
   `develop` and ships that NDK since the hub's November round; the app still named 29.0.14206865, which the image no

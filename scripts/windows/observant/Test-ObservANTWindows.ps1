@@ -176,9 +176,12 @@ Assert-Test -Name 'idle, it loads modules only from the install and Windows' { $
 # The image's GStreamer plays the viewer; only ObservANT side runs from the install.
 function Test-Viewer {
     param($Process)
-    $viewer = Start-Process gst-launch-1.0 -ArgumentList '-e', 'webrtcsrc', 'signaller::uri=ws://127.0.0.1:8443', 'connect-to-first-producer=true', '!', 'video/x-raw', '!', 'queue', '!', 'identity', 'eos-after=60', '!', 'fakesink' `
+    # -v and the warnings: a viewer that connects and never plays says in its log which codec it was offered and what refused it.
+    $env:GST_DEBUG = '2'
+    $viewer = Start-Process gst-launch-1.0 -ArgumentList '-e', '-v', 'webrtcsrc', 'signaller::uri=ws://127.0.0.1:8443', 'connect-to-first-producer=true', '!', 'video/x-raw', '!', 'queue', '!', 'identity', 'eos-after=60', '!', 'fakesink' `
         -PassThru -NoNewWindow -RedirectStandardOutput (Join-Path $work 'viewer-out.log') -RedirectStandardError (Join-Path $work 'viewer-err.log')
     $null = $viewer.Handle
+    Remove-Item Env:GST_DEBUG
     Start-Sleep -Seconds 4
     $foreignLive = @(Get-ForeignModule -Process $Process)
     if ($foreignLive) { Write-Host "      outside: $($foreignLive -join ', ')" }
@@ -198,6 +201,10 @@ function Test-Viewer {
         foreach ($log in 'viewer-out.log', 'viewer-err.log') {
             Get-Content -LiteralPath (Join-Path $work $log) -Tail 15 -ErrorAction SilentlyContinue | ForEach-Object { Write-Host "      ${log}: $_" }
         }
+        # The codec is the first suspect since the image carries vpx beside openh264: the negotiated caps name it.
+        Select-String -Path (Join-Path $work 'viewer-out.log') -Pattern 'caps = (application/x-rtp|video/x-(vp8|vp9|h264))' -ErrorAction SilentlyContinue |
+            Select-Object -Last 8 | ForEach-Object { Write-Host "      viewer caps: $($_.Line.Trim())" }
+        Get-Content -LiteralPath (Join-Path $work 'service.log') -Tail 40 -ErrorAction SilentlyContinue | ForEach-Object { Write-Host "      service.log: $_" }
     }
 }
 # A host without GStreamer of its own (windows-11-arm) cannot play one; the :winamd64 run does.
@@ -228,6 +235,7 @@ if ($firewallOn) { Assert-Test -Name 'the firewall rule went with it' { @(Get-Ex
 $failed = (Get-SmokeTestSummary).Failed
 Write-Host "$failed failure(s)"
 if ($failed -gt 0) {
-    foreach ($log in @(Get-ChildItem $work -Filter '*.log' -Exclude 'install.log')) { Write-Host "--- $($log.Name)"; Get-Content $log.FullName -Tail 8 | ForEach-Object { Write-Host $_ } }
+    # -Exclude on a bare directory matches nothing at all, so this loop printed no log on any failure.
+    foreach ($log in @(Get-ChildItem $work -Filter '*.log' | Where-Object Name -ne 'install.log')) { Write-Host "--- $($log.Name)"; Get-Content $log.FullName -Tail 8 | ForEach-Object { Write-Host $_ } }
 }
 exit $failed
