@@ -499,7 +499,7 @@ Dart package texts are in Flutter's `NOTICES`. Maintenance and limits:
 | scroll_to_index | 3.0.1 | https://pub.dev |
 | sky_engine | 0.0.0 | sdk |
 | source_span | 1.10.2 | https://pub.dev |
-| sqlite3 | 3.7.1 | https://pub.dev |
+| sqlite3 | 3.8.0 | https://pub.dev |
 | stack_trace | 1.12.2 | https://pub.dev |
 | stream_channel | 2.1.4 | https://pub.dev |
 | string_scanner | 1.4.1 | https://pub.dev |

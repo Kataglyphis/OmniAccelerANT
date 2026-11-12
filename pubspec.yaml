@@ -34,7 +34,7 @@ dependencies:
   url_launcher: ^6.3.2
 
   # Floor = the hub's SQLITE3_WASM_VERSION: the fetched web/sqlite3.wasm is that release's build, so the Dart side may not resolve older.
-  sqlite3: ^3.7.0
+  sqlite3: ^3.8.0
   web: ^1.1.1
 dev_dependencies:
   anthology_test_support:

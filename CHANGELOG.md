@@ -11,6 +11,10 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
   longer has, so Gradle tried to install it into the read-only SDK and the Android lane failed at configure for every
   commit. `android/build.gradle.kts` names the image's NDK again. The hub pin was 152 commits behind; no shared file
   this repo takes from it changed (`sync-shared-config.sh --check` agrees) and the consumer-pin gate passes.
+- **The Dart `sqlite3` package moves to 3.8.0 with it.** The hub's pin fetches the 3.8.0 build of `web/sqlite3.wasm`,
+  and the web-artefacts gate holds the lock to the same release; the lock still said 3.7.1, so the Linux lane failed
+  right after the pin moved. `pubspec.yaml`'s floor is `^3.8.0`, only that one lock entry changed, and the
+  third-party inventory is regenerated for it.
 
 ### 2026-11-12 (OxidANT and AccelerANTgine pins)
 - **OxidANT moves to 276d9e0.** The webcam preview keeps the camera's rate while the model is busy, a session that
