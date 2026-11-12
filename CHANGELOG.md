@@ -5,6 +5,12 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ## Unreleased
 
+### 2026-11-12 (OxidANT pin: H.264 first on Windows)
+- **OxidANT moves to 0c85e0b.** On Windows the packaged camera service lists H.264 before VP8 in its offer (owner,
+  2026-11-12): the installer test's new diagnostics showed viewers taking VP8 and `vp8dec` never producing a frame.
+  The pin also brings a non-blocking webcam stop, `text_cancel()` during a model load, the Ollama-style stream error and
+  OxidANT's own hub pin. The bridge and the lock file are unchanged.
+
 ### 2026-11-12 (the local gates see stale mutation recipes)
 - `scripts/linux/run-lint-gates.sh` checks the mutation recipes before the gates: a refactor that moves a line a recipe
   names made it stale, and only CI's mutation gate said so after the push (6 of this repo's last 41 runs of that gate
