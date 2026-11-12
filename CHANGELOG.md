@@ -5,6 +5,13 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ## Unreleased
 
+### 2026-11-12 (hub pin, Android NDK 30)
+- **The hub moves to d66d390 and the APK builds with NDK 30.0.16248370.** The CI image is built from the hub's
+  `develop` and ships that NDK since the hub's November round; the app still named 29.0.14206865, which the image no
+  longer has, so Gradle tried to install it into the read-only SDK and the Android lane failed at configure for every
+  commit. `android/build.gradle.kts` names the image's NDK again. The hub pin was 152 commits behind; no shared file
+  this repo takes from it changed (`sync-shared-config.sh --check` agrees) and the consumer-pin gate passes.
+
 ### 2026-11-12 (OxidANT and AccelerANTgine pins)
 - **OxidANT moves to 276d9e0.** The webcam preview keeps the camera's rate while the model is busy, a session that
   cannot start or that ends says why through its stream, and Stop returns at once instead of holding the UI thread

@@ -313,7 +313,7 @@ rather than linked.
   since run 36154744222). If the configure error comes back, the image lost its `ENV`: fix
   the image, do not bring the probe back.
 - **Every Android SDK component is pinned to what the image ships**, in one place: the `extra`
-  block of `android/build.gradle.kts` (compileSdk 37, build-tools 37.0.0, NDK 29.0.14206865, CMake
+  block of `android/build.gradle.kts` (compileSdk 37, build-tools 37.0.0, NDK 30.0.16248370, CMake
   4.1.2, and the APK's one ABI). `/opt/android-sdk` is read-only, so anything else stops Gradle
   with `The SDK directory is not writable`. Detail, and why the override sits above
   `evaluationDependsOn(":app")`: [`docs/source/platforms.md`](docs/source/platforms.md) § *Android SDK components pinned to the image*.
