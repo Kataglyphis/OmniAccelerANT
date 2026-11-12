@@ -5,6 +5,12 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ## Unreleased
 
+### 2026-11-12 (the local gates see stale mutation recipes)
+- `scripts/linux/run-lint-gates.sh` checks the mutation recipes before the gates: a refactor that moves a line a recipe
+  names made it stale, and only CI's mutation gate said so after the push (6 of this repo's last 41 runs of that gate
+  failed). The hub's `verify_mutations.py --stale-check` takes a tenth of a second. `core.<pid>` and `vgcore.*` files
+  are ignored.
+
 ### 2026-11-12 (the Windows installer test says why its viewer got no picture)
 - Since the Windows image carries the VP8 plugin, the packaged camera service offers VP8 beside H.264 and the test's
   `webrtcsrc` viewer connects without decoding 60 frames in 90 s. The test only printed the viewer's last lines. It now

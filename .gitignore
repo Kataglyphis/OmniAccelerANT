@@ -133,3 +133,7 @@ docs/build/*
 
 # Fetched and checked: bash third_party/ANTfrastructure/linux/scripts/05-frameworks/flutter/setup-sqlite3-wasm.sh .
 web/sqlite3.wasm
+
+# A test that aborts a child on purpose leaves these where it ran; one was committed by accident.
+core.[0-9]*
+vgcore.*
