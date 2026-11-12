@@ -122,17 +122,70 @@ what the owner's goal still lacks.
   of a core, so the time is not worth the cats. `fps = 15` in a board's `observant.toml`
   still halves the capture cost at once, at a less smooth stream. Blocked on the owner: 15 fps
   or not.
+- [b] **A board installs a new release at night with no health check and no way back** (M, ★★★)
+  (not double-checked). `scripts/linux/observant/package/omni-observant-update` ends at `dpkg -i` or
+  `observant --install --user` (81-87) and deletes its download on exit (70). Nothing asks `/healthz`
+  afterwards, and `omni-observant.service` starts a broken build again every 5 s (`Restart=always`). Every
+  push to `main` is a release, and no lane runs on a real Pi. First step: keep the running package before the
+  install, then ask `/healthz` for about a minute (camera named, model loaded, frames counted); a miss exits
+  non-zero. Stays fixed by two cases in `scripts/linux/observant/test-observant-update.sh`, which `web.yml`
+  already runs: a fake package that never answers `/healthz`, and a healthy one that stays. Blocked on the
+  owner: after a miss, put the kept package back and skip that version, which would be the updater's first
+  downgrade (camera-streaming.md § *Updates from the releases*), or only report it. Audit 2026-11-12.
+- [b] **A board's speed is watched only by hand** (S, ★★). `scripts/linux/observant/bench/model.sh` and
+  `viewer.sh` measure a board when someone runs them, against the baseline of 2026-10-14
+  (camera-streaming.md, *Measuring performance*); the one `--perf-host` baseline is a desktop's
+  (`perf/baseline-amd-ryzen-9-5950x-16-core-processor.json`). The boards report `stats.model_ms`,
+  `capture_fps` and `cpu_percent` in `/healthz`, and nothing keeps them over time. First step: the 21:00
+  summary (camera-streaming.md, *At 21:00 a summary*) carries the day's median `model_ms` beside the
+  visits. That shows a slow release after the boards took it; it is no gate. No budget is set, as none
+  was measured. Blocked on the owner: the summary runs in the owner's Home Assistant. The size is this
+  step's; the audit's wider finding is L and lives in the other repos. Audit 2026-11-12.
 
 ## Language AI
 
 - [ ] **LAI-F4: microphone input in the app** (M, ★★). Hub language-AI milestone 3 (`docs/language-ai.md`).
 
+- [ ] **The web playground's endpoint client has no test, no time limit and raw Dart errors** (S, ★★). On web
+  `lib/Pages/AiPlaygroundPage/text_client.dart:30-42` sends every request through `web_endpoint.dart`, which no test
+  imports (`test/ai_playground_test.dart` is `@TestOn('vm')` and calls the stub). Its fetch carries only the user's
+  abort signal (27-37), so a server that never answers leaves the page busy. `response.text()` is outside the `try`
+  (45), so a Stop during the body shows as an error. Empty `choices` and a null `content` (50, 54) end as a Dart type
+  error under "The model failed", and so does a 200 reply that carries an `error` object (not double-checked). First
+  step: `test/web_endpoint_test.dart`, `@TestOn('browser')`, on the fake fetch of
+  `test/observant_api_web_test.dart:17-33` moved to `test/support`. Then a timeout as `observant_api_web.dart` has,
+  the body read inside the `try`, and one clear message for each of the three replies. The web lane runs `test/` in
+  Chrome, so that test keeps it. Done when it fails with any of these faults put back. Left to the owner: native sends
+  `top_p` 1.0 and `top_k` 50 with every sampled request (`playground_settings.dart:130-138`), web sends neither
+  (`endpoint_request.dart:7-28`); both paths or neither. Audit 2026-11-12.
+
+- [b] **A failed answer is a translated frame around an English engine sentence** (M, ★★). `_onError`
+  (`lib/Pages/AiPlaygroundPage/ai_playground_controller.dart:127-133`) shows `'$failure'` inside `aiError` ("Das
+  Modell ist fehlgeschlagen: {detail}", `lib/l10n/app_de.arb:128`), because OxidANT's `text_generate` returns
+  `Result<(), String>` (`third_party/OxidANT/src/api/text.rs:72-79`). The app cannot tell a missing model directory
+  from a dead endpoint or a conversation that is too long, so it can neither translate nor say what to do. Blocked on
+  OxidANT putting a fixed kind word at the front of that string, which moves no generated binding. Then each kind gets
+  a sentence in both ARB files with the detail behind it, and a test that every kind has a string in both files keeps
+  it. Audit 2026-11-12.
+
+- [b] **On web an answer shows only when it is whole** (L, ★★). The playground fetches one whole answer by LAI-F2's
+  choice (`docs/source/ai-playground.md:17-20`), and the Stream page's questions wait up to 310 s behind one empty
+  bubble (`lib/Pages/StreamPage/observant_api_web.dart:43-54`, `visit_questions.dart:90-96`), because ObservANT's
+  `/ask` is not streamed either. Blocked on the owner, one decision each: stream the playground's answer (M; it
+  changes that written choice), and stream `/ask` (L; its server side is OxidANT's and comes first). Either one
+  needs a pure-Dart stream reader, tested on the VM and fed by the fetch body as it arrives, with the whole answer
+  as the fallback where the body cannot be read. Audit 2026-11-12.
+
 - **llguidance accepts the hub tiny model's tokenizer** (probe 2026-11-01, GenAI 0.17.0 in
   `:latest` 7d4d4129). `set_guidance("json_schema", ...)` loaded on both the tiny model and
   SmolLM2-135M; a schema with `maxLength`, no extra properties and fixed whitespace makes the tiny
   model decode `{"a":"#$%"}` and stop at its end token, so schema tests need no SmolLM2 fallback.
-  An unbounded schema lets the tiny model emit whitespace until the budget ends. Windows' GenAI is
-  built without guidance (hub LAI-H2), so a schema there answers the unsupported error.
+  An unbounded schema lets the tiny model emit whitespace until the budget ends. At that probe
+  Windows' GenAI was built without guidance (hub LAI-H2), so a schema there answered the
+  unsupported error. The hub pin d66d390 builds it with llguidance (the hub's
+  `windows/scripts/build/Build-OnnxGenaiFromSource.ps1:66`), and OxidANT 254b7ea and AccelerANTgine
+  2fb3ab7, both newer than the pins here, expect a schema answer there. No test here runs a
+  schema on Windows (`integration_test/text_generate_test.dart` is Linux-only).
 
 ## Open — packaging
 
@@ -155,6 +208,165 @@ what the owner's goal still lacks.
   have no GPU. Under WSL on the RX 9070 XT even a plain HIP copy does not return (hub CON202), so this takes native
   Linux: the owner runs it under Ubuntu on that machine. Done when `compare_detector_parity.py` passes against the
   CPU and the profile shows MIGraphX; the hub's `docs/gpu-artifact-receipts.md` has the commands.
+
+## Open — code audit of 2026-11-12
+
+What the code audit of 2026-11-12 found in the Stream page, the native plugin and this repo's gates; its ObservANT and
+Language AI rows are in their sections above. A second engineer checked each row against the tree, except where it
+says *(not double-checked)*. All of it is read from the code: nothing was built or run, and a number marked *not
+measured* is computed. Rows are in order of impact, then size, the blocked ones last. A path that starts with
+`android/`, `linux/` or `windows/` is the plugin's, under `packages/kataglyphis_native_inference/`; a bare Dart file
+name is under `lib/Pages/StreamPage/`.
+
+- [ ] **The Android plugin path runs in no test, and its Dart tests use a fake that matches no plugin** (M, ★★★).
+  13 of the 20 tests in `test/stream_page_native_test.dart` run as macOS, which the plugin does not have, and their
+  fake fails with `pipeline_error` and `no element "x"` (51-58). The real plugin answers `command_failed`
+  (`KataglyphisNativeInferencePlugin.kt:153-163`) with texts like `Missing GStreamer element: ahcsrc`
+  (`gstreamer_native.cpp:406`), so the fallback in `stream_page.dart:216-223` depends on a code that no test names.
+  Play, pause and stop are the same Dart code on every platform, so those tests still hold for Android; the fallback
+  and the texts are unproven. `scripts/linux/check-apk-on-emulator.sh:55-59` starts the app without the camera
+  permission and sleeps 20 s: create, JNI and `gst_init` never run, and an APK whose library cannot load passes.
+  The android lane was the first compile of f62bcf9's Kotlin, after the push. `docs/source/testing.md` already names
+  the thin Android plugin tests as a gap; the fake, the unnamed code and the emulator's missing permission are new.
+  First step: install with `adb install -r -g`, require `GStreamer initialized` in logcat and fail on
+  `Create failed`, `UnsatisfiedLinkError` or `bus error`, with planted-failure cases in
+  `scripts/linux/tests/test-check-apk-on-emulator.sh`; and one Android-variant Dart test whose fake answers
+  `command_failed` with two real messages and expects the next source. PLAYING is a later check: two failing
+  sources can wait 15 s each (`gstreamer_native.cpp:500-502`). A dispatch-only workflow that only compiles the
+  Kotlin and runs its JVM test is worth a try after that; its Gradle command is untested and its time is not
+  measured. Done when the emulator check fails on each planted fault and the Dart test fails without the
+  `command_failed` branch.
+
+- [ ] **The desktop plugins fail hard on a call they do not expect** (S, ★★). On Windows an unknown method is a null
+  dereference, not a `MissingPluginException`: `windows/kataglyphis_native_inference_plugin.cpp:203-205` moves
+  `result` into `TextureMethodCall`, which takes it by value (50-52), and then calls `result->NotImplemented()`
+  (not double-checked). Nothing reaches it today, since the Dart side calls only `create` and `add` on Windows; a
+  `hasPushedFrame` there would. Three smaller faults, unlikely in practice: the same file reads `add` with
+  `std::get<int>` (153-154), which throws on another type, and casts a negative size to `uint32_t` (177-178); Linux
+  keeps `self->texture` after a failed registration (`linux/kataglyphis_native_inference_plugin.cc:95-102`), so the
+  next `create` answers that texture's id (70-73). First step: Windows answers `NotImplemented` in one place, before
+  any new Windows method. Stays fixed by a gtest in which `HandleMethodCall("noSuchMethod")` reaches the
+  not-implemented callback, in `windows-x64.yml`'s runner job and the ASan Debug build.
+
+- [ ] **A failed start on Android ends in a wrong text and no way to try again** (S, ★★). `_buildAndroidFallback`
+  (`stream_page.dart:644-668`) promises "Falling back to WebRTC preview on Android" and builds `WebRTCView`, which on
+  a native build is the stub's "only available in the web build" (`webrtc_view_stub.dart:21-34`);
+  `test/stream_page_native_test.dart:422-436` pins the promise. A denied permission also shows "Error creating texture
+  (null id)" (484-489) beside the right permission text; the texture future is `late final` (79), so nothing tries
+  again; and a permanent denial opens the system settings on every start (159-161). First step: no WebRTC promise; one
+  message per cause (permission, texture, source); the set-up as a method that a Retry button and a resume call again;
+  the system settings behind a button. The three Android tests change in the same commit. Stays fixed by one widget
+  test per cause: its text shows, no second text contradicts it, and Retry starts again.
+
+- [ ] **Web and native twin files are kept in step by a comment** (S, ★★) (not double-checked).
+  `observant_api_stub.dart:1` and `webrtc_view_stub.dart:10` ask the reader to keep their signatures in step with the
+  web files. The pages pick a side by a conditional import of free functions with no shared type
+  (`stream_page.dart:12-14, 22-23`, `lib/Pages/CameraSettingsPage/camera_settings_page.dart:6-7`), so only a
+  `[ci web]` run notices a drift. First step: one `abstract interface class ObservantApi` in a file both sides import;
+  each twin exports a class that implements it and a `createObservantApi()`, and the widgets keep taking plain
+  functions. The view gets a `typedef WebRTCViewBuilder` and a typed const in both files. `dart analyze` then fails
+  a drifted signature on the every-push Linux lane.
+
+- [ ] **A clone without the hook is not noticed, and nothing runs before a push** (S, ★★).
+  `git config --get core.hooksPath` was empty in the Pi's clone on 2026-11-12, so `scripts/git-hooks/pre-commit` does
+  not run there; AGENTS.md (section 5) asks for the setting once per clone, and nothing checks it. First step:
+  `scripts/linux/run-lint-gates.sh` prints one warning line when the setting is missing and `CI` is unset. Then a
+  `pre-push` beside the `pre-commit` that runs the whole wrapper (about a minute on the Pi, not measured). The audit
+  asks the hub's hook template for the same `pre-push`; if it lands there first, this one calls it. `lint-gates.yml`
+  stays the backstop. Done when a clone without the setting says so on its first local run. The size is for these
+  two steps; the audit's whole hook finding is M, and its stale-recipe check is in the wrapper since 88c1b81.
+
+- [ ] **The plugin's MethodChannel API has no owner** (M, ★★).
+  `packages/kataglyphis_native_inference/lib/kataglyphis_native_inference.dart:5-19` types only `getPlatformVersion`
+  and `add`; the other eight methods are called by name from app code, and the channel name is typed in 7 Dart and 3
+  native files. The three plugins have drifted. Android has no `add`, so the About page's `add(3, 4)` should show
+  `MissingPluginException` there (`lib/Pages/AboutMePage/about_me_page.dart:58, 67-83`; read, not run). Only Linux has
+  `hasPushedFrame`. Windows wants `setPipeline` as a map where Dart sends a string, and its play, pause and stop are
+  no-ops that nothing calls (`windows/kataglyphis_texture.cpp:78-88`; `windows/kataglyphis_texture.h:19` says they
+  are kept for the method channel). The package's own `lib/main.dart` is still Flutter's counter template, and its
+  `test/widget_test.dart` tests that. Most of the drift is in code nobody calls: a user sees only the About page's
+  line on Android, and the gain is that the drift stops. First step: delete the Windows no-op handlers and the
+  template with its test. Then the typed API and one table (method, arguments, result, error codes, per platform)
+  as a Dart const in the package; `add` stays on desktop (AGENTS.md § 4). Stays fixed by a source test in the style
+  of `test/pinned_artefacts_test.dart` that reads the method names out of the `.kt`, `.cc` and `.cpp` files and
+  compares them with the table, on every push. Done when no `MethodChannel(` is left under the app's `lib/`.
+
+- [ ] **On Android a camera that dies still shows "Playing"** (M, ★★). Read from the code, on no device. After the
+  start nothing reads the GStreamer bus: `android/src/main/cpp/gstreamer_native.cpp` reads it only inside a failing
+  call (686, 706, 748), `logBusMessages` (117-150) has no caller, and "Playing" is Dart's own bool. `play()` returns
+  true after a wait that timed out (752), and the wait is cut to 15 s (500-502) while the text says 20 s (702).
+  Nothing under `lib/` watches the app's lifecycle, so nothing stops the pipeline in the background, and a camera
+  permission granted later in the system settings needs an app restart. Closing the activity during a slow start can
+  freeze it for up to 15 s: `onDetachedFromEngine` disposes on the platform thread and waits for `g_mutex`, which a
+  waiting `setPipeline` holds. First step: `play()` answers false on a timeout and the text says 15 s. Then a
+  `state` method that returns the pipeline state and drains the bus errors, asked every 2 s while the page says
+  Playing; a stop on `AppLifecycleState.paused` and the last pipeline again on `resumed`; no `g_mutex` across a
+  wait. Stays fixed by Dart tests on a faked `state` and by the emulator check of the first row.
+
+- [ ] **Four `/healthz` parsers, and no test feeds them ObservANT's real JSON** (M, ★★).
+  `detection_status.dart:79-147`, `dev_stats.dart:42-65`, `lib/Pages/CameraSettingsPage/camera_settings.dart:145-187`
+  and `visit_questions.dart:185-190` each read the body by key and fall back to null; the `cat` fallback and
+  `privacy == 'pixelate'` are typed twice. Every test types its own JSON (`test/dev_stats_test.dart:8-12`,
+  `test/camera_settings_test.dart:11-14`; `scripts/linux/tests/web-smoke-server.js:15-16` serves a `detection.count`
+  that no parser reads), so a field ObservANT renames leaves the tests green and the page on its defaults. The timers
+  stay: an open page was measured at 48 requests a minute (camera-streaming.md, *Measuring performance*). First step:
+  one `ObservantHealth` model file with the one parser; the questions panel, which asks for `ask` once at its start,
+  asks again when the page shows; and an in-flight flag in each `_poll`, since the 8 s timeout is longer than the 2, 3
+  and 5 s intervals. Then, once OxidANT writes golden `/healthz` files from a `status.rs` test, the Dart tests and
+  `web-smoke-server.js` read those from `third_party/OxidANT`. Stays fixed by a test that parses the golden and finds
+  no shown field null, and a source test that `json['detection']` is in one file only.
+
+- [ ] **No back-off when no camera answers** (M, ★★) (not double-checked). The status line asks `/healthz` every 5 s
+  for ever (`detection_status.dart:261-285`), the peers' 10 s timer stops only after an own `/healthz` answered
+  (`camera_peers.dart:52-60, 68-81`), and gstwebrtc-api reconnects every `reconnectionTimeoutMs`, 5000 in
+  `assets/settings/webrtc_settings.json`, without a limit. The hosted site is this web build with no ObservANT behind
+  it and the Stream page first: about 18 failing requests and 12 socket attempts a minute for every open tab
+  (computed, not measured). `web-smoke-server.js` always answers as an idle ObservANT, so no browser test sees that
+  state. First step, polling only: after a few misses the interval grows from 5 s to about 60 s and falls back on an
+  answer or when the page shows again; a first answer that is no ObservANT `/healthz` stops the peers' timer. The
+  signalling retry follows, in the controller, with a growing delay. Stays fixed by `fake_async` tests (ten minutes
+  without an answer stay under a fixed number of fetches, and one answer restores the 5 s) and a mode of
+  `scripts/linux/check-web-browser.sh` without the fixture that counts 60 s of requests against a ceiling.
+
+- [ ] **The plugin pipeline's state machine is widget code** (L, ★★). `stream_page.dart` keeps the pipeline state and
+  the fallback chain in the page's `State` with `setState` (73-125, 191-298). There is no busy guard: two source
+  presses overlap, the first one's `play()` then fails with `command_failed`, and its fallback can override the second
+  choice (198-244). Each test of it boots the whole app and waits 1 s of real time
+  (`test/support/stream_page_app.dart:25-29`). The macOS row below comes first: it decides how much of the page is
+  left to move. First step: only this pipeline moves into a pure-Dart `PluginPipelineController`, a `ChangeNotifier`
+  over an `invoke` function with the phases idle, starting, playing, paused and failed, a busy guard and a typed
+  problem. The web controller (`stream_controller.dart`) and `RustWebcamView` stay as they are; one status widget
+  and its l10n keys for all three can follow. Stays fixed by controller tests with `fake_async` (overlapping
+  requests, a stop during a start) and a source test that fails on `invokeMethod(` under `lib/Pages`; that test
+  also needs the typed `create` of the MethodChannel row (`rust_webcam_view.dart:95`).
+
+- [ ] **Nothing times the desktop frame path or a streaming answer** (S, ★). `integration_test/performance_test.dart`
+  watches the start, page switches and resizes (22-48), and `quality-report.toml`'s one perf command is
+  `--detect-latency`. On Linux every frame is copied in `knt_push_frame` (`linux/my_texture.cc:344`); `copy_pixels`
+  then clears the buffer, copies the frame again and rewrites each alpha byte (156-166). That is four passes of 1.2 MB
+  at 640x480, about 150 MB/s at 30 fps (computed, not measured). In the playground one `AnimatedBuilder` wraps the
+  page (`lib/Pages/AiPlaygroundPage/ai_playground_page.dart:71-118`), so a streaming answer parses the Markdown of
+  every visible answer again on each frame (not measured). First step, measure: a timing loop in the Linux plugin
+  gtest (300 pushes plus `copy_pixels` at 640x480 and 1280x720, ms per frame) under the hub's bench-history, and a
+  playground section with a fake `TextClient` in `performance_test.dart` under `frontend-perf-x64`. The one change
+  that needs no number: no `memset` when the sizes match. The buffers change owner only above about 1 ms a frame at
+  720p, and the Markdown fix would be ANThology's.
+
+- [b] **macOS: the Stream page keeps a half for a platform the plugin does not have** (S, ★★). The plugin has android,
+  linux and windows (`packages/kataglyphis_native_inference/pubspec.yaml:21-30`) and `docs/source/overview.md:22` says
+  macOS is no target. But AGENTS.md (section 1) still gives macOS the plugin pipeline, the page keeps desktop source buttons,
+  colour buttons, `setColor`, `avfvideosrc` and the appsink sink for it, and 13 of the 20 tests in
+  `test/stream_page_native_test.dart` run as macOS. Blocked on the owner: macOS a target or not. If not: that UI goes,
+  its tests run as Android, the AGENTS.md sentence changes, and the rows above on the Android tests, the MethodChannel
+  API and the state machine get smaller.
+
+- [b] **Linux and Windows textures behave differently under one ABI** (S, ★). Linux keeps the texture's creation size,
+  crops or pads a frame of another size and forces alpha to 255 (`linux/my_texture.cc:135-181`); Windows resizes to
+  the pushed frame and copies alpha as it comes (`windows/kataglyphis_texture.cpp:34-68`), and each gtest pins its own
+  side. `third_party/OxidANT/abi/texture.json` fixes names and codes, not behaviour. Nobody sees it today: Rust always
+  sends RGBA at the asked size (`third_party/OxidANT/crates/media/src/capture.rs:179-195`). Blocked on the owner:
+  which side is the rule (crop or resize; opaque or as sent). Then one include file of cases against the C ABI beside
+  the plugin, with a small adapter per platform, run by both gtests.
 
 ## Open — waiting on the owner
 
