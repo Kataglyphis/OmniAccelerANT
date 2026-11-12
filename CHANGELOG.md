@@ -5,6 +5,35 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ## Unreleased
 
+### 2026-11-12 (the web playground reads thinking models and server errors)
+- **A server's error is shown in its own words (audit genai-native-6).** The web build's chat client cast the answer
+  without checks: a 200 answer that carried an `error`, an empty `choices` list or a `null` content ended as a Dart
+  type error under "The model failed". An `error` object or text, in a whole answer or in a stream line, now ends the
+  answer with the server's text, and an answer without choices or one that is no JSON says so. A failure reads as its
+  reason alone, without Dart's `Bad state:` in front.
+- **Thinking is not the answer (audit genai-native-4).** `reasoning_content`, `reasoning` and a `<think>` block inside
+  the text are counted and never shown, also a block that never closes or a tag cut over two chunks. As in OxidANT's
+  `answer.rs`, the white space after a block is dropped, and a `</think>` without its `<think>` makes the text before
+  it thinking: a whole answer shows none of it, a stream has shown it by then. A reply without a word is a failure
+  that says why, not an empty bubble: `the model gave no answer (finish_reason length): it spent its budget thinking
+  (412 characters of thinking, 128 tokens); set a larger maximum of new tokens or switch thinking off at the
+  endpoint`. A model that ended by itself reads `it only thought` and is not told to raise the budget.
+- **A silent endpoint fails after 300 s** instead of leaving the page busy for ever. That is OxidANT's limit for a
+  request; here it runs until the first byte and again after each one, and the request is aborted. A server sends a
+  whole answer when the model is done, so the default request must finish inside 300 s, as on native builds. Stop
+  while the body arrives ends as stopped, no longer as a failure.
+- **The reading is plain Dart with tests.** `endpoint_reply.dart` (stream lines, whole answers, `<think>`) and
+  `endpoint_chat.dart` (the client over an injected transport) run on the VM; `web_endpoint.dart` keeps only `fetch`
+  and reads the body as it arrives. Tests: `test/endpoint_reply_test.dart`, `test/endpoint_chat_test.dart` and, in
+  Chrome, `test/web_endpoint_test.dart`. The fake `fetch` of `observant_api_web_test.dart` moved to
+  `test/support/fake_fetch.dart` for both.
+- **Not in this change.** The web build still asks for one whole answer (LAI-F2's choice; an event stream is read
+  when a server sends one). It sends no `top_p` and `top_k`, the thinking is shown nowhere, and on native builds an
+  answer without words is still an empty bubble. Nothing was run against a real server or a real thinking model.
+- **The OxidANT pin moves from 0c85e0b to d3c45e3**, so native builds follow the same thinking rules (`answer.rs`
+  there), and the detector drops a row with no such class or with swapped corners, as the family's other two
+  detectors do. The bridge's surface is unchanged: no binding was regenerated, and the licence inventory matches.
+
 ### 2026-11-12 (OxidANT pin: H.264 first on Windows)
 - **OxidANT moves to 0c85e0b.** On Windows the packaged camera service lists H.264 before VP8 in its offer (owner,
   2026-11-12): the installer test's new diagnostics showed viewers taking VP8 and `vp8dec` never producing a frame.

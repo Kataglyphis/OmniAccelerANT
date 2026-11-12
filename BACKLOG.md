@@ -146,18 +146,26 @@ what the owner's goal still lacks.
 
 - [ ] **LAI-F4: microphone input in the app** (M, ★★). Hub language-AI milestone 3 (`docs/language-ai.md`).
 
-- [ ] **The web playground's endpoint client has no test, no time limit and raw Dart errors** (S, ★★). On web
-  `lib/Pages/AiPlaygroundPage/text_client.dart:30-42` sends every request through `web_endpoint.dart`, which no test
-  imports (`test/ai_playground_test.dart` is `@TestOn('vm')` and calls the stub). Its fetch carries only the user's
-  abort signal (27-37), so a server that never answers leaves the page busy. `response.text()` is outside the `try`
-  (45), so a Stop during the body shows as an error. Empty `choices` and a null `content` (50, 54) end as a Dart type
-  error under "The model failed", and so does a 200 reply that carries an `error` object (not double-checked). First
-  step: `test/web_endpoint_test.dart`, `@TestOn('browser')`, on the fake fetch of
-  `test/observant_api_web_test.dart:17-33` moved to `test/support`. Then a timeout as `observant_api_web.dart` has,
-  the body read inside the `try`, and one clear message for each of the three replies. The web lane runs `test/` in
-  Chrome, so that test keeps it. Done when it fails with any of these faults put back. Left to the owner: native sends
-  `top_p` 1.0 and `top_k` 50 with every sampled request (`playground_settings.dart:130-138`), web sends neither
-  (`endpoint_request.dart:7-28`); both paths or neither. Audit 2026-11-12.
+- [ ] **The web playground sends no `top_p` and `top_k`** (S, ★). Native sends `top_p` 1.0 and `top_k` 50 with
+  every sampled request (`playground_settings.dart:130-138`), web sends neither (`endpoint_request.dart:7-28`). Left
+  to the owner: both paths or neither. Done when `test/endpoint_chat_test.dart` holds the request body for the
+  choice. Audit 2026-11-12.
+- [b] **The web playground streams its answer** (S, ★★). `endpoint_chat.dart` reads an event stream when a server
+  sends one (tested on a fake transport and a fake fetch), but the request still asks for one whole answer, LAI-F2's
+  written choice. Blocked on the owner and on one run in a real browser against a real endpoint with CORS: nobody
+  read a cross-origin body as it arrived. First step: `'stream': true` and `'stream_options': {'include_usage':
+  true}` in `endpoint_request.dart`. Done when a real server's answer appears word by word and Stop ends it.
+- [ ] **The web playground reads a reply of any size** (S, ★). `endpoint_chat.dart` has no bound on one stream line
+  or on a whole body; OxidANT's client stops at 1 MiB per line. First step: the same bound, with the failure naming
+  it. Done when a test with a line over the bound fails clearly and one under it passes.
+- [ ] **A thinking model's reasoning can be read** (M, ★). It is counted and hidden on web and on native builds;
+  the audit puts a collapsed view last, and it needs a widget in ANThology. On native builds an answer without a
+  word is still an empty bubble, because the bridge's `done` carries no thinking count: that field needs the
+  bindings regenerated with an OxidANT pin. Done when the page shows the count, and the text on request.
+- [ ] **A mutation recipe holds the web client's error handling** (S, ★). Every recipe in
+  `scripts/linux/tests/ort-license-mutations.json` runs a bash or python test; nobody checked that the job which
+  runs them has Flutter. First step: check the mutation lane's image for `/opt/flutter`. Done when a recipe that
+  makes the client ignore an error body fails `test/endpoint_chat_test.dart` in that lane.
 
 - [b] **A failed answer is a translated frame around an English engine sentence** (M, ★★). `_onError`
   (`lib/Pages/AiPlaygroundPage/ai_playground_controller.dart:127-133`) shows `'$failure'` inside `aiError` ("Das

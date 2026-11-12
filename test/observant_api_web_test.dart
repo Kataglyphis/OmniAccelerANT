@@ -11,33 +11,11 @@ import 'package:web/web.dart' as web;
 
 import 'package:omni_accelerant/Pages/StreamPage/observant_api_web.dart';
 
-/// One request the page made: its URL and what it passed with it.
-typedef _Request = ({String url, web.RequestInit? init});
-
-/// Replaces the page's `fetch` for one test: [answer] makes each response, `null` a network failure.
-List<_Request> _fakeFetch(web.Response? Function(String url) answer) {
-  final requests = <_Request>[];
-  final JSAny? real = globalContext.getProperty('fetch'.toJS);
-  JSPromise<web.Response> fake(JSString url, web.RequestInit? init) {
-    requests.add((url: url.toDart, init: init));
-    final web.Response? response = answer(url.toDart);
-    return (response == null
-            ? Future<web.Response>.error(StateError('network down'))
-            : Future<web.Response>.value(response))
-        .toJS;
-  }
-
-  globalContext.setProperty('fetch'.toJS, fake.toJS);
-  addTearDown(() => globalContext.setProperty('fetch'.toJS, real));
-  return requests;
-}
-
-web.Response _respond(String body, {int status = 200}) =>
-    web.Response(body.toJS, web.ResponseInit(status: status));
+import 'support/fake_fetch.dart';
 
 void main() {
   test('healthz and settings are GETs on the page\'s own origin', () async {
-    final requests = _fakeFetch((url) => _respond('{"from":"$url"}'));
+    final requests = fakeFetch((url) => respond('{"from":"$url"}'));
     expect(await fetchHealthz(), '{"from":"/healthz"}');
     expect(await fetchObservantSettings(), '{"from":"/settings"}');
     expect(requests.map((r) => r.url), ['/healthz', '/settings']);
@@ -46,15 +24,15 @@ void main() {
   });
 
   test('a peer is read at its own URL', () async {
-    final requests = _fakeFetch((url) => _respond('peer'));
+    final requests = fakeFetch((url) => respond('peer'));
     expect(await fetchFrom('http://192.168.1.20:8080/healthz'), 'peer');
     expect(requests.single.url, 'http://192.168.1.20:8080/healthz');
   });
 
   test('an error status or a failed request reads as nothing', () async {
-    _fakeFetch((url) => _respond('busy', status: 503));
+    fakeFetch((url) => respond('busy', status: 503));
     expect(await fetchHealthz(), isNull);
-    _fakeFetch((url) => null);
+    fakeFetch((url) => null);
     expect(await fetchHealthz(), isNull);
     expect(await fetchFrom('http://10.0.0.9:8080/healthz'), isNull);
   });
@@ -62,7 +40,7 @@ void main() {
   test(
     'saving POSTs the changed values as JSON and reports the answer',
     () async {
-      final requests = _fakeFetch((url) => _respond(''));
+      final requests = fakeFetch((url) => respond(''));
       expect(
         await saveObservantSettings(<String, Object>{
           'name': 'Futtertrog',
@@ -79,12 +57,12 @@ void main() {
         'name': 'Futtertrog',
         'rotate': 90,
       });
-      _fakeFetch((url) => _respond('no', status: 400));
+      fakeFetch((url) => respond('no', status: 400));
       expect(
         await saveObservantSettings(<String, Object>{'rotate': 45}),
         isFalse,
       );
-      _fakeFetch((url) => null);
+      fakeFetch((url) => null);
       expect(
         await saveObservantSettings(<String, Object>{'rotate': 90}),
         isFalse,
@@ -93,8 +71,8 @@ void main() {
   );
 
   test('a question is a JSON POST whose answer keeps its status', () async {
-    final requests = _fakeFetch(
-      (url) => _respond('no language model', status: 503),
+    final requests = fakeFetch(
+      (url) => respond('no language model', status: 503),
     );
     final reply = await postToObservant('/ask', <String, Object>{
       'question': 'hi',
@@ -107,7 +85,7 @@ void main() {
   });
 
   test('a question with no reply is null, not an answer', () async {
-    _fakeFetch((_) => null);
+    fakeFetch((_) => null);
     expect(
       await postToObservant('/ask', <String, Object>{'question': 'hi'}),
       isNull,
@@ -115,7 +93,7 @@ void main() {
   });
 
   test('a cancelled question aborts its request', () async {
-    final requests = _fakeFetch((_) => _respond('{}'));
+    final requests = fakeFetch((_) => respond('{}'));
     final cancel = Completer<void>()..complete();
     await postToObservant('/ask', <String, Object>{
       'question': 'hi',

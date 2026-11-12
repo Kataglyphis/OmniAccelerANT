@@ -44,6 +44,9 @@ From the README (2026-10-19). `test/` checks, among the rest:
 - the cat status line, its visits, its arrival picture and video, and the earlier videos
   (`detection_status_test.dart`), the visit statistics per day and hour (`visit_stats_test.dart`),
   and the Stream page's questions on a fake camera (`visit_questions_test.dart`);
+- the AI Playground's web client: what it reads from an endpoint's reply (`endpoint_reply_test.dart`)
+  and the client on a fake transport (`endpoint_chat_test.dart`), and in Chrome its `fetch` half
+  (`web_endpoint_test.dart`);
 - in Chrome, the requests the Camera page sends ObservANT (`observant_api_web_test.dart`), and the
   Stream page's video view against the gstwebrtc-api build the page ships (`webrtc_view_test.dart`,
   `webrtc_view_first_view_test.dart`; § *The WebRTC view in Chrome*);
@@ -260,7 +263,9 @@ As found on 2026-10-15, so a green run is read for what it is:
   `observant_api_web.dart`, through which the Camera page reads and saves ObservANT's settings, has
   a Chrome-only test since 2026-10-15 (`observant_api_web_test.dart`, `@TestOn('browser')`): it
   swaps the page's `fetch` for a fake and checks each request's URL, method, header, JSON body and
-  timeout, and that an error status or a failed request reads as nothing.
+  timeout, and that an error status or a failed request reads as nothing. `web_endpoint.dart`, the
+  AI Playground's `fetch`, has one since 2026-11-12 (`web_endpoint_test.dart`); what it reads from a
+  reply is plain Dart, which the VM tests run and the figure counts.
 - **ANThology's own tests run in its repository only** (on the VM, and in Chrome since
   2026-10-21), and a third of its `lib/` files have none. Its sortable table, behind the blog overview here and four lists on the website, got its
   first tests on 2026-10-15, and they found three sorting bugs.

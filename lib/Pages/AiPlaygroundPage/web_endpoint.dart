@@ -1,69 +1,67 @@
-import 'dart:convert';
+import 'dart:async';
 import 'dart:js_interop';
 
-import 'package:omni_accelerant/Pages/AiPlaygroundPage/endpoint_request.dart';
+import 'package:omni_accelerant/Pages/AiPlaygroundPage/endpoint_chat.dart';
 import 'package:omni_accelerant/Pages/AiPlaygroundPage/playground_settings.dart';
 import 'package:omni_accelerant/src/rust/api/text.dart';
 import 'package:web/web.dart' as web;
 
-web.AbortController? _running;
+final EndpointChat _chat = EndpointChat(_fetch);
 
-/// One non-streamed chat completion, emitted as one `piece` and one `done` like the bridge's stream.
+/// One chat completion over the browser's fetch, as `piece` and `done` events like the bridge's stream.
 Stream<TextEvent> complete(
   PlaygroundSettings settings,
   List<TextMessage> messages,
-) async* {
+) => _chat.complete(settings, messages);
+
+void cancel() => _chat.cancel();
+
+/// The browser's fetch as the chat client's transport; [cancel] aborts the request and its body.
+Future<EndpointReply> _fetch(
+  String url,
+  Map<String, String> headers,
+  String body, {
+  required Future<void> cancel,
+}) async {
   final abort = web.AbortController();
-  _running = abort;
-  final body = jsonEncode(chatCompletionBody(settings, messages));
-  final headers = <String, String>{
-    'content-type': 'application/json',
-    if (settings.apiKey.isNotEmpty)
-      'authorization': 'Bearer ${settings.apiKey}',
-  };
-  final start = DateTime.now();
-  final web.Response response;
-  try {
-    response = await web.window
-        .fetch(
-          '${settings.baseUrl}/v1/chat/completions'.toJS,
-          web.RequestInit(
-            method: 'POST',
-            body: body.toJS,
-            headers: headers.jsify() as web.HeadersInit,
-            signal: abort.signal,
-          ),
-        )
-        .toDart;
-  } on Object {
-    if (abort.signal.aborted) {
-      yield const TextEvent(kind: 'done', finishReason: 'cancelled');
-      return;
-    }
-    throw StateError('the endpoint at ${settings.baseUrl} is unreachable');
-  }
-  final text = (await response.text().toDart).toDart;
-  if (!response.ok) {
-    throw StateError('the endpoint answered HTTP ${response.status}: $text');
-  }
-  final answer = jsonDecode(text) as Map<String, dynamic>;
-  final choice = (answer['choices'] as List).first as Map<String, dynamic>;
-  final usage = answer['usage'] as Map<String, dynamic>? ?? const {};
-  yield TextEvent(
-    kind: 'piece',
-    text: (choice['message'] as Map<String, dynamic>)['content'] as String,
-  );
-  yield TextEvent(
-    kind: 'done',
-    finishReason: choice['finish_reason'] as String? ?? 'stop',
-    promptTokens: usage['prompt_tokens'] as int?,
-    completionTokens: usage['completion_tokens'] as int?,
-    timeToFirstTokenMs: DateTime.now()
-        .difference(start)
-        .inMilliseconds
-        .toDouble(),
-    decodeTokensPerSecond: 0,
-  );
+  unawaited(cancel.then((_) => abort.abort()));
+  final response = await web.window
+      .fetch(
+        url.toJS,
+        web.RequestInit(
+          method: 'POST',
+          body: body.toJS,
+          headers: headers.jsify() as web.HeadersInit,
+          signal: abort.signal,
+        ),
+      )
+      .toDart;
+  return (status: response.status, body: _chunks(response.body));
 }
 
-void cancel() => _running?.abort();
+/// The bytes of [body] as they arrive; a listener that leaves ends the read at once, also during a silence.
+Stream<List<int>> _chunks(web.ReadableStream? body) {
+  if (body == null) return const Stream<List<int>>.empty();
+  final reader = body.getReader() as web.ReadableStreamDefaultReader;
+  final chunks = StreamController<List<int>>();
+  chunks.onListen = () => unawaited(_pump(reader, chunks));
+  // An aborted body refuses the cancel, which then has nothing left to end.
+  chunks.onCancel = () => reader.cancel().toDart.ignore();
+  return chunks.stream;
+}
+
+Future<void> _pump(
+  web.ReadableStreamDefaultReader reader,
+  StreamController<List<int>> chunks,
+) async {
+  try {
+    while (true) {
+      final read = await reader.read().toDart;
+      if (read.done) break;
+      chunks.add((read.value! as JSUint8Array).toDart);
+    }
+  } on Object catch (failure) {
+    chunks.addError(failure);
+  }
+  await chunks.close();
+}
