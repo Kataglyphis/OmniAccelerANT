@@ -5,6 +5,15 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ## Unreleased
 
+### 2026-11-12 (OxidANT and AccelerANTgine pins)
+- **OxidANT moves to 276d9e0.** The webcam preview keeps the camera's rate while the model is busy, a session that
+  cannot start or that ends says why through its stream, and Stop returns at once instead of holding the UI thread
+  for the running inference. `text_cancel()` also ends a turn whose local model is still loading.
+- **AccelerANTgine moves to 71b89a4.** Its camera pipeline keeps one frame instead of a queue of old ones, a stream
+  that ends or breaks is visible with the element that failed, and a model directory outside ASCII loads on Windows.
+- The bridge is unchanged (`verify-frb-bindings.py` agrees), and so are both lock files, so the third-party
+  inventory stays as it is.
+
 ### 2026-11-12 (a stream is a frame, Android's stream page)
 - The web view shows the video once its first frame is there. It dropped its status overlay when the
   stream object arrived, which is with the camera's offer and before ICE has connected: a viewer
