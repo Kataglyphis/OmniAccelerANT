@@ -5,6 +5,15 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ## Unreleased
 
+### 2026-11-12 (questions about the visits)
+- "What the model was told" belongs to the last answer only: after a summary, a refusal or a stop
+  it still showed the facts of an earlier question.
+- An answer without words is shown as a failure with the model's finish reason, not as an empty
+  bubble; a model that spends its budget thinking returns exactly that.
+- The answer follows the app's language when it changes while the panel is open; it stayed in the
+  language the panel was opened in.
+- An answer that arrives after the page was left no longer notifies a disposed controller.
+
 ### 2026-11-11 (webcam view, web stream lifetime)
 - The Rust webcam view says when a session ends before its first frame (a missing model, a busy
   camera): the status only flipped to "Stopped". A running session without an event for 5 s

@@ -35,13 +35,15 @@ class VisitQuestionsController extends ChangeNotifier {
   final VisitQuestionPost post;
 
   /// The app's language, which ObservANT asks the model to answer in; it takes `de` and `en`.
-  final String language;
+  /// The panel outlives a language change, so it sets this before each build.
+  String language;
 
   /// The clock whose offset says which local day "today" is; a test sets its own.
   final DateTime Function() now;
 
   final List<ChatEntry> _messages = <ChatEntry>[];
   Completer<void>? _cancel;
+  bool _disposed = false;
 
   List<ChatEntry> get messages => List<ChatEntry>.unmodifiable(_messages);
   bool get busy => _cancel != null;
@@ -83,6 +85,8 @@ class VisitQuestionsController extends ChangeNotifier {
     if (busy) return;
     final cancel = _cancel = Completer<void>();
     failure = null;
+    // The facts of an earlier answer say nothing about this one.
+    facts = null;
     _messages
       ..add(ChatEntry(role: ChatRole.user, text: shown))
       ..add(
@@ -111,11 +115,21 @@ class VisitQuestionsController extends ChangeNotifier {
     final answer = json == null ? null : read(json);
     if (answer == null) {
       failure = VisitQuestionFailure(body);
+    } else if (answer.trim().isEmpty) {
+      // A model that spent its budget thinking answers 200 with no text; an empty bubble would pass as an answer.
+      failure = VisitQuestionFailure(
+        'the model gave no answer (finish_reason: ${json?['finish_reason']})',
+      );
+      facts = null;
+      _end(null);
+      return;
     }
     _end(answer);
   }
 
   void _end(String? answer) {
+    // The page was left while the camera still answered; a disposed notifier must not notify.
+    if (_disposed) return;
     _cancel = null;
     _messages.removeLast();
     if (answer != null) {
@@ -130,6 +144,12 @@ class VisitQuestionsController extends ChangeNotifier {
     if (cancel != null && !cancel.isCompleted) {
       cancel.complete();
     }
+  }
+
+  @override
+  void dispose() {
+    _disposed = true;
+    super.dispose();
   }
 }
 
@@ -194,6 +214,7 @@ class _VisitQuestionsPanelState extends State<VisitQuestionsPanel> {
       return const SizedBox.shrink();
     }
     final l10n = AppLocalizations.of(context)!;
+    _controller?.language = Localizations.localeOf(context).languageCode;
     final button = TextButton.icon(
       onPressed: _toggle,
       icon: Icon(_open ? Icons.expand_less : Icons.question_answer_outlined),

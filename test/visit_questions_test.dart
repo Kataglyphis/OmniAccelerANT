@@ -176,7 +176,103 @@ void main() {
     });
   });
 
+  group('VisitQuestionsController after an answer', () {
+    test('the facts of one answer do not stay beside the next', () async {
+      final camera = _Camera(<_Reply?>[
+        _answer('Twice.', 'Two visits today.'),
+        (status: 200, body: jsonEncode(<String, Object?>{'summary': 'Quiet.'})),
+        _answer('Once.', 'One visit today.'),
+        (status: 502, body: 'the endpoint is down'),
+      ]);
+      final controller = _controller(camera);
+      await controller.ask('How often?');
+      expect(controller.facts, 'Two visits today.');
+      await controller.summarise('Summarise today', 'No visits.');
+      expect(controller.facts, isNull);
+      await controller.ask('And now?');
+      expect(controller.facts, 'One visit today.');
+      await controller.ask('Again?');
+      expect(controller.facts, isNull);
+      expect(controller.failure!.reason, 'the endpoint is down');
+    });
+
+    test('an empty answer is a failure that names why, not a bubble', () async {
+      final camera = _Camera(<_Reply?>[
+        (
+          status: 200,
+          body: jsonEncode(<String, Object>{
+            'answer': '  ',
+            'facts': 'Two visits today.',
+            'finish_reason': 'length',
+          }),
+        ),
+      ]);
+      final controller = _controller(camera);
+      await controller.ask('How often?');
+      expect(controller.messages.map((m) => m.text), <String>['How often?']);
+      expect(controller.failure!.reason, contains('finish_reason: length'));
+      expect(controller.facts, isNull);
+    });
+
+    test(
+      'an answer that comes after the page was left notifies nobody',
+      () async {
+        final camera = _Camera(<_Reply?>[])..held = Completer<_Reply?>();
+        final controller = _controller(camera);
+        final asked = controller.ask('one');
+        controller
+          ..stop()
+          ..dispose();
+        camera.held!.complete(_answer('Late.', 'facts'));
+        // A notify on the disposed controller would throw here.
+        await asked;
+      },
+    );
+  });
+
   group('VisitQuestionsPanel', () {
+    testWidgets('a language change reaches the next question', (tester) async {
+      final camera = _Camera(<_Reply?>[
+        _answer('Twice.', 'f'),
+        _answer('Zweimal.', 'f'),
+      ]);
+      Widget app(Locale locale) => MaterialApp(
+        localizationsDelegates: const [
+          ...AppLocalizations.localizationsDelegates,
+          AnthologyLocalizations.delegate,
+        ],
+        supportedLocales: AppLocalizations.supportedLocales,
+        locale: locale,
+        home: Scaffold(
+          body: SingleChildScrollView(
+            child: VisitQuestionsPanel(
+              fetchHealth: () async => '{"ask":true}',
+              post: camera.post,
+              now: () => _now,
+            ),
+          ),
+        ),
+      );
+      await tester.pumpWidget(app(const Locale('en')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byType(TextButton));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField), 'How often?');
+      await tester.pump();
+      await tester.tap(find.byTooltip('Send'));
+      await tester.pumpAndSettle();
+      expect(camera.posted.last.$2['language'], 'en');
+
+      // The same panel, as the app keeps it across a language change.
+      await tester.pumpWidget(app(const Locale('de')));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField), 'Wie oft?');
+      await tester.pump();
+      await tester.tap(find.byType(IconButton).last);
+      await tester.pumpAndSettle();
+      expect(camera.posted.last.$2['language'], 'de');
+    });
+
     for (final (name, health) in <(String, String?)>[
       ('says no model answers', '{"ask":false}'),
       ('predates questions', '{"ok":true}'),
