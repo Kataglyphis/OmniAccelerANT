@@ -12,6 +12,8 @@ internal class GStreamerController(
 
     private var textureEntry: TextureRegistry.SurfaceTextureEntry? = null
     private var surface: Surface? = null
+    // create() sets it on the platform thread; the pipeline commands read it on theirs.
+    @Volatile
     private var nativeInitialized = false
 
     companion object {
@@ -75,6 +77,7 @@ internal class GStreamerController(
         releaseSurface()
     }
 
+    @Synchronized
     private fun ensureNativeReady() {
         if (nativeInitialized) return
         GStreamerNative.ensureLoaded()

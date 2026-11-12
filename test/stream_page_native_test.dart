@@ -196,6 +196,34 @@ void main() {
     await unmountApp(tester);
   }, variant: macOS);
 
+  testWidgets('play after stop sets the pipeline again, which stop released', (
+    WidgetTester tester,
+  ) async {
+    final _FakePlugin plugin = _FakePlugin();
+    await pumpStreamPageApp(tester, plugin.handle);
+    final String first = plugin.pipelines.single;
+    plugin.calls.clear();
+
+    await tester.tap(find.text('Stop'));
+    await tester.pump();
+    await tester.tap(find.text('Play'));
+    await tester.pump();
+    // Android's plugin has no pipeline after stop, so a bare play there fails.
+    expect(plugin.methods, <String>['stop', 'setPipeline', 'play']);
+    expect(plugin.pipelines.single, first);
+    expect(find.text('Playing'), findsOneWidget);
+
+    // A pause keeps the pipeline: its play is the plain one.
+    plugin.calls.clear();
+    await tester.tap(find.text('Pause'));
+    await tester.pump();
+    await tester.tap(find.text('Play'));
+    await tester.pump();
+    expect(plugin.methods, <String>['pause', 'play']);
+
+    await unmountApp(tester);
+  }, variant: macOS);
+
   testWidgets('a stop the plugin refuses does not claim the stream stopped', (
     WidgetTester tester,
   ) async {

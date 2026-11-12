@@ -5,6 +5,17 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ## Unreleased
 
+### 2026-11-12 (a stream is a frame, Android's stream page)
+- The web view shows the video once its first frame is there. It dropped its status overlay when the
+  stream object arrived, which is with the camera's offer and before ICE has connected: a viewer
+  whose network let no media through looked at a black picture for ten seconds, then at another.
+  The 15 s limit that rebuilds a silent connection now runs until that frame.
+- Android: Play after Stop plays again. Stop releases the plugin's pipeline, so the bare `play`
+  failed with "play failed"; the page sets the last pipeline again.
+- Android: the plugin runs `setPipeline`, `play`, `pause`, `stop`, `setColor` and `diagnose` on a
+  thread of its own and answers on the platform thread. They wait for the camera for up to 20 s,
+  which on the platform thread froze the app until Android offered to close it.
+
 ### 2026-11-12 (questions about the visits)
 - "What the model was told" belongs to the last answer only: after a summary, a refusal or a stop
   it still showed the facts of an earlier question.

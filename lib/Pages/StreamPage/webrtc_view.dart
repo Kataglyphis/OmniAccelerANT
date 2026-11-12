@@ -187,9 +187,11 @@ class _GstSignallingClient implements SignallingClient {
         if (streams.isEmpty) return;
         _video.srcObject = streams.first as web.MediaStream;
         _video.play();
-        streaming();
       }).toJS,
     );
+    // The stream object comes with the offer, before ICE has connected: only a frame in the element is media.
+    final JSFunction onFrame = ((web.Event _) => streaming()).toJS;
+    _video.addEventListener('loadeddata', onFrame);
     session.addEventListener(
       'remoteControllerChanged'.toJS,
       ((JSAny _) {
@@ -212,15 +214,16 @@ class _GstSignallingClient implements SignallingClient {
         failed();
       }).toJS,
     );
-    return _GstSession(session, _video);
+    return _GstSession(session, _video, onFrame);
   }
 }
 
 class _GstSession implements ConsumerSessionHandle {
-  _GstSession(this._session, this._video);
+  _GstSession(this._session, this._video, this._onFrame);
 
   final ConsumerSession _session;
   final web.HTMLVideoElement _video;
+  final JSFunction _onFrame;
 
   @override
   bool connect() => _session.connect();
@@ -228,6 +231,7 @@ class _GstSession implements ConsumerSessionHandle {
   @override
   void close() {
     _session.close();
+    _video.removeEventListener('loadeddata', _onFrame);
     _video.srcObject = null;
   }
 }

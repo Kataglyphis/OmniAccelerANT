@@ -83,6 +83,11 @@ class StreamPageState extends State<StreamPage> {
   int get textureHeight => widget.webrtcSettings.texture.height;
 
   bool _isPlaying = false;
+
+  /// The pipeline that last played and its source: Stop releases the plugin's pipeline, so Play has to set it again.
+  String? _lastPipeline;
+  String? _lastSource;
+  bool _stopped = false;
   String? _errorMessage;
   bool _nativeInitFailed = false;
   late final String _defaultNativeSource;
@@ -197,6 +202,9 @@ class StreamPageState extends State<StreamPage> {
       await channel.invokeMethod('setPipeline', pipelineString);
       await channel.invokeMethod('play');
 
+      _lastPipeline = pipelineString;
+      _lastSource = source;
+      _stopped = false;
       if (!mounted) return;
       setState(() {
         _isPlaying = true;
@@ -257,6 +265,9 @@ class StreamPageState extends State<StreamPage> {
         setState(() {
           _isPlaying = false;
         });
+      } else if (_stopped && _lastPipeline != null) {
+        // After Stop the plugin has no pipeline: a bare play failed with "play failed" for good.
+        await _setPipeline(_lastPipeline!, source: _lastSource);
       } else {
         await channel.invokeMethod('play');
         if (!mounted) return;
@@ -276,6 +287,7 @@ class StreamPageState extends State<StreamPage> {
   Future<void> _stopPipeline() async {
     try {
       await channel.invokeMethod('stop');
+      _stopped = true;
       if (!mounted) return;
       setState(() {
         _isPlaying = false;

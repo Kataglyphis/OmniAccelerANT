@@ -82,6 +82,7 @@ class SignallingStandIn {
     this.failSends = [];
     this.holdWelcome = false;
     this.holdOffer = false;
+    this.holdCandidates = false;
     this.corruptOffers = 0;
     this.offerControlChannel = false;
     this.camera = startCamera(64, 48);
@@ -99,6 +100,16 @@ class SignallingStandIn {
   releaseOffer() {
     this.holdOffer = false;
     for (const session of this.sessions) if (!session.ended && !session.pc) this.offer(session);
+  }
+
+  // The candidates kept back while holdCandidates was set reach both peers, so ICE can connect at last.
+  releaseCandidates() {
+    this.holdCandidates = false;
+    for (const session of this.sessions) {
+      if (session.ended || !session.pc) continue;
+      for (const ice of session.toViewer.splice(0)) session.socket.deliver({ type: "peer", sessionId: session.id, ice });
+      for (const ice of session.toCamera.splice(0)) session.pc.addIceCandidate(ice);
+    }
   }
 
   announce(id) {
@@ -162,7 +173,10 @@ class SignallingStandIn {
         break;
       case "peer":
         if (session && !session.ended && msg.sdp) session.pc.setRemoteDescription(msg.sdp);
-        if (session && !session.ended && msg.ice) session.pc.addIceCandidate(msg.ice);
+        if (session && !session.ended && msg.ice) {
+          if (this.holdCandidates) session.toCamera.push(msg.ice);
+          else session.pc.addIceCandidate(msg.ice);
+        }
         break;
       case "endSession":
         if (session) this.finish(session);
@@ -175,7 +189,16 @@ class SignallingStandIn {
       socket.deliver({ type: "error", details: `no producer ${producerId}` });
       return;
     }
-    const session = { id: `session-${this.sessions.length + 1}`, producerId, socket, pc: null, ended: false, control: [] };
+    const session = {
+      id: `session-${this.sessions.length + 1}`,
+      producerId,
+      socket,
+      pc: null,
+      ended: false,
+      control: [],
+      toViewer: [],
+      toCamera: [],
+    };
     this.sessions.push(session);
     socket.deliver({ type: "sessionStarted", peerId: producerId, sessionId: session.id });
     if (!this.holdOffer) this.offer(session);
@@ -186,7 +209,9 @@ class SignallingStandIn {
     const pc = new NativePeerConnection();
     session.pc = pc;
     pc.onicecandidate = (event) => {
-      if (event.candidate) session.socket.deliver({ type: "peer", sessionId: session.id, ice: event.candidate.toJSON() });
+      if (!event.candidate) return;
+      if (this.holdCandidates) session.toViewer.push(event.candidate.toJSON());
+      else session.socket.deliver({ type: "peer", sessionId: session.id, ice: event.candidate.toJSON() });
     };
     if (this.offerControlChannel) {
       pc.createDataChannel("control").onmessage = (event) => session.control.push(JSON.parse(event.data));

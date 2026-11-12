@@ -112,7 +112,7 @@ class WebRTCStreamController extends ChangeNotifier {
   /// How long the browser tab may be hidden before the session closes; ObservANT encodes per viewer.
   final Duration hiddenGrace;
 
-  /// A session that is not streaming after this rebuilds the signalling connection.
+  /// A session without a first frame after this rebuilds the signalling connection.
   final Duration negotiationTimeout;
 
   WebRTCStage _stage = WebRTCStage.connecting;
@@ -302,7 +302,7 @@ class WebRTCStreamController extends ChangeNotifier {
     _negotiationTimer?.cancel();
     _negotiationTimer = Timer(negotiationTimeout, () {
       if (!identical(_sessionToken, token)) return;
-      // No answer at all: the signalling socket is dead without knowing it, so build a new one.
+      // No answer, or an answer and never a frame: the socket is dead without knowing it, or ICE found no way.
       _closeSession();
       _client.reconnect();
     });

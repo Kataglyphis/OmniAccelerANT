@@ -31,6 +31,11 @@ extension type SignallingStandIn._(JSObject _) implements JSObject {
   /// Sends the offer to sessions started while [holdOffer] was set.
   external void releaseOffer();
 
+  /// Hands both peers the ICE candidates kept back while [holdCandidates] was set.
+  external void releaseCandidates();
+
+  /// Keeps every ICE candidate back: the offer is answered and the stream object arrives, but no media can flow.
+  external set holdCandidates(bool hold);
   external set holdWelcome(bool hold);
   external set holdOffer(bool hold);
   external set corruptOffers(int count);

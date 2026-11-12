@@ -1,11 +1,15 @@
 package com.example.kataglyphis_native_inference
 
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler
 import io.flutter.plugin.common.MethodChannel.Result
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
 
 /** KataglyphisNativeInferencePlugin */
 class KataglyphisNativeInferencePlugin :
@@ -16,8 +20,13 @@ class KataglyphisNativeInferencePlugin :
     private var pluginBinding: FlutterPlugin.FlutterPluginBinding? = null
     private var gstreamerController: GStreamerController? = null
 
+    // State changes wait up to 20 s for the camera: an ANR on the platform thread. One thread keeps their order.
+    private var commands: ExecutorService? = null
+    private val platformThread = Handler(Looper.getMainLooper())
+
     override fun onAttachedToEngine(flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
         pluginBinding = flutterPluginBinding
+        commands = Executors.newSingleThreadExecutor { task -> Thread(task, "kataglyphis-gstreamer") }
         gstreamerController = GStreamerController(
             context = flutterPluginBinding.applicationContext,
             textureRegistry = flutterPluginBinding.textureRegistry,
@@ -48,6 +57,9 @@ class KataglyphisNativeInferencePlugin :
         channel?.setMethodCallHandler(null)
         channel = null
 
+        // What waits in the queue would run on a disposed controller; the dispose below waits for the one that runs.
+        commands?.shutdownNow()
+        commands = null
         gstreamerController?.dispose()
         gstreamerController = null
         pluginBinding = null
@@ -84,37 +96,14 @@ class KataglyphisNativeInferencePlugin :
             return
         }
 
-        val controller = gstreamerController ?: run {
-            result.error("no_controller", "Plugin binding is unavailable", null)
-            return
+        runCommand(result, "setPipeline") { controller ->
+            controller.setPipeline(pipeline)
+            null
         }
-
-        runCatching { controller.setPipeline(pipeline) }
-            .onSuccess { result.success(null) }
-            .onFailure { throwable ->
-                Log.e("KataglyphisGStreamer", "setPipeline failed for: $pipeline", throwable)
-
-                val nativeDetails = runCatching { GStreamerNative.getLastError() }.getOrNull()
-                val details = listOfNotNull(throwable.message, nativeDetails)
-                    .joinToString("\n")
-                    .ifBlank { "setPipeline failed" }
-                result.error(
-                    "command_failed",
-                    details,
-                    null,
-                )
-            }
     }
 
     private fun handleDiagnose(result: Result) {
-        runCatching {
-            GStreamerNative.diagnose()
-        }.onSuccess { report ->
-            result.success(report)
-        }.onFailure { throwable ->
-            Log.e("KataglyphisGStreamer", "diagnose failed", throwable)
-            result.error("command_failed", throwable.message, null)
-        }
+        runCommand(result, "diagnose") { GStreamerNative.diagnose() }
     }
 
     private fun handleSetColor(call: MethodCall, result: Result) {
@@ -132,31 +121,48 @@ class KataglyphisNativeInferencePlugin :
         }
     }
 
-    private inline fun handleNoArgCommand(
+    private fun handleNoArgCommand(
         result: Result,
         command: String,
-        crossinline block: (GStreamerController) -> Unit,
+        block: (GStreamerController) -> Unit,
     ) {
-        val controller = gstreamerController ?: run {
+        runCommand(result, command) { controller ->
+            block(controller)
+            null
+        }
+    }
+
+    /** Runs [block] on the command thread and answers with its value on the platform thread, where a result must be given. */
+    private fun runCommand(
+        result: Result,
+        command: String,
+        block: (GStreamerController) -> Any?,
+    ) {
+        val controller = gstreamerController
+        val queue = commands
+        if (controller == null || queue == null) {
             result.error("no_controller", "Plugin binding is unavailable", null)
             return
         }
 
-        runCatching { block(controller) }
-            .onSuccess { result.success(null) }
-            .onFailure { throwable ->
+        queue.execute {
+            val outcome = runCatching { block(controller) }
+            val failure = outcome.exceptionOrNull()?.let { throwable ->
                 Log.e("KataglyphisGStreamer", "$command failed", throwable)
 
                 // The bus error lives only in getLastError(); stream_page.dart's fallback keys on "command_failed".
                 val nativeDetails = runCatching { GStreamerNative.getLastError() }.getOrNull()
-                val details = listOfNotNull(throwable.message, nativeDetails)
+                listOfNotNull(throwable.message, nativeDetails)
                     .joinToString("\n")
                     .ifBlank { "$command failed" }
-                result.error(
-                    "command_failed",
-                    details,
-                    null,
-                )
             }
+            platformThread.post {
+                if (failure == null) {
+                    result.success(outcome.getOrNull())
+                } else {
+                    result.error("command_failed", failure, null)
+                }
+            }
+        }
     }
 }

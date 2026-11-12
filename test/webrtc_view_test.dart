@@ -112,6 +112,30 @@ void main() {
   );
 
   testWidgets(
+    'an answered offer is not a stream: the overlay stays until the first frame',
+    (WidgetTester tester) async {
+      await mountStreaming(tester);
+      await withdrawCamera(tester);
+      server.holdCandidates = true;
+      server.announce('cam-1');
+      // The answer is on its way back and the element has its stream object; ICE has no candidate to try.
+      await pumpUntil(
+        tester,
+        'the answer and the stream object',
+        () =>
+            server.received.toDart.last.toDart == 'peer' &&
+            server.video!.srcObject != null,
+      );
+      await tester.pump(const Duration(seconds: 1));
+      expect(streaming(), isFalse);
+      expect(shows(l10n.webrtcNegotiating), isTrue);
+      server.releaseCandidates();
+      await pumpUntil(tester, 'streaming with media', streaming);
+      expect(await framesAdvance(tester, server.video!), isTrue);
+    },
+  );
+
+  testWidgets(
     'a camera that leaves ends its session and empties the video; back, it streams again',
     (WidgetTester tester) async {
       await mountStreaming(tester);

@@ -171,7 +171,9 @@ bridge; only detection metadata does.
 > 2026-10-21). OxidANT gates by target alone, so the page sends Windows and Linux to
 > `RustWebcamView` by target, and the Linux C++ GStreamer MethodChannel fallback is gone:
 > there the plugin only creates the texture Rust pushes into. Android and macOS, where the Rust
-> webcam cannot run, keep the plugin's MethodChannel pipeline. `listCameras()` runs only when
+> webcam cannot run, keep the plugin's MethodChannel pipeline. On Android the plugin runs every
+> pipeline command on a thread of its own, since a state change waits up to 20 s for the camera,
+> and Stop releases the pipeline, so the page sets it again on Play. `listCameras()` runs only when
 > someone asks for the camera list: it starts libcamera's device monitor, which held the
 > app's first frame 0.94 s on a Pi 5 while the page called it on start (2026-10-15).
 >
@@ -859,7 +861,10 @@ socket for a stream. Reproduced in headless Chrome through a proxy that silences
 open connections and keeps new ones working. Three guards now:
 - a tab that was hidden long enough to close its session rebuilds the signalling connection
   when it shows again, before it asks for a stream;
-- a session that gets no answer within 15 s rebuilds it too;
+- a session without a first frame within 15 s rebuilds it too. The view counts a session as
+  streaming at the video element's `loadeddata`, not when the stream object arrives: that comes
+  with the camera's offer, before ICE has connected, so a network that lets no media through
+  showed a bare black picture;
 - a picture whose decoded-frame count stands still for 10 s while streaming in a visible tab
   (the camera restarted behind the dead socket) closes the session and rebuilds it.
 
