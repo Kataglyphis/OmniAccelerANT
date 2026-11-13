@@ -307,15 +307,6 @@ name is under `lib/Pages/StreamPage/`.
   the system settings behind a button. The three Android tests change in the same commit. Stays fixed by one widget
   test per cause: its text shows, no second text contradicts it, and Retry starts again.
 
-- [ ] **Web and native twin files are kept in step by a comment** (S, ★★) (not double-checked).
-  `observant_api_stub.dart:1` and `webrtc_view_stub.dart:10` ask the reader to keep their signatures in step with the
-  web files. The pages pick a side by a conditional import of free functions with no shared type
-  (`stream_page.dart:12-14, 22-23`, `lib/Pages/CameraSettingsPage/camera_settings_page.dart:6-7`), so only a
-  `[ci web]` run notices a drift. First step: one `abstract interface class ObservantApi` in a file both sides import;
-  each twin exports a class that implements it and a `createObservantApi()`, and the widgets keep taking plain
-  functions. The view gets a `typedef WebRTCViewBuilder` and a typed const in both files. `dart analyze` then fails
-  a drifted signature on the every-push Linux lane.
-
 - [ ] **The plugin's MethodChannel API has no owner** (M, ★★).
   `packages/kataglyphis_native_inference/lib/kataglyphis_native_inference.dart:5-19` types only `getPlatformVersion`
   and `add`; the other eight methods are called by name from app code, and the channel name is typed in 7 Dart and 3

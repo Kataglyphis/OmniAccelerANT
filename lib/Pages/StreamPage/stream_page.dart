@@ -18,9 +18,12 @@ import 'package:omni_accelerant/Pages/StreamPage/camera_peers.dart';
 import 'package:omni_accelerant/Pages/StreamPage/dev_stats.dart';
 import 'package:omni_accelerant/Pages/StreamPage/visit_questions.dart';
 import 'package:omni_accelerant/Pages/StreamPage/visit_stats.dart';
+import 'package:omni_accelerant/Pages/StreamPage/observant_api.dart';
 // Nothing on native; on web ObservANT that serves the page (its /healthz, here).
 import 'package:omni_accelerant/Pages/StreamPage/observant_api_stub.dart'
     if (dart.library.js_interop) 'package:omni_accelerant/Pages/StreamPage/observant_api_web.dart';
+
+final ObservantApi _observant = createObservantApi();
 
 // Constants
 
@@ -368,28 +371,31 @@ class StreamPageState extends State<StreamPage> {
             spacing: 10,
             children: [
               _buildWebRTCContainer(
-                child: webrtc_import.WebRTCView(
+                child: webrtc_import.buildWebRTCView(
                   settings: widget.webrtcSettings,
                   producerIdToConsume: null,
                 ),
               ),
               const SizedBox(height: 20),
-              const DetectionStatusLine(
-                fetch: fetchHealthz,
+              DetectionStatusLine(
+                fetch: _observant.fetchHealthz,
                 fallbackName: 'ObservANT',
-                saveSettings: saveObservantSettings,
+                saveSettings: _observant.saveObservantSettings,
               ),
-              const VisitStatsPanel(fetch: fetchVisits),
-              const VisitQuestionsPanel(
-                fetchHealth: fetchHealthz,
-                post: postToObservant,
+              VisitStatsPanel(fetch: _observant.fetchVisits),
+              VisitQuestionsPanel(
+                fetchHealth: _observant.fetchHealthz,
+                post: _observant.postToObservant,
               ),
-              const DevStatsPanel(
-                fetch: fetchHealthz,
-                playback: webrtc_import.playbackStats,
+              DevStatsPanel(
+                fetch: _observant.fetchHealthz,
+                playback: webrtc_import.playbackStatsSource,
               ),
               const SizedBox(height: 20),
-              const CameraPeers(fetchOwn: fetchHealthz, fetchFrom: fetchFrom),
+              CameraPeers(
+                fetchOwn: _observant.fetchHealthz,
+                fetchFrom: _observant.fetchFrom,
+              ),
             ],
           ),
         ),
@@ -658,7 +664,7 @@ class StreamPageState extends State<StreamPage> {
         ),
         const SizedBox(height: 12),
         _buildWebRTCContainer(
-          child: webrtc_import.WebRTCView(
+          child: webrtc_import.buildWebRTCView(
             settings: widget.webrtcSettings,
             producerIdToConsume: null,
           ),

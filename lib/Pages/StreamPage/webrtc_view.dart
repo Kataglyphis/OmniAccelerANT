@@ -9,7 +9,14 @@ import 'package:flutter/material.dart';
 import 'package:omni_accelerant/js/gstwebrtc_api_interop.dart';
 import 'package:omni_accelerant/l10n/app_localizations.dart';
 import 'package:omni_accelerant/Pages/StreamPage/stream_controller.dart';
+import 'package:omni_accelerant/Pages/StreamPage/webrtc_view_api.dart';
 import 'package:omni_accelerant/settings/webrtc_settings.dart';
+
+/// What the page calls: a view whose constructor drifts from the shared type fails the analyzer on every lane.
+const WebRTCViewBuilder buildWebRTCView = WebRTCView.new;
+
+/// The stats source under the shared type, for the same reason.
+const PlaybackStatsSource playbackStatsSource = playbackStats;
 
 /// Consumes the ObservANT producer's stream; web only, native builds get the stub.
 class WebRTCView extends StatefulWidget {

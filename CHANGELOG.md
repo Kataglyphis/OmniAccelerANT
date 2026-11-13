@@ -5,6 +5,16 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ## Unreleased
 
+### 2026-11-13 (the web and native twin files share their types)
+- **A drifted twin fails the analyzer on every lane.** `observant_api_stub.dart` and `observant_api_web.dart` each
+  implement `ObservantApi` (`lib/Pages/StreamPage/observant_api.dart`) and export `createObservantApi()`; the stream
+  page and the camera settings page call through that type, and the widgets still take plain functions. Both view
+  files hold `const WebRTCViewBuilder buildWebRTCView = WebRTCView.new` and a `PlaybackStatsSource`
+  (`webrtc_view_api.dart`), and the stream page builds the view through the constant. Before, the two sides were free
+  functions picked by a conditional import and kept in step by a comment, so only a `[ci web]` run noticed a drift.
+- **No behaviour changes.** The five panels on the stream page and the settings panel are no longer `const`, because
+  a method of an object is not a constant.
+
 ### 2026-11-13 (AMD packages carry AMD's plugin MIGraphX module; the hook pair)
 - **Not run with AMD's module.** Everything below is proven on fixtures on an arm64 host. No AMD candidate of this
   layout was built, no native build ran, and nothing ran on a card: BACKLOG, *The Linux AMD packages have not run with

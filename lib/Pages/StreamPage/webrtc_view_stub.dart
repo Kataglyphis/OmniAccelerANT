@@ -2,12 +2,19 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import 'package:omni_accelerant/Pages/StreamPage/stream_controller.dart';
+import 'package:omni_accelerant/Pages/StreamPage/webrtc_view_api.dart';
 import 'package:omni_accelerant/settings/webrtc_settings.dart';
 
 /// Native plays no WebRTC stream, so the stats panel has no browser numbers.
 ValueListenable<PlaybackStats?>? playbackStats() => null;
 
-/// Non-web stand-in; keep its constructor in step with `webrtc_view.dart`, or only the web lane breaks.
+/// What the page calls: a view whose constructor drifts from the shared type fails the analyzer on every lane.
+const WebRTCViewBuilder buildWebRTCView = WebRTCView.new;
+
+/// The stats source under the shared type, for the same reason.
+const PlaybackStatsSource playbackStatsSource = playbackStats;
+
+/// Non-web stand-in for the stream view.
 class WebRTCView extends StatelessWidget {
   final WebRTCSettings settings;
   final String? producerIdToConsume;
