@@ -1,3 +1,7 @@
+// The fixture and the source test read files, which a browser run cannot.
+@TestOn('vm')
+library;
+
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
