@@ -122,16 +122,16 @@ what the owner's goal still lacks.
   of a core, so the time is not worth the cats. `fps = 15` in a board's `observant.toml`
   still halves the capture cost at once, at a less smooth stream. Blocked on the owner: 15 fps
   or not.
-- [b] **A board installs a new release at night with no health check and no way back** (M, ★★★)
+- [ ] **A board installs a new release at night with no health check and no way back** (M, ★★★)
   (not double-checked). `scripts/linux/observant/package/omni-observant-update` ends at `dpkg -i` or
   `observant --install --user` (81-87) and deletes its download on exit (70). Nothing asks `/healthz`
   afterwards, and `omni-observant.service` starts a broken build again every 5 s (`Restart=always`). Every
   push to `main` is a release, and no lane runs on a real Pi. First step: keep the running package before the
   install, then ask `/healthz` for about a minute (camera named, model loaded, frames counted); a miss exits
   non-zero. Stays fixed by two cases in `scripts/linux/observant/test-observant-update.sh`, which `web.yml`
-  already runs: a fake package that never answers `/healthz`, and a healthy one that stays. Blocked on the
-  owner: after a miss, put the kept package back and skip that version, which would be the updater's first
-  downgrade (camera-streaming.md § *Updates from the releases*), or only report it. Audit 2026-11-12.
+  already runs: a fake package that never answers `/healthz`, and a healthy one that stays. Owner decision
+  2026-11-13: after a miss the kept package is put back and that version is skipped, the updater's first
+  downgrade (camera-streaming.md § *Updates from the releases*). Audit 2026-11-12.
 - [b] **A board's speed is watched only by hand** (S, ★★). `scripts/linux/observant/bench/model.sh` and
   `viewer.sh` measure a board when someone runs them, against the baseline of 2026-10-14
   (camera-streaming.md, *Measuring performance*); the one `--perf-host` baseline is a desktop's
@@ -147,8 +147,8 @@ what the owner's goal still lacks.
 - [ ] **LAI-F4: microphone input in the app** (M, ★★). Hub language-AI milestone 3 (`docs/language-ai.md`).
 
 - [ ] **The web playground sends no `top_p` and `top_k`** (S, ★). Native sends `top_p` 1.0 and `top_k` 50 with
-  every sampled request (`playground_settings.dart:130-138`), web sends neither (`endpoint_request.dart:7-28`). Left
-  to the owner: both paths or neither. Done when `test/endpoint_chat_test.dart` holds the request body for the
+  every sampled request (`playground_settings.dart:130-138`), web sends neither (`endpoint_request.dart:7-28`). Owner
+  decision 2026-11-13: both paths send each of the two only when it differs from its default. Done when `test/endpoint_chat_test.dart` holds the request body for the
   choice. Audit 2026-11-12.
 - [b] **The web playground streams its answer** (S, ★★). `endpoint_chat.dart` reads an event stream when a server
   sends one (tested on a fake transport and a fake fetch), but the request still asks for one whole answer, LAI-F2's
@@ -380,20 +380,20 @@ name is under `lib/Pages/StreamPage/`.
   that needs no number: no `memset` when the sizes match. The buffers change owner only above about 1 ms a frame at
   720p, and the Markdown fix would be ANThology's.
 
-- [b] **macOS: the Stream page keeps a half for a platform the plugin does not have** (S, ★★). The plugin has android,
+- [ ] **macOS: the Stream page keeps a half for a platform the plugin does not have** (S, ★★). The plugin has android,
   linux and windows (`packages/kataglyphis_native_inference/pubspec.yaml:21-30`) and `docs/source/overview.md:22` says
   macOS is no target. But AGENTS.md (section 1) still gives macOS the plugin pipeline, the page keeps desktop source buttons,
   colour buttons, `setColor`, `avfvideosrc` and the appsink sink for it, and 13 of the 20 tests in
-  `test/stream_page_native_test.dart` run as macOS. Blocked on the owner: macOS a target or not. If not: that UI goes,
+  `test/stream_page_native_test.dart` run as macOS. Owner decision 2026-11-13: macOS is no target. That UI goes,
   its tests run as Android, the AGENTS.md sentence changes, and the rows above on the Android tests, the MethodChannel
   API and the state machine get smaller.
 
-- [b] **Linux and Windows textures behave differently under one ABI** (S, ★). Linux keeps the texture's creation size,
+- [ ] **Linux and Windows textures behave differently under one ABI** (S, ★). Linux keeps the texture's creation size,
   crops or pads a frame of another size and forces alpha to 255 (`linux/my_texture.cc:135-181`); Windows resizes to
   the pushed frame and copies alpha as it comes (`windows/kataglyphis_texture.cpp:34-68`), and each gtest pins its own
   side. `third_party/OxidANT/abi/texture.json` fixes names and codes, not behaviour. Nobody sees it today: Rust always
-  sends RGBA at the asked size (`third_party/OxidANT/crates/media/src/capture.rs:179-195`). Blocked on the owner:
-  which side is the rule (crop or resize; opaque or as sent). Then one include file of cases against the C ABI beside
+  sends RGBA at the asked size (`third_party/OxidANT/crates/media/src/capture.rs:179-195`). Owner decision 2026-11-13:
+  Windows is the rule (the texture takes the pushed frame's size, alpha as sent), and Linux changes. Then one include file of cases against the C ABI beside
   the plugin, with a small adapter per platform, run by both gtests.
 
 ## Open — waiting on the owner
