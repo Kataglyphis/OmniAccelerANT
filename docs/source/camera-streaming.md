@@ -1373,12 +1373,26 @@ downgrade) downloads `omni-observant_<version>_<arch>.deb`, checks it against th
 `SHA256SUMS` and installs it with `dpkg -i`; the package's `postinst` restarts the service. No
 release yet, a latest release from before the `v` tags, or one without this architecture's
 package (riscv64, which no CI lane builds) leaves the camera as it is.
+
+**A release that does not come up healthy is put back** (owner decision, 2026-11-13). Before it
+installs, the updater keeps the running package: for a `.deb` it downloads the installed version's
+`.deb` from that release and checks it against its `SHA256SUMS`, for a user install it copies the
+bundle. After the install it asks `http://127.0.0.1:8080/healthz` every 3 s for up to 90 s for
+`"ok": true` (the camera delivering frames, no model failing or hanging, ONNX Runtime loaded).
+When none comes, it installs the kept package again, which is the updater's only downgrade,
+writes the version to `/var/lib/omni-observant-update/skipped-version` (a user install:
+`~/.local/state/omni-observant/skipped-version`), exits 1 and skips that version on later
+nights; the next release is tried as usual. A board that did not answer ok before the update
+(a stopped service, a camera already broken) is not judged, or it would roll back every night.
+`OMNI_OBSERVANT_HEALTHZ`, `OMNI_OBSERVANT_HEALTH_WAIT` and `OMNI_OBSERVANT_HEALTH_POLL` change the
+address and the times. A version skipped by mistake: delete the file and run the update.
 - Off: `sudo systemctl disable --now omni-observant-update.timer`, which an upgrade respects.
 - Check at once: `sudo systemctl start omni-observant-update.service`; `journalctl -u
   omni-observant-update` shows what it did.
 - `scripts/linux/observant/test-observant-update.sh` runs it in `web.yml`'s package jobs
   against a local stand-in for GitHub with fake packages: an update, no downgrade, a failing
-  checksum and a missing architecture.
+  checksum, a missing architecture, a release that comes up broken and is put back and skipped,
+  and a board that did not answer before and is not judged.
 
 **A user install updates itself the same way, without root** (2026-10-16). Its user timer runs
 `~/.local/opt/omni-observant/libexec/omni-observant-update --user`, which compares the newest

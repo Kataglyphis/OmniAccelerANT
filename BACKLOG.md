@@ -122,16 +122,6 @@ what the owner's goal still lacks.
   of a core, so the time is not worth the cats. `fps = 15` in a board's `observant.toml`
   still halves the capture cost at once, at a less smooth stream. Blocked on the owner: 15 fps
   or not.
-- [ ] **A board installs a new release at night with no health check and no way back** (M, ★★★)
-  (not double-checked). `scripts/linux/observant/package/omni-observant-update` ends at `dpkg -i` or
-  `observant --install --user` (81-87) and deletes its download on exit (70). Nothing asks `/healthz`
-  afterwards, and `omni-observant.service` starts a broken build again every 5 s (`Restart=always`). Every
-  push to `main` is a release, and no lane runs on a real Pi. First step: keep the running package before the
-  install, then ask `/healthz` for about a minute (camera named, model loaded, frames counted); a miss exits
-  non-zero. Stays fixed by two cases in `scripts/linux/observant/test-observant-update.sh`, which `web.yml`
-  already runs: a fake package that never answers `/healthz`, and a healthy one that stays. Owner decision
-  2026-11-13: after a miss the kept package is put back and that version is skipped, the updater's first
-  downgrade (camera-streaming.md § *Updates from the releases*). Audit 2026-11-12.
 - [b] **A board's speed is watched only by hand** (S, ★★). `scripts/linux/observant/bench/model.sh` and
   `viewer.sh` measure a board when someone runs them, against the baseline of 2026-10-14
   (camera-streaming.md, *Measuring performance*); the one `--perf-host` baseline is a desktop's

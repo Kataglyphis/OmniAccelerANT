@@ -5,6 +5,18 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ## Unreleased
 
+### 2026-11-13 (a board puts a release back that does not come up healthy; owner decision)
+- **The nightly updater checks the camera after an install and goes back on a miss.** It ended at `dpkg -i` or
+  `observant --install --user`, and a broken build restarted every 5 s until someone looked. Now it keeps the running
+  package first (the installed version's `.deb` from its release, checked against `SHA256SUMS`; a user install's
+  bundle copied), then asks `/healthz` for up to 90 s for `"ok": true`. On a miss it installs the kept package again,
+  exits 1 and records the version in `skipped-version`, so later nights skip it and the next release is tried. A
+  board that did not answer ok before the update is not judged. Docs: camera-streaming.md § *Updates from the
+  releases*.
+- `test-observant-update.sh` covers both install kinds: a broken release put back and skipped, the next one
+  installed, and a board not judged. Four planted faults (no rollback, no skip, judging a silent board, no check)
+  each failed it, run by hand: the mutation lane runs on a bare runner, where the suite (root, dpkg) cannot run.
+
 ### 2026-11-13 (macOS is no target; owner decision)
 - **The Stream page keeps no macOS half.** The plugin has Android, Linux and Windows, yet the page sent macOS through
   the plugin's MethodChannel pipeline, with desktop source buttons (`avfvideosrc`, SMPTE and snow patterns) and

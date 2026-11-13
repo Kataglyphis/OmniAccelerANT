@@ -4,6 +4,9 @@ set -euo pipefail
 
 package=omni-observant
 releases="${OMNI_OBSERVANT_RELEASES:-https://github.com/Kataglyphis/OmniAccelerANT/releases}"
+health_url="${OMNI_OBSERVANT_HEALTHZ:-http://127.0.0.1:8080/healthz}"
+health_wait="${OMNI_OBSERVANT_HEALTH_WAIT:-90}"
+health_poll="${OMNI_OBSERVANT_HEALTH_POLL:-3}"
 case "${1:-}" in
   "") for_user=false ;;
   --user) for_user=true ;;
@@ -18,10 +21,14 @@ if [ "${for_user}" = true ]; then
   prefix="${HOME}/.local/opt/${package}"
   installed="$(cat "${prefix}/share/${package}/version" 2>/dev/null || true)"
   kind="a user install in ${prefix}"
+  state="${XDG_STATE_HOME:-${HOME}/.local/state}/${package}"
 else
   installed="$(dpkg-query -W -f='${Version}' "${package}" 2>/dev/null || true)"
   kind="a .deb"
+  state="/var/lib/${package}-update"
 fi
+# A version that failed its health check here once is not installed again; the next release is.
+skipped="${state}/skipped-version"
 if [ -z "${installed}" ]; then
   echo "${package} is not installed as ${kind}; nothing to update"
   exit 0
@@ -56,6 +63,20 @@ if ! newer "${latest}" "${installed}"; then
   echo "${package} ${installed} is up to date (latest release ${latest})"
   exit 0
 fi
+if [ "$(cat "${skipped}" 2>/dev/null || true)" = "${latest}" ]; then
+  echo "skipping ${latest}: it failed its health check on this board before; staying on ${installed}"
+  exit 0
+fi
+
+# Whether ObservANT answers ok within $1 seconds: the camera named, frames counted, the model running.
+healthy() {
+  local deadline=$(( $(date +%s) + $1 ))
+  while :; do
+    if curl -fs --max-time 5 "${health_url}" 2>/dev/null | grep -q '"ok": *true'; then return 0; fi
+    [ "$(date +%s)" -lt "${deadline}" ] || return 1
+    sleep "${health_poll}"
+  done
+}
 
 if [ "${for_user}" = true ]; then
   # The tarball needs no FUSE, and the cache is on disk: /tmp may be RAM, and a Pi Zero has 512 MB.
@@ -78,6 +99,25 @@ if ! (cd "${work}" && awk -v file="${asset}" '$2 == file' SHA256SUMS | sha256sum
   echo "${asset} does not match the release's SHA256SUMS; not installed" >&2
   exit 1
 fi
+# Only a board that answered ok before can be judged after: a stopped or broken one would roll back every night.
+was_healthy=false
+if healthy 0; then was_healthy=true; fi
+# The running package, kept so a release that does not come up healthy can be put back.
+kept=""
+if [ "${for_user}" = true ]; then
+  cp -a "${prefix}" "${work}/kept" && kept="${work}/kept"
+else
+  old_asset="${package}_${installed}_${arch}.deb"
+  mkdir -p "${work}/kept"
+  if curl -fsSL --max-time 1800 -o "${work}/kept/${old_asset}" "${releases}/download/v${installed}/${old_asset}" \
+    && curl -fsSL --max-time 60 -o "${work}/kept/SHA256SUMS" "${releases}/download/v${installed}/SHA256SUMS" \
+    && (cd "${work}/kept" && awk -v file="${old_asset}" '$2 == file' SHA256SUMS | sha256sum -c --quiet - >/dev/null 2>&1); then
+    kept="${work}/kept/${old_asset}"
+  else
+    echo "release ${installed} has no ${old_asset} to go back to; a failed health check will only be reported" >&2
+  fi
+fi
+
 echo "installing ${package} ${latest} over ${installed}"
 if [ "${for_user}" = true ]; then
   tar -xzf "${work}/${asset}" -C "${work}"
@@ -85,3 +125,25 @@ if [ "${for_user}" = true ]; then
 else
   DEBIAN_FRONTEND=noninteractive dpkg -i "${work}/${asset}"
 fi
+
+if [ "${was_healthy}" = false ]; then
+  echo "${package} did not answer ok at ${health_url} before the update, so ${latest} is not judged"
+  exit 0
+fi
+if healthy "${health_wait}"; then
+  echo "${package} ${latest} answers ok at ${health_url}"
+  exit 0
+fi
+mkdir -p "${state}"
+printf '%s\n' "${latest}" > "${skipped}"
+if [ -z "${kept}" ]; then
+  echo "${package} ${latest} did not answer ok within ${health_wait} s, and ${installed} cannot be put back" >&2
+  exit 1
+fi
+echo "${package} ${latest} did not answer ok within ${health_wait} s; putting ${installed} back and skipping ${latest}" >&2
+if [ "${for_user}" = true ]; then
+  "${kept}/observant" --install --user
+else
+  DEBIAN_FRONTEND=noninteractive dpkg -i "${kept}"
+fi
+exit 1
