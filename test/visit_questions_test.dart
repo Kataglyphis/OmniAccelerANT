@@ -53,7 +53,7 @@ VisitQuestionsController _controller(
 Future<void> _pump(
   WidgetTester tester,
   _Camera camera, {
-  String? health = '{"ask":true}',
+  String? health = '{"ok":true,"ask":true}',
 }) => tester.pumpWidget(
   MaterialApp(
     localizationsDelegates: const [
@@ -246,7 +246,7 @@ void main() {
         home: Scaffold(
           body: SingleChildScrollView(
             child: VisitQuestionsPanel(
-              fetchHealth: () async => '{"ask":true}',
+              fetchHealth: () async => '{"ok":true,"ask":true}',
               post: camera.post,
               now: () => _now,
             ),
@@ -274,7 +274,7 @@ void main() {
     });
 
     for (final (name, health) in <(String, String?)>[
-      ('says no model answers', '{"ask":false}'),
+      ('says no model answers', '{"ok":true,"ask":false}'),
       ('predates questions', '{"ok":true}'),
       ('does not answer', null),
     ]) {
@@ -284,6 +284,55 @@ void main() {
         expect(find.text('Ask about the visits'), findsNothing);
       });
     }
+
+    testWidgets(
+      'asks again when the page shows, so a model that came later is offered',
+      (tester) async {
+        var answers = false;
+        var probes = 0;
+        Widget app({required bool shown}) => MaterialApp(
+          localizationsDelegates: const [
+            ...AppLocalizations.localizationsDelegates,
+            AnthologyLocalizations.delegate,
+          ],
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('en'),
+          home: Scaffold(
+            body: TickerMode(
+              enabled: shown,
+              child: VisitQuestionsPanel(
+                fetchHealth: () async {
+                  probes++;
+                  return '{"ok":true,"ask":$answers}';
+                },
+                post: _Camera(<_Reply?>[]).post,
+                now: () => _now,
+              ),
+            ),
+          ),
+        );
+        await tester.pumpWidget(app(shown: true));
+        await tester.pumpAndSettle();
+        expect(
+          (probes, find.text('Ask about the visits').evaluate().length),
+          (1, 0),
+        );
+        // Another tab of the bottom bar shows, the camera gets its model, and the page comes back.
+        await tester.pumpWidget(app(shown: false));
+        await tester.pumpAndSettle();
+        answers = true;
+        expect(probes, 1);
+        await tester.pumpWidget(app(shown: true));
+        await tester.pumpAndSettle();
+        expect(probes, 2);
+        expect(find.text('Ask about the visits'), findsOneWidget);
+        // Once it is offered, coming back asks no more.
+        await tester.pumpWidget(app(shown: false));
+        await tester.pumpWidget(app(shown: true));
+        await tester.pumpAndSettle();
+        expect(probes, 2);
+      },
+    );
 
     testWidgets('asks, answers and shows what the model was told', (
       tester,

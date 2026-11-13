@@ -6,6 +6,8 @@ import 'package:omni_accelerant/l10n/app_localizations.dart';
 import 'package:omni_accelerant/Pages/CameraSettingsPage/class_labels.dart';
 import 'package:omni_accelerant/Pages/StreamPage/detection_status.dart'
     show formatLastSeen;
+import 'package:omni_accelerant/Pages/StreamPage/observant_health.dart';
+import 'package:omni_accelerant/Pages/StreamPage/poll_gate.dart';
 import 'package:omni_accelerant/utils/json_utils.dart';
 
 /// Spots of the picture as fractions of its width and height, from a JSON list of `[x1, y1, x2, y2]`.
@@ -143,46 +145,28 @@ class ObservantInfo {
   final String? problem;
 
   static ObservantInfo? parse(String? body) {
-    final json = decodeJsonObject(body);
-    final ok = json?['ok'];
-    if (json == null || ok is! bool) {
+    final health = ObservantHealth.parse(body);
+    if (health == null) {
       return null;
     }
-    final frame = json['frame'];
-    // `cat` before ObservANT (2026-10-14).
-    final cat = json['detection'] ?? json['cat'];
-    int? field(Object? map, String key) =>
-        map is Map<String, dynamic> && map[key] is int ? map[key] as int : null;
     return ObservantInfo(
-      camera: json['camera'] is String ? json['camera'] as String : '',
-      version: json['version'] is String ? json['version'] as String : '',
-      pixelated: json['privacy'] == 'pixelate',
-      width: field(frame, 'width'),
-      height: field(frame, 'height'),
-      fps: field(frame, 'fps'),
-      inference: json['inference'] == true,
-      modelRuns: field(json, 'model_runs') ?? 0,
-      visits: field(cat, 'visits') ?? 0,
-      problem: ok
-          ? null
-          : (json['problem'] is String ? json['problem'] as String : ''),
-      boxes: parseZones(cat is Map<String, dynamic> ? cat['boxes'] : null),
+      camera: health.camera,
+      version: health.version,
+      pixelated: health.pixelated,
+      width: health.frameWidth,
+      height: health.frameHeight,
+      fps: health.frameFps,
+      inference: health.inference,
+      modelRuns: health.modelRuns,
+      visits: health.visits,
+      problem: health.problem,
+      boxes: parseZones(health.boxes),
       detections: <RecentDetection>[
-        if (cat is Map<String, dynamic> && cat['recent'] is List)
-          for (final visit in cat['recent'] as List)
-            if (visit is Map<String, dynamic> &&
-                visit['arrived'] is int &&
-                parseZones(visit['boxes']).isNotEmpty)
-              RecentDetection(
-                DateTime.fromMillisecondsSinceEpoch(
-                  (visit['arrived'] as int) * 1000,
-                ),
-                parseZones(visit['boxes']),
-              ),
+        for (final visit in health.recent)
+          if (parseZones(visit.boxes).isNotEmpty)
+            RecentDetection(visit.arrived, parseZones(visit.boxes)),
       ].take(_keptPictures).toList(),
-      lastScore: cat is Map<String, dynamic> && cat['last_score'] is num
-          ? (cat['last_score'] as num).toDouble()
-          : null,
+      lastScore: health.lastScore,
     );
   }
 }
@@ -246,6 +230,7 @@ class _CameraSettingsPanelState extends State<CameraSettingsPanel> {
 
   /// False while another tab of the bottom bar shows: go_router keeps this page alive behind it.
   bool _visible = true;
+  final PollGate _gate = PollGate();
   final TextEditingController _name = TextEditingController();
 
   @override
@@ -258,12 +243,12 @@ class _CameraSettingsPanelState extends State<CameraSettingsPanel> {
       }
       if (_settings == null || _lostSince != null) {
         // A camera restarting after an upgrade is back within seconds; ask again rather than stay dead.
-        unawaited(_load());
+        unawaited(_gate.run(_load));
         return;
       }
       setState(() => _frame++);
       // With the picture, so "not a cat" offers the boxes it shows.
-      unawaited(_refreshInfo());
+      unawaited(_gate.run(_refreshInfo));
     });
   }
 

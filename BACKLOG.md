@@ -334,18 +334,15 @@ name is under `lib/Pages/StreamPage/`.
   Playing; a stop on `AppLifecycleState.paused` and the last pipeline again on `resumed`; no `g_mutex` across a
   wait. Stays fixed by Dart tests on a faked `state` and by the emulator check of the first row.
 
-- [ ] **Four `/healthz` parsers, and no test feeds them ObservANT's real JSON** (M, ★★).
-  `detection_status.dart:79-147`, `dev_stats.dart:42-65`, `lib/Pages/CameraSettingsPage/camera_settings.dart:145-187`
-  and `visit_questions.dart:185-190` each read the body by key and fall back to null; the `cat` fallback and
-  `privacy == 'pixelate'` are typed twice. Every test types its own JSON (`test/dev_stats_test.dart:8-12`,
-  `test/camera_settings_test.dart:11-14`; `scripts/linux/tests/web-smoke-server.js:15-16` serves a `detection.count`
-  that no parser reads), so a field ObservANT renames leaves the tests green and the page on its defaults. The timers
-  stay: an open page was measured at 48 requests a minute (camera-streaming.md, *Measuring performance*). First step:
-  one `ObservantHealth` model file with the one parser; the questions panel, which asks for `ask` once at its start,
-  asks again when the page shows; and an in-flight flag in each `_poll`, since the 8 s timeout is longer than the 2, 3
-  and 5 s intervals. Then, once OxidANT writes golden `/healthz` files from a `status.rs` test, the Dart tests and
-  `web-smoke-server.js` read those from `third_party/OxidANT`. Stays fixed by a test that parses the golden and finds
-  no shown field null, and a source test that `json['detection']` is in one file only.
+- [ ] **The `/healthz` fixture is a copy, not ObservANT's own golden** (S, ★★). One model reads `/healthz` since
+  2026-11-13 (`lib/Pages/StreamPage/observant_health.dart`), and `test/observant_health_test.dart` feeds it a body
+  a real ObservANT answered (`test/fixtures/observant_healthz_idle.json`, OxidANT 7abcc12 with its model, the test
+  pattern as camera). That file is a copy taken once: a key ObservANT renames later leaves it, and the tests, as
+  they are. Its visit fields are hand-filled in the keys `status.rs` writes, since no camera saw a cat for it, and
+  `scripts/linux/tests/web-smoke-server.js` still serves its own body with a `detection.count` nothing reads.
+  First step, in OxidANT: a `status.rs` test writes golden `/healthz` files (idle, a visit, a problem) and fails
+  when they differ. Then the Dart test and `web-smoke-server.js` read them from `third_party/OxidANT` at the pin
+  that brings them. Done when the fixture here is gone and the test parses the goldens with no shown field null.
 
 - [ ] **No back-off when no camera answers** (M, ★★) (not double-checked). The status line asks `/healthz` every 5 s
   for ever (`detection_status.dart:261-285`), the peers' 10 s timer stops only after an own `/healthz` answered

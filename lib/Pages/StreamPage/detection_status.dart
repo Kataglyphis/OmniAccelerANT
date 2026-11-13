@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:omni_accelerant/l10n/app_localizations.dart';
 import 'package:omni_accelerant/Pages/CameraSettingsPage/class_labels.dart';
+import 'package:omni_accelerant/Pages/StreamPage/observant_health.dart';
+import 'package:omni_accelerant/Pages/StreamPage/poll_gate.dart';
 import 'package:omni_accelerant/utils/json_utils.dart';
 import 'package:url_launcher/link.dart';
 
@@ -77,71 +79,26 @@ class DetectionStatus {
   /// `null` for anything but an ObservANT camera's `/healthz` answer, so other hosts show nothing; one that is
   /// not ok still is one, with its [problem].
   static DetectionStatus? fromHealthz(String body) {
-    final json = decodeJsonObject(body);
-    final ok = json?['ok'];
-    if (json == null || ok is! bool) {
+    final health = ObservantHealth.parse(body);
+    if (health == null || !health.hasDetection) {
       return null;
     }
-    // `cat` before ObservANT (2026-10-14), so an older camera among the peers still reads.
-    final cat = json['detection'] ?? json['cat'];
-    final classes = json['classes'];
-    if (cat is! Map<String, dynamic>) {
-      return null;
-    }
-    final name = json['name'];
-    final seconds = cat['last_seen'];
-    final visits = cat['visits'];
-    final recent = cat['recent'];
-    final clip = cat['clip'];
-    final clips = cat['clips'];
-    final problem = json['problem'];
-    final peers = json['peers'];
     return DetectionStatus(
-      dark: json['dark'] == true,
-      rotate: switch (json['rotate']) {
-        final int r when r % 90 == 0 && r >= 0 && r < 360 => r,
-        _ => null,
-      },
-      pixelated: json['privacy'] == 'pixelate',
-      peers: <String>[
-        if (peers is List)
-          for (final peer in peers)
-            if (peer is String) peer,
-      ],
-      problem: ok ? null : (problem is String ? problem : ''),
-      name: name is String ? name : '',
-      inView: cat['in_view'] == true,
-      classes: classes is List
-          ? <String>[
-              for (final c in classes)
-                if (c is String) c,
-            ]
-          : const <String>['cat'],
-      lastSeen: seconds is int
-          ? DateTime.fromMillisecondsSinceEpoch(seconds * 1000)
-          : null,
-      visits: visits is int ? visits : 0,
-      clip: clip is int
-          ? DateTime.fromMillisecondsSinceEpoch(clip * 1000)
-          : null,
-      clips: <DateTime>[
-        if (clips is List)
-          for (final t in clips)
-            if (t is int) DateTime.fromMillisecondsSinceEpoch(t * 1000),
-      ],
+      dark: health.dark,
+      rotate: health.rotate,
+      pixelated: health.pixelated,
+      peers: health.peers,
+      problem: health.problem,
+      name: health.name,
+      inView: health.inView,
+      classes: health.classes ?? const <String>['cat'],
+      lastSeen: health.lastSeen,
+      visits: health.visits,
+      clip: health.clip,
+      clips: health.clips,
       recent: <Visit>[
-        if (recent is List)
-          for (final visit in recent)
-            if (visit is Map<String, dynamic> && visit['arrived'] is int)
-              Visit(
-                DateTime.fromMillisecondsSinceEpoch(
-                  (visit['arrived'] as int) * 1000,
-                ),
-                visit['stayed_s'] is int
-                    ? Duration(seconds: visit['stayed_s'] as int)
-                    : null,
-                visit['class'] is String ? visit['class'] as String : null,
-              ),
+        for (final visit in health.recent)
+          Visit(visit.arrived, visit.stayed, visit.className),
       ],
     );
   }
@@ -256,14 +213,15 @@ class _DetectionStatusLineState extends State<DetectionStatusLine> {
 
   /// False while another tab of the bottom bar shows: go_router keeps this page alive behind it.
   bool _visible = true;
+  final PollGate _gate = PollGate();
 
   @override
   void initState() {
     super.initState();
-    _poll();
+    unawaited(_gate.run(_poll));
     _timer = Timer.periodic(widget.interval, (_) {
       if (_visible) {
-        _poll();
+        unawaited(_gate.run(_poll));
       }
     });
   }
@@ -313,7 +271,7 @@ class _DetectionStatusLineState extends State<DetectionStatusLine> {
       // Back in view: show the cat as it is now, not as it was when the page was left.
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
-          _poll();
+          unawaited(_gate.run(_poll));
         }
       });
     }

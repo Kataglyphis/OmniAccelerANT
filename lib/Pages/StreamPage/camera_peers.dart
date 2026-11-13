@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:omni_accelerant/l10n/app_localizations.dart';
 import 'package:omni_accelerant/Pages/StreamPage/detection_status.dart';
+import 'package:omni_accelerant/Pages/StreamPage/poll_gate.dart';
 import 'package:omni_accelerant/utils/json_utils.dart';
 import 'package:url_launcher/link.dart';
 
@@ -47,14 +48,15 @@ class _CameraPeersState extends State<CameraPeers> {
 
   /// False while another tab of the bottom bar shows: go_router keeps this page alive behind it.
   bool _visible = true;
+  final PollGate _gate = PollGate();
 
   @override
   void initState() {
     super.initState();
-    _poll();
+    unawaited(_gate.run(_poll));
     _timer = Timer.periodic(widget.interval, (_) {
       if (_visible) {
-        _poll();
+        unawaited(_gate.run(_poll));
       }
     });
   }

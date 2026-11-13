@@ -4,6 +4,7 @@ import 'package:anthology/Widgets/Chat/chat_panel.dart';
 import 'package:flutter/material.dart';
 
 import 'package:omni_accelerant/l10n/app_localizations.dart';
+import 'package:omni_accelerant/Pages/StreamPage/observant_health.dart';
 import 'package:omni_accelerant/utils/json_utils.dart';
 
 /// ObservANT's answer to a POST: its status and body; `null` when none came.
@@ -176,6 +177,9 @@ class _VisitQuestionsPanelState extends State<VisitQuestionsPanel> {
   bool _open = false;
   VisitQuestionsController? _controller;
 
+  /// False while another tab of the bottom bar shows: go_router keeps this page alive behind it.
+  bool _visible = true;
+
   @override
   void initState() {
     super.initState();
@@ -184,7 +188,7 @@ class _VisitQuestionsPanelState extends State<VisitQuestionsPanel> {
 
   Future<void> _probe() async {
     final body = await fetchOrNull(widget.fetchHealth);
-    final answers = decodeJsonObject(body)?['ask'] == true;
+    final answers = ObservantHealth.parse(body)?.answersQuestions ?? false;
     if (mounted && answers) {
       setState(() => _available = true);
     }
@@ -210,6 +214,16 @@ class _VisitQuestionsPanelState extends State<VisitQuestionsPanel> {
 
   @override
   Widget build(BuildContext context) {
+    final visible = TickerMode.valuesOf(context).enabled;
+    if (visible && !_visible && !_available) {
+      // Back in view: a camera that had no language model at the first look may have one now.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          unawaited(_probe());
+        }
+      });
+    }
+    _visible = visible;
     if (!_available) {
       return const SizedBox.shrink();
     }

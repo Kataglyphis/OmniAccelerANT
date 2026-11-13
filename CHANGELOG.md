@@ -5,6 +5,22 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ## Unreleased
 
+### 2026-11-13 (one reader for ObservANT's `/healthz`, and one question at a time)
+- **`/healthz` is read by key in one file.** The status line, the stats panel, the camera settings and the
+  questions panel each read the body by key, with the `cat` fallback and `privacy == 'pixelate'` typed twice. They
+  now take their fields from `ObservantHealth` (`lib/Pages/StreamPage/observant_health.dart`); a source test
+  fails when another file reads `detection`, `cat`, `stats` or `model_runs` by key.
+- **The tests read a real answer.** `test/fixtures/observant_healthz_idle.json` is what
+  `kataglyphis_observant --camera test` (OxidANT 7abcc12, with its model) answered, unchanged; every number of the
+  stats panel must be found in it. It is a copy taken once, not ObservANT's own golden: BACKLOG.
+- **An answer needs `ok` to count.** The stats panel and the questions panel also read a body without `ok`;
+  every ObservANT sends it, and the status line and the settings required it already.
+- **One poll at a time.** A `/healthz` request may take 8 s to fail and the page asks every 2, 3, 5 and 10 s, so
+  requests to a slow camera piled up. The status line, the stats, the peers and the settings now skip a tick while
+  the request before still waits (`PollGate`); a read-back after a save is not skipped.
+- **The questions panel asks again when the page shows.** It asked once, at its start, whether a language model
+  answers; a camera that got its model later is now offered when the Stream page comes back into view.
+
 ### 2026-11-13 (the web and native twin files share their types)
 - **A drifted twin fails the analyzer on every lane.** `observant_api_stub.dart` and `observant_api_web.dart` each
   implement `ObservantApi` (`lib/Pages/StreamPage/observant_api.dart`) and export `createObservantApi()`; the stream

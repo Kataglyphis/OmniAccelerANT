@@ -4,6 +4,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import 'package:omni_accelerant/l10n/app_localizations.dart';
+import 'package:omni_accelerant/Pages/StreamPage/observant_health.dart';
+import 'package:omni_accelerant/Pages/StreamPage/poll_gate.dart';
 import 'package:omni_accelerant/utils/json_utils.dart';
 import 'package:omni_accelerant/Pages/StreamPage/stream_controller.dart';
 
@@ -40,27 +42,23 @@ class ServerStats {
 
   /// `null` for anything but an ObservANT camera's `/healthz` that carries `stats`.
   static ServerStats? fromHealthz(String? body) {
-    final json = decodeJsonObject(body);
-    final stats = json?['stats'];
-    if (json == null || stats is! Map<String, dynamic>) {
+    final health = ObservantHealth.parse(body);
+    if (health == null || !health.hasStats) {
       return null;
     }
-    double? number(Object? v) => v is num ? v.toDouble() : null;
-    int? whole(Object? v) => v is int ? v : null;
-    final frame = json['frame'];
-    final uptime = whole(stats['uptime_s']);
+    final uptime = health.wholeStat('uptime_s');
     return ServerStats(
-      captureFps: number(stats['capture_fps']),
-      configuredFps: frame is Map<String, dynamic> ? whole(frame['fps']) : null,
-      modelMs: number(stats['model_ms']),
-      modelRunsPerSecond: number(stats['model_runs_per_s']),
-      cpuPercent: number(stats['cpu_percent']),
-      cores: whole(stats['cores']),
-      rssMb: number(stats['rss_mb']),
-      load1m: number(stats['load_1m']),
-      temperatureC: number(stats['temperature_c']),
+      captureFps: health.stat('capture_fps'),
+      configuredFps: health.frameFps,
+      modelMs: health.stat('model_ms'),
+      modelRunsPerSecond: health.stat('model_runs_per_s'),
+      cpuPercent: health.stat('cpu_percent'),
+      cores: health.wholeStat('cores'),
+      rssMb: health.stat('rss_mb'),
+      load1m: health.stat('load_1m'),
+      temperatureC: health.stat('temperature_c'),
       uptime: uptime == null ? null : Duration(seconds: uptime),
-      viewers: whole(json['viewers']),
+      viewers: health.viewers,
     );
   }
 }
@@ -91,14 +89,18 @@ class _DevStatsPanelState extends State<DevStatsPanel> {
   bool _open = false;
   ServerStats? _server;
   Timer? _timer;
+  final PollGate _gate = PollGate();
 
   void _toggle() {
     setState(() => _open = !_open);
     _timer?.cancel();
     _timer = null;
     if (_open) {
-      unawaited(_poll());
-      _timer = Timer.periodic(widget.interval, (_) => unawaited(_poll()));
+      unawaited(_gate.run(_poll));
+      _timer = Timer.periodic(
+        widget.interval,
+        (_) => unawaited(_gate.run(_poll)),
+      );
     }
   }
 

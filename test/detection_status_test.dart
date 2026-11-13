@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
@@ -43,6 +45,26 @@ void main() {
     await initializeDateFormatting('en');
     await initializeDateFormatting('de');
   });
+
+  testWidgets(
+    'a camera that takes long to answer is asked once, not every interval',
+    (tester) async {
+      final asked = <Completer<String?>>[];
+      await _pumpLine(tester, () {
+        asked.add(Completer<String?>());
+        return asked.last.future;
+      });
+      // The fetch may take 8 s to fail; the line asks every 5 s.
+      await tester.pump(const Duration(seconds: 16));
+      expect(asked.length, 1);
+      asked.single.complete(_neverSeen);
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 5));
+      expect(asked.length, 2);
+      asked.last.complete(_neverSeen);
+      await tester.pump();
+    },
+  );
 
   group('DetectionStatus.fromHealthz', () {
     test('reads how far the picture is turned, and only a quarter turn', () {
