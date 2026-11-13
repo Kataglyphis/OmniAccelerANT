@@ -146,10 +146,17 @@ what the owner's goal still lacks.
 
 - [ ] **LAI-F4: microphone input in the app** (M, ★★). Hub language-AI milestone 3 (`docs/language-ai.md`).
 
-- [ ] **The web playground sends no `top_p` and `top_k`** (S, ★). Native sends `top_p` 1.0 and `top_k` 50 with
-  every sampled request (`playground_settings.dart:130-138`), web sends neither (`endpoint_request.dart:7-28`). Owner
-  decision 2026-11-13: both paths send each of the two only when it differs from its default. Done when `test/endpoint_chat_test.dart` holds the request body for the
-  choice. Audit 2026-11-12.
+- [ ] **The native playground still sends `top_p` and `top_k` at their defaults** (S, ★). Owner decision
+  2026-11-13: both paths send each of the two only when it differs from its default. The settings page has no
+  control for either, so `options()` always passes the defaults (`playground_settings.dart`) and the web body sends
+  neither (`endpoint_request.dart`), which already is the decision. The native body is OxidANT's: since OxidANT
+  494293f its `chat_body` leaves a default out. Done at the OxidANT pin bump that brings it, with
+  `test/endpoint_chat_test.dart` holding the web body.
+- [ ] **ObservANT is packaged with `--release`, not with its own profile** (S, ★★). Owner decision 2026-11-13: a
+  panic in one answer costs a 502, not the camera. OxidANT 494293f adds `[profile.observant]` (release with
+  `panic = "unwind"`); `scripts/linux/observant/package-observant.sh` still builds `cargo build --release` and takes
+  `target/release/kataglyphis_observant`. Done at the OxidANT pin bump that brings the profile: the script builds
+  `--profile observant` and takes `target/observant/`, and `test-observant-package.sh` names the profile.
 - [b] **The web playground streams its answer** (S, ★★). `endpoint_chat.dart` reads an event stream when a server
   sends one (tested on a fake transport and a fake fetch), but the request still asks for one whole answer, LAI-F2's
   written choice. Blocked on the owner and on one run in a real browser against a real endpoint with CORS: nobody
