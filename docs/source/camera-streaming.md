@@ -170,8 +170,8 @@ bridge; only detection metadata does.
 > **The Rust core is in every build, with no feature switch** (owner, 2026-10-20; here since
 > 2026-10-21). OxidANT gates by target alone, so the page sends Windows and Linux to
 > `RustWebcamView` by target, and the Linux C++ GStreamer MethodChannel fallback is gone:
-> there the plugin only creates the texture Rust pushes into. Android and macOS, where the Rust
-> webcam cannot run, keep the plugin's MethodChannel pipeline. On Android the plugin runs every
+> there the plugin only creates the texture Rust pushes into. Android, where the Rust
+> webcam cannot run, keeps the plugin's MethodChannel pipeline; macOS is no target. On Android the plugin runs every
 > pipeline command on a thread of its own, since a state change waits up to 20 s for the camera,
 > and Stop releases the pipeline, so the page sets it again on Play. `listCameras()` runs only when
 > someone asks for the camera list: it starts libcamera's device monitor, which held the

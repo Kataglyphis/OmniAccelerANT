@@ -387,14 +387,6 @@ name is under `lib/Pages/StreamPage/`.
   that needs no number: no `memset` when the sizes match. The buffers change owner only above about 1 ms a frame at
   720p, and the Markdown fix would be ANThology's.
 
-- [ ] **macOS: the Stream page keeps a half for a platform the plugin does not have** (S, ★★). The plugin has android,
-  linux and windows (`packages/kataglyphis_native_inference/pubspec.yaml:21-30`) and `docs/source/overview.md:22` says
-  macOS is no target. But AGENTS.md (section 1) still gives macOS the plugin pipeline, the page keeps desktop source buttons,
-  colour buttons, `setColor`, `avfvideosrc` and the appsink sink for it, and 13 of the 20 tests in
-  `test/stream_page_native_test.dart` run as macOS. Owner decision 2026-11-13: macOS is no target. That UI goes,
-  its tests run as Android, the AGENTS.md sentence changes, and the rows above on the Android tests, the MethodChannel
-  API and the state machine get smaller.
-
 - [ ] **Linux and Windows textures behave differently under one ABI** (S, ★). Linux keeps the texture's creation size,
   crops or pads a frame of another size and forces alpha to 255 (`linux/my_texture.cc:135-181`); Windows resizes to
   the pushed frame and copies alpha as it comes (`windows/kataglyphis_texture.cpp:34-68`), and each gtest pins its own

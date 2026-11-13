@@ -7,41 +7,27 @@ import 'package:omni_accelerant/Pages/StreamPage/gstreamer_pipeline.dart';
 
 void main() {
   _fallbackPolicyTests();
-  const GStreamerPipelineBuilder desktop = GStreamerPipelineBuilder(
-    width: 640,
-    height: 480,
-    fps: 30,
-    isAndroid: false,
-  );
-
   const GStreamerPipelineBuilder android = GStreamerPipelineBuilder(
     width: 320,
     height: 240,
     fps: 15,
-    isAndroid: true,
   );
 
   group('sink selection', () {
-    test('desktop terminates in the appsink the plugin looks up by name', () {
-      // A desktop plugin finds its appsink by the name "sink" and fails setPipeline without it.
-      for (final String source in <String>[
-        'videotestsrc',
-        'avfvideosrc',
-        'pattern-smpte',
-        'pattern-snow',
-      ]) {
-        expect(
-          desktop.build(source),
-          contains('appsink name=sink'),
-          reason: '$source must end in the appsink the plugin resolves',
-        );
-      }
-    });
-
-    test('android renders through glimagesink instead of an appsink', () {
-      expect(android.build('ahcsrc'), contains('glimagesink name=overlay'));
-      expect(android.build('ahcsrc'), isNot(contains('appsink')));
-    });
+    test(
+      'every source renders through the GL sink the plugin names overlay',
+      () {
+        for (final String source in <String>[
+          'videotestsrc',
+          'ahcsrc',
+          'ahc2src',
+          'autovideosrc',
+        ]) {
+          expect(android.build(source), contains('glimagesink name=overlay'));
+          expect(android.build(source), isNot(contains('appsink')));
+        }
+      },
+    );
 
     test('both android camera sources build a camera, not the ball', () {
       // The page's camera button sends ahc2src; unknown, it fell through to the test pattern.
@@ -52,38 +38,13 @@ void main() {
     });
   });
 
-  group('avfvideosrc — the macOS default', () {
-    // The exact string macOS negotiates on page open.
-    final String pipeline = desktop.build('avfvideosrc');
-
-    test('asks the camera for raw frames', () {
-      expect(pipeline, startsWith('avfvideosrc capture-raw-data=true ! '));
-    });
-
-    test('converts to RGBA, which is the only format the appsink accepts', () {
-      // Any other format prerolls against the RGBA-pinned appsink and never delivers a sample.
-      expect(pipeline, contains('format=RGBA'));
-    });
-
-    test('carries the configured geometry and framerate', () {
-      expect(pipeline, contains('width=640'));
-      expect(pipeline, contains('height=480'));
-      expect(pipeline, contains('framerate=30/1'));
-    });
-  });
-
   group('test patterns', () {
-    test('named patterns reach videotestsrc', () {
-      expect(desktop.build('pattern-smpte'), contains('pattern=smpte'));
-      expect(desktop.build('pattern-snow'), contains('pattern=snow'));
-      expect(desktop.build('videotestsrc'), contains('pattern=ball'));
-    });
-
-    test('an unknown source falls back to the ball pattern', () {
+    test('the test pattern is the ball, and an unknown source falls back to it', () {
       // The result goes straight to gst_parse_launch, so it must stay playable.
+      expect(android.build('videotestsrc'), contains('pattern=ball'));
       expect(
-        desktop.build('no-such-source'),
-        equals(desktop.build('videotestsrc')),
+        android.build('no-such-source'),
+        equals(android.build('videotestsrc')),
       );
     });
 
@@ -112,14 +73,12 @@ void main() {
       'every produced pipeline is non-empty and has no double separators',
       () {
         for (final GStreamerPipelineBuilder builder
-            in <GStreamerPipelineBuilder>[desktop, android]) {
+            in <GStreamerPipelineBuilder>[android]) {
           for (final String source in <String>[
             'videotestsrc',
             'ahcsrc',
+            'ahc2src',
             'autovideosrc',
-            'avfvideosrc',
-            'pattern-smpte',
-            'pattern-snow',
             'garbage',
           ]) {
             final String pipeline = builder.build(source);
@@ -165,22 +124,9 @@ void _fallbackPolicyTests() {
       ]);
     });
 
-    test('macOS tries its camera first, then degrades', () {
-      expect(sourceCandidatesFor(TargetPlatform.macOS), <String>[
-        'avfvideosrc',
-        'videotestsrc',
-      ]);
+    test('only Android has a plugin chain: the Rust core owns the desktop camera, and macOS is no target', () {
+      expect(kSourceCandidates.keys, <TargetPlatform>[TargetPlatform.android]);
     });
-
-    test(
-      'Windows and Linux have no plugin chain: the Rust core owns their camera',
-      () {
-        expect(kSourceCandidates.keys, <TargetPlatform>[
-          TargetPlatform.android,
-          TargetPlatform.macOS,
-        ]);
-      },
-    );
 
     test('an unlisted platform still gets a usable chain', () {
       expect(sourceCandidatesFor(TargetPlatform.fuchsia), <String>[
@@ -211,7 +157,7 @@ void _fallbackPolicyTests() {
 
     test('returns null for a source outside the chain', () {
       // A hand-picked source keeps its own error instead of restarting the chain.
-      expect(nextSourceAfter('pattern-snow', chain), isNull);
+      expect(nextSourceAfter('ahc2src', chain), isNull);
     });
 
     test('the real android chain terminates from any starting point', () {

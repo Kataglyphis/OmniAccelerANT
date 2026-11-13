@@ -50,7 +50,7 @@ const double kOverlayAlpha = 0.1;
 
 // StreamPage Widget
 
-/// Video stream page: WebRTC on web, the Rust webcam on Windows and Linux, the plugin's GStreamer texture on Android and macOS.
+/// Video stream page: WebRTC on web, the Rust webcam on Windows and Linux, the plugin's GStreamer texture on Android.
 class StreamPage extends StatefulWidget {
   /// The application-wide attributes for theming and layout.
   final AppAttributes appAttributes;
@@ -113,10 +113,9 @@ class StreamPageState extends State<StreamPage> {
   /// The target decides: the Rust core drives the webcam on Windows and Linux.
   bool get _useRustWebcam => _isWindows || _isLinux;
 
-  /// Android and macOS, where the Rust webcam cannot run, play the plugin's own GStreamer pipeline.
-  bool get _usePluginPipeline => !kIsWeb && (_isMacOS || _isAndroid);
+  /// Android, where the Rust webcam cannot run, plays the plugin's own GStreamer pipeline; macOS is no target.
+  bool get _usePluginPipeline => !kIsWeb && _isAndroid;
 
-  bool get _isMacOS => defaultTargetPlatform == TargetPlatform.macOS;
   bool get _isAndroid => defaultTargetPlatform == TargetPlatform.android;
 
   /// Creates a pipeline builder configured for the current platform.
@@ -124,7 +123,6 @@ class StreamPageState extends State<StreamPage> {
     width: _isAndroid ? _androidWidth : textureWidth,
     height: _isAndroid ? _androidHeight : textureHeight,
     fps: _isAndroid ? _androidFps : kDefaultFramerate,
-    isAndroid: _isAndroid,
   );
 
   @override
@@ -310,14 +308,6 @@ class StreamPageState extends State<StreamPage> {
     super.dispose();
   }
 
-  Future<void> setColor(int r, int g, int b) async {
-    try {
-      await channel.invokeMethod('setColor', <int>[r, g, b]);
-    } on PlatformException catch (e) {
-      debugPrint('setColor failed: $e');
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     // Web: full WebRTC view
@@ -438,11 +428,6 @@ class StreamPageState extends State<StreamPage> {
               const Divider(),
               _buildSectionTitle('Video Sources'),
               _buildVideoSourceButtons(),
-              if (!_isAndroid) ...[
-                const Divider(),
-                _buildSectionTitle('Static Colors (Legacy)'),
-                _buildColorButtons(),
-              ],
             ],
           ),
         ),
@@ -558,10 +543,7 @@ class StreamPageState extends State<StreamPage> {
       spacing: 10,
       runSpacing: 10,
       alignment: WrapAlignment.center,
-      children: [
-        if (_isAndroid) ..._buildAndroidSourceButtons(),
-        if (!_isAndroid) ..._buildDesktopSourceButtons(),
-      ],
+      children: [..._buildAndroidSourceButtons()],
     );
   }
 
@@ -585,31 +567,6 @@ class StreamPageState extends State<StreamPage> {
     ];
   }
 
-  List<Widget> _buildDesktopSourceButtons() {
-    return [
-      _buildSourceButton(
-        icon: Icons.sports_soccer,
-        label: 'Test Pattern (Ball)',
-        source: 'videotestsrc',
-      ),
-      _buildSourceButton(
-        icon: Icons.grid_on,
-        label: 'SMPTE Pattern',
-        source: 'pattern-smpte',
-      ),
-      _buildSourceButton(
-        icon: Icons.grain,
-        label: 'Snow Pattern',
-        source: 'pattern-snow',
-      ),
-      _buildSourceButton(
-        icon: Icons.videocam,
-        label: 'Mac Camera (avfvideosrc)',
-        source: 'avfvideosrc',
-      ),
-    ];
-  }
-
   Widget _buildSourceButton({
     required IconData icon,
     required String label,
@@ -620,30 +577,6 @@ class StreamPageState extends State<StreamPage> {
       label: Text(label),
       onPressed: () =>
           _setPipeline(_pipelineBuilder.build(source), source: source),
-    );
-  }
-
-  Widget _buildColorButtons() {
-    return Wrap(
-      spacing: 10,
-      runSpacing: 10,
-      alignment: WrapAlignment.center,
-      children: [
-        _buildColorButton('Flutter Navy', 0x04, 0x2b, 0x59),
-        _buildColorButton('Flutter Blue', 0x05, 0x53, 0xb1),
-        _buildColorButton('Flutter Sky', 0x02, 0x7d, 0xfd),
-        _buildColorButton('Red', 0xf2, 0x5d, 0x50),
-        _buildColorButton('Yellow', 0xff, 0xf2, 0x75),
-        _buildColorButton('Purple', 0x62, 0x00, 0xee),
-        _buildColorButton('Green', 0x1c, 0xda, 0xc5),
-      ],
-    );
-  }
-
-  Widget _buildColorButton(String label, int r, int g, int b) {
-    return OutlinedButton(
-      onPressed: () => setColor(r, g, b),
-      child: Text(label),
     );
   }
 

@@ -80,8 +80,8 @@ plugin **and** a Windows client host; it falls back to `ksvideosrc`. Details in
 Linux plugin exports the `knt_push_frame`/`knt_api_version` C ABI, the build bundles the chain
 ONNX Runtime, and the Stream page sends Linux and Windows to `RustWebcamView` by target. Since
 2026-10-21 Linux has no C++ GStreamer MethodChannel fallback: the plugin there only creates
-the texture Rust pushes into. Android and macOS, where the Rust webcam cannot run, keep the
-plugin's MethodChannel pipeline. Never call `listCameras()` on the page's start: it starts
+the texture Rust pushes into. Android, where the Rust webcam cannot run, keeps the plugin's
+MethodChannel pipeline; macOS is no target (owner, 2026-11-13). Never call `listCameras()` on the page's start: it starts
 libcamera and held the first frame 0.94 s (2026-10-15). **This is an addition, not a
 replacement**: the WebRTC cat detection stream below stays.
 

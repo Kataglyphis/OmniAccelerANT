@@ -53,7 +53,7 @@ From the README (2026-10-19). `test/` checks, among the rest:
 - the Camera page: what it reads from an ObservANT camera, what each button, the slider and the
   name field send, a refused change, and the page off an ObservANT camera (`camera_settings_test.dart`);
 - the Stream page's calls to the plugin, its camera fallback, its buttons and its error
-  messages, on Android (camera permission included), macOS and the rest, against a fake plugin
+  messages, on Android (camera permission included) and the rest, against a fake plugin
   (`stream_page_native_test.dart`); Windows and Linux handing the camera to the Rust view by
   target (`stream_page_rust_test.dart`); and the Rust camera view's calls to the core, against
   a fake core (`rust_webcam_view_test.dart`);

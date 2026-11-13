@@ -5,6 +5,14 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ## Unreleased
 
+### 2026-11-13 (macOS is no target; owner decision)
+- **The Stream page keeps no macOS half.** The plugin has Android, Linux and Windows, yet the page sent macOS through
+  the plugin's MethodChannel pipeline, with desktop source buttons (`avfvideosrc`, SMPTE and snow patterns) and
+  colour buttons for it. All of that goes: `GStreamerPipelineBuilder` builds Android pipelines only, the source chain
+  has no macOS row, and macOS starts no plugin pipeline. The plugin's `setColor` call is no longer sent by the page.
+- **The Stream page's plugin tests run as Android.** 13 of them ran as macOS, a platform the plugin does not have;
+  they now run as Android with the camera permission granted, and one test holds that macOS starts nothing.
+
 ### 2026-11-13 (one reader for ObservANT's `/healthz`, and one question at a time)
 - **`/healthz` is read by key in one file.** The status line, the stats panel, the camera settings and the
   questions panel each read the body by key, with the `cat` fallback and `privacy == 'pixelate'` typed twice. They

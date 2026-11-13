@@ -1,24 +1,20 @@
-/// The plugin's GStreamer pipelines on Android and macOS, per source, and the order the Stream page tries sources in.
+/// The plugin's GStreamer pipelines on Android, per source, and the order the Stream page tries sources in.
 library;
 
 import 'package:flutter/foundation.dart';
 
-/// Default framerate for non-Android platforms (frames per second).
+/// Default framerate where the settings name none (frames per second).
 const int kDefaultFramerate = 30;
-
-/// Pixel format used for video conversion (RGBA for cross-platform compatibility).
-const String kPixelFormat = 'RGBA';
 
 // Pipeline Builder
 
-/// Builds GStreamer pipeline strings per video source and platform.
+/// Builds the Android plugin's GStreamer pipeline strings per video source.
 class GStreamerPipelineBuilder {
   /// Creates a pipeline builder with the specified dimensions and framerate.
   const GStreamerPipelineBuilder({
     required this.width,
     required this.height,
     required this.fps,
-    required this.isAndroid,
   });
 
   /// Video width in pixels.
@@ -30,13 +26,9 @@ class GStreamerPipelineBuilder {
   /// Target framerate.
   final int fps;
 
-  /// Whether building for Android platform.
-  final bool isAndroid;
-
-  /// Returns the appropriate sink element for the current platform.
-  String get _sink => isAndroid
-      ? 'glimagesink name=overlay qos=true sync=false max-lateness=20000000'
-      : 'appsink name=sink emit-signals=true sync=false';
+  /// The plugin draws through the GL sink it names `overlay`.
+  String get _sink =>
+      'glimagesink name=overlay qos=true sync=false max-lateness=20000000';
 
   /// Android camera chain; forces no AHardwareBuffer/NV12, since devices negotiate different memory types.
   String get _androidGlConvertCamera =>
@@ -55,41 +47,16 @@ class GStreamerPipelineBuilder {
       'videotestsrc' => _buildTestPattern('ball'),
       'ahcsrc' => _buildAndroidCamera('ahcsrc'),
       'ahc2src' => _buildAndroidCamera('ahc2src'),
-      'autovideosrc' => _buildAutoVideoSrc(),
-      'avfvideosrc' => _buildAvfVideoSrc(),
-      'pattern-smpte' => _buildTestPattern('smpte'),
-      'pattern-snow' => _buildTestPattern('snow'),
+      'autovideosrc' => _buildAndroidCamera('autovideosrc'),
       _ => _buildTestPattern('ball'),
     };
   }
 
-  String _buildTestPattern(String pattern) {
-    if (isAndroid) {
-      return 'videotestsrc pattern=$pattern ! $_androidGlConvertTest ! $_sink';
-    }
-    return 'videotestsrc pattern=$pattern ! '
-        'video/x-raw,width=$width,height=$height,framerate=$fps/1 ! $_sink';
-  }
+  String _buildTestPattern(String pattern) =>
+      'videotestsrc pattern=$pattern ! $_androidGlConvertTest ! $_sink';
 
-  String _buildAndroidCamera(String source) {
-    if (isAndroid) {
-      return '$source ! $_androidGlConvertCamera ! $_sink';
-    }
-    return '$source ! $_sink';
-  }
-
-  String _buildAutoVideoSrc() {
-    if (isAndroid) {
-      return 'autovideosrc ! $_androidGlConvertCamera ! $_sink';
-    }
-    return 'autovideosrc ! $_sink';
-  }
-
-  String _buildAvfVideoSrc() {
-    return 'avfvideosrc capture-raw-data=true ! videoconvert ! '
-        'video/x-raw,format=$kPixelFormat,width=$width,height=$height,'
-        'framerate=$fps/1 ! $_sink';
-  }
+  String _buildAndroidCamera(String source) =>
+      '$source ! $_androidGlConvertCamera ! $_sink';
 }
 
 // Source fallback policy
@@ -102,7 +69,6 @@ const Map<TargetPlatform, List<String>> kSourceCandidates =
         'autovideosrc',
         'videotestsrc',
       ],
-      TargetPlatform.macOS: <String>['avfvideosrc', 'videotestsrc'],
     };
 
 /// The fallback chain for [platform], or a hardware-free default.
