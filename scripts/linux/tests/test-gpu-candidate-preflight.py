@@ -40,11 +40,22 @@ class CandidatePreflightTests(unittest.TestCase):
             "third_party/OxidANT/crates/inference/Cargo.toml",
             '[package.metadata.kataglyphis]\nort-devices = ["cuda", "migraphx"]\n',
         )
+        self.write(
+            "third_party/OxidANT/crates/inference/src/ort_plugin.rs",
+            'root_var: "ORT_AMDGPU_EP_ROOT",',
+        )
+        self.write(
+            "third_party/OxidANT/scripts/linux/lib/ort-runtime-bundle.sh",
+            "stage_amdgpu_ep_notices()\nverify_amdgpu_ep_notices()",
+        )
         base = "third_party/ANTfrastructure/linux/scripts/"
         self.write(
             base + "06-packaging/ort-runtime-bundle.sh",
-            "ort_host_runtime_needed()\nort_assert_no_bundled_host_runtime()",
+            "ort_host_runtime_needed()\nort_assert_no_bundled_host_runtime()\n"
+            "ORT_AMDGPU_EP_MODULE=libmigraphx-ep.so\nort_amdgpu_ep_dir()\n"
+            "ort_python_provider_file()\nort_assert_plugin_module()",
         )
+        self.write(base + "06-packaging/check-ort-provenance.sh", "--library-path")
         self.write(
             base + "06-packaging/ort-package-proof.sh",
             "ort_package_collect_libraries()\nort_package_verify_notices()",
@@ -94,7 +105,7 @@ class CandidatePreflightTests(unittest.TestCase):
         )
         self.write(
             "third_party/ANTfrastructure/shared/python/verify_ort_profile.py",
-            "--min-runs",
+            '--min-runs "migraphx": "MIGraphX"',
         )
         self.write(
             "third_party/ANTfrastructure/shared/python/compare_detector_parity.py",
@@ -116,6 +127,16 @@ class CandidatePreflightTests(unittest.TestCase):
             "no pairwise support",
         )
         with self.assertRaisesRegex(ValueError, "--pairwise"):
+            VALIDATE_PROFILE(self.root)
+        self.write(
+            "third_party/ANTfrastructure/shared/python/compare_detector_parity.py",
+            "--pairwise",
+        )
+        self.write(
+            "third_party/ANTfrastructure/shared/python/verify_ort_profile.py",
+            '--min-runs "migraphx": "MIGraphXExecutionProvider"',
+        )
+        with self.assertRaisesRegex(ValueError, "MIGraphX"):
             VALIDATE_PROFILE(self.root)
 
     def test_profile_uses_current_attempt_scope_and_selected_tuple(self):
@@ -202,6 +223,31 @@ class CandidatePreflightTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "--reject-source-root"):
             VALIDATE(self.root)
 
+    def test_pins_without_the_plugin_module_support_fail_closed(self):
+        packaging = "third_party/ANTfrastructure/linux/scripts/06-packaging/"
+        plugin = "third_party/OxidANT/crates/inference/src/ort_plugin.rs"
+        texts = "third_party/OxidANT/scripts/linux/lib/ort-runtime-bundle.sh"
+        for relative, contents, message in (
+            (plugin, "no plugin row", "ORT_AMDGPU_EP_ROOT"),
+            (texts, "stage_amdgpu_ep_notices()", "verify_amdgpu_ep_notices"),
+            (
+                packaging + "ort-runtime-bundle.sh",
+                "ort_host_runtime_needed()\nort_assert_no_bundled_host_runtime()",
+                "ORT_AMDGPU_EP_MODULE=",
+            ),
+            (packaging + "check-ort-provenance.sh", "no option", "--library-path"),
+        ):
+            with self.subTest(relative=relative):
+                path = self.root / relative
+                original = path.read_text(encoding="utf-8")
+                self.write(relative, contents)
+                with self.assertRaisesRegex(ValueError, message):
+                    VALIDATE(self.root)
+                self.write(relative, original)
+        (self.root / plugin).unlink()
+        with self.assertRaisesRegex(ValueError, "missing pinned GPU helper"):
+            VALIDATE(self.root)
+
     def test_registry_is_unique_and_fixed_to_ghcr(self):
         self.write(
             "third_party/ANTfrastructure/linux/scripts/01-core/versions.env",
@@ -258,7 +304,6 @@ class CandidatePreflightTests(unittest.TestCase):
         self.assertEqual(len(rows), 3)
         for part in (
             "needs: preflight",
-            "ORT_LIB_LOCATION=/usr/local/lib/onnxruntime-gpu/lib",
             "--package-formats tar,deb,appimage",
             "verify-gpu-candidate.sh",
             f"name: unverified-omni-${{{{ matrix.vendor }}}}-linux-${{{{ matrix.arch }}}}-{IDENTITY}-attempt-${{{{ github.run_attempt }}}}",
@@ -289,6 +334,18 @@ class CandidatePreflightTests(unittest.TestCase):
             text.index("check-gpu-image-runtime.sh"),
             text.index("ci-container-run-native-linux.sh"),
         )
+
+    def test_each_row_names_the_runtime_its_provider_loads_into(self):
+        text = WORKFLOW.read_text(encoding="utf-8")
+        self.assertEqual(
+            {row["provider"]: row["ort-lib"] for row in GPU_MATRIX("all")["include"]},
+            {
+                "cuda": "/usr/local/lib/onnxruntime-gpu/lib",
+                "migraphx": "/usr/local/lib/onnxruntime-cpu/lib",
+            },
+        )
+        self.assertIn("-e ORT_LIB_LOCATION=${{ matrix.ort-lib }}", text)
+        self.assertNotIn("onnxruntime-gpu", text)
 
     def test_clean_host_runs_inference_for_each_candidate(self):
         text = WORKFLOW.read_text(encoding="utf-8")

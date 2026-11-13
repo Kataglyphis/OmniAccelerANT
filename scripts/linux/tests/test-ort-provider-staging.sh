@@ -6,7 +6,10 @@ source "$(dirname "${BASH_SOURCE[0]}")/fixture-common.sh"
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
-mkdir -p "$work/project/linux" "$work/project/cargokit/cmake" "$work/ort" "$work/third_party/OxidANT/crates/inference"
+mkdir -p "$work/project/linux" "$work/project/cargokit/cmake" "$work/ort" "$work/third_party/OxidANT/crates/inference" \
+  "$work/amdgpu/lib" "$work/no-module/lib"
+# The CMake asks the pinned hub for the plugin module's name and place, as a build does.
+ln -s "${ANTFRASTRUCTURE_DIR:-$root/third_party/ANTfrastructure}" "$work/third_party/ANTfrastructure"
 cp "$root/rust_builder/linux/CMakeLists.txt" "$work/project/linux/CMakeLists.txt"
 cp "$root/rust_builder/linux/ort-device.cmake" "$root/rust_builder/linux/oxidant-ort-devices.cmake" "$work/project/linux/"
 printf '[package.metadata.kataglyphis]\n# Provider capabilities.\nort-devices = ["cuda", "migraphx", "directml"]\n' > "$work/third_party/OxidANT/crates/inference/Cargo.toml"
@@ -23,7 +26,7 @@ EOF
 printf '/opt/onnxruntime/onnxruntime/core/\n' > "$work/ort/libonnxruntime.so"
 printf 'shared\n' > "$work/ort/libonnxruntime_providers_shared.so"
 printf 'cuda\n' > "$work/ort/libonnxruntime_providers_cuda.so"
-printf 'migraphx\n' > "$work/ort/libonnxruntime_providers_migraphx.so"
+printf 'plugin\n' > "$work/amdgpu/lib/libmigraphx-ep.so"
 cat > "$work/x64-toolchain.cmake" <<'EOF'
 set(CMAKE_SYSTEM_NAME Linux)
 set(CMAKE_SYSTEM_PROCESSOR x86_64)
@@ -35,19 +38,31 @@ configure() {
   if [[ "$1" == migraphx ]]; then
     toolchain=(-D "CMAKE_TOOLCHAIN_FILE=$work/x64-toolchain.cmake")
   fi
-  ORT_LIB_LOCATION="$work/ort" KATAGLYPHIS_ORT_PROVIDER="$1" \
+  # Set in every case: the rocm image exports its own root, which would stand in for a missing fixture module.
+  ORT_LIB_LOCATION="$work/ort" ORT_AMDGPU_EP_ROOT="${AMD_ROOT:-$work/amdgpu}" KATAGLYPHIS_ORT_PROVIDER="$1" \
     cmake -S "$work/project" -B "$work/build-$1" "${toolchain[@]}" > "$work/$1.log" 2>&1
 }
 configure cpu
 test ! -e "$work/build-cpu/linux/libonnxruntime_providers_shared.so"
 fixture_refuses 'CPU bundle unexpectedly contains a GPU provider' grep -q 'libonnxruntime_providers_' "$work/build-cpu/bundled.txt"
-for provider in cuda migraphx; do
-  configure "$provider"
-  for name in libonnxruntime_providers_shared.so "libonnxruntime_providers_${provider}.so"; do
-    cmp "$work/ort/$name" "$work/build-$provider/linux/$name"
-    grep -Fq "$work/build-$provider/linux/$name" "$work/build-$provider/bundled.txt"
-  done
+configure cuda
+for name in libonnxruntime_providers_shared.so libonnxruntime_providers_cuda.so; do
+  cmp "$work/ort/$name" "$work/build-cuda/linux/$name"
+  grep -Fq "$work/build-cuda/linux/$name" "$work/build-cuda/bundled.txt"
 done
+fixture_refuses 'CUDA bundle unexpectedly contains the AMD plugin module' grep -q 'libmigraphx-ep' "$work/build-cuda/bundled.txt"
+# An AMD build carries the image's plugin module and no in-tree provider, although the fixture runtime has two.
+configure migraphx
+cmp "$work/amdgpu/lib/libmigraphx-ep.so" "$work/build-migraphx/linux/libmigraphx-ep.so"
+grep -Fq "$work/build-migraphx/linux/libmigraphx-ep.so" "$work/build-migraphx/bundled.txt"
+fixture_refuses 'AMD bundle unexpectedly contains an in-tree provider' grep -q 'libonnxruntime_providers_' "$work/build-migraphx/bundled.txt"
+rm -rf "$work/build-migraphx"
+AMD_ROOT="$work/no-module" fixture_refuses 'An image without the plugin module unexpectedly configured' configure migraphx
+grep -Fq 'provider is missing' "$work/migraphx.log"
+rm "$work/third_party/ANTfrastructure"
+fixture_refuses 'A hub without the plugin helper unexpectedly configured' configure migraphx
+grep -Fq "plugin module's name and place" "$work/migraphx.log"
+ln -s "${ANTFRASTRUCTURE_DIR:-$root/third_party/ANTfrastructure}" "$work/third_party/ANTfrastructure"
 for provider in invalid off 0; do
   fixture_refuses "Unknown provider $provider unexpectedly succeeded" configure "$provider"
 done
@@ -100,9 +115,13 @@ if [[ -n "${ORT_TEST_REAL_PROVIDER:-}" ]]; then
   real_dir="$(fixture_real_provider_dir)" || exit $?
   ORT_LIB_LOCATION="$real_dir" KATAGLYPHIS_ORT_PROVIDER="$ORT_TEST_REAL_PROVIDER" \
     cmake -S "$work/project" -B "$work/build-real" > "$work/real.log" 2>&1
-  for name in libonnxruntime_providers_shared.so "libonnxruntime_providers_${ORT_TEST_REAL_PROVIDER}.so"; do
-    cmp "$real_dir/$name" "$work/build-real/linux/$name"
-    grep -Fq "$work/build-real/linux/$name" "$work/build-real/bundled.txt"
+  case "$ORT_TEST_REAL_PROVIDER" in
+    cuda) real_modules=("$real_dir/libonnxruntime_providers_shared.so" "$real_dir/libonnxruntime_providers_cuda.so") ;;
+    migraphx) real_modules=("${ORT_AMDGPU_EP_ROOT:?the real plugin root is required}/lib/libmigraphx-ep.so") ;;
+  esac
+  for module in "${real_modules[@]}"; do
+    cmp "$module" "$work/build-real/linux/${module##*/}"
+    grep -Fq "$work/build-real/linux/${module##*/}" "$work/build-real/bundled.txt"
   done
   ORT_LIB_LOCATION="$real_dir" cmake "${root_args[@]}" > "$work/real-root.log" 2>&1 || {
     cat "$work/real-root.log" >&2

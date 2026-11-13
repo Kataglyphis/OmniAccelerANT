@@ -97,6 +97,9 @@ model inference and start each format with CPU selected and model/runtime overri
 The inference check also inspects the Linux loader trace and requires the ONNX Runtime
 to come from the installed or extracted package. This confirms the CPU test's runtime
 location; it does not establish GPU execution or physical-device placement.
+An AMD package is then asked for `migraphx` by name, which must fail at the registration of the
+package's own plugin module, and for `auto`, which must run
+([camera-streaming.md § *Linux GPU build selection*](camera-streaming.md#linux-gpu-build-selection)).
 The `gpu-tuple` input defaults to `all`; choose `nvidia-x64`, `nvidia-arm64`, or `amd-x64`
 to build and check a single combination independently of the other candidates.
 Model files and their directory components must be regular, unlinked package content;
@@ -757,15 +760,44 @@ left 24 cpp and 10 rust results, all in owned code. The driver brings back only 
 runner: the SARIFs stay in the container's `C:\ws\codeql-results`, readable with `docker exec
 omniaccelerant-agentic-build pwsh -Command "Get-Content -Raw C:\ws\codeql-results\cpp.sarif"`.
 
-## Gate strictness and the pre-commit hook
+## Gate strictness and the git hooks
 
-**A pre-commit hook runs CI's first gates** (2026-10-05). Enable it once per clone with
-`git config core.hooksPath scripts/git-hooks`. It runs `scripts/linux/run-lint-gates.sh`, the
-lint gates `lint-gates.yml` runs (about 10 s on the Windows box), and, when a staged file is a
-`scripts/**/*.ps1` or `.psm1`, the hub's `Invoke-Lint.ps1 -Path scripts`, the step
-`windows-x64.yml` stops on before its image pull (`windows-arm64.yml` has no such step). That
-step once reached CI uncaught: 46fe49a's chained `[switch]` assignment failed windows-x64 run
-37324782889. The hook grades the working tree, like the hub's; `--no-verify` skips it.
+**Two hooks run CI's first gates before CI does.** Enable them once per clone with
+`git config core.hooksPath scripts/git-hooks`. Both hand over to the hub's pair
+([`adopting-in-a-new-project.md` § *The git hooks, by reference*](../../third_party/ANTfrastructure/docs/adopting-in-a-new-project.md#the-git-hooks-by-reference));
+this repo keeps its own directory for one extra step.
+
+| Hook | What it runs | Time on the Pi 5 |
+| --- | --- | --- |
+| `pre-commit` | The hub's checks of what is staged (`run-lint-gates.sh --staged`: large files, secrets), then, when a staged file is a `scripts/**/*.ps1` or `.psm1`, the hub's `Invoke-Lint.ps1 -Path scripts`, the step `windows-x64.yml` stops on before its image pull | seconds |
+| `pre-push` | `scripts/linux/run-lint-gates.sh` in full, then `scripts/linux/pre-push-checks.sh`: the script suites the native lane runs before its build, without those that need the image | about 8 min: see below |
+
+- **The commit hook reads the commit's own index.** `git commit -a` builds it in a lock file, so
+  the hook reads the staged list and calls the hub's hook before it unsets `GIT_INDEX_FILE`. The
+  old hook unset it first and then checked nothing under `commit -a`.
+- **The PowerShell step once reached CI uncaught**: 46fe49a's chained `[switch]` assignment
+  failed windows-x64 run 37324782889 (`windows-arm64.yml` has no such step). A host without `pwsh`
+  on its `PATH`, the Pi for one, skips the step with one line and the commit goes on; no hook lints
+  PowerShell there, and `windows-x64.yml` is then the first check that stops on a finding
+  (`powershell-quality.yml` only reports on a push).
+- **The push hook grades the working tree**, not the pushed commits, and prints how many paths
+  are uncommitted. On the Pi, 2026-11-13, with nothing else running: the lint gates 3 min 52 s,
+  the script suites 3 min 51 s, most of it in three suites (`test-check-brand-icons.sh`,
+  `test-profile-gpu-packages.sh`, `test-gpu-profile-evidence.py`). Beside another session's
+  shellcheck run the gates alone took 16 min 45 s. So give `git push` a limit of 30 min there, or
+  run it in the background; `--no-verify` skips a hook, and then
+  `bash scripts/linux/run-lint-gates.sh && bash scripts/linux/pre-push-checks.sh` is the check
+  by hand.
+- **`pre-push-checks.sh` is the lane's suite step too.** The native lane calls it with `--lane`
+  and runs every suite; the hook calls it bare, and it skips, with the reason, each suite whose
+  header says `# suite-lane-only: <what it needs>`. Two do: `test-check-plugin-cpp-format.sh`
+  (the image's clang-format) and `test_profile_gpu_installers.py` (16.5 GiB of free temp space;
+  the Pi's `/tmp` is a 4 GB tmpfs). A suite that fails on a bare host for such a reason gets the
+  header line, never an exception in the runner. On a host that is not Linux the file says so
+  and runs nothing: the fixtures build ELF files and Debian packages.
+- **A clone without the setting is told so**: a local `run-lint-gates.sh` prints one warning
+  line, and nothing else notices. Mutation recipes that went stale are a lint gate now
+  (`mutation staleness`), so the wrapper no longer loops over the manifests itself.
 
 `Build-Windows.ps1` runs these quality gates by default (skip with `-SkipFormat` /
 `-SkipTests` / `-SkipDocs`). The format command is **not** `dart format .`, the form that
@@ -919,9 +951,8 @@ Measured on the Linux host, native lane x64, `-PackageFormats tar -SkipDocs`, 20
 | Cold: empty volume, nothing in the bucket for this lane | 1,172 misses, all 1,172 uploaded, 0 failed; the drain took 15 s | 6 min 50 s |
 | The sccache and cargo-target volumes deleted | 1,232 hits of 1,235 (99.76 %), Rust 100 %, all from the bucket | 5 min 48 s |
 
-**A Linux host's rootless engine runs the lane as root**: the driver passes `--user 0:0` and
-`TAR_OPTIONS=--no-same-owner` when `nerdctl info` reports `name=rootless` on a non-Windows host.
-Why, with both error messages:
+**A Linux host's rootless engine runs the lane as root**, when `nerdctl info` reports
+`name=rootless` on a non-Windows host. The two flags the driver passes, why, and both error messages:
 [`linux-build-basics.md` § *A lane under a rootless engine*](../../third_party/ANTfrastructure/docs/linux-build-basics.md#a-lane-under-a-rootless-engine-on-a-linux-host-runs-as-root).
 
 **The android lane needs KVM in Rancher's VM, once per VM boot**

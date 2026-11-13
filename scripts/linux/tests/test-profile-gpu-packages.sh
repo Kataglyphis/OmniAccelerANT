@@ -51,7 +51,7 @@ exec "$REAL_PYTHON" "$@"
 EOF
 chmod +x "$work/bin/python3"
 export PATH="$work/bin:$PATH" RUNNER_TEMP="$work/runner" SEEN="$work/seen" LD_LIBRARY_PATH=/host-sdk-fixture
-export KATAGLYPHIS_ONNX_MODEL=/wrong ORT_DYLIB_PATH=/wrong ORT_LIB_LOCATION=/wrong ONNX_ROOT=/wrong
+export KATAGLYPHIS_ONNX_MODEL=/wrong ORT_DYLIB_PATH=/wrong ORT_LIB_LOCATION=/wrong ONNX_ROOT=/wrong ORT_AMDGPU_EP_ROOT=/wrong
 export KATAGLYPHIS_ONNX_BACKEND=tract KATAGLYPHIS_ORT_DEVICE=wrong KATAGLYPHIS_DIRECTML_DEVICE_ID=99
 export MIGRAPHX_SKIP_BENCHMARKING=poison ORT_MIGRAPHX_MODEL_CACHE_PATH=/wrong MIGRAPHX_UNKNOWN=poison
 check="$repo/scripts/linux/profile-gpu-packages.sh"
@@ -69,7 +69,7 @@ for tuple in nvidia:x64:cuda nvidia:arm64:cuda amd:x64:migraphx; do
 #!/usr/bin/env python3
 import json, os, pathlib, sys
 for name in ('LD_PRELOAD', 'LD_AUDIT', 'KATAGLYPHIS_DIRECTML_DEVICE_ID', 'KATAGLYPHIS_ONNX_MODEL',
-             'ORT_DYLIB_PATH', 'ORT_LIB_LOCATION', 'ONNX_ROOT', 'MIGRAPHX_SKIP_BENCHMARKING',
+             'ORT_DYLIB_PATH', 'ORT_LIB_LOCATION', 'ONNX_ROOT', 'ORT_AMDGPU_EP_ROOT', 'MIGRAPHX_SKIP_BENCHMARKING',
              'ORT_MIGRAPHX_MODEL_CACHE_PATH', 'MIGRAPHX_UNKNOWN'):
     assert name not in os.environ, name
 cpu = os.environ.get('KATAGLYPHIS_ORT_DEVICE') == 'cpu'
@@ -140,7 +140,7 @@ cp -a "$FAKE_IMAGE_SOURCE/." "$TMPDIR/appimage_extracted_0123456789abcdef0123456
 exec "$TMPDIR/appimage_extracted_0123456789abcdef0123456789abcdef/usr/lib/$FAKE_VARIANT/omni_accelerant" "$@"
 EOF
   chmod 0644 "$work/packages/$variant-1-$machine.AppImage"
-  case "$device" in cuda) EXPECTED_PROVIDER=CUDAExecutionProvider ;; migraphx) EXPECTED_PROVIDER=MIGraphXExecutionProvider ;; esac
+  case "$device" in cuda) EXPECTED_PROVIDER=CUDAExecutionProvider ;; migraphx) EXPECTED_PROVIDER=MIGraphX ;; esac
   export EXPECTED_PROVIDER EXPECTED_DEVICE="$device"
   : > "$SEEN"
   evidence="$work/evidence-$vendor-$arch"

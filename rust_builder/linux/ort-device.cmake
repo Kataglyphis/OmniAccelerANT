@@ -36,7 +36,10 @@ function(omni_linux_ort_root provider)
     return()
   endif()
   if(NOT DEFINED ENV{ORT_LIB_LOCATION} OR "$ENV{ORT_LIB_LOCATION}" STREQUAL "")
-    message(FATAL_ERROR "GPU builds require ORT_LIB_LOCATION to name the GPU runtime's lib directory")
+    message(
+      FATAL_ERROR
+        "GPU builds require ORT_LIB_LOCATION to name their ONNX Runtime's lib directory: the GPU build for cuda, the CPU build for migraphx"
+    )
   endif()
   get_filename_component(_lib "$ENV{ORT_LIB_LOCATION}" REALPATH)
   get_filename_component(_root "${_lib}" DIRECTORY)
@@ -63,5 +66,37 @@ function(omni_linux_ort_root provider)
       CACHE PATH "ONNX Runtime prefix selected by OmniAccelerANT" FORCE)
   set(ONNXRUNTIME_ROOT
       "${_root}"
+      PARENT_SCOPE)
+endfunction()
+
+# The GPU modules a package of this provider carries beside ONNX Runtime; the hub names AMD's plugin module and its place in the image.
+function(
+  omni_linux_ort_modules
+  output
+  provider
+  ort_lib_dir
+  hub_dir)
+  set(_modules "")
+  if(provider STREQUAL "cuda")
+    set(_modules "${ort_lib_dir}/libonnxruntime_providers_shared.so" "${ort_lib_dir}/libonnxruntime_providers_cuda.so")
+  elseif(provider STREQUAL "migraphx")
+    execute_process(
+      COMMAND bash -c [=[set -e; source "$1"; printf '%s/%s' "$(ort_amdgpu_ep_dir)" "${ORT_AMDGPU_EP_MODULE:?}"]=] _
+              "${hub_dir}/linux/scripts/06-packaging/ort-runtime-bundle.sh"
+      RESULT_VARIABLE _status
+      OUTPUT_VARIABLE _modules)
+    if(NOT
+       _status
+       STREQUAL
+       "0"
+       OR _modules STREQUAL "")
+      message(
+        FATAL_ERROR
+          "MIGraphX builds need the plugin module's name and place from ANTfrastructure's ort-runtime-bundle.sh under ${hub_dir}"
+      )
+    endif()
+  endif()
+  set(${output}
+      "${_modules}"
       PARENT_SCOPE)
 endfunction()

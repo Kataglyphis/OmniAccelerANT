@@ -119,6 +119,10 @@ ort_census_args=()
 if [[ -n "$ORT_REFERENCE" ]]; then
   ort_census_args=(--reference "$ORT_REFERENCE")
 fi
+# AMD's module has no run path and stays the image's bytes: the census gets the library path the launcher check above read.
+if [[ "$GPU_RUNTIME_KIND" == migraphx ]]; then
+  ort_census_args+=(--library-path lib/glibc:lib)
+fi
 ort_user_rc=0
 grep -rqaF -e OrtGetApiBase -e CreateEpFactories -e RegisterCustomOps -- "$BUNDLE_DIR" || ort_user_rc=$?
 # Only rc 1 means "no ORT user": a read error (2) runs the census instead of skipping it.

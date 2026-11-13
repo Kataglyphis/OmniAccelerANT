@@ -132,4 +132,108 @@ cp "$work/bundle/data/resources/models/fixture_detector.LICENSE" "$work/appimage
 printf x >> "$work/appimage/usr/lib/$variant/lib/libonnxruntime_providers_cuda.so"
 fixture_refuses_quiet 'changed AppImage provider passed' bash "$verifier" nvidia "$host_arch"
 fixture_refuses_quiet 'unsupported AMD arm64 passed' bash "$verifier" amd arm64
+# The image strips its CPU core: that twin of the wheel's library is right for AMD and wrong for NVIDIA, whose prefix holds the wheel's bytes.
+cp "$work/bundle/lib/libonnxruntime_providers_cuda.so" "$work/appimage/usr/lib/$variant/lib/"
+bash "$verifier" nvidia "$host_arch" >/dev/null
+cp "$work/bundle/lib/libonnxruntime.so.1" "$work/stripped-core"
+strip --strip-all "$work/stripped-core"
+cp "$work/stripped-core" "$work/tar/$variant-bundle/lib/libonnxruntime.so.1"
+tar -C "$work/tar" -czf "$work/out/$variant-linux-${host_arch}.tar.gz" "$variant-bundle"
+fixture_refuses_logged "$work/stripped.log" 'expected one wheel' 'stripped NVIDIA core passed' bash "$verifier" nvidia "$host_arch"
+
+# The AMD leg runs on every host: it asks the hub's AppImage verifier nothing, and the fixture image root stands in for the rocm image.
+amd=omni-accelerant-amd
+image_ep="$work/image-ep"
+mkdir -p "$fixture_repo/third_party/OxidANT/scripts/linux/lib" "$image_ep/lib" "$image_ep/licenses/onnxruntime-ep-amdgpu" \
+  "$image_ep/licenses/fmt" "$work/amd-bundle/lib" "$work/amd-bundle/licenses" "$work/cpu-prefix/lib" "$work/cpu-prefix/include"
+cp "$repo/third_party/OxidANT/scripts/linux/lib/"{ort-runtime-bundle.sh,antfrastructure.sh,renovate-git-mode.sh,gpu-check-common.sh} \
+  "$fixture_repo/third_party/OxidANT/scripts/linux/lib/"
+printf 'int plugin(void) { return 23; }\n' > "$work/plugin.c"
+cc -shared -fPIC "$work/plugin.c" -o "$image_ep/lib/libmigraphx-ep.so"
+printf 'plugin license\n' > "$image_ep/licenses/onnxruntime-ep-amdgpu/LICENSE"
+printf 'seed license\n' > "$image_ep/licenses/fmt/LICENSE"
+printf 'onnxruntime-ep-amdgpu fixture\nsource-sha256 fixture\n' > "$image_ep/provenance.txt"
+export ORT_AMDGPU_EP_ROOT="$image_ep"
+cp "$work/stripped-core" "$work/cpu-prefix/lib/libonnxruntime.so.1"
+touch "$work/cpu-prefix/include/onnxruntime_cxx_api.h"
+ORT_LIB_LOCATION="$work/cpu-prefix/lib" bash "$repo/scripts/linux/check-gpu-image-runtime.sh" migraphx >/dev/null
+mkdir -p "$work/no-plugin/lib"
+fixture_refuses_logged "$work/no-plugin.log" 'This image has no MIGraphX plugin module' 'an image without the plugin module passed' \
+  env ORT_LIB_LOCATION="$work/cpu-prefix/lib" ORT_AMDGPU_EP_ROOT="$work/no-plugin" bash "$repo/scripts/linux/check-gpu-image-runtime.sh" migraphx
+mv "$image_ep/provenance.txt" "$work/provenance.keep"
+fixture_refuses_logged "$work/no-texts.log" 'no licence texts or provenance' 'an image without the plugin provenance passed' \
+  env ORT_LIB_LOCATION="$work/cpu-prefix/lib" bash "$repo/scripts/linux/check-gpu-image-runtime.sh" migraphx
+mv "$work/provenance.keep" "$image_ep/provenance.txt"
+# The CPU prefix is no CUDA runtime, and a stripped core is not the GPU wheel's bytes.
+fixture_refuses_quiet 'the CPU prefix passed as a CUDA runtime' env ORT_LIB_LOCATION="$work/cpu-prefix/lib" bash "$repo/scripts/linux/check-gpu-image-runtime.sh" cuda
+
+cp "$work/stripped-core" "$work/amd-bundle/lib/libonnxruntime.so.1"
+cp "$work/stripped-core" "$work/amd-bundle/lib/libonnxruntime.so"
+cp "$image_ep/lib/libmigraphx-ep.so" "$work/amd-bundle/lib/"
+cp -a "$work/bundle/licenses/onnxruntime" "$work/amd-bundle/licenses/"
+cp -a "$work/bundle/data" "$work/amd-bundle/"
+mkdir -p "$work/amd-bundle/licenses/onnxruntime-ep-amdgpu"
+cp -R "$image_ep/licenses/." "$work/amd-bundle/licenses/onnxruntime-ep-amdgpu/"
+cp "$image_ep/provenance.txt" "$work/amd-bundle/licenses/onnxruntime-ep-amdgpu/"
+mkdir -p "$work/amd-tar" "$work/amd-deb/DEBIAN" "$work/amd-deb/opt" "$work/amd-appimage/usr/lib"
+amd_tar="$work/amd-tar/$amd-bundle" amd_deb="$work/amd-deb/opt/$amd" amd_image="$work/amd-appimage/usr/lib/$amd"
+# amd_pack: rebuilds the three AMD candidates from their trees; the stub AppImage copies its tree when asked to extract.
+amd_pack() {
+  tar -C "$work/amd-tar" -czf "$work/out/$amd-linux-x64.tar.gz" "$amd-bundle"
+  dpkg-deb --root-owner-group --build "$work/amd-deb" "$work/out/${amd}_1.0_amd64.deb" >/dev/null
+}
+# amd_reset: every tree is the clean bundle again, so each case below plants one fault only.
+amd_reset() {
+  local tree
+  for tree in "$amd_tar" "$amd_deb" "$amd_image"; do
+    rm -rf "$tree"
+    cp -a "$work/amd-bundle" "$tree"
+  done
+  amd_pack
+}
+cat > "$work/amd-deb/DEBIAN/control" <<CONTROL
+Package: $amd
+Version: 1.0
+Architecture: amd64
+Maintainer: Fixture <fixture@example.invalid>
+Description: Package verifier fixture
+CONTROL
+fixture_stub "$work/out/$amd-1.0-x86_64.AppImage" <<'IMAGE'
+[[ "$#" -ge 1 && "$#" -le 2 && "$1" == --appimage-extract ]]
+mkdir squashfs-root
+cp -a "$FIXTURE_AMD_APPDIR/." squashfs-root/
+IMAGE
+export FIXTURE_AMD_APPDIR="$work/amd-appimage"
+amd_reset
+bash "$verifier" amd x64 >/dev/null
+# As the lane calls it, with no hub named: OxidANT's text helper must still read this repo's hub, never a nested one.
+ln -s "$ANTFRASTRUCTURE_DIR" "$fixture_repo/third_party/ANTfrastructure"
+env -u ANTFRASTRUCTURE_DIR -u KATAGLYPHIS_REPO_ROOT bash "$verifier" amd x64 >/dev/null
+# amd_refuses <needle> <message>: the verifier must fail and say needle; the trees are clean again afterwards.
+amd_refuses() {
+  amd_pack
+  fixture_refuses_logged "$work/amd.log" "$1" "$2" bash "$verifier" amd x64
+  amd_reset
+}
+printf x >> "$amd_tar/lib/libmigraphx-ep.so"
+amd_refuses "is not the image's" 'a patched tar plugin module passed'
+rm "$amd_deb/lib/libmigraphx-ep.so"
+amd_refuses 'missing or linked plugin MIGraphX EP' 'a DEB without the plugin module passed'
+printf x >> "$amd_image/lib/libmigraphx-ep.so"
+amd_refuses "is not the image's" 'a patched AppImage plugin module passed'
+printf changed > "$amd_image/licenses/onnxruntime-ep-amdgpu/fmt/LICENSE"
+amd_refuses "MIGraphX plugin texts are not the image's" 'a changed AppImage plugin text passed'
+rm "$amd_tar/licenses/onnxruntime-ep-amdgpu/provenance.txt"
+amd_refuses "MIGraphX plugin texts are not the image's" 'a tar without the plugin provenance passed'
+cp "$work/bundle/lib/libonnxruntime_providers_shared.so" "$amd_deb/lib/"
+amd_refuses 'An AMD package carries an in-tree ONNX Runtime provider' 'an AMD DEB with an in-tree provider passed'
+cp "$image_ep/lib/libmigraphx-ep.so" "$amd_tar/lib/libamdhip64.so.7"
+amd_refuses 'host GPU runtime library was bundled' 'an AMD tar with a bundled ROCm library passed'
+printf x >> "$amd_deb/lib/libonnxruntime.so.1"
+amd_refuses 'expected one wheel' 'a changed AMD core passed'
+# Set but pointing elsewhere, as a host's own root would: the package must still be compared with the image named here.
+mkdir -p "$work/other-ep/lib"
+printf 'other\n' > "$work/other-ep/lib/libmigraphx-ep.so"
+fixture_refuses_logged "$work/amd.log" "is not the image's" 'a package passed against another plugin root' \
+  env ORT_AMDGPU_EP_ROOT="$work/other-ep" bash "$verifier" amd x64
 echo 'GPU candidate package verification fixtures passed'

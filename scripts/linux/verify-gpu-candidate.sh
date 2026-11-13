@@ -12,6 +12,7 @@ hub="${ANTFRASTRUCTURE_DIR:-$repo/third_party/ANTfrastructure}/linux/scripts/06-
 source "$hub/ort-runtime-bundle.sh"
 # shellcheck source=/dev/null
 source "$hub/ort-package-proof.sh"
+if [[ "$provider" == migraphx ]]; then gpu_source_plugin_texts; fi
 variant="omni-accelerant-$vendor"
 shopt -s nullglob
 tarballs=("out/$variant-linux-$arch.tar.gz")
@@ -35,17 +36,32 @@ verify_detector_model() {
     "$hub/../lib/fetch-data-lock.py" "$repo/third_party/OxidANT/resources/models/models.lock" "$directory" --root "$root"
 }
 
+# verify_plugin_module <bundle>: no wheel carries AMD's plugin, so the image's module and its tree of texts are the proof.
+verify_plugin_module() {
+  local bundle="$1" file
+  ort_assert_plugin_module "$bundle/lib/$ORT_AMDGPU_EP_MODULE" || return 1
+  verify_amdgpu_ep_notices "$bundle" || return 1
+  for file in "$bundle"/lib/libonnxruntime_providers_*; do
+    [[ ! -e "$file" ]] || { echo 'An AMD package carries an in-tree ONNX Runtime provider' >&2; return 1; }
+  done
+  return 0
+}
+
 verify_tree() {
   local root="$1" bundle="$2"
-  local -a libs=()
+  local -a libs=() modules=(libonnxruntime_providers_shared.so libonnxruntime_providers_cuda.so) exact=(--require-unstripped)
   root="$(realpath -e "$root")"
   bundle="$(realpath -e "$bundle")"
   case "$bundle/" in "$root/"*) ;; *) echo 'Bundle escapes extracted package' >&2; return 1 ;; esac
   ort_assert_no_bundled_host_runtime "$root" "$provider"
-  ort_package_collect_libraries "$root" "$bundle/lib" libs libonnxruntime.so libonnxruntime.so.1 \
-    libonnxruntime_providers_shared.so "libonnxruntime_providers_${provider}.so"
+  if [[ "$provider" == migraphx ]]; then
+    # The NVIDIA prefix holds its wheel's own bytes; the CPU core an AMD package carries is the wheel's library stripped.
+    modules=("$ORT_AMDGPU_EP_MODULE") exact=()
+    verify_plugin_module "$bundle"
+  fi
+  ort_package_collect_libraries "$root" "$bundle/lib" libs libonnxruntime.so libonnxruntime.so.1 "${modules[@]}"
   mkdir -p "$work/proven"
-  python3 "$hub/stage-ort-wheel-licenses.py" --require-unstripped \
+  python3 "$hub/stage-ort-wheel-licenses.py" "${exact[@]}" \
     --wheel-dir "${ORT_CHAIN_WHEEL_DIR:-/opt/onnxruntime-wheels}" --destination "$work/proven" \
     --strip "${STRIP:-strip}" "${libs[@]}"
   ort_package_verify_notices "$root" "$bundle/licenses/onnxruntime" "$work/proven/licenses/onnxruntime"
@@ -57,9 +73,16 @@ tar -xzf "${tarballs[0]}" -C "$work/tar"
 dpkg-deb -x "${debs[0]}" "$work/deb"
 verify_tree "$work/tar" "$work/tar/${variant}-bundle"
 verify_tree "$work/deb" "$work/deb/opt/$variant"
-bash "$hub/verify-ort-appimage-payload.sh" "${images[0]}" "$arch" \
-  "usr/lib/$variant/lib" "usr/lib/$variant/licenses/onnxruntime" "$vendor"
 image="$(realpath -e "${images[0]}")"
+if [[ "$vendor" == amd ]]; then
+  # The hub's AppImage verifier asks for the wheel's exact bytes, which no stripped CPU core has (hub BACKLOG CON256 i).
+  mkdir "$work/appimage-tree"
+  (cd "$work/appimage-tree" && "$image" --appimage-extract > /dev/null)
+  verify_tree "$work/appimage-tree/squashfs-root" "$work/appimage-tree/squashfs-root/usr/lib/$variant"
+else
+  bash "$hub/verify-ort-appimage-payload.sh" "$image" "$arch" \
+    "usr/lib/$variant/lib" "usr/lib/$variant/licenses/onnxruntime" "$vendor"
+fi
 mkdir "$work/appimage"
 (
   cd "$work/appimage"

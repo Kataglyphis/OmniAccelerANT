@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Exercise trusted installer selection and profiling without running an app."""
+# suite-lane-only: 16.5 GiB free in the temp directory, more than a tmpfs /tmp holds
 
 import hashlib
 import importlib.util

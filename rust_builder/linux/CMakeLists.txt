@@ -64,23 +64,24 @@ foreach(_ort_name libonnxruntime.so libonnxruntime.so.1)
 endforeach()
 message(STATUS "Bundling ONNX Runtime (both sonames): ${ONNXRUNTIME_REAL}")
 
-# Provider libraries are loaded by ORT at runtime and are not visible to the ELF dependency walk.
+# GPU modules are loaded by ORT at runtime and are not visible to the ELF dependency walk.
 include("${CMAKE_CURRENT_SOURCE_DIR}/ort-device.cmake")
 omni_linux_ort_device(_ort_provider "${MANIFEST_ABS}")
-if(NOT
-   _ort_provider
-   STREQUAL
-   "cpu")
-  foreach(_ort_name libonnxruntime_providers_shared.so "libonnxruntime_providers_${_ort_provider}.so")
-    set(_ort_source "${ORT_CHAIN_LIB_DIR}/${_ort_name}")
-    if(NOT EXISTS "${_ort_source}")
-      message(FATAL_ERROR "${_ort_provider} ONNX Runtime provider is missing ${_ort_source}")
-    endif()
-    set(_ort_staged "${CMAKE_CURRENT_BINARY_DIR}/${_ort_name}")
-    configure_file("${_ort_source}" "${_ort_staged}" COPYONLY)
-    list(APPEND oxidant_extra_bundled_libraries "${_ort_staged}")
-  endforeach()
-endif()
+get_filename_component(_ort_hub_dir "${CMAKE_SOURCE_DIR}/../third_party/ANTfrastructure" ABSOLUTE)
+omni_linux_ort_modules(
+  _ort_modules
+  "${_ort_provider}"
+  "${ORT_CHAIN_LIB_DIR}"
+  "${_ort_hub_dir}")
+foreach(_ort_source IN LISTS _ort_modules)
+  if(NOT EXISTS "${_ort_source}" OR IS_DIRECTORY "${_ort_source}")
+    message(FATAL_ERROR "${_ort_provider} ONNX Runtime provider is missing ${_ort_source}")
+  endif()
+  get_filename_component(_ort_name "${_ort_source}" NAME)
+  set(_ort_staged "${CMAKE_CURRENT_BINARY_DIR}/${_ort_name}")
+  configure_file("${_ort_source}" "${_ort_staged}" COPYONLY)
+  list(APPEND oxidant_extra_bundled_libraries "${_ort_staged}")
+endforeach()
 
 # Absolute paths of the libraries bundled with the plugin.
 set(oxidant_bundled_libraries

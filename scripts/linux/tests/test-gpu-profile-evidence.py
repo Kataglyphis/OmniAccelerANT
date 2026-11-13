@@ -154,11 +154,7 @@ class EvidenceTests(unittest.TestCase):
             )
             self.entries[name] = receipt.read_bytes()
         for fmt in ("tar", "deb", "appimage"):
-            gpu = (
-                "CUDAExecutionProvider"
-                if self.VENDOR == "nvidia"
-                else "MIGraphXExecutionProvider"
-            )
+            gpu = "CUDAExecutionProvider" if self.VENDOR == "nvidia" else "MIGraphX"
             for mode, provider in (("cpu", "CPUExecutionProvider"), ("gpu", gpu)):
                 self.entries[f"{fmt}/{mode}-profile_1.json"] = profile(provider)
                 self.entries[f"{fmt}/{mode}-loader.9"] = loader(fmt, self.VENDOR)
@@ -276,9 +272,7 @@ class EvidenceTests(unittest.TestCase):
         self.build_evidence()
         self.verify(ok=False)
         self.entries["deb/gpu-profile_1.json"] = profile(
-            "CUDAExecutionProvider"
-            if self.VENDOR == "nvidia"
-            else "MIGraphXExecutionProvider"
+            "CUDAExecutionProvider" if self.VENDOR == "nvidia" else "MIGraphX"
         )
         self.entries["tar/gpu-2.json"] = b"{}"
         self.build_evidence()
@@ -290,9 +284,7 @@ class EvidenceTests(unittest.TestCase):
         self.verify(ok=False)
         self.entries["tar/gpu-loader.9"] = loader("tar", self.VENDOR)
         self.entries["tar/gpu-profile_2.json"] = profile(
-            "CUDAExecutionProvider"
-            if self.VENDOR == "nvidia"
-            else "MIGraphXExecutionProvider"
+            "CUDAExecutionProvider" if self.VENDOR == "nvidia" else "MIGraphX"
         )
         self.build_evidence()
         self.verify(ok=False)

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Run the existing CPU self-check and verify its loaded ORT belongs to the package.
+# Run the CPU self-check through the package's own ORT; an AMD package must also refuse its GPU by name where no card answers.
 set -euo pipefail
 # shellcheck source=scripts/linux/lib/gpu-script-common.sh
 source "$(dirname "${BASH_SOURCE[0]}")/lib/gpu-script-common.sh"
@@ -24,20 +24,39 @@ case "$kind" in
     resolved=$(realpath -e "$target/lib/libonnxruntime.so")
     gpu_assert_inside "$resolved" "$runtime_root" 'Runtime escapes bundle'
     launcher="$target/omni_accelerant"
+    amd=0
+    [[ ! -e "$runtime_root/$GPU_AMD_PLUGIN_MODULE" ]] || amd=1
     ;;
   appimage)
     [[ $# -eq 3 && -x "$target" && "$3" =~ ^omni-accelerant(-(nvidia|amd))?$ ]] || gpu_die 1 'Invalid AppImage or package name'
     variant=$3
     runtime_root=$work
     launcher=$target
+    # An AppImage shows its files only while it runs, so its name says whether it carries the module.
+    amd=0
+    [[ "$variant" != omni-accelerant-amd ]] || amd=1
     export APPIMAGE_EXTRACT_AND_RUN=1 TMPDIR="$work"
     ;;
   *) gpu_die 2 'Unsupported package type' ;;
 esac
-env -u LD_PRELOAD -u LD_AUDIT -u LD_LIBRARY_PATH -u LD_DEBUG -u LD_DEBUG_OUTPUT \
-  -u KATAGLYPHIS_ONNX_MODEL -u KATAGLYPHIS_DIRECTML_DEVICE_ID -u ORT_DYLIB_PATH \
-  -u ORT_LIB_LOCATION -u ONNX_ROOT -u KATAGLYPHIS_ORT_DEVICE -u KATAGLYPHIS_ONNX_BACKEND \
-  KATAGLYPHIS_ORT_DEVICE=cpu KATAGLYPHIS_ONNX_BACKEND=ort \
+# ORT_AMDGPU_EP_ROOT too: a set root would hand the image's or a host's plugin module to the package under test.
+clean=(env -u LD_PRELOAD -u LD_AUDIT -u LD_LIBRARY_PATH -u LD_DEBUG -u LD_DEBUG_OUTPUT
+  -u KATAGLYPHIS_ONNX_MODEL -u KATAGLYPHIS_DIRECTML_DEVICE_ID -u ORT_DYLIB_PATH
+  -u ORT_LIB_LOCATION -u ONNX_ROOT -u ORT_AMDGPU_EP_ROOT -u KATAGLYPHIS_ORT_DEVICE -u KATAGLYPHIS_ONNX_BACKEND)
+"${clean[@]}" KATAGLYPHIS_ORT_DEVICE=cpu KATAGLYPHIS_ONNX_BACKEND=ort \
   LD_DEBUG=libs LD_DEBUG_OUTPUT="$work/logs/loader" xvfb-run -a timeout 90 "$launcher" --onnx-check
 omni_verify_ort_loader_trace "$kind" "$runtime_root" "${variant:-}" "$work/logs/loader"
 echo 'Packaged CPU inference loaded the bundle ONNX Runtime'
+[[ "$amd" == 1 ]] || exit 0
+# No card answers on the hosts this check runs on: the packaged module must refuse the named device, and auto must go on to the CPU.
+if "${clean[@]}" KATAGLYPHIS_ORT_DEVICE=migraphx KATAGLYPHIS_ONNX_BACKEND=ort \
+  xvfb-run -a timeout 90 "$launcher" --onnx-check > "$work/logs/named.log" 2>&1; then
+  cat "$work/logs/named.log" >&2
+  gpu_die 1 'MIGraphX inference succeeded where no AMD GPU runtime was expected'
+fi
+cat "$work/logs/named.log"
+omni_verify_plugin_refusal "$kind" "$runtime_root" "${variant:-}" "$work/logs/named.log"
+"${clean[@]}" KATAGLYPHIS_ORT_DEVICE=auto KATAGLYPHIS_ONNX_BACKEND=ort \
+  LD_DEBUG=libs LD_DEBUG_OUTPUT="$work/logs/auto" xvfb-run -a timeout 90 "$launcher" --onnx-check
+omni_verify_ort_loader_trace "$kind" "$runtime_root" "${variant:-}" "$work/logs/auto"
+echo 'Packaged MIGraphX was refused by name through the packaged plugin module, and auto ran on the CPU'

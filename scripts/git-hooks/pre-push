@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# The hub's push hook, reached from this repo's own hooks directory: the full lint gates, then scripts/linux/pre-push-checks.sh.
+set -euo pipefail
+
+# exec keeps git's arguments and the ref list on standard input, which the hub's hook reads.
+exec bash "$(git rev-parse --show-toplevel)/third_party/ANTfrastructure/shared/linux/templates/git-hooks/pre-push" "$@"

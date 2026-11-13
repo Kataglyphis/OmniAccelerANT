@@ -5,6 +5,46 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ## Unreleased
 
+### 2026-11-13 (AMD packages carry AMD's plugin MIGraphX module; the hook pair)
+- **Not run with AMD's module.** Everything below is proven on fixtures on an arm64 host. No AMD candidate of this
+  layout was built, no native build ran, and nothing ran on a card: BACKLOG, *The Linux AMD packages have not run with
+  the plugin module*.
+- **The pins move.** OxidANT d3c45e3 to a8fa8d5 and AccelerANTgine 71b89a4 to d577307: both register AMD's plugin
+  module `libmigraphx-ep.so` under the name `MIGraphX` instead of loading the in-tree provider, which the rocm image
+  no longer has; AccelerANTgine's `decode_detections` also cuts boxes to the frame. ANTfrastructure d66d390 to
+  ed3d170: the profile checker expects `MIGraphX`, the bundle census takes `--library-path`, and the consumer hook
+  pair; it also carries the x86-64-v3 baseline for amd64, which no published image has yet (BACKLOG, *The amd64
+  packages get a CPU floor*). The bridge's surface, both `Cargo.lock` files, the texture ABI and the hub's
+  `versions.env` are unchanged.
+  What the hub pin needed here: two fixtures wrote the old provider name, and one passage of
+  `project-operations.md` repeated text the hub's BACKLOG now holds.
+- **An AMD build stages the plugin module.** `KATAGLYPHIS_ORT_PROVIDER=migraphx` takes the CPU ONNX Runtime
+  (`ORT_LIB_LOCATION=/usr/local/lib/onnxruntime-cpu/lib`; the candidate workflow reads the prefix from its matrix
+  row) and `$ORT_AMDGPU_EP_ROOT/lib/libmigraphx-ep.so`, whose name and place `rust_builder/linux/ort-device.cmake`
+  asks the hub for. No `libonnxruntime_providers_migraphx.so` is staged, expected or listed any more.
+- **The module stays the image's bytes.** The closure gives it no `$ORIGIN`, compares it with the image's module
+  after every other step and stages the image's plugin texts as `licenses/onnxruntime-ep-amdgpu/` (OxidANT's
+  helper). `check-bundle-closure.sh` hands the census the launcher's library path, `lib/glibc:lib`, for an AMD
+  bundle only. A bundle with both GPU modules, or with an in-tree provider beside the plugin, is refused.
+- **Package checks.** `verify-gpu-candidate.sh amd x64` requires the image's module and texts in tar, DEB and
+  AppImage and proves the core as the wheel's stripped twin; exact wheel bytes are asked for NVIDIA only.
+  `check-packaged-onnx-runtime.sh`, which the clean-host job runs, asks an AMD package for `migraphx` by name, which
+  must fail at the registration of the package's own module, and for `auto`, which must run. The package checks and
+  the card profile unset `ORT_AMDGPU_EP_ROOT`.
+- **Licence inventory.** `libmigraphx-ep.so` has its own row with AMD's MIT text, taken from the source archive the
+  hub pins by SHA-256; the ONNX Runtime row lost the in-tree provider.
+- **Hooks.** `scripts/git-hooks/pre-commit` hands the commit's index to the hub's hook (checks of what is staged,
+  in seconds; it used to run every gate, and nothing under `git commit -a`) and keeps the PowerShell lint, which it
+  now also runs when the staged list is longer than a pipe holds (the old `printf | grep -q` skipped it there).
+  `scripts/git-hooks/pre-push` is new: the hub's push hook, which runs `run-lint-gates.sh` in full and then
+  `scripts/linux/pre-push-checks.sh`. That file is new too: the script suites, which the native lane now runs through
+  it (`--lane`). Called bare, as the hook calls it, it skips the two suites that need the image; their headers say so
+  (`# suite-lane-only:`). On the Pi a push takes about 8 min. The wrapper's own stale-recipe loop is gone; the hub's
+  `mutation staleness` gate does it.
+- **Tests.** 40 mutation recipes for the new lines, each proven by hand, and the two recipes for the suite runner
+  re-pointed. `test-verify-gpu-candidate.sh` has an AMD leg that runs on every host, and `test-gpu-host-runtime.sh`
+  runs the closure script's AMD block on a fixture bundle.
+
 ### 2026-11-12 (the web playground reads thinking models and server errors)
 - **A server's error is shown in its own words (audit genai-native-6).** The web build's chat client cast the answer
   without checks: a 200 answer that carried an `error`, an empty `choices` list or a `null` content ended as a Dart

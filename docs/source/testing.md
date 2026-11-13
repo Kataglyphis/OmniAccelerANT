@@ -92,9 +92,12 @@ and `reusable-linux.yml` uploads it as `omni-accelerant-linux-<arch>-coverage`: 
   skip becomes a failure; `cargo test` hides a passing test's skip line, so nobody would see it
   otherwise. AccelerANTgine's Linux lane fails on any skipped ctest test, since ctest reports
   "100% tests passed" with skips in it, and UBSan reports are fatal (`halt_on_error=1`).
-- **Script suites are discovered, not listed.** The native lane runs every tracked
+- **Script suites are discovered, not listed.** `scripts/linux/pre-push-checks.sh` runs every tracked
   `scripts/linux/tests/test-*.{sh,py}`, `scripts/windows/tests/test[-_]*.py` and
-  `scripts/licenses/tests/test_*.py` (`scripts/linux/lib/suite-inventory.sh`) and prints
+  `scripts/licenses/tests/test_*.py` (`scripts/linux/lib/suite-inventory.sh`); the native lane calls
+  that file with `--lane` before its build, and the push hook calls it without, which skips the
+  suites whose header says `# suite-lane-only:`
+  ([project operations](project-operations.md#gate-strictness-and-the-git-hooks)). It prints
   `suite inventory: N discovered, R run by this lane, E run elsewhere, 0 unreferenced suites`. A
   suite that needs another lane names that runner in its first 15 lines (`# suite-runner:
   scripts/linux/ci/ci-container-run-web-linux.sh`); the gate fails when that runner does not name

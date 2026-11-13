@@ -212,10 +212,51 @@ what the owner's goal still lacks.
   `docs/gpu-artifact-receipts.md` has the commands. DirectML on an NVIDIA card is unproven too.
   The owner runs this on a machine with an NVIDIA GPU. No release until this and the Linux AMD check are done.
 
-- [ ] **The Linux AMD packages have not run on a GPU** (S, ★★★). They are built and passed on the CPU, and hosted runners
-  have no GPU. Under WSL on the RX 9070 XT even a plain HIP copy does not return (hub CON202), so this takes native
-  Linux: the owner runs it under Ubuntu on that machine. Done when `compare_detector_parity.py` passes against the
-  CPU and the profile shows MIGraphX; the hub's `docs/gpu-artifact-receipts.md` has the commands.
+- [ ] **The Linux AMD packages have not run with the plugin module, on a card or off it** (S, ★★★). Hub CON231 step 2
+  for this app. `:latest-rocm` has no in-tree MIGraphX provider any more, so the packages carry AMD's plugin module
+  `libmigraphx-ep.so` beside the CPU core, and OxidANT a8fa8d5 registers it as `MIGraphX`
+  (`docs/source/camera-streaming.md`, Linux GPU build selection). All of it is proven on fixtures only: no AMD
+  candidate of this layout was built, and nothing ran with AMD's module. A `linux-gpu-candidates.yml` run with
+  `gpu-tuple: amd-x64` is the first real one; in the order it can stop:
+  1. `check-gpu-image-runtime.sh migraphx`: the image's CPU core against one wheel as its stripped twin, the module and
+     its texts.
+  2. The native build in the rocm image, then `check-bundle-closure.sh`: the hub's census with
+     `--library-path lib/glibc:lib` on the real module (OxidANT run 43314831939 stopped there without the option).
+  3. `verify-gpu-candidate.sh amd x64`: module and texts against the image's in tar, DEB and AppImage.
+  4. The clean-host job: `migraphx` by name must fail with `ProviderUnavailable: MIGraphX failed to register: <the
+     package's module>` and `auto` must run. On a host with ROCm and no card nobody has seen what registration does
+     (an error, a crash or the 30 s HIP wait).
+  One thing to watch on the card: the bundle holds the chain ONNX Runtime as two real files, `libonnxruntime.so.1`
+  (the native plugin needs it) and `libonnxruntime.so` (OxidANT opens it by path). With stand-in libraries of that
+  shape under glibc 2.41, the process held both copies, and a module without a run path bound its
+  `libonnxruntime.so.1` import to the first while the second had opened it. Read from the build files and that test,
+  not seen in the app. AMD's source takes the API from the registration call, so it may not matter.
+  Under WSL on the RX 9070 XT even a plain HIP copy does not return (hub CON202), so the card run takes native Linux:
+  the owner runs it under Ubuntu on that machine. Done when `profile-gpu-packages.sh <dir> amd x64 migraphx` passes
+  there: `compare_detector_parity.py` against the CPU, and `verify_ort_profile.py --device migraphx` with the
+  plugin's operators in the profile; the hub's `docs/gpu-artifact-receipts.md` has the commands. Three stand-ins go
+  when the hub owns them (hub CON256 i, j): OxidANT's `stage_amdgpu_ep_notices` and `verify_amdgpu_ep_notices`,
+  called through `gpu_source_plugin_texts`; `verify_tree` on the extracted AMD AppImage instead of the hub's
+  `verify-ort-appimage-payload.sh`, which asks for exact wheel bytes; and `GPU_AMD_PLUGIN_MODULE`, the module name
+  repeated for the clean-host job.
+
+- [b] **CUDA still loads through the in-tree provider** (S, ★★). Owner, 2026-11-12: only AMD moves now. The hub's
+  contract says the classic CUDA append is gone on the new NVIDIA image (hub CON256 f), and the published
+  `:latest-nvidia` is still the old one. Blocked on that image and on an OxidANT pin that registers the CUDA plugin.
+  Then, here: the `cuda` row of `omni_linux_ort_modules` (`rust_builder/linux/ort-device.cmake`),
+  `select_gpu_runtime` and `require_gpu_module_set` (`scripts/linux/lib/bundle-runtime.sh`), the module lists of
+  `check-gpu-image-runtime.sh` and `verify-gpu-candidate.sh`, the ONNX Runtime row of
+  `scripts/licenses/native-components.json`, and their fixtures. Done when an NVIDIA candidate builds on the new
+  image and its package checks pass.
+
+- [b] **The amd64 packages get a CPU floor that nothing here states** (S, ★★). The hub pin of 2026-11-13 carries
+  the x86-64-v3 compiler default (hub CON264, `third_party/ANTfrastructure/docs/amd64-x86-64-v3-baseline.md`); no
+  published image is built with it yet. From the first one, the libraries the tar, DEB and AppImage take from the
+  image (ONNX Runtime, GStreamer, the compiler's libstdc++) need AVX2, FMA and BMI2, while this app's own clang and
+  Rust code keeps the generic level. Blocked on that image. Then: name the floor where the docs describe the Linux
+  packages, and decide whether the lane hands the level to clang and Rust
+  (`CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_RUSTFLAGS`, which leaves the wasm build alone). Done when the docs name
+  the floor and the decision is recorded.
 
 ## Open — code audit of 2026-11-12
 
@@ -274,15 +315,6 @@ name is under `lib/Pages/StreamPage/`.
   each twin exports a class that implements it and a `createObservantApi()`, and the widgets keep taking plain
   functions. The view gets a `typedef WebRTCViewBuilder` and a typed const in both files. `dart analyze` then fails
   a drifted signature on the every-push Linux lane.
-
-- [ ] **A clone without the hook is not noticed, and nothing runs before a push** (S, ★★).
-  `git config --get core.hooksPath` was empty in the Pi's clone on 2026-11-12, so `scripts/git-hooks/pre-commit` does
-  not run there; AGENTS.md (section 5) asks for the setting once per clone, and nothing checks it. First step:
-  `scripts/linux/run-lint-gates.sh` prints one warning line when the setting is missing and `CI` is unset. Then a
-  `pre-push` beside the `pre-commit` that runs the whole wrapper (about a minute on the Pi, not measured). The audit
-  asks the hub's hook template for the same `pre-push`; if it lands there first, this one calls it. `lint-gates.yml`
-  stays the backstop. Done when a clone without the setting says so on its first local run. The size is for these
-  two steps; the audit's whole hook finding is M, and its stale-recipe check is in the wrapper since 88c1b81.
 
 - [ ] **The plugin's MethodChannel API has no owner** (M, ★★).
   `packages/kataglyphis_native_inference/lib/kataglyphis_native_inference.dart:5-19` types only `getPlatformVersion`

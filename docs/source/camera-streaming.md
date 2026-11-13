@@ -242,43 +242,77 @@ stages `gstmediafoundation.dll`/`gstwinks.dll` + GStreamer core DLLs into the ru
 
 ### Linux GPU build selection
 
-The default build uses the CPU ONNX Runtime. For a GPU build, set
-`ORT_LIB_LOCATION=/usr/local/lib/onnxruntime-gpu/lib` and
-`KATAGLYPHIS_ORT_PROVIDER=cuda` or `migraphx` while configuring the app. The build stages
-the matching provider, links AccelerANTgine to that same runtime and sets it as the app's
-default device. A conflicting `ONNXRUNTIME_ROOT` fails configuration; an explicit
-`KATAGLYPHIS_ORT_DEVICE` still overrides that default. An explicit GPU request defaults
-the inference backend to ORT, so an ORT failure does not silently select tract. A GPU
-package accepts `cpu`, `auto`, or its own provider (`cuda` or `migraphx`); other device
-values stop the app with an error instead of silently selecting CPU.
+The default build uses the CPU ONNX Runtime. A GPU build sets `KATAGLYPHIS_ORT_PROVIDER` and
+names the ONNX Runtime it loads into with `ORT_LIB_LOCATION` while configuring the app:
 
-MIGraphX requires an x64 Linux build and an OxidANT dependency that advertises its
-`migraphx` device capability. The recorded OxidANT pin does not yet have that capability,
-so an AMD build stops at configuration until the dependency is updated. The build matrix
-allows CPU and CUDA on x64 and arm64. GPU packages and their host CUDA or ROCm runtime
-dependencies are not yet verified for distribution; staging the provider alone does not
-make an installable GPU artifact. The package scripts require the newer shared host-runtime
-helpers, use `-nvidia` or `-amd` names, and reject Flatpak for these host-runtime variants.
-The current ANTfrastructure pin does not yet contain those helpers.
-The dispatch-only `Linux GPU candidates (unverified)` workflow covers NVIDIA x64 and
-arm64 and AMD x64. It requires both strict-provider capabilities from the recorded
-OxidANT pin and the GPU packaging helpers from ANTfrastructure before it pulls an
-image; the current pins fail that preflight. After those pins are updated, it verifies
-the image's core and selected provider against one wheel, builds tar, DEB and AppImage
-candidates, and checks the finished GPU runtime and notices against that wheel. It
-uploads them with `unverified-omni-` artifact names and does not publish releases.
-The clean-host checks run `--onnx-check` with ONNX Runtime CPU selected on each
-finished package, then check normal startup. The self-check loads the packaged
-model and runs a blank frame through the desktop detector bridge; it returns a
-nonzero exit status on failure. It does not inspect provider placement or prove
-GPU acceleration. An explicit `KATAGLYPHIS_ONNX_MODEL` still overrides the
-packaged model.
-After the required dependency updates, a GPU lane in the matching registry image must
-select formats that use the host runtime, for example:
+| `KATAGLYPHIS_ORT_PROVIDER` | Image | `ORT_LIB_LOCATION` | What the build stages beside ONNX Runtime |
+| --- | --- | --- | --- |
+| `cuda` | `:latest-nvidia` | `/usr/local/lib/onnxruntime-gpu/lib` | `libonnxruntime_providers_shared.so`, `libonnxruntime_providers_cuda.so` |
+| `migraphx` (x64 only) | `:latest-rocm` | `/usr/local/lib/onnxruntime-cpu/lib` | AMD's plugin module `libmigraphx-ep.so`, from `$ORT_AMDGPU_EP_ROOT/lib` |
+
+The rocm image builds no GPU ONNX Runtime and no in-tree MIGraphX provider: AMD's plugin module
+loads into the CPU build, and OxidANT registers it under the name `MIGraphX`
+([hub contract](../../third_party/ANTfrastructure/docs/consumer-image-contract.md#amds-plugin-migraphx-ep)).
+`rust_builder/linux/ort-device.cmake` asks the pinned hub for the module's name and place. The
+build links AccelerANTgine to the same runtime and sets the provider as the app's default
+device. A conflicting `ONNXRUNTIME_ROOT` fails configuration; an explicit
+`KATAGLYPHIS_ORT_DEVICE` still overrides the default. A named GPU device defaults the inference
+backend to ORT, so an ORT failure does not silently select tract. A GPU package accepts `cpu`,
+`auto` or its own device (`cuda` or `migraphx`); any other value stops the app with an error.
+The device name on the Stream page stays `migraphx`.
+
+**What an AMD package carries.** The chain CPU core (both sonames), the image's plugin module,
+unpatched, and the image's plugin tree as `licenses/onnxruntime-ep-amdgpu/` (the plugin's
+`LICENSE` and `LICENSES`, the texts of the libraries its build takes in, `provenance.txt`).
+OxidANT looks for the module in `$ORT_AMDGPU_EP_ROOT/lib` when that variable is not empty and
+the file exists, then beside the ONNX Runtime it loaded, which is `bundle/lib`. The module has
+no run path and must stay the image's bytes, so:
+
+- `bundle-runtime-closure.sh` gives it no `$ORIGIN`, compares it with the image's module after
+  every other step (`ort_assert_plugin_module`) and stages the texts with OxidANT's
+  `stage_amdgpu_ep_notices`;
+- `check-bundle-closure.sh` hands the hub's census `--library-path lib/glibc:lib`, the path the
+  GPU launcher gives the loader on both of its start paths (`verify_gpu_host_launchers` reads
+  both lines first);
+- `libmigraphx_c.so.3` and `libamdhip64.so.7` stay the host's: a ROCm library in the bundle
+  fails the package, and so does an in-tree `libonnxruntime_providers_*` file.
+
+The package scripts use `-nvidia` or `-amd` names and reject Flatpak for these host-runtime
+variants.
+
+**The candidate workflow.** The dispatch-only `Linux GPU candidates (unverified)` workflow
+covers NVIDIA x64 and arm64 and AMD x64. Before it pulls an image, `preflight-gpu-candidate.py`
+requires the recorded OxidANT pin to register the plugin and the hub pin to carry the plugin
+helpers and the census option. In the image, `check-gpu-image-runtime.sh` proves the core
+against one chain wheel (exact bytes for the NVIDIA prefix; the rocm image strips its CPU core,
+so that one is proved as the wheel's library stripped) and, for AMD, requires the plugin module
+and its texts. The lane builds tar, DEB and AppImage; `verify-gpu-candidate.sh` then proves each
+finished package: no host GPU library, the wheel-matched core and notices, the locked model
+and, for AMD, the image's module and texts and no in-tree provider. An AMD AppImage gets that
+proof from this repo's `verify_tree`, because the hub's AppImage verifier asks for exact wheel
+bytes (hub BACKLOG CON256 i). Artifacts are named `unverified-omni-…`; nothing is published.
+
+The clean-host job runs `check-packaged-onnx-runtime.sh` on each package: `--onnx-check` with
+the CPU device, through the package's own ONNX Runtime. For an AMD package it then asks for
+`migraphx` by name, which must fail with `ProviderUnavailable: MIGraphX failed to register:
+<the package's own module>`, and for `auto`, which must run. A hosted runner has no card and no
+ROCm, so this proves the refusal and the CPU path, nothing about the GPU. Every package check
+unsets `ORT_AMDGPU_EP_ROOT`: a set root would hand the image's or a host's module to the
+package under test. `--onnx-check` loads the packaged model and runs a blank frame through the
+detector bridge; an explicit `KATAGLYPHIS_ONNX_MODEL` still overrides the packaged model.
+
+**Not proven.** No AMD package of this layout has been built, and none has run with AMD's
+module or on a card (BACKLOG, *The Linux AMD packages have not run with the plugin module*).
+The card check is `profile-gpu-packages.sh <dir> amd x64 migraphx`: CPU and GPU detector parity,
+and the hub's `verify_ort_profile.py --device migraphx`, which wants the plugin's operators in
+the profile under the provider name `MIGraphX`.
+
+A GPU lane in the matching registry image selects formats that use the host runtime:
 
 ```bash
-export ORT_LIB_LOCATION=/usr/local/lib/onnxruntime-gpu/lib
-export KATAGLYPHIS_ORT_PROVIDER=cuda  # migraphx on Linux x64 only
+export KATAGLYPHIS_ORT_PROVIDER=cuda ORT_LIB_LOCATION=/usr/local/lib/onnxruntime-gpu/lib
+# or, in :latest-rocm on x64:
+export KATAGLYPHIS_ORT_PROVIDER=migraphx ORT_LIB_LOCATION=/usr/local/lib/onnxruntime-cpu/lib
 bash scripts/linux/ci/lane-native-linux.sh --package-formats tar,appimage,deb
 ```
 

@@ -55,9 +55,13 @@ t_fake_elf "$work/linux/lib/gstreamer-1.0/libgstapp.so" 62
 t_fake_elf "$work/linux/omni_accelerant.bin" 62
 t_fake_elf "$work/linux/lib/libonnxruntime_providers_shared.so" 62
 t_fake_elf "$work/linux/lib/libonnxruntime_providers_cuda.so" 62
-t_fake_elf "$work/linux/lib/libonnxruntime_providers_migraphx.so" 62
+t_fake_elf "$work/linux/lib/libmigraphx-ep.so" 62
 printf '{}' > "$work/linux/lib/notes.json"
 t_assert_ok python3 "$coverage" --platform linux "$work/linux"
+# The in-tree MIGraphX provider left the image; a package that still carries one has no table row to hide behind.
+t_fake_elf "$work/linux/lib/libonnxruntime_providers_migraphx.so" 62
+t_assert_fails python3 "$coverage" --platform linux "$work/linux"
+rm "$work/linux/lib/libonnxruntime_providers_migraphx.so"
 t_fake_elf "$work/linux/lib/libmystery.so.1" 62
 t_assert_fails python3 "$coverage" --platform linux "$work/linux"
 t_fake_elf "$work/linux/unnamed-elf" 62

@@ -15,6 +15,7 @@ Windows packages also carry the ORT wheel's original license and notices, select
 an exact hash match to the shipped ONNX Runtime DLL and checked in each completed package.
 The app's match runs in the image and is stamped with the runner's ORT; the host packager only re-proves that stamp.
 Linux packages and the Pi bundle match every bundled ORT ELF to one wheel and verify its original texts; retain the shared verifier and mutation workflow.
+A Linux AMD package carries the chain CPU core, the rocm image's `libmigraphx-ep.so` unpatched and that image's plugin texts, never an in-tree provider; its checks unset `ORT_AMDGPU_EP_ROOT` (§ 4).
 Every package ships the third-party inventory in `assets/licenses/`; regenerate it with
 `scripts/licenses/generate-third-party-licenses.py --write` after a lockfile, gitlink or native-table change, and give
 every new shipped native file an entry with its original text before it ships
@@ -344,6 +345,18 @@ rather than linked.
   census in `check-bundle-closure.sh`. `rust_builder` puts ORT in `bundle/lib` before the packer
   runs (`Kept (already in bundle/lib, not copied)`), so a copy list without ORT is not a
   missing ORT. Detail: [`docs/source/camera-streaming.md`](docs/source/camera-streaming.md) § *Relocatable Linux bundles*.
+- **An AMD package's MIGraphX is AMD's plugin module, and no part of it is this repo's to change**
+  (hub CON231). `KATAGLYPHIS_ORT_PROVIDER=migraphx` builds in `:latest-rocm` with `ORT_LIB_LOCATION`
+  on the CPU prefix (the image has no GPU ONNX Runtime); `rust_builder/linux/ort-device.cmake` stages
+  `$ORT_AMDGPU_EP_ROOT/lib/libmigraphx-ep.so` into `bundle/lib`, where OxidANT registers it as
+  `MIGraphX`. The module has no run path and stays the image's bytes: the closure gives it no
+  `$ORIGIN`, `check-bundle-closure.sh` hands the census the launcher's `--library-path lib/glibc:lib`,
+  and `verify-gpu-candidate.sh` compares module and texts with the image's. Exact wheel bytes are
+  asked for NVIDIA only: the image strips its CPU core. The plugin's texts come from OxidANT's
+  `stage_amdgpu_ep_notices` (hub CON256 j) and one name, `GPU_AMD_PLUGIN_MODULE`, repeats the hub's
+  for the clean-host job, which has no hub checkout. Never put `libonnxruntime_providers_migraphx.so`,
+  a GPU prefix for AMD or a `patchelf` of the module back. Nothing here has run with AMD's module:
+  [`docs/source/camera-streaming.md`](docs/source/camera-streaming.md) § *Linux GPU build selection*.
 - **Linux bundle fixtures come from the hub.** The closure and GStreamer element tests source
   `synthetic-elf-fixture.sh` and `gst-inspect-fixture.sh`; preserve their DT_STRSZ and Name-field
   options when changing a test, and keep the helper import fatal.
@@ -718,7 +731,7 @@ that cannot run there; why, lane by lane: [`docs/source/testing.md`](docs/source
 | G6 over the shipped tree | `check-bundle-closure.sh` | at build, again on the host | at the natives build, again on the device | | |
 | Every pipeline element from the bundled plugins alone (`check-bundle-gst-elements.sh`) | yes | | | | |
 | Bundle gate's mutation suite, the element gate's stub suite | yes | | | | |
-| Script and fixture suites, discovered (`lib/suite-inventory.sh`; 0 unreferenced, a `# suite-runner:` suite runs where that file names it) | yes | `test-ort-device.py`, on the runner | | | |
+| Script and fixture suites, discovered (`lib/suite-inventory.sh`; 0 unreferenced, a `# suite-runner:` suite runs where that file names it), through `scripts/linux/pre-push-checks.sh --lane`; the push hook runs the same file without the suites that need the image | yes | `test-ort-device.py`, on the runner | | | |
 | Dart coverage of `lib/` against a floor (the hub's `check-dart-coverage.sh`), uploaded as `omni-accelerant-linux-<arch>-coverage` for `quality-report.toml` | yes | | | | |
 | Web artefacts: `<title>` vs manifest name, the fetched `sqlite3.wasm` vs its pin and the lock, 8-bit icons (the hub's `check-web-artefacts.py`) | yes | | | | |
 | Plugin C++ format (`check-plugin-cpp-format.sh`) and its planted-deviation suite | yes | | | | |
@@ -812,13 +825,19 @@ Windows build; budget hours. Its scope and the Windows run:
 [`docs/source/project-operations.md`](docs/source/project-operations.md) § *CodeQL, only on
 request*.
 
-**A pre-commit hook runs CI's first gates**: `git config core.hooksPath scripts/git-hooks`
-once per clone. **Every lane's Dart gate is strict** (format on the tracked files, analyze,
+**Two git hooks run CI's first gates**: `git config core.hooksPath scripts/git-hooks` once per
+clone. `pre-commit` hands the commit's index to the hub's hook (what is staged, in seconds) and
+keeps the PowerShell lint for staged `scripts/**/*.ps1`; `pre-push` is the hub's: the full
+`run-lint-gates.sh`, then `scripts/linux/pre-push-checks.sh`, the script suites the native lane
+runs through the same file (`--lane`; without it a suite marked `# suite-lane-only:` is skipped,
+as it needs the image). On the Pi a push takes about 8 min, more beside another job: give
+`git push` 30 min or run it in the background, and do not reach for `--no-verify` because it is
+slow. **Every lane's Dart gate is strict** (format on the tracked files, analyze,
 test, the plugin's tests too), and `Invoke-LinuxLane.ps1` passes `-StrictChecks true` as CI
 does. The CMake format gate (13 hand-maintained files) and the plugin's C++ format gate (15
 files) are fatal; never widen either onto generated or vendored trees. Detail:
 [`docs/source/project-operations.md`](docs/source/project-operations.md) § *Gate strictness
-and the pre-commit hook*, § *The CMake format gate*, § *The plugin's C++ format gate*.
+and the git hooks*, § *The CMake format gate*, § *The plugin's C++ format gate*.
 
 ### Dependency upgrades
 

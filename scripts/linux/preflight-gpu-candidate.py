@@ -18,6 +18,7 @@ GPU_ROWS = {
         "gpu-runner": "gpu-nvidia-cuda",
         "image-tag": "latest-nvidia",
         "provider": "cuda",
+        "ort-lib": "/usr/local/lib/onnxruntime-gpu/lib",
     },
     "nvidia-arm64": {
         "vendor": "nvidia",
@@ -28,6 +29,7 @@ GPU_ROWS = {
         "gpu-runner": "gpu-nvidia-cuda",
         "image-tag": "latest-nvidia",
         "provider": "cuda",
+        "ort-lib": "/usr/local/lib/onnxruntime-gpu/lib",
     },
     "amd-x64": {
         "vendor": "amd",
@@ -38,6 +40,8 @@ GPU_ROWS = {
         "gpu-runner": "gpu-amd-rocm",
         "image-tag": "latest-rocm",
         "provider": "migraphx",
+        # The rocm image builds no GPU ONNX Runtime: AMD's plugin module loads into the CPU build.
+        "ort-lib": "/usr/local/lib/onnxruntime-cpu/lib",
     },
 }
 WINDOWS_GPU_ROWS = {
@@ -122,7 +126,11 @@ def validate_profile_contract(root: Path) -> None:
     require_text(
         hub / "linux/scripts/lib/gpu-profile-env.sh", "gpu_without_migraphx_overrides()"
     )
-    require_text(hub / "shared/python/verify_ort_profile.py", "--min-runs")
+    require_text(
+        hub / "shared/python/verify_ort_profile.py",
+        "--min-runs",
+        '"migraphx": "MIGraphX"',
+    )
     require_text(hub / "shared/python/compare_detector_parity.py", "--pairwise")
 
 
@@ -146,13 +154,25 @@ def validate(root: Path) -> str:
             "pinned OxidANT must advertise strict CUDA and MIGraphX selection"
         )
 
+    oxidant = root / "third_party/OxidANT"
+    require_text(oxidant / "crates/inference/src/ort_plugin.rs", '"ORT_AMDGPU_EP_ROOT"')
+    require_text(
+        oxidant / "scripts/linux/lib/ort-runtime-bundle.sh",
+        "stage_amdgpu_ep_notices()",
+        "verify_amdgpu_ep_notices()",
+    )
     hub = root / "third_party/ANTfrastructure/linux/scripts"
     packaging = hub / "06-packaging"
     require_text(
         packaging / "ort-runtime-bundle.sh",
         "ort_host_runtime_needed()",
         "ort_assert_no_bundled_host_runtime()",
+        "ORT_AMDGPU_EP_MODULE=",
+        "ort_amdgpu_ep_dir()",
+        "ort_python_provider_file()",
+        "ort_assert_plugin_module()",
     )
+    require_text(packaging / "check-ort-provenance.sh", "--library-path")
     require_text(
         packaging / "ort-package-proof.sh",
         "ort_package_collect_libraries()",

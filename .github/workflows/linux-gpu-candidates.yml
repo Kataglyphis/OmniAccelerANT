@@ -118,7 +118,7 @@ jobs:
           extra-args: >-
             --privileged --platform "${{ matrix.platform }}" -e CI=true
             -e KATAGLYPHIS_ORT_PROVIDER=${{ matrix.provider }}
-            -e ORT_LIB_LOCATION=/usr/local/lib/onnxruntime-gpu/lib
+            -e ORT_LIB_LOCATION=${{ matrix.ort-lib }}
           script: >-
             bash -lc 'bash scripts/linux/check-gpu-image-runtime.sh "${{ matrix.provider }}"
             && bash scripts/linux/ci/ci-container-run-native-linux.sh

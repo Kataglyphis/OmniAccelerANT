@@ -82,7 +82,7 @@ ort_dir="$(chain_ort_lib_dir 2>/dev/null)" || ort_dir=/var/empty
 closure_args=(--bundle "$BUNDLE_DIR" --lib-dir "$bundle_lib" --relocatable --no-runpath --no-default-system
   --from "libonnxruntime*=$ort_dir")
 if [[ -n "$GPU_RUNTIME_KIND" ]]; then
-  closure_args+=(--direct-only "lib/libonnxruntime_providers_${GPU_RUNTIME_KIND}.so")
+  closure_args+=(--direct-only "$GPU_RUNTIME_MODULE")
   for sdk_root in /opt/rocm /usr/local/cuda; do
     [[ ! -d "$sdk_root" ]] || closure_args+=(--reject-source-root "$sdk_root")
   done
@@ -181,3 +181,10 @@ done
 # Match notices only after all bundle transformations are complete.
 antfrastructure_source linux/scripts/06-packaging/ort-wheel-licenses.sh
 stage_ort_wheel_licenses "$BUNDLE_DIR"
+if [[ "$GPU_RUNTIME_KIND" == migraphx ]]; then
+  # No wheel carries the plugin: the image's module, unpatched, and the texts beside it in the image are its proof.
+  ort_assert_plugin_module "$BUNDLE_DIR/$GPU_RUNTIME_MODULE"
+  # shellcheck source=third_party/OxidANT/scripts/linux/lib/ort-runtime-bundle.sh
+  source "$REPO_ROOT/third_party/OxidANT/scripts/linux/lib/ort-runtime-bundle.sh"
+  stage_amdgpu_ep_notices "$BUNDLE_DIR"
+fi

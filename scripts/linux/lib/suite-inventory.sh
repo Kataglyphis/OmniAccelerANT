@@ -19,6 +19,11 @@ suite_inventory_runner() {
   sed -n '1,15{/^# suite-runner: [^[:space:]]*$/{s/^# suite-runner: //;p;q;}}' "${1:?suite file required}"
 }
 
+# suite_inventory_lane_only <file>: why a suite needs the lane's image, from `# suite-lane-only: <why>` in its first 15 lines, or nothing.
+suite_inventory_lane_only() {
+  sed -n '1,15{/^# suite-lane-only: ./{s/^# suite-lane-only: //;p;q;}}' "${1:?suite file required}"
+}
+
 # suite_inventory_native <root>: the discovered suites that declare no other runner, so this lane runs them.
 suite_inventory_native() {
   local root="${1:?repo root required}" listing suite

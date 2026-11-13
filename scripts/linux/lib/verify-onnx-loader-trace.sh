@@ -25,3 +25,19 @@ omni_verify_ort_loader_trace() {
     fi
   done
 }
+
+# omni_verify_plugin_refusal <kind> <runtime-root> <variant> <log>: the refusal names the package's own plugin module, not a host's.
+omni_verify_plugin_refusal() {
+  local kind=$1 runtime_root=$2 variant=$3 log=$4 module=$GPU_AMD_PLUGIN_MODULE reported expected
+  reported=$(sed -n "s|.*ProviderUnavailable: MIGraphX failed to register: \\(/[^:]*/${module}\\): .*|\\1|p" "$log" | head -n 1)
+  [[ -n "$reported" ]] || { echo 'MIGraphX was not refused at the registration of a plugin module' >&2; return 1; }
+  reported=$(realpath -m -- "$reported")
+  if [[ "$kind" == appimage ]]; then
+    expected="^${runtime_root}/appimage_extracted_[0-9a-f]{32}/usr/lib/${variant}/lib/${module}\$"
+    [[ "$reported" =~ $expected ]] || { echo 'MIGraphX was refused through a plugin module outside the AppImage' >&2; return 1; }
+  elif [[ "$kind" == bundle ]]; then
+    [[ "$reported" == "$runtime_root/$module" ]] || { echo 'MIGraphX was refused through a plugin module outside the bundle' >&2; return 1; }
+  else
+    echo 'Unsupported plugin refusal type' >&2; return 1
+  fi
+}

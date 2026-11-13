@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # The plugin's C++ format gate on a throwaway package: one green, and each way it must go red or refuse.
+# suite-lane-only: the clang-format of the hub's LLVM_RELEASE, which only the image ships
 set -uo pipefail
 
 # shellcheck source=scripts/linux/tests/harness-bootstrap.sh

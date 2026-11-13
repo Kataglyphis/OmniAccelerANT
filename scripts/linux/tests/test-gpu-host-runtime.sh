@@ -25,9 +25,15 @@ printf 'void fixture(void) {}\n' > "$work/fixture.c"
   -o "$work/gpu/lib/libonnxruntime_providers_cuda.so"
 : > "$work/gpu/lib/libonnxruntime_providers_shared.so"
 fixture_refuses 'A GPU bundle unexpectedly passed with an old hub' host_runtime_quiet "$work/old" cuda "$work/gpu"
-: > "$work/gpu/lib/libonnxruntime_providers_migraphx.so"
-fixture_refuses 'A bundle containing both GPU providers unexpectedly passed' host_runtime_quiet "$ANTFRASTRUCTURE_DIR" '' "$work/gpu"
-rm "$work/gpu/lib/libonnxruntime_providers_migraphx.so"
+: > "$work/gpu/lib/libmigraphx-ep.so"
+fixture_refuses_logged "$work/both.log" 'bundle contains both CUDA and MIGraphX providers' \
+  'A bundle containing both GPU providers unexpectedly passed' host_runtime "$ANTFRASTRUCTURE_DIR" '' "$work/gpu"
+rm "$work/gpu/lib/libmigraphx-ep.so"
+# The in-tree MIGraphX provider is no AMD bundle any more: without the plugin module the bundle reads as CPU.
+: > "$work/cpu/lib/libonnxruntime_providers_migraphx.so"
+fixture_refuses_logged "$work/in-tree.log" 'requested ORT provider migraphx does not match the bundled provider cpu' \
+  'The in-tree MIGraphX provider was taken for an AMD bundle' host_runtime "$ANTFRASTRUCTURE_DIR" migraphx "$work/cpu"
+rm "$work/cpu/lib/libonnxruntime_providers_migraphx.so"
 
 fixture_gpu_launcher "$work/gpu/omni_accelerant"
 : > "$work/gpu/omni_accelerant.bin"
@@ -68,10 +74,60 @@ EOF
   verify_gpu_host_launchers "$work/actual"
   [[ "$(LD_LIBRARY_PATH=/sdk "$work/actual/omni_accelerant")" == "$work/actual/lib:/sdk" ]]
   [[ "$(KATAGLYPHIS_BUNDLED_GLIBC=1 LD_LIBRARY_PATH=/sdk "$work/actual/omni_accelerant")" == "$work/actual/lib:/sdk" ]]
+  # AMD's plugin module: the hub names it, and the three libraries it imports are the bundle's core and the host's ROCm.
+  mkdir -p "$work/amd/lib" "$work/stubs"
+  for soname in libonnxruntime.so.1 libmigraphx_c.so.3 libamdhip64.so.7; do
+    "${CC:-cc}" -shared -fPIC "-Wl,-soname,$soname" "$work/fixture.c" -o "$work/stubs/$soname"
+  done
+  "${CC:-cc}" -shared -fPIC -Wl,--no-as-needed "$work/fixture.c" "$work"/stubs/lib*.so.* -o "$work/amd/lib/libmigraphx-ep.so"
+  cp "$work/stubs/libonnxruntime.so.1" "$work/amd/lib/"
+  ( export ANTFRASTRUCTURE_DIR="$hub" KATAGLYPHIS_ORT_PROVIDER=migraphx
+    prepare_gpu_host_runtime "$work/amd"
+    [[ "$GPU_RUNTIME_KIND" == migraphx && "$GPU_RUNTIME_MODULE" == "lib/$ORT_AMDGPU_EP_MODULE" ]]
+    [[ ${#GPU_RUNTIME_SONAMES[@]} -eq 2 && " ${GPU_RUNTIME_SONAMES[*]} " == *' libmigraphx_c.so.3 '* && " ${GPU_RUNTIME_SONAMES[*]} " == *' libamdhip64.so.7 '* ]]
+    is_gpu_ort_file "$work/amd/lib/libmigraphx-ep.so"
+    is_gpu_ort_file "$work/amd/lib/libonnxruntime.so.1"
+    fixture_refuses 'An unrelated library was exempted from the bundle RUNPATH' is_gpu_ort_file "$work/amd/lib/liboxidant.so"
+  )
+  [[ "$(gpu_package_name omni-accelerant migraphx)" == omni-accelerant-amd ]]
+  : > "$work/amd/lib/libonnxruntime_providers_shared.so"
+  fixture_refuses_logged "$work/amd-in-tree.log" 'an AMD bundle carries the in-tree ONNX Runtime provider libonnxruntime_providers_shared.so' \
+    'An AMD bundle with an in-tree provider unexpectedly passed' host_runtime "$hub" migraphx "$work/amd"
+  rm "$work/amd/lib/libonnxruntime_providers_shared.so"
+  cp "$work/stubs/libamdhip64.so.7" "$work/amd/lib/"
+  fixture_refuses 'A bundled ROCm runtime unexpectedly passed' host_runtime_quiet "$hub" migraphx "$work/amd"
+  rm "$work/amd/lib/libamdhip64.so.7"
+  # The closure script's last block, run as the script runs it: a fixture root stands in for the rocm image.
+  mkdir -p "$work/image-ep/lib" "$work/image-ep/licenses/onnxruntime-ep-amdgpu"
+  cp "$work/amd/lib/libmigraphx-ep.so" "$work/image-ep/lib/"
+  printf 'plugin license\n' > "$work/image-ep/licenses/onnxruntime-ep-amdgpu/LICENSE"
+  printf 'onnxruntime-ep-amdgpu fixture\n' > "$work/image-ep/provenance.txt"
+  closure_tail="$(sed -n '/^if \[\[ "\$GPU_RUNTIME_KIND" == migraphx \]\]; then$/,/^fi$/p' "$root/scripts/linux/bundle-runtime-closure.sh")"
+  [[ -n "$closure_tail" ]] || { echo 'The closure script has no AMD block to test' >&2; exit 1; }
+  # Its own process: under fixture_refuses a function body runs with errexit off, and the block relies on it as the script does.
+  cat > "$work/closure-tail.sh" <<TAIL
+set -euo pipefail
+source "$root/scripts/linux/lib/bundle-script-env.sh"
+REPO_ROOT="\$KATAGLYPHIS_REPO_ROOT" BUNDLE_DIR="$work/amd"
+prepare_gpu_host_runtime "\$BUNDLE_DIR"
+$closure_tail
+TAIL
+  amd_closure_tail() {
+    env ANTFRASTRUCTURE_DIR="$hub" KATAGLYPHIS_ORT_PROVIDER=migraphx ORT_AMDGPU_EP_ROOT="$work/image-ep" bash "$work/closure-tail.sh"
+  }
+  amd_closure_tail
+  cmp "$work/image-ep/provenance.txt" "$work/amd/licenses/onnxruntime-ep-amdgpu/provenance.txt"
+  cmp "$work/image-ep/licenses/onnxruntime-ep-amdgpu/LICENSE" "$work/amd/licenses/onnxruntime-ep-amdgpu/onnxruntime-ep-amdgpu/LICENSE"
+  printf x >> "$work/amd/lib/libmigraphx-ep.so"
+  fixture_refuses_logged "$work/patched.log" "is not the image's" 'A patched plugin module passed the closure' amd_closure_tail
+  cp "$work/image-ep/lib/libmigraphx-ep.so" "$work/amd/lib/"
   if [[ -n "${ORT_TEST_REAL_PROVIDER:-}" ]]; then
     real_dir="$(fixture_real_provider_dir)" || exit $?
     mkdir -p "$work/real/lib"
-    cp "$real_dir/libonnxruntime_providers_shared.so" "$real_dir/libonnxruntime_providers_${ORT_TEST_REAL_PROVIDER}.so" "$work/real/lib/"
+    case "$ORT_TEST_REAL_PROVIDER" in
+      cuda) cp "$real_dir/libonnxruntime_providers_shared.so" "$real_dir/libonnxruntime_providers_cuda.so" "$work/real/lib/" ;;
+      migraphx) cp "${ORT_AMDGPU_EP_ROOT:?the real plugin root is required}/lib/libmigraphx-ep.so" "$work/real/lib/" ;;
+    esac
     ( export ANTFRASTRUCTURE_DIR="$hub" KATAGLYPHIS_ORT_PROVIDER="$ORT_TEST_REAL_PROVIDER"
       prepare_gpu_host_runtime "$work/real"
       [[ "$GPU_RUNTIME_KIND" == "$ORT_TEST_REAL_PROVIDER" && ${#GPU_RUNTIME_SONAMES[@]} -gt 0 ]]

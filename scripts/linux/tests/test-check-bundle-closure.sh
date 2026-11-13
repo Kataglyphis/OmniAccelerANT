@@ -91,6 +91,38 @@ t_assert_eq 1 "$(ANTFRASTRUCTURE_DIR="${_work}/old-hub" _gate_rc "${_green}")" "
 t_assert_contains "$(ANTFRASTRUCTURE_DIR="${_work}/old-hub" _gate "${_green}")" \
   "third_party/ANTfrastructure/docs/onnxruntime-single-source.md" "the pointer resolves from this repo"
 
+t_case "an AMD bundle: the plugin module has no run path, so G6 resolves its ORT import on the launcher's library path"
+_amd="$(_bundle amd)"
+cp "${_ref}/lib/libonnxruntime.so.1" "${_amd}/lib/"
+cp "${_ref}/lib/libonnxruntime.so.1" "${_amd}/lib/libonnxruntime.so"
+_elf "${_amd}/lib/libmigraphx-ep.so" 'libonnxruntime.so.1,libmigraphx_c.so.3,libamdhip64.so.7' '' CreateEpFactories
+_elf "${_amd}/omni_accelerant.bin" '' ''
+chmod +x "${_amd}/omni_accelerant.bin"
+mkdir -p "${_amd}/lib/glibc"
+fixture_gpu_launcher "${_amd}/omni_accelerant"
+_census="$(antfrastructure_path linux/scripts/06-packaging/check-ort-provenance.sh)"
+t_assert_contains "$(bash "${_census}" --reference "${_ref}/lib" "${_amd}" 2>&1)" "UNRESOLVED   /lib/libmigraphx-ep.so" \
+  "the fixture needs the option: alone the census cannot resolve the module's import"
+t_assert_eq 0 "$(_gate_rc "${_amd}")" "AMD closure"
+t_assert_contains "$(_gate "${_amd}")" "(library path lib/glibc:lib)" "the census was told the launcher's path"
+
+t_case "what the module's import lands on must still be the chain ORT (mutation: a foreign core first on the path)"
+_elf "${_amd}/lib/glibc/libonnxruntime.so.1" "" "" "${WINML_SRC}" OrtGetApiBase
+t_assert_eq 1 "$(_gate_rc "${_amd}")" "foreign core on the stated path"
+t_assert_contains "$(_gate "${_amd}")" "which is not the chain ORT" "G6 names what the import lands on"
+rm "${_amd}/lib/glibc/libonnxruntime.so.1"
+
+t_case "the census gets that path only from a launcher that gives it, and an AMD bundle carries no in-tree provider"
+sed -i 's/export LD_LIBRARY_PATH=/export BROKEN_PATH=/' "${_amd}/omni_accelerant"
+t_assert_eq 1 "$(_gate_rc "${_amd}")" "launcher without the library path"
+t_assert_eq "" "$(_gate "${_amd}" | grep -F 'ORT census')" "no census on a launcher's unproven path"
+sed -i 's/export BROKEN_PATH=/export LD_LIBRARY_PATH=/' "${_amd}/omni_accelerant"
+_elf "${_amd}/lib/libonnxruntime_providers_shared.so" '' '' "${CHAIN_SRC}"
+t_assert_eq 1 "$(_gate_rc "${_amd}")" "in-tree provider beside the plugin"
+t_assert_contains "$(_gate "${_amd}")" "an AMD bundle carries the in-tree ONNX Runtime provider" "named"
+rm "${_amd}/lib/libonnxruntime_providers_shared.so"
+t_assert_eq 0 "$(_gate_rc "${_amd}")" "the clean AMD bundle passes again"
+
 if [[ -n "${ORT_TEST_SHARED_HUB:-}" ]]; then
   t_case 'GPU ORT bytes use the verified external-runtime launcher'
   _gpu="$(_bundle gpu)"

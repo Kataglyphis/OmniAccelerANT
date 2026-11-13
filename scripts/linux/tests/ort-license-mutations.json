@@ -353,19 +353,19 @@
  },
  {
   "id": "consumer.omni-suite-lane-gate",
-  "target": "scripts/linux/ci/lane-native-linux.sh",
-  "find": "run_gate \"suite inventory\" suite_inventory_report \"$REPO_ROOT\"",
+  "target": "scripts/linux/pre-push-checks.sh",
+  "find": "run_gate \"suite inventory\" suite_inventory_report \"${root}\"",
   "replace": ":",
   "test": "bash scripts/linux/tests/test-suite-inventory.sh",
-  "why": "The native lane must run the inventory as a gate."
+  "why": "The lane and the push hook must run the inventory as a gate."
  },
  {
   "id": "consumer.omni-suite-lane-loop",
-  "target": "scripts/linux/ci/lane-native-linux.sh",
-  "find": "done < <(suite_inventory_native \"$REPO_ROOT\")",
+  "target": "scripts/linux/pre-push-checks.sh",
+  "find": "done < <(suite_inventory_native \"${root}\")",
   "replace": "done < /dev/null",
   "test": "bash scripts/linux/tests/test-suite-inventory.sh",
-  "why": "The native lane must run every discovered native suite."
+  "why": "The lane and the push hook must run every discovered native suite."
  },
  {
   "id": "consumer.omni-detect-check-photo",
@@ -430,5 +430,325 @@
   "replace": "name=deim_dfine_n_coco.onnx",
   "test": "bash scripts/linux/tests/test-observant-locked-model.sh",
   "why": "The Linux packager takes the model from the lock, so a lock naming another file needs no script edit."
+ },
+ {
+  "id": "consumer.omni-suite-lane-calls-the-runner",
+  "target": "scripts/linux/ci/lane-native-linux.sh",
+  "find": "run_gate \"script suites\" bash scripts/linux/pre-push-checks.sh --lane",
+  "replace": ":",
+  "test": "bash scripts/linux/tests/test-suite-inventory.sh",
+  "why": "The native lane must run the script suites through the file the push hook runs."
+ },
+ {
+  "id": "consumer.omni-suite-runner-own-tree",
+  "target": "scripts/linux/pre-push-checks.sh",
+  "find": "root=\"$(cd \"${_pre_push_dir}/../..\" && pwd)\"",
+  "replace": "root=\"${KATAGLYPHIS_REPO_ROOT}\"",
+  "test": "bash scripts/linux/tests/test-suite-inventory.sh",
+  "why": "The runner grades the tree it lies in, not the root a lane exported."
+ },
+ {
+  "id": "consumer.omni-amd-census-library-path",
+  "target": "scripts/linux/check-bundle-closure.sh",
+  "find": "  ort_census_args+=(--library-path lib/glibc:lib)",
+  "replace": "  :",
+  "test": "bash scripts/linux/tests/test-check-bundle-closure.sh",
+  "why": "The census must get the launcher's library path, or the unpatched plugin module's ORT import is UNRESOLVED."
+ },
+ {
+  "id": "consumer.omni-amd-kind-by-plugin-module",
+  "target": "scripts/linux/lib/bundle-runtime.sh",
+  "find": "  if [[ -n \"${ORT_AMDGPU_EP_MODULE:-}\" && -e \"$lib/$ORT_AMDGPU_EP_MODULE\" ]]; then",
+  "replace": "  if [[ -e \"$lib/libonnxruntime_providers_migraphx.so\" ]]; then",
+  "test": "bash scripts/linux/tests/test-gpu-host-runtime.sh",
+  "why": "An AMD bundle is known by the plugin module the hub names, never by the in-tree provider."
+ },
+ {
+  "id": "consumer.omni-amd-no-in-tree-provider",
+  "target": "scripts/linux/lib/bundle-runtime.sh",
+  "find": "    [[ ! -e \"$file\" ]] || { printf 'Error: an AMD bundle carries the in-tree ONNX Runtime provider %s\\n' \"${file##*/}\" >&2; return 1; }",
+  "replace": "    :",
+  "test": "bash scripts/linux/tests/test-gpu-host-runtime.sh",
+  "why": "An AMD bundle with an in-tree provider beside the plugin must be refused."
+ },
+ {
+  "id": "consumer.omni-amd-module-stays-unpatched",
+  "target": "scripts/linux/lib/bundle-runtime.sh",
+  "find": "  if [[ \"$name\" == libonnxruntime* || \"$name\" == \"${ORT_AMDGPU_EP_MODULE:-}\" ]]; then return 0; fi",
+  "replace": "  if [[ \"$name\" == libonnxruntime* ]]; then return 0; fi",
+  "test": "bash scripts/linux/tests/test-gpu-host-runtime.sh",
+  "why": "The closure must not give the plugin module a RUNPATH: it has to stay the image's bytes."
+ },
+ {
+  "id": "consumer.omni-amd-closure-module-proof",
+  "target": "scripts/linux/bundle-runtime-closure.sh",
+  "find": "  ort_assert_plugin_module \"$BUNDLE_DIR/$GPU_RUNTIME_MODULE\"",
+  "replace": "  :",
+  "test": "bash scripts/linux/tests/test-gpu-host-runtime.sh",
+  "why": "After the closure the bundled plugin module must be compared with the image's."
+ },
+ {
+  "id": "consumer.omni-amd-closure-notices",
+  "target": "scripts/linux/bundle-runtime-closure.sh",
+  "find": "  stage_amdgpu_ep_notices \"$BUNDLE_DIR\"",
+  "replace": "  :",
+  "test": "bash scripts/linux/tests/test-gpu-host-runtime.sh",
+  "why": "An AMD bundle must carry the plugin's licence texts and provenance."
+ },
+ {
+  "id": "consumer.omni-amd-package-module-is-the-images",
+  "target": "scripts/linux/verify-gpu-candidate.sh",
+  "find": "  ort_assert_plugin_module \"$bundle/lib/$ORT_AMDGPU_EP_MODULE\" || return 1",
+  "replace": "  :",
+  "test": "bash scripts/linux/tests/test-verify-gpu-candidate.sh",
+  "why": "A finished AMD package's plugin module must be the image's, byte for byte."
+ },
+ {
+  "id": "consumer.omni-amd-package-texts-are-the-images",
+  "target": "scripts/linux/verify-gpu-candidate.sh",
+  "find": "  verify_amdgpu_ep_notices \"$bundle\" || return 1",
+  "replace": "  :",
+  "test": "bash scripts/linux/tests/test-verify-gpu-candidate.sh",
+  "why": "A finished AMD package's plugin texts must be the image's."
+ },
+ {
+  "id": "consumer.omni-amd-package-no-in-tree-provider",
+  "target": "scripts/linux/verify-gpu-candidate.sh",
+  "find": "    [[ ! -e \"$file\" ]] || { echo 'An AMD package carries an in-tree ONNX Runtime provider' >&2; return 1; }",
+  "replace": "    :",
+  "test": "bash scripts/linux/tests/test-verify-gpu-candidate.sh",
+  "why": "A finished AMD package with an in-tree provider must be refused, even one a wheel matches."
+ },
+ {
+  "id": "consumer.omni-amd-core-is-the-stripped-twin",
+  "target": "scripts/linux/verify-gpu-candidate.sh",
+  "find": "    modules=(\"$ORT_AMDGPU_EP_MODULE\") exact=()",
+  "replace": "    modules=(\"$ORT_AMDGPU_EP_MODULE\")",
+  "test": "bash scripts/linux/tests/test-verify-gpu-candidate.sh",
+  "why": "An AMD package's CPU core is the wheel's library stripped; asking for exact bytes refuses every real package."
+ },
+ {
+  "id": "consumer.omni-nvidia-core-is-the-wheels-bytes",
+  "target": "scripts/linux/verify-gpu-candidate.sh",
+  "find": "  local -a libs=() modules=(libonnxruntime_providers_shared.so libonnxruntime_providers_cuda.so) exact=(--require-unstripped)",
+  "replace": "  local -a libs=() modules=(libonnxruntime_providers_shared.so libonnxruntime_providers_cuda.so) exact=()",
+  "test": "bash scripts/linux/tests/test-verify-gpu-candidate.sh",
+  "why": "An NVIDIA package must still carry its wheel's exact bytes."
+ },
+ {
+  "id": "consumer.omni-amd-appimage-tree",
+  "target": "scripts/linux/verify-gpu-candidate.sh",
+  "find": "  verify_tree \"$work/appimage-tree/squashfs-root\" \"$work/appimage-tree/squashfs-root/usr/lib/$variant\"",
+  "replace": "  :",
+  "test": "bash scripts/linux/tests/test-verify-gpu-candidate.sh",
+  "why": "An AMD AppImage gets the same payload proof as the tar and the DEB."
+ },
+ {
+  "id": "consumer.omni-amd-texts-read-this-hub",
+  "target": "scripts/linux/lib/gpu-script-common.sh",
+  "find": "  export KATAGLYPHIS_REPO_ROOT=\"$repo\" ANTFRASTRUCTURE_DIR=\"${ANTFRASTRUCTURE_DIR:-$repo/third_party/ANTfrastructure}\"",
+  "replace": "  :",
+  "test": "bash scripts/linux/tests/test-verify-gpu-candidate.sh",
+  "why": "OxidANT's text helper must resolve this repo's hub pin, not a hub nested in OxidANT."
+ },
+ {
+  "id": "consumer.omni-amd-image-module-required",
+  "target": "scripts/linux/check-gpu-image-runtime.sh",
+  "find": "  [[ -f \"$(ort_amdgpu_ep_dir)/$ORT_AMDGPU_EP_MODULE\" ]] || gpu_die 1 \"This image has no MIGraphX plugin module at $(ort_amdgpu_ep_dir)/$ORT_AMDGPU_EP_MODULE\"",
+  "replace": "  :",
+  "test": "bash scripts/linux/tests/test-verify-gpu-candidate.sh",
+  "why": "An AMD candidate build must stop on an image without the plugin module, and say so."
+ },
+ {
+  "id": "consumer.omni-amd-image-texts-required",
+  "target": "scripts/linux/check-gpu-image-runtime.sh",
+  "find": "  stage_amdgpu_ep_notices \"$work/plugin\"",
+  "replace": "  :",
+  "test": "bash scripts/linux/tests/test-verify-gpu-candidate.sh",
+  "why": "An AMD candidate build must stop on an image without the plugin's texts and provenance."
+ },
+ {
+  "id": "consumer.omni-amd-image-core-not-exact",
+  "target": "scripts/linux/check-gpu-image-runtime.sh",
+  "find": "  exact=()",
+  "replace": "  :",
+  "test": "bash scripts/linux/tests/test-verify-gpu-candidate.sh",
+  "why": "The rocm image's CPU core is the wheel's library stripped; exact bytes are asked of the GPU prefix only."
+ },
+ {
+  "id": "consumer.omni-amd-packaged-named-refusal",
+  "target": "scripts/linux/check-packaged-onnx-runtime.sh",
+  "find": "omni_verify_plugin_refusal \"$kind\" \"$runtime_root\" \"${variant:-}\" \"$work/logs/named.log\"",
+  "replace": ":",
+  "test": "bash scripts/linux/tests/test-check-packaged-onnx-runtime.sh",
+  "why": "Without a card the named device must fail at the registration of the package's own plugin module."
+ },
+ {
+  "id": "consumer.omni-amd-packaged-auto-runs",
+  "target": "scripts/linux/check-packaged-onnx-runtime.sh",
+  "find": "\"${clean[@]}\" KATAGLYPHIS_ORT_DEVICE=auto KATAGLYPHIS_ONNX_BACKEND=ort \\\n  LD_DEBUG=libs LD_DEBUG_OUTPUT=\"$work/logs/auto\" xvfb-run -a timeout 90 \"$launcher\" --onnx-check\nomni_verify_ort_loader_trace \"$kind\" \"$runtime_root\" \"${variant:-}\" \"$work/logs/auto\"",
+  "replace": ":",
+  "test": "bash scripts/linux/tests/test-check-packaged-onnx-runtime.sh",
+  "why": "After the refusal, auto must be asked and must run."
+ },
+ {
+  "id": "consumer.omni-amd-packaged-unsets-plugin-root",
+  "target": "scripts/linux/check-packaged-onnx-runtime.sh",
+  "find": "  -u ORT_LIB_LOCATION -u ONNX_ROOT -u ORT_AMDGPU_EP_ROOT -u KATAGLYPHIS_ORT_DEVICE -u KATAGLYPHIS_ONNX_BACKEND)",
+  "replace": "  -u ORT_LIB_LOCATION -u ONNX_ROOT -u KATAGLYPHIS_ORT_DEVICE -u KATAGLYPHIS_ONNX_BACKEND)",
+  "test": "bash scripts/linux/tests/test-check-packaged-onnx-runtime.sh",
+  "why": "A set plugin root would hand the image's module to the package under test."
+ },
+ {
+  "id": "consumer.omni-amd-packaged-appimage-by-name",
+  "target": "scripts/linux/check-packaged-onnx-runtime.sh",
+  "find": "    [[ \"$variant\" != omni-accelerant-amd ]] || amd=1",
+  "replace": "    :",
+  "test": "bash scripts/linux/tests/test-check-packaged-onnx-runtime.sh",
+  "why": "An AMD AppImage must be asked for its named device too."
+ },
+ {
+  "id": "consumer.omni-amd-packaged-bundle-by-module",
+  "target": "scripts/linux/check-packaged-onnx-runtime.sh",
+  "find": "    [[ ! -e \"$runtime_root/$GPU_AMD_PLUGIN_MODULE\" ]] || amd=1",
+  "replace": "    :",
+  "test": "bash scripts/linux/tests/test-check-packaged-onnx-runtime.sh",
+  "why": "A bundle that carries the plugin module must be asked for its named device."
+ },
+ {
+  "id": "consumer.omni-amd-refusal-inside-bundle",
+  "target": "scripts/linux/lib/verify-onnx-loader-trace.sh",
+  "find": "    [[ \"$reported\" == \"$runtime_root/$module\" ]] || { echo 'MIGraphX was refused through a plugin module outside the bundle' >&2; return 1; }",
+  "replace": "    :",
+  "test": "bash scripts/linux/tests/test-check-packaged-onnx-runtime.sh",
+  "why": "A refusal through a host's plugin module says nothing about the package's."
+ },
+ {
+  "id": "consumer.omni-amd-refusal-inside-appimage",
+  "target": "scripts/linux/lib/verify-onnx-loader-trace.sh",
+  "find": "    [[ \"$reported\" =~ $expected ]] || { echo 'MIGraphX was refused through a plugin module outside the AppImage' >&2; return 1; }",
+  "replace": "    :",
+  "test": "bash scripts/linux/tests/test-check-packaged-onnx-runtime.sh",
+  "why": "A refusal through a module outside the AppImage's extraction says nothing about the package's."
+ },
+ {
+  "id": "consumer.omni-amd-plugin-module-name",
+  "target": "scripts/linux/lib/gpu-script-common.sh",
+  "find": "GPU_AMD_PLUGIN_MODULE=libmigraphx-ep.so",
+  "replace": "GPU_AMD_PLUGIN_MODULE=libmigraphx_ep.so",
+  "test": "bash scripts/linux/tests/test-check-packaged-onnx-runtime.sh",
+  "why": "The module name repeated for the clean-host job must stay the hub's."
+ },
+ {
+  "id": "consumer.omni-amd-profile-unsets-plugin-root",
+  "target": "scripts/linux/profile-gpu-candidate.sh",
+  "find": "    -u ORT_DYLIB_PATH -u ORT_LIB_LOCATION -u ONNX_ROOT -u ORT_AMDGPU_EP_ROOT -u KATAGLYPHIS_ONNX_BACKEND -u KATAGLYPHIS_ORT_DEVICE",
+  "replace": "    -u ORT_DYLIB_PATH -u ORT_LIB_LOCATION -u ONNX_ROOT -u KATAGLYPHIS_ONNX_BACKEND -u KATAGLYPHIS_ORT_DEVICE",
+  "test": "bash scripts/linux/tests/test-profile-gpu-packages.sh",
+  "why": "The card profile must run the package's own plugin module, not one a host variable names."
+ },
+ {
+  "id": "consumer.omni-amd-stages-plugin-module",
+  "target": "rust_builder/linux/ort-device.cmake",
+  "find": "  elseif(provider STREQUAL \"migraphx\")",
+  "replace": "  elseif(provider STREQUAL \"never\")",
+  "test": "bash scripts/linux/tests/test-ort-provider-staging.sh",
+  "why": "An AMD build must stage the image's plugin module into the bundle."
+ },
+ {
+  "id": "consumer.omni-amd-staged-module-must-exist",
+  "target": "rust_builder/linux/CMakeLists.txt",
+  "find": "  if(NOT EXISTS \"${_ort_source}\" OR IS_DIRECTORY \"${_ort_source}\")",
+  "replace": "  if(FALSE)",
+  "test": "bash scripts/linux/tests/test-ort-provider-staging.sh",
+  "why": "A GPU build on an image without its module must stop and name the missing file."
+ },
+ {
+  "id": "consumer.omni-amd-preflight-oxidant-registers",
+  "target": "scripts/linux/preflight-gpu-candidate.py",
+  "find": "    require_text(oxidant / \"crates/inference/src/ort_plugin.rs\", '\"ORT_AMDGPU_EP_ROOT\"')\n",
+  "replace": "",
+  "test": "python3 -I scripts/linux/tests/test-gpu-candidate-preflight.py",
+  "why": "No image is pulled for an OxidANT pin that cannot register the plugin module."
+ },
+ {
+  "id": "consumer.omni-amd-preflight-hub-module-api",
+  "target": "scripts/linux/preflight-gpu-candidate.py",
+  "find": "        \"ORT_AMDGPU_EP_MODULE=\",\n",
+  "replace": "",
+  "test": "python3 -I scripts/linux/tests/test-gpu-candidate-preflight.py",
+  "why": "No image is pulled for a hub pin without the plugin module's name and proof."
+ },
+ {
+  "id": "consumer.omni-amd-preflight-census-option",
+  "target": "scripts/linux/preflight-gpu-candidate.py",
+  "find": "    require_text(packaging / \"check-ort-provenance.sh\", \"--library-path\")\n",
+  "replace": "",
+  "test": "python3 -I scripts/linux/tests/test-gpu-candidate-preflight.py",
+  "why": "No image is pulled for a hub pin whose census cannot take the launcher's library path."
+ },
+ {
+  "id": "consumer.omni-amd-preflight-profile-name",
+  "target": "scripts/linux/preflight-gpu-candidate.py",
+  "find": "        '\"migraphx\": \"MIGraphX\"',\n",
+  "replace": "",
+  "test": "python3 -I scripts/linux/tests/test-gpu-candidate-preflight.py",
+  "why": "The card profile needs a hub checker that knows the plugin by the name it is registered under."
+ },
+ {
+  "id": "consumer.omni-amd-matrix-cpu-prefix",
+  "target": "scripts/linux/preflight-gpu-candidate.py",
+  "find": "        \"ort-lib\": \"/usr/local/lib/onnxruntime-cpu/lib\",",
+  "replace": "        \"ort-lib\": \"/usr/local/lib/onnxruntime-gpu/lib\",",
+  "test": "python3 -I scripts/linux/tests/test-gpu-candidate-preflight.py",
+  "why": "The rocm image has no GPU ONNX Runtime: an AMD build takes the CPU prefix."
+ },
+ {
+  "id": "consumer.omni-amd-workflow-row-prefix",
+  "target": ".github/workflows/linux-gpu-candidates.yml",
+  "find": "            -e ORT_LIB_LOCATION=${{ matrix.ort-lib }}",
+  "replace": "            -e ORT_LIB_LOCATION=/usr/local/lib/onnxruntime-gpu/lib",
+  "test": "python3 -I scripts/linux/tests/test-gpu-candidate-preflight.py",
+  "why": "The candidate build takes its ONNX Runtime prefix from its matrix row, never the GPU prefix for every vendor."
+ },
+ {
+  "id": "consumer.omni-suite-lane-runs-every-suite",
+  "target": "scripts/linux/ci/lane-native-linux.sh",
+  "find": "run_gate \"script suites\" bash scripts/linux/pre-push-checks.sh --lane",
+  "replace": "run_gate \"script suites\" bash scripts/linux/pre-push-checks.sh",
+  "test": "bash scripts/linux/tests/test-suite-inventory.sh",
+  "why": "The lane must ask for every suite: without the flag the suites that need the image are skipped."
+ },
+ {
+  "id": "consumer.omni-suite-lane-flag",
+  "target": "scripts/linux/pre-push-checks.sh",
+  "find": "  --lane) lane=1 ;;",
+  "replace": "  --lane) lane=0 ;;",
+  "test": "bash scripts/linux/tests/test-suite-inventory.sh",
+  "why": "With --lane no suite may be skipped."
+ },
+ {
+  "id": "consumer.omni-suite-hook-skips-lane-only",
+  "target": "scripts/linux/pre-push-checks.sh",
+  "find": "  if [[ \"${lane}\" -eq 0 && -n \"${lane_only}\" ]]; then",
+  "replace": "  if false; then",
+  "test": "bash scripts/linux/tests/test-suite-inventory.sh",
+  "why": "Outside the lane a suite that needs the image is skipped with its reason, not run to a false failure."
+ },
+ {
+  "id": "consumer.omni-suite-unknown-flag",
+  "target": "scripts/linux/pre-push-checks.sh",
+  "find": "    echo \"usage: pre-push-checks.sh [--lane]\" >&2\n    exit 2",
+  "replace": "    echo \"usage: pre-push-checks.sh [--lane]\" >&2",
+  "test": "bash scripts/linux/tests/test-suite-inventory.sh",
+  "why": "A mistyped flag must stop the run, not run the host set under another name."
+ },
+ {
+  "id": "consumer.omni-suite-lane-only-marker",
+  "target": "scripts/linux/lib/suite-inventory.sh",
+  "find": "  sed -n '1,15{/^# suite-lane-only: ./{s/^# suite-lane-only: //;p;q;}}' \"${1:?suite file required}\"",
+  "replace": "  :",
+  "test": "bash scripts/linux/tests/test-suite-inventory.sh",
+  "why": "The reason a suite gives for needing the image must be read from its header."
  }
 ]

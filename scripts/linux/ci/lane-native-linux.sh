@@ -6,7 +6,6 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/../lib/ci-lane-libs.sh"
 REPO_ROOT="$OMNI_LANE_REPO_ROOT"
 source "$SCRIPT_DIR/../lib/gpu-ci-smoke.sh"
-source "$SCRIPT_DIR/../lib/suite-inventory.sh"
 
 usage() {
   omni_ci_usage lane-native-linux arch-auto build-mode-linux app-name-default package-formats-all no-package strict-checks run-docs flutter-dir-optional help
@@ -37,11 +36,8 @@ require_cmd dart
 
 # One batch: every gate runs and assert_gates fails once; --strict-checks governs only the Dart half.
 gate_reset "code quality (${MATRIX_ARCH})"
-# Discovered, not listed: a new suite runs here unless it names another runner that names it back.
-run_gate "suite inventory" suite_inventory_report "$REPO_ROOT"
-while IFS= read -r suite; do
-  run_gate "suite ${suite##*/}" suite_inventory_run "$REPO_ROOT" "$suite"
-done < <(suite_inventory_native "$REPO_ROOT")
+# One file for the lane and the push hook, so a suite that fails here has failed before the push on a clone with the hook.
+run_gate "script suites" bash scripts/linux/pre-push-checks.sh --lane
 # The checks' one test run writes the coverage the floor below reads; a second run cost 55 s.
 dart_lcov="build/coverage/lcov.info"
 rm -f "$dart_lcov"

@@ -17,10 +17,16 @@ SYSTEM_SONAME_ALLOWLIST=(
 )
 
 select_gpu_runtime() {
-  local lib="${1:?library directory required}" requested="${KATAGLYPHIS_ORT_PROVIDER:-}"
+  local lib="${1:?library directory required}" requested="${KATAGLYPHIS_ORT_PROVIDER:-}" helper
   GPU_RUNTIME_KIND=""
   if [[ -e "$lib/libonnxruntime_providers_cuda.so" ]]; then GPU_RUNTIME_KIND=cuda; fi
-  if [[ -e "$lib/libonnxruntime_providers_migraphx.so" ]]; then
+  # The hub names AMD's plugin module; a CPU bundle still has to pass with a pin that has no such helper.
+  helper="$(antfrastructure_path linux/scripts/06-packaging/ort-runtime-bundle.sh 2>/dev/null)" || helper=""
+  if [[ -n "$helper" ]]; then
+    # shellcheck disable=SC1090
+    source "$helper"
+  fi
+  if [[ -n "${ORT_AMDGPU_EP_MODULE:-}" && -e "$lib/$ORT_AMDGPU_EP_MODULE" ]]; then
     [[ -z "$GPU_RUNTIME_KIND" ]] || { echo 'Error: bundle contains both CUDA and MIGraphX providers' >&2; return 1; }
     GPU_RUNTIME_KIND=migraphx
   fi
@@ -38,6 +44,7 @@ load_gpu_runtime_helpers() {
   # shellcheck disable=SC1090
   source "$helper"
   if ! declare -F ort_host_runtime_needed >/dev/null || ! declare -F ort_assert_no_bundled_host_runtime >/dev/null ||
+    ! declare -F ort_python_provider_file >/dev/null || ! declare -F ort_assert_plugin_module >/dev/null ||
     ! grep -Fq -- '--direct-only' "$closure" || ! grep -Fq -- '--reject-source-root' "$closure" ||
     ! grep -Fq -- '--external-library-path' "$loader"; then
     echo 'Error: GPU bundles require ANTfrastructure host-runtime packaging support' >&2
@@ -45,16 +52,32 @@ load_gpu_runtime_helpers() {
   fi
 }
 
-# The GPU provider loads vendor libraries from the user's host SDK.
+# require_gpu_module_set <lib-dir>: CUDA loads through ORT's shared provider; AMD's plugin replaces every in-tree provider.
+require_gpu_module_set() {
+  local lib="${1:?library directory required}" file
+  if [[ "$GPU_RUNTIME_KIND" == cuda ]]; then
+    [[ -f "$lib/libonnxruntime_providers_shared.so" ]] || { echo 'Error: shared ORT provider is missing' >&2; return 1; }
+    return 0
+  fi
+  for file in "$lib"/libonnxruntime_providers_*; do
+    [[ ! -e "$file" ]] || { printf 'Error: an AMD bundle carries the in-tree ONNX Runtime provider %s\n' "${file##*/}" >&2; return 1; }
+  done
+  return 0
+}
+
+# The GPU module loads vendor libraries from the user's host SDK.
 prepare_gpu_host_runtime() {
-  local bundle="${1:?bundle required}" lib="$1/lib" provider needed
+  local bundle="${1:?bundle required}" lib="$1/lib" module needed
   GPU_RUNTIME_SONAMES=()
+  GPU_RUNTIME_MODULE=""
   select_gpu_runtime "$lib" || return 1
   [[ -n "$GPU_RUNTIME_KIND" ]] || return 0
-  [[ -f "$lib/libonnxruntime_providers_shared.so" ]] || { echo 'Error: shared ORT provider is missing' >&2; return 1; }
   load_gpu_runtime_helpers || return 1
-  provider="$lib/libonnxruntime_providers_${GPU_RUNTIME_KIND}.so"
-  needed="$(ort_host_runtime_needed "$provider" "$GPU_RUNTIME_KIND")" || return 1
+  require_gpu_module_set "$lib" || return 1
+  module="$(ort_python_provider_file "$lib" "$GPU_RUNTIME_KIND")" || return 1
+  # shellcheck disable=SC2034  # read by bundle-runtime-closure.sh
+  GPU_RUNTIME_MODULE="lib/${module##*/}"
+  needed="$(ort_host_runtime_needed "$module" "$GPU_RUNTIME_KIND")" || return 1
   [[ -n "$needed" ]] || { echo 'Error: GPU provider has no host-runtime dependencies' >&2; return 1; }
   while IFS= read -r needed; do
     [[ -n "$needed" ]] || continue
@@ -64,9 +87,11 @@ prepare_gpu_host_runtime() {
   ort_assert_no_bundled_host_runtime "$bundle" "$GPU_RUNTIME_KIND"
 }
 
-# is_gpu_ort_file <file>: ORT files must remain byte-identical to their wheel; the GPU launcher supplies their lib path.
+# is_gpu_ort_file <file>: ORT files stay their wheel's bytes and AMD's module the image's; the GPU launcher supplies their lib path.
 is_gpu_ort_file() {
-  if [[ -n "$GPU_RUNTIME_KIND" && "$(basename "$1")" == libonnxruntime* ]]; then return 0; fi
+  local name="${1##*/}"
+  [[ -n "$GPU_RUNTIME_KIND" ]] || return 1
+  if [[ "$name" == libonnxruntime* || "$name" == "${ORT_AMDGPU_EP_MODULE:-}" ]]; then return 0; fi
   return 1
 }
 

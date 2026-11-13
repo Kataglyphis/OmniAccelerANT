@@ -131,8 +131,7 @@
      "libonnxruntime.so",
      "libonnxruntime.so.*",
      "libonnxruntime_providers_shared.so",
-     "libonnxruntime_providers_cuda.so",
-     "libonnxruntime_providers_migraphx.so"
+     "libonnxruntime_providers_cuda.so"
     ],
     "windows": [
      "onnxruntime.dll",
@@ -148,6 +147,25 @@
     }
    ],
    "note": "Desktop packages also carry the matching wheel's original LICENSE and ThirdPartyNotices.txt under licenses/onnxruntime."
+  },
+  {
+   "id": "onnxruntime-ep-amdgpu",
+   "name": "ONNX Runtime MIGraphX execution provider plugin (AMD)",
+   "license": "MIT",
+   "source": "https://github.com/onnxruntime/onnxruntime-ep-amdgpu",
+   "files": {
+    "linux": [
+     "libmigraphx-ep.so"
+    ]
+   },
+   "texts": [
+    {
+     "path": "scripts/licenses/texts/native/onnxruntime-ep-amdgpu/LICENSE",
+     "sha256": "d42ce99fc62b84c66c7cc7a3e41a7254f3bc340a6a275ad8bf5c6b74150f715d",
+     "provenance": "https://github.com/onnxruntime/onnxruntime-ep-amdgpu/archive/58afd43bc4c2ddc7582712e1d75cbfd4c3bb03fc.tar.gz, the archive ANTfrastructure pins as ORT_AMDGPU_EP_SOURCE_SHA256 b3a2f00cb10c2447d267ff41f9dfdb30736d24122be46f57035cf7478a876233 (read 2026-11-13)"
+    }
+   ],
+   "note": "Only in Linux AMD packages, unchanged from the ANTfrastructure rocm image. Those packages also carry that image's plugin tree under licenses/onnxruntime-ep-amdgpu: the plugin's LICENSE and LICENSES, the texts of the libraries its build takes in (fmt, GSL, nlohmann/json, zlib, protobuf, ONNX, FlatBuffers, range-v3, Abseil) and provenance.txt."
   },
   {
    "id": "directml",
