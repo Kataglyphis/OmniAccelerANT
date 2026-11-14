@@ -338,15 +338,14 @@ name is under `lib/Pages/StreamPage/`.
 
 - [ ] **Nothing times the desktop frame path or a streaming answer** (S, ★). `integration_test/performance_test.dart`
   watches the start, page switches and resizes (22-48), and `quality-report.toml`'s one perf command is
-  `--detect-latency`. On Linux every frame is copied in `knt_push_frame` (`linux/my_texture.cc:344`); `copy_pixels`
-  then clears the buffer, copies the frame again and rewrites each alpha byte (156-166). That is four passes of 1.2 MB
-  at 640x480, about 150 MB/s at 30 fps (computed, not measured). In the playground one `AnimatedBuilder` wraps the
+  `--detect-latency`. On Linux every frame is copied in `knt_push_frame` and once more in `copy_pixels`; since
+  2026-11-14 (the Windows rule) `copy_pixels` no longer clears the buffer or rewrites each alpha byte, so it is two
+  passes of 1.2 MB at 640x480, not four (computed, not measured). In the playground one `AnimatedBuilder` wraps the
   page (`lib/Pages/AiPlaygroundPage/ai_playground_page.dart:71-118`), so a streaming answer parses the Markdown of
   every visible answer again on each frame (not measured). First step, measure: a timing loop in the Linux plugin
   gtest (300 pushes plus `copy_pixels` at 640x480 and 1280x720, ms per frame) under the hub's bench-history, and a
-  playground section with a fake `TextClient` in `performance_test.dart` under `frontend-perf-x64`. The one change
-  that needs no number: no `memset` when the sizes match. The buffers change owner only above about 1 ms a frame at
-  720p, and the Markdown fix would be ANThology's.
+  playground section with a fake `TextClient` in `performance_test.dart` under `frontend-perf-x64`. The buffers
+  change owner only above about 1 ms a frame at 720p, and the Markdown fix would be ANThology's.
 
 ## Open — waiting on the owner
 
