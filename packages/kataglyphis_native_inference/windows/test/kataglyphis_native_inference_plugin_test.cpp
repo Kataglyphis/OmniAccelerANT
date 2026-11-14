@@ -9,6 +9,7 @@
 #include <memory>
 #include <string>
 #include <variant>
+#include <vector>
 
 #include "kataglyphis_native_inference_plugin.h"
 #include "kataglyphis_texture.h"
@@ -30,18 +31,46 @@ namespace test {
             return std::get<flutter::PixelBufferTexture>(variant).CopyPixelBuffer(0, 0);
         }
 
+        // What CopyPixelBuffer hands Flutter for one frame, for the shared ABI cases.
+        struct AbiFrame
+        {
+            uint32_t width = 0;
+            uint32_t height = 0;
+            std::vector<uint8_t> bytes;
+        };
+
+        // The Windows side of the shared cases: a KataglyphisTexture read the way Flutter's raster thread reads it.
+        class AbiTexture
+        {
+          public:
+            AbiTexture(uint32_t width, uint32_t height, uint8_t r, uint8_t g, uint8_t b)
+              : texture_(width, height, r, g, b)
+            {}
+
+            void register_as(int64_t id) { RegisterPushTarget(id, &texture_); }
+            static void unregister(int64_t id) { UnregisterPushTarget(id); }
+
+            AbiFrame frame()
+            {
+                AbiFrame frame;
+                const FlutterDesktopPixelBuffer *pixels = CopyFrame(texture_);
+                if (pixels == nullptr) {
+                    ADD_FAILURE() << "the texture handed Flutter no frame";
+                    return frame;
+                }
+                frame.width = static_cast<uint32_t>(pixels->width);
+                frame.height = static_cast<uint32_t>(pixels->height);
+                frame.bytes.assign(pixels->buffer, pixels->buffer + (pixels->width * pixels->height * 4U));
+                return frame;
+            }
+
+          private:
+            KataglyphisTexture texture_;
+        };
+
     }// namespace
 
-    TEST(KataglyphisTexture, ANewTextureShowsItsColourUntilAFrameArrives)
-    {
-        KataglyphisTexture texture(2, 1, 10, 20, 30);
-        const FlutterDesktopPixelBuffer *frame = CopyFrame(texture);
-        ASSERT_NE(frame, nullptr);
-        EXPECT_EQ(frame->width, 2u);
-        EXPECT_EQ(frame->height, 1u);
-        const uint8_t expected[] = { 10, 20, 30, 255, 10, 20, 30, 255 };
-        EXPECT_EQ(std::memcmp(frame->buffer, expected, sizeof expected), 0);
-    }
+#include "../../shared/texture_abi_cases.inc"
 
     TEST(KataglyphisTexture, SetColorRepaintsEveryPixelOpaque)
     {
@@ -50,25 +79,6 @@ namespace test {
         const FlutterDesktopPixelBuffer *frame = CopyFrame(texture);
         const uint8_t expected[] = { 7, 8, 9, 255, 7, 8, 9, 255 };
         EXPECT_EQ(std::memcmp(frame->buffer, expected, sizeof expected), 0);
-    }
-
-    // Mirrors linux/test's case: the id only reaches a texture while it is registered, and the pushed frame replaces the colour.
-    TEST(KataglyphisTexture, OnlyARegisteredTextureTakesAPushedFrameAndItWins)
-    {
-        KataglyphisTexture texture(1, 1, 0, 0, 0);
-        const int64_t id = 4711;
-        const uint8_t pushed[] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12 };
-        EXPECT_EQ(knt_push_frame(id, pushed, 3, 1), -2);
-
-        RegisterPushTarget(id, &texture);
-        EXPECT_EQ(knt_push_frame(id, pushed, 3, 1), 0);
-        const FlutterDesktopPixelBuffer *frame = CopyFrame(texture);
-        EXPECT_EQ(frame->width, 3u);
-        EXPECT_EQ(frame->height, 1u);
-        EXPECT_EQ(std::memcmp(frame->buffer, pushed, sizeof pushed), 0);
-
-        UnregisterPushTarget(id);
-        EXPECT_EQ(knt_push_frame(id, pushed, 3, 1), -2);
     }
 
     TEST(KataglyphisTexture, AFrameOfAnotherSizeResizesTheTextureAndBadArgumentsChangeNothing)

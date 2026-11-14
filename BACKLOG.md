@@ -366,14 +366,6 @@ name is under `lib/Pages/StreamPage/`.
   that needs no number: no `memset` when the sizes match. The buffers change owner only above about 1 ms a frame at
   720p, and the Markdown fix would be ANThology's.
 
-- [ ] **Linux and Windows textures behave differently under one ABI** (S, ★). Linux keeps the texture's creation size,
-  crops or pads a frame of another size and forces alpha to 255 (`linux/my_texture.cc:135-181`); Windows resizes to
-  the pushed frame and copies alpha as it comes (`windows/kataglyphis_texture.cpp:34-68`), and each gtest pins its own
-  side. `third_party/OxidANT/abi/texture.json` fixes names and codes, not behaviour. Nobody sees it today: Rust always
-  sends RGBA at the asked size (`third_party/OxidANT/crates/media/src/capture.rs:179-195`). Owner decision 2026-11-13:
-  Windows is the rule (the texture takes the pushed frame's size, alpha as sent), and Linux changes. Then one include file of cases against the C ABI beside
-  the plugin, with a small adapter per platform, run by both gtests.
-
 ## Open — waiting on the owner
 
 - [b] **False arrivals on himbeere2: nearly gone, one mark left.** On 2026-10-12 and 13 a drying rack at

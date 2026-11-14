@@ -5,6 +5,15 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ## Unreleased
 
+### 2026-11-14 (one texture behaviour on Linux and Windows; owner decision of 2026-11-13)
+- **Linux shows a pushed frame at its own size, with its alpha as sent, as Windows does.** It kept the texture's
+  creation size, cropped or padded a frame of another size and forced alpha to 255. Nobody saw the difference, since
+  Rust sends RGBA at the asked size. `set_color` now checks the buffer under its lock, since the raster thread may
+  resize it.
+- **One set of cases runs on both:** `shared/texture_abi_cases.inc` holds the texture C ABI's behaviour (the colour
+  before a frame, the `knt_push_frame` codes and registry, size and alpha of a pushed frame); the Linux and the
+  Windows gtest each include it behind a small adapter, and the cases each side pinned on its own are gone.
+
 ### 2026-11-14 (the desktop plugins answer a call they do not expect)
 - **Windows answers an unknown method with `NotImplemented`.** `TextureMethodCall` took the result by value, so an
   unhandled call reached `result->NotImplemented()` through a moved-from pointer, a null dereference. It now borrows

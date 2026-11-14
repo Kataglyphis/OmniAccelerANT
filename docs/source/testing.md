@@ -252,11 +252,12 @@ As found on 2026-10-15, so a green run is read for what it is:
 
 - **Tarpaulin skipped feature-gated Rust code** (`crates/media`, the webcam engine) until
   OxidANT dropped its features on 2026-10-20; its coverage report is OxidANT's (its AGENTS.md).
-- **The native plugin's Windows and Android C++ is barely tested:** one `GetPlatformVersion`
-  gtest on Windows, one JVM test on Android, nothing for the Android GStreamer glue. The Linux
-  texture has two gtests since its GStreamer pipeline went on 2026-10-21 (the colour before a
-  frame; the `knt_push_frame` codes and registry, a transparent frame shown opaque); its four
-  pipeline gtests of 2026-10-15 went with the pipeline.
+- **The native plugin's Android C++ is barely tested:** one JVM test on Android, nothing for the
+  Android GStreamer glue. The two desktop textures run one set of cases against the texture C ABI,
+  `packages/kataglyphis_native_inference/shared/texture_abi_cases.inc`, each through a small
+  adapter in its own gtest (since 2026-11-14): the colour before a frame, the `knt_push_frame`
+  codes and registry, and a pushed frame shown at its own size with its alpha as sent, the
+  Windows rule the owner chose on 2026-11-13. Windows adds its method-call gtests.
 - **Web-only Dart is outside the coverage figure.** `webrtc_view.dart` and the other files behind
   `dart.library.js_interop` (`*_web.dart`, the gstwebrtc interop) never load on the VM, and
   `flutter test --platform chrome --coverage` runs the tests, writes no lcov and exits 1 (Flutter

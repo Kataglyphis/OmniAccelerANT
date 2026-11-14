@@ -2,7 +2,6 @@ module;
 
 #include "kataglyphis_texture_abi.h"
 
-#include <algorithm>
 #include <cstdint>
 #include <cstdlib>
 #include <flutter_linux/flutter_linux.h>
@@ -80,12 +79,6 @@ static void request_texture_frame_available(MyTexture *self, const char *source)
     g_main_context_invoke(nullptr, mark_texture_frame_available_on_main, g_object_ref(self));
 }
 
-static void force_alpha_opaque(uint8_t *buffer, uint32_t width, uint32_t height)
-{
-    const uint64_t pixel_count = static_cast<uint64_t>(width) * static_cast<uint64_t>(height);
-    for (uint64_t index = 0; index < pixel_count; ++index) { buffer[index * 4U + 3U] = 255U; }
-}
-
 // Runs only from copy_pixels, which is the one writer of `buffer`.
 static void apply_pending_color(MyTexture *self)
 {
@@ -144,26 +137,27 @@ static gboolean my_texture_copy_pixels(FlPixelBufferTexture *texture,
     // A failed allocation leaves buffer null; failing makes Flutter skip the frame instead of crashing.
     if (!self->buffer) { return FALSE; }
 
-    const size_t buffer_size = static_cast<size_t>(self->width) * static_cast<size_t>(self->height) * 4U;
-
-    // A pushed frame wins over the colour; copied row-wise since its geometry is the camera's.
+    // A pushed frame wins over the colour at its own size, alpha as sent: Windows' rule (owner decision).
     g_mutex_lock(&self->pushed_mutex);
     if (self->has_pushed && self->pushed_buffer) {
-        const size_t row_bytes =
-          std::min(static_cast<size_t>(self->width), static_cast<size_t>(self->pushed_width)) * 4U;
-        const uint32_t copy_rows = std::min(self->height, self->pushed_height);
-
-        memset(self->buffer, 0, buffer_size);
-        for (uint32_t row = 0; row < copy_rows; ++row) {
-            const size_t src_offset = static_cast<size_t>(row) * static_cast<size_t>(self->pushed_width) * 4U;
-            const size_t dst_offset = static_cast<size_t>(row) * static_cast<size_t>(self->width) * 4U;
-            if (src_offset + row_bytes <= self->pushed_capacity && dst_offset + row_bytes <= buffer_size) {
-                memcpy(self->buffer + dst_offset, self->pushed_buffer + src_offset, row_bytes);
+        const size_t frame_bytes =
+          static_cast<size_t>(self->pushed_width) * static_cast<size_t>(self->pushed_height) * 4U;
+        g_mutex_lock(&self->buffer_mutex);
+        if (self->pushed_width != self->width || self->pushed_height != self->height) {
+            auto *resized = static_cast<uint8_t *>(realloc(self->buffer, frame_bytes));
+            if (!resized) {
+                g_mutex_unlock(&self->buffer_mutex);
+                g_mutex_unlock(&self->pushed_mutex);
+                return FALSE;
             }
+            self->buffer = resized;
+            self->width = self->pushed_width;
+            self->height = self->pushed_height;
         }
+        if (frame_bytes <= self->pushed_capacity) { memcpy(self->buffer, self->pushed_buffer, frame_bytes); }
+        g_mutex_unlock(&self->buffer_mutex);
         g_mutex_unlock(&self->pushed_mutex);
 
-        force_alpha_opaque(self->buffer, self->width, self->height);
         *out_buffer = self->buffer;
         *width = self->width;
         *height = self->height;
@@ -184,10 +178,13 @@ void my_texture_set_color(FlTexture *texture, uint8_t r, uint8_t g, uint8_t b)
 {
     MyTexture *self = MY_TEXTURE(texture);
     g_return_if_fail(MY_IS_TEXTURE(self));
-    if (!self->buffer) return;
 
-    // Queue for copy_pixels; writing `buffer` here would race the raster thread.
+    // Queue for copy_pixels; writing `buffer` here would race the raster thread, which may also resize it.
     g_mutex_lock(&self->buffer_mutex);
+    if (!self->buffer) {
+        g_mutex_unlock(&self->buffer_mutex);
+        return;
+    }
     self->pending_r = r;
     self->pending_g = g;
     self->pending_b = b;

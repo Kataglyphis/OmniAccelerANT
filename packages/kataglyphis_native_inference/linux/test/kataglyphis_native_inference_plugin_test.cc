@@ -6,8 +6,9 @@
 #include "kataglyphis_native_inference_plugin_private.h"
 
 #include "kataglyphis_texture_abi.h"
-#include <array>
+#include <cstddef>
 #include <cstdint>
+#include <vector>
 
 import kataglyphis.my_texture;
 
@@ -27,67 +28,58 @@ namespace test {
         EXPECT_THAT(fl_value_get_string(result), testing::StartsWith("Linux "));
     }
 
-    // What copy_pixels hands Flutter for one frame.
-    struct Pixels
+    // What copy_pixels hands Flutter for one frame, for the shared ABI cases.
+    struct AbiFrame
     {
-        const uint8_t *data = nullptr;
         uint32_t width = 0;
         uint32_t height = 0;
-        std::array<uint8_t, 4> first() const { return { data[0], data[1], data[2], data[3] }; }
+        std::vector<uint8_t> bytes;
     };
 
-    bool copy(FlTexture *texture, Pixels *out)
+    // The Linux side of the shared cases: an FlTexture read the way Flutter's raster thread reads it.
+    class AbiTexture
     {
-        GError *error = nullptr;
-        const gboolean ok = FL_PIXEL_BUFFER_TEXTURE_GET_CLASS(texture)->copy_pixels(
-          FL_PIXEL_BUFFER_TEXTURE(texture), &out->data, &out->width, &out->height, &error);
-        g_clear_error(&error);
-        return ok == TRUE;
-    }
+      public:
+        AbiTexture(uint32_t width, uint32_t height, uint8_t r, uint8_t g, uint8_t b)
+          : texture_(my_texture_new(width, height, r, g, b))
+        {}
+        ~AbiTexture() { g_object_unref(texture_); }
+        AbiTexture(const AbiTexture &) = delete;
+        AbiTexture &operator=(const AbiTexture &) = delete;
 
-    class MyTextureTest : public ::testing::Test
-    {
-      protected:
-        void SetUp() override { texture = my_texture_new(64, 48, 0, 0, 255); }
-        void TearDown() override { g_object_unref(texture); }
-        FlTexture *texture = nullptr;
-    };
+        void register_as(int64_t id) { my_texture_register_push_target(id, texture_); }
+        static void unregister(int64_t id) { my_texture_unregister_push_target(id); }
 
-    TEST_F(MyTextureTest, ANewTextureShowsItsColourUntilAFrameArrives)
-    {
-        Pixels pixels;
-        ASSERT_TRUE(copy(texture, &pixels));
-        EXPECT_EQ(pixels.width, 64U);
-        EXPECT_EQ(pixels.height, 48U);
-        EXPECT_EQ(pixels.first(), (std::array<uint8_t, 4>{ 0, 0, 255, 255 }));
-    }
-
-    TEST_F(MyTextureTest, OnlyARegisteredTextureTakesAPushedFrameAndItWins)
-    {
-        // Transparent green: the texture must still show it opaque.
-        const std::array<uint8_t, 16> green = { 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0 };
-        constexpr int64_t id = 4242;
-        EXPECT_EQ(knt_push_frame(id, green.data(), 2, 2), -2) << "an unknown id took a frame";
-        EXPECT_FALSE(my_texture_has_pushed_frame(id));
-
-        my_texture_register_push_target(id, texture);
-        EXPECT_EQ(knt_push_frame(id, nullptr, 2, 2), -1);
-        EXPECT_EQ(knt_push_frame(id, green.data(), 0, 2), -1);
-        EXPECT_FALSE(my_texture_has_pushed_frame(id));
-        EXPECT_EQ(knt_push_frame(id, green.data(), 2, 2), 0);
-        EXPECT_TRUE(my_texture_has_pushed_frame(id));
-
-        Pixels pixels;
-        ASSERT_TRUE(copy(texture, &pixels));
-        EXPECT_EQ(pixels.width, 64U) << "a pushed frame keeps the texture's size";
-        EXPECT_EQ(pixels.first(), (std::array<uint8_t, 4>{ 0, 255, 0, 255 }));
-        // Rust's frames may arrive transparent: Flutter would show what lies under the texture.
-        for (uint32_t index = 0; index < pixels.width * pixels.height; ++index) {
-            ASSERT_EQ(pixels.data[index * 4U + 3U], 255) << "pixel " << index << " is not opaque";
+        AbiFrame frame()
+        {
+            const uint8_t *data = nullptr;
+            AbiFrame frame;
+            GError *error = nullptr;
+            const gboolean ok = FL_PIXEL_BUFFER_TEXTURE_GET_CLASS(texture_)->copy_pixels(
+              FL_PIXEL_BUFFER_TEXTURE(texture_), &data, &frame.width, &frame.height, &error);
+            g_clear_error(&error);
+            EXPECT_EQ(ok, TRUE);
+            if (ok == TRUE) { frame.bytes.assign(data, data + (static_cast<size_t>(frame.width) * frame.height * 4U)); }
+            return frame;
         }
 
-        my_texture_unregister_push_target(id);
-        EXPECT_EQ(knt_push_frame(id, green.data(), 2, 2), -2);
+      private:
+        FlTexture *texture_;
+    };
+
+#include "../../shared/texture_abi_cases.inc"
+
+    TEST(MyTexture, HasPushedFrameFollowsTheRegistry)
+    {
+        AbiTexture texture(2, 2, 0, 0, 255);
+        const std::vector<uint8_t> green(16, 255);
+        constexpr int64_t id = 4242;
+        EXPECT_FALSE(my_texture_has_pushed_frame(id));
+        texture.register_as(id);
+        EXPECT_FALSE(my_texture_has_pushed_frame(id));
+        EXPECT_EQ(knt_push_frame(id, green.data(), 2, 2), KNT_OK);
+        EXPECT_TRUE(my_texture_has_pushed_frame(id));
+        AbiTexture::unregister(id);
         EXPECT_FALSE(my_texture_has_pushed_frame(id));
     }
 
