@@ -5,6 +5,16 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ## Unreleased
 
+### 2026-11-14 (a failed start on Android says why once and can be tried again)
+- **One message per cause, and a way back.** A start that stops before a picture now shows one message: the camera
+  permission, or the texture that could not be created with the plugin's reason. A denied permission no longer adds
+  "Error creating texture (null id)" beside it, and no failure promises a WebRTC preview, which a native build cannot
+  show (the stub only says it belongs to the web build).
+- **Retry** starts again with a new texture, and so does the return to the app, after the system settings for
+  example. A permanently denied camera gets an "Open settings" button instead of opening the settings on every start.
+- Tests: one widget test per cause; each finds its text once and no other, and Retry (or the return to the app)
+  asks again and starts once the camera is granted.
+
 ### 2026-11-14 (the web playground reads no line over 1 MiB)
 - `endpoint_chat.dart` read a reply line of any length into memory before `LineSplitter` gave it up. Lines are now
   counted on the bytes as they arrive, across chunks, and one past 1 MiB (`endpointLineLimit`, the native client's

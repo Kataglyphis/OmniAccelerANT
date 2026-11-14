@@ -280,16 +280,6 @@ name is under `lib/Pages/StreamPage/`.
   measured. Done when the emulator check fails on each planted fault and the Dart test fails without the
   `command_failed` branch.
 
-- [ ] **A failed start on Android ends in a wrong text and no way to try again** (S, ★★). `_buildAndroidFallback`
-  (`stream_page.dart:644-668`) promises "Falling back to WebRTC preview on Android" and builds `WebRTCView`, which on
-  a native build is the stub's "only available in the web build" (`webrtc_view_stub.dart:21-34`);
-  `test/stream_page_native_test.dart:422-436` pins the promise. A denied permission also shows "Error creating texture
-  (null id)" (484-489) beside the right permission text; the texture future is `late final` (79), so nothing tries
-  again; and a permanent denial opens the system settings on every start (159-161). First step: no WebRTC promise; one
-  message per cause (permission, texture, source); the set-up as a method that a Retry button and a resume call again;
-  the system settings behind a button. The three Android tests change in the same commit. Stays fixed by one widget
-  test per cause: its text shows, no second text contradicts it, and Retry starts again.
-
 - [ ] **The plugin's MethodChannel API has no owner** (M, ★★).
   `packages/kataglyphis_native_inference/lib/kataglyphis_native_inference.dart:5-19` types only `getPlatformVersion`
   and `add`; the other eight methods are called by name from app code, and the channel name is typed in 7 Dart and 3

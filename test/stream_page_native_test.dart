@@ -69,12 +69,15 @@ class _FakePlugin {
 class _FakePermissions {
   _FakePermissions(this.status);
 
-  final PermissionStatus status;
+  /// The answer to the next request; a test changes it, as a user who grants the camera later does.
+  PermissionStatus status;
   bool settingsOpened = false;
+  int requests = 0;
 
   Future<Object?> handle(MethodCall call) async {
     switch (call.method) {
       case 'requestPermissions':
+        requests++;
         return <int, int>{
           for (final Object? p in call.arguments as List<Object?>)
             p! as int: status.index,
@@ -85,6 +88,13 @@ class _FakePermissions {
       default:
         return status.index;
     }
+  }
+}
+
+/// Frames for the channel answers a tap starts; not pumpAndSettle, which a spinning progress indicator never lets end.
+Future<void> pumpAWhile(WidgetTester tester) async {
+  for (int frame = 0; frame < 5; frame++) {
+    await tester.pump(const Duration(milliseconds: 100));
   }
 }
 
@@ -352,57 +362,101 @@ void main() {
       await unmountApp(tester);
     }, variant: android);
 
-    testWidgets('without the camera permission it says so and starts nothing', (
-      WidgetTester tester,
-    ) async {
-      final _FakePermissions permissions = await grant(
-        tester,
-        PermissionStatus.denied,
-      );
-      final _FakePlugin plugin = _FakePlugin();
-      await pumpStreamPageApp(tester, plugin.handle);
+    testWidgets(
+      'without the camera permission it says so once, and Retry asks again and starts once granted',
+      (WidgetTester tester) async {
+        final _FakePermissions permissions = await grant(
+          tester,
+          PermissionStatus.denied,
+        );
+        final _FakePlugin plugin = _FakePlugin();
+        await pumpStreamPageApp(tester, plugin.handle);
 
-      expect(plugin.methods, isEmpty);
-      expect(
-        find.textContaining('Camera permission is required'),
-        findsOneWidget,
-      );
-      expect(permissions.settingsOpened, isFalse);
+        expect(plugin.methods, isEmpty);
+        expect(
+          find.textContaining('Camera permission is required'),
+          findsOneWidget,
+        );
+        // The denied permission showed "Error creating texture (null id)" beside its own text.
+        expect(find.textContaining('texture'), findsNothing);
+        expect(find.text('Open settings'), findsNothing);
+        expect(permissions.settingsOpened, isFalse);
 
-      await unmountApp(tester);
-    }, variant: android);
+        await tester.ensureVisible(find.text('Retry'));
+        await tester.tap(find.text('Retry'));
+        await pumpAWhile(tester);
+        expect(permissions.requests, 2);
+        expect(plugin.methods, isEmpty);
 
-    testWidgets('a permanently denied camera opens the app settings', (
-      WidgetTester tester,
-    ) async {
-      final _FakePermissions permissions = await grant(
-        tester,
-        PermissionStatus.permanentlyDenied,
-      );
-      final _FakePlugin plugin = _FakePlugin();
-      await pumpStreamPageApp(tester, plugin.handle);
+        permissions.status = PermissionStatus.granted;
+        await tester.ensureVisible(find.text('Retry'));
+        await tester.tap(find.text('Retry'));
+        await pumpAWhile(tester);
+        expect(plugin.methods, contains('create'));
+        expect(
+          find.textContaining('Camera permission is required'),
+          findsNothing,
+        );
 
-      expect(plugin.methods, isEmpty);
-      expect(permissions.settingsOpened, isTrue);
+        await unmountApp(tester);
+      },
+      variant: android,
+    );
 
-      await unmountApp(tester);
-    }, variant: android);
+    testWidgets(
+      'a permanently denied camera offers the settings and opens them only on a tap; the return to the app retries',
+      (WidgetTester tester) async {
+        final _FakePermissions permissions = await grant(
+          tester,
+          PermissionStatus.permanentlyDenied,
+        );
+        final _FakePlugin plugin = _FakePlugin();
+        await pumpStreamPageApp(tester, plugin.handle);
 
-    testWidgets('a texture it cannot create falls back to the WebRTC preview', (
-      WidgetTester tester,
-    ) async {
-      await grant(tester);
-      final _FakePlugin plugin = _FakePlugin(createFails: true);
-      await pumpStreamPageApp(tester, plugin.handle);
+        expect(plugin.methods, isEmpty);
+        expect(permissions.settingsOpened, isFalse);
+        await tester.ensureVisible(find.text('Open settings'));
+        await tester.tap(find.text('Open settings'));
+        await pumpAWhile(tester);
+        expect(permissions.settingsOpened, isTrue);
 
-      expect(
-        find.textContaining('Falling back to WebRTC preview on Android'),
-        findsOneWidget,
-      );
-      expect(find.byType(Texture), findsNothing);
+        permissions.status = PermissionStatus.granted;
+        tester.binding.handleAppLifecycleStateChanged(
+          AppLifecycleState.resumed,
+        );
+        await pumpAWhile(tester);
+        expect(permissions.requests, 2);
+        expect(plugin.methods, contains('create'));
 
-      await unmountApp(tester);
-    }, variant: android);
+        await unmountApp(tester);
+      },
+      variant: android,
+    );
+
+    testWidgets(
+      'a texture it cannot create says so with no WebRTC promise, and Retry creates again',
+      (WidgetTester tester) async {
+        await grant(tester);
+        final _FakePlugin plugin = _FakePlugin(createFails: true);
+        await pumpStreamPageApp(tester, plugin.handle);
+
+        expect(
+          find.textContaining('The video texture could not be created'),
+          findsOneWidget,
+        );
+        expect(find.textContaining('WebRTC'), findsNothing);
+        expect(find.textContaining('Camera permission'), findsNothing);
+        expect(find.byType(Texture), findsNothing);
+
+        await tester.ensureVisible(find.text('Retry'));
+        await tester.tap(find.text('Retry'));
+        await pumpAWhile(tester);
+        expect(plugin.methods.where((m) => m == 'create'), hasLength(2));
+
+        await unmountApp(tester);
+      },
+      variant: android,
+    );
   });
 
   testWidgets('a platform without a native path shows the WebRTC stand-in', (

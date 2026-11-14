@@ -72,14 +72,18 @@ class StreamPage extends StatefulWidget {
   State<StatefulWidget> createState() => StreamPageState();
 }
 
+/// Why the Android start stopped before a picture: each cause has its own message and its own way back.
+enum _StartProblem { permission, permissionForever, texture }
+
 /// State for [StreamPage] managing native texture and playback.
-class StreamPageState extends State<StreamPage> {
+class StreamPageState extends State<StreamPage> with WidgetsBindingObserver {
   // Native GStreamer setup
   static const MethodChannel channel = MethodChannel(
     'kataglyphis_native_inference',
   );
 
-  late final Future<int?> textureId;
+  /// The start's texture; Retry and a return to the app start again with a new one.
+  late Future<int?> textureId;
 
   // Texture dimensions from settings
   int get textureWidth => widget.webrtcSettings.texture.width;
@@ -92,7 +96,8 @@ class StreamPageState extends State<StreamPage> {
   String? _lastSource;
   bool _stopped = false;
   String? _errorMessage;
-  bool _nativeInitFailed = false;
+  _StartProblem? _startProblem;
+  String _textureFailure = '';
   late final String _defaultNativeSource;
 
   // Android settings from webrtcSettings
@@ -129,7 +134,24 @@ class StreamPageState extends State<StreamPage> {
   void initState() {
     super.initState();
     _defaultNativeSource = _pickDefaultSource();
+    WidgetsBinding.instance.addObserver(this);
     textureId = _initNativeIfNeeded();
+  }
+
+  /// Back from the system settings, a start the permission stopped is tried again.
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && _startProblem != null) {
+      _retryStart();
+    }
+  }
+
+  void _retryStart() {
+    setState(() {
+      _startProblem = null;
+      _errorMessage = null;
+      textureId = _initNativeIfNeeded();
+    });
   }
 
   String _pickDefaultSource() => _sourceCandidates.first;
@@ -151,16 +173,14 @@ class StreamPageState extends State<StreamPage> {
 
     if (status.isGranted) return true;
 
+    // The settings open only from their button: opening them on every start trapped a user who had said no.
     if (mounted) {
       setState(() {
-        _errorMessage = 'Camera permission is required to start the stream.';
+        _startProblem = status.isPermanentlyDenied
+            ? _StartProblem.permissionForever
+            : _StartProblem.permission;
       });
     }
-
-    if (status.isPermanentlyDenied) {
-      await openAppSettings();
-    }
-
     return false;
   }
 
@@ -171,22 +191,29 @@ class StreamPageState extends State<StreamPage> {
           _targetTextureHeight,
         ])
         .then((id) async {
+          if (id == null) {
+            _textureFailed('the plugin answered no texture id');
+            return null;
+          }
           await _setPipeline(
             _pipelineBuilder.build(_defaultNativeSource),
             source: _defaultNativeSource,
           );
           return id;
         })
-        .catchError((e) {
+        .catchError((Object e) {
           debugPrint('create texture error: $e');
-          if (mounted) {
-            setState(() {
-              _errorMessage = 'Texture creation failed: $e';
-              _nativeInitFailed = true;
-            });
-          }
-          throw e;
+          _textureFailed('$e');
+          return null;
         });
+  }
+
+  void _textureFailed(String reason) {
+    if (!mounted) return;
+    setState(() {
+      _startProblem = _StartProblem.texture;
+      _textureFailure = reason;
+    });
   }
 
   Future<void> _setPipeline(String pipelineString, {String? source}) async {
@@ -300,6 +327,7 @@ class StreamPageState extends State<StreamPage> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     if (_usePluginPipeline) {
       channel
           .invokeMethod('stop')
@@ -462,25 +490,8 @@ class StreamPageState extends State<StreamPage> {
             child: const Center(child: CircularProgressIndicator()),
           );
         }
-        if (snapshot.hasError) {
-          if (_isAndroid) {
-            return _buildAndroidFallback(snapshot.error?.toString());
-          }
-          return SizedBox(
-            width: textureWidth.toDouble(),
-            height: textureHeight.toDouble(),
-            child: Center(child: Text('Error: ${snapshot.error}')),
-          );
-        }
-        if (!snapshot.hasData || snapshot.data == null) {
-          if (_isAndroid) {
-            return _buildAndroidFallback('Error creating texture (null id)');
-          }
-          return const Text('Error creating texture (null id)');
-        }
-
-        if (_isAndroid && _nativeInitFailed) {
-          return _buildAndroidFallback('Native init failed');
+        if (snapshot.hasError || snapshot.data == null) {
+          return _buildStartFailure();
         }
 
         return Container(
@@ -580,27 +591,30 @@ class StreamPageState extends State<StreamPage> {
     );
   }
 
-  Widget _buildAndroidFallback(String? reason) {
-    final String message =
-        reason ?? _errorMessage ?? 'Native texture unavailable';
+  /// One message for the cause that stopped the start, a Retry, and for a lasting no the system settings.
+  Widget _buildStartFailure() {
+    final String message = switch (_startProblem) {
+      _StartProblem.permission || _StartProblem.permissionForever =>
+        'Camera permission is required to start the stream.',
+      _StartProblem.texture =>
+        'The video texture could not be created: $_textureFailure',
+      null => 'The stream did not start.',
+    };
     return Column(
       mainAxisSize: MainAxisSize.min,
+      spacing: 8,
       children: [
-        Container(
-          padding: const EdgeInsets.all(kErrorPadding),
-          color: Colors.orange.withValues(alpha: kOverlayAlpha),
-          child: Text(
-            'Falling back to WebRTC preview on Android. Reason: $message',
-            style: const TextStyle(color: Colors.orange),
-            textAlign: TextAlign.center,
-          ),
-        ),
-        const SizedBox(height: 12),
-        _buildWebRTCContainer(
-          child: webrtc_import.buildWebRTCView(
-            settings: widget.webrtcSettings,
-            producerIdToConsume: null,
-          ),
+        _buildErrorMessage(message),
+        Wrap(
+          spacing: 8,
+          children: [
+            ElevatedButton(onPressed: _retryStart, child: const Text('Retry')),
+            if (_startProblem == _StartProblem.permissionForever)
+              OutlinedButton(
+                onPressed: openAppSettings,
+                child: const Text('Open settings'),
+              ),
+          ],
         ),
       ],
     );
