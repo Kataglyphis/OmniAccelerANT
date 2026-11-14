@@ -5,6 +5,16 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ## Unreleased
 
+### 2026-11-15 (the desktop frame path and a streaming answer timed)
+- The Linux plugin gtest `FramePath.PushAndCopyAreTimedPerFrame` pushes 300 frames through `knt_push_frame` and
+  `copy_pixels` at 640x480 and 1280x720; `run_plugin_gtest` keeps the milliseconds per frame in
+  `out/perf/frame-path.json` (google-benchmark's shape) and `reusable-linux.yml` hands it to the hub's
+  `bench-history` as `frame-path-<arch>`, warning only. Pi 5 in the CI image: 0.13/0.17 ms at 640x480,
+  0.59/0.62 ms at 720p.
+- `integration_test/performance_test.dart` times `playground_streaming`: a fake `TextClient` streams a Markdown
+  answer at about 60 pieces a second beside three earlier answers. Pi 5: 6.1 ms build per frame on average, p90
+  7.3 ms, no missed budget.
+
 ### 2026-11-14 (the `/healthz` tests read ObservANT's own goldens; OxidANT pin 6ccffab)
 - `test/observant_health_test.dart` parses `third_party/OxidANT/crates/observant/tests/fixtures/healthz/`
   (`idle`, `visit`, `problem`), which OxidANT's `status.rs` writes and checks, instead of a copy of one answer taken

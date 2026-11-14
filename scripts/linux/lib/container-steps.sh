@@ -64,7 +64,10 @@ run_plugin_dart_tests() {
 run_plugin_gtest() {
   local build_dir="${1:?app build dir required}"
   cmake --build "$build_dir" --target kataglyphis_native_inference_test || return 1
-  ctest --test-dir "${build_dir}/plugins/kataglyphis_native_inference" --output-on-failure --no-tests=error
+  # The frame path timing case writes here; reusable-linux.yml hands it to the hub's bench-history.
+  mkdir -p out/perf
+  KNT_FRAME_TIMING_JSON="${PWD}/out/perf/frame-path.json" \
+    ctest --test-dir "${build_dir}/plugins/kataglyphis_native_inference" --output-on-failure --no-tests=error
 }
 
 # The executable CMake names, read where it is set rather than guessed from the package name.

@@ -98,6 +98,15 @@ jobs:
         with:
           key: frontend-perf-${{ inputs.arch }}
 
+      # The plugin gtest's knt_push_frame and copy_pixels milliseconds per frame, against the same median; it only warns.
+      - name: Frame path timings
+        if: always() && hashFiles('out/perf/frame-path.json') != ''
+        uses: Kataglyphis/ANTfrastructure/.github/actions/bench-history@develop
+        with:
+          key: frame-path-${{ inputs.arch }}
+          format: google-benchmark
+          result: out/perf/frame-path.json
+
       - name: Save compiler cache
         if: always() && steps.cc.outputs.path != ''
         uses: Kataglyphis/ANTfrastructure/.github/actions/compiler-cache-save@develop

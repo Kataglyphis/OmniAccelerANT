@@ -93,11 +93,18 @@ only stable values are gated, and a run the report failed never joins the histor
 
 - **Rust:** OxidANT's Criterion benches under `cargo bench`, run by its Linux lanes: what a frame
   pays before the model, and a whole detection on the real model (OxidANT's AGENTS.md).
+- **The desktop frame path:** the Linux plugin gtest's `FramePath.PushAndCopyAreTimedPerFrame`
+  pushes 300 frames through `knt_push_frame` and reads each back through `copy_pixels`, at
+  640x480 and 1280x720, the two copies a webcam frame takes on its way to Flutter. The native
+  lane hands its milliseconds per frame (`out/perf/frame-path.json`, google-benchmark's shape) to
+  the hub's `bench-history` under `frame-path-<arch>`, which only warns. On a Pi 5 in the CI
+  image (2026-11-15): 0.13 ms push and 0.17 ms copy at 640x480, 0.59 ms and 0.62 ms at 720p.
 - **Flutter:** `integration_test/performance_test.dart`, driven in profile mode by
   `flutter drive --profile -d linux --driver=test_driver/perf_driver.dart
   --target=integration_test/performance_test.dart`. Flutter's `watchPerformance` times the
-  frames of the app's start, three rounds through every tab, and resizes across both layout
-  breakpoints; the driver keeps them in `out/perf/frontend.json`, and
+  frames of the app's start, three rounds through every tab, resizes across both layout
+  breakpoints, and a playground answer streamed by a fake `TextClient` at about 60 pieces a
+  second beside three earlier Markdown answers (`playground_streaming`); the driver keeps them in `out/perf/frontend.json`, and
   ANTfrastructure's `frontend-perf-report.py` makes the table (frames, build and raster time on
   average, at the 90th percentile and at worst, missed build budgets). The native lane runs it
   under Xvfb on x64 (`run_frontend_performance`); the hub's `frontend-perf-report` action keeps

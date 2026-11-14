@@ -315,16 +315,14 @@ name is under `lib/Pages/StreamPage/`.
   requests, a stop during a start) and a source test that fails on `invokeMethod(` under `lib/Pages`; that test
   also needs the typed `create` of the MethodChannel row (`rust_webcam_view.dart:95`).
 
-- [ ] **Nothing times the desktop frame path or a streaming answer** (S, ★). `integration_test/performance_test.dart`
-  watches the start, page switches and resizes (22-48), and `quality-report.toml`'s one perf command is
-  `--detect-latency`. On Linux every frame is copied in `knt_push_frame` and once more in `copy_pixels`; since
-  2026-11-14 (the Windows rule) `copy_pixels` no longer clears the buffer or rewrites each alpha byte, so it is two
-  passes of 1.2 MB at 640x480, not four (computed, not measured). In the playground one `AnimatedBuilder` wraps the
-  page (`lib/Pages/AiPlaygroundPage/ai_playground_page.dart:71-118`), so a streaming answer parses the Markdown of
-  every visible answer again on each frame (not measured). First step, measure: a timing loop in the Linux plugin
-  gtest (300 pushes plus `copy_pixels` at 640x480 and 1280x720, ms per frame) under the hub's bench-history, and a
-  playground section with a fake `TextClient` in `performance_test.dart` under `frontend-perf-x64`. The buffers
-  change owner only above about 1 ms a frame at 720p, and the Markdown fix would be ANThology's.
+- [ ] **Each Linux frame is copied twice on its way to Flutter** (S, ★). Measured since 2026-11-15: the plugin
+  gtest's `FramePath.PushAndCopyAreTimedPerFrame` (bench-history `frame-path-<arch>`) took 0.59 ms for
+  `knt_push_frame` and 0.62 ms for `copy_pixels` per 720p frame on a Pi 5, 1.2 ms together, above the 1 ms this
+  entry set as the bar. Next: `copy_pixels` takes the pushed buffer when a fresh frame waits (swapping the two
+  buffers under both mutexes) instead of copying it, and keeps showing the last frame when none arrived; the
+  shared ABI cases and a push-copy-copy case must hold. The playground's streaming answer, measured beside it
+  (`playground_streaming` in `frontend-perf-<arch>`), built in 6.1 ms per frame on average on the Pi 5 (p90 7.3 ms,
+  no missed budget), so the Markdown parse on every piece is not worth ANThology's change yet.
 
 ## Open — waiting on the owner
 
