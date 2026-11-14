@@ -34,7 +34,7 @@ Usage, from the repository root inside the image:
   --web-root DIR   the Flutter web build (the web lane's build/web); required
   --model FILE     ONNX model to ship (default: OxidANT's models.lock, fetched and checked)
   --models-lock FILE  the lock to fetch from instead of OxidANT's
-  --producer FILE  a built kataglyphis_observant (default: cargo build --release here)
+  --producer FILE  a built kataglyphis_observant (default: cargo build --profile observant here)
   --out DIR        where the packages and the bundle tarball land (default: out/)
   --version X.Y.Z  package version (default: pubspec.yaml's, without +build)
 
@@ -70,13 +70,14 @@ if [ -z "${version}" ]; then
 fi
 
 if [ -z "${producer}" ]; then
-  printf 'building kataglyphis_observant (release)\n'
+  printf 'building kataglyphis_observant (profile observant)\n'
   export CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-/tmp/observant-target}"
   # /healthz names it; a copy of the tree without .git, as a board's build gets, keeps the version alone.
   commit="$(git -C "${repo_root}" rev-parse --short HEAD 2>/dev/null || true)"
   export OBSERVANT_VERSION="${OBSERVANT_VERSION:-${version}${commit:+ (${commit})}}"
-  (cd "${repo_root}/third_party/OxidANT" && cargo build --release --locked -p kataglyphis_observant)
-  producer="${CARGO_TARGET_DIR}/release/kataglyphis_observant"
+  # Release with panic = "unwind": a panic in one answer costs a 502, not the camera (owner decision).
+  (cd "${repo_root}/third_party/OxidANT" && cargo build --profile observant --locked -p kataglyphis_observant)
+  producer="${CARGO_TARGET_DIR}/observant/kataglyphis_observant"
 fi
 [ -x "${producer}" ] || { printf 'producer not executable: %s\n' "${producer}" >&2; exit 1; }
 

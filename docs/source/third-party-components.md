@@ -67,7 +67,7 @@ Dart package texts are in Flutter's `NOTICES`. Maintenance and limits:
 | Noto Color Emoji and Noto Sans Symbols 2 | OFL-1.1 | https://github.com/notofonts | Web fallback fonts; the OFL text ships as assets/licenses/noto-fallback-fonts-OFL.txt and is on the app's licenses page. |
 | DEIM-D-FINE-N COCO detection model | Apache-2.0 | https://github.com/Kataglyphis/ModelANT | Data, not code: the model's own LICENSE and NOTICE ship beside its .onnx file in every package that bundles it. |
 
-## Rust crates (341)
+## Rust crates (340)
 
 | Crate | Version | License | Used by |
 | --- | --- | --- | --- |
@@ -208,7 +208,6 @@ Dart package texts are in Flutter's `NOTICES`. Maintenance and limits:
 | indexmap | 2.14.2 | Apache-2.0 OR MIT | kataglyphis_observant, oxidant, rusty_code |
 | inventory | 0.3.25 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
 | is_terminal_polyfill | 1.70.2 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
-| itertools | 0.12.1 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
 | itertools | 0.14.0 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
 | itertools | 0.15.0 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
 | itoa | 1.0.18 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
@@ -398,7 +397,7 @@ Dart package texts are in Flutter's `NOTICES`. Maintenance and limits:
 | windows-threading | 0.2.1 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
 | windows | 0.62.2 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
 | windows_aarch64_msvc | 0.52.6 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
-| windows_x86_64_msvc | 0.52.6 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
+| windows_x86_64_msvc | 0.52.6 | MIT OR Apache-2.0 | oxidant |
 | winnow | 1.0.4 | MIT | kataglyphis_observant, oxidant |
 | wmi | 0.18.4 | MIT OR Apache-2.0 | oxidant |
 | xattr | 1.6.1 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |

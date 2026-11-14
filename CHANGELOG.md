@@ -5,6 +5,17 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ## Unreleased
 
+### 2026-11-14 (OxidANT pin 790f8bb: ObservANT in its own profile, the native body without defaults)
+- **ObservANT is packaged from OxidANT's `observant` profile** (release with `panic = "unwind"`, owner decision of
+  2026-11-13: a panic in one answer costs a 502, not the camera). `package-observant.sh` and
+  `Package-ObservANT.ps1` (x64 and arm64) build `--profile observant` and take `target/observant/`, and
+  `package-producer-bundle.sh` takes `/cargo-target/observant/`; OxidANT's shared producer helper builds the same
+  profile. `scripts/linux/tests/test-observant-profile.sh` holds all three paths and the pin's profile.
+- **The native playground leaves `top_p` and `top_k` out at their defaults**, as the web body already does
+  (`ai_playground_settings_test.dart` holds its keys): OxidANT's `chat_body` does so since 494293f, which this pin
+  brings. The Flutter bindings need no new generation: OxidANT's `src/api` did not change between the pins.
+- The licence inventory follows the pin: one Rust crate fewer (itertools 0.12.1).
+
 ### 2026-11-14 (a mutation recipe holds the web client's error handling)
 - The mutation lane runs in the family CI image (`in-image: true` of the hub's `mutation-gates.yml`), the only place
   with the Flutter SDK, so a recipe can run a Dart test. `playground.error-body-ignored` makes `endpoint_chat.dart`

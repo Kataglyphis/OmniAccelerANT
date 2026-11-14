@@ -15,7 +15,7 @@ hub_scripts="$(dirname "$(dirname "$(antfrastructure_path linux/scripts/06-packa
 target_volume="kataglyphis-cat-target"
 cargo_volume="kataglyphis-cat-cargo"
 bundle_dir="${repo_root}/build/observant/pi-bundle"
-producer="/cargo-target/release/kataglyphis_observant"
+producer="/cargo-target/observant/kataglyphis_observant"
 do_build=false
 # Empty: the host's own arch, as on the Pi or an arm64 build host.
 platform_args=()
@@ -81,7 +81,7 @@ nerdctl run ${platform_args[@]+"${platform_args[@]}"} --rm -i --user 0:0 \
 set -euo pipefail
 
 mkdir -p /out/bin /out/lib /out/gstreamer-1.0 /out/libexec
-install -m 755 /cargo-target/release/kataglyphis_observant /out/bin/
+install -m 755 /cargo-target/observant/kataglyphis_observant /out/bin/
 for tool in gst-inspect-1.0 gst-launch-1.0; do
   if [ -e "/opt/gstreamer/bin/${tool}" ]; then
     install -m 755 "/opt/gstreamer/bin/${tool}" /out/bin/

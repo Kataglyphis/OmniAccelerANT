@@ -1544,11 +1544,11 @@ frames → `webrtcsink`. It runs its own signalling server (`run-signalling-serv
 
 ```bash
 cd third_party/OxidANT
-cargo build --release -p kataglyphis_observant
+cargo build --profile observant -p kataglyphis_observant
 # The image's chain ONNX Runtime - OxidANT's loader refuses any other (2026-09-23),
 # so this runs in the :latest image, where the path is the loader's fallback too.
 ORT_DYLIB_PATH=/usr/local/lib/onnxruntime-cpu/lib/libonnxruntime.so \
-  target/release/kataglyphis_observant --v4l2 /dev/video0
+  target/observant/kataglyphis_observant --v4l2 /dev/video0
 ```
 
 Since OxidANT d788e1a this binary is the service the package above installs:
@@ -1775,14 +1775,14 @@ nerdctl run --rm --user 0:0 --network host -v "$HOME/OxidANT":/workspace \
   -v kataglyphis-cat-target:/cargo-target -v kataglyphis-cat-cargo:/cargo-home \
   -e CARGO_TARGET_DIR=/cargo-target -e CARGO_HOME=/cargo-home \
   --entrypoint bash "$IMAGE" -lc \
-  'cd /workspace && cargo build --release --locked -p kataglyphis_observant'
+  'cd /workspace && cargo build --profile observant --locked -p kataglyphis_observant'
 
 # run (detached; the board's wrapper is ~/x100-producer.sh)
 nerdctl run -d --rm --name x100-producer --user 0:0 --privileged --network host \
   -v /dev:/dev -v "$HOME/OxidANT":/workspace \
   -v kataglyphis-cat-target:/cargo-target \
   -e ORT_DYLIB_PATH=/usr/local/lib/onnxruntime-cpu/lib/libonnxruntime.so -e RUST_LOG=info \
-  --entrypoint /cargo-target/release/kataglyphis_observant "$IMAGE" \
+  --entrypoint /cargo-target/observant/kataglyphis_observant "$IMAGE" \
   --v4l2 /dev/video9 --listen-port 8443 --name "Cat Cam"
 ```
 

@@ -67,13 +67,14 @@ if (-not $Producer) {
     }
     Push-Location (Join-Path $repoRoot 'third_party\OxidANT')
     try {
-        $cargoArgs = @('build', '--release', '--locked', '-p', 'kataglyphis_observant')
-        $releaseDir = 'release'
+        # Release with panic = "unwind": a panic in one answer costs a 502, not the camera (owner decision).
+        $cargoArgs = @('build', '--profile', 'observant', '--locked', '-p', 'kataglyphis_observant')
+        $releaseDir = 'observant'
         if ($arch -eq 'arm64') {
             # The arm64 bundle's .pc files describe the target, which pkg-config refuses for a cross build unless told.
             $env:PKG_CONFIG_ALLOW_CROSS = '1'
             $cargoArgs += @('--target', 'aarch64-pc-windows-msvc')
-            $releaseDir = 'aarch64-pc-windows-msvc\release'
+            $releaseDir = 'aarch64-pc-windows-msvc\observant'
         }
         cargo @cargoArgs
         if ($LASTEXITCODE -ne 0) { throw "cargo build failed ($LASTEXITCODE)" }
