@@ -47,9 +47,10 @@ KataglyphisNativeInferencePlugin::~KataglyphisNativeInferencePlugin()
 
 namespace {
 
+    // Borrows the result: taken by value, an unhandled call left HandleMethodCall a moved-from pointer to answer through.
     bool TextureMethodCall(const flutter::MethodCall<flutter::EncodableValue> &call,
       KataglyphisTexture *texture,
-      std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result)
+      const std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> &result)
     {
         const std::string &method = call.method_name();
 
@@ -150,10 +151,15 @@ void KataglyphisNativeInferencePlugin::HandleMethodCall(const flutter::MethodCal
             int a = 0, b = 0;
             auto itA = args->find(flutter::EncodableValue("a"));
             auto itB = args->find(flutter::EncodableValue("b"));
-            if (itA != args->end()) a = std::get<int>(itA->second);
-            if (itB != args->end()) b = std::get<int>(itB->second);
+            // get_if, not get: std::get throws on another type, and nothing here catches it.
+            const int *a_val = itA != args->end() ? std::get_if<int>(&itA->second) : &a;
+            const int *b_val = itB != args->end() ? std::get_if<int>(&itB->second) : &b;
+            if (!a_val || !b_val) {
+                result->Error("bad_args", "Expected integer a and b");
+                return;
+            }
 
-            int sum = kataglyphis_add(a, b);
+            int sum = kataglyphis_add(*a_val, *b_val);
             result->Success(flutter::EncodableValue(sum));
         } else {
             result->Error("bad_args", "Expected map with a and b");
@@ -174,12 +180,13 @@ void KataglyphisNativeInferencePlugin::HandleMethodCall(const flutter::MethodCal
             result->Error("bad_args", "Expected integer width and height");
             return;
         }
-        uint32_t width = static_cast<uint32_t>(*width_val);
-        uint32_t height = static_cast<uint32_t>(*height_val);
-        if (width == 0 || height == 0) {
+        // Checked before the cast: a negative size became a 4-billion-pixel texture.
+        if (*width_val <= 0 || *height_val <= 0) {
             result->Error("bad_args", "Width and height must be > 0");
             return;
         }
+        const auto width = static_cast<uint32_t>(*width_val);
+        const auto height = static_cast<uint32_t>(*height_val);
 
         texture_ = new KataglyphisTexture(width, height, 5, 83, 177);
         texture_->SetTextureRegistrar(texture_registrar_);
@@ -200,7 +207,7 @@ void KataglyphisNativeInferencePlugin::HandleMethodCall(const flutter::MethodCal
         OutputDebugStringA("[kataglyphis] Texture registered successfully\n");
 
         result->Success(flutter::EncodableValue(texture_id));
-    } else if (TextureMethodCall(method_call, texture_, std::move(result))) {
+    } else if (TextureMethodCall(method_call, texture_, result)) {
     } else {
         result->NotImplemented();
     }

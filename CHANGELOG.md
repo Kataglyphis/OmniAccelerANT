@@ -5,6 +5,15 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ## Unreleased
 
+### 2026-11-14 (the desktop plugins answer a call they do not expect)
+- **Windows answers an unknown method with `NotImplemented`.** `TextureMethodCall` took the result by value, so an
+  unhandled call reached `result->NotImplemented()` through a moved-from pointer, a null dereference. It now borrows
+  the result. `add` checks its arguments with `std::get_if` (a string threw `bad_variant_access`), and `create`
+  refuses a negative size before the cast that made -1 a 4-billion-pixel texture.
+- **Linux drops a texture whose registration failed**, so the next `create` no longer answers the id of a texture
+  Flutter never registered. No unit test reaches a refusing registrar; the fix is one `g_clear_object`.
+- Tests: gtests for an unknown method, `add` with a string and `create` with -1, in the Windows runner job.
+
 ### 2026-11-13 (a board puts a release back that does not come up healthy; owner decision)
 - **The nightly updater checks the camera after an install and goes back on a miss.** It ended at `dpkg -i` or
   `observant --install --user`, and a broken build restarted every 5 s until someone looked. Now it keeps the running

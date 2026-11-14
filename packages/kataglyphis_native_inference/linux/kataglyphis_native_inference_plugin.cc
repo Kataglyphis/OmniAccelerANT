@@ -98,6 +98,8 @@ static FlMethodResponse *handle_create(KataglyphisNativeInferencePlugin *self, F
     my_texture_set_texture_registrar(self->texture, texture_registrar);
 
     if (!fl_texture_registrar_register_texture(texture_registrar, self->texture)) {
+        // Kept, the next create answered the id of a texture Flutter never registered.
+        g_clear_object(&self->texture);
         return FL_METHOD_RESPONSE(fl_method_error_response_new("Error", "Failed to register texture", nullptr));
     }
 

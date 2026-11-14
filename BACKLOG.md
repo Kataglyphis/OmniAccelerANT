@@ -283,17 +283,6 @@ name is under `lib/Pages/StreamPage/`.
   measured. Done when the emulator check fails on each planted fault and the Dart test fails without the
   `command_failed` branch.
 
-- [ ] **The desktop plugins fail hard on a call they do not expect** (S, ★★). On Windows an unknown method is a null
-  dereference, not a `MissingPluginException`: `windows/kataglyphis_native_inference_plugin.cpp:203-205` moves
-  `result` into `TextureMethodCall`, which takes it by value (50-52), and then calls `result->NotImplemented()`
-  (not double-checked). Nothing reaches it today, since the Dart side calls only `create` and `add` on Windows; a
-  `hasPushedFrame` there would. Three smaller faults, unlikely in practice: the same file reads `add` with
-  `std::get<int>` (153-154), which throws on another type, and casts a negative size to `uint32_t` (177-178); Linux
-  keeps `self->texture` after a failed registration (`linux/kataglyphis_native_inference_plugin.cc:95-102`), so the
-  next `create` answers that texture's id (70-73). First step: Windows answers `NotImplemented` in one place, before
-  any new Windows method. Stays fixed by a gtest in which `HandleMethodCall("noSuchMethod")` reaches the
-  not-implemented callback, in `windows-x64.yml`'s runner job and the ASan Debug build.
-
 - [ ] **A failed start on Android ends in a wrong text and no way to try again** (S, ★★). `_buildAndroidFallback`
   (`stream_page.dart:644-668`) promises "Falling back to WebRTC preview on Android" and builds `WebRTCView`, which on
   a native build is the stub's "only available in the web build" (`webrtc_view_stub.dart:21-34`);

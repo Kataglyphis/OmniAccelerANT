@@ -84,6 +84,56 @@ namespace test {
         EXPECT_EQ(std::memcmp(frame->buffer, pushed, sizeof pushed), 0);
     }
 
+    namespace {
+
+        // What one call answered: a value, an error code, or that the method is unknown.
+        struct Reply
+        {
+            bool success = false;
+            bool not_implemented = false;
+            std::string error;
+        };
+
+        std::unique_ptr<MethodResultFunctions<>> Recorder(Reply &reply)
+        {
+            return std::make_unique<MethodResultFunctions<>>([&reply](const EncodableValue *) { reply.success = true; },
+              [&reply](const std::string &code, const std::string &, const EncodableValue *) { reply.error = code; },
+              [&reply]() { reply.not_implemented = true; });
+        }
+
+    }// namespace
+
+    TEST(KataglyphisNativeInferencePlugin, AnUnknownMethodIsNotImplemented)
+    {
+        // It used to reach NotImplemented through a result already moved into the texture handler.
+        KataglyphisNativeInferencePlugin plugin;
+        Reply reply;
+        plugin.HandleMethodCall(MethodCall("noSuchMethod", std::make_unique<EncodableValue>()), Recorder(reply));
+        EXPECT_TRUE(reply.not_implemented);
+        EXPECT_FALSE(reply.success);
+        EXPECT_TRUE(reply.error.empty());
+    }
+
+    TEST(KataglyphisNativeInferencePlugin, AddWithANonIntegerIsBadArgsNotAThrow)
+    {
+        KataglyphisNativeInferencePlugin plugin;
+        Reply reply;
+        EncodableMap args{ { EncodableValue("a"), EncodableValue("one") }, { EncodableValue("b"), EncodableValue(2) } };
+        plugin.HandleMethodCall(MethodCall("add", std::make_unique<EncodableValue>(args)), Recorder(reply));
+        EXPECT_EQ(reply.error, "bad_args");
+    }
+
+    TEST(KataglyphisNativeInferencePlugin, ANegativeSizeIsBadArgs)
+    {
+        // Cast first, -1 became 4294967295 and passed the size check.
+        KataglyphisNativeInferencePlugin plugin;
+        Reply reply;
+        flutter::EncodableList size{ EncodableValue(-1), EncodableValue(5) };
+        plugin.HandleMethodCall(MethodCall("create", std::make_unique<EncodableValue>(size)), Recorder(reply));
+        EXPECT_EQ(reply.error, "bad_args");
+        EXPECT_FALSE(reply.success);
+    }
+
     TEST(KataglyphisNativeInferencePlugin, GetPlatformVersion)
     {
         KataglyphisNativeInferencePlugin plugin;
