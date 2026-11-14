@@ -1,6 +1,7 @@
 // The web build's chat client against a fake endpoint; the fetch half is `web_endpoint_test.dart`, in Chrome.
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:omni_accelerant/Pages/AiPlaygroundPage/ai_playground_controller.dart';
@@ -407,6 +408,43 @@ void main() {
         expect(await endpoint.over, isTrue, reason: line);
       }
     });
+
+    test(
+      'a line just under 1 MiB is read, one over it fails and says why',
+      () async {
+        // Sent in 64 KiB pieces, so the bound counts across the chunks a line arrives in.
+        _Endpoint inPieces(String text) {
+          final bytes = utf8.encode(text);
+          final endpoint = _Endpoint();
+          for (var at = 0; at < bytes.length; at += 1 << 16) {
+            endpoint.body.add(
+              bytes.sublist(at, min(at + (1 << 16), bytes.length)),
+            );
+          }
+          unawaited(endpoint.body.close());
+          return endpoint;
+        }
+
+        final under = 'x' * (endpointLineLimit - 200);
+        final (read, fine) = await _ask(
+          inPieces('${_text(under)}${_end('stop')}'),
+        );
+        expect(fine, isNull);
+        expect(_shown(read), under);
+
+        final over = 'x' * (endpointLineLimit + 10);
+        final (events, failure) = await _ask(
+          inPieces('${_text('Tw')}${_text(over)}'),
+        );
+        expect(events, <TextEvent>[_piece('Tw')]);
+        expect(
+          failure,
+          _failure(
+            'the endpoint sent a line over 1 MiB, the limit this client and the native one keep',
+          ),
+        );
+      },
+    );
 
     test('a stream that ends without a finish reason is a failure', () async {
       final (events, failure) = await _ask(_answering(<String>[_text('Tw')]));

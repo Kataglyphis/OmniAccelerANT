@@ -152,9 +152,6 @@ what the owner's goal still lacks.
   written choice. Blocked on the owner and on one run in a real browser against a real endpoint with CORS: nobody
   read a cross-origin body as it arrived. First step: `'stream': true` and `'stream_options': {'include_usage':
   true}` in `endpoint_request.dart`. Done when a real server's answer appears word by word and Stop ends it.
-- [ ] **The web playground reads a reply of any size** (S, ★). `endpoint_chat.dart` has no bound on one stream line
-  or on a whole body; OxidANT's client stops at 1 MiB per line. First step: the same bound, with the failure naming
-  it. Done when a test with a line over the bound fails clearly and one under it passes.
 - [ ] **A thinking model's reasoning can be read** (M, ★). It is counted and hidden on web and on native builds;
   the audit puts a collapsed view last, and it needs a widget in ANThology. On native builds an answer without a
   word is still an empty bubble, because the bridge's `done` carries no thinking count: that field needs the

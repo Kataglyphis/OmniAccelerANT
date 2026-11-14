@@ -23,6 +23,9 @@ const Duration endpointPatience = Duration(seconds: 300);
 /// As much of an error body as the native client keeps.
 const int _errorBodyLimit = 2000;
 
+/// The native client's bound on one line of a reply: past it the line is no answer this client reads.
+const int endpointLineLimit = 1 << 20;
+
 const Utf8Decoder _utf8 = Utf8Decoder(allowMalformed: true);
 
 const String _thinkingOff = 'switch thinking off at the endpoint';
@@ -218,7 +221,7 @@ class EndpointChat {
   Future<Stream<String>> _lines(EndpointReply reply) async {
     final body = reply.body.timeout(patience);
     if (reply.status >= 200 && reply.status < 300) {
-      return const LineSplitter().bind(_utf8.bind(body));
+      return const LineSplitter().bind(_utf8.bind(_boundedLines(body)));
     }
     final bytes = <int>[];
     await for (final chunk in body) {
@@ -230,6 +233,30 @@ class EndpointChat {
       'the endpoint answered HTTP ${reply.status}${reason.isEmpty ? '' : ': $reason'}',
     );
   }
+
+  /// The body's bytes as they come, until one line grows past [endpointLineLimit] before its newline.
+  static Stream<List<int>> _boundedLines(Stream<List<int>> body) async* {
+    var line = 0;
+    await for (final chunk in body) {
+      var start = 0;
+      for (
+        var at = chunk.indexOf(0x0A);
+        at >= 0;
+        at = chunk.indexOf(0x0A, start)
+      ) {
+        if (line + at - start > endpointLineLimit) throw _overlong();
+        line = 0;
+        start = at + 1;
+      }
+      line += chunk.length - start;
+      if (line > endpointLineLimit) throw _overlong();
+      yield chunk;
+    }
+  }
+
+  static EndpointFailure _overlong() => const EndpointFailure(
+    'the endpoint sent a line over 1 MiB, the limit this client and the native one keep',
+  );
 
   EndpointFailure _failure(
     Object failure,

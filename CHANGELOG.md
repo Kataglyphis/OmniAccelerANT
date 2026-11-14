@@ -5,6 +5,13 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ## Unreleased
 
+### 2026-11-14 (the web playground reads no line over 1 MiB)
+- `endpoint_chat.dart` read a reply line of any length into memory before `LineSplitter` gave it up. Lines are now
+  counted on the bytes as they arrive, across chunks, and one past 1 MiB (`endpointLineLimit`, the native client's
+  bound) ends the answer with "the endpoint sent a line over 1 MiB, the limit this client and the native one keep".
+  Test: a line just under the bound is read whole, one just over it fails with that text, both sent in 64 KiB pieces.
+  A whole non-streamed body keeps no bound of its own beyond its lines.
+
 ### 2026-11-14 (one texture behaviour on Linux and Windows; owner decision of 2026-11-13)
 - **Linux shows a pushed frame at its own size, with its alpha as sent, as Windows does.** It kept the texture's
   creation size, cropped or padded a frame of another size and forced alpha to 255. Nobody saw the difference, since
