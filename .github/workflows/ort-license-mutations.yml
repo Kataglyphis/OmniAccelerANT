@@ -11,3 +11,5 @@ jobs:
     with:
       manifest: scripts/linux/tests/ort-license-mutations.json
       submodules: 'true'
+      # The playground's recipe runs flutter test, and only the image carries the Flutter SDK.
+      in-image: true

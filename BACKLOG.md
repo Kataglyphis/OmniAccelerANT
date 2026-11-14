@@ -156,11 +156,6 @@ what the owner's goal still lacks.
   the audit puts a collapsed view last, and it needs a widget in ANThology. On native builds an answer without a
   word is still an empty bubble, because the bridge's `done` carries no thinking count: that field needs the
   bindings regenerated with an OxidANT pin. Done when the page shows the count, and the text on request.
-- [ ] **A mutation recipe holds the web client's error handling** (S, ★). Every recipe in
-  `scripts/linux/tests/ort-license-mutations.json` runs a bash or python test; nobody checked that the job which
-  runs them has Flutter. First step: check the mutation lane's image for `/opt/flutter`. Done when a recipe that
-  makes the client ignore an error body fails `test/endpoint_chat_test.dart` in that lane.
-
 - [b] **A failed answer is a translated frame around an English engine sentence** (M, ★★). `_onError`
   (`lib/Pages/AiPlaygroundPage/ai_playground_controller.dart:127-133`) shows `'$failure'` inside `aiError` ("Das
   Modell ist fehlgeschlagen: {detail}", `lib/l10n/app_de.arb:128`), because OxidANT's `text_generate` returns

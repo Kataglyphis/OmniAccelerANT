@@ -5,6 +5,12 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ## Unreleased
 
+### 2026-11-14 (a mutation recipe holds the web client's error handling)
+- The mutation lane runs in the family CI image (`in-image: true` of the hub's `mutation-gates.yml`), the only place
+  with the Flutter SDK, so a recipe can run a Dart test. `playground.error-body-ignored` makes `endpoint_chat.dart`
+  drop the server's reason from a failed request, and `test/endpoint_chat_test.dart` fails it. The recipe sets
+  Flutter up through the hub's `lane-prologue.sh` (`flutter_lane_prepare_env`) with one pub cache for every copy.
+
 ### 2026-11-14 (a failed start on Android says why once and can be tried again)
 - **One message per cause, and a way back.** A start that stops before a picture now shows one message: the camera
   permission, or the texture that could not be created with the plugin's reason. A denied permission no longer adds

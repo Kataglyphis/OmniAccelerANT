@@ -750,5 +750,13 @@
   "replace": "  :",
   "test": "bash scripts/linux/tests/test-suite-inventory.sh",
   "why": "The reason a suite gives for needing the image must be read from its header."
+ },
+ {
+  "id": "playground.error-body-ignored",
+  "target": "lib/Pages/AiPlaygroundPage/endpoint_chat.dart",
+  "find": "    final reason = _utf8.convert(bytes.take(_errorBodyLimit).toList()).trim();",
+  "replace": "    const reason = '';",
+  "test": "PUB_CACHE=/tmp/recipe-pub-cache bash -c 'source scripts/linux/lib/antfrastructure.sh && antfrastructure_source linux/scripts/05-frameworks/flutter/lane-prologue.sh && flutter_lane_prepare_env && flutter test test/endpoint_chat_test.dart'",
+  "why": "A failed request shows the server's own reason beside its HTTP status, not the status alone."
  }
 ]
