@@ -11,10 +11,11 @@ const port = Number(process.argv[3] || 8080);
 const types = { '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript',
   '.wasm': 'application/wasm', '.json': 'application/json', '.css': 'text/css',
   '.svg': 'image/svg+xml', '.png': 'image/png', '.ico': 'image/x-icon', '.woff2': 'font/woff2' };
+// ObservANT's own idle answer, the golden its status.rs checks at the OxidANT pin.
+const idle = path.resolve(__dirname, '../../../third_party/OxidANT/crates/observant/tests/fixtures/healthz/idle.json');
 const fixtures = {
-  '/healthz': { ok: true, name: 'CI camera', camera: 'idle fixture', peers: [],
-    frame: { width: 640, height: 480, fps: 0 }, detection: { count: 0 }, version: 'ci-fixture' },
-  '/settings': { name: 'CI camera', rotate: 0, score: 0.25, ignore: [], classes: ['cat'] },
+  '/healthz': JSON.parse(fs.readFileSync(idle, 'utf8')),
+  '/settings': { name: 'Cat Cam', rotate: 0, score: 0.25, ignore: [], classes: ['cat'] },
   '/visits': { visits: [] },
 };
 const server = http.createServer((req, res) => {

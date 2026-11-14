@@ -5,6 +5,15 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ## Unreleased
 
+### 2026-11-14 (the `/healthz` tests read ObservANT's own goldens; OxidANT pin 6ccffab)
+- `test/observant_health_test.dart` parses `third_party/OxidANT/crates/observant/tests/fixtures/healthz/`
+  (`idle`, `visit`, `problem`), which OxidANT's `status.rs` writes and checks, instead of a copy of one answer taken
+  once; `test/fixtures/observant_healthz_idle.json` is gone. A key ObservANT renames now fails in OxidANT first, and
+  here at the next pin. The page settings and a finished arrival are set on the visit golden, every key from it;
+  the stats test reads every number shown from the idle golden and finds none empty.
+- `scripts/linux/tests/web-smoke-server.js` serves the idle golden as `/healthz`, not its own body with a
+  `detection.count` nothing read.
+
 ### 2026-11-14 (OxidANT pin 790f8bb: ObservANT in its own profile, the native body without defaults)
 - **ObservANT is packaged from OxidANT's `observant` profile** (release with `panic = "unwind"`, owner decision of
   2026-11-13: a panic in one answer costs a 502, not the camera). `package-observant.sh` and

@@ -13,35 +13,29 @@ import 'package:omni_accelerant/Pages/StreamPage/dev_stats.dart';
 import 'package:omni_accelerant/Pages/StreamPage/observant_health.dart';
 import 'package:omni_accelerant/Pages/StreamPage/poll_gate.dart';
 
-/// What `kataglyphis_observant --camera test` (OxidANT 7abcc12, with its model) answered on `/healthz`, unchanged.
-final String _idle = File('test/fixtures/observant_healthz_idle.json')
-    .readAsStringSync();
+/// ObservANT's own `/healthz` goldens, which `status.rs` writes and checks at the OxidANT pin.
+String _golden(String name) => File(
+  'third_party/OxidANT/crates/observant/tests/fixtures/healthz/$name.json',
+).readAsStringSync();
 
-/// The idle answer with a visit in it, in the keys `status.rs` writes; hand-filled, no camera saw this cat.
+final String _idle = _golden('idle');
+final String _visit = _golden('visit');
+final String _problem = _golden('problem');
+
+/// The visit golden with the page's other settings and a second, finished arrival; every key is ObservANT's.
 String _visited() {
-  final json = jsonDecode(_idle) as Map<String, dynamic>;
-  json['detection'] = <String, Object?>{
-    'boxes': [
-      [0.25, 0.25, 0.75, 0.75],
-    ],
-    'clip': 1791763200,
-    'clips': [1791763200, 1791700000],
-    'in_view': true,
-    'last_score': 0.61,
-    'last_seen': 1791763273,
-    'recent': [
-      {
-        'arrived': 1791763200,
-        'stayed_s': null,
-        'class': 'cat',
-        'boxes': [
-          [0.1, 0.2, 0.3, 0.4],
-        ],
-      },
-      {'arrived': 1791700000, 'stayed_s': 20, 'class': 'dog'},
-    ],
-    'visits': 2,
-  };
+  final json = jsonDecode(_visit) as Map<String, dynamic>;
+  final detection = json['detection'] as Map<String, dynamic>;
+  final recent = detection['recent'] as List<dynamic>;
+  final earlier = Map<String, dynamic>.of(recent.first as Map<String, dynamic>)
+    ..['arrived'] = 1767200000
+    ..['stayed_s'] = 20
+    ..['class'] = 'dog'
+    ..remove('boxes');
+  recent.add(earlier);
+  detection
+    ..['visits'] = 2
+    ..['clips'] = [1767225600, 1767200000];
   json
     ..['ask'] = true
     ..['privacy'] = 'pixelate'
@@ -56,20 +50,20 @@ DateTime _at(int seconds) =>
 
 void main() {
   group('ObservantHealth', () {
-    test('reads every field of a real idle answer', () {
+    test('reads every field of the idle golden', () {
       final health = ObservantHealth.parse(_idle)!;
       expect(health.ok, isTrue);
       expect(health.problem, isNull);
-      expect(health.name, '80e2b23d47d9');
-      expect(health.camera, 'test pattern');
-      expect(health.version, '3.0.0-dev');
+      expect(health.name, 'Cat Cam');
+      expect(health.camera, 'v4l2src /dev/video0 (C920)');
+      expect(health.version, 'golden');
       expect(health.classes, ['cat']);
       expect(
         (health.dark, health.pixelated, health.inference),
         (false, false, true),
       );
       expect(health.answersQuestions, isFalse);
-      expect((health.rotate, health.viewers, health.modelRuns), (0, 0, 8));
+      expect((health.rotate, health.viewers, health.modelRuns), (0, 0, 1));
       expect(health.peers, isEmpty);
       expect(
         (health.frameWidth, health.frameHeight, health.frameFps),
@@ -77,31 +71,44 @@ void main() {
       );
       expect(health.hasStats, isTrue);
       expect(health.stat('capture_fps'), 30.0);
-      expect(health.stat('model_ms'), 292.5);
+      expect(health.stat('model_ms'), 212.5);
       expect(health.wholeStat('cores'), 4);
-      expect(health.wholeStat('uptime_s'), 4);
+      expect(health.wholeStat('uptime_s'), 3600);
       expect(health.hasDetection, isTrue);
       expect((health.inView, health.visits), (false, 0));
       expect(health.lastSeen, isNull);
       expect(health.recent, isEmpty);
     });
 
-    test('reads a visit, its clips and its boxes', () {
-      final health = ObservantHealth.parse(_visited())!;
-      expect((health.inView, health.visits), (true, 2));
-      expect(health.lastSeen, _at(1791763273));
-      expect(health.lastScore, 0.61);
-      expect(health.clip, _at(1791763200));
-      expect(health.clips, [_at(1791763200), _at(1791700000)]);
+    test('reads the visit golden: the arrival, its clip and its boxes', () {
+      final health = ObservantHealth.parse(_visit)!;
+      expect((health.ok, health.inView, health.visits), (true, true, 1));
+      expect(health.lastSeen, _at(1767225600));
+      expect(health.lastScore, 0.75);
+      expect(health.clip, _at(1767225600));
+      expect(health.clips, [_at(1767225600)]);
       expect(health.recent.map((v) => (v.arrived, v.stayed, v.className)), [
-        (_at(1791763200), null, 'cat'),
-        (_at(1791700000), const Duration(seconds: 20), 'dog'),
+        (_at(1767225600), null, 'cat'),
       ]);
       expect(health.boxes, isNotNull);
-      expect((health.pixelated, health.answersQuestions), (true, true));
-      expect((health.rotate, health.viewers), (90, 2));
-      expect(health.peers, ['http://192.168.1.21:8080']);
     });
+
+    test(
+      'reads a finished arrival and the page settings on the visit golden',
+      () {
+        final health = ObservantHealth.parse(_visited())!;
+        expect((health.inView, health.visits), (true, 2));
+        expect(health.clips, [_at(1767225600), _at(1767200000)]);
+        expect(health.recent.map((v) => (v.arrived, v.stayed, v.className)), [
+          (_at(1767225600), null, 'cat'),
+          (_at(1767200000), const Duration(seconds: 20), 'dog'),
+        ]);
+        expect(health.boxes, isNotNull);
+        expect((health.pixelated, health.answersQuestions), (true, true));
+        expect((health.rotate, health.viewers), (90, 2));
+        expect(health.peers, ['http://192.168.1.21:8080']);
+      },
+    );
 
     test('is null for anything but an ObservANT answer', () {
       for (final body in <String?>[
@@ -117,6 +124,10 @@ void main() {
     });
 
     test('says why a camera is not ok, and nothing while it is', () {
+      expect(
+        ObservantHealth.parse(_problem)!.problem,
+        'the model has not answered for 30 s',
+      );
       expect(
         ObservantHealth.parse(
           '{"ok":false,"problem":"the model has not answered for 21 s"}',
@@ -144,7 +155,7 @@ void main() {
   group('the page parts on a real answer', () {
     test('the status line, the stats and the settings find their fields', () {
       final status = DetectionStatus.fromHealthz(_visited())!;
-      expect(status.name, '80e2b23d47d9');
+      expect(status.name, 'Cat Cam');
       expect((status.inView, status.visits, status.pixelated), (true, 2, true));
       expect(status.rotate, 90);
       expect(status.recent.length, 2);
@@ -171,12 +182,15 @@ void main() {
       );
 
       final info = ObservantInfo.parse(_visited())!;
-      expect((info.camera, info.version), ('test pattern', '3.0.0-dev'));
+      expect(
+        (info.camera, info.version),
+        ('v4l2src /dev/video0 (C920)', 'golden'),
+      );
       expect((info.width, info.height, info.fps), (640, 480, 30));
-      expect((info.inference, info.modelRuns, info.visits), (true, 8, 2));
+      expect((info.inference, info.modelRuns, info.visits), (true, 1, 2));
       expect(info.boxes.length, 1);
       expect(info.detections.length, 1, reason: 'only arrivals with boxes');
-      expect(info.lastScore, 0.61);
+      expect(info.lastScore, 0.75);
     });
 
     test('an answer without stats or without detection is none of theirs', () {

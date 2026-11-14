@@ -291,16 +291,6 @@ name is under `lib/Pages/StreamPage/`.
   Playing; a stop on `AppLifecycleState.paused` and the last pipeline again on `resumed`; no `g_mutex` across a
   wait. Stays fixed by Dart tests on a faked `state` and by the emulator check of the first row.
 
-- [ ] **The `/healthz` fixture is a copy, not ObservANT's own golden** (S, ★★). One model reads `/healthz` since
-  2026-11-13 (`lib/Pages/StreamPage/observant_health.dart`), and `test/observant_health_test.dart` feeds it a body
-  a real ObservANT answered (`test/fixtures/observant_healthz_idle.json`, OxidANT 7abcc12 with its model, the test
-  pattern as camera). That file is a copy taken once: a key ObservANT renames later leaves it, and the tests, as
-  they are. Its visit fields are hand-filled in the keys `status.rs` writes, since no camera saw a cat for it, and
-  `scripts/linux/tests/web-smoke-server.js` still serves its own body with a `detection.count` nothing reads.
-  First step, in OxidANT: a `status.rs` test writes golden `/healthz` files (idle, a visit, a problem) and fails
-  when they differ. Then the Dart test and `web-smoke-server.js` read them from `third_party/OxidANT` at the pin
-  that brings them. Done when the fixture here is gone and the test parses the goldens with no shown field null.
-
 - [ ] **No back-off when no camera answers** (M, ★★) (not double-checked). The status line asks `/healthz` every 5 s
   for ever (`detection_status.dart:261-285`), the peers' 10 s timer stops only after an own `/healthz` answered
   (`camera_peers.dart:52-60, 68-81`), and gstwebrtc-api reconnects every `reconnectionTimeoutMs`, 5000 in
