@@ -315,6 +315,13 @@ name is under `lib/Pages/StreamPage/`.
   requests, a stop during a start) and a source test that fails on `invokeMethod(` under `lib/Pages`; that test
   also needs the typed `create` of the MethodChannel row (`rust_webcam_view.dart:95`).
 
+- [ ] **A text failure shows the bridge's raw `kind: text`** (S, ★). Since OxidANT's next pin after 701476e,
+  `text_generate`'s error starts with a fixed kind (`invalid_options`, `model_load_failed`, `provider_unavailable`,
+  `endpoint_unreachable`, `endpoint_status`, `generation_failed`, ...; `TextError::kind` in
+  `crates/text/src/lib.rs`), and the playground shows that string as it comes (`lib/Pages/AiPlaygroundPage`). Next,
+  at that pin: read the kind before the first colon and show a translated sentence for the common ones, with the
+  text after it as the detail. Done when a test feeds `model_load_failed: ...` and finds the German sentence.
+
 ## Open — waiting on the owner
 
 - [b] **False arrivals on himbeere2: nearly gone, one mark left.** On 2026-10-12 and 13 a drying rack at
