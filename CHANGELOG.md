@@ -5,6 +5,14 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ## Unreleased
 
+### 2026-11-15 (a Linux frame is copied once)
+- `copy_pixels` takes the frame `knt_push_frame` filled and hands its old buffer back to the producer instead of
+  copying the frame a second time; with no new frame it shows the last one again. Flutter uploads `buffer` before
+  it asks again, so the producer never writes what the raster thread reads. On a Pi 5, 720p went from 1.21 ms to
+  0.67-0.74 ms per frame and 640x480 from 0.30 ms to 0.18-0.24 ms (three runs). New gtest case
+  `MyTexture.ATakenFrameStaysUntilTheNextAndTheNextMayChangeSize`. The playground's streaming answer built in
+  6.1 ms per frame, so its Markdown parse on every piece is left to ANThology for now.
+
 ### 2026-11-15 (the desktop frame path and a streaming answer timed)
 - The Linux plugin gtest `FramePath.PushAndCopyAreTimedPerFrame` pushes 300 frames through `knt_push_frame` and
   `copy_pixels` at 640x480 and 1280x720; `run_plugin_gtest` keeps the milliseconds per frame in

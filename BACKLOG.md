@@ -315,15 +315,6 @@ name is under `lib/Pages/StreamPage/`.
   requests, a stop during a start) and a source test that fails on `invokeMethod(` under `lib/Pages`; that test
   also needs the typed `create` of the MethodChannel row (`rust_webcam_view.dart:95`).
 
-- [ ] **Each Linux frame is copied twice on its way to Flutter** (S, ★). Measured since 2026-11-15: the plugin
-  gtest's `FramePath.PushAndCopyAreTimedPerFrame` (bench-history `frame-path-<arch>`) took 0.59 ms for
-  `knt_push_frame` and 0.62 ms for `copy_pixels` per 720p frame on a Pi 5, 1.2 ms together, above the 1 ms this
-  entry set as the bar. Next: `copy_pixels` takes the pushed buffer when a fresh frame waits (swapping the two
-  buffers under both mutexes) instead of copying it, and keeps showing the last frame when none arrived; the
-  shared ABI cases and a push-copy-copy case must hold. The playground's streaming answer, measured beside it
-  (`playground_streaming` in `frontend-perf-<arch>`), built in 6.1 ms per frame on average on the Pi 5 (p90 7.3 ms,
-  no missed budget), so the Markdown parse on every piece is not worth ANThology's change yet.
-
 ## Open — waiting on the owner
 
 - [b] **False arrivals on himbeere2: nearly gone, one mark left.** On 2026-10-12 and 13 a drying rack at

@@ -8,6 +8,7 @@ module;
 #include <iterator>
 #include <map>
 #include <string.h>
+#include <utility>
 
 module kataglyphis.my_texture;
 
@@ -28,6 +29,7 @@ struct _MyTexture
     uint32_t width;
     uint32_t height;
     uint8_t *buffer;
+    size_t buffer_capacity;
 
     // Callback for texture updates
     FlTextureRegistrar *texture_registrar;
@@ -38,6 +40,8 @@ struct _MyTexture
     uint32_t pushed_width;
     uint32_t pushed_height;
     gboolean has_pushed;
+    // A frame copy_pixels has not taken yet; without one it shows the last frame again.
+    gboolean pushed_fresh;
     GMutex pushed_mutex;
 
     gboolean logged_no_registrar;
@@ -140,21 +144,15 @@ static gboolean my_texture_copy_pixels(FlPixelBufferTexture *texture,
     // A pushed frame wins over the colour at its own size, alpha as sent: Windows' rule (owner decision).
     g_mutex_lock(&self->pushed_mutex);
     if (self->has_pushed && self->pushed_buffer) {
-        const size_t frame_bytes =
-          static_cast<size_t>(self->pushed_width) * static_cast<size_t>(self->pushed_height) * 4U;
         g_mutex_lock(&self->buffer_mutex);
-        if (self->pushed_width != self->width || self->pushed_height != self->height) {
-            auto *resized = static_cast<uint8_t *>(realloc(self->buffer, frame_bytes));
-            if (!resized) {
-                g_mutex_unlock(&self->buffer_mutex);
-                g_mutex_unlock(&self->pushed_mutex);
-                return FALSE;
-            }
-            self->buffer = resized;
+        // Taken, not copied: Flutter uploads `buffer` before it asks again, so the producer may fill the old one.
+        if (self->pushed_fresh) {
+            std::swap(self->buffer, self->pushed_buffer);
+            std::swap(self->buffer_capacity, self->pushed_capacity);
             self->width = self->pushed_width;
             self->height = self->pushed_height;
+            self->pushed_fresh = FALSE;
         }
-        if (frame_bytes <= self->pushed_capacity) { memcpy(self->buffer, self->pushed_buffer, frame_bytes); }
         g_mutex_unlock(&self->buffer_mutex);
         g_mutex_unlock(&self->pushed_mutex);
 
@@ -203,12 +201,14 @@ static void my_texture_class_init(MyTextureClass *klass)
 static void my_texture_init(MyTexture *self)
 {
     self->buffer = nullptr;
+    self->buffer_capacity = 0U;
     self->texture_registrar = nullptr;
     self->pushed_buffer = nullptr;
     self->pushed_capacity = 0U;
     self->pushed_width = 0U;
     self->pushed_height = 0U;
     self->has_pushed = FALSE;
+    self->pushed_fresh = FALSE;
     self->logged_no_registrar = FALSE;
     self->logged_first_push = FALSE;
     self->has_pending_color = FALSE;
@@ -231,6 +231,7 @@ FlTexture *my_texture_new(uint32_t width, uint32_t height, uint8_t r, uint8_t g,
         g_warning("[my_texture] out of memory for a %ux%u texture (%zu bytes)", width, height, buffer_bytes);
         return FL_TEXTURE(self);
     }
+    self->buffer_capacity = buffer_bytes;
     memset(self->buffer, 0, buffer_bytes);
 
     my_texture_set_color(FL_TEXTURE(self), r, g, b);
@@ -342,6 +343,7 @@ int32_t knt_push_frame(int64_t texture_id, const uint8_t *rgba, uint32_t width, 
     self->pushed_width = width;
     self->pushed_height = height;
     self->has_pushed = TRUE;
+    self->pushed_fresh = TRUE;
 
     if (!self->logged_first_push) {
         g_message("[my_texture] first pushed frame: %ux%u -> texture %" G_GINT64_FORMAT, width, height, texture_id);

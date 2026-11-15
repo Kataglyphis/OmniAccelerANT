@@ -89,7 +89,32 @@ namespace test {
         EXPECT_FALSE(my_texture_has_pushed_frame(id));
     }
 
-    // Milliseconds per frame of the two copies a desktop frame takes: knt_push_frame, then copy_pixels.
+    TEST(MyTexture, ATakenFrameStaysUntilTheNextAndTheNextMayChangeSize)
+    {
+        AbiTexture texture(2, 2, 0, 0, 255);
+        constexpr int64_t id = 4243;
+        texture.register_as(id);
+        const std::vector<uint8_t> red{ 255, 0, 0, 255, 255, 0, 0, 255, 255, 0, 0, 255, 255, 0, 0, 255 };
+        EXPECT_EQ(knt_push_frame(id, red.data(), 2, 2), KNT_OK);
+        EXPECT_EQ(texture.frame().bytes, red);
+        // No new frame: Flutter asks again and must see the same one, not the buffer it handed back.
+        EXPECT_EQ(texture.frame().bytes, red);
+        std::vector<uint8_t> wide(3U * 4U, 0);
+        for (size_t pixel = 0; pixel < 3U; ++pixel) {
+            wide[pixel * 4U + 1U] = 255;
+            wide[pixel * 4U + 3U] = 255;
+        }
+        EXPECT_EQ(knt_push_frame(id, wide.data(), 3, 1), KNT_OK);
+        const AbiFrame frame = texture.frame();
+        EXPECT_EQ(frame.width, 3U);
+        EXPECT_EQ(frame.height, 1U);
+        EXPECT_EQ(frame.bytes, wide);
+        EXPECT_EQ(knt_push_frame(id, red.data(), 2, 2), KNT_OK);
+        EXPECT_EQ(texture.frame().bytes, red);
+        AbiTexture::unregister(id);
+    }
+
+    // Milliseconds per frame of knt_push_frame's copy and copy_pixels, which takes the pushed buffer.
     struct FramePathTiming
     {
         std::string size;

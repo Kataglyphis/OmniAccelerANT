@@ -95,10 +95,14 @@ only stable values are gated, and a run the report failed never joins the histor
   pays before the model, and a whole detection on the real model (OxidANT's AGENTS.md).
 - **The desktop frame path:** the Linux plugin gtest's `FramePath.PushAndCopyAreTimedPerFrame`
   pushes 300 frames through `knt_push_frame` and reads each back through `copy_pixels`, at
-  640x480 and 1280x720, the two copies a webcam frame takes on its way to Flutter. The native
+  640x480 and 1280x720. `knt_push_frame` copies the frame once; since 2026-11-15 `copy_pixels`
+  takes that buffer and hands its old one back to the producer instead of copying again, and shows
+  the last frame once more when none arrived. The native
   lane hands its milliseconds per frame (`out/perf/frame-path.json`, google-benchmark's shape) to
   the hub's `bench-history` under `frame-path-<arch>`, which only warns. On a Pi 5 in the CI
-  image (2026-11-15): 0.13 ms push and 0.17 ms copy at 640x480, 0.59 ms and 0.62 ms at 720p.
+  image (2026-11-15), 720p cost 0.59 ms push plus 0.62 ms copy before the buffers changed owner,
+  and 0.67 to 0.74 ms push with no copy after (640x480: 0.30 ms, then 0.18 to 0.24 ms). Pushing
+  now fills the buffer Flutter last read, which is colder than the one it used to reuse.
 - **Flutter:** `integration_test/performance_test.dart`, driven in profile mode by
   `flutter drive --profile -d linux --driver=test_driver/perf_driver.dart
   --target=integration_test/performance_test.dart`. Flutter's `watchPerformance` times the
