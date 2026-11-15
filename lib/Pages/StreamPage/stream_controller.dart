@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:omni_accelerant/l10n/app_localizations.dart';
+import 'package:omni_accelerant/Pages/StreamPage/poll_gate.dart';
 
 /// Where the stream is; the view shows it over the video until [streaming].
 enum WebRTCStage {
@@ -54,6 +55,9 @@ abstract class SignallingClient {
   /// Drops the signalling connection and opens a new one; `disconnected`, then `connected`, follow.
   void reconnect();
 
+  /// How long the client waits before its own next attempt after a drop; set inside `disconnected`.
+  void retryAfter(int ms);
+
   /// A session on [producerId], or `null` when the client refuses one.
   ConsumerSessionHandle? openSession(
     String producerId, {
@@ -96,6 +100,9 @@ class WebRTCStreamController extends ChangeNotifier {
   }
 
   final SignallingClient _client;
+
+  /// Signalling drops in a row; past three the client's own retry waits longer ([backoffDelay]).
+  int _drops = 0;
 
   /// The signalling client's retry interval, for the message after a dropped connection.
   final int reconnectionTimeoutMs;
@@ -242,6 +249,8 @@ class WebRTCStreamController extends ChangeNotifier {
 
   void _onConnected() {
     _connected = true;
+    _drops = 0;
+    _client.retryAfter(reconnectionTimeoutMs);
     if (_stage == WebRTCStage.connecting) _set(WebRTCStage.waitingForProducer);
     _ensureSession();
   }
@@ -251,10 +260,14 @@ class WebRTCStreamController extends ChangeNotifier {
     _retryTimer?.cancel();
     _retryTimer = null;
     _closeSession();
-    _set(
-      WebRTCStage.connecting,
-      (l10n) => l10n.webrtcSignallingLost(reconnectionTimeoutMs),
-    );
+    // Drops in a row with no connect between: with no server behind the page the socket is tried about once a minute.
+    _drops++;
+    final int wait = backoffDelay(
+      Duration(milliseconds: reconnectionTimeoutMs),
+      _drops,
+    ).inMilliseconds;
+    _client.retryAfter(wait);
+    _set(WebRTCStage.connecting, (l10n) => l10n.webrtcSignallingLost(wait));
   }
 
   void _onProducerRemoved(String id) {

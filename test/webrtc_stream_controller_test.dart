@@ -48,6 +48,12 @@ class _FakeClient implements SignallingClient {
 
   int reconnects = 0;
 
+  /// Each wait the controller asked for, in order.
+  final List<int> retryWaits = <int>[];
+
+  @override
+  void retryAfter(int ms) => retryWaits.add(ms);
+
   /// As gstwebrtc-api does: the old channel's end is announced at once, the new one's start later.
   @override
   void reconnect() {
@@ -187,7 +193,7 @@ void main() {
       final AppLocalizations l10n = lookupAppLocalizations(const Locale('en'));
       expect(
         controller.detail?.call(l10n),
-        'Lost the signalling connection — retrying every 5000 ms.',
+        'Lost the signalling connection — retrying in 5000 ms.',
       );
       client.connected();
       expect(controller.stage, WebRTCStage.waitingForProducer);
@@ -448,6 +454,41 @@ void main() {
       at: t.add(const Duration(seconds: 4)),
     );
     expect(controller.playback.value, same(stats));
+    controller.dispose();
+  });
+
+  test('drops in a row stretch the client\'s retry to a minute, and a connect resets it', () {
+    final (WebRTCStreamController controller, _FakeClient client) =
+        _streaming();
+    expect(client.retryWaits, [
+      5000,
+    ], reason: 'the first connect sets the short wait');
+    for (var drop = 0; drop < 8; drop++) {
+      client.disconnected();
+    }
+    expect(client.retryWaits.skip(1), [
+      5000,
+      5000,
+      5000,
+      10000,
+      20000,
+      40000,
+      60000,
+      60000,
+    ]);
+    final AppLocalizations l10n = lookupAppLocalizations(const Locale('en'));
+    expect(
+      controller.detail?.call(l10n),
+      'Lost the signalling connection — retrying in 60000 ms.',
+    );
+    client.connected();
+    expect(client.retryWaits.last, 5000);
+    client.disconnected();
+    expect(
+      client.retryWaits.last,
+      5000,
+      reason: 'the count starts again after a connect',
+    );
     controller.dispose();
   });
 }

@@ -224,7 +224,7 @@
   "webrtcNegotiating": "Negotiating the video stream",
   "webrtcStreaming": "Streaming",
   "webrtcFailed": "The stream could not be started",
-  "webrtcSignallingLost": "Lost the signalling connection — retrying every {ms} ms.",
+  "webrtcSignallingLost": "Lost the signalling connection — retrying in {ms} ms.",
   "@webrtcSignallingLost": {
     "placeholders": {
       "ms": {

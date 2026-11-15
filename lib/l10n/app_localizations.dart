@@ -665,7 +665,7 @@ abstract class AppLocalizations {
   /// No description provided for @webrtcSignallingLost.
   ///
   /// In en, this message translates to:
-  /// **'Lost the signalling connection — retrying every {ms} ms.'**
+  /// **'Lost the signalling connection — retrying in {ms} ms.'**
   String webrtcSignallingLost(int ms);
 
   /// No description provided for @webrtcCameraGone.

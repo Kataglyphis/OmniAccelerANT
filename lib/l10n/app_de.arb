@@ -93,7 +93,7 @@
   "webrtcNegotiating": "Der Videostream wird ausgehandelt",
   "webrtcStreaming": "Wird übertragen",
   "webrtcFailed": "Der Stream konnte nicht gestartet werden",
-  "webrtcSignallingLost": "Verbindung zum Signalisierungsserver verloren – neuer Versuch alle {ms} ms.",
+  "webrtcSignallingLost": "Verbindung zum Signalisierungsserver verloren – neuer Versuch in {ms} ms.",
   "webrtcCameraGone": "Die Kamera ist offline gegangen.",
   "webrtcNoSession": "Konnte keine Sitzung für die Kamera {camera} öffnen.",
   "webrtcPeerError": "Die Verbindung meldete einen Fehler. Ist die Kamera ein anderes Gerät, prüfen Sie, ob der WebRTC-UDP-Bereich es erreicht.",

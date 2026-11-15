@@ -343,7 +343,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String webrtcSignallingLost(int ms) {
-    return 'Verbindung zum Signalisierungsserver verloren – neuer Versuch alle $ms ms.';
+    return 'Verbindung zum Signalisierungsserver verloren – neuer Versuch in $ms ms.';
   }
 
   @override

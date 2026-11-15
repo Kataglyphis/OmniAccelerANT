@@ -135,6 +135,10 @@ class _GstSignallingClient implements SignallingClient {
   @override
   void reconnect() => _api.connectChannel();
 
+  // Nothing public sets the wait; the library reads this field after the disconnected event this runs inside.
+  @override
+  void retryAfter(int ms) => _api.liveConfig.reconnectionTimeout = ms;
+
   @override
   void listen({
     required void Function() connected,

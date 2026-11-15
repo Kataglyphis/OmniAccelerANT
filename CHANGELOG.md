@@ -5,6 +5,13 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ## Unreleased
 
+### 2026-11-15 (the signalling socket backs off too)
+- `WebRTCStreamController` counts signalling drops in a row and, inside each `disconnected`, sets the client's next
+  retry through `SignallingClient.retryAfter` with `backoffDelay`: 5 s for three drops, then 10, 20, 40 and 60 s, and
+  5 s again after a connect. The gstwebrtc-api client writes it into the library's merged config
+  (`GstWebRTCAPI.liveConfig.reconnectionTimeout`), which the library reads right after that event. The message says
+  "retrying in N ms" now. A controller test with a fake client.
+
 ### 2026-11-15 (the Stream page asks less often when nothing answers)
 - The status line and the camera overview poll `/healthz` through `backoffDelay` (`poll_gate.dart`): 5 s for three
   misses in a row, then 10, 20, 40 and 60 s, back to 5 s on an answer or when the page shows again. An answer that

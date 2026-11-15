@@ -342,7 +342,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String webrtcSignallingLost(int ms) {
-    return 'Lost the signalling connection — retrying every $ms ms.';
+    return 'Lost the signalling connection — retrying in $ms ms.';
   }
 
   @override

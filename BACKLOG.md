@@ -291,15 +291,14 @@ name is under `lib/Pages/StreamPage/`.
   Playing; a stop on `AppLifecycleState.paused` and the last pipeline again on `resumed`; no `g_mutex` across a
   wait. Stays fixed by Dart tests on a faked `state` and by the emulator check of the first row.
 
-- [ ] **The signalling socket retries every 5 s without a limit** (M, ★★). gstwebrtc-api reconnects every
-  `reconnectionTimeoutMs`, 5000 in `assets/settings/webrtc_settings.json`; on the hosted site, with no ObservANT
-  behind it, that is 12 socket attempts a minute for every open tab (computed, not measured). The polling half is done
-  (2026-11-15): `backoffDelay` (`poll_gate.dart`) keeps the status line's and the peers' `/healthz` at 5 s for three
-  misses, then doubles the wait to a minute, back to 5 s on an answer or when the page shows again, and an answer
-  that is no ObservANT stops the peers for good (tests: ten minutes without an answer stay at 16 fetches or fewer).
-  Next: the same growing delay for the signalling retry, in the controller. `web-smoke-server.js` always answers as
-  an idle ObservANT, so no browser test sees the empty state: a mode of `scripts/linux/check-web-browser.sh` without
-  the fixture that counts 60 s of requests against a ceiling.
+- [ ] **No browser test sees the page with nothing behind it** (S, ★★). Since 2026-11-15 the Stream page backs off
+  when nothing answers: `/healthz` from 5 s to a minute (`backoffDelay`), and the signalling socket too, as the
+  controller sets gstwebrtc-api's `reconnectionTimeout` inside each `disconnected` (the library reads it right after;
+  `retryAfter`, unit-tested with a fake client). `web-smoke-server.js` always answers as an idle ObservANT, so no
+  browser test sees the empty state, and the `_config` hook is proven by reading gstwebrtc-api 3.0.0, not by a run.
+  Next: a mode of `scripts/linux/check-web-browser.sh` without the fixture (`/healthz` 404, no signalling server)
+  that counts 60 s of requests and socket attempts against a ceiling; it also catches a library update that renames
+  `_config`.
 
 - [ ] **The plugin pipeline's state machine is widget code** (L, ★★). `stream_page.dart` keeps the pipeline state and
   the fallback chain in the page's `State` with `setState` (73-125, 191-298). There is no busy guard: two source

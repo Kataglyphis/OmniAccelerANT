@@ -11,6 +11,10 @@ class GstWebRTCAPI {
 }
 
 extension GstWebRTCAPIMembers on GstWebRTCAPI {
+  /// The config the API merged; gstwebrtc-api 3.0.0 reads its reconnectionTimeout right after each disconnect.
+  @JS('_config')
+  external GstWebRTCConfig get liveConfig;
+
   external bool registerConnectionListener(ConnectionListener listener);
   external bool registerPeerListener(PeerListener listener);
 
@@ -40,6 +44,10 @@ class GstWebRTCConfig {
     int? reconnectionTimeout,
     JSAny? webrtcConfig,
   });
+}
+
+extension GstWebRTCConfigMembers on GstWebRTCConfig {
+  external set reconnectionTimeout(int value);
 }
 
 @JS()
