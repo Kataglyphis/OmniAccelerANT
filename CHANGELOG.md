@@ -5,6 +5,14 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ## Unreleased
 
+### 2026-11-15 (the app's ObservANT parsers read ObservANT's own answers; OxidANT pin b78745c)
+- `test/observant_api_goldens_test.dart` parses `third_party/OxidANT/crates/observant/tests/fixtures/api/`:
+  `/settings` into `ObservantSettings`, `/visits` into a stay, `/ask` and `POST /summary` through
+  `VisitQuestionsController`. OxidANT's `web.rs` writes and checks those files, so a key ObservANT renames fails
+  there first, and here at the next pin. VM only, as the `/healthz` one: a browser run reads no files.
+- OxidANT pin 6ccffab -> b78745c: the API goldens, the healthz goldens embedded for the Windows arm64 runner, the
+  function-size gate on every crate, shared text provider names; `lib/src/rust/` regenerated (two doc comments).
+
 ### 2026-11-15 (a Linux frame is copied once)
 - `copy_pixels` takes the frame `knt_push_frame` filled and hands its old buffer back to the producer instead of
   copying the frame a second time; with no new frame it shows the last one again. Flutter uploads `buffer` before
