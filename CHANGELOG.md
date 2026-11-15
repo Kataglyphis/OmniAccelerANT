@@ -5,6 +5,12 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ## Unreleased
 
+### 2026-11-15 (OxidANT pin b78745c -> 7d33f96)
+- The pin brings, among others: a text failure that names its kind (`model_load_failed: ...`, which the playground
+  now shows as a sentence), the endpoint client's limits per phase (`endpoint_timed_out`), an idle in-process model
+  unloaded after 600 s in the text bridge as in ObservANT, a camera session that ends when the camera goes silent
+  (`no frame for 10.0 s`) and the wgpu GUI on the media crate's session. `lib/src/rust/` regenerates unchanged.
+
 ### 2026-11-15 (the signalling socket backs off too)
 - `WebRTCStreamController` counts signalling drops in a row and, inside each `disconnected`, sets the client's next
   retry through `SignallingClient.retryAfter` with `backoffDelay`: 5 s for three drops, then 10, 20, 40 and 60 s, and

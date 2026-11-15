@@ -12213,7 +12213,7 @@
   "scripts/licenses/cargo-policy.json": "6e00988b928e306bffa597f57dc58e21d9c34db75d52985c354b6cf077e1dcf5",
   "scripts/licenses/native-components.json": "cfe18b666ad445d8d88596c04c71cf6c7e5336c20b9e0edb040d149be7871348",
   "third_party/AccelerANTgine/Src/rusty_code/Cargo.lock": "4834328081f31332074f730d8b746e9e1f04a502410d2f128ec0f06cafea5b25",
-  "third_party/OxidANT/Cargo.lock": "778076404b78cd24a11537236a794a3dd5575c40f64d0ee1f6a6e4ce106aa86d"
+  "third_party/OxidANT/Cargo.lock": "a89c60c75ca73013a9b3f12a3ebce6e2d77a5951d5e83b9f2b2635ad61a608fa"
  },
  "schema": 1,
  "text_files": [
