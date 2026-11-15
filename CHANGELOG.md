@@ -5,6 +5,13 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ## Unreleased
 
+### 2026-11-15 (a text failure reads as a sentence)
+- `describeTextFailure` (`lib/Pages/AiPlaygroundPage/text_failure.dart`) reads the kind OxidANT's bridge puts before
+  its text failures (`TextError::kind`) and shows a translated sentence with the detail after it for a model that
+  does not load, a missing GenAI, a missing device, an endpoint that does not answer or answers too late (OxidANT's
+  `endpoint_timed_out` since 039797d) and refused settings; any other
+  kind keeps the raw text. `test/text_failure_test.dart` checks German and English.
+
 ### 2026-11-15 (the app's ObservANT parsers read ObservANT's own answers; OxidANT pin b78745c)
 - `test/observant_api_goldens_test.dart` parses `third_party/OxidANT/crates/observant/tests/fixtures/api/`:
   `/settings` into `ObservantSettings`, `/visits` into a stay, `/ask` and `POST /summary` through

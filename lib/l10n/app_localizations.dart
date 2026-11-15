@@ -860,6 +860,42 @@ abstract class AppLocalizations {
   /// **'The model failed: {detail}'**
   String aiError(String detail);
 
+  /// Shown when the language model directory does not load (kind model_load_failed).
+  ///
+  /// In en, this message translates to:
+  /// **'The model could not be loaded; check the model folder. ({detail})'**
+  String aiErrorModelLoad(String detail);
+
+  /// Shown when ONNX Runtime GenAI is missing (kind library_unavailable).
+  ///
+  /// In en, this message translates to:
+  /// **'This build cannot run a model itself; use an endpoint. ({detail})'**
+  String aiErrorLibrary(String detail);
+
+  /// Shown when the execution provider is missing (kind provider_unavailable).
+  ///
+  /// In en, this message translates to:
+  /// **'The chosen device is not available here; pick CPU. ({detail})'**
+  String aiErrorProvider(String detail);
+
+  /// Shown when the endpoint is unreachable or answers an error status.
+  ///
+  /// In en, this message translates to:
+  /// **'The server did not answer properly; check its address and that it runs. ({detail})'**
+  String aiErrorEndpoint(String detail);
+
+  /// Shown when the endpoint does not connect or answer in time (kind endpoint_timed_out).
+  ///
+  /// In en, this message translates to:
+  /// **'The server took too long to answer; try again, or a shorter question. ({detail})'**
+  String aiErrorTimedOut(String detail);
+
+  /// Shown when the messages or options are invalid (kind invalid_options).
+  ///
+  /// In en, this message translates to:
+  /// **'The request was refused; check the settings. ({detail})'**
+  String aiErrorInvalid(String detail);
+
   /// The button that opens questions about the camera's visit log
   ///
   /// In en, this message translates to:

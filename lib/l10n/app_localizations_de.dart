@@ -459,6 +459,36 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String aiErrorModelLoad(String detail) {
+    return 'Das Modell ließ sich nicht laden; bitte den Modellordner prüfen. ($detail)';
+  }
+
+  @override
+  String aiErrorLibrary(String detail) {
+    return 'Diese Version kann kein Modell selbst ausführen; bitte einen Server nutzen. ($detail)';
+  }
+
+  @override
+  String aiErrorProvider(String detail) {
+    return 'Das gewählte Gerät gibt es hier nicht; bitte CPU wählen. ($detail)';
+  }
+
+  @override
+  String aiErrorEndpoint(String detail) {
+    return 'Der Server hat nicht richtig geantwortet; bitte Adresse und Betrieb prüfen. ($detail)';
+  }
+
+  @override
+  String aiErrorTimedOut(String detail) {
+    return 'Der Server hat zu lange für die Antwort gebraucht; bitte erneut oder kürzer fragen. ($detail)';
+  }
+
+  @override
+  String aiErrorInvalid(String detail) {
+    return 'Die Anfrage wurde abgelehnt; bitte die Einstellungen prüfen. ($detail)';
+  }
+
+  @override
   String get visitQuestions => 'Fragen zu den Besuchen';
 
   @override

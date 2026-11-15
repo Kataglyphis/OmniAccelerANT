@@ -305,6 +305,36 @@
     "description": "Shown above the chat when a generation fails.",
     "placeholders": { "detail": { "type": "String" } }
   },
+  "aiErrorModelLoad": "The model could not be loaded; check the model folder. ({detail})",
+  "@aiErrorModelLoad": {
+    "description": "Shown when the language model directory does not load (kind model_load_failed).",
+    "placeholders": { "detail": { "type": "String" } }
+  },
+  "aiErrorLibrary": "This build cannot run a model itself; use an endpoint. ({detail})",
+  "@aiErrorLibrary": {
+    "description": "Shown when ONNX Runtime GenAI is missing (kind library_unavailable).",
+    "placeholders": { "detail": { "type": "String" } }
+  },
+  "aiErrorProvider": "The chosen device is not available here; pick CPU. ({detail})",
+  "@aiErrorProvider": {
+    "description": "Shown when the execution provider is missing (kind provider_unavailable).",
+    "placeholders": { "detail": { "type": "String" } }
+  },
+  "aiErrorEndpoint": "The server did not answer properly; check its address and that it runs. ({detail})",
+  "@aiErrorEndpoint": {
+    "description": "Shown when the endpoint is unreachable or answers an error status.",
+    "placeholders": { "detail": { "type": "String" } }
+  },
+  "aiErrorTimedOut": "The server took too long to answer; try again, or a shorter question. ({detail})",
+  "@aiErrorTimedOut": {
+    "description": "Shown when the endpoint does not connect or answer in time (kind endpoint_timed_out).",
+    "placeholders": { "detail": { "type": "String" } }
+  },
+  "aiErrorInvalid": "The request was refused; check the settings. ({detail})",
+  "@aiErrorInvalid": {
+    "description": "Shown when the messages or options are invalid (kind invalid_options).",
+    "placeholders": { "detail": { "type": "String" } }
+  },
   "visitQuestions": "Ask about the visits",
   "@visitQuestions": {"description": "The button that opens questions about the camera's visit log"},
   "visitQuestionsSummarise": "Summarise today",

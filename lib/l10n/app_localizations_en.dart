@@ -456,6 +456,36 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String aiErrorModelLoad(String detail) {
+    return 'The model could not be loaded; check the model folder. ($detail)';
+  }
+
+  @override
+  String aiErrorLibrary(String detail) {
+    return 'This build cannot run a model itself; use an endpoint. ($detail)';
+  }
+
+  @override
+  String aiErrorProvider(String detail) {
+    return 'The chosen device is not available here; pick CPU. ($detail)';
+  }
+
+  @override
+  String aiErrorEndpoint(String detail) {
+    return 'The server did not answer properly; check its address and that it runs. ($detail)';
+  }
+
+  @override
+  String aiErrorTimedOut(String detail) {
+    return 'The server took too long to answer; try again, or a shorter question. ($detail)';
+  }
+
+  @override
+  String aiErrorInvalid(String detail) {
+    return 'The request was refused; check the settings. ($detail)';
+  }
+
+  @override
   String get visitQuestions => 'Ask about the visits';
 
   @override

@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:omni_accelerant/Pages/AiPlaygroundPage/ai_playground_controller.dart';
 import 'package:omni_accelerant/Pages/AiPlaygroundPage/playground_settings.dart';
 import 'package:omni_accelerant/Pages/AiPlaygroundPage/playground_settings_store.dart';
+import 'package:omni_accelerant/Pages/AiPlaygroundPage/text_failure.dart';
 import 'package:omni_accelerant/l10n/app_localizations.dart';
 
 /// Chat with a language model: the chain GenAI in this process on Linux and Windows, or any OpenAI-compatible endpoint.
@@ -90,7 +91,7 @@ class AiPlaygroundView extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 8),
               child: Text(
-                l10n.aiError(controller.error!),
+                describeTextFailure(controller.error!, l10n),
                 style: TextStyle(color: Theme.of(context).colorScheme.error),
               ),
             ),
