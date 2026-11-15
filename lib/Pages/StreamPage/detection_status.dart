@@ -215,15 +215,27 @@ class _DetectionStatusLineState extends State<DetectionStatusLine> {
   bool _visible = true;
   final PollGate _gate = PollGate();
 
+  /// Polls in a row that `/healthz` did not answer; past three the wait grows ([backoffDelay]).
+  int _misses = 0;
+
   @override
   void initState() {
     super.initState();
-    unawaited(_gate.run(_poll));
-    _timer = Timer.periodic(widget.interval, (_) {
-      if (_visible) {
-        unawaited(_gate.run(_poll));
-      }
-    });
+    unawaited(_pollAndWait());
+  }
+
+  /// Polls while the page shows, then waits [backoffDelay] for the next poll.
+  Future<void> _pollAndWait() async {
+    _timer?.cancel();
+    if (_visible) {
+      await _gate.run(_poll);
+    }
+    if (mounted) {
+      _timer = Timer(
+        backoffDelay(widget.interval, _misses),
+        () => unawaited(_pollAndWait()),
+      );
+    }
   }
 
   Future<void> _poll() async {
@@ -231,6 +243,7 @@ class _DetectionStatusLineState extends State<DetectionStatusLine> {
     if (!mounted) {
       return;
     }
+    _misses = body == null ? _misses + 1 : 0;
     setState(() {
       if (body == null && _status != null) {
         // It answered before: say since when it is gone, and keep what it said.
@@ -268,10 +281,11 @@ class _DetectionStatusLineState extends State<DetectionStatusLine> {
   Widget build(BuildContext context) {
     final visible = TickerMode.valuesOf(context).enabled;
     if (visible && !_visible) {
-      // Back in view: show the cat as it is now, not as it was when the page was left.
+      // Back in view: show the cat as it is now, and ask at the short interval again.
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
-          unawaited(_gate.run(_poll));
+          _misses = 0;
+          unawaited(_pollAndWait());
         }
       });
     }

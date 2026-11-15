@@ -678,4 +678,27 @@ void main() {
       },
     );
   });
+
+  testWidgets(
+    'with nothing behind the page the poll slows to a minute, and an answer brings back 5 s',
+    (tester) async {
+      var fetches = 0;
+      String? answer;
+      await _pumpLine(tester, () async {
+        fetches++;
+        return answer;
+      });
+      for (var second = 0; second < 600; second++) {
+        await tester.pump(const Duration(seconds: 1));
+      }
+      // Every 5 s would be 121; growing to a minute after three misses leaves 15.
+      expect(fetches, lessThanOrEqualTo(16));
+      answer = _neverSeen;
+      await tester.pump(const Duration(seconds: 60));
+      final afterAnswer = fetches;
+      await tester.pump(const Duration(seconds: 5));
+      expect(fetches, afterAnswer + 1);
+      await tester.pumpWidget(const SizedBox.shrink());
+    },
+  );
 }

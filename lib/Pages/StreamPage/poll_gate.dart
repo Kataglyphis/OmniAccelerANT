@@ -15,3 +15,17 @@ class PollGate {
     }
   }
 }
+
+/// The wait before the next poll: [base] while it answers and for the first three misses in a row, then doubling up
+/// to [ceiling], so a page with nothing behind it, as the hosted site has, asks about once a minute.
+Duration backoffDelay(
+  Duration base,
+  int misses, {
+  Duration ceiling = const Duration(minutes: 1),
+}) {
+  if (misses <= 3) {
+    return base;
+  }
+  final grown = base * (1 << (misses - 3).clamp(0, 10));
+  return grown < ceiling ? grown : ceiling;
+}

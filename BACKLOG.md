@@ -291,17 +291,15 @@ name is under `lib/Pages/StreamPage/`.
   Playing; a stop on `AppLifecycleState.paused` and the last pipeline again on `resumed`; no `g_mutex` across a
   wait. Stays fixed by Dart tests on a faked `state` and by the emulator check of the first row.
 
-- [ ] **No back-off when no camera answers** (M, ★★) (not double-checked). The status line asks `/healthz` every 5 s
-  for ever (`detection_status.dart:261-285`), the peers' 10 s timer stops only after an own `/healthz` answered
-  (`camera_peers.dart:52-60, 68-81`), and gstwebrtc-api reconnects every `reconnectionTimeoutMs`, 5000 in
-  `assets/settings/webrtc_settings.json`, without a limit. The hosted site is this web build with no ObservANT behind
-  it and the Stream page first: about 18 failing requests and 12 socket attempts a minute for every open tab
-  (computed, not measured). `web-smoke-server.js` always answers as an idle ObservANT, so no browser test sees that
-  state. First step, polling only: after a few misses the interval grows from 5 s to about 60 s and falls back on an
-  answer or when the page shows again; a first answer that is no ObservANT `/healthz` stops the peers' timer. The
-  signalling retry follows, in the controller, with a growing delay. Stays fixed by `fake_async` tests (ten minutes
-  without an answer stay under a fixed number of fetches, and one answer restores the 5 s) and a mode of
-  `scripts/linux/check-web-browser.sh` without the fixture that counts 60 s of requests against a ceiling.
+- [ ] **The signalling socket retries every 5 s without a limit** (M, ★★). gstwebrtc-api reconnects every
+  `reconnectionTimeoutMs`, 5000 in `assets/settings/webrtc_settings.json`; on the hosted site, with no ObservANT
+  behind it, that is 12 socket attempts a minute for every open tab (computed, not measured). The polling half is done
+  (2026-11-15): `backoffDelay` (`poll_gate.dart`) keeps the status line's and the peers' `/healthz` at 5 s for three
+  misses, then doubles the wait to a minute, back to 5 s on an answer or when the page shows again, and an answer
+  that is no ObservANT stops the peers for good (tests: ten minutes without an answer stay at 16 fetches or fewer).
+  Next: the same growing delay for the signalling retry, in the controller. `web-smoke-server.js` always answers as
+  an idle ObservANT, so no browser test sees the empty state: a mode of `scripts/linux/check-web-browser.sh` without
+  the fixture that counts 60 s of requests against a ceiling.
 
 - [ ] **The plugin pipeline's state machine is widget code** (L, ★★). `stream_page.dart` keeps the pipeline state and
   the fallback chain in the page's `State` with `setState` (73-125, 191-298). There is no busy guard: two source

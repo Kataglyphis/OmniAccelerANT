@@ -50,15 +50,30 @@ class _CameraPeersState extends State<CameraPeers> {
   bool _visible = true;
   final PollGate _gate = PollGate();
 
+  /// Polls in a row that the own `/healthz` did not answer; past three the wait grows ([backoffDelay]).
+  int _misses = 0;
+
+  /// Nothing here lists peers: an ObservANT without any, or an answer that is no ObservANT.
+  bool _stopped = false;
+
   @override
   void initState() {
     super.initState();
-    unawaited(_gate.run(_poll));
-    _timer = Timer.periodic(widget.interval, (_) {
-      if (_visible) {
-        unawaited(_gate.run(_poll));
-      }
-    });
+    unawaited(_pollAndWait());
+  }
+
+  /// Polls while the page shows, then waits for the next poll, until nothing is left to ask.
+  Future<void> _pollAndWait() async {
+    _timer?.cancel();
+    if (_visible) {
+      await _gate.run(_poll);
+    }
+    if (mounted && !_stopped) {
+      _timer = Timer(
+        backoffDelay(widget.interval, _misses),
+        () => unawaited(_pollAndWait()),
+      );
+    }
   }
 
   @override
@@ -72,13 +87,15 @@ class _CameraPeersState extends State<CameraPeers> {
     if (!_knowsPeers) {
       final own = await fetchOrNull(widget.fetchOwn);
       final status = own == null ? null : DetectionStatus.fromHealthz(own);
-      if (status != null) {
+      _misses = own == null ? _misses + 1 : 0;
+      if (own != null && status == null) {
+        // Something answered that is no ObservANT, as the hosted site does: no camera here lists peers.
+        _stopped = true;
+      } else if (status != null) {
         _knowsPeers = true;
         peers = status.peers;
-        if (peers.isEmpty) {
-          // An ObservANT camera without peers has no overview to refresh.
-          _timer?.cancel();
-        }
+        // An ObservANT camera without peers has no overview to refresh.
+        _stopped = peers.isEmpty;
       }
     }
     final answers = await Future.wait([
@@ -108,7 +125,17 @@ class _CameraPeersState extends State<CameraPeers> {
 
   @override
   Widget build(BuildContext context) {
-    _visible = TickerMode.valuesOf(context).enabled;
+    final visible = TickerMode.valuesOf(context).enabled;
+    if (visible && !_visible && !_stopped) {
+      // Back in view: ask at the short interval again.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _misses = 0;
+          unawaited(_pollAndWait());
+        }
+      });
+    }
+    _visible = visible;
     if (_peers.isEmpty) {
       return const SizedBox.shrink();
     }

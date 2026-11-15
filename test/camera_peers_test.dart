@@ -163,4 +163,32 @@ void main() {
     expect(find.text('Other cameras'), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
   });
+
+  testWidgets('an answer that is no ObservANT stops the asking for good', (
+    tester,
+  ) async {
+    var fetches = 0;
+    await _pump(tester, () async {
+      fetches++;
+      return '<!doctype html><title>OmniAccelerANT</title>';
+    }, const {});
+    await tester.pump(const Duration(minutes: 2));
+    expect(fetches, 1);
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  testWidgets('a silent own ObservANT is asked less and less often', (
+    tester,
+  ) async {
+    var fetches = 0;
+    await _pump(tester, () async {
+      fetches++;
+      return null;
+    }, const {});
+    for (var second = 0; second < 600; second++) {
+      await tester.pump(const Duration(seconds: 1));
+    }
+    expect(fetches, lessThanOrEqualTo(16));
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
 }

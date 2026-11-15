@@ -5,6 +5,13 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ## Unreleased
 
+### 2026-11-15 (the Stream page asks less often when nothing answers)
+- The status line and the camera overview poll `/healthz` through `backoffDelay` (`poll_gate.dart`): 5 s for three
+  misses in a row, then 10, 20, 40 and 60 s, back to 5 s on an answer or when the page shows again. An answer that
+  is no ObservANT, as on the hosted site, stops the overview's polling. Ten minutes with nothing behind the page are
+  now 15 requests instead of 121 per widget. Tests in `test/poll_gate_test.dart`, `detection_status_test.dart` and
+  `camera_peers_test.dart`.
+
 ### 2026-11-15 (a text failure reads as a sentence)
 - `describeTextFailure` (`lib/Pages/AiPlaygroundPage/text_failure.dart`) reads the kind OxidANT's bridge puts before
   its text failures (`TextError::kind`) and shows a translated sentence with the detail after it for a model that
