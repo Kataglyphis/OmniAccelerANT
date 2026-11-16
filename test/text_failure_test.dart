@@ -1,6 +1,9 @@
 // The bridge's `kind: text` failures as the playground shows them, in both languages.
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:omni_accelerant/Pages/AiPlaygroundPage/text_failure.dart';
+import 'package:omni_accelerant/l10n/app_localizations.dart';
 import 'package:omni_accelerant/l10n/app_localizations_de.dart';
 import 'package:omni_accelerant/l10n/app_localizations_en.dart';
 
@@ -44,12 +47,34 @@ void main() {
 
   test('an unknown kind or a failure without one keeps the raw text', () {
     expect(
-      describeTextFailure('generation_failed: out of memory', en),
-      'The model failed: generation_failed: out of memory',
+      describeTextFailure('no_such_kind: out of memory', en),
+      'The model failed: no_such_kind: out of memory',
     );
     expect(
       describeTextFailure('socket closed', en),
       'The model failed: socket closed',
     );
   });
+
+  test('every kind OxidANT names has a sentence in both languages', () {
+    // The kinds as OxidANT's TextError::kind spells them, at the pin: a new kind fails here until it has a string.
+    final source = File('third_party/OxidANT/crates/text/src/lib.rs')
+        .readAsStringSync();
+    final body = source.substring(source.indexOf('pub fn kind(&self)'));
+    final kinds = RegExp(r'Self::\w+(?:\([^)]*\))? => "([a-z_]+)"')
+        .allMatches(body.substring(0, body.indexOf('\n    }\n')))
+        .map((match) => match.group(1)!)
+        .toList();
+    expect(kinds, hasLength(greaterThanOrEqualTo(14)));
+    for (final kind in kinds) {
+      for (final l10n in <AppLocalizations>[de, en]) {
+        final failure = '$kind: detail';
+        expect(
+          describeTextFailure(failure, l10n),
+          isNot(l10n.aiError(failure)),
+          reason: '$kind has no sentence in ${l10n.localeName}',
+        );
+      }
+    }
+  }, testOn: 'vm');
 }

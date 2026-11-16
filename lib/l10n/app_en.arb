@@ -330,6 +330,41 @@
     "description": "Shown when the endpoint does not connect or answer in time (kind endpoint_timed_out).",
     "placeholders": { "detail": { "type": "String" } }
   },
+  "aiErrorTokenizer": "The model's tokenizer failed; the model folder may be incomplete. ({detail})",
+  "@aiErrorTokenizer": {
+    "description": "Shown when the tokenizer fails (kind tokenizer_failed).",
+    "placeholders": { "detail": { "type": "String" } }
+  },
+  "aiErrorChatTemplate": "The model's chat template could not be applied; it may be no chat model. ({detail})",
+  "@aiErrorChatTemplate": {
+    "description": "Shown when the chat template fails (kind chat_template_failed).",
+    "placeholders": { "detail": { "type": "String" } }
+  },
+  "aiErrorEncode": "The question could not be encoded for the model. ({detail})",
+  "@aiErrorEncode": {
+    "description": "Shown when the prompt cannot be encoded (kind encode_failed).",
+    "placeholders": { "detail": { "type": "String" } }
+  },
+  "aiErrorGeneration": "The model stopped with an error while answering. ({detail})",
+  "@aiErrorGeneration": {
+    "description": "Shown when generation fails (kind generation_failed).",
+    "placeholders": { "detail": { "type": "String" } }
+  },
+  "aiErrorStreamLine": "The server sent a part of its answer that is too large. ({detail})",
+  "@aiErrorStreamLine": {
+    "description": "Shown when a streamed line exceeds the limit (kind stream_line_too_long).",
+    "placeholders": { "detail": { "type": "String" } }
+  },
+  "aiErrorJsonSchema": "This model build cannot keep to a JSON schema; leave the schema empty. ({detail})",
+  "@aiErrorJsonSchema": {
+    "description": "Shown when a JSON schema is unsupported (kind json_schema_unsupported).",
+    "placeholders": { "detail": { "type": "String" } }
+  },
+  "aiErrorEmbeddings": "This model cannot make embeddings. ({detail})",
+  "@aiErrorEmbeddings": {
+    "description": "Shown when the model cannot embed (kind embeddings_unsupported).",
+    "placeholders": { "detail": { "type": "String" } }
+  },
   "aiErrorInvalid": "The request was refused; check the settings. ({detail})",
   "@aiErrorInvalid": {
     "description": "Shown when the messages or options are invalid (kind invalid_options).",

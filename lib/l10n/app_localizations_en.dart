@@ -481,6 +481,41 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String aiErrorTokenizer(String detail) {
+    return 'The model\'s tokenizer failed; the model folder may be incomplete. ($detail)';
+  }
+
+  @override
+  String aiErrorChatTemplate(String detail) {
+    return 'The model\'s chat template could not be applied; it may be no chat model. ($detail)';
+  }
+
+  @override
+  String aiErrorEncode(String detail) {
+    return 'The question could not be encoded for the model. ($detail)';
+  }
+
+  @override
+  String aiErrorGeneration(String detail) {
+    return 'The model stopped with an error while answering. ($detail)';
+  }
+
+  @override
+  String aiErrorStreamLine(String detail) {
+    return 'The server sent a part of its answer that is too large. ($detail)';
+  }
+
+  @override
+  String aiErrorJsonSchema(String detail) {
+    return 'This model build cannot keep to a JSON schema; leave the schema empty. ($detail)';
+  }
+
+  @override
+  String aiErrorEmbeddings(String detail) {
+    return 'This model cannot make embeddings. ($detail)';
+  }
+
+  @override
   String aiErrorInvalid(String detail) {
     return 'The request was refused; check the settings. ($detail)';
   }

@@ -5,6 +5,13 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ## Unreleased
 
+### 2026-11-16 (every text failure kind has its sentence)
+- `describeTextFailure` gives the remaining seven kinds of OxidANT's `TextError::kind` a sentence in English and
+  German: a failing tokenizer or chat template, a question that cannot be encoded, a generation error, an oversized
+  stream line, an unsupported JSON schema and a model that cannot embed. A VM test reads the kinds from
+  `third_party/OxidANT/crates/text/src/lib.rs` at the pin and fails for a kind without a sentence in either
+  language, so a new kind waits for its strings.
+
 ### 2026-11-15 (OxidANT pin b78745c -> 7d33f96)
 - The pin brings, among others: a text failure that names its kind (`model_load_failed: ...`, which the playground
   now shows as a sentence), the endpoint client's limits per phase (`endpoint_timed_out`), an idle in-process model

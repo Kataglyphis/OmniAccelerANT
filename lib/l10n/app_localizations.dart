@@ -890,6 +890,48 @@ abstract class AppLocalizations {
   /// **'The server took too long to answer; try again, or a shorter question. ({detail})'**
   String aiErrorTimedOut(String detail);
 
+  /// Shown when the tokenizer fails (kind tokenizer_failed).
+  ///
+  /// In en, this message translates to:
+  /// **'The model\'s tokenizer failed; the model folder may be incomplete. ({detail})'**
+  String aiErrorTokenizer(String detail);
+
+  /// Shown when the chat template fails (kind chat_template_failed).
+  ///
+  /// In en, this message translates to:
+  /// **'The model\'s chat template could not be applied; it may be no chat model. ({detail})'**
+  String aiErrorChatTemplate(String detail);
+
+  /// Shown when the prompt cannot be encoded (kind encode_failed).
+  ///
+  /// In en, this message translates to:
+  /// **'The question could not be encoded for the model. ({detail})'**
+  String aiErrorEncode(String detail);
+
+  /// Shown when generation fails (kind generation_failed).
+  ///
+  /// In en, this message translates to:
+  /// **'The model stopped with an error while answering. ({detail})'**
+  String aiErrorGeneration(String detail);
+
+  /// Shown when a streamed line exceeds the limit (kind stream_line_too_long).
+  ///
+  /// In en, this message translates to:
+  /// **'The server sent a part of its answer that is too large. ({detail})'**
+  String aiErrorStreamLine(String detail);
+
+  /// Shown when a JSON schema is unsupported (kind json_schema_unsupported).
+  ///
+  /// In en, this message translates to:
+  /// **'This model build cannot keep to a JSON schema; leave the schema empty. ({detail})'**
+  String aiErrorJsonSchema(String detail);
+
+  /// Shown when the model cannot embed (kind embeddings_unsupported).
+  ///
+  /// In en, this message translates to:
+  /// **'This model cannot make embeddings. ({detail})'**
+  String aiErrorEmbeddings(String detail);
+
   /// Shown when the messages or options are invalid (kind invalid_options).
   ///
   /// In en, this message translates to:

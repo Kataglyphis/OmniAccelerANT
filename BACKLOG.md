@@ -145,15 +145,6 @@ what the owner's goal still lacks.
   the audit puts a collapsed view last, and it needs a widget in ANThology. On native builds an answer without a
   word is still an empty bubble, because the bridge's `done` carries no thinking count: that field needs the
   bindings regenerated with an OxidANT pin. Done when the page shows the count, and the text on request.
-- [b] **A failed answer is a translated frame around an English engine sentence** (M, ★★). `_onError`
-  (`lib/Pages/AiPlaygroundPage/ai_playground_controller.dart:127-133`) shows `'$failure'` inside `aiError` ("Das
-  Modell ist fehlgeschlagen: {detail}", `lib/l10n/app_de.arb:128`), because OxidANT's `text_generate` returns
-  `Result<(), String>` (`third_party/OxidANT/src/api/text.rs:72-79`). The app cannot tell a missing model directory
-  from a dead endpoint or a conversation that is too long, so it can neither translate nor say what to do. Blocked on
-  OxidANT putting a fixed kind word at the front of that string, which moves no generated binding. Then each kind gets
-  a sentence in both ARB files with the detail behind it, and a test that every kind has a string in both files keeps
-  it. Audit 2026-11-12.
-
 - [b] **On web an answer shows only when it is whole** (L, ★★). The playground fetches one whole answer by LAI-F2's
   choice (`docs/source/ai-playground.md:17-20`), and the Stream page's questions wait up to 310 s behind one empty
   bubble (`lib/Pages/StreamPage/observant_api_web.dart:43-54`, `visit_questions.dart:90-96`), because ObservANT's

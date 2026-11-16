@@ -16,6 +16,13 @@ String describeTextFailure(String error, AppLocalizations l10n) {
     'endpoint_unreachable' || 'endpoint_status' => l10n.aiErrorEndpoint(detail),
     'endpoint_timed_out' => l10n.aiErrorTimedOut(detail),
     'invalid_options' => l10n.aiErrorInvalid(detail),
+    'tokenizer_failed' => l10n.aiErrorTokenizer(detail),
+    'chat_template_failed' => l10n.aiErrorChatTemplate(detail),
+    'encode_failed' => l10n.aiErrorEncode(detail),
+    'generation_failed' => l10n.aiErrorGeneration(detail),
+    'stream_line_too_long' => l10n.aiErrorStreamLine(detail),
+    'json_schema_unsupported' => l10n.aiErrorJsonSchema(detail),
+    'embeddings_unsupported' => l10n.aiErrorEmbeddings(detail),
     _ => l10n.aiError(error),
   };
 }

@@ -484,6 +484,41 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String aiErrorTokenizer(String detail) {
+    return 'Der Tokenizer des Modells ist fehlgeschlagen; der Modellordner ist vielleicht unvollständig. ($detail)';
+  }
+
+  @override
+  String aiErrorChatTemplate(String detail) {
+    return 'Die Chat-Vorlage des Modells ließ sich nicht anwenden; vielleicht ist es kein Chat-Modell. ($detail)';
+  }
+
+  @override
+  String aiErrorEncode(String detail) {
+    return 'Die Frage ließ sich nicht für das Modell kodieren. ($detail)';
+  }
+
+  @override
+  String aiErrorGeneration(String detail) {
+    return 'Das Modell ist beim Antworten mit einem Fehler abgebrochen. ($detail)';
+  }
+
+  @override
+  String aiErrorStreamLine(String detail) {
+    return 'Der Server hat einen zu großen Teil seiner Antwort geschickt. ($detail)';
+  }
+
+  @override
+  String aiErrorJsonSchema(String detail) {
+    return 'Diese Modellversion kann kein JSON-Schema einhalten; bitte das Schema leer lassen. ($detail)';
+  }
+
+  @override
+  String aiErrorEmbeddings(String detail) {
+    return 'Dieses Modell kann keine Embeddings erzeugen. ($detail)';
+  }
+
+  @override
   String aiErrorInvalid(String detail) {
     return 'Die Anfrage wurde abgelehnt; bitte die Einstellungen prüfen. ($detail)';
   }
