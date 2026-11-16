@@ -53,8 +53,8 @@ const List<PluginMethod> kNativeInferenceMethods = <PluginMethod>[
     result: 'int texture id; a second create answers the first id',
     errors: {
       PluginPlatform.android: ['no_controller', 'bad_args', 'create_failed'],
-      PluginPlatform.linux: ['Invalid args', 'Error'],
-      PluginPlatform.windows: ['bad_args', 'texture_error'],
+      PluginPlatform.linux: ['bad_args', 'create_failed'],
+      PluginPlatform.windows: ['bad_args', 'create_failed'],
     },
   ),
   PluginMethod(

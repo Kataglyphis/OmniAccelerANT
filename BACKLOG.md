@@ -255,13 +255,6 @@ name is under `lib/Pages/StreamPage/`.
   measured. Done when the emulator check fails on each planted fault and the Dart test fails without the
   `command_failed` branch.
 
-- [ ] **The three plugins send different error codes for the same fault** (S, ★). Since 2026-11-16 the table
-  `kNativeInferenceMethods` (`packages/kataglyphis_native_inference/lib/native_inference_channel.dart`) lists them, and
-  `test/plugin_channel_test.dart` holds it against the sources: a bad `create` is `bad_args` on Android and Windows but
-  `Invalid args` on Linux, and a texture the engine refuses is `create_failed`, `Error` or `texture_error`. No Dart
-  code reads these codes yet. Next: one code per fault in all three plugins, the table and the C++ and Kotlin tests
-  together. Done when each fault has one code in the table.
-
 - [ ] **On Android a camera that dies still shows "Playing"** (M, ★★). Read from the code, on no device. After the
   start nothing reads the GStreamer bus: `android/src/main/cpp/gstreamer_native.cpp` reads it only inside a failing
   call (686, 706, 748), `logBusMessages` (117-150) has no caller, and "Playing" is Dart's own bool. `play()` returns

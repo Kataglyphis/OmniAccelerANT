@@ -151,7 +151,7 @@ void KataglyphisNativeInferencePlugin::HandleMethodCall(const flutter::MethodCal
             delete texture_;
             texture_ = nullptr;
             texture_variant_.reset();
-            result->Error("texture_error", "Failed to register texture");
+            result->Error("create_failed", "Failed to register texture");
             return;
         }
         texture_->set_texture_id(texture_id);

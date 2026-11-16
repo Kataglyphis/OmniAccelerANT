@@ -74,19 +74,18 @@ static FlMethodResponse *handle_create(KataglyphisNativeInferencePlugin *self, F
 
     FlValue *args = fl_method_call_get_args(method_call);
     if (!is_fl_type(args, FL_VALUE_TYPE_LIST) || fl_value_get_length(args) != 2) {
-        return FL_METHOD_RESPONSE(fl_method_error_response_new("Invalid args", "Invalid create args", nullptr));
+        return FL_METHOD_RESPONSE(fl_method_error_response_new("bad_args", "Invalid create args", nullptr));
     }
     FlValue *width_value = fl_value_get_list_value(args, 0);
     FlValue *height_value = fl_value_get_list_value(args, 1);
     if (!is_fl_type(width_value, FL_VALUE_TYPE_INT) || !is_fl_type(height_value, FL_VALUE_TYPE_INT)) {
-        return FL_METHOD_RESPONSE(fl_method_error_response_new("Invalid args", "Invalid create args", nullptr));
+        return FL_METHOD_RESPONSE(fl_method_error_response_new("bad_args", "Invalid create args", nullptr));
     }
 
     const uint32_t width = clamp_to_u32(fl_value_get_int(width_value));
     const uint32_t height = clamp_to_u32(fl_value_get_int(height_value));
     if (width == 0U || height == 0U) {
-        return FL_METHOD_RESPONSE(
-          fl_method_error_response_new("Invalid args", "Width and height must be > 0", nullptr));
+        return FL_METHOD_RESPONSE(fl_method_error_response_new("bad_args", "Width and height must be > 0", nullptr));
     }
 
     FlEngine *engine = fl_view_get_engine(self->view);
@@ -100,7 +99,7 @@ static FlMethodResponse *handle_create(KataglyphisNativeInferencePlugin *self, F
     if (!fl_texture_registrar_register_texture(texture_registrar, self->texture)) {
         // Kept, the next create answered the id of a texture Flutter never registered.
         g_clear_object(&self->texture);
-        return FL_METHOD_RESPONSE(fl_method_error_response_new("Error", "Failed to register texture", nullptr));
+        return FL_METHOD_RESPONSE(fl_method_error_response_new("create_failed", "Failed to register texture", nullptr));
     }
 
     // Lets knt_push_frame reach this texture.

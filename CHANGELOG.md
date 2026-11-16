@@ -5,6 +5,11 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ## Unreleased
 
+### 2026-11-16 (one error code per fault in all three plugins)
+- A bad `create` is `bad_args` on Linux too (was `Invalid args`), and a texture the engine refuses is `create_failed`
+  on all three platforms (Linux sent `Error`, Windows `texture_error`). The table `kNativeInferenceMethods` and
+  `test/plugin_channel_test.dart`, which reads the codes out of the sources, say so.
+
 ### 2026-11-16 (the plugin's channel has one typed API and one table)
 - `packages/kataglyphis_native_inference/lib/native_inference_channel.dart` holds the channel name, a typed call for
   each of its ten methods (`NativeInferenceChannel`), and the table `kNativeInferenceMethods`: arguments, result, and
