@@ -193,6 +193,12 @@ void main() {
       expect(await endpoint.over, isTrue);
     });
 
+    test('it asks for a stream with the usage at its end', () {
+      final body = chatCompletionBody(_settings, _hi);
+      expect(body['stream'], isTrue);
+      expect(body['stream_options'], <String, Object?>{'include_usage': true});
+    });
+
     test(
       'a key is sent as a bearer token, to the base URL of the settings',
       () async {

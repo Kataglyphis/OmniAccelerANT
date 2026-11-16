@@ -14,14 +14,15 @@ and [OxidANT's text bridge](https://github.com/Kataglyphis/OxidANT/blob/develop/
 | Local model | Linux, Windows | A GenAI model directory, run in the app's process on the chain's ONNX Runtime GenAI with the CPU, CUDA or DirectML provider |
 
 Native builds go through OxidANT's `text_generate`, which streams each piece as it is decoded. The
-web build has no such bridge, so it fetches one whole answer from the endpoint and shows it at once;
-there the decode rate stays 0 and the time to the first token is the request's whole time. The local
+web build has no such bridge, so it asks the endpoint for a stream and shows each piece as its bytes
+arrive; a server that answers whole instead is shown at once, with a decode rate of 0 and the request's
+whole time as the time to the first token. The local
 option is offered only where `text_local_available` loads the chain GenAI.
 
 ## The web build's endpoint client
 
-The web build asks for one whole answer: its request carries no `stream`, which is LAI-F2's choice.
-It reads whatever comes, in plain Dart that also runs on the VM:
+The web build asks for a stream (`'stream': true`, with `stream_options.include_usage` so the token counts
+come last), by the owner's decision of 2026-11-16 that replaced LAI-F2's whole answer. It reads whatever comes, in plain Dart that also runs on the VM:
 
 | File | What it does |
 | --- | --- |
@@ -50,10 +51,10 @@ It reads whatever comes, in plain Dart that also runs on the VM:
   alone. The thinking itself is shown nowhere yet.
 - **A silent endpoint fails after 300 s**, OxidANT's limit for a request. Here it runs until the
   first byte and again after each one, and the request is aborted when it passes. A server sends
-  a whole answer when the model is done, so for the default request this limits the whole answer.
+  a whole answer only when the model is done, so for such a server this limits the whole answer.
 - **Stop** aborts the request. The answer keeps the text it had and is marked as stopped.
 
-An endpoint that streams without being asked is read piece by piece, and the time to the first
+A streamed answer is read piece by piece, and the time to the first
 token and the decode rate are then measured as OxidANT measures them. Native builds read replies
 in OxidANT, not here. There an answer without words still ends as an empty bubble, because the
 bridge's `done` carries no thinking count.

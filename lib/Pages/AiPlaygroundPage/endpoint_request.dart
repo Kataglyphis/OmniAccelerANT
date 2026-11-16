@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:omni_accelerant/Pages/AiPlaygroundPage/playground_settings.dart';
 import 'package:omni_accelerant/src/rust/api/text.dart';
 
-/// The OpenAI chat-completions body the web build posts; seed, schema and stop appear only when set.
+/// The OpenAI chat-completions body the web build posts, streamed with its usage last; seed, schema and stop appear only when set.
 Map<String, Object?> chatCompletionBody(
   PlaygroundSettings settings,
   List<TextMessage> messages,
@@ -12,6 +12,8 @@ Map<String, Object?> chatCompletionBody(
   'messages': [
     for (final m in messages) {'role': m.role, 'content': m.content},
   ],
+  'stream': true,
+  'stream_options': <String, Object?>{'include_usage': true},
   'max_tokens': settings.maxNewTokens,
   'temperature': settings.temperature,
   if (settings.seed != null) 'seed': settings.seed,

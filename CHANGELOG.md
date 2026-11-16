@@ -5,6 +5,12 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ## Unreleased
 
+### 2026-11-16 (the web playground asks for a streamed answer)
+- `endpoint_request.dart` posts `'stream': true` with `stream_options.include_usage` (owner decision, replacing
+  LAI-F2's whole answer), so the web playground shows each piece as it arrives and measures the time to the first
+  token and the decode rate; a server that answers whole is still read as before. A test holds the two fields, and
+  `docs/source/ai-playground.md` says so. Not yet run against a real endpoint in a real browser (BACKLOG).
+
 ### 2026-11-16 (one error code per fault in all three plugins)
 - A bad `create` is `bad_args` on Linux too (was `Invalid args`), and a texture the engine refuses is `create_failed`
   on all three platforms (Linux sent `Error`, Windows `texture_error`). The table `kNativeInferenceMethods` and

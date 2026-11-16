@@ -136,22 +136,19 @@ what the owner's goal still lacks.
 
 - [ ] **LAI-F4: microphone input in the app** (M, ★★). Hub language-AI milestone 3 (`docs/language-ai.md`).
 
-- [b] **The web playground streams its answer** (S, ★★). `endpoint_chat.dart` reads an event stream when a server
-  sends one (tested on a fake transport and a fake fetch), but the request still asks for one whole answer, LAI-F2's
-  written choice. Blocked on the owner and on one run in a real browser against a real endpoint with CORS: nobody
-  read a cross-origin body as it arrived. First step: `'stream': true` and `'stream_options': {'include_usage':
-  true}` in `endpoint_request.dart`. Done when a real server's answer appears word by word and Stop ends it.
+- [ ] **The web playground's stream has not run against a real endpoint** (S, ★★). Since 2026-11-16 the request asks
+  for a stream with the usage last (owner decision, replacing LAI-F2's whole answer); the reader is tested on a fake
+  transport and a fake fetch, but nobody read a cross-origin body as it arrived. Next: one run in a real browser
+  against a real endpoint with CORS (owner). Done when a real server's answer appears word by word and Stop ends it.
 - [ ] **A thinking model's reasoning can be read** (M, ★). It is counted and hidden on web and on native builds;
   the audit puts a collapsed view last, and it needs a widget in ANThology. On native builds an answer without a
   word is still an empty bubble, because the bridge's `done` carries no thinking count: that field needs the
   bindings regenerated with an OxidANT pin. Done when the page shows the count, and the text on request.
-- [b] **On web an answer shows only when it is whole** (L, ★★). The playground fetches one whole answer by LAI-F2's
-  choice (`docs/source/ai-playground.md:17-20`), and the Stream page's questions wait up to 310 s behind one empty
-  bubble (`lib/Pages/StreamPage/observant_api_web.dart:43-54`, `visit_questions.dart:90-96`), because ObservANT's
-  `/ask` is not streamed either. Blocked on the owner, one decision each: stream the playground's answer (M; it
-  changes that written choice), and stream `/ask` (L; its server side is OxidANT's and comes first). Either one
-  needs a pure-Dart stream reader, tested on the VM and fed by the fetch body as it arrives, with the whole answer
-  as the fallback where the body cannot be read. Audit 2026-11-12.
+- [b] **On web a visit question shows only when its answer is whole** (L, ★★). The Stream page's questions wait up to
+  310 s behind one empty bubble (`lib/Pages/StreamPage/observant_api_web.dart:43-54`, `visit_questions.dart:90-96`),
+  because ObservANT's `/ask` is not streamed. The owner decided on 2026-11-16 to stream it; its server side is
+  OxidANT's and comes first. Then the Dart client reads it through the playground's stream reader, with the whole
+  answer as the fallback where the body cannot be read. Audit 2026-11-12.
 
 - **llguidance accepts the hub tiny model's tokenizer** (probe 2026-11-01, GenAI 0.17.0 in
   `:latest` 7d4d4129). `set_guidance("json_schema", ...)` loaded on both the tiny model and
