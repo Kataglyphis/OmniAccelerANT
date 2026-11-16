@@ -20,7 +20,7 @@ class KataglyphisNativeInferencePlugin :
     private var pluginBinding: FlutterPlugin.FlutterPluginBinding? = null
     private var gstreamerController: GStreamerController? = null
 
-    // State changes wait up to 20 s for the camera: an ANR on the platform thread. One thread keeps their order.
+    // State changes wait up to 15 s for the camera: an ANR on the platform thread. One thread keeps their order.
     private var commands: ExecutorService? = null
     private val platformThread = Handler(Looper.getMainLooper())
 

@@ -277,7 +277,8 @@ name is under `lib/Pages/StreamPage/`.
   Nothing under `lib/` watches the app's lifecycle, so nothing stops the pipeline in the background, and a camera
   permission granted later in the system settings needs an app restart. Closing the activity during a slow start can
   freeze it for up to 15 s: `onDetachedFromEngine` disposes on the platform thread and waits for `g_mutex`, which a
-  waiting `setPipeline` holds. First step: `play()` answers false on a timeout and the text says 15 s. Then a
+  waiting `setPipeline` holds. The first step is done (2026-11-16): `play()` answers false when its wait runs out,
+  which reaches Dart as the existing play error instead of "Playing", and the texts say 15 s. Next: a
   `state` method that returns the pipeline state and drains the bus errors, asked every 2 s while the page says
   Playing; a stop on `AppLifecycleState.paused` and the last pipeline again on `resumed`; no `g_mutex` across a
   wait. Stays fixed by Dart tests on a faked `state` and by the emulator check of the first row.

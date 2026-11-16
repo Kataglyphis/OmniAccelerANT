@@ -5,6 +5,13 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ## Unreleased
 
+### 2026-11-16 (Android: a start that timed out is no start)
+- `GStreamerNative.play()` answered true when the pipeline was still on its way to PLAYING after the wait, so the page
+  showed "Playing" over a pipeline that never got there; it now answers false with "Pipeline still ASYNC after 10s on
+  the way to PLAYING", which reaches the page as its play error. The wait for PAUSED asks for the 15 s
+  `wait_for_state` caps every wait at, and the texts and the plugin's comment say 15 s instead of 20 s. Built by the
+  Android lane; no device ran it.
+
 ### 2026-11-16 (every text failure kind has its sentence)
 - `describeTextFailure` gives the remaining seven kinds of OxidANT's `TextError::kind` a sentence in English and
   German: a failing tokenizer or chat template, a question that cannot be encoded, a generation error, an oversized

@@ -624,7 +624,7 @@ extern "C" JNIEXPORT jboolean JNICALL Java_com_example_kataglyphis_1native_1infe
         return JNI_FALSE;
     }
 
-    // Fast-fail for missing source elements to avoid 20s ASYNC waits.
+    // Fast-fail for missing source elements to avoid 15 s ASYNC waits.
     if (!ensure_first_element_exists_unlocked(pipelineDesc)) return JNI_FALSE;
 
     release_pipeline_unlocked();
@@ -692,14 +692,14 @@ extern "C" JNIEXPORT jboolean JNICALL Java_com_example_kataglyphis_1native_1infe
     }
 
     if (ret == GST_STATE_CHANGE_ASYNC) {
-        // Increased timeout to 20s for slower devices and caps negotiation
-        GstStateChangeReturn waitRet = wait_for_state(pipeline, GST_STATE_PAUSED, GST_SECOND * 20);
+        // wait_for_state caps every wait at 15 s, so that is what a slow device or caps negotiation gets.
+        GstStateChangeReturn waitRet = wait_for_state(pipeline, GST_STATE_PAUSED, GST_SECOND * 15);
         __android_log_print(
           ANDROID_LOG_INFO, kTag, "setPipeline wait_for_state(PAUSED): %s", stateChangeReturnToStr(waitRet));
         ret = waitRet;
 
         if (ret == GST_STATE_CHANGE_ASYNC) {
-            setLastError("Pipeline still ASYNC after 20s - caps negotiation failed or source unavailable");
+            setLastError("Pipeline still ASYNC after 15s - caps negotiation failed or source unavailable");
 
             // Try to get more detailed error info from bus
             GstBus *bus = gst_element_get_bus(pipeline);
@@ -742,14 +742,17 @@ extern "C" JNIEXPORT jboolean JNICALL Java_com_example_kataglyphis_1native_1infe
         ret = waitRet;
     }
 
-    if (ret == GST_STATE_CHANGE_FAILURE) {
-        setLastError("Failed to set pipeline to PLAYING");
+    // A wait that ran out is no start: the page would show "Playing" over a pipeline that never got there.
+    if (ret == GST_STATE_CHANGE_FAILURE || ret == GST_STATE_CHANGE_ASYNC) {
+        setLastError(ret == GST_STATE_CHANGE_ASYNC ? "Pipeline still ASYNC after 10s on the way to PLAYING"
+                                                   : "Failed to set pipeline to PLAYING");
         GstBus *bus = gst_element_get_bus(g_state.pipeline);
         logBusMessagesWithWait(bus, 500000000);// 500ms
         if (bus) gst_object_unref(bus);
+        return JNI_FALSE;
     }
 
-    return ret != GST_STATE_CHANGE_FAILURE;
+    return JNI_TRUE;
 }
 
 extern "C" JNIEXPORT jboolean JNICALL Java_com_example_kataglyphis_1native_1inference_GStreamerNative_pause(
