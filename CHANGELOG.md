@@ -5,6 +5,15 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ## Unreleased
 
+### 2026-11-16 (a browser test sees the Stream page with nothing behind it)
+- `scripts/linux/check-web-browser.sh --empty` serves the built app with nothing behind it, as on the hosted site:
+  `web-smoke-server.js --empty` answers every camera path with 404, refuses the signalling socket and counts both;
+  `scripts/linux/tests/web-empty-page.js` keeps `/#/stream` open in the hub's headless Chrome for 60 s from the first
+  Flutter view and fails above 16 camera requests or 8 socket attempts, or when either count is 0. On a Pi 5 the minute
+  held 12 `/healthz` requests (two pollers) and 6 socket attempts; with `backoffDelay` disabled, 19 and 11, which
+  failed. The socket count also catches a gstwebrtc-api that renames `_config`. The web lane runs it after the
+  browser smoke.
+
 ### 2026-11-16 (Android: a start that timed out is no start)
 - `GStreamerNative.play()` answered true when the pipeline was still on its way to PLAYING after the wait, so the page
   showed "Playing" over a pipeline that never got there; it now answers false with "Pipeline still ASYNC after 10s on

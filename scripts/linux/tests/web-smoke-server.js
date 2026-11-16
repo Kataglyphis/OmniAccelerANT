@@ -18,10 +18,24 @@ const fixtures = {
   '/settings': { name: 'Cat Cam', rotate: 0, score: 0.25, ignore: [], classes: ['cat'] },
   '/visits': { visits: [] },
 };
+// --empty: nothing behind the page, as on the hosted site; it counts what the page still asks for at /smoke-counts.
+const empty = process.argv[4] === '--empty';
+const cameraPaths = new Set([...Object.keys(fixtures), '/snapshot.jpg', '/ask', '/summary']);
+const counts = { camera: 0, sockets: 0, byPath: {} };
 const server = http.createServer((req, res) => {
   res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
   res.setHeader('Cross-Origin-Embedder-Policy', 'require-corp');
   const rel = decodeURIComponent(new URL(req.url, 'http://localhost').pathname);
+  if (empty && rel === '/smoke-counts') {
+    res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify(counts));
+    return;
+  }
+  if (empty && cameraPaths.has(rel)) {
+    counts.camera++;
+    counts.byPath[rel] = (counts.byPath[rel] || 0) + 1;
+    res.writeHead(404).end();
+    return;
+  }
   if (rel === '/snapshot.jpg') {
     const photo = path.join(root, 'assets/packages/anthology/assets/images/cats/Summy&Thundy_compressed.png');
     res.writeHead(200, { 'Content-Type': 'image/png' }).end(fs.readFileSync(photo));
@@ -41,6 +55,7 @@ const server = http.createServer((req, res) => {
 });
 
 server.on('upgrade', (req, socket) => {
+  if (empty) { counts.sockets++; socket.destroy(); return; }
   if (req.url !== '/webrtc-ws' || !req.headers['sec-websocket-key']) { socket.destroy(); return; }
   const accept = crypto.createHash('sha1').update(`${req.headers['sec-websocket-key']}258EAFA5-E914-47DA-95CA-C5AB0DC85B11`).digest('base64');
   socket.write(`HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: ${accept}\r\n\r\n`);
@@ -83,4 +98,4 @@ server.on('upgrade', (req, socket) => {
   send({ type: 'welcome', peerId });
 });
 
-server.listen(port, '127.0.0.1', () => console.log(`Web smoke fixture on http://127.0.0.1:${port}`));
+server.listen(port, '127.0.0.1', () => console.log(`Web smoke fixture${empty ? ' (empty)' : ''} on http://127.0.0.1:${port}`));

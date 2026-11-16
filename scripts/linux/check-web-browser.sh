@@ -5,14 +5,27 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=scripts/linux/lib/web-smoke-env.sh
 source "$SCRIPT_DIR/lib/web-smoke-env.sh"
 
+# --empty: the Stream page with nothing behind it, as on the hosted site, must back off its polls and socket.
+server_args=()
+if [[ "${1:-}" == "--empty" ]]; then
+  server_args=(--empty)
+  shift
+fi
 build_dir="${1:-build/web}"
 port="${OMNI_WEB_SMOKE_PORT:-8081}"
 base="http://127.0.0.1:${port}"
 log="$(mktemp)"
-node "$SCRIPT_DIR/tests/web-smoke-server.js" "$build_dir" "$port" >"$log" 2>&1 &
+node "$SCRIPT_DIR/tests/web-smoke-server.js" "$build_dir" "$port" "${server_args[@]}" >"$log" 2>&1 &
 server=$!
 trap 'kill "$server" 2>/dev/null || true; wait "$server" 2>/dev/null || true; cat "$log"; rm -f "$log"' EXIT
 wait_for_http "$base/" "web smoke fixture (pid $server)"
+
+if ((${#server_args[@]})); then
+  # On a Pi 5 the minute held 12 /healthz requests and 6 socket attempts with the backoff, 19 and 11 without it.
+  node "$SCRIPT_DIR/tests/web-empty-page.js" "$(antfrastructure_path linux/scripts/check-docs-sidebars.js)" \
+    "$base/#/stream" "${OMNI_WEB_EMPTY_SECONDS:-60}" "${OMNI_WEB_EMPTY_MAX_CAMERA:-16}" "${OMNI_WEB_EMPTY_MAX_SOCKETS:-8}"
+  exit 0
+fi
 
 # Hash paths are the app's GoRouter URL strategy; all branches, including every configured blog post.
 rail="$(bash "$SCRIPT_DIR/app-page-routes.sh")"

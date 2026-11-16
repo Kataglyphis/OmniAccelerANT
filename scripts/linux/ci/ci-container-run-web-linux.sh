@@ -98,4 +98,7 @@ echo "=== Browser smoke: all routes, local assets, no external hosts ==="
 bash scripts/linux/check-web-browser.sh
 bash scripts/linux/tests/test-check-web-browser.sh
 
+echo "=== Browser smoke: the Stream page with nothing behind it backs off ==="
+bash scripts/linux/check-web-browser.sh --empty
+
 echo "=== Web build completed successfully ==="

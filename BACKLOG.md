@@ -283,15 +283,6 @@ name is under `lib/Pages/StreamPage/`.
   Playing; a stop on `AppLifecycleState.paused` and the last pipeline again on `resumed`; no `g_mutex` across a
   wait. Stays fixed by Dart tests on a faked `state` and by the emulator check of the first row.
 
-- [ ] **No browser test sees the page with nothing behind it** (S, ★★). Since 2026-11-15 the Stream page backs off
-  when nothing answers: `/healthz` from 5 s to a minute (`backoffDelay`), and the signalling socket too, as the
-  controller sets gstwebrtc-api's `reconnectionTimeout` inside each `disconnected` (the library reads it right after;
-  `retryAfter`, unit-tested with a fake client). `web-smoke-server.js` always answers as an idle ObservANT, so no
-  browser test sees the empty state, and the `_config` hook is proven by reading gstwebrtc-api 3.0.0, not by a run.
-  Next: a mode of `scripts/linux/check-web-browser.sh` without the fixture (`/healthz` 404, no signalling server)
-  that counts 60 s of requests and socket attempts against a ceiling; it also catches a library update that renames
-  `_config`.
-
 - [ ] **The plugin pipeline's state machine is widget code** (L, ★★). `stream_page.dart` keeps the pipeline state and
   the fallback chain in the page's `State` with `setState` (73-125, 191-298). There is no busy guard: two source
   presses overlap, the first one's `play()` then fails with `command_failed`, and its fallback can override the second
