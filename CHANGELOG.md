@@ -5,6 +5,10 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ## Unreleased
 
+### 2026-11-16 (the text failure kinds test reads OxidANT's source on Windows too)
+- `test/text_failure_test.dart` turns CRLF into LF before it looks for the end of `TextError::kind`: on a Windows
+  checkout the search found no bare-LF brace and the test threw a `RangeError` in both Windows Flutter lanes.
+
 ### 2026-11-16 (the Windows plugin's dead pipeline methods and the package template are gone)
 - The Windows plugin no longer answers `setPipeline`, `play`, `pause` and `stop`: they did nothing, and nothing
   called them, since the Rust view drives the camera on Windows and only Android builds the pipeline buttons. They

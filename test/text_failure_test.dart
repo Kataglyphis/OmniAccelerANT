@@ -59,7 +59,9 @@ void main() {
   test('every kind OxidANT names has a sentence in both languages', () {
     // The kinds as OxidANT's TextError::kind spells them, at the pin: a new kind fails here until it has a string.
     final source = File('third_party/OxidANT/crates/text/src/lib.rs')
-        .readAsStringSync();
+        .readAsStringSync()
+        // A Windows checkout reads CRLF, and the search below ends at a bare-LF brace.
+        .replaceAll('\r\n', '\n');
     final body = source.substring(source.indexOf('pub fn kind(&self)'));
     final kinds = RegExp(r'Self::\w+(?:\([^)]*\))? => "([a-z_]+)"')
         .allMatches(body.substring(0, body.indexOf('\n    }\n')))
