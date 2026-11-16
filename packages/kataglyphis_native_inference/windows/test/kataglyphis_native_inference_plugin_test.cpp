@@ -124,6 +124,17 @@ namespace test {
         EXPECT_TRUE(reply.error.empty());
     }
 
+    TEST(KataglyphisNativeInferencePlugin, ThePipelineMethodsAreNotImplementedOnWindows)
+    {
+        for (const char *method : { "setPipeline", "play", "pause", "stop" }) {
+            KataglyphisNativeInferencePlugin plugin;
+            Reply reply;
+            plugin.HandleMethodCall(MethodCall(method, std::make_unique<EncodableValue>()), Recorder(reply));
+            EXPECT_TRUE(reply.not_implemented) << method;
+            EXPECT_TRUE(reply.error.empty()) << method;
+        }
+    }
+
     TEST(KataglyphisNativeInferencePlugin, AddWithANonIntegerIsBadArgsNotAThrow)
     {
         KataglyphisNativeInferencePlugin plugin;

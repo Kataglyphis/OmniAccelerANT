@@ -54,55 +54,7 @@ namespace {
     {
         const std::string &method = call.method_name();
 
-        if (method == "setPipeline") {
-            if (!texture) {
-                result->Error("no_texture", "No texture created. Call 'create' first.");
-                return true;
-            }
-            const auto *args = std::get_if<flutter::EncodableMap>(call.arguments());
-            if (args) {
-                auto it = args->find(flutter::EncodableValue("pipeline"));
-                if (it != args->end()) {
-                    const std::string *pipeline = std::get_if<std::string>(&it->second);
-                    if (pipeline) {
-                        std::string error;
-                        bool success = texture->SetPipeline(pipeline->c_str(), &error);
-                        if (success) {
-                            result->Success(flutter::EncodableValue());
-                        } else {
-                            result->Error("pipeline_error", error.empty() ? "Failed to set pipeline" : error);
-                        }
-                        return true;
-                    }
-                }
-            }
-            result->Error("bad_args", "Expected map with 'pipeline' string");
-            return true;
-        } else if (method == "play") {
-            if (!texture) {
-                result->Error("no_texture", "No texture created");
-                return true;
-            }
-            texture->Play();
-            result->Success(flutter::EncodableValue());
-            return true;
-        } else if (method == "pause") {
-            if (!texture) {
-                result->Error("no_texture", "No texture created");
-                return true;
-            }
-            texture->Pause();
-            result->Success(flutter::EncodableValue());
-            return true;
-        } else if (method == "stop") {
-            if (!texture) {
-                result->Error("no_texture", "No texture created");
-                return true;
-            }
-            texture->Stop();
-            result->Success(flutter::EncodableValue());
-            return true;
-        } else if (method == "setColor") {
+        if (method == "setColor") {
             if (!texture) {
                 result->Error("no_texture", "No texture created");
                 return true;

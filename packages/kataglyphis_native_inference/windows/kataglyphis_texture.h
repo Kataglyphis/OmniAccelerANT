@@ -16,17 +16,13 @@
 
 namespace kataglyphis_native_inference {
 
-/// CPU pixel-buffer texture fed by `knt_push_frame`; the pipeline methods are no-ops kept for the method channel.
+/// CPU pixel-buffer texture fed by `knt_push_frame`; the Rust view drives the camera, so it has no pipeline methods.
 class KataglyphisTexture
 {
   public:
     KataglyphisTexture(uint32_t width, uint32_t height, uint8_t r, uint8_t g, uint8_t b);
     ~KataglyphisTexture();
 
-    bool SetPipeline(const char *pipeline_description, std::string *error);
-    void Play();
-    void Pause();
-    void Stop();
     void SetColor(uint8_t r, uint8_t g, uint8_t b);
 
     /// Copies one packed RGBA frame in and marks it available; callable from any thread.

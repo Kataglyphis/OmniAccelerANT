@@ -75,18 +75,6 @@ flutter::TextureVariant KataglyphisTexture::GetTextureVariant()
       }));
 }
 
-bool KataglyphisTexture::SetPipeline(const char * /*pipeline_description*/, std::string * /*error*/)
-{
-    OutputDebugStringA("[kataglyphis_texture] SetPipeline called (noop)\n");
-    return true;
-}
-
-void KataglyphisTexture::Play() { OutputDebugStringA("[kataglyphis_texture] Play called (noop)\n"); }
-
-void KataglyphisTexture::Pause() { OutputDebugStringA("[kataglyphis_texture] Pause called (noop)\n"); }
-
-void KataglyphisTexture::Stop() { OutputDebugStringA("[kataglyphis_texture] Stop called (noop)\n"); }
-
 void KataglyphisTexture::SetColor(uint8_t r, uint8_t g, uint8_t b)
 {
     OutputDebugStringA("[kataglyphis_texture] SetColor called\n");

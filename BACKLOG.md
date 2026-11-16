@@ -260,12 +260,9 @@ name is under `lib/Pages/StreamPage/`.
   and `add`; the other eight methods are called by name from app code, and the channel name is typed in 7 Dart and 3
   native files. The three plugins have drifted. Android has no `add`, so the About page's `add(3, 4)` should show
   `MissingPluginException` there (`lib/Pages/AboutMePage/about_me_page.dart:58, 67-83`; read, not run). Only Linux has
-  `hasPushedFrame`. Windows wants `setPipeline` as a map where Dart sends a string, and its play, pause and stop are
-  no-ops that nothing calls (`windows/kataglyphis_texture.cpp:78-88`; `windows/kataglyphis_texture.h:19` says they
-  are kept for the method channel). The package's own `lib/main.dart` is still Flutter's counter template, and its
-  `test/widget_test.dart` tests that. Most of the drift is in code nobody calls: a user sees only the About page's
-  line on Android, and the gain is that the drift stops. First step: delete the Windows no-op handlers and the
-  template with its test. Then the typed API and one table (method, arguments, result, error codes, per platform)
+  `hasPushedFrame`. Most of the drift is in code nobody calls: a user sees only the About page's line on Android, and
+  the gain is that the drift stops. The first step is done (2026-11-16): the Windows plugin's no-op `setPipeline`,
+  `play`, `pause` and `stop` and the package's counter template with its test are gone. Next: the typed API and one table (method, arguments, result, error codes, per platform)
   as a Dart const in the package; `add` stays on desktop (AGENTS.md § 4). Stays fixed by a source test in the style
   of `test/pinned_artefacts_test.dart` that reads the method names out of the `.kt`, `.cc` and `.cpp` files and
   compares them with the table, on every push. Done when no `MethodChannel(` is left under the app's `lib/`.

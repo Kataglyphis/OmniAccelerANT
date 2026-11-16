@@ -5,6 +5,12 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ## Unreleased
 
+### 2026-11-16 (the Windows plugin's dead pipeline methods and the package template are gone)
+- The Windows plugin no longer answers `setPipeline`, `play`, `pause` and `stop`: they did nothing, and nothing
+  called them, since the Rust view drives the camera on Windows and only Android builds the pipeline buttons. They
+  now answer "not implemented", which a C++ test holds. The plugin package's `lib/main.dart`, Flutter's counter
+  template, and the `test/widget_test.dart` that only mounted it are deleted.
+
 ### 2026-11-16 (a browser test sees the Stream page with nothing behind it)
 - `scripts/linux/check-web-browser.sh --empty` serves the built app with nothing behind it, as on the hosted site:
   `web-smoke-server.js --empty` answers every camera path with 404, refuses the signalling socket and counts both;
