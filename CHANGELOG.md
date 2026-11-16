@@ -5,6 +5,17 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ## Unreleased
 
+### 2026-11-16 (the plugin's channel has one typed API and one table)
+- `packages/kataglyphis_native_inference/lib/native_inference_channel.dart` holds the channel name, a typed call for
+  each of its ten methods (`NativeInferenceChannel`), and the table `kNativeInferenceMethods`: arguments, result, and
+  the error codes each platform sends. The Stream page, the Rust webcam view and the package call through it, and no
+  `MethodChannel(` is left under `lib/`.
+- `test/plugin_channel_test.dart` reads the handled method names, the error codes and the channel name out of the
+  Kotlin, Linux and Windows plugin sources and compares them with the table on every push; it failed on a method
+  taken out of the table and on a `MethodChannel(` put back into `lib/`.
+- The About page shows the `add(3, 4)` line only where the plugin answers `add`, Linux and Windows: on Android it
+  would have shown a `MissingPluginException`.
+
 ### 2026-11-16 (the text failure kinds test reads OxidANT's source on Windows too)
 - `test/text_failure_test.dart` turns CRLF into LF before it looks for the end of `TextError::kind`: on a Windows
   checkout the search found no bare-LF brace and the test threw a `RangeError` in both Windows Flutter lanes.

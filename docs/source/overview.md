@@ -33,7 +33,8 @@ OmniAccelerANT is a Flutter frontend over native Rust/C++ inference and GStreame
 
 Live webcam inference runs in Rust. The desktop plugin's `add` method remains an explicit
 Flutter → MethodChannel → AccelerANTgine integration demo: the About page calls `add(3, 4)`
-and displays `7`. Keeping that API preserves the native-link and packaged-library smoke check;
+and displays `7` on Linux and Windows; Android's plugin has no `add`, so the page leaves the line out there. The
+channel's methods, per platform, are the table `kNativeInferenceMethods` in the plugin package. Keeping that API preserves the native-link and packaged-library smoke check;
 it does not introduce a second webcam inference path.
 
 The existing Linux bundle from 2026-10-19 contains a 590,793-byte `libAccelerANTgine.so` and a

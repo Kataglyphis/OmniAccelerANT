@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'package:anthology/Pages/AboutMePage/Widgets/about_me_table.dart';
 import 'package:anthology/Widgets/skill_table.dart';
 import 'package:anthology/Sqlite/sqlite3_healthcheck_widget.dart';
@@ -54,7 +53,8 @@ class AboutMePageState extends State<AboutMePage> {
       const Center(
         child: Sqlite3HealthcheckWidget(check: runOmniSqliteHealthcheck),
       ),
-      if (!kIsWeb) _buildNativePluginDemo(),
+      if (pluginAnswers('add', currentPluginPlatform()))
+        _buildNativePluginDemo(),
     ];
 
     final childWidgetsRightPage = <Widget>[

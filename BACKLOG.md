@@ -255,17 +255,12 @@ name is under `lib/Pages/StreamPage/`.
   measured. Done when the emulator check fails on each planted fault and the Dart test fails without the
   `command_failed` branch.
 
-- [ ] **The plugin's MethodChannel API has no owner** (M, ★★).
-  `packages/kataglyphis_native_inference/lib/kataglyphis_native_inference.dart:5-19` types only `getPlatformVersion`
-  and `add`; the other eight methods are called by name from app code, and the channel name is typed in 7 Dart and 3
-  native files. The three plugins have drifted. Android has no `add`, so the About page's `add(3, 4)` should show
-  `MissingPluginException` there (`lib/Pages/AboutMePage/about_me_page.dart:58, 67-83`; read, not run). Only Linux has
-  `hasPushedFrame`. Most of the drift is in code nobody calls: a user sees only the About page's line on Android, and
-  the gain is that the drift stops. The first step is done (2026-11-16): the Windows plugin's no-op `setPipeline`,
-  `play`, `pause` and `stop` and the package's counter template with its test are gone. Next: the typed API and one table (method, arguments, result, error codes, per platform)
-  as a Dart const in the package; `add` stays on desktop (AGENTS.md § 4). Stays fixed by a source test in the style
-  of `test/pinned_artefacts_test.dart` that reads the method names out of the `.kt`, `.cc` and `.cpp` files and
-  compares them with the table, on every push. Done when no `MethodChannel(` is left under the app's `lib/`.
+- [ ] **The three plugins send different error codes for the same fault** (S, ★). Since 2026-11-16 the table
+  `kNativeInferenceMethods` (`packages/kataglyphis_native_inference/lib/native_inference_channel.dart`) lists them, and
+  `test/plugin_channel_test.dart` holds it against the sources: a bad `create` is `bad_args` on Android and Windows but
+  `Invalid args` on Linux, and a texture the engine refuses is `create_failed`, `Error` or `texture_error`. No Dart
+  code reads these codes yet. Next: one code per fault in all three plugins, the table and the C++ and Kotlin tests
+  together. Done when each fault has one code in the table.
 
 - [ ] **On Android a camera that dies still shows "Playing"** (M, ★★). Read from the code, on no device. After the
   start nothing reads the GStreamer bus: `android/src/main/cpp/gstreamer_native.cpp` reads it only inside a failing

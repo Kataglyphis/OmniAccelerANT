@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:kataglyphis_native_inference/kataglyphis_native_inference.dart';
 import 'package:anthology/Pages/Footer/footer.dart';
 import 'package:anthology/Layout/ResponsiveDesign/single_page.dart';
 import 'package:anthology/app_attributes.dart';
@@ -78,9 +79,7 @@ enum _StartProblem { permission, permissionForever, texture }
 /// State for [StreamPage] managing native texture and playback.
 class StreamPageState extends State<StreamPage> with WidgetsBindingObserver {
   // Native GStreamer setup
-  static const MethodChannel channel = MethodChannel(
-    'kataglyphis_native_inference',
-  );
+  static const MethodChannel channel = NativeInferenceChannel.channel;
 
   /// The start's texture; Retry and a return to the app start again with a new one.
   late Future<int?> textureId;
@@ -185,11 +184,10 @@ class StreamPageState extends State<StreamPage> with WidgetsBindingObserver {
   }
 
   Future<int?> _initializeNative() {
-    return channel
-        .invokeMethod<int>('create', <int>[
+    return NativeInferenceChannel.create(
           _targetTextureWidth,
           _targetTextureHeight,
-        ])
+        )
         .then((id) async {
           if (id == null) {
             _textureFailed('the plugin answered no texture id');
@@ -224,11 +222,11 @@ class StreamPageState extends State<StreamPage> with WidgetsBindingObserver {
       });
 
       if (_isPlaying) {
-        await channel.invokeMethod('stop');
+        await NativeInferenceChannel.stop();
       }
 
-      await channel.invokeMethod('setPipeline', pipelineString);
-      await channel.invokeMethod('play');
+      await NativeInferenceChannel.setPipeline(pipelineString);
+      await NativeInferenceChannel.play();
 
       _lastPipeline = pipelineString;
       _lastSource = source;
@@ -251,9 +249,9 @@ class StreamPageState extends State<StreamPage> with WidgetsBindingObserver {
           (missingElement || e.code == 'command_failed');
 
       if (shouldRetry) {
-        final String? diag = await channel
-            .invokeMethod<String>('diagnose')
-            .catchError((_) => null);
+        final String? diag = await NativeInferenceChannel.diagnose().catchError(
+          (_) => null,
+        );
         if (diag != null && diag.isNotEmpty) {
           debugPrint('GStreamer diagnose:\n$diag');
         }
@@ -288,7 +286,7 @@ class StreamPageState extends State<StreamPage> with WidgetsBindingObserver {
   Future<void> _togglePlayPause() async {
     try {
       if (_isPlaying) {
-        await channel.invokeMethod('pause');
+        await NativeInferenceChannel.pause();
         if (!mounted) return;
         setState(() {
           _isPlaying = false;
@@ -297,7 +295,7 @@ class StreamPageState extends State<StreamPage> with WidgetsBindingObserver {
         // After Stop the plugin has no pipeline: a bare play failed with "play failed" for good.
         await _setPipeline(_lastPipeline!, source: _lastSource);
       } else {
-        await channel.invokeMethod('play');
+        await NativeInferenceChannel.play();
         if (!mounted) return;
         setState(() {
           _isPlaying = true;
@@ -314,7 +312,7 @@ class StreamPageState extends State<StreamPage> with WidgetsBindingObserver {
 
   Future<void> _stopPipeline() async {
     try {
-      await channel.invokeMethod('stop');
+      await NativeInferenceChannel.stop();
       _stopped = true;
       if (!mounted) return;
       setState(() {
@@ -329,9 +327,9 @@ class StreamPageState extends State<StreamPage> with WidgetsBindingObserver {
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     if (_usePluginPipeline) {
-      channel
-          .invokeMethod('stop')
-          .catchError((e) => debugPrint('stop on dispose failed: $e'));
+      NativeInferenceChannel.stop().catchError(
+        (e) => debugPrint('stop on dispose failed: $e'),
+      );
     }
     super.dispose();
   }

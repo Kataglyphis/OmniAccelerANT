@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:kataglyphis_native_inference/kataglyphis_native_inference.dart';
 // PlatformInt64Util: i64 is `int` natively and `BigInt` on web — AGENTS.md § 4.
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
@@ -53,10 +54,6 @@ class RustWebcamView extends StatefulWidget {
 }
 
 class _RustWebcamViewState extends State<RustWebcamView> {
-  static const MethodChannel _channel = MethodChannel(
-    'kataglyphis_native_inference',
-  );
-
   int? _textureId;
   String? _error;
   bool _running = false;
@@ -92,10 +89,10 @@ class _RustWebcamViewState extends State<RustWebcamView> {
 
   Future<void> _createTexture() async {
     try {
-      final int? id = await _channel.invokeMethod<int>('create', <int>[
+      final int? id = await NativeInferenceChannel.create(
         widget.width,
         widget.height,
-      ]);
+      );
       if (!mounted) return;
       setState(() => _textureId = id);
     } on PlatformException catch (e) {

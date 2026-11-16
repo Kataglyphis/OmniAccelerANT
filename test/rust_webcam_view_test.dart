@@ -11,8 +11,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:omni_accelerant/Pages/StreamPage/rust_webcam_view.dart';
 import 'package:omni_accelerant/src/rust/api/webcam.dart';
 import 'package:omni_accelerant/src/rust/frb_generated.dart';
+import 'package:kataglyphis_native_inference/kataglyphis_native_inference.dart';
 
-const MethodChannel _plugin = MethodChannel('kataglyphis_native_inference');
+const MethodChannel _plugin = NativeInferenceChannel.channel;
 
 /// Stands in for the Rust core's webcam API: hands out cameras and records every session.
 class _FakeRustApi extends Fake implements RustLibApi {

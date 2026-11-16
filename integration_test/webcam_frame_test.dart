@@ -7,6 +7,7 @@ import 'package:integration_test/integration_test.dart';
 import 'package:omni_accelerant/Pages/StreamPage/rust_webcam_view.dart';
 import 'package:omni_accelerant/src/rust/api/webcam.dart';
 import 'package:omni_accelerant/src/rust/frb_generated.dart';
+import 'package:kataglyphis_native_inference/kataglyphis_native_inference.dart';
 
 /// A test-pattern frame travels Rust -> knt_push_frame -> the Linux texture; the push path needs no camera.
 void main() {
@@ -39,7 +40,7 @@ void main() {
     await tester.tap(start);
     await tester.pump();
 
-    const MethodChannel channel = MethodChannel('kataglyphis_native_inference');
+    const MethodChannel channel = NativeInferenceChannel.channel;
     bool pushed = false;
     final DateTime deadline = DateTime.now().add(const Duration(seconds: 60));
     while (!pushed && DateTime.now().isBefore(deadline)) {
