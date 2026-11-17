@@ -182,6 +182,8 @@ void main() {
     expect(plain.keys, <String>[
       'model',
       'messages',
+      'stream',
+      'stream_options',
       'max_tokens',
       'temperature',
     ]);
