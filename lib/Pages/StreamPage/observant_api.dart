@@ -1,6 +1,9 @@
 /// ObservANT's answer to a POST: its status and body.
 typedef ObservantReply = ({int status, String body});
 
+/// ObservANT's answer to a streamed POST: its status, whether the body is NDJSON lines, and its bytes as they come.
+typedef ObservantStream = ({int status, bool lines, Stream<List<int>> body});
+
 /// What a page asks of ObservANT; the web and the native file each implement it, so the analyzer holds them in step.
 abstract interface class ObservantApi {
   /// ObservANT's `/healthz`.
@@ -20,6 +23,13 @@ abstract interface class ObservantApi {
 
   /// POSTs [body] to [path] and returns the answer whatever its status; `null` when none came or [cancel] ended it.
   Future<ObservantReply?> postToObservant(
+    String path,
+    Map<String, Object> body, {
+    Future<void>? cancel,
+  });
+
+  /// POSTs [body] to [path] asking for NDJSON lines (`/ask` sends them); `null` when no answer came.
+  Future<ObservantStream?> streamFromObservant(
     String path,
     Map<String, Object> body, {
     Future<void>? cancel,

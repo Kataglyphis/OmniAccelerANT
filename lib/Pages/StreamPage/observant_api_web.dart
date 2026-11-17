@@ -5,6 +5,7 @@ import 'dart:js_interop';
 import 'package:web/web.dart' as web;
 
 import 'package:omni_accelerant/Pages/StreamPage/observant_api.dart';
+import 'package:omni_accelerant/utils/fetch_body_web.dart';
 
 /// How long a request may take: one on a socket that died unnoticed would otherwise wait for minutes.
 const int _timeoutMs = 8000;
@@ -55,6 +56,13 @@ class _WebObservant implements ObservantApi {
     Map<String, Object> body, {
     Future<void>? cancel,
   }) => _post(path, body, cancel: cancel);
+
+  @override
+  Future<ObservantStream?> streamFromObservant(
+    String path,
+    Map<String, Object> body, {
+    Future<void>? cancel,
+  }) => _stream(path, body, cancel: cancel);
 }
 
 /// Longer than ObservANT's own 300 s, so its answer to a slow model arrives before this gives up.
@@ -90,6 +98,50 @@ Future<ObservantReply?> _post(
     return null;
   } finally {
     timer.cancel();
+  }
+}
+
+Future<ObservantStream?> _stream(
+  String path,
+  Map<String, Object> body, {
+  Future<void>? cancel,
+}) async {
+  final abort = web.AbortController();
+  final timer = Timer(_modelTimeout, () => abort.abort());
+  unawaited(cancel?.then((_) => abort.abort()));
+  try {
+    final response = await web.window
+        .fetch(
+          path.toJS,
+          web.RequestInit(
+            signal: abort.signal,
+            method: 'POST',
+            headers:
+                <String, String>{
+                      'content-type': 'application/json',
+                      'accept': 'application/x-ndjson',
+                    }.jsify()
+                    as web.HeadersInit,
+            body: jsonEncode(body).toJS,
+          ),
+        )
+        .toDart;
+    final type = response.headers.get('content-type') ?? '';
+    return (
+      status: response.status,
+      lines: type.startsWith('application/x-ndjson'),
+      body: fetchBodyChunks(response.body).transform(
+        StreamTransformer<List<int>, List<int>>.fromHandlers(
+          handleDone: (sink) {
+            timer.cancel();
+            sink.close();
+          },
+        ),
+      ),
+    );
+  } on Object {
+    timer.cancel();
+    return null;
   }
 }
 

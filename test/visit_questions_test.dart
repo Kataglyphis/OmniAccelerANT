@@ -74,6 +74,38 @@ Future<void> _pump(
   ),
 );
 
+/// A camera that answers `/ask` as NDJSON, one line per [send], when the test says.
+class _StreamingCamera {
+  _StreamingCamera({this.status = 200, this.lines = true});
+
+  final int status;
+  final bool lines;
+  final StreamController<List<int>> chunks = StreamController<List<int>>();
+  Future<void>? lastCancel;
+
+  Future<({int status, bool lines, Stream<List<int>> body})?> stream(
+    String path,
+    Map<String, Object> body, {
+    Future<void>? cancel,
+  }) async {
+    lastCancel = cancel;
+    return (status: status, lines: lines, body: chunks.stream);
+  }
+
+  void send(Map<String, Object?> line) =>
+      chunks.add(utf8.encode('${jsonEncode(line)}\n'));
+
+  void say(String text) => chunks.add(utf8.encode(text));
+}
+
+VisitQuestionsController _streamed(_StreamingCamera camera) =>
+    VisitQuestionsController(
+      post: _Camera(<_Reply?>[]).post,
+      stream: camera.stream,
+      language: 'en',
+      now: () => _now,
+    );
+
 void main() {
   group('VisitQuestionsController', () {
     test(
@@ -371,6 +403,103 @@ void main() {
         find.textContaining('still answering another question'),
         findsOneWidget,
       );
+    });
+  });
+
+  group('a streamed answer', () {
+    test(
+      'the facts and each piece show as they come, then the answer stands',
+      () async {
+        final camera = _StreamingCamera();
+        final questions = _streamed(camera);
+        final asked = questions.ask('How often?');
+        await pumpEventQueue();
+        camera
+          ..send(<String, Object?>{'facts': '1 visits'})
+          ..send(<String, Object?>{'piece': 'Twice '});
+        await pumpEventQueue();
+        expect(questions.facts, '1 visits');
+        expect(questions.messages.last.text, 'Twice ');
+        expect(questions.messages.last.streaming, isTrue);
+        camera
+          ..send(<String, Object?>{'piece': 'a day.'})
+          ..send(<String, Object?>{
+            'done': <String, Object?>{'finish_reason': 'stop'},
+          });
+        await camera.chunks.close();
+        await asked;
+        expect(questions.messages.last.text, 'Twice a day.');
+        expect(questions.messages.last.streaming, isFalse);
+        expect(questions.failure, isNull);
+        expect(questions.busy, isFalse);
+      },
+    );
+
+    test('an error line is a failure in the camera\'s words', () async {
+      final camera = _StreamingCamera();
+      final questions = _streamed(camera);
+      final asked = questions.ask('hi');
+      await pumpEventQueue();
+      camera
+        ..send(<String, Object?>{'piece': 'Half'})
+        ..send(<String, Object?>{
+          'error': 'the model took too long',
+          'status': 504,
+        });
+      await camera.chunks.close();
+      await asked;
+      expect(questions.failure?.reason, 'the model took too long');
+      expect(questions.messages.map((m) => m.text), <String>['hi']);
+    });
+
+    test('a refusal before the stream keeps its words', () async {
+      final camera = _StreamingCamera(status: 503, lines: false);
+      final questions = _streamed(camera);
+      final asked = questions.ask('hi');
+      await pumpEventQueue();
+      camera.say('still answering another question');
+      await camera.chunks.close();
+      await asked;
+      expect(questions.failure?.reason, 'still answering another question');
+    });
+
+    test('an ObservANT that answers whole is read as before', () async {
+      final camera = _StreamingCamera(lines: false);
+      final questions = _streamed(camera);
+      final asked = questions.ask('hi');
+      await pumpEventQueue();
+      camera.say(_answer('Twice.', 'facts').body);
+      await camera.chunks.close();
+      await asked;
+      expect(questions.messages.last.text, 'Twice.');
+      expect(questions.facts, 'facts');
+    });
+
+    test('a stream that ends without done is a failure', () async {
+      final camera = _StreamingCamera();
+      final questions = _streamed(camera);
+      final asked = questions.ask('hi');
+      await pumpEventQueue();
+      camera.send(<String, Object?>{'piece': 'Half'});
+      await camera.chunks.close();
+      await asked;
+      expect(questions.failure?.reason, 'the camera broke off its answer');
+    });
+
+    test('stop leaves a stream and drops its bubble', () async {
+      final camera = _StreamingCamera();
+      final questions = _streamed(camera);
+      final asked = questions.ask('hi');
+      await pumpEventQueue();
+      camera.send(<String, Object?>{'piece': 'Half'});
+      await pumpEventQueue();
+      questions.stop();
+      await camera.lastCancel;
+      camera.send(<String, Object?>{'piece': ' more'});
+      await camera.chunks.close();
+      await asked;
+      expect(questions.failure, isNull);
+      expect(questions.messages.map((m) => m.text), <String>['hi']);
     });
   });
 }

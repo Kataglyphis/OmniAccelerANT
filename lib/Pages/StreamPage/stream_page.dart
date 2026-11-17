@@ -402,6 +402,7 @@ class StreamPageState extends State<StreamPage> with WidgetsBindingObserver {
               VisitQuestionsPanel(
                 fetchHealth: _observant.fetchHealthz,
                 post: _observant.postToObservant,
+                stream: _observant.streamFromObservant,
               ),
               DevStatsPanel(
                 fetch: _observant.fetchHealthz,

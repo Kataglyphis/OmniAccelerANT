@@ -5,6 +5,14 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ## Unreleased
 
+### 2026-11-17 (the Stream page shows a visit answer as the camera decodes it)
+- `VisitQuestionsController` asks `/ask` through the new `streamFromObservant` with `Accept: application/x-ndjson`
+  and fills the bubble with each `piece` as it arrives; `facts` show at once, `done` ends the answer, an `error` line
+  is a failure in the camera's words, and a stream that ends without `done` is one too. A refusal before the
+  stream and a camera that answers whole (an older ObservANT) are read as before. OxidANT's `/ask` streams since
+  6153f1d (owner decision). The browser's body reader moved to `lib/utils/fetch_body_web.dart`, shared with the
+  playground. Six tests on a fake camera stream.
+
 ### 2026-11-16 (the web playground asks for a streamed answer)
 - `endpoint_request.dart` posts `'stream': true` with `stream_options.include_usage` (owner decision, replacing
   LAI-F2's whole answer), so the web playground shows each piece as it arrives and measures the time to the first

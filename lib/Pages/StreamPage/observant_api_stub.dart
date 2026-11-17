@@ -27,4 +27,11 @@ class _NoObservant implements ObservantApi {
     Map<String, Object> body, {
     Future<void>? cancel,
   }) async => null;
+
+  @override
+  Future<ObservantStream?> streamFromObservant(
+    String path,
+    Map<String, Object> body, {
+    Future<void>? cancel,
+  }) async => null;
 }

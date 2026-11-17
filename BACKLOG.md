@@ -144,12 +144,6 @@ what the owner's goal still lacks.
   the audit puts a collapsed view last, and it needs a widget in ANThology. On native builds an answer without a
   word is still an empty bubble, because the bridge's `done` carries no thinking count: that field needs the
   bindings regenerated with an OxidANT pin. Done when the page shows the count, and the text on request.
-- [b] **On web a visit question shows only when its answer is whole** (L, ★★). The Stream page's questions wait up to
-  310 s behind one empty bubble (`lib/Pages/StreamPage/observant_api_web.dart:43-54`, `visit_questions.dart:90-96`),
-  because ObservANT's `/ask` is not streamed. The owner decided on 2026-11-16 to stream it; its server side is
-  OxidANT's and comes first. Then the Dart client reads it through the playground's stream reader, with the whole
-  answer as the fallback where the body cannot be read. Audit 2026-11-12.
-
 - **llguidance accepts the hub tiny model's tokenizer** (probe 2026-11-01, GenAI 0.17.0 in
   `:latest` 7d4d4129). `set_guidance("json_schema", ...)` loaded on both the tiny model and
   SmolLM2-135M; a schema with `maxLength`, no extra properties and fixed whitespace makes the tiny

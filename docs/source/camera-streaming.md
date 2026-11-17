@@ -1180,6 +1180,9 @@ on the page's own origin, with the browser's offset from UTC and the app's langu
 
 - **A camera without a model shows nothing.** So does an older camera, and every native build,
   whose Stream page plays the local webcam and has no ObservANT to ask.
+- **An answer appears as the camera decodes it.** The page asks `/ask` for NDJSON lines
+  (`Accept: application/x-ndjson`) and fills the bubble piece by piece; a camera that answers whole,
+  an older ObservANT, is read as before. `/summary` still answers whole.
 - **The answer comes from the visit figures**, not the picture, and a language model can be wrong.
   The panel says so, and *What the model was told* shows the figures behind the last answer.
 - **Failures read as the camera's words**: no model answering, a question already running, a model
