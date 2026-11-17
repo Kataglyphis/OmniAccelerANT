@@ -155,6 +155,31 @@ what the owner's goal still lacks.
   2fb3ab7, both newer than the pins here, expect a schema answer there. No test here runs a
   schema on Windows (`integration_test/text_generate_test.dart` is Linux-only).
 
+## Open — browser/WebAssembly feature parity
+
+- [ ] **Port the existing OmniAccelerANT feature set to browser/WebAssembly with local AI inference** (L, ★★★).
+  Owner request 2026-11-17: a hosted browser version preserving the application's existing
+  functionality and workflows, using the family's own ONNX Runtime Web builds.
+  - Inventory the current desktop, mobile and web functions and record their browser equivalents:
+    image/video detection, text AI, camera/stream controls, settings, storage and device integrations.
+    Native-only capabilities need a tested browser implementation or compatibility bridge;
+    unresolved feature gaps remain open.
+  - Reuse the Flutter web UI and connect a browser inference backend to matching, version-pinned
+    JS/MJS/WASM assets from ANTfrastructure. Support Asyncify and JSPI where available, detect
+    capabilities, expose actual WebGPU use and make CPU fallback visible.
+  - Port camera, file and persistence access to browser APIs while retaining existing WebRTC,
+    remote-endpoint and device workflows. Local inference keeps user inputs on the visitor's
+    device; remote modes remain explicit choices.
+  - Preserve model/runtime provenance and original license texts. Provide reproducible hosting
+    with HTTPS, correct asset paths/MIME types, required isolation headers and model caching.
+  - Test real model inference with the shipped assets against the CPU reference, using the
+    existing detector tolerances and actual GPU evidence over repeated runs. Cover supported
+    browsers, fallback/refusal paths and the inventoried workflows; retain native regression tests.
+  Done when the hosted application has tested browser equivalents for the inventoried functions
+  and runs its local AI on the visitor's device with the family's own web builds. Browser support,
+  remaining gaps and reproducible build/test/deployment commands are documented; recurring
+  functionality lives in versioned scripts in its owning repository.
+
 ## Open — packaging
 
 
