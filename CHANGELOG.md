@@ -5,6 +5,12 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ## Unreleased
 
+### 2026-11-18 (the Windows GPU parity run is the hub's)
+- `scripts/windows/check_gpu_detector_parity.py` keeps its launcher (`omni_accelerant.exe --onnx-profile-image`),
+  its `verify_detector_model.py` check and its 180 s timeout; the three clean processes, their profiles, the pairwise
+  comparisons, the photo digest, the confined runtime and the DirectML adapter check come from the hub's
+  `shared/python/check_detector_parity.py` (ANTfrastructure CON252). The hub pin moves from `ed3d1707` to `c5a5a637`.
+
 ### 2026-11-17 (the Stream page shows a visit answer as the camera decodes it)
 - `VisitQuestionsController` asks `/ask` through the new `streamFromObservant` with `Accept: application/x-ndjson`
   and fills the bubble with each `piece` as it arrives; `facts` show at once, `done` ends the answer, an `error` line
