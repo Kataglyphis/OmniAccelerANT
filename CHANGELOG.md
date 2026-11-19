@@ -5,6 +5,11 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ## Unreleased
 
+### 2026-11-19 (the strict Python lane passes again)
+- `scripts/windows/check_gpu_detector_parity.py` loads the hub's `check_detector_parity` through
+  `importlib.import_module`: ty follows no `sys.path` entry, so the static import of 85eddd8 failed
+  `Linux x64 · Python static analysis` (run 44405289832), as OxidANT's 398021a fixed there.
+
 ### 2026-11-18 (the Windows GPU parity run is the hub's)
 - `scripts/windows/check_gpu_detector_parity.py` keeps its launcher (`omni_accelerant.exe --onnx-profile-image`),
   its `verify_detector_model.py` check and its 180 s timeout; the three clean processes, their profiles, the pairwise

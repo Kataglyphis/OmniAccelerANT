@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import importlib
 import os
 import subprocess
 import sys
@@ -11,8 +12,10 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "third_party/ANTfrastructure/shared/python"))
-import check_detector_parity as shared
 from gpu_process import run_process
+
+# ty resolves no import through the path above, so a static import fails the strict Python lane.
+shared = importlib.import_module("check_detector_parity")
 
 
 def run(
