@@ -200,9 +200,11 @@ what the owner's goal still lacks.
 - [ ] **The Linux AMD packages have not run with the plugin module, on a card or off it** (S, ★★★). Hub CON231 step 2
   for this app. `:latest-rocm` has no in-tree MIGraphX provider any more, so the packages carry AMD's plugin module
   `libmigraphx-ep.so` beside the CPU core, and OxidANT a8fa8d5 registers it as `MIGraphX`
-  (`docs/source/camera-streaming.md`, Linux GPU build selection). All of it is proven on fixtures only: no AMD
-  candidate of this layout was built, and nothing ran with AMD's module. A `linux-gpu-candidates.yml` run with
-  `gpu-tuple: amd-x64` is the first real one; in the order it can stop:
+  (`docs/source/camera-streaming.md`, Linux GPU build selection). **Off the card, done 2026-11-20:** the
+  `linux-gpu-candidates.yml` run 44719507853 with `gpu-tuple: amd-x64` passed all four steps below; on the hosted
+  runner without a card the tar, the DEB and the AppImage each refused `migraphx` by name with `ProviderUnavailable:
+  MIGraphX failed to register: <the package's module>` and ran `auto` on the CPU, with no crash and no HIP wait. The
+  steps, for the record:
   1. `check-gpu-image-runtime.sh migraphx`: the image's CPU core against one wheel as its stripped twin, the module and
      its texts.
   2. The native build in the rocm image, then `check-bundle-closure.sh`: the hub's census with

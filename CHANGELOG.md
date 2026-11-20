@@ -5,6 +5,11 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ## Unreleased
 
+### 2026-11-20 (the first AMD candidate of the plugin layout)
+- `linux-gpu-candidates.yml` with `gpu-tuple: amd-x64` (run 44719507853) passed the image check, the native build and
+  bundle census, `verify-gpu-candidate.sh amd x64` and the clean-host job: without a card each package refuses
+  `migraphx` by name through its own module and runs `auto` on the CPU. The card run stays the owner's.
+
 ### 2026-11-20 (the quality queue's real duplicates)
 - `Test-ObservANTFixtureLock.ps1` opens the built and the finished zip through one `Use-ZipEntry` instead of two copies.
 - `code-dupes.allow` keeps three pairs on purpose: two verbatim BSD licence texts, `overview.md`'s repeated table header
