@@ -1,3 +1,7 @@
+// The hub's file is read from disk, which a browser run cannot; the VM lanes replay it.
+@TestOn('vm')
+library;
+
 import 'dart:convert';
 import 'dart:io';
 
