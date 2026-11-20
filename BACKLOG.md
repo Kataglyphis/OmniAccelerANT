@@ -321,8 +321,11 @@ Engine, models and build driver: AGENTS.md § 2. Rules and run commands: AGENTS.
 
 The top 5 of `logs/code-quality/queue.md` (`bash scripts/linux/quality-report.sh`), leaving out `doc-dupes-hub.allow`, which the owner keeps in every AGENTS.md; re-sync when it moves.
 
-- [ ] `scripts/licenses/texts/native/libjpeg-turbo/LICENSE.md:137` 103 shared shingles with scripts/licenses/texts/native/pcre2/LICENCE.md:84 (duplicated_blocks)
-- [ ] `docs/source/overview.md:69` 71 shared shingles with docs/source/overview.md:89 (duplicated_blocks)
-- [ ] `scripts/windows/Package-OmniAccelerANT.ps1:86` 46 shared shingles with scripts/windows/observant/Package-ObservANT.ps1:190 (duplicated_blocks)
-- [ ] `scripts/windows/observant/Test-ObservANTFixtureLock.ps1:31` 41 shared shingles with scripts/windows/observant/Test-ObservANTFixtureLock.ps1:44 (duplicated_blocks)
+Owner decision 2026-11-20: only real code duplicates are merged; a pair that shares a parameter block, a test's setup
+or fixture stubs stays, and a deliberate one gets a `code-dupes.allow` row with its reason. The rows below are of that kind.
+
+- [ ] `code-dupes.allow:2` budget 103 (allow_budget_total): libjpeg-turbo's and pcre2's verbatim BSD licence texts
+- [ ] `code-dupes.allow:3` budget 71 (allow_budget_total): `overview.md`'s feature tables repeat their header row
+- [ ] `code-dupes.allow:4` budget 46 (allow_budget_total): the two packagers' MSI step and its three licence checks
+- [ ] `scripts/linux/tests/test-check-packaged-onnx-runtime.sh:1` 48 shared shingles with scripts/linux/tests/test-check-packaged-onnx-runtime.sh:58 (duplicated_blocks)
 - [ ] `scripts/windows/tests/OrtRunner.Tests.ps1:154` 41 shared shingles with scripts/windows/tests/OrtRunner.Tests.ps1:234 (duplicated_blocks)

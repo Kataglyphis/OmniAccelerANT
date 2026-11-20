@@ -5,6 +5,11 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ## Unreleased
 
+### 2026-11-20 (the quality queue's real duplicates)
+- `Test-ObservANTFixtureLock.ps1` opens the built and the finished zip through one `Use-ZipEntry` instead of two copies.
+- `code-dupes.allow` keeps three pairs on purpose: two verbatim BSD licence texts, `overview.md`'s repeated table header
+  and the two packagers' MSI step, which differs in WiX file, notice name and extensions.
+
 ### 2026-11-20 (the endpoint reader replays the hub's stream lines)
 - `test/endpoint_stream_lines_test.dart` replays the hub's `shared/contracts/openai-stream-lines.json` (pin
   `14ea0aaf`, ANTfrastructure CON237), the file OxidANT and OrchestrANT replay too.
