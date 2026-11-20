@@ -5,6 +5,12 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ## Unreleased
 
+### 2026-11-20 (the endpoint reader replays the hub's stream lines)
+- `test/endpoint_stream_lines_test.dart` replays the hub's `shared/contracts/openai-stream-lines.json` (pin
+  `14ea0aaf`, ANTfrastructure CON237), the file OxidANT and OrchestrANT replay too.
+- `parseStreamLine` fails on an `error:` line with the server's words; it skipped that line before (owner decision
+  2026-11-19: an `error:` line is the server's error).
+
 ### 2026-11-19 (the strict Python lane passes again)
 - `scripts/windows/check_gpu_detector_parity.py` loads the hub's `check_detector_parity` through
   `importlib.import_module`: ty follows no `sys.path` entry, so the static import of 85eddd8 failed

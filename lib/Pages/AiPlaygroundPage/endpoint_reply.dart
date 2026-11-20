@@ -24,8 +24,12 @@ typedef ReplyPart = ({
 /// As much of a broken reply as the native client keeps of an error body.
 const int _shownChars = 2000;
 
-/// What a `data:` line of a streamed chat carries; `null` for any other line.
+/// What a `data:` line of a streamed chat carries; `null` for any other line, and an `error:` line is the server's failure.
 ReplyPart? parseStreamLine(String line) {
+  // Owner decision 2026-11-19 (ANTfrastructure CON237): Rust and Python fail on it too.
+  if (line.startsWith('error:')) {
+    throw EndpointFailure(line.substring('error:'.length).trim());
+  }
   if (!line.startsWith('data:')) return null;
   final data = line.substring('data:'.length).trim();
   if (data == '[DONE]') {
