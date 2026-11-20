@@ -272,6 +272,12 @@ name is under `lib/Pages/StreamPage/`.
   Kotlin and runs its JVM test is worth a try after that; its Gradle command is untested and its time is not
   measured. Done when the emulator check fails on each planted fault and the Dart test fails without the
   `command_failed` branch.
+  **First step in source (2026-11-20):** the check installs with `-g`, requires `GStreamer initialized` and fails on
+  `Create failed`, `UnsatisfiedLinkError` and `bus error`, each a planted case that passes without the check;
+  `stream_page_native_test.dart` has an Android test whose fake answers `command_failed` with the plugin's two texts
+  (`gstreamer_native.cpp:406`, `:702`) and fails without that branch. Left: the android lane's first run with the
+  stricter check, which shows whether the emulator's camera sends a `bus error` on the way down the source chain (then
+  only a chain that ends without a source may fail); PLAYING and the dispatch-only Kotlin workflow as above.
 
 - [ ] **On Android a camera that dies still shows "Playing"** (M, ★★). Read from the code, on no device. After the
   start nothing reads the GStreamer bus: `android/src/main/cpp/gstreamer_native.cpp` reads it only inside a failing
@@ -297,6 +303,13 @@ name is under `lib/Pages/StreamPage/`.
   and its l10n keys for all three can follow. Stays fixed by controller tests with `fake_async` (overlapping
   requests, a stop during a start) and a source test that fails on `invokeMethod(` under `lib/Pages`; that test
   also needs the typed `create` of the MethodChannel row (`rust_webcam_view.dart:95`).
+
+- [b] **The Pester suites still speak Pester 3.4** (M, ★). 13 suites under `scripts/windows/tests` hold
+  261 dash-less `Should Be` lines, so `windows-x64.yml`, `windows-arm64.yml` and `windows-gpu-candidates.yml` pin Pester 3.4.0, the runner's inbox copy, and nothing runs
+  them on Linux. The hub's next image carries Pester 6.2.0 in `pwsh` (hub CON273, CON283), which refuses that
+  dialect. Blocked on that chain. Then: `Should -Be` and its kin, setup moved into `BeforeAll` or `BeforeEach`
+  (Pester 5 and 6 discover a file before they run it), the `3.4.0` pins dropped, and the suites run in the image
+  as well. Done when no workflow pins 3.4.0.
 
 ## Open — waiting on the owner
 

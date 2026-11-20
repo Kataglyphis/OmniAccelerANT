@@ -18,12 +18,17 @@ class _FakePlugin {
     this.missing = const <String>{},
     this.createFails = false,
     this.refused = const <String>{},
+    this.commandFailures = const <String, (String, String)>{},
   });
 
   final Set<String> missing;
   final bool createFails;
   final Set<String> refused;
+
+  /// Per source, the method that fails and its text, answered as the real plugin's runCommand does: `command_failed`.
+  final Map<String, (String, String)> commandFailures;
   final List<MethodCall> calls = <MethodCall>[];
+  String? _source;
 
   List<String> get methods => <String>[
     for (final MethodCall c in calls) c.method,
@@ -41,6 +46,13 @@ class _FakePlugin {
         code: 'refused',
         message: '${call.method} refused',
       );
+    }
+    if (call.method == 'setPipeline') {
+      _source = (call.arguments as String).split(' ').first;
+    }
+    final (String, String)? failure = commandFailures[_source];
+    if (failure != null && failure.$1 == call.method) {
+      throw PlatformException(code: 'command_failed', message: failure.$2);
     }
     switch (call.method) {
       case 'create':
@@ -148,6 +160,39 @@ void main() {
         'play',
       ]);
       expect(plugin.pipelines.last, startsWith('autovideosrc'));
+      expect(find.text('Playing'), findsOneWidget);
+      expect(find.textContaining('No video source worked'), findsNothing);
+
+      await unmountApp(tester);
+    },
+    variant: android,
+  );
+
+  testWidgets(
+    'the plugin\'s command_failed falls back with the texts a device sends',
+    (WidgetTester tester) async {
+      // The exception's text and getLastError(), as the plugin joins them (gstreamer_native.cpp:406 and :702).
+      final _FakePlugin plugin = _FakePlugin(
+        commandFailures: <String, (String, String)>{
+          'ahcsrc': (
+            'setPipeline',
+            'setPipeline failed\nMissing GStreamer element: ahcsrc',
+          ),
+          'autovideosrc': (
+            'play',
+            'play failed\nPipeline still ASYNC after 15s - caps negotiation '
+                'failed or source unavailable',
+          ),
+        },
+      );
+      await pumpGranted(tester, plugin);
+
+      expect(plugin.pipelines.map((String p) => p.split(' ').first), <String>[
+        'ahcsrc',
+        'autovideosrc',
+        'videotestsrc',
+      ]);
+      expect(plugin.methods.last, 'play');
       expect(find.text('Playing'), findsOneWidget);
       expect(find.textContaining('No video source worked'), findsNothing);
 

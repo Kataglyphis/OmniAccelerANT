@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# The ABI gate proves what the APK holds, not that it runs: boot the image's AVD, launch the app, require it to stay up.
+# The ABI gate proves what the APK holds; this proves it runs on the image's AVD, plugin and GStreamer included.
 set -euo pipefail
 
 apk=""
@@ -40,7 +40,8 @@ cleanup() {
 trap cleanup EXIT
 
 android-avd.sh start
-"$adb" -s "$serial" install -r --abi arm64-v8a "$apk"
+# -g grants the camera, so the Stream page's start runs the plugin's create, its JNI and gst_init.
+"$adb" -s "$serial" install -r -g --abi arm64-v8a "$apk"
 
 # The device lists x86_64 first: without --abi an x86_64 slice would win, and the plugin exists for arm64 only.
 abi="$("$adb" -s "$serial" shell dumpsys package "$package" | tr -d '\r' | sed -n 's/.*primaryCpuAbi=\([^ ]*\).*/\1/p' | head -n 1)"
@@ -67,6 +68,14 @@ if [ -z "$pid" ] || [ -n "$crashes" ]; then
   printf -- '--- logcat, last 40 lines\n' >&2
   tail -n 40 "$logcat" >&2
   fail "$package did not stay up ${seconds}s on ${serial} (pid '${pid}')"
+fi
+# An APK whose library cannot load, or whose create fails, stays up too: the plugin's own lines decide.
+plugin_faults="$(grep -E 'Create failed|UnsatisfiedLinkError|bus error' "$logcat" || true)"
+if [ -n "$plugin_faults" ] || ! grep -q 'GStreamer initialized' "$logcat"; then
+  printf '%s\n' "$plugin_faults" >&2
+  printf -- '--- logcat, the plugin'"'"'s last 40 lines\n' >&2
+  grep -E 'KataglyphisGStreamer|GStreamer' "$logcat" | tail -n 40 >&2
+  fail "$package's plugin did not bring GStreamer up cleanly on ${serial} (no 'GStreamer initialized', or a fault above)"
 fi
 # threadtime format: the third field is the pid.
 printf 'OK %s stayed up %ss on %s as arm64-v8a (pid %s, %s logcat line(s) of its own)\n' \

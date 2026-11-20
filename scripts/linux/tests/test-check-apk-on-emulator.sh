@@ -36,11 +36,14 @@ EOF
 chmod +x "${work}/bin/adb" "${work}/bin/android-avd.sh"
 export PATH="${work}/bin:${PATH}" STUB_CALLS="${work}/calls"
 
+# What a healthy start logs: the plugin's gst_init ran (gstreamer_native.cpp's "GStreamer initialized").
+healthy='I KataglyphisGStreamer: Registered 42 GStreamer plugins\nI KataglyphisGStreamer: GStreamer initialized\n'
+
 # emulator [VAR=value ...]: the gate's rc on a healthy device, each VAR overriding one thing; 99 when the AVD was left running.
 emulator() {
   local rc=0
   : > "${STUB_CALLS}"
-  env STUB_ABI=arm64-v8a STUB_ACTIVITY="${pkg}/.MainActivity" STUB_PID=4242 STUB_LOGCAT='' "$@" \
+  env STUB_ABI=arm64-v8a STUB_ACTIVITY="${pkg}/.MainActivity" STUB_PID=4242 STUB_LOGCAT="${healthy}" "$@" \
     bash "$gate" --apk "${work}/app.apk" --package "$pkg" --seconds 0 || rc=$?
   # Every path that started the AVD must stop it, or the next lane step inherits a running emulator.
   if grep -q '^avd start' "${STUB_CALLS}" && ! grep -q '^avd stop' "${STUB_CALLS}"; then
@@ -52,8 +55,18 @@ emulator() {
 
 t_case "the app stays up as arm64-v8a"
 t_assert_rc 0 emulator
+t_case "that install granted the camera, so the start reached the plugin"
+t_assert_rc 0 grep -q -- '^adb -s emulator-5554 install -r -g ' "${STUB_CALLS}"
 t_case "another process's fatal signal is not the app's"
-t_assert_rc 0 emulator STUB_LOGCAT='F libc    : Fatal signal 11 (SIGSEGV) in tid 77 (surfaceflinger), pid 77 (surfaceflinger)\n'
+t_assert_rc 0 emulator STUB_LOGCAT="${healthy}F libc    : Fatal signal 11 (SIGSEGV) in tid 77 (surfaceflinger), pid 77 (surfaceflinger)\n"
+t_case "the plugin never initialized GStreamer (create, JNI or gst_init did not run)"
+t_assert_rc 1 emulator STUB_LOGCAT='I ActivityManager: Displayed org.example.app/.MainActivity\n'
+t_case "the plugin's library did not load"
+t_assert_rc 1 emulator STUB_LOGCAT="${healthy}E flutter : java.lang.UnsatisfiedLinkError: dlopen failed: library \"libgstreamer_android.so\" not found\n"
+t_case "the plugin's create failed"
+t_assert_rc 1 emulator STUB_LOGCAT="${healthy}E KataglyphisGStreamer: Create failed\n"
+t_case "the pipeline's bus reported an error"
+t_assert_rc 1 emulator STUB_LOGCAT="${healthy}E KataglyphisGStreamer: bus error: Internal data stream error. (no debug)\n"
 t_case "the app is gone after the wait"
 t_assert_rc 1 emulator STUB_PID=
 t_case "the app crashed in Java while a pid lingers"
