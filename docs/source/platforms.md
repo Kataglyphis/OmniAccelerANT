@@ -671,8 +671,9 @@ ASan and UBSan into the uninstrumented runner (58 undefined `__asan_*`/`__ubsan_
 `.so`. Now the plugin links only Flutter and GTK, `kNativeInferenceMethods` lists `add` for Windows
 alone, and `pluginAnswers('add', linux)` is false. Embedded, AccelerANTgine built with
 `myproject_ENABLE_HARDENING` OFF, so the plugin lost no hardening; the hub's warning and hardening
-modules on the plugin target itself are the next part of step (b), with the `libonnxruntime.so.1`
-copy that only AccelerANTgine needed.
+modules on the plugin target itself are the part of step (b) still open. The `libonnxruntime.so.1`
+copy that only AccelerANTgine needed went the same day: in run 44947497149's Linux bundle no ELF
+needed it (`readelf -d` over its 44 shared objects).
 
 ## The Windows lanes in detail
 

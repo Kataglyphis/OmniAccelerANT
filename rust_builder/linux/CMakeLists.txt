@@ -56,13 +56,11 @@ if(NOT _ort_chain_hit)
       "${ONNXRUNTIME_REAL} is not the family's chain-built ONNX Runtime (no /opt/onnxruntime/onnxruntime/core/ source path in it). ORT_LIB_LOCATION may only name the image's chain build."
   )
 endif()
-# Both sonames as real copies: the plugin DT_NEEDs .so.1 while ort dlopens the bare .so.
-foreach(_ort_name libonnxruntime.so libonnxruntime.so.1)
-  set(_ort_staged "${CMAKE_CURRENT_BINARY_DIR}/${_ort_name}")
-  configure_file("${ONNXRUNTIME_REAL}" "${_ort_staged}" COPYONLY)
-  list(APPEND oxidant_extra_bundled_libraries "${_ort_staged}")
-endforeach()
-message(STATUS "Bundling ONNX Runtime (both sonames): ${ONNXRUNTIME_REAL}")
+# The bare soname alone: ort dlopens it, and no ELF in the bundle needs .so.1 since the plugin left AccelerANTgine.
+set(_ort_staged "${CMAKE_CURRENT_BINARY_DIR}/libonnxruntime.so")
+configure_file("${ONNXRUNTIME_REAL}" "${_ort_staged}" COPYONLY)
+list(APPEND oxidant_extra_bundled_libraries "${_ort_staged}")
+message(STATUS "Bundling ONNX Runtime: ${ONNXRUNTIME_REAL}")
 
 # GPU modules are loaded by ORT at runtime and are not visible to the ELF dependency walk.
 include("${CMAKE_CURRENT_SOURCE_DIR}/ort-device.cmake")

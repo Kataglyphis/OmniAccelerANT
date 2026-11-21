@@ -5,6 +5,12 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ## Unreleased
 
+### 2026-11-21 — the Linux bundle drops `libonnxruntime.so.1` (add-demo retirement, step b)
+
+- `rust_builder/linux/CMakeLists.txt` stages only `libonnxruntime.so`, which `ort` dlopens: the `.so.1` copy served
+  `libAccelerANTgine.so`'s DT_NEEDED, and in run 44947497149's Linux bundle no ELF needs it any more (`readelf -d`
+  over its 44 shared objects).
+
 ### 2026-11-21 — the Linux plugin builds no AccelerANTgine (add-demo retirement, step b)
 
 - The Linux plugin no longer embeds AccelerANTgine: its `add` handler and `import kataglyphis.c_api`, the link, the

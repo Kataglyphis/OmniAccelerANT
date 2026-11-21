@@ -393,10 +393,10 @@ with its Flutter-bundle options; the ObservANT packagers call it with `--ldd`:
   proves to be the chain build: ORT embeds its source path through `__FILE__`, the chain's is
   `/opt/onnxruntime/onnxruntime/core/`, and the variable alone proves nothing. Never from the
   ld.so cache, where `/opt/opencv5/lib` carries a second copy that sorts first.
-  `libAccelerANTgine.so` needs `libonnxruntime.so.1` and the Rust core dlopens
-  `libonnxruntime.so`, so it is already there when the packer starts
-  (`rust_builder/linux/CMakeLists.txt` stages both sonames from the same chain directory on
-  every `flutter build linux`): the packer copies nothing for it and prints `Kept (already in
+  The Rust core dlopens `libonnxruntime.so`, so it is already there when the packer starts
+  (`rust_builder/linux/CMakeLists.txt` stages that soname from the chain directory on every
+  `flutter build linux`; `.so.1` went on 2026-11-21, as no bundled ELF needs it since the plugin
+  left AccelerANTgine): the packer copies nothing for it and prints `Kept (already in
   bundle/lib, not copied)` with each file's sha256, so its `N file(s) copied` list never shows
   ORT;
 - **the 15 MB detector model** at `data/resources/models/deim_dfine_n_coco.onnx`, with its

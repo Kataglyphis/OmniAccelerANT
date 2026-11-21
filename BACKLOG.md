@@ -311,16 +311,17 @@ flutter_rust_bridge, drops its AccelerANTgine submodule, and takes new Rust API 
 - [ ] **Retire the add(3,4) demo and `third_party/AccelerANTgine`** (M, ★★★; owner D1). The app builds all of
   AccelerANTgine (8 nested submodules, a second libonnxruntime on Linux) for one call, `kataglyphis_add`. In four
   steps: (a) the Windows x64 VC++ runtime and its notice move into the app's own CMake, with the runner's file list
-  unchanged (**in source since 2026-11-21**: `windows/CMakeLists.txt` installs them, the plugin's AccelerANTgine skips
-  its copies; left: the `[ci windows]` run and its file list against run 44922370281's; the arm64 runner ships the
-  runtime without `licenses/msvc-runtime`, as the natives' import closure stages no notice, which (c) fixes with
-  `Copy-MsvcRuntimeNotice`); (b) Linux drops the call and the link (**in source since 2026-11-21**: the handler, the
-  link and the embed's overrides went, the method table answers `add` on Windows only), the plugin target takes the
-  hub's warning and hardening modules (left: the embedded AccelerANTgine built with hardening off, so this adds them,
-  against Flutter's `-Werror`), and the `.so.1` copy goes once `readelf` shows nothing needs it (left); (c) Windows
-  and arm64 get a new host exe for the ORT provenance proof, new architecture-gate counts and packaging lists; (d) the
-  license inventory, tests and docs follow, the submodule goes, and a before/after measurement on one preset, image
-  and cache is recorded. It comes before AccelerANTgine takes OxidANT, or the app would carry two OxidANT pins.
+  unchanged (**done 2026-11-21**: run 44937953066's x64 runner holds the same 195 files, and the arm64 lanes are green
+  in run 44947497052; `windows/CMakeLists.txt` installs them, the plugin's AccelerANTgine skips its copies; the arm64
+  runner ships the runtime without `licenses/msvc-runtime`, as the natives' import closure stages no notice, which (c)
+  fixes with `Copy-MsvcRuntimeNotice`); (b) Linux drops the call and the link (**in source since 2026-11-21**: the
+  handler, the link and the embed's overrides went, the method table answers `add` on Windows only), the plugin target
+  takes the hub's warning and hardening modules (left: the embedded AccelerANTgine built with hardening off, so this
+  adds them, against Flutter's `-Werror`), and the `.so.1` copy goes once `readelf` shows nothing needs it (**in
+  source since 2026-11-21**: no ELF of run 44947497149's Linux bundle needs it); (c) Windows and arm64 get a new host
+  exe for the ORT provenance proof, new architecture-gate counts and packaging lists; (d) the license inventory, tests
+  and docs follow, the submodule goes, and a before/after measurement on one preset, image and cache is recorded. It
+  comes before AccelerANTgine takes OxidANT, or the app would carry two OxidANT pins.
 - [ ] **The bundled regeneration** (M, ★★; owner D12 to D14). After OxidANT's side: `TextEvent` carries a typed
   failure (a plain kind enum, the message, the HTTP status), a typed kind and finish reason, and the thinking count
   in `done`; `default_score_threshold()` starts the webcam slider at CON235's 0.25; `detector_latency_json()` replaces
