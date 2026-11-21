@@ -29,11 +29,13 @@ fi
 adb="$(command -v adb || printf '%s/platform-tools/adb' "${ANDROID_HOME:?ANDROID_HOME is not set}")"
 serial="emulator-${AVD_PORT:-5554}"
 logcat="$(mktemp)"
+logcat_pid=""
 fail() {
   printf 'FAIL %s\n' "$1" >&2
   return 1
 }
 cleanup() {
+  [ -z "$logcat_pid" ] || kill "$logcat_pid" 2>/dev/null || true
   android-avd.sh stop >/dev/null 2>&1 || true
   rm -f "$logcat"
 }
@@ -54,10 +56,17 @@ case "$activity" in
 esac
 
 "$adb" -s "$serial" logcat -c
+# Streamed from the start: a fresh emulator's ring buffer had dropped the plugin's first lines by the end (run 44813920781).
+"$adb" -s "$serial" logcat -v threadtime > "$logcat" 2>/dev/null &
+logcat_pid=$!
 "$adb" -s "$serial" shell am start -W -n "$activity"
 sleep "$seconds"
 pid="$("$adb" -s "$serial" shell pidof "$package" | tr -d '\r' || true)"
-"$adb" -s "$serial" logcat -d > "$logcat"
+# A second for adb to hand over its last lines before the stream ends.
+sleep 1
+kill "$logcat_pid" 2>/dev/null || true
+wait "$logcat_pid" 2>/dev/null || true
+logcat_pid=""
 
 # Only the app's own crashes count: a system process may die on a fresh emulator without it being ours.
 crash_pattern="Process: ${package}|ANR in ${package}|ndk_translation: Undefined instruction"

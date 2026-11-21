@@ -275,9 +275,10 @@ name is under `lib/Pages/StreamPage/`.
   **First step in source (2026-11-20):** the check installs with `-g`, requires `GStreamer initialized` and fails on
   `Create failed`, `UnsatisfiedLinkError` and `bus error`, each a planted case that passes without the check;
   `stream_page_native_test.dart` has an Android test whose fake answers `command_failed` with the plugin's two texts
-  (`gstreamer_native.cpp:406`, `:702`) and fails without that branch. Left: the android lane's first run with the
-  stricter check, which shows whether the emulator's camera sends a `bus error` on the way down the source chain (then
-  only a chain that ends without a source may fail); PLAYING and the dispatch-only Kotlin workflow as above.
+  (`gstreamer_native.cpp:406`, `:702`) and fails without that branch. The lane's first run with it (44813920781)
+  reached `play set_state(PLAYING): SUCCESS` on the emulator with no `bus error`, and failed only because
+  `logcat -d` had lost the early lines to the fresh emulator's ring buffer; the check now streams logcat from the
+  start. Left: a green android run with the streamed log; PLAYING and the dispatch-only Kotlin workflow as above.
 
 - [ ] **On Android a camera that dies still shows "Playing"** (M, ★★). Read from the code, on no device. After the
   start nothing reads the GStreamer bus: `android/src/main/cpp/gstreamer_native.cpp` reads it only inside a failing

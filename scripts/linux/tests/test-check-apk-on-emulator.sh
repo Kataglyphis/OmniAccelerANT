@@ -19,7 +19,7 @@ printf 'adb %s\n' "$*" >> "${STUB_CALLS}"
 case "$1 ${2:-}" in
   "install "*) exit 0 ;;
   "logcat -c") exit 0 ;;
-  "logcat -d") printf '%b' "${STUB_LOGCAT:-}" ;;
+  "logcat -v") printf '%b' "${STUB_LOGCAT:-}" ;;
   "shell dumpsys") printf '  primaryCpuAbi=%s\n' "${STUB_ABI}" ;;
   "shell cmd") printf 'priority=0 preferredOrder=0\n%s\n' "${STUB_ACTIVITY}" ;;
   "shell am") exit 0 ;;
