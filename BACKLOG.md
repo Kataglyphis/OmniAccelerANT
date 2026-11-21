@@ -305,7 +305,9 @@ flutter_rust_bridge, drops its AccelerANTgine submodule, and takes new Rust API 
   [ci arm64] [ci web] [ci android]`. Then a native test: a missing model directory shows the model-load sentence
   (`integration_test/text_generate_test.dart` covers no failure today). **In source since 2026-11-21:** the pin is
   56865c4 (ort rc.15, jiff for chrono and its helpers in the inventory; the bindings regenerate unchanged; 393 Dart
-  tests pass). Left: the four lanes' run and the native failure test.
+  tests pass). The native failure test is in source too: `text_generate_test.dart` expects a missing model
+  directory to end the stream with `model_load_failed: the model directory could not be loaded`. Left: the four
+  lanes' run and that test's first green Linux run.
 - [ ] **Retire the add(3,4) demo and `third_party/AccelerANTgine`** (M, ★★★; owner D1). The app builds all of
   AccelerANTgine (8 nested submodules, a second libonnxruntime on Linux) for one call, `kataglyphis_add`. In four
   steps: (a) the Windows x64 VC++ runtime and its notice move into the app's own CMake, with the runner's file list

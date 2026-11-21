@@ -5,6 +5,13 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ## Unreleased
 
+### 2026-11-21 — OxidANT 56865c4: a failed text turn reaches the page
+
+- The OxidANT pin moved from 7d33f96 to 56865c4 (be95984), with OxidANT's fix that sends a failed text turn and a
+  refused ESP32 connect into the stream instead of only closing it. `text_generate_test.dart` now expects a missing
+  model directory to end the stream with `model_load_failed: the model directory could not be loaded`, the sentence
+  the AI playground shows.
+
 ### 2026-11-21 — the Android plugin path proven on the emulator; a Rust panic reaches Dart
 
 - The emulator check installs with `-g`, so the start runs the plugin's create, its JNI and `gst_init`; it requires
