@@ -5,6 +5,13 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ## Unreleased
 
+### 2026-11-21 — the x64 VC++ runtime is the app's own (add-demo retirement, step a)
+
+- `windows/CMakeLists.txt` installs the x64 VC++ runtime beside the exe and its `licenses/msvc-runtime` notice through
+  the hub's `InstallRequiredSystemLibraries` and `kataglyphis_install_msvc_runtime_notice`; the plugin's embedded
+  AccelerANTgine skips its copies (`CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS_SKIP`), so the app's rule is the one CI tests.
+  The runner's files stay the same; removing AccelerANTgine (owner D1) no longer takes the runtime along.
+
 ### 2026-11-21 — OxidANT 56865c4: a failed text turn reaches the page
 
 - The OxidANT pin moved from 7d33f96 to 56865c4 (be95984), with OxidANT's fix that sends a failed text turn and a

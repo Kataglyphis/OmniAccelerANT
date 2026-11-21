@@ -47,9 +47,9 @@ if(DEFINED ENV{KATAGLYPHIS_ACCELERANTGINE_PREBUILT}
                INTERFACE_INCLUDE_DIRECTORIES "${_KCI_PREBUILT}/include")
   set(_KCI_BUNDLED "${_KCI_PREBUILT}/bin/AccelerANTgine.dll")
 else()
-  # The runner folder is the install root: the loader finds AccelerANTgine.dll and its runtime beside the exe, never in a bin\ under it.
+  # The runner folder is the install root, so AccelerANTgine.dll lands beside the exe; the app installs the VC++ runtime.
   set(CMAKE_INSTALL_BINDIR ".")
-  set(CMAKE_INSTALL_SYSTEM_RUNTIME_DESTINATION ".")
+  set(CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS_SKIP TRUE)
   add_subdirectory(${KCI_DIR} ${CMAKE_CURRENT_BINARY_DIR}/native_build)
   set(_KCI_BUNDLED "")
 endif()
