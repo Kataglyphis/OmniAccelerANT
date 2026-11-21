@@ -340,6 +340,35 @@ flutter_rust_bridge, drops its AccelerANTgine submodule, and takes new Rust API 
   the Dart loop behind `--detect-latency`; the `no_answer` kind gets its English and German sentence. Then the regex
   table in `text_failure.dart` and the test that scrapes OxidANT's source go.
 
+## Open — native C++ gates from the BeschleunigerBallett comparison
+
+The owner's decisions of 2026-11-21 (D3, D8, D12 and the rest, as recommended); the shared pieces are hub CON290 to
+CON294.
+
+- [ ] **A Rust panic ends the release and profile app** (S, ★★★; owner D3). OxidANT's `[profile.release]` sets
+  `panic = "abort"`, so flutter_rust_bridge's and gstreamer-app's `catch_unwind` never run and the whole app dies, the
+  class BeschleunigerBallett fixed on 2026-11-19 (OxidANT aaebec5). Set `CARGO_PROFILE_RELEASE_PANIC=unwind` in
+  cargokit's `_buildEnvironment` (`builder.dart:158`) for non-debug builds and at `Build-WindowsArm64Natives.ps1:50`,
+  as the third local cargokit patch (`platforms.md:631-645`); `check-rust-toolchain.sh` fails unless `liboxidant.so`
+  imports `_Unwind_RaiseException`; a test provokes a panic in a profile build; the size change is measured from CI
+  artifacts.
+- [ ] **The sanitizer jobs check what their names say** (S, ★★). The x64 Debug job builds an ASan+UBSan plugin gtest
+  that no step runs (job 132992805094, log 9886-9907): copy the exe, `flutter_windows.dll` and the pdb out of the
+  `x64_x64-ClangCL-Windows-Debug` tree the hub's sync skips (`WindowsFlutter.Common.psm1:193-195`) and run
+  `Invoke-PluginGTest.ps1` with the staged ASan runtime and `UBSAN_OPTIONS=halt_on_error=1`. The arm64 "Debug/ASan"
+  job instruments nothing (job 132999561812): rename it and drop its unused flag (`Build-WindowsArm64App.ps1:99-100`).
+  Then an ASan+UBSan plugin gtest in the Linux Debug tree, a seeded case for random sizes, null buffers and unknown
+  texture ids, `size_t` size math in `windows/kataglyphis_texture.cpp:12,16` (width*height overflows `uint32` from
+  2^32), and in OxidANT a length check before `knt_push_frame`.
+- [ ] **Smaller native steps** (S each, ★). The AccelerANTgine pin moves for its tomlplusplus fix (41468fb), unless
+  the add-demo removal comes first; Release hardening on the plugin before `add_subdirectory` (plugin
+  `linux/CMakeLists.txt:39-45`), and the hub's ELF gate once CON294 lands; `/guard:cf` on the Windows runner after
+  CON290, CET only after a launch smoke on CET-capable hardware (D8); `!cancelled()` on the three uploads
+  (`reusable-linux.yml:119-140`) and a googletest `URL_HASH`; `--privileged` dropped from `web.yml:56` and
+  `linux-gpu-candidates.yml:119` if the lanes stay green; CodeQL default setup for c-cpp and actions, and the 102
+  alerts of deleted workflows dismissed (D12); the Windows compiler cache fixed (0.94 % hits, save skipped, job
+  133499378065) before the hub hands its key to the other repos.
+
 ## Open — waiting on the owner
 
 - [b] **False arrivals on himbeere2: nearly gone, one mark left.** On 2026-10-12 and 13 a drying rack at
