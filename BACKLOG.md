@@ -254,34 +254,12 @@ measured* is computed. Rows are in order of impact, then size, the blocked ones 
 `android/`, `linux/` or `windows/` is the plugin's, under `packages/kataglyphis_native_inference/`; a bare Dart file
 name is under `lib/Pages/StreamPage/`.
 
-- [ ] **The Android plugin path runs in no test, and its Dart tests use a fake that matches no plugin** (M, ★★★).
-  13 of the 20 tests in `test/stream_page_native_test.dart` run as macOS, which the plugin does not have, and their
-  fake fails with `pipeline_error` and `no element "x"` (51-58). The real plugin answers `command_failed`
-  (`KataglyphisNativeInferencePlugin.kt:153-163`) with texts like `Missing GStreamer element: ahcsrc`
-  (`gstreamer_native.cpp:406`), so the fallback in `stream_page.dart:216-223` depends on a code that no test names.
-  Play, pause and stop are the same Dart code on every platform, so those tests still hold for Android; the fallback
-  and the texts are unproven. `scripts/linux/check-apk-on-emulator.sh:55-59` starts the app without the camera
-  permission and sleeps 20 s: create, JNI and `gst_init` never run, and an APK whose library cannot load passes.
-  The android lane was the first compile of f62bcf9's Kotlin, after the push. `docs/source/testing.md` already names
-  the thin Android plugin tests as a gap; the fake, the unnamed code and the emulator's missing permission are new.
-  First step: install with `adb install -r -g`, require `GStreamer initialized` in logcat and fail on
-  `Create failed`, `UnsatisfiedLinkError` or `bus error`, with planted-failure cases in
-  `scripts/linux/tests/test-check-apk-on-emulator.sh`; and one Android-variant Dart test whose fake answers
-  `command_failed` with two real messages and expects the next source. PLAYING is a later check: two failing
-  sources can wait 15 s each (`gstreamer_native.cpp:500-502`). A dispatch-only workflow that only compiles the
-  Kotlin and runs its JVM test is worth a try after that; its Gradle command is untested and its time is not
-  measured. Done when the emulator check fails on each planted fault and the Dart test fails without the
-  `command_failed` branch.
-  **First step in source (2026-11-20):** the check installs with `-g`, requires `GStreamer initialized` and fails on
-  `Create failed`, `UnsatisfiedLinkError` and `bus error`, each a planted case that passes without the check;
-  `stream_page_native_test.dart` has an Android test whose fake answers `command_failed` with the plugin's two texts
-  (`gstreamer_native.cpp:406`, `:702`) and fails without that branch. The lane's first run with it (44813920781)
-  reached `play set_state(PLAYING): SUCCESS` on the emulator with no `bus error`, and failed only because
-  `logcat -d` had lost the early lines to the fresh emulator's ring buffer; the check now streams logcat from the
-  start. The streamed run (44842086289) showed the chain at work: `ahcsrc` is missing on the emulator,
-  `autovideosrc` finds no camera and its fake source ends in a `bus error`, then `videotestsrc` reaches PLAYING; so a
-  bus error now fails only when no later `play set_state(PLAYING): SUCCESS` follows. Left: a green android run;
-  PLAYING as a requirement and the dispatch-only Kotlin workflow as above.
+- [ ] **Android: PLAYING as a requirement, and a faster Kotlin loop** (S, ★). The emulator check proves since
+  2026-11-21 that the plugin loads, initialises GStreamer and recovers from a source's `bus error` (run 44909804182:
+  `ahcsrc` missing, `autovideosrc`'s fake source fails, `videotestsrc` plays), and the Dart suite names
+  `command_failed`. Left: require a `play set_state(PLAYING): SUCCESS` once the wait covers two failing sources (15 s
+  each, `gstreamer_native.cpp:500-502`), and a dispatch-only workflow that compiles the Kotlin and runs its JVM test
+  without the APK; its Gradle command is untested and its time not measured.
 
 - [ ] **On Android a camera that dies still shows "Playing"** (M, ★★). Read from the code, on no device. After the
   start nothing reads the GStreamer bus: `android/src/main/cpp/gstreamer_native.cpp` reads it only inside a failing
@@ -345,15 +323,6 @@ flutter_rust_bridge, drops its AccelerANTgine submodule, and takes new Rust API 
 The owner's decisions of 2026-11-21 (D3, D8, D12 and the rest, as recommended); the shared pieces are hub CON290 to
 CON294.
 
-- [ ] **A Rust panic ends the release and profile app** (S, ★★★; owner D3). OxidANT's `[profile.release]` sets
-  `panic = "abort"`, so flutter_rust_bridge's and gstreamer-app's `catch_unwind` never run and the whole app dies, the
-  class BeschleunigerBallett fixed on 2026-11-19 (OxidANT aaebec5). Set `CARGO_PROFILE_RELEASE_PANIC=unwind` in
-  cargokit's `_buildEnvironment` (`builder.dart:158`) for non-debug builds and at `Build-WindowsArm64Natives.ps1:50`,
-  as the third local cargokit patch (`platforms.md:631-645`); `check-rust-toolchain.sh` fails unless `liboxidant.so`
-  imports `_Unwind_RaiseException`; a test provokes a panic in a profile build; the size change is measured from CI
-  artifacts. **In source since 2026-11-21:** both settings, and `check-rust-toolchain.sh --require-unwind` in the native
-  Linux lane (planted cases on both sides). Left: that lane's first green run with it, the size change from the
-  artifacts, and a provoked panic in a profile build.
 - [ ] **The sanitizer jobs check what their names say** (S, ★★). The x64 Debug job builds an ASan+UBSan plugin gtest
   that no step runs (job 132992805094, log 9886-9907): copy the exe, `flutter_windows.dll` and the pdb out of the
   `x64_x64-ClangCL-Windows-Debug` tree the hub's sync skips (`WindowsFlutter.Common.psm1:193-195`) and run
@@ -367,9 +336,11 @@ CON294.
   `linux/CMakeLists.txt:39-45`), and the hub's ELF gate once CON294 lands; `/guard:cf` on the Windows runner after
   CON290, CET only after a launch smoke on CET-capable hardware (D8); `!cancelled()` on the three uploads
   (`reusable-linux.yml:119-140`) and a googletest `URL_HASH`; `--privileged` dropped from `web.yml:56` and
-  `linux-gpu-candidates.yml:119` if the lanes stay green; CodeQL default setup for c-cpp and actions, and the 102
-  alerts of deleted workflows dismissed (D12); the Windows compiler cache fixed (0.94 % hits, save skipped, job
-  133499378065) before the hub hands its key to the other repos.
+  `linux-gpu-candidates.yml:119` if the lanes stay green; the Windows compiler cache fixed (0.94 % hits, save skipped,
+  job 133499378065) before the hub hands its key to the other repos; D3's size change, read from the release
+  artifacts before and after 9236da02, and a panic provoked in a profile build. D3 itself is in since 2026-11-21
+  (`liboxidant.so` unwinds on Linux x64 and arm64, runs 44911736528 and 44911736662), and D12 too (CodeQL default
+  setup for c-cpp and actions, the 96 alerts of three deleted workflows dismissed).
 
 ## Open — waiting on the owner
 

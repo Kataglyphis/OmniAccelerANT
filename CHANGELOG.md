@@ -5,6 +5,23 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ## Unreleased
 
+### 2026-11-21 — the Android plugin path proven on the emulator; a Rust panic reaches Dart
+
+- The emulator check installs with `-g`, so the start runs the plugin's create, its JNI and `gst_init`; it requires
+  `GStreamer initialized`, fails on `Create failed` and `UnsatisfiedLinkError`, and on a `bus error` that no later
+  `play set_state(PLAYING): SUCCESS` follows. It streams logcat from the start (a fresh emulator's ring buffer had
+  dropped the first lines) and reads the log with `awk` (a `sed | grep -q` pipe failed under `pipefail` on a long log).
+  Run 44909804182 passed with it: `ahcsrc` is missing, `autovideosrc`'s fake source fails, `videotestsrc` plays.
+- `stream_page_native_test.dart` answers `command_failed` with the plugin's own texts, the code the source fallback
+  keys on, and fails without that branch.
+- Release and profile builds unwind a Rust panic (owner decision D3): cargokit sets `CARGO_PROFILE_RELEASE_PANIC=unwind`
+  for non-debug builds, `Build-WindowsArm64Natives.ps1` for its own build, and `check-rust-toolchain.sh
+  --require-unwind` holds the Linux bundle to it.
+- A failure the bridge streams reads as its sentence (`AnyhowException.message`), for the AI playground and the ESP32
+  link; the `detector_cpu` row pins ORT on the CPU.
+- CodeQL default setup runs for c-cpp and actions (owner decision D12); the 96 alerts of three deleted workflows are
+  dismissed.
+
 ### 2026-11-20 (the first AMD candidate of the plugin layout)
 - `linux-gpu-candidates.yml` with `gpu-tuple: amd-x64` (run 44719507853) passed the image check, the native build and
   bundle census, `verify-gpu-candidate.sh amd x64` and the clean-host job: without a card each package refuses
