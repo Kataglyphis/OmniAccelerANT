@@ -82,7 +82,7 @@ if [[ "$BUILD_MODE" == "release" ]]; then
   # The app loads no distro plugin, so an element no bundled plugin provides is missing on every user machine.
   run_gate "bundled GStreamer elements" bash scripts/linux/check-bundle-gst-elements.sh --arch "$MATRIX_ARCH" --build-mode "$BUILD_MODE"
   run_gate "plugin gtest" run_plugin_gtest "$build_dir"
-  run_gate "rust toolchain" bash scripts/linux/check-rust-toolchain.sh "${build_dir}/bundle/lib/liboxidant.so"
+  run_gate "rust toolchain" bash scripts/linux/check-rust-toolchain.sh --require-unwind "${build_dir}/bundle/lib/liboxidant.so"
   assert_gates
 
   # Under the image's xvfb-run: the packaged bundle starts, and the app drives its integration test.

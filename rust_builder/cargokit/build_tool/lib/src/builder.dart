@@ -156,8 +156,12 @@ class RustBuilder {
   }
 
   Future<Map<String, String>> _buildEnvironment() async {
+    // Local patch: unwind, so a panic in a release or profile app reaches Dart instead of aborting it.
+    final unwind = <String, String>{
+      if (!environment.configuration.isDebug) 'CARGO_PROFILE_RELEASE_PANIC': 'unwind',
+    };
     if (target.android == null) {
-      return {};
+      return unwind;
     } else {
       final sdkPath = environment.androidSdkPath;
       final ndkVersion = environment.androidNdkVersion;
@@ -181,7 +185,7 @@ class RustBuilder {
       if (!env.ndkIsInstalled() && environment.javaHome != null) {
         env.installNdk(javaHome: environment.javaHome!);
       }
-      return env.buildEnvironment();
+      return {...await env.buildEnvironment(), ...unwind};
     }
   }
 }

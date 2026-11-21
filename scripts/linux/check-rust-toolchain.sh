@@ -7,6 +7,7 @@ crate_dir="$(cd "${SCRIPT_DIR}/../.." && pwd)/third_party/OxidANT"
 expect=""
 apk=""
 abi="arm64-v8a"
+require_unwind=0
 files=()
 
 # shellcheck source=scripts/linux/lib/entry-options.sh
@@ -17,8 +18,9 @@ add_elf_argument() {
     *) files+=("$1") ;;
   esac
 }
-parse_entry_options '[--crate-dir DIR] [--expect VERSION] [--apk FILE [--abi ABI]] [ELF...]' add_elf_argument \
-  '--crate-dir=crate_dir:a path' '--expect=expect:a version' '--apk=apk:a path' '--abi=abi:a value' -- "$@"
+parse_entry_options '[--crate-dir DIR] [--expect VERSION] [--apk FILE [--abi ABI]] [--require-unwind] [ELF...]' add_elf_argument \
+  '--crate-dir=crate_dir:a path' '--expect=expect:a version' '--apk=apk:a path' '--abi=abi:a value' \
+  '+--require-unwind=require_unwind=1' -- "$@"
 
 work="$(mktemp -d)"
 trap 'rm -rf "${work}"' EXIT
@@ -62,6 +64,16 @@ for f in "${files[@]}"; do
     fails=$((fails + 1))
   else
     printf 'OK   %s: rustc %s\n' "$label" "$expect"
+  fi
+  # A linux-gnu library that can unwind a panic imports libgcc_s's raise; one built with panic=abort does not.
+  if [ "$require_unwind" = 1 ]; then
+    syms="$(readelf --dyn-syms --wide "$f" 2>/dev/null)" || true
+    if grep -qE ' UND +_Unwind_RaiseException(@|$)' <<< "$syms"; then
+      printf 'OK   %s: unwinds a panic\n' "$label"
+    else
+      printf 'FAIL %s cannot unwind a panic (no _Unwind_RaiseException import): a release build needs CARGO_PROFILE_RELEASE_PANIC=unwind\n' "$label" >&2
+      fails=$((fails + 1))
+    fi
   fi
 done
 [ "$fails" -eq 0 ]

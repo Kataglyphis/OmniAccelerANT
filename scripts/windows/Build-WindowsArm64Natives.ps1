@@ -46,6 +46,8 @@ foreach ($header in 'kataglyphis_c_api.h', 'kataglyphis_export.h') { Copy-Item -
 
 # Target tree off the bind mount (AGENTS.md § 5); the cross opt-in lets pkg-config read arm64 .pc files.
 $env:PKG_CONFIG_ALLOW_CROSS = '1'
+# As cargokit's patch does: OxidANT's release profile aborts on a panic, and the app must get it as a Dart exception.
+$env:CARGO_PROFILE_RELEASE_PANIC = 'unwind'
 $cargoTarget = Join-Path $env:TEMP 'omni-arm64-cargo'
 & cargo build --manifest-path (Join-Path $WorkspaceDir 'third_party\OxidANT\Cargo.toml') --release --lib `
     --target aarch64-pc-windows-msvc --target-dir $cargoTarget

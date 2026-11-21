@@ -650,6 +650,16 @@ on any other version; its suite, `scripts/linux/tests/test-check-rust-toolchain.
 lanes' code-quality batches. The Android lane still adds `aarch64-linux-android` to the pinned
 toolchain at build time (about 4 s), because the image lacks that target.
 
+**Release and profile builds unwind a Rust panic** (owner decision 2026-11-21, the third local
+patch). OxidANT's `[profile.release]` sets `panic = "abort"`, so a panic in a release or profile
+app ended the process before flutter_rust_bridge's `catch_unwind` could hand Dart an exception.
+`builder.dart`'s `_buildEnvironment` sets `CARGO_PROFILE_RELEASE_PANIC=unwind` for every non-debug
+build, Android's environment included, and `scripts/windows/Build-WindowsArm64Natives.ps1` sets it
+for its own `cargo build`; keep it when bumping the vendored copy. The native Linux lane holds it
+with `check-rust-toolchain.sh --require-unwind`: a linux-gnu library that can unwind imports
+libgcc_s's `_Unwind_RaiseException`, one built to abort does not. Android links its unwinder
+statically, so its APK shows no such import.
+
 ### The Linux plugin's AccelerANTgine build
 
 **The Linux plugin builds AccelerANTgine without its test suites and without its Debug

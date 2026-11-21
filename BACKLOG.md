@@ -351,7 +351,9 @@ CON294.
   cargokit's `_buildEnvironment` (`builder.dart:158`) for non-debug builds and at `Build-WindowsArm64Natives.ps1:50`,
   as the third local cargokit patch (`platforms.md:631-645`); `check-rust-toolchain.sh` fails unless `liboxidant.so`
   imports `_Unwind_RaiseException`; a test provokes a panic in a profile build; the size change is measured from CI
-  artifacts.
+  artifacts. **In source since 2026-11-21:** both settings, and `check-rust-toolchain.sh --require-unwind` in the native
+  Linux lane (planted cases on both sides). Left: that lane's first green run with it, the size change from the
+  artifacts, and a provoked panic in a profile build.
 - [ ] **The sanitizer jobs check what their names say** (S, ★★). The x64 Debug job builds an ASan+UBSan plugin gtest
   that no step runs (job 132992805094, log 9886-9907): copy the exe, `flutter_windows.dll` and the pdb out of the
   `x64_x64-ClangCL-Windows-Debug` tree the hub's sync skips (`WindowsFlutter.Common.psm1:193-195`) and run

@@ -10,6 +10,9 @@ trap 'rm -rf "${work}"' EXIT
 
 printf 'int f(void) { return 0; }\n' > "${work}/f.c"
 cc -shared -fPIC -o "${work}/base.so" "${work}/f.c" || exit 1
+# What a panic=unwind cdylib on linux-gnu carries: an undefined _Unwind_RaiseException for libgcc_s to resolve.
+printf 'extern int _Unwind_RaiseException(void *); int g(void *p) { return _Unwind_RaiseException(p); }\n' > "${work}/u.c"
+cc -shared -fPIC -o "${work}/unwind-base.so" "${work}/u.c" || exit 1
 
 # make_elf <out> <comment string>...: base.so with exactly these NUL-separated .comment entries.
 make_elf() {
@@ -28,6 +31,8 @@ make_elf "${work}/pinned.so" "GCC: (GNU) 16.2.0" "rustc version 1.98.1 (48a229ce
 make_elf "${work}/floating.so" "rustc version 1.99.0 (b940084d7 2026-09-28)"
 make_elf "${work}/mixed.so" "rustc version 1.98.1 (48a229cea 2026-09-01)" "rustc version 1.99.0 (b940084d7 2026-09-28)"
 make_elf "${work}/c-only.so" "GCC: (GNU) 16.2.0"
+objcopy --remove-section .comment --add-section .comment=<(printf 'rustc version 1.98.1 (48a229cea 2026-09-01)\0') \
+  "${work}/unwind-base.so" "${work}/unwinds.so"
 
 t_case "built by the expected rustc"
 t_assert_rc 0 bash "$gate" --expect 1.98.1 "${work}/pinned.so"
@@ -37,6 +42,10 @@ t_case "objects from two rustc versions"
 t_assert_rc 1 bash "$gate" --expect 1.98.1 "${work}/mixed.so"
 t_case "no rustc stamp at all"
 t_assert_rc 1 bash "$gate" --expect 1.98.1 "${work}/c-only.so"
+t_case "--require-unwind passes a library that imports _Unwind_RaiseException"
+t_assert_rc 0 bash "$gate" --expect 1.98.1 --require-unwind "${work}/unwinds.so"
+t_case "--require-unwind refuses one built to abort on a panic"
+t_assert_rc 1 bash "$gate" --expect 1.98.1 --require-unwind "${work}/pinned.so"
 t_case "a missing file"
 t_assert_rc 1 bash "$gate" --expect 1.98.1 "${work}/absent.so"
 t_case "one bad binary among good ones"
