@@ -82,7 +82,8 @@ fi
 plugin_faults="$(grep -E 'Create failed|UnsatisfiedLinkError' "$logcat" || true)"
 # A bus error the source chain recovers from is the chain at work (run 44842086289); one no later PLAYING follows is a fault.
 last_bus_error="$(grep -n 'bus error' "$logcat" | tail -n 1 | cut -d: -f1)" || true
-if [ -n "$last_bus_error" ] && ! sed -n "$((last_bus_error + 1)),\$p" "$logcat" | grep -q 'play set_state(PLAYING): SUCCESS'; then
+# awk, not sed | grep -q: under pipefail grep's early exit leaves sed a SIGPIPE on a long log (run 44901902135).
+if [ -n "$last_bus_error" ] && ! awk -v from="$last_bus_error" 'NR > from && /play set_state\(PLAYING\): SUCCESS/ { found = 1 } END { exit !found }' "$logcat"; then
   plugin_faults="${plugin_faults}${plugin_faults:+$'\n'}$(grep 'bus error' "$logcat")"
 fi
 plugin_problem=""

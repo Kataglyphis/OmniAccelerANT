@@ -19,7 +19,7 @@ printf 'adb %s\n' "$*" >> "${STUB_CALLS}"
 case "$1 ${2:-}" in
   "install "*) exit 0 ;;
   "logcat -c") exit 0 ;;
-  "logcat -v") printf '%b' "${STUB_LOGCAT:-}" ;;
+  "logcat -v") printf '%b' "${STUB_LOGCAT:-}"; [ -z "${STUB_FILLER:-}" ] || seq "${STUB_FILLER}" | sed 's/^/I chatty  : line /' ;;
   "shell dumpsys") printf '  primaryCpuAbi=%s\n' "${STUB_ABI}" ;;
   "shell cmd") printf 'priority=0 preferredOrder=0\n%s\n' "${STUB_ACTIVITY}" ;;
   "shell am") exit 0 ;;
@@ -69,6 +69,8 @@ t_case "the pipeline's bus reported an error and no source played after it"
 t_assert_rc 1 emulator STUB_LOGCAT="${healthy}E KataglyphisGStreamer: bus error: Internal data stream error. (no debug)\n"
 t_case "a bus error the source chain recovers from is the chain at work"
 t_assert_rc 0 emulator STUB_LOGCAT="${healthy}E KataglyphisGStreamer: bus error: Internal data stream error.\nI KataglyphisGStreamer: play set_state(PLAYING): SUCCESS\n"
+t_case "a recovery still counts when a long log follows it"
+t_assert_rc 0 emulator STUB_FILLER=200000 STUB_LOGCAT="${healthy}E KataglyphisGStreamer: bus error: Internal data stream error.\nI KataglyphisGStreamer: play set_state(PLAYING): SUCCESS\n"
 t_case "a PLAYING before the last bus error does not excuse it"
 t_assert_rc 1 emulator STUB_LOGCAT="${healthy}I KataglyphisGStreamer: play set_state(PLAYING): SUCCESS\nE KataglyphisGStreamer: bus error: late\n"
 t_case "the app is gone after the wait"
