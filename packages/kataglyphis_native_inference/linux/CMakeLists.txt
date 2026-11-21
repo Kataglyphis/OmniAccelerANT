@@ -46,7 +46,8 @@ target_sources(
          FILES
          ${PLUGIN_MODULES})
 
-target_compile_features(${PLUGIN_NAME} PRIVATE cxx_std_20)
+# PUBLIC: CMake synthesizes a target for the public module file set, and it takes the standard from here.
+target_compile_features(${PLUGIN_NAME} PUBLIC cxx_std_20)
 
 # Build settings from the application-level CMakeLists.txt.
 apply_standard_settings(${PLUGIN_NAME})
@@ -100,7 +101,7 @@ if(${include_${PROJECT_NAME}_tests})
              ${CMAKE_CURRENT_SOURCE_DIR}
              FILES
              ${PLUGIN_MODULES})
-    target_compile_features(${TEST_RUNNER} PRIVATE cxx_std_20)
+    target_compile_features(${TEST_RUNNER} PUBLIC cxx_std_20)
     apply_standard_settings(${TEST_RUNNER})
     target_include_directories(${TEST_RUNNER} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
     target_include_directories(${TEST_RUNNER} PRIVATE "${KCI_TEXTURE_ABI_DIR}")

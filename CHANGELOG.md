@@ -12,6 +12,9 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
   `add` for Windows alone, so `pluginAnswers('add', linux)` is false and the About page shows the add(3,4) demo on
   Windows only; the channel contract test follows. Embedded, AccelerANTgine built with hardening off, so the plugin
   lost none; the hub modules on the plugin target and the `libonnxruntime.so.1` copy come next.
+- The plugin's `cxx_std_20` is PUBLIC: CMake synthesizes a target for its public module file set, which took
+  AccelerANTgine's PUBLIC `cxx_std_23` until then, and without it the Linux build stopped at generate time (run
+  44942466873).
 
 ### 2026-11-21 — the x64 VC++ runtime is the app's own (add-demo retirement, step a)
 
