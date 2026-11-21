@@ -80,7 +80,6 @@ Dart package texts are in Flutter's `NOTICES`. Maintenance and limits:
 | allocator-api2 | 0.2.21 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
 | android_log-sys | 0.3.2 | MIT OR Apache-2.0 | oxidant |
 | android_logger | 0.15.1 | MIT OR Apache-2.0 | oxidant |
-| android_system_properties | 0.1.6 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
 | anstream | 1.0.0 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
 | anstyle-parse | 1.0.0 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
 | anstyle-query | 1.1.5 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
@@ -116,7 +115,6 @@ Dart package texts are in Flutter's `NOTICES`. Maintenance and limits:
 | bytes | 1.12.1 | MIT | kataglyphis_observant, oxidant |
 | cfg-if | 1.0.5 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
 | chacha20 | 0.10.2 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
-| chrono | 0.4.45 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
 | clap | 4.6.7 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
 | clap_builder | 4.6.7 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
 | clap_derive | 4.6.7 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
@@ -201,7 +199,6 @@ Dart package texts are in Flutter's `NOTICES`. Maintenance and limits:
 | httpdate | 1.0.3 | MIT OR Apache-2.0 | kataglyphis_observant |
 | hyper-util | 0.1.21 | MIT | kataglyphis_observant |
 | hyper | 1.12.0 | MIT | kataglyphis_observant |
-| iana-time-zone | 0.1.65 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
 | image-webp | 0.2.4 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
 | image | 0.25.10 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
 | imgref | 1.12.3 | CC0-1.0 OR Apache-2.0 | kataglyphis_observant, oxidant |
@@ -212,6 +209,9 @@ Dart package texts are in Flutter's `NOTICES`. Maintenance and limits:
 | itertools | 0.15.0 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
 | itoa | 1.0.18 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
 | jiff-core | 0.1.1 | Unlicense OR MIT | kataglyphis_observant, oxidant |
+| jiff-static | 0.2.38 | Unlicense OR MIT | kataglyphis_observant, oxidant |
+| jiff-tzdb-platform | 0.1.3 | Unlicense OR MIT | kataglyphis_observant, oxidant |
+| jiff-tzdb | 0.1.10 | Unlicense OR MIT | kataglyphis_observant, oxidant |
 | jiff | 0.2.38 | Unlicense OR MIT | kataglyphis_observant, oxidant |
 | js-sys | 0.3.106 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
 | kataglyphis_core | 3.0.0 | MIT | kataglyphis_observant, oxidant |
@@ -263,8 +263,8 @@ Dart package texts are in Flutter's `NOTICES`. Maintenance and limits:
 | once_cell | 1.21.4 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
 | once_cell_polyfill | 1.70.2 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
 | option-operations | 0.6.1 | MIT/Apache-2.0 | kataglyphis_observant, oxidant |
-| ort-sys | 2.0.0-rc.13 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
-| ort | 2.0.0-rc.13 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
+| ort-sys | 2.0.0-rc.15 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
+| ort | 2.0.0-rc.15 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
 | oxidant | 3.0.0 | MIT | oxidant |
 | parking_lot | 0.12.5 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
 | parking_lot_core | 0.9.12 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |

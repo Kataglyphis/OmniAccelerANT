@@ -1347,32 +1347,6 @@
   {
    "ecosystem": "cargo",
    "license": "MIT OR Apache-2.0",
-   "name": "android_system_properties",
-   "source": "https://github.com/nical/android_system_properties",
-   "targets": [
-    "aarch64-linux-android"
-   ],
-   "texts": [
-    {
-     "name": "package/LICENSE-APACHE",
-     "provenance": "crates.io android_system_properties@0.1.6",
-     "sha256": "216486f29671a4262efe32af6d84a75bef398127f8c5f369b5c8305983887a06"
-    },
-    {
-     "name": "package/LICENSE-MIT",
-     "provenance": "crates.io android_system_properties@0.1.6",
-     "sha256": "80f275e90d799911ed3830a7f242a2ef5a4ade2092fe0aa07bfb2d2cf2f2b95e"
-    }
-   ],
-   "used_by": [
-    "kataglyphis_observant",
-    "oxidant"
-   ],
-   "version": "0.1.6"
-  },
-  {
-   "ecosystem": "cargo",
-   "license": "MIT OR Apache-2.0",
    "name": "anstream",
    "source": "https://github.com/rust-cli/anstyle.git",
    "targets": [
@@ -2462,33 +2436,6 @@
   {
    "ecosystem": "cargo",
    "license": "MIT OR Apache-2.0",
-   "name": "chrono",
-   "source": "https://github.com/chronotope/chrono",
-   "targets": [
-    "aarch64-linux-android",
-    "aarch64-pc-windows-msvc",
-    "aarch64-unknown-linux-gnu",
-    "riscv64gc-unknown-linux-gnu",
-    "wasm32-unknown-unknown",
-    "x86_64-pc-windows-msvc",
-    "x86_64-unknown-linux-gnu"
-   ],
-   "texts": [
-    {
-     "name": "package/LICENSE.txt",
-     "provenance": "crates.io chrono@0.4.45",
-     "sha256": "946c9835d8034d24404f8cfec5f4654cee5dad17e944afc3d06d742cf2882831"
-    }
-   ],
-   "used_by": [
-    "kataglyphis_observant",
-    "oxidant"
-   ],
-   "version": "0.4.45"
-  },
-  {
-   "ecosystem": "cargo",
-   "license": "MIT OR Apache-2.0",
    "name": "clap",
    "source": "https://github.com/clap-rs/clap",
    "targets": [
@@ -3016,12 +2963,12 @@
    ],
    "texts": [
     {
-     "name": "workspace/.omni-cargo-licenses/dart-sys@4.1.5/LICENSE-APACHE-2.0.md",
+     "name": "workspace/LICENSE-APACHE-2.0.md",
      "provenance": "https://github.com/dart-sys/dart-sys/blob/c9329430a5a8e3828cf59600babe7896326c7c44/LICENSE-APACHE-2.0.md (the published crate has no license file)",
      "sha256": "9c7a58ef39c896d7cc48e18c0a38eb570fc7cecb15a656101d399e367da800a2"
     },
     {
-     "name": "workspace/.omni-cargo-licenses/dart-sys@4.1.5/LICENSE-MIT.md",
+     "name": "workspace/LICENSE-MIT.md",
      "provenance": "https://github.com/dart-sys/dart-sys/blob/c9329430a5a8e3828cf59600babe7896326c7c44/LICENSE-MIT.md (the published crate has no license file)",
      "sha256": "a6b742d988bc83c6182193ca4e5abf2dbb67e929817fc94f5ed6e9f49b803f29"
     }
@@ -3774,7 +3721,7 @@
    ],
    "texts": [
     {
-     "name": "workspace/.omni-cargo-licenses/flutter_rust_bridge@2.13.0/LICENSE",
+     "name": "workspace/LICENSE",
      "provenance": "https://github.com/fzyzcjy/flutter_rust_bridge/blob/8631db91a90c699439c9ce2a1fb4164ae8661da9/LICENSE (the published crate has no license file)",
      "sha256": "d56622df159a9967bd6a16c726823a2cbe8546c1f18437617283c9da27000390"
     }
@@ -3800,7 +3747,7 @@
    ],
    "texts": [
     {
-     "name": "workspace/.omni-cargo-licenses/flutter_rust_bridge_macros@2.13.0/LICENSE",
+     "name": "workspace/LICENSE",
      "provenance": "https://github.com/fzyzcjy/flutter_rust_bridge/blob/8631db91a90c699439c9ce2a1fb4164ae8661da9/LICENSE (the published crate has no license file)",
      "sha256": "d56622df159a9967bd6a16c726823a2cbe8546c1f18437617283c9da27000390"
     }
@@ -5008,35 +4955,6 @@
   {
    "ecosystem": "cargo",
    "license": "MIT OR Apache-2.0",
-   "name": "iana-time-zone",
-   "source": "https://github.com/strawlab/iana-time-zone",
-   "targets": [
-    "aarch64-linux-android",
-    "aarch64-unknown-linux-gnu",
-    "riscv64gc-unknown-linux-gnu",
-    "x86_64-unknown-linux-gnu"
-   ],
-   "texts": [
-    {
-     "name": "package/LICENSE-APACHE",
-     "provenance": "crates.io iana-time-zone@0.1.65",
-     "sha256": "696759d65dfe558ff7d9f031c76db19ec5c0767470fb67c4e8d990820d1e99c9"
-    },
-    {
-     "name": "package/LICENSE-MIT",
-     "provenance": "crates.io iana-time-zone@0.1.65",
-     "sha256": "da28ccc6b158fc2d8cccc74e99794b1cff1d29bd7bbeb019442fcf0c04c6cad9"
-    }
-   ],
-   "used_by": [
-    "kataglyphis_observant",
-    "oxidant"
-   ],
-   "version": "0.1.65"
-  },
-  {
-   "ecosystem": "cargo",
-   "license": "MIT OR Apache-2.0",
    "name": "image-webp",
    "source": "https://github.com/image-rs/image-webp",
    "targets": [
@@ -5354,6 +5272,94 @@
     "oxidant"
    ],
    "version": "0.1.1"
+  },
+  {
+   "ecosystem": "cargo",
+   "license": "Unlicense OR MIT",
+   "name": "jiff-static",
+   "source": "https://github.com/BurntSushi/jiff",
+   "targets": [
+    "aarch64-linux-android",
+    "aarch64-pc-windows-msvc",
+    "aarch64-unknown-linux-gnu",
+    "riscv64gc-unknown-linux-gnu",
+    "wasm32-unknown-unknown",
+    "x86_64-pc-windows-msvc",
+    "x86_64-unknown-linux-gnu"
+   ],
+   "texts": [
+    {
+     "name": "package/COPYING",
+     "provenance": "crates.io jiff-static@0.2.38",
+     "sha256": "01c266bced4a434da0051174d6bee16a4c82cf634e2679b6155d40d75012390f"
+    },
+    {
+     "name": "package/LICENSE-MIT",
+     "provenance": "crates.io jiff-static@0.2.38",
+     "sha256": "0f96a83840e146e43c0ec96a22ec1f392e0680e6c1226e6f3ba87e0740af850f"
+    }
+   ],
+   "used_by": [
+    "kataglyphis_observant",
+    "oxidant"
+   ],
+   "version": "0.2.38"
+  },
+  {
+   "ecosystem": "cargo",
+   "license": "Unlicense OR MIT",
+   "name": "jiff-tzdb-platform",
+   "source": "https://github.com/BurntSushi/jiff",
+   "targets": [
+    "aarch64-pc-windows-msvc",
+    "wasm32-unknown-unknown",
+    "x86_64-pc-windows-msvc"
+   ],
+   "texts": [
+    {
+     "name": "package/COPYING",
+     "provenance": "crates.io jiff-tzdb-platform@0.1.3",
+     "sha256": "01c266bced4a434da0051174d6bee16a4c82cf634e2679b6155d40d75012390f"
+    },
+    {
+     "name": "package/LICENSE-MIT",
+     "provenance": "crates.io jiff-tzdb-platform@0.1.3",
+     "sha256": "0f96a83840e146e43c0ec96a22ec1f392e0680e6c1226e6f3ba87e0740af850f"
+    }
+   ],
+   "used_by": [
+    "kataglyphis_observant",
+    "oxidant"
+   ],
+   "version": "0.1.3"
+  },
+  {
+   "ecosystem": "cargo",
+   "license": "Unlicense OR MIT",
+   "name": "jiff-tzdb",
+   "source": "https://github.com/BurntSushi/jiff",
+   "targets": [
+    "aarch64-pc-windows-msvc",
+    "wasm32-unknown-unknown",
+    "x86_64-pc-windows-msvc"
+   ],
+   "texts": [
+    {
+     "name": "package/COPYING",
+     "provenance": "crates.io jiff-tzdb@0.1.10",
+     "sha256": "01c266bced4a434da0051174d6bee16a4c82cf634e2679b6155d40d75012390f"
+    },
+    {
+     "name": "package/LICENSE-MIT",
+     "provenance": "crates.io jiff-tzdb@0.1.10",
+     "sha256": "0f96a83840e146e43c0ec96a22ec1f392e0680e6c1226e6f3ba87e0740af850f"
+    }
+   ],
+   "used_by": [
+    "kataglyphis_observant",
+    "oxidant"
+   ],
+   "version": "0.1.10"
   },
   {
    "ecosystem": "cargo",
@@ -6436,7 +6442,7 @@
    ],
    "texts": [
     {
-     "name": "workspace/.omni-cargo-licenses/nom-language@0.1.0/LICENSE",
+     "name": "workspace/LICENSE",
      "provenance": "https://github.com/rust-bakery/nom/blob/2cec1b3e4c9ccac62c902d60c00de6d1549ccbe1/LICENSE (the published crate has no license file)",
      "sha256": "4dbda04344456f09a7a588140455413a9ac59b6b26a1ef7cdf9c800c012d87f0"
     }
@@ -6884,12 +6890,12 @@
    "texts": [
     {
      "name": "package/LICENSE-APACHE",
-     "provenance": "crates.io ort-sys@2.0.0-rc.13",
+     "provenance": "crates.io ort-sys@2.0.0-rc.15",
      "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
     },
     {
      "name": "package/LICENSE-MIT",
-     "provenance": "crates.io ort-sys@2.0.0-rc.13",
+     "provenance": "crates.io ort-sys@2.0.0-rc.15",
      "sha256": "6bba08de46289c40986a2e6b310e2da61fcea33b3c112c8320f6093f8f9cb71b"
     }
    ],
@@ -6897,7 +6903,7 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "2.0.0-rc.13"
+   "version": "2.0.0-rc.15"
   },
   {
    "ecosystem": "cargo",
@@ -6914,12 +6920,12 @@
    "texts": [
     {
      "name": "package/LICENSE-APACHE",
-     "provenance": "crates.io ort@2.0.0-rc.13",
+     "provenance": "crates.io ort@2.0.0-rc.15",
      "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
     },
     {
      "name": "package/LICENSE-MIT",
-     "provenance": "crates.io ort@2.0.0-rc.13",
+     "provenance": "crates.io ort@2.0.0-rc.15",
      "sha256": "6bba08de46289c40986a2e6b310e2da61fcea33b3c112c8320f6093f8f9cb71b"
     }
    ],
@@ -6927,7 +6933,7 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "2.0.0-rc.13"
+   "version": "2.0.0-rc.15"
   },
   {
    "ecosystem": "cargo",
@@ -7385,12 +7391,12 @@
    ],
    "texts": [
     {
-     "name": "workspace/.omni-cargo-licenses/profiling-procmacros@1.0.18/LICENSE-APACHE",
+     "name": "workspace/LICENSE-APACHE",
      "provenance": "https://github.com/aclysma/profiling/blob/da44bd1c5497c665c0f00e5d70594fc14d390b4b/LICENSE-APACHE (the published crate has no license file)",
      "sha256": "10d30a673cd5e9349bdc02aeb48f14b3386d27d0da32df8f0a555d4aa16aa551"
     },
     {
-     "name": "workspace/.omni-cargo-licenses/profiling-procmacros@1.0.18/LICENSE-MIT",
+     "name": "workspace/LICENSE-MIT",
      "provenance": "https://github.com/aclysma/profiling/blob/da44bd1c5497c665c0f00e5d70594fc14d390b4b/LICENSE-MIT (the published crate has no license file)",
      "sha256": "c8167fdeeed46d3f244d3f85c5bf998ce889343691c32be2c61a8bc4b5c08333"
     }
@@ -7417,12 +7423,12 @@
    ],
    "texts": [
     {
-     "name": "workspace/.omni-cargo-licenses/profiling@1.0.18/LICENSE-APACHE",
+     "name": "workspace/LICENSE-APACHE",
      "provenance": "https://github.com/aclysma/profiling/blob/da44bd1c5497c665c0f00e5d70594fc14d390b4b/LICENSE-APACHE (the published crate has no license file)",
      "sha256": "10d30a673cd5e9349bdc02aeb48f14b3386d27d0da32df8f0a555d4aa16aa551"
     },
     {
-     "name": "workspace/.omni-cargo-licenses/profiling@1.0.18/LICENSE-MIT",
+     "name": "workspace/LICENSE-MIT",
      "provenance": "https://github.com/aclysma/profiling/blob/da44bd1c5497c665c0f00e5d70594fc14d390b4b/LICENSE-MIT (the published crate has no license file)",
      "sha256": "c8167fdeeed46d3f244d3f85c5bf998ce889343691c32be2c61a8bc4b5c08333"
     }
@@ -7503,7 +7509,7 @@
    ],
    "texts": [
     {
-     "name": "workspace/.omni-cargo-licenses/pulp-wasm-simd-flag@0.1.1/LICENSE",
+     "name": "workspace/LICENSE",
      "provenance": "https://github.com/sarah-quinones/pulp/blob/5eb07fd7b68edf0a5e19f71737d315f72a510295/LICENSE (the published crate has no license file)",
      "sha256": "d64f878c89bd5f1e5ada7e4aad57690b122727cf5229b7b87ea1980c188da1d9"
     }
@@ -8715,7 +8721,7 @@
    ],
    "texts": [
     {
-     "name": "workspace/.omni-cargo-licenses/simd_helpers@0.1.0/LICENSE",
+     "name": "workspace/LICENSE",
      "provenance": "https://github.com/lu-zero/simd_helpers/blob/82040194cd05affb060bf94d6f19f82a771d07fb/LICENSE (the published crate has no license file)",
      "sha256": "d69f24ad84ec2ade64c0b68bdb31b41170e997b158370342056918329cc9af1e"
     }
@@ -9621,12 +9627,12 @@
    ],
    "texts": [
     {
-     "name": "workspace/.omni-cargo-licenses/tract-extra@0.23.8/LICENSE-APACHE",
+     "name": "workspace/LICENSE-APACHE",
      "provenance": "https://github.com/sonos/tract/blob/9e0cfaa9b3a9251f41f74101801dc2c937b1660a/LICENSE-APACHE (the published crate has no license file)",
      "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2"
     },
     {
-     "name": "workspace/.omni-cargo-licenses/tract-extra@0.23.8/LICENSE-MIT",
+     "name": "workspace/LICENSE-MIT",
      "provenance": "https://github.com/sonos/tract/blob/9e0cfaa9b3a9251f41f74101801dc2c937b1660a/LICENSE-MIT (the published crate has no license file)",
      "sha256": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3"
     }
@@ -9838,12 +9844,12 @@
    ],
    "texts": [
     {
-     "name": "workspace/.omni-cargo-licenses/tract-transformers@0.23.8/LICENSE-APACHE",
+     "name": "workspace/LICENSE-APACHE",
      "provenance": "https://github.com/sonos/tract/blob/9e0cfaa9b3a9251f41f74101801dc2c937b1660a/LICENSE-APACHE (the published crate has no license file)",
      "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2"
     },
     {
-     "name": "workspace/.omni-cargo-licenses/tract-transformers@0.23.8/LICENSE-MIT",
+     "name": "workspace/LICENSE-MIT",
      "provenance": "https://github.com/sonos/tract/blob/9e0cfaa9b3a9251f41f74101801dc2c937b1660a/LICENSE-MIT (the published crate has no license file)",
      "sha256": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3"
     }
@@ -11301,17 +11307,17 @@
    ],
    "texts": [
     {
-     "name": "workspace/.omni-cargo-licenses/zune-inflate@0.2.54/LICENSE-APACHE",
+     "name": "workspace/LICENSE-APACHE",
      "provenance": "https://github.com/etemesi254/zune-image/blob/2f9086b07cdf5a36621ce18f79d310f99b751de9/crates/zune-inflate/LICENSE-APACHE (the published crate has no license file)",
      "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
     },
     {
-     "name": "workspace/.omni-cargo-licenses/zune-inflate@0.2.54/LICENSE-MIT",
+     "name": "workspace/LICENSE-MIT",
      "provenance": "https://github.com/etemesi254/zune-image/blob/2f9086b07cdf5a36621ce18f79d310f99b751de9/crates/zune-inflate/LICENSE-MIT (the published crate has no license file)",
      "sha256": "d30047bca3b516639339a3c279bb84c3483124fb5a9dafe3c75056a85090e745"
     },
     {
-     "name": "workspace/.omni-cargo-licenses/zune-inflate@0.2.54/LICENSE-ZLIB",
+     "name": "workspace/LICENSE-ZLIB",
      "provenance": "https://github.com/etemesi254/zune-image/blob/2f9086b07cdf5a36621ce18f79d310f99b751de9/crates/zune-inflate/LICENSE-ZLIB (the published crate has no license file)",
      "sha256": "d201d14804d3bcd3b944147173175e4abfbd838b7c8069b6bd3452496bf13e6c"
     }
@@ -12213,7 +12219,7 @@
   "scripts/licenses/cargo-policy.json": "6e00988b928e306bffa597f57dc58e21d9c34db75d52985c354b6cf077e1dcf5",
   "scripts/licenses/native-components.json": "cfe18b666ad445d8d88596c04c71cf6c7e5336c20b9e0edb040d149be7871348",
   "third_party/AccelerANTgine/Src/rusty_code/Cargo.lock": "4834328081f31332074f730d8b746e9e1f04a502410d2f128ec0f06cafea5b25",
-  "third_party/OxidANT/Cargo.lock": "a89c60c75ca73013a9b3f12a3ebce6e2d77a5951d5e83b9f2b2635ad61a608fa"
+  "third_party/OxidANT/Cargo.lock": "8f64077d70ca72733217afbbb60b8c6a9ebce9e25adf9aec4c44a069f669728d"
  },
  "schema": 1,
  "text_files": [

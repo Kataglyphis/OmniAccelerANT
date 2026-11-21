@@ -303,7 +303,9 @@ flutter_rust_bridge, drops its AccelerANTgine submodule, and takes new Rust API 
   stream (this repo already reads them as `AnyhowException.message`). `src/api` differs by one comment, but the bump
   brings ort rc.15, jiff for chrono and a new Cargo.lock: regenerate the license inventory and run `[ci windows]
   [ci arm64] [ci web] [ci android]`. Then a native test: a missing model directory shows the model-load sentence
-  (`integration_test/text_generate_test.dart` covers no failure today).
+  (`integration_test/text_generate_test.dart` covers no failure today). **In source since 2026-11-21:** the pin is
+  56865c4 (ort rc.15, jiff for chrono and its helpers in the inventory; the bindings regenerate unchanged; 393 Dart
+  tests pass). Left: the four lanes' run and the native failure test.
 - [ ] **Retire the add(3,4) demo and `third_party/AccelerANTgine`** (M, ★★★; owner D1). The app builds all of
   AccelerANTgine (8 nested submodules, a second libonnxruntime on Linux) for one call, `kataglyphis_add`. In four
   steps: (a) the Windows x64 VC++ runtime and its notice move into the app's own CMake, with the runner's file list
