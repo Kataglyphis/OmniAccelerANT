@@ -79,12 +79,20 @@ if [ -z "$pid" ] || [ -n "$crashes" ]; then
   fail "$package did not stay up ${seconds}s on ${serial} (pid '${pid}')"
 fi
 # An APK whose library cannot load, or whose create fails, stays up too: the plugin's own lines decide.
-plugin_faults="$(grep -E 'Create failed|UnsatisfiedLinkError|bus error' "$logcat" || true)"
-if [ -n "$plugin_faults" ] || ! grep -q 'GStreamer initialized' "$logcat"; then
+plugin_faults="$(grep -E 'Create failed|UnsatisfiedLinkError' "$logcat" || true)"
+# A bus error the source chain recovers from is the chain at work (run 44842086289); one no later PLAYING follows is a fault.
+last_bus_error="$(grep -n 'bus error' "$logcat" | tail -n 1 | cut -d: -f1)" || true
+if [ -n "$last_bus_error" ] && ! sed -n "$((last_bus_error + 1)),\$p" "$logcat" | grep -q 'play set_state(PLAYING): SUCCESS'; then
+  plugin_faults="${plugin_faults}${plugin_faults:+$'\n'}$(grep 'bus error' "$logcat")"
+fi
+plugin_problem=""
+grep -q 'GStreamer initialized' "$logcat" || plugin_problem="no 'GStreamer initialized': create, the JNI or gst_init did not run"
+if [ -z "$plugin_problem" ] && [ -n "$plugin_faults" ]; then plugin_problem="a fault in the plugin's lines above"; fi
+if [ -n "$plugin_problem" ]; then
   printf '%s\n' "$plugin_faults" >&2
   printf -- '--- logcat, the plugin'"'"'s last 40 lines\n' >&2
   grep -E 'KataglyphisGStreamer|GStreamer' "$logcat" | tail -n 40 >&2
-  fail "$package's plugin did not bring GStreamer up cleanly on ${serial} (no 'GStreamer initialized', or a fault above)"
+  fail "$package's plugin on ${serial}: ${plugin_problem}"
 fi
 # threadtime format: the third field is the pid.
 printf 'OK %s stayed up %ss on %s as arm64-v8a (pid %s, %s logcat line(s) of its own)\n' \

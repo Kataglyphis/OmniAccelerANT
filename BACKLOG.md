@@ -278,7 +278,10 @@ name is under `lib/Pages/StreamPage/`.
   (`gstreamer_native.cpp:406`, `:702`) and fails without that branch. The lane's first run with it (44813920781)
   reached `play set_state(PLAYING): SUCCESS` on the emulator with no `bus error`, and failed only because
   `logcat -d` had lost the early lines to the fresh emulator's ring buffer; the check now streams logcat from the
-  start. Left: a green android run with the streamed log; PLAYING and the dispatch-only Kotlin workflow as above.
+  start. The streamed run (44842086289) showed the chain at work: `ahcsrc` is missing on the emulator,
+  `autovideosrc` finds no camera and its fake source ends in a `bus error`, then `videotestsrc` reaches PLAYING; so a
+  bus error now fails only when no later `play set_state(PLAYING): SUCCESS` follows. Left: a green android run;
+  PLAYING as a requirement and the dispatch-only Kotlin workflow as above.
 
 - [ ] **On Android a camera that dies still shows "Playing"** (M, ★★). Read from the code, on no device. After the
   start nothing reads the GStreamer bus: `android/src/main/cpp/gstreamer_native.cpp` reads it only inside a failing
