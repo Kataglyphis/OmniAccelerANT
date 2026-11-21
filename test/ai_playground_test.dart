@@ -14,6 +14,8 @@ import 'package:anthology/constants.dart';
 import 'package:anthology/user_settings.dart';
 import 'package:anthology/l10n/anthology_localizations.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_rust_bridge/flutter_rust_bridge.dart'
+    show AnyhowException;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:omni_accelerant/Pages/AiPlaygroundPage/ai_playground_controller.dart';
 import 'package:omni_accelerant/Pages/AiPlaygroundPage/ai_playground_page.dart';
@@ -240,6 +242,18 @@ void main() {
     await pumpEventQueue();
     expect(playground.error, contains('HTTP 404'));
     expect(playground.messages.map((m) => m.role), <ChatRole>[ChatRole.user]);
+    expect(playground.busy, isFalse);
+  });
+
+  test('a failure the bridge streams keeps its kind for the page', () async {
+    final client = _FakeClient();
+    final playground = AiPlaygroundController(client: client);
+    playground.send('a');
+    client.running!
+      ..addError(AnyhowException('model_load_failed: no model in /models/x'))
+      ..close();
+    await pumpEventQueue();
+    expect(playground.error, 'model_load_failed: no model in /models/x');
     expect(playground.busy, isFalse);
   });
 

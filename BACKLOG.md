@@ -312,6 +312,31 @@ name is under `lib/Pages/StreamPage/`.
   (Pester 5 and 6 discover a file before they run it), the `3.4.0` pins dropped, and the suites run in the image
   as well. Done when no workflow pins 3.4.0.
 
+## Open — oxidation roadmap
+
+The owner's decisions of 2026-11-21 on the oxidation review (D1 to D17, all as recommended): this app keeps
+flutter_rust_bridge, drops its AccelerANTgine submodule, and takes new Rust API in one bundled regeneration.
+
+- [ ] **Move the OxidANT pin to develop** (S–M, ★★★). The pin 7d33f96 is about 227 commits behind: it lacks the
+  native `error:` fix 2afd994 and OxidANT fee17c2, which sends a failed text turn and a refused ESP32 connect into the
+  stream (this repo already reads them as `AnyhowException.message`). `src/api` differs by one comment, but the bump
+  brings ort rc.15, jiff for chrono and a new Cargo.lock: regenerate the license inventory and run `[ci windows]
+  [ci arm64] [ci web] [ci android]`. Then a native test: a missing model directory shows the model-load sentence
+  (`integration_test/text_generate_test.dart` covers no failure today).
+- [ ] **Retire the add(3,4) demo and `third_party/AccelerANTgine`** (M, ★★★; owner D1). The app builds all of
+  AccelerANTgine (8 nested submodules, a second libonnxruntime on Linux) for one call, `kataglyphis_add`. In four
+  steps: (a) the Windows x64 VC++ runtime and its notice move into the app's own CMake, with the runner's file list
+  unchanged; (b) Linux drops the call and the link, the plugin target takes the hub's warning and hardening modules,
+  and the `.so.1` copy goes once `readelf` shows nothing needs it; (c) Windows and arm64 get a new host exe for the
+  ORT provenance proof, new architecture-gate counts and packaging lists; (d) the license inventory, tests and docs
+  follow, the submodule goes, and a before/after measurement on one preset, image and cache is recorded. It comes
+  before AccelerANTgine takes OxidANT, or the app would carry two OxidANT pins.
+- [ ] **The bundled regeneration** (M, ★★; owner D12 to D14). After OxidANT's side: `TextEvent` carries a typed
+  failure (a plain kind enum, the message, the HTTP status), a typed kind and finish reason, and the thinking count
+  in `done`; `default_score_threshold()` starts the webcam slider at CON235's 0.25; `detector_latency_json()` replaces
+  the Dart loop behind `--detect-latency`; the `no_answer` kind gets its English and German sentence. Then the regex
+  table in `text_failure.dart` and the test that scrapes OxidANT's source go.
+
 ## Open — waiting on the owner
 
 - [b] **False arrivals on himbeere2: nearly gone, one mark left.** On 2026-10-12 and 13 a drying rack at

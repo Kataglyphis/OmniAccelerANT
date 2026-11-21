@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import 'package:flutter_rust_bridge/flutter_rust_bridge.dart'
+    show AnyhowException;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:omni_accelerant/Pages/DevicePage/esp32_controller.dart';
 import 'package:omni_accelerant/src/rust/api/esp32.dart';
@@ -150,6 +152,19 @@ void main() {
     expect(controller.available, isFalse);
     // dispose reaches the absent RustLib too, and must swallow that.
     expect(controller.dispose, returnsNormally);
+  });
+
+  test('a connect the bridge refuses through the stream says why', () async {
+    final (FakeEsp32Api api, Esp32Controller controller) = await _connected();
+    api.events.addError(
+      AnyhowException('the ESP32 link is already open; disconnect it first'),
+    );
+    await _settle();
+    expect(
+      controller.error,
+      'Connection failed: the ESP32 link is already open; disconnect it first',
+    );
+    expect(controller.connected, isFalse);
   });
 
   test('connect without a port explains itself and opens nothing', () async {

@@ -45,5 +45,5 @@ setup = "bash scripts/linux/perf-host.sh"
 
 [[perf.command]]
 name = "detector_cpu"
-run = "xvfb-run -a build/linux/x64/release/bundle/omni_accelerant --detect-latency third_party/OxidANT/crates/inference/tests/fixtures/two_cats.jpg 30"
+run = "KATAGLYPHIS_ORT_DEVICE=cpu KATAGLYPHIS_ONNX_BACKEND=ort xvfb-run -a build/linux/x64/release/bundle/omni_accelerant --detect-latency third_party/OxidANT/crates/inference/tests/fixtures/two_cats.jpg 30"
 metrics = [{ key = "p50_ms", unit = "ms", better = "lower" }, { key = "p95_ms", unit = "ms", better = "lower" }]

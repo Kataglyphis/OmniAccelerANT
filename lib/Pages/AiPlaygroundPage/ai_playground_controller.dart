@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:anthology/Widgets/Chat/chat_entry.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_rust_bridge/flutter_rust_bridge.dart'
+    show AnyhowException;
 import 'package:omni_accelerant/Pages/AiPlaygroundPage/playground_settings.dart';
 import 'package:omni_accelerant/Pages/AiPlaygroundPage/playground_settings_store.dart';
 import 'package:omni_accelerant/Pages/AiPlaygroundPage/text_client.dart';
@@ -125,7 +127,8 @@ class AiPlaygroundController extends ChangeNotifier {
   }
 
   void _onError(Object failure) {
-    error = '$failure';
+    // The bridge streams a failure as AnyhowException; its message alone is the `kind: text` the page reads.
+    error = failure is AnyhowException ? failure.message : '$failure';
     if (_messages.isNotEmpty && _messages.last.text.isEmpty) {
       _messages.removeLast();
     }

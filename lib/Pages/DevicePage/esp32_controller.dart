@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter_rust_bridge/flutter_rust_bridge.dart'
+    show AnyhowException;
 import 'package:omni_accelerant/src/rust/api/esp32.dart';
 
 /// The bridge surface the controller needs, so tests can fake it without Rust.
@@ -151,7 +153,7 @@ class Esp32Controller extends ChangeNotifier {
       _subscription = events.listen(
         _onEvent,
         onError: (Object e) {
-          error = 'Connection failed: $e';
+          error = 'Connection failed: ${e is AnyhowException ? e.message : e}';
           connected = false;
           loading = false;
           _notify();
