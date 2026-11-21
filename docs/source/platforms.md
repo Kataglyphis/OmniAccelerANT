@@ -662,21 +662,17 @@ statically, so its APK shows no such import.
 
 ### The Linux plugin's AccelerANTgine build
 
-**The Linux plugin builds AccelerANTgine without its test suites and without its Debug
-sanitizers.** `packages/kataglyphis_native_inference/linux/CMakeLists.txt` sets
-`BUILD_TESTING`, `myproject_ENABLE_SANITIZER_ADDRESS` and `myproject_ENABLE_SANITIZER_UNDEFINED`
-to OFF before `add_subdirectory`, as it already set `myproject_ENABLE_CACHE`. Without them the
-Debug app build that `flutter test integration_test/… -d linux` makes failed twice, both
-reproduced in `:latest` (2026-10-01):
-- AccelerANTgine's Debug default turns on ASan and UBSan, and its public options target carries
-  the flags into the plugin, so the uninstrumented runner cannot link: 58 undefined
-  `__asan_*`/`__ubsan_*` references from both libraries (run 36900441698).
-- Its tests add FuzzTest in Debug, and on Linux the vendored ANTLR's install rule names a
-  `libantlr4-runtime.so.4.13.2` that is never built.
-
-Side effect: Release builds lost AccelerANTgine's googletest headers and archives from the
-bundle; the plugin's gtest fetches its own googletest. Windows is unchanged: its Debug preset
-ships ASan on purpose.
+**Gone since 2026-11-21** (owner D1, step b of the add-demo retirement). Until then the Linux
+plugin embedded AccelerANTgine for one call, `kataglyphis_add`, and had to set `BUILD_TESTING`,
+`myproject_ENABLE_SANITIZER_ADDRESS`, `myproject_ENABLE_SANITIZER_UNDEFINED` and
+`myproject_ENABLE_CACHE` OFF before its `add_subdirectory`: AccelerANTgine's Debug default carried
+ASan and UBSan into the uninstrumented runner (58 undefined `__asan_*`/`__ubsan_*` references, run
+36900441698), and its tests pulled in FuzzTest, whose vendored ANTLR install rule names an unbuilt
+`.so`. Now the plugin links only Flutter and GTK, `kNativeInferenceMethods` lists `add` for Windows
+alone, and `pluginAnswers('add', linux)` is false. Embedded, AccelerANTgine built with
+`myproject_ENABLE_HARDENING` OFF, so the plugin lost no hardening; the hub's warning and hardening
+modules on the plugin target itself are the next part of step (b), with the `libonnxruntime.so.1`
+copy that only AccelerANTgine needed.
 
 ## The Windows lanes in detail
 

@@ -5,6 +5,14 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ## Unreleased
 
+### 2026-11-21 — the Linux plugin builds no AccelerANTgine (add-demo retirement, step b)
+
+- The Linux plugin no longer embeds AccelerANTgine: its `add` handler and `import kataglyphis.c_api`, the link, the
+  bundled `libAccelerANTgine.so` and the overrides the embedded build needed went. `kNativeInferenceMethods` lists
+  `add` for Windows alone, so `pluginAnswers('add', linux)` is false and the About page shows the add(3,4) demo on
+  Windows only; the channel contract test follows. Embedded, AccelerANTgine built with hardening off, so the plugin
+  lost none; the hub modules on the plugin target and the `libonnxruntime.so.1` copy come next.
+
 ### 2026-11-21 — the x64 VC++ runtime is the app's own (add-demo retirement, step a)
 
 - `windows/CMakeLists.txt` installs the x64 VC++ runtime beside the exe and its `licenses/msvc-runtime` notice through

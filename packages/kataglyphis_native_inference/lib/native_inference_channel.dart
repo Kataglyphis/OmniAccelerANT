@@ -43,7 +43,6 @@ const List<PluginMethod> kNativeInferenceMethods = <PluginMethod>[
     arguments: "{'a': int, 'b': int}",
     result: 'int',
     errors: {
-      PluginPlatform.linux: ['bad_args'],
       PluginPlatform.windows: ['bad_args'],
     },
   ),

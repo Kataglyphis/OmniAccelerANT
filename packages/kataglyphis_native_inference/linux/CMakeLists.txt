@@ -30,20 +30,10 @@ get_filename_component(_KCI_PLUGIN_PLATFORM_DIR "${CMAKE_CURRENT_SOURCE_DIR}" RE
 get_filename_component(_KCI_PLUGIN_ROOT "${_KCI_PLUGIN_PLATFORM_DIR}" DIRECTORY)
 get_filename_component(_KCI_PACKAGES "${_KCI_PLUGIN_ROOT}" DIRECTORY)
 get_filename_component(_KCI_REPO_ROOT "${_KCI_PACKAGES}" DIRECTORY)
-set(KCI_DIR "${_KCI_REPO_ROOT}/third_party/AccelerANTgine")
 set(KCI_TEXTURE_ABI_DIR "${_KCI_REPO_ROOT}/third_party/OxidANT/include")
 include("${_KCI_REPO_ROOT}/rust_builder/linux/ort-device.cmake")
 omni_linux_ort_device(_KCI_ORT_DEVICE "${_KCI_REPO_ROOT}/third_party/OxidANT")
 omni_linux_ort_root("${_KCI_ORT_DEVICE}")
-# Otherwise AccelerANTgine's Cache.cmake unsets the lane's sccache launcher for every later target.
-set(myproject_ENABLE_CACHE OFF)
-# Its Debug default instruments it and the plugin with ASan+UBSan, but the Flutter runner links no sanitizer runtime.
-set(myproject_ENABLE_SANITIZER_ADDRESS OFF)
-set(myproject_ENABLE_SANITIZER_UNDEFINED OFF)
-# Its own suites are its lanes' job; in a Debug app they add FuzzTest, whose ANTLR install rule names an unbuilt .so.
-set(BUILD_TESTING OFF)
-add_subdirectory(${KCI_DIR} ${CMAKE_CURRENT_BINARY_DIR}/native_build)
-
 # Named PLUGIN_NAME, which must not change.
 add_library(${PLUGIN_NAME} SHARED ${PLUGIN_SOURCES})
 
@@ -71,15 +61,14 @@ if(NOT
   target_compile_definitions(${PLUGIN_NAME} PRIVATE KATAGLYPHIS_DEFAULT_ORT_DEVICE="${_KCI_ORT_DEVICE}")
 endif()
 
-target_include_directories(${PLUGIN_NAME} INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/include" "${KCI_DIR}/Src")
+target_include_directories(${PLUGIN_NAME} INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/include")
 target_include_directories(${PLUGIN_NAME} PRIVATE "${KCI_TEXTURE_ABI_DIR}")
 
 target_link_libraries(${PLUGIN_NAME} PRIVATE flutter)
 target_link_libraries(${PLUGIN_NAME} PRIVATE PkgConfig::GTK)
-target_link_libraries(${PLUGIN_NAME} PRIVATE AccelerANTgine)
-# Absolute paths of the libraries bundled with the plugin.
+# The plugin bundles no library of its own since AccelerANTgine left it (owner D1); the Rust core ships beside it.
 set(kataglyphis_native_inference_bundled_libraries
-    "$<TARGET_FILE:AccelerANTgine>"
+    ""
     PARENT_SCOPE)
 
 # Tests
@@ -113,12 +102,10 @@ if(${include_${PROJECT_NAME}_tests})
              ${PLUGIN_MODULES})
     target_compile_features(${TEST_RUNNER} PRIVATE cxx_std_20)
     apply_standard_settings(${TEST_RUNNER})
-    target_include_directories(${TEST_RUNNER} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}" "${KCI_DIR}/Src")
+    target_include_directories(${TEST_RUNNER} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
     target_include_directories(${TEST_RUNNER} PRIVATE "${KCI_TEXTURE_ABI_DIR}")
     target_link_libraries(${TEST_RUNNER} PRIVATE flutter)
     target_link_libraries(${TEST_RUNNER} PRIVATE PkgConfig::GTK)
-    # The plugin's own dependencies, since its sources are compiled in.
-    target_link_libraries(${TEST_RUNNER} PRIVATE AccelerANTgine)
     target_link_libraries(${TEST_RUNNER} PRIVATE gtest_main gmock)
 
     # PRE_TEST: listing the tests runs the binary, which belongs in ctest, not in the build.

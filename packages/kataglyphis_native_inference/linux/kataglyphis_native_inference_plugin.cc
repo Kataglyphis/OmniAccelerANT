@@ -1,5 +1,4 @@
 import kataglyphis.my_texture;
-import kataglyphis.c_api;
 
 #include "include/kataglyphis_native_inference/kataglyphis_native_inference_plugin.h"
 
@@ -115,32 +114,6 @@ static FlMethodResponse *handle_get_platform_version(KataglyphisNativeInferenceP
   FlMethodCall * /*method_call*/)
 { return get_platform_version(); }
 
-static FlMethodResponse *handle_add(KataglyphisNativeInferencePlugin * /*self*/, FlMethodCall *method_call)
-{
-    FlValue *args = fl_method_call_get_args(method_call);
-    if (!is_fl_type(args, FL_VALUE_TYPE_MAP)) {
-        return FL_METHOD_RESPONSE(fl_method_error_response_new("bad_args", "Expected argument map", nullptr));
-    }
-
-    FlValue *a_val = fl_value_lookup_string(args, "a");
-    FlValue *b_val = fl_value_lookup_string(args, "b");
-    if (!is_fl_type(a_val, FL_VALUE_TYPE_INT) || !is_fl_type(b_val, FL_VALUE_TYPE_INT)) {
-        return FL_METHOD_RESPONSE(
-          fl_method_error_response_new("bad_args", "Expected integer 'a' and 'b' in the argument map", nullptr));
-    }
-
-    const gint64 raw_a = fl_value_get_int(a_val);
-    const gint64 raw_b = fl_value_get_int(b_val);
-    const gint64 min_int = static_cast<gint64>(std::numeric_limits<int>::min());
-    const gint64 max_int = static_cast<gint64>(std::numeric_limits<int>::max());
-    const gint64 clamped_a = raw_a < min_int ? min_int : (raw_a > max_int ? max_int : raw_a);
-    const gint64 clamped_b = raw_b < min_int ? min_int : (raw_b > max_int ? max_int : raw_b);
-
-    const int result = kataglyphis_add(static_cast<int>(clamped_a), static_cast<int>(clamped_b));
-    g_autoptr(FlValue) result_value = fl_value_new_int(result);
-    return FL_METHOD_RESPONSE(fl_method_success_response_new(result_value));
-}
-
 /* Handles general plugin method calls on the single channel; the Rust core drives the camera, so no pipeline calls. */
 static void kataglyphis_native_inference_plugin_handle_method_call(KataglyphisNativeInferencePlugin *self,
   FlMethodCall *method_call)
@@ -149,9 +122,8 @@ static void kataglyphis_native_inference_plugin_handle_method_call(KataglyphisNa
 
     const gchar *method = fl_method_call_get_name(method_call);
 
-    static constexpr std::array<std::pair<const char *, MethodHandler>, 4> kHandlers = { {
+    static constexpr std::array<std::pair<const char *, MethodHandler>, 3> kHandlers = { {
       { "getPlatformVersion", handle_get_platform_version },
-      { "add", handle_add },
       { "create", handle_create },
       { "hasPushedFrame", handle_has_pushed_frame },
     } };

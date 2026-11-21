@@ -92,7 +92,8 @@ void main() {
   });
 
   test('a platform without the method is told apart from one with it', () {
-    expect(pluginAnswers('add', PluginPlatform.linux), isTrue);
+    expect(pluginAnswers('add', PluginPlatform.windows), isTrue);
+    expect(pluginAnswers('add', PluginPlatform.linux), isFalse);
     expect(pluginAnswers('add', PluginPlatform.android), isFalse);
     expect(pluginAnswers('add', null), isFalse);
     expect(pluginAnswers('noSuchMethod', PluginPlatform.windows), isFalse);
