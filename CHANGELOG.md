@@ -5,6 +5,11 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ## Unreleased
 
+### 2026-11-23 — the think split replays here
+
+- The hub pin moves to 7b1e32d2 (ANTfrastructure CON288 (b)). `endpoint_think_split_test.dart` replays the 11 cases of
+  `think-split.json` through `ThinkingSplitter`: what is shown, the answer, the thinking count and the late closes.
+
 ### 2026-11-22 — the playground's endpoint reader follows owner decision D8
 
 - The hub pin moves to 44d37673 (ANTfrastructure CON288). `endpoint_reply.dart` keeps the raw `finish_reason`
