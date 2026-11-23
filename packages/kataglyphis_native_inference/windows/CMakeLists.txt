@@ -40,6 +40,36 @@ target_compile_definitions(${PLUGIN_NAME} PRIVATE FLUTTER_PLUGIN_IMPL)
 target_include_directories(${PLUGIN_NAME} INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/include")
 target_include_directories(${PLUGIN_NAME} PRIVATE "${KCI_TEXTURE_ABI_DIR}")
 target_link_libraries(${PLUGIN_NAME} PRIVATE flutter flutter_wrapper_plugin)
+# The hub's warning set and hardening, not as errors: Flutter's wrapper headers are not this plugin's (owner D1 c).
+list(APPEND CMAKE_MODULE_PATH "${_KCI_REPO_ROOT}/third_party/ANTfrastructure/cmake")
+include(CompilerWarnings)
+include(Hardening)
+include(Sanitizers)
+add_library(kci_plugin_quality INTERFACE)
+myproject_set_project_warnings(
+  kci_plugin_quality
+  OFF
+  ""
+  ""
+  ""
+  "")
+# x64 Debug keeps the ASan and UBSan AccelerANTgine's PUBLIC options gave it; such a build checks, a release one hardens.
+if(myproject_ENABLE_SANITIZER_ADDRESS
+   AND NOT
+       CMAKE_SYSTEM_PROCESSOR
+       MATCHES
+       "^(ARM64|arm64|aarch64)$")
+  myproject_enable_sanitizers(
+    kci_plugin_quality
+    ON
+    OFF
+    ON
+    OFF
+    OFF)
+else()
+  myproject_enable_hardening(kci_plugin_quality OFF FALSE)
+endif()
+target_link_libraries(${PLUGIN_NAME} PRIVATE kci_plugin_quality)
 # The plugin bundles no library of its own since AccelerANTgine left it (owner D1); the Rust core ships beside it.
 set(kataglyphis_native_inference_bundled_libraries
     ""
@@ -66,7 +96,7 @@ if(${include_${PROJECT_NAME}_tests})
   apply_standard_settings(${TEST_RUNNER})
   target_include_directories(${TEST_RUNNER} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
   target_include_directories(${TEST_RUNNER} PRIVATE "${KCI_TEXTURE_ABI_DIR}")
-  target_link_libraries(${TEST_RUNNER} PRIVATE flutter_wrapper_plugin)
+  target_link_libraries(${TEST_RUNNER} PRIVATE flutter_wrapper_plugin kci_plugin_quality)
   target_link_libraries(${TEST_RUNNER} PRIVATE gtest_main gmock)
   # flutter_wrapper_plugin has link dependencies on the Flutter DLL.
   add_custom_command(

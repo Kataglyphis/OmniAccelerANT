@@ -19,6 +19,9 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
   copies no DLL beside itself, and the packaging lists, the GPU delivery check and the installer checks name
   `oxidant.dll` where they named `AccelerANTgine.dll`. The arm64 arch-gate floors rise to what the trees must hold:
   12 for the natives, 16 for the app.
+- The Windows plugin and its gtest runner link `kci_plugin_quality`, as Linux's do: the hub's warning set (not as
+  errors) and its hardening (`/sdl`, `/guard:cf`, and `/CETCOMPAT` on x64). An x64 Debug build takes the hub's
+  ASan and UBSan there instead, which AccelerANTgine's PUBLIC options had carried into the plugin until now.
 
 ### 2026-11-23 — the Linux plugin takes the hub's warnings and hardening
 

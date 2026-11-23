@@ -510,7 +510,8 @@ rather than linked.
   `libdartjni.so` or `dartjni.dll` with an unbundled JVM dependency. Android's JNI path is unaffected.
 - **The desktop plugins build no AccelerANTgine** (owner D1): Linux since 2026-11-21 (step b),
   Windows x64 and arm64 since 2026-11-23 (step c). The `add` handlers, the links, the arm64
-  prebuilt import and the overrides the embedded builds needed went. The arm64 natives' G6 proof uses an arm64
+  prebuilt import and the overrides the embedded builds needed went; both plugins link
+  `kci_plugin_quality`, the hub's warnings and hardening (x64 Debug: its ASan and UBSan instead). The arm64 natives' G6 proof uses an arm64
   stub where the app's exe will sit. Detail: [`docs/source/platforms.md`](docs/source/platforms.md)
   § *The Linux plugin's AccelerANTgine build* and § *ONNX Runtime in the Windows runner*.
 - **Vendored ANTLR** (pulled in unconditionally by newer FUZZTEST) needs
