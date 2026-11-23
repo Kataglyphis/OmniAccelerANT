@@ -89,7 +89,7 @@ test "$(cat "$work/cpu-root.txt")" = "$work/wrong"
 ORT_LIB_LOCATION="$work/gpu/lib" cmake "${root_args[@]}" > "$work/root.log" 2>&1
 test "$(cat "$work/root.txt")" = "$work/gpu"
 fixture_refuses_logged "$work/root-conflict.log" 'ONNXRUNTIME_ROOT conflicts' \
-  'A conflicting AccelerANTgine ONNX Runtime root unexpectedly succeeded' \
+  'A conflicting ONNX Runtime root unexpectedly succeeded' \
   env ORT_LIB_LOCATION="$work/gpu/lib" cmake -D "ONNXRUNTIME_ROOT=$work/wrong" "${root_args[@]}"
 fixture_refuses_logged "$work/root-missing.log" 'ORT_LIB_LOCATION must name' \
   'An incomplete GPU runtime unexpectedly succeeded' env ORT_LIB_LOCATION="$work/wrong" cmake "${root_args[@]}"

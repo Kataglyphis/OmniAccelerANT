@@ -265,7 +265,7 @@ The rocm image builds no GPU ONNX Runtime and no in-tree MIGraphX provider: AMD'
 loads into the CPU build, and OxidANT registers it under the name `MIGraphX`
 ([hub contract](../../third_party/ANTfrastructure/docs/consumer-image-contract.md#amds-plugin-migraphx-ep)).
 `rust_builder/linux/ort-device.cmake` asks the pinned hub for the module's name and place. The
-build links AccelerANTgine to the same runtime and sets the provider as the app's default
+plugin build resolves the same runtime and sets the provider as the app's default
 device. A conflicting `ONNXRUNTIME_ROOT` fails configuration; an explicit
 `KATAGLYPHIS_ORT_DEVICE` still overrides the default. A named GPU device defaults the inference
 backend to ORT, so an ORT failure does not silently select tract. A GPU package accepts `cpu`,
@@ -439,8 +439,8 @@ chain's source path.
 **Only the bundled GStreamer plugins load** (owner, 2026-10-17), by the hub's four settings
 ([§ *GStreamer loads from the package alone*](../../third_party/ANTfrastructure/docs/linux-build-basics.md#gstreamer-loads-from-the-package-alone)):
 `runtime_paths.cc` sets the plugin paths and `GST_REGISTRY_FORK=no` wherever it finds the
-bundled plugins, each unless set; AccelerANTgine's library does the same from its own constructor
-and adds `GST_REGISTRY`, one per installed copy (AccelerANTgine `24de58f`). The lane's launch
+bundled plugins, each unless set (AccelerANTgine's library did the same from its own constructor
+until the plugin stopped linking it, owner D1). The lane's launch
 smokes fail on GStreamer's `External plugin loader failed` warning.
 This plugin's bundle has no scanner and no webrtcsink, and `check-bundle-gst-elements.sh` refuses
 `libgstrswebrtc.so` there: an in-process scan of a fresh registry can leave webrtcsink without codecs.

@@ -56,29 +56,6 @@
    "note": "The Rust core; its crates are listed under the cargo ecosystem."
   },
   {
-   "id": "accelerantgine",
-   "name": "AccelerANTgine",
-   "license": "MIT",
-   "source": "https://github.com/Kataglyphis/AccelerANTgine",
-   "files": {
-    "linux": [
-     "libAccelerANTgine.so"
-    ],
-    "windows": [
-     "AccelerANTgine.dll",
-     "AccelerANTgine.lib"
-    ]
-   },
-   "texts": [
-    {
-     "path": "third_party/AccelerANTgine/LICENSE",
-     "sha256": "885560f6df8845075aa21934dd872c7672529ecd8be4258e0d641efda9fd5940",
-     "provenance": "submodule third_party/AccelerANTgine"
-    }
-   ],
-   "note": "Compiles in spdlog, {fmt}, nlohmann/json, toml++ and Microsoft GSL; its Rust part is listed under the cargo ecosystem."
-  },
-  {
    "id": "flutter",
    "name": "Flutter engine and embedders",
    "license": "BSD-3-Clause",
@@ -989,81 +966,6 @@
      "provenance": "https://gitlab.gnome.org/GNOME/libgudev/-/raw/master/COPYING (fetched 2026-10-27)"
     }
    ]
-  },
-  {
-   "id": "spdlog",
-   "name": "spdlog",
-   "license": "MIT",
-   "source": "https://github.com/gabime/spdlog",
-   "files": {},
-   "texts": [
-    {
-     "path": "scripts/licenses/texts/native/spdlog/LICENSE",
-     "sha256": "d678c20826e1392578508e1c78649a1e3c31bda05ef4388d967dbd654461b140",
-     "provenance": "https://raw.githubusercontent.com/gabime/spdlog/v1.x/LICENSE (fetched 2026-10-27)"
-    }
-   ],
-   "note": "Compiled into AccelerANTgine."
-  },
-  {
-   "id": "fmt",
-   "name": "{fmt}",
-   "license": "MIT",
-   "source": "https://github.com/fmtlib/fmt",
-   "files": {},
-   "texts": [
-    {
-     "path": "scripts/licenses/texts/native/fmt/LICENSE",
-     "sha256": "a65fcc5a1095fc33cc37e4fff69366e49d7e92f613558a2b95ed1b70e33758b4",
-     "provenance": "https://raw.githubusercontent.com/fmtlib/fmt/master/LICENSE (fetched 2026-10-27)"
-    }
-   ],
-   "note": "Bundled in spdlog, compiled into AccelerANTgine."
-  },
-  {
-   "id": "nlohmann-json",
-   "name": "nlohmann/json",
-   "license": "MIT",
-   "source": "https://github.com/nlohmann/json",
-   "files": {},
-   "texts": [
-    {
-     "path": "scripts/licenses/texts/native/nlohmann-json/LICENSE.MIT",
-     "sha256": "d64d1b4d948aa7751cfb613c02dc246aab7b358d760053e6580f01affe946906",
-     "provenance": "https://raw.githubusercontent.com/nlohmann/json/develop/LICENSE.MIT (fetched 2026-10-27)"
-    }
-   ],
-   "note": "Compiled into AccelerANTgine."
-  },
-  {
-   "id": "tomlplusplus",
-   "name": "toml++",
-   "license": "MIT",
-   "source": "https://github.com/marzer/tomlplusplus",
-   "files": {},
-   "texts": [
-    {
-     "path": "scripts/licenses/texts/native/tomlplusplus/LICENSE",
-     "sha256": "529bc3900a9571e49db285b0df432397e70b881cc3bf48de6667ae74ff4b06d8",
-     "provenance": "https://raw.githubusercontent.com/marzer/tomlplusplus/master/LICENSE (fetched 2026-10-27)"
-    }
-   ],
-   "note": "Compiled into AccelerANTgine."
-  },
-  {
-   "id": "ms-gsl",
-   "name": "Microsoft GSL",
-   "license": "MIT",
-   "source": "https://github.com/microsoft/GSL",
-   "files": {},
-   "texts": [
-    {
-     "path": "scripts/licenses/texts/native/ms-gsl/LICENSE",
-     "sha256": "4c21dc82a1c7186ea754fd59d504c00947953a3401fe8e24eaa44109ef8e2555",
-     "provenance": "https://raw.githubusercontent.com/microsoft/GSL/main/LICENSE (fetched 2026-10-27)"
-    }
-   ],
-   "note": "Header-only, compiled into AccelerANTgine."
   },
   {
    "id": "noto-fonts",

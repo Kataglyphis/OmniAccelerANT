@@ -13,14 +13,12 @@ coverage="${repo}/scripts/licenses/check-native-coverage.py"
 fresh_tree() {
   rm -rf "$work/tree"
   mkdir -p "$work/tree/docs/source" "$work/tree/assets" "$work/tree/scripts" \
-    "$work/tree/third_party/OxidANT" "$work/tree/third_party/AccelerANTgine/Src/rusty_code"
+    "$work/tree/third_party/OxidANT"
   cp -a "${repo}/scripts/licenses" "$work/tree/scripts/"
   cp -a "${repo}/assets/licenses" "$work/tree/assets/"
   cp "${repo}/docs/source/third-party-components.md" "$work/tree/docs/source/"
   cp "${repo}/pubspec.lock" "${repo}/LICENSE" "$work/tree/"
   cp "${repo}/third_party/OxidANT/Cargo.lock" "${repo}/third_party/OxidANT/LICENSE" "$work/tree/third_party/OxidANT/"
-  cp "${repo}/third_party/AccelerANTgine/LICENSE" "$work/tree/third_party/AccelerANTgine/"
-  cp "${repo}/third_party/AccelerANTgine/Src/rusty_code/Cargo.lock" "$work/tree/third_party/AccelerANTgine/Src/rusty_code/"
 }
 check_tree() { python3 "$work/tree/scripts/licenses/generate-third-party-licenses.py" --check; }
 

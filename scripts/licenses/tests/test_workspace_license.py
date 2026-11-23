@@ -125,20 +125,23 @@ class WorkspaceLicenseTest(unittest.TestCase):
         first, second = self.root / "first cache", self.root / "second cache"
         first.mkdir()
         second.mkdir()
-        one, two = (spec["path"] for spec in generator.WORKSPACES)
-        self.assertEqual(
-            generator.parse_cargo_homes([f"{one}={first}", f"{two}={second}"]),
-            {one: first.resolve(), two: second.resolve()},
-        )
-        for values in (
-            ["unknown=" + str(first)],
-            [one + "=relative"],
-            [one + "="],
-            [one + "=" + str(self.root / "missing")],
-            [f"{one}={first}", f"{one}={second}"],
-        ):
-            with self.subTest(values=values), self.assertRaises(ValueError):
-                generator.parse_cargo_homes(values)
+        # Two workspaces, as the real list held until AccelerANTgine's rusty_code left it.
+        one, two = generator.WORKSPACES[0]["path"], "third_party/second"
+        workspaces = [*generator.WORKSPACES, self.workspace | {"path": two}]
+        with mock.patch.object(generator, "WORKSPACES", workspaces):
+            self.assertEqual(
+                generator.parse_cargo_homes([f"{one}={first}", f"{two}={second}"]),
+                {one: first.resolve(), two: second.resolve()},
+            )
+            for values in (
+                ["unknown=" + str(first)],
+                [one + "=relative"],
+                [one + "="],
+                [one + "=" + str(self.root / "missing")],
+                [f"{one}={first}", f"{one}={second}"],
+            ):
+                with self.subTest(values=values), self.assertRaises(ValueError):
+                    generator.parse_cargo_homes(values)
 
     def test_cache_options_require_write_and_invalid_cache_never_writes(self):
         for args in (

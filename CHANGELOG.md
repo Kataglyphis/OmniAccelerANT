@@ -5,6 +5,14 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ## Unreleased
 
+### 2026-11-23 — the AccelerANTgine submodule leaves (add-demo retirement, step d)
+
+- `third_party/AccelerANTgine` is gone with its `.gitmodules` entry: nothing builds or links it since step (c). The
+  license inventory drops AccelerANTgine, its `rusty_code` crates and the C++ libraries compiled into it (spdlog,
+  {fmt}, nlohmann/json, toml++, Microsoft GSL) with their texts, and is regenerated with
+  `generate-third-party-licenses.py --write`. CodeQL's scope, Renovate's note, the VS Code CMake source directory
+  (now `windows/`), AGENTS.md and the docs follow; the Linux test fixtures no longer name the library.
+
 ### 2026-11-23 — the Windows plugin builds no AccelerANTgine (add-demo retirement, step c)
 
 - The Windows x64 and arm64 plugin no longer builds or links AccelerANTgine: the `add` handler and its gtest case, the

@@ -1,7 +1,7 @@
 # Testing
 
-What each test in OmniAccelerANT, OxidANT (the Rust core) and AccelerANTgine (the C++ core)
-proves, the rules that keep a green run honest, how to run them, and what is not covered yet.
+What each test in OmniAccelerANT and OxidANT (the Rust core) proves, the rules that keep a green
+run honest, how to run them, and what is not covered yet.
 Which lane runs which test is AGENTS.md § *What each lane tests*; this page is the why behind
 that table (written after the test audit of 2026-10-15).
 
@@ -13,8 +13,6 @@ that table (written after the test audit of 2026-10-15).
 | Built web app | `scripts/linux/check-web-browser.sh` | Every branch boots in real Chrome at desktop and phone sizes; scrolling triggers no external font fetch, console error or missing asset; every build file and version is served | `web.yml`, after the WASM and Flutter build; an idle ObservANT fixture answers signalling and API requests |
 | Rust unit tests | OxidANT `crates/*`, `src/` | ObservANT's motion, arrival, clip and HTTP rules; the webcam engine on `videotestsrc` with the real model, headless; the detector on a real photo | OxidANT's Linux and Windows lanes |
 | Property tests | OxidANT `crates/observant` (`mod properties`) | A rule holds for every input, not a few examples: no request path, however encoded, leaves the web root; a served byte range stays inside the file; a public host name is refused; a config that validates keeps its numbers in range | With the Rust unit tests, 256 random inputs per rule and run |
-| C++ unit tests | AccelerANTgine `Test/commit` (97 gtests) | The ONNX engine, the detector's decoding, the config loaders, the GStreamer pipeline; under ASan and UBSan, and once more under TSan | AccelerANTgine's Linux and Windows lanes |
-| C++ fuzz tests | AccelerANTgine `Test/fuzz` (FuzzTest) | The JSON and TOML config readers and the box decoder survive arbitrary input | Linux clang lane, about a second per property |
 | Integration tests | `integration_test/` | The app starts in a real window; a test-pattern frame travels Rust → `knt_push_frame` → the Linux texture; the chain GenAI decodes the tiny model to `defg` and SmolLM2-135M names Paris (`text_generate_test.dart`, [ai-playground.md](ai-playground.md) § *Tests*) | Linux under Xvfb; Windows through `flutter drive` |
 | End-to-end | `scripts/linux/observant/test-observant-package.sh`, `scripts/windows/observant/Test-ObservANTWindows.ps1` | The installed .deb, AppImage, flatpak and MSI start, answer every endpoint, detect, notify, and a real headless Chrome plays at least 200 frames of the stream | `web.yml`'s `observant` jobs; the Windows arm64 MSI on `windows-11-arm` |
 | Clean host | the `clean-host` job of `linux-x64.yml` and `linux-arm64.yml` (ANTfrastructure's `clean-host-package-check`) | The `.deb` installs with apt on a bare Ubuntu 26.04, every ELF it installs resolves, and the app stays up 20 s under Xvfb from the `.deb`, the AppImage and the unpacked tarball. Inside the image every library exists, so only a bare host shows a missing one: its first run caught the `.deb` lacking `libegl1` (2026-10-16) | Linux x64 and arm64, on the bare runner after the lane |
@@ -90,8 +88,7 @@ and `reusable-linux.yml` uploads it as `omni-accelerant-linux-<arch>-coverage`: 
 - **Nothing skips silently.** A test that cannot run (no GPU, no model, a missing GStreamer
   element) skips locally, but CI sets `KATAGLYPHIS_REQUIRE_GPU`, `_MODEL` and `_GST` to 1 and the
   skip becomes a failure; `cargo test` hides a passing test's skip line, so nobody would see it
-  otherwise. AccelerANTgine's Linux lane fails on any skipped ctest test, since ctest reports
-  "100% tests passed" with skips in it, and UBSan reports are fatal (`halt_on_error=1`).
+  otherwise.
 - **Script suites are discovered, not listed.** `scripts/linux/pre-push-checks.sh` runs every tracked
   `scripts/linux/tests/test-*.{sh,py}`, `scripts/windows/tests/test[-_]*.py` and
   `scripts/licenses/tests/test_*.py` (`scripts/linux/lib/suite-inventory.sh`); the native lane calls
@@ -273,10 +270,6 @@ As found on 2026-10-15, so a green run is read for what it is:
 - **ANThology's own tests run in its repository only** (on the VM, and in Chrome since
   2026-10-21), and a third of its `lib/` files have none. Its sortable table, behind the blog overview here and four lists on the website, got its
   first tests on 2026-10-15, and they found three sorting bugs.
-- **C++ fuzzing runs in unit mode only**, about a second per property, without coverage feedback.
-  AccelerANTgine forces `FUZZTEST_FUZZING_MODE` off (`third_party/CMakeLists.txt`): FuzzTest's
-  coverage flags recursed with AddressSanitizer. Its targets read config files and decode boxes;
-  what a network peer sends is parsed in Rust, where the property tests above run.
 - **Windows does not demand the model**, so its real-model tests pass by skipping: its unit tests
   run before the model is fetched (OxidANT's `BACKLOG.md`). The riscv64 lane fetches and demands
   it since 2026-10-15.

@@ -156,7 +156,7 @@ not establish coverage of other native dependencies.
 
 [Third-party components](third-party-components.md) lists every component the packages ship:
 native libraries and data (`scripts/licenses/native-components.json`), Rust crates of OxidANT
-and AccelerANTgine for every shipped target, and Dart packages from `pubspec.lock`. Native and
+for every shipped target, and Dart packages from `pubspec.lock`. Native and
 crate license texts ship in every APK, TAR, DEB, AppImage, Flatpak, MSI and MSIX as
 `assets/licenses/third-party-licenses.json` plus its text files, and the app's licenses page shows
 them; Dart package texts stay in Flutter's `NOTICES`. Each package check requires those assets
@@ -167,16 +167,15 @@ byte for byte.
   workspace and runs ANTfrastructure's `stage-cargo-licenses.py` per root crate and target, so
   it needs `cargo` and the crate sources. `--check` is the offline drift gate the Linux and
   Android lanes run through `scripts/linux/tests/test-third-party-licenses.sh`.
-  For an offline regeneration with separate existing Cargo homes, pass `--offline` and
-  repeat `--cargo-home` for the workspaces that need a specific cache, for example:
-  `--cargo-home 'third_party/OxidANT=/absolute/path/to/oxidant-cache'` and
-  `--cargo-home 'third_party/AccelerANTgine/Src/rusty_code=/absolute/path/to/engine-cache'`.
+  For an offline regeneration with a separate existing Cargo home, pass `--offline` and
+  `--cargo-home` for the workspace that needs a specific cache, for example
+  `--cargo-home 'third_party/OxidANT=/absolute/path/to/oxidant-cache'`.
   Unspecified workspaces inherit `CARGO_HOME`; missing cached sources make the command fail.
 - **Crates without a license file** take the original text from their upstream repository,
   vendored under `scripts/licenses/texts/cargo/` and pinned in `scripts/licenses/cargo-policy.json`
   with its commit URL and SHA-256. OxidANT's workspace crates point at its `LICENSE`.
-  AccelerANTgine's `rusty_code` declares no license; the generator's copy states its repository's
-  MIT until AccelerANTgine adds `license = "MIT"`.
+  A workspace entry with a `license` path gets that MIT text and a `license = "MIT"` in its
+  copied manifest; no workspace needs it since AccelerANTgine's `rusty_code` left (owner D1).
 - **Native texts** are upstream originals under `scripts/licenses/texts/native/`, pinned by
   SHA-256 with their source URL. Each component names the file globs it covers per platform.
 - **Coverage gate**: `scripts/licenses/check-native-coverage.py` fails Linux packaging, the APK
@@ -184,7 +183,7 @@ byte for byte.
   component. A new library therefore needs an entry and its text before it ships.
 
 What it does not establish: code linked statically or header-only is listed by hand (the
-Android plugin's GStreamer SDK, AccelerANTgine's C++ dependencies); corresponding-source offers
+Android plugin's GStreamer SDK); corresponding-source offers
 for LGPL components are not produced; DirectML and the Visual C++ runtime are proprietary
 redistributables, listed with their terms' URL; ObservANT's native payload is not yet gated.
 
@@ -734,7 +733,7 @@ the native build (both architectures) the plain `flutter clean && flutter build 
 
 **The scan is scoped by
 [`.github/codeql/codeql-config.yml`](../../.github/codeql/codeql-config.yml)**: `paths-ignore`
-for build output, AccelerANTgine's vendored libraries, the non-inference submodules and
+for build output, the non-inference submodules and
 Cargokit, passed to `database create` as `--codescanning-config`; the filters travel in the
 database to `database analyze`. It scopes the *analysis*, not extraction: a built language's
 extractor still sees those files, and the Rust extractor indexes the cargo registry under
@@ -748,7 +747,7 @@ scan unscoped on an older pin, because the unscoped run of 2026-09-17 indexed ev
 tree. A reused `codeql-db-cluster` keeps the scope it was created with: pass `-CleanCodeQLDb`.
 `database analyze` does **not** apply the config to traced C++: the first complete Windows run
 (2026-10-05) reported 39 of its 63 cpp results from the ignored
-`third_party/AccelerANTgine/third_party`. Since hub 92b58c8d, `Invoke-BuildCodeQL` drops results
+`third_party/AccelerANTgine/third_party` (that submodule left in 2026-11, owner D1). Since hub 92b58c8d, `Invoke-BuildCodeQL` drops results
 under the config's `paths-ignore` from each SARIF and logs the count.
 
 `-CodeQL` starts from any tree: the untraced bootstrap runs first, then every preset's CMake

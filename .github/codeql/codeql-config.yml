@@ -6,8 +6,6 @@ paths-ignore:
   - build
   # Cargo's target tree: generated cxxbridge sources and dependency build output.
   - third_party/OxidANT/target
-  # Vendored libraries inside AccelerANTgine.
-  - third_party/AccelerANTgine/third_party
   # Submodules that are not the inference core this scan exists for.
   - third_party/ANTfrastructure
   - third_party/ANThology

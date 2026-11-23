@@ -56,29 +56,6 @@
   {
    "ecosystem": "native",
    "files": {
-    "linux": [
-     "libAccelerANTgine.so"
-    ],
-    "windows": [
-     "AccelerANTgine.dll",
-     "AccelerANTgine.lib"
-    ]
-   },
-   "license": "MIT",
-   "name": "AccelerANTgine",
-   "note": "Compiles in spdlog, {fmt}, nlohmann/json, toml++ and Microsoft GSL; its Rust part is listed under the cargo ecosystem.",
-   "source": "https://github.com/Kataglyphis/AccelerANTgine",
-   "texts": [
-    {
-     "name": "LICENSE",
-     "provenance": "submodule third_party/AccelerANTgine",
-     "sha256": "885560f6df8845075aa21934dd872c7672529ecd8be4258e0d641efda9fd5940"
-    }
-   ]
-  },
-  {
-   "ecosystem": "native",
-   "files": {
     "android": [
      "libflutter.so",
      "libapp.so"
@@ -985,81 +962,6 @@
      "name": "COPYING",
      "provenance": "https://gitlab.gnome.org/GNOME/libgudev/-/raw/master/COPYING (fetched 2026-10-27)",
      "sha256": "dc626520dcd53a22f727af3ee42c770e56c97a64fe3adb063799d8ab032fe551"
-    }
-   ]
-  },
-  {
-   "ecosystem": "native",
-   "files": {},
-   "license": "MIT",
-   "name": "spdlog",
-   "note": "Compiled into AccelerANTgine.",
-   "source": "https://github.com/gabime/spdlog",
-   "texts": [
-    {
-     "name": "LICENSE",
-     "provenance": "https://raw.githubusercontent.com/gabime/spdlog/v1.x/LICENSE (fetched 2026-10-27)",
-     "sha256": "d678c20826e1392578508e1c78649a1e3c31bda05ef4388d967dbd654461b140"
-    }
-   ]
-  },
-  {
-   "ecosystem": "native",
-   "files": {},
-   "license": "MIT",
-   "name": "{fmt}",
-   "note": "Bundled in spdlog, compiled into AccelerANTgine.",
-   "source": "https://github.com/fmtlib/fmt",
-   "texts": [
-    {
-     "name": "LICENSE",
-     "provenance": "https://raw.githubusercontent.com/fmtlib/fmt/master/LICENSE (fetched 2026-10-27)",
-     "sha256": "a65fcc5a1095fc33cc37e4fff69366e49d7e92f613558a2b95ed1b70e33758b4"
-    }
-   ]
-  },
-  {
-   "ecosystem": "native",
-   "files": {},
-   "license": "MIT",
-   "name": "nlohmann/json",
-   "note": "Compiled into AccelerANTgine.",
-   "source": "https://github.com/nlohmann/json",
-   "texts": [
-    {
-     "name": "LICENSE.MIT",
-     "provenance": "https://raw.githubusercontent.com/nlohmann/json/develop/LICENSE.MIT (fetched 2026-10-27)",
-     "sha256": "d64d1b4d948aa7751cfb613c02dc246aab7b358d760053e6580f01affe946906"
-    }
-   ]
-  },
-  {
-   "ecosystem": "native",
-   "files": {},
-   "license": "MIT",
-   "name": "toml++",
-   "note": "Compiled into AccelerANTgine.",
-   "source": "https://github.com/marzer/tomlplusplus",
-   "texts": [
-    {
-     "name": "LICENSE",
-     "provenance": "https://raw.githubusercontent.com/marzer/tomlplusplus/master/LICENSE (fetched 2026-10-27)",
-     "sha256": "529bc3900a9571e49db285b0df432397e70b881cc3bf48de6667ae74ff4b06d8"
-    }
-   ]
-  },
-  {
-   "ecosystem": "native",
-   "files": {},
-   "license": "MIT",
-   "name": "Microsoft GSL",
-   "note": "Header-only, compiled into AccelerANTgine.",
-   "source": "https://github.com/microsoft/GSL",
-   "texts": [
-    {
-     "name": "LICENSE",
-     "provenance": "https://raw.githubusercontent.com/microsoft/GSL/main/LICENSE (fetched 2026-10-27)",
-     "sha256": "4c21dc82a1c7186ea754fd59d504c00947953a3401fe8e24eaa44109ef8e2555"
     }
    ]
   },
@@ -2895,62 +2797,6 @@
   {
    "ecosystem": "cargo",
    "license": "MIT OR Apache-2.0",
-   "name": "cxx",
-   "source": "https://github.com/dtolnay/cxx",
-   "targets": [
-    "aarch64-pc-windows-msvc",
-    "aarch64-unknown-linux-gnu",
-    "x86_64-pc-windows-msvc",
-    "x86_64-unknown-linux-gnu"
-   ],
-   "texts": [
-    {
-     "name": "package/LICENSE-APACHE",
-     "provenance": "crates.io cxx@1.0.205",
-     "sha256": "62c7a1e35f56406896d7aa7ca52d0cc0d272ac022b5d2796e7d6905db8a3636a"
-    },
-    {
-     "name": "package/LICENSE-MIT",
-     "provenance": "crates.io cxx@1.0.205",
-     "sha256": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3"
-    }
-   ],
-   "used_by": [
-    "rusty_code"
-   ],
-   "version": "1.0.205"
-  },
-  {
-   "ecosystem": "cargo",
-   "license": "MIT OR Apache-2.0",
-   "name": "cxxbridge-macro",
-   "source": "https://github.com/dtolnay/cxx",
-   "targets": [
-    "aarch64-pc-windows-msvc",
-    "aarch64-unknown-linux-gnu",
-    "x86_64-pc-windows-msvc",
-    "x86_64-unknown-linux-gnu"
-   ],
-   "texts": [
-    {
-     "name": "package/LICENSE-APACHE",
-     "provenance": "crates.io cxxbridge-macro@1.0.205",
-     "sha256": "62c7a1e35f56406896d7aa7ca52d0cc0d272ac022b5d2796e7d6905db8a3636a"
-    },
-    {
-     "name": "package/LICENSE-MIT",
-     "provenance": "crates.io cxxbridge-macro@1.0.205",
-     "sha256": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3"
-    }
-   ],
-   "used_by": [
-    "rusty_code"
-   ],
-   "version": "1.0.205"
-  },
-  {
-   "ecosystem": "cargo",
-   "license": "MIT OR Apache-2.0",
    "name": "dart-sys",
    "source": "https://github.com/dart-sys/dart-sys",
    "targets": [
@@ -3457,8 +3303,7 @@
    ],
    "used_by": [
     "kataglyphis_observant",
-    "oxidant",
-    "rusty_code"
+    "oxidant"
    ],
    "version": "1.0.3"
   },
@@ -3780,8 +3625,7 @@
    ],
    "used_by": [
     "kataglyphis_observant",
-    "oxidant",
-    "rusty_code"
+    "oxidant"
    ],
    "version": "0.2.0"
   },
@@ -4685,8 +4529,7 @@
    ],
    "used_by": [
     "kataglyphis_observant",
-    "oxidant",
-    "rusty_code"
+    "oxidant"
    ],
    "version": "0.17.1"
   },
@@ -5076,8 +4919,7 @@
    ],
    "used_by": [
     "kataglyphis_observant",
-    "oxidant",
-    "rusty_code"
+    "oxidant"
    ],
    "version": "2.14.2"
   },
@@ -5803,34 +5645,6 @@
     "oxidant"
    ],
    "version": "0.2.16"
-  },
-  {
-   "ecosystem": "cargo",
-   "license": "MIT OR Apache-2.0",
-   "name": "link-cplusplus",
-   "source": "https://github.com/dtolnay/link-cplusplus",
-   "targets": [
-    "aarch64-pc-windows-msvc",
-    "aarch64-unknown-linux-gnu",
-    "x86_64-pc-windows-msvc",
-    "x86_64-unknown-linux-gnu"
-   ],
-   "texts": [
-    {
-     "name": "package/LICENSE-APACHE",
-     "provenance": "crates.io link-cplusplus@1.0.12",
-     "sha256": "62c7a1e35f56406896d7aa7ca52d0cc0d272ac022b5d2796e7d6905db8a3636a"
-    },
-    {
-     "name": "package/LICENSE-MIT",
-     "provenance": "crates.io link-cplusplus@1.0.12",
-     "sha256": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3"
-    }
-   ],
-   "used_by": [
-    "rusty_code"
-   ],
-   "version": "1.0.12"
   },
   {
    "ecosystem": "cargo",
@@ -7370,8 +7184,7 @@
    ],
    "used_by": [
     "kataglyphis_observant",
-    "oxidant",
-    "rusty_code"
+    "oxidant"
    ],
    "version": "1.0.107"
   },
@@ -7671,8 +7484,7 @@
    ],
    "used_by": [
     "kataglyphis_observant",
-    "oxidant",
-    "rusty_code"
+    "oxidant"
    ],
    "version": "1.0.47"
   },
@@ -8381,29 +8193,6 @@
   },
   {
    "ecosystem": "cargo",
-   "license": "MIT",
-   "name": "rusty_code",
-   "source": "path",
-   "targets": [
-    "aarch64-pc-windows-msvc",
-    "aarch64-unknown-linux-gnu",
-    "x86_64-pc-windows-msvc",
-    "x86_64-unknown-linux-gnu"
-   ],
-   "texts": [
-    {
-     "name": "package/LICENSE",
-     "provenance": "crates.io rusty_code@0.1.0",
-     "sha256": "885560f6df8845075aa21934dd872c7672529ecd8be4258e0d641efda9fd5940"
-    }
-   ],
-   "used_by": [
-    "rusty_code"
-   ],
-   "version": "0.1.0"
-  },
-  {
-   "ecosystem": "cargo",
    "license": "Unlicense/MIT",
    "name": "same-file",
    "source": "https://github.com/BurntSushi/same-file",
@@ -9065,8 +8854,7 @@
    ],
    "used_by": [
     "kataglyphis_observant",
-    "oxidant",
-    "rusty_code"
+    "oxidant"
    ],
    "version": "3.0.9"
   },
@@ -10020,8 +9808,7 @@
    ],
    "used_by": [
     "kataglyphis_observant",
-    "oxidant",
-    "rusty_code"
+    "oxidant"
    ],
    "version": "1.0.27"
   },
@@ -12217,8 +12004,7 @@
  "inputs": {
   "pubspec.lock": "6ea2099268f5164e2cdcc0d4d30cd432ab228fa694601ae34e6a3ecbaad7a848",
   "scripts/licenses/cargo-policy.json": "6e00988b928e306bffa597f57dc58e21d9c34db75d52985c354b6cf077e1dcf5",
-  "scripts/licenses/native-components.json": "cfe18b666ad445d8d88596c04c71cf6c7e5336c20b9e0edb040d149be7871348",
-  "third_party/AccelerANTgine/Src/rusty_code/Cargo.lock": "4834328081f31332074f730d8b746e9e1f04a502410d2f128ec0f06cafea5b25",
+  "scripts/licenses/native-components.json": "ba1d9ea0ffb77a7d6ace8d8e267aab740bda618a36c20d51612e03db567ee8d8",
   "third_party/OxidANT/Cargo.lock": "8f64077d70ca72733217afbbb60b8c6a9ebce9e25adf9aec4c44a069f669728d"
  },
  "schema": 1,

@@ -50,18 +50,10 @@ WORKSPACES: list[dict[str, Any]] = [
         ],
         "license": None,
     },
-    # Older rusty_code revisions omit the MIT license; newer ones declare it themselves.
-    {
-        "path": "third_party/AccelerANTgine/Src/rusty_code",
-        "roots": ["rusty_code"],
-        "targets": DESKTOP,
-        "license": "third_party/AccelerANTgine/LICENSE",
-    },
 ]
 INPUTS = [
     "pubspec.lock",
     "third_party/OxidANT/Cargo.lock",
-    "third_party/AccelerANTgine/Src/rusty_code/Cargo.lock",
     "scripts/licenses/native-components.json",
     "scripts/licenses/cargo-policy.json",
 ]

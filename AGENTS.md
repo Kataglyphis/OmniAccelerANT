@@ -42,7 +42,6 @@ inference plugin.
 | `lib/` | The Flutter/Dart frontend |
 | `third_party/OxidANT` | Rust core, bridged via `flutter_rust_bridge`. `lib/src/rust/` is committed generated code — no build lane regenerates it; how to regenerate: § 4, *The frb Dart bindings* |
 | `packages/kataglyphis_native_inference` | C++ inference plugin — **plain files, not a submodule**; a `pubspec.yaml` path dependency. The texture bridge to the Rust core; links no inference library (owner D1); GStreamer only on Android, from its SDK |
-| `third_party/AccelerANTgine` | The inference core the plugin builds. Its own submodule, sibling to the plugin rather than nested inside it |
 | `scripts/windows/`, `scripts/linux/` | Thin wrappers over ANTfrastructure drivers + this repo's own glue; `scripts/windows/modules/WindowsGpuBuild.Common.psm1` holds the GPU candidate build's shared steps |
 | `third_party/ANTfrastructure` | The submodule owning every reusable script, module and doc |
 | `firmware/esp32-s3` | Rust firmware for the ESP32-S3 companion — its own crate, `esp` toolchain and `Cargo.lock`, never a workspace member |
@@ -121,13 +120,8 @@ a camera added or moved goes into that table. The container + `serve.sh` shape o
 only looks at one board from another host. Runbook:
 [`docs/source/camera-streaming.md`](docs/source/camera-streaming.md) § *Cat detection stream (Rust, native)*.
 
-**`observant` is this app's only WebRTC producer.** AccelerANTgine carries a second,
-unrelated one — `Src/webrtc_streamer.{ixx,cpp}`, reached only through `cli_main.cpp`'s
-`--webrtc` flag, with its own GStreamer signalling on `ws://127.0.0.1:8443`. It compiles into
-the `AccelerANTgine` shared library that `packages/kataglyphis_native_inference` links, but
-nothing in this app calls it: the plugin's sources never mention WebRTC, and the Stream
-page's stream comes from the Rust crate. Do not wire the two together expecting a shared
-signalling path.
+**`observant` is this app's only WebRTC producer.** The Stream page's stream comes from the
+Rust crate; no C++ producer is linked since AccelerANTgine left the plugins (owner D1).
 
 ## 2. What ANTfrastructure owns — links only
 
@@ -234,11 +228,10 @@ do not "fix" their absence. Full reasoning:
 ## 3. Critical invariant: submodule pins
 
 Builds are supported only against the **recorded submodule gitlinks** — the commits CI
-builds green. There are four:
+builds green. There are three:
 [`third_party/ANTfrastructure`](third_party/ANTfrastructure) (the hub, § 2),
 [`third_party/OxidANT`](third_party/OxidANT) (the Rust core behind flutter_rust_bridge),
-[`third_party/AccelerANTgine`](third_party/AccelerANTgine) (the inference core the Windows
-and Linux plugin builds link) and [`third_party/ANThology`](third_party/ANThology) (the
+and [`third_party/ANThology`](third_party/ANThology) (the
 shared Dart package). `git submodule update --checkout --recursive` restores them. If you
 want a drifted checkout, move the gitlink **and** fix the fallout in the same change: a tree
 that walked forward from its gitlink compiles something other than what is committed, and
@@ -246,9 +239,7 @@ that walked forward from its gitlink compiles something other than what is commi
 
 The opposite move, for local work on the newest code, is the hub's `git-sync-branches.sh`
 ([`adopting-in-a-new-project.md` § *Putting every checkout on its branch*](third_party/ANTfrastructure/docs/adopting-in-a-new-project.md#putting-every-checkout-on-its-branch)).
-Here FUZZTEST stays on a release, because AccelerANTgine declares `branch = release_<date>`
-for it (move that line for a newer one), and nanobind's `ext/robin_map` is the one `+` no repo
-of ours can record. Commit the other gitlinks innermost repo first, or the next `git submodule
+Commit the other gitlinks innermost repo first, or the next `git submodule
 update` puts them back: on 2026-10-07 one reset three submodules two minutes after they moved.
 
 Drift is guarded by ANTfrastructure's shared Pester suite, run from
@@ -257,14 +248,13 @@ bump. It checks both directions: each checkout sits at the recorded commit, and 
 commit is reachable from that submodule's remote — a gitlink bumped to a commit that was
 never pushed builds on the machine that made it and on no other.
 
-**Submodule URLs are `https://github.com/Kataglyphis/<repo>.git`, all four**, never `git@`.
+**Submodule URLs are `https://github.com/Kataglyphis/<repo>.git`, all three**, never `git@`.
 Why, and how to change one:
 [`adopting-in-a-new-project.md` § *Submodule URLs are https*](third_party/ANTfrastructure/docs/adopting-in-a-new-project.md#submodule-urls-are-https-never-git).
 
-**What nothing here asserts:** `AccelerANTgine` and `OxidANT` each carry a
-`third_party/ANTfrastructure` pin of their own, free to differ from this repo's. Bumping the
-hub here does not bump the hub those two build against; that happens in their own
-repositories.
+**What nothing here asserts:** `OxidANT` carries a `third_party/ANTfrastructure` pin of its
+own, free to differ from this repo's. Bumping the hub here does not bump the hub OxidANT builds
+against; that happens in its own repository.
 
 ## 4. Pitfalls specific to this project
 
@@ -509,16 +499,11 @@ rather than linked.
   package discovery before the generated plugin rules; otherwise a build-host JDK enables
   `libdartjni.so` or `dartjni.dll` with an unbundled JVM dependency. Android's JNI path is unaffected.
 - **The desktop plugins build no AccelerANTgine** (owner D1): Linux since 2026-11-21 (step b),
-  Windows x64 and arm64 since 2026-11-23 (step c). The `add` handlers, the links, the arm64
+  Windows x64 and arm64 since 2026-11-23 (step c); the submodule left the repository with step (d). The `add` handlers, the links, the arm64
   prebuilt import and the overrides the embedded builds needed went; both plugins link
   `kci_plugin_quality`, the hub's warnings and hardening (x64 Debug: its ASan and UBSan instead). The arm64 natives' G6 proof uses an arm64
   stub where the app's exe will sit. Detail: [`docs/source/platforms.md`](docs/source/platforms.md)
   § *The Linux plugin's AccelerANTgine build* and § *ONNX Runtime in the Windows runner*.
-- **Vendored ANTLR** (pulled in unconditionally by newer FUZZTEST) needs
-  `WITH_STATIC_CRT OFF`, `ANTLR_BUILD_CPP_TESTS OFF`, `ANTLR_BUILD_SHARED OFF`, `/FIchrono`,
-  and `LICENSE.txt` staged at the build root — its install rule assumes a monorepo layout.
-  Wired up in `third_party/AccelerANTgine/third_party/CMakeLists.txt`, the inference core's
-  own dependency list, not the plugin's.
 - **The Stream page needs no secure context.** Only the Rust wasm core wants cross-origin
   isolation, and on web `main()` treats a failed `RustLib.init()` as optional, so Firefox and
   Safari over plain HTTP still boot; only the About page's Rust demo goes dark. `serve.sh

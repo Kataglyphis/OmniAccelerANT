@@ -40,7 +40,7 @@ _elf "${_ref}/lib/libonnxruntime.so.1" "" "" "${CHAIN_SRC}" OrtGetApiBase
 t_case "the chain ORT beside its importer passes; G6 ran and said so"
 _green="$(_bundle green)"
 cp "${_ref}/lib/libonnxruntime.so.1" "${_green}/lib/"
-_elf "${_green}/lib/libAccelerANTgine.so" libonnxruntime.so.1 '$ORIGIN' OrtGetApiBase
+_elf "${_green}/lib/libort_consumer.so" libonnxruntime.so.1 '$ORIGIN' OrtGetApiBase
 t_assert_eq 0 "$(_gate_rc "${_green}")" "clean bundle"
 t_assert_contains "$(_gate "${_green}")" "ORT census PASS" "the census ran"
 

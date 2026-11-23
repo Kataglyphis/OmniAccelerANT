@@ -25,7 +25,6 @@ OmniAccelerANT is a Flutter frontend over native Rust/C++ inference and GStreame
 | `doc/api/` | Generated API and guide output: `scripts/linux/generate-docs.sh` runs the SDK's `dart doc`, `Build-Windows.ps1` a pub-activated `dartdoc` (see [Getting Started](getting-started.md#6-build-api-docs)) |
 | `packages/kataglyphis_native_inference` | Flutter plugin (Android, Linux, Windows) that bridges native textures (and GStreamer on Android) to Dart; it links no inference library since owner decision D1. Plain files and a `pubspec.yaml` path dependency, not a submodule |
 | `third_party/OxidANT` | Rust core (`oxidant` crate), bridged into `lib/src/rust/` by `flutter_rust_bridge` |
-| `third_party/AccelerANTgine` | The C++ inference core the plugin builds against |
 | `third_party/ANTfrastructure` | Shared build images, container actions, and CI helpers |
 | `third_party/ANThology` | Shared Flutter/Dart code (`anthology` package), a path dependency in `pubspec.yaml` |
 

@@ -94,7 +94,7 @@ jobs:
       contents: read
 
     steps:
-      # Recursive: the producer is OxidANT's, the model AccelerANTgine's, the G6 census the hub's.
+      # Recursive: the producer and its model are OxidANT's, the G6 census the hub's.
       - name: Prepare CI host
         uses: Kataglyphis/ANTfrastructure/.github/actions/prepare-linux-ci-host@develop
         with:

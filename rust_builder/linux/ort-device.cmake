@@ -30,7 +30,7 @@ function(omni_linux_ort_device output oxidant_dir)
       PARENT_SCOPE)
 endfunction()
 
-# AccelerANTgine and Rust must resolve the same chain runtime.
+# The plugin and Rust must resolve the same chain runtime.
 function(omni_linux_ort_root provider)
   if(provider STREQUAL "cpu")
     return()
