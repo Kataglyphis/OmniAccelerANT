@@ -24,35 +24,7 @@ get_filename_component(_KCI_PLUGIN_PLATFORM_DIR "${CMAKE_CURRENT_SOURCE_DIR}" RE
 get_filename_component(_KCI_PLUGIN_ROOT "${_KCI_PLUGIN_PLATFORM_DIR}" DIRECTORY)
 get_filename_component(_KCI_PACKAGES "${_KCI_PLUGIN_ROOT}" DIRECTORY)
 get_filename_component(_KCI_REPO_ROOT "${_KCI_PACKAGES}" DIRECTORY)
-set(KCI_DIR "${_KCI_REPO_ROOT}/third_party/AccelerANTgine")
 set(KCI_TEXTURE_ABI_DIR "${_KCI_REPO_ROOT}/third_party/OxidANT/include")
-# Windows arm64 links a cross-built AccelerANTgine with its own C API headers (AGENTS.md § 5, the arm64 lane).
-if(DEFINED ENV{KATAGLYPHIS_ACCELERANTGINE_PREBUILT}
-   AND NOT
-       "$ENV{KATAGLYPHIS_ACCELERANTGINE_PREBUILT}"
-       STREQUAL
-       "")
-  # A CMake path: install() re-parses the DLL path, where a backslash sequence like "\a" is an escape.
-  file(TO_CMAKE_PATH "$ENV{KATAGLYPHIS_ACCELERANTGINE_PREBUILT}" _KCI_PREBUILT)
-  foreach(_kci_file "bin/AccelerANTgine.dll" "lib/AccelerANTgine.lib" "include/kataglyphis_c_api.h")
-    if(NOT EXISTS "${_KCI_PREBUILT}/${_kci_file}")
-      message(FATAL_ERROR "KATAGLYPHIS_ACCELERANTGINE_PREBUILT lacks ${_kci_file}: ${_KCI_PREBUILT}")
-    endif()
-  endforeach()
-  add_library(AccelerANTgine SHARED IMPORTED)
-  set_target_properties(
-    AccelerANTgine
-    PROPERTIES IMPORTED_LOCATION "${_KCI_PREBUILT}/bin/AccelerANTgine.dll"
-               IMPORTED_IMPLIB "${_KCI_PREBUILT}/lib/AccelerANTgine.lib"
-               INTERFACE_INCLUDE_DIRECTORIES "${_KCI_PREBUILT}/include")
-  set(_KCI_BUNDLED "${_KCI_PREBUILT}/bin/AccelerANTgine.dll")
-else()
-  # The runner folder is the install root, so AccelerANTgine.dll lands beside the exe; the app installs the VC++ runtime.
-  set(CMAKE_INSTALL_BINDIR ".")
-  set(CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS_SKIP TRUE)
-  add_subdirectory(${KCI_DIR} ${CMAKE_CURRENT_BINARY_DIR}/native_build)
-  set(_KCI_BUNDLED "")
-endif()
 
 # Named PLUGIN_NAME, which must not change.
 add_library(${PLUGIN_NAME} SHARED "include/kataglyphis_native_inference/kataglyphis_native_inference_plugin_c_api.h"
@@ -66,13 +38,11 @@ set_target_properties(${PLUGIN_NAME} PROPERTIES CXX_VISIBILITY_PRESET hidden)
 target_compile_definitions(${PLUGIN_NAME} PRIVATE FLUTTER_PLUGIN_IMPL)
 
 target_include_directories(${PLUGIN_NAME} INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/include")
-target_include_directories(${PLUGIN_NAME} PRIVATE "${KCI_DIR}/Src")
 target_include_directories(${PLUGIN_NAME} PRIVATE "${KCI_TEXTURE_ABI_DIR}")
 target_link_libraries(${PLUGIN_NAME} PRIVATE flutter flutter_wrapper_plugin)
-target_link_libraries(${PLUGIN_NAME} PRIVATE AccelerANTgine)
-# Absolute paths of the libraries bundled with the plugin.
+# The plugin bundles no library of its own since AccelerANTgine left it (owner D1); the Rust core ships beside it.
 set(kataglyphis_native_inference_bundled_libraries
-    "${_KCI_BUNDLED}"
+    ""
     PARENT_SCOPE)
 
 # Tests
@@ -86,7 +56,7 @@ if(${include_${PROJECT_NAME}_tests})
   include(FetchContent)
   FetchContent_Declare(googletest URL https://github.com/google/googletest/archive/refs/tags/v1.18.0.zip
                                       EXCLUDE_FROM_ALL)
-  # Normal variables, not FORCEd cache entries, so AccelerANTgine's own googletest keeps its settings.
+  # Normal variables, not FORCEd cache entries, so this googletest leaves the cache alone.
   set(gtest_force_shared_crt ON)
   set(INSTALL_GTEST OFF)
   FetchContent_MakeAvailable(googletest)
@@ -94,17 +64,10 @@ if(${include_${PROJECT_NAME}_tests})
   # The sources compiled in, as the C API is too narrow; EXCLUDE_FROM_ALL, so a broken test never breaks the app build.
   add_executable(${TEST_RUNNER} EXCLUDE_FROM_ALL test/kataglyphis_native_inference_plugin_test.cpp ${PLUGIN_SOURCES})
   apply_standard_settings(${TEST_RUNNER})
-  target_include_directories(${TEST_RUNNER} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}" "${KCI_DIR}/Src")
+  target_include_directories(${TEST_RUNNER} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
   target_include_directories(${TEST_RUNNER} PRIVATE "${KCI_TEXTURE_ABI_DIR}")
   target_link_libraries(${TEST_RUNNER} PRIVATE flutter_wrapper_plugin)
-  # kataglyphis_add comes from AccelerANTgine, as in the plugin itself.
-  target_link_libraries(${TEST_RUNNER} PRIVATE AccelerANTgine)
   target_link_libraries(${TEST_RUNNER} PRIVATE gtest_main gmock)
-  # AccelerANTgine builds its googletest with IPO; without it here the linker cannot read those LTO archives.
-  get_target_property(_gtest_ipo gtest_main INTERPROCEDURAL_OPTIMIZATION)
-  if(_gtest_ipo)
-    set_property(TARGET ${TEST_RUNNER} PROPERTY INTERPROCEDURAL_OPTIMIZATION ON)
-  endif()
   # flutter_wrapper_plugin has link dependencies on the Flutter DLL.
   add_custom_command(
     TARGET ${TEST_RUNNER}

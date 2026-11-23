@@ -19,7 +19,6 @@ namespace test {
 
     namespace {
 
-        using flutter::EncodableMap;
         using flutter::EncodableValue;
         using flutter::MethodCall;
         using flutter::MethodResultFunctions;
@@ -133,15 +132,6 @@ namespace test {
             EXPECT_TRUE(reply.not_implemented) << method;
             EXPECT_TRUE(reply.error.empty()) << method;
         }
-    }
-
-    TEST(KataglyphisNativeInferencePlugin, AddWithANonIntegerIsBadArgsNotAThrow)
-    {
-        KataglyphisNativeInferencePlugin plugin;
-        Reply reply;
-        EncodableMap args{ { EncodableValue("a"), EncodableValue("one") }, { EncodableValue("b"), EncodableValue(2) } };
-        plugin.HandleMethodCall(MethodCall("add", std::make_unique<EncodableValue>(args)), Recorder(reply));
-        EXPECT_EQ(reply.error, "bad_args");
     }
 
     TEST(KataglyphisNativeInferencePlugin, ANegativeSizeIsBadArgs)

@@ -105,12 +105,12 @@ if(PLUGIN_BUNDLED_LIBRARIES)
     COMPONENT Runtime)
 endif()
 
-# The app installs the x64 VC++ runtime and its notice, not AccelerANTgine (owner D1); arm64's come from the natives.
+# The app installs the x64 VC++ runtime and its notice; arm64's come from the natives.
 if(NOT
    CMAKE_SYSTEM_PROCESSOR
    MATCHES
    "^(ARM64|arm64|aarch64)$")
-  # After the plugins: AccelerANTgine's own hub pin keeps its modules, and its runtime list is not doubled.
+  # The hub's CPackCommon carries the notice helper; the runtime lands beside the exe.
   list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../third_party/ANTfrastructure/cmake")
   include(CPackCommon)
   set(CMAKE_INSTALL_SYSTEM_RUNTIME_DESTINATION ".")

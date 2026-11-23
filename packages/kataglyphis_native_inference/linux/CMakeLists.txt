@@ -72,7 +72,13 @@ list(APPEND CMAKE_MODULE_PATH "${_KCI_REPO_ROOT}/third_party/ANTfrastructure/cma
 include(CompilerWarnings)
 include(Hardening)
 add_library(kci_plugin_quality INTERFACE)
-myproject_set_project_warnings(kci_plugin_quality OFF "" "" "" "")
+myproject_set_project_warnings(
+  kci_plugin_quality
+  OFF
+  ""
+  ""
+  ""
+  "")
 myproject_enable_hardening(kci_plugin_quality OFF FALSE)
 target_link_libraries(${PLUGIN_NAME} PRIVATE kci_plugin_quality)
 # The plugin bundles no library of its own since AccelerANTgine left it (owner D1); the Rust core ships beside it.

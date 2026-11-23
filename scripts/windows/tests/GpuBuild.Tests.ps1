@@ -86,7 +86,7 @@ Describe 'Windows GPU preflight' {
     It 'accepts only an explicit matching x64 GPU installer candidate' {
         Invoke-WithTestFunction -Name Resolve-RunnerOrtLicense -Definition { param($RunnerDir, $RequiredProvider, [switch]$RequireDirectMl) } -Body {
             $runner = New-CandidateDir 'installer-candidate'
-            foreach ($name in 'oxidant.dll', 'AccelerANTgine.dll', 'ort-chain-stamp.json', 'onnxruntime_providers_shared.dll', 'DirectML.dll') {
+            foreach ($name in 'oxidant.dll', 'ort-chain-stamp.json', 'onnxruntime_providers_shared.dll', 'DirectML.dll') {
                 Set-Content -LiteralPath (Join-Path $runner $name) -Value $name
             }
             Set-Content -LiteralPath (Join-Path $runner 'omni_accelerant.exe') -Value 'OMNI_ACCELERANT_GPU_VARIANT_directml_V1'
@@ -121,7 +121,7 @@ Describe 'Windows GPU preflight' {
             $source = Join-Path $TestDrive 'cuda-source'
             $hostDir = Join-Path $TestDrive 'cuda-host'
             New-Item -ItemType Directory -Force -Path $source, $hostDir | Out-Null
-            foreach ($name in 'omni_accelerant.exe', 'oxidant.dll', 'AccelerANTgine.dll', 'ort-chain-stamp.json', 'onnxruntime_providers_shared.dll', 'onnxruntime_providers_cuda.dll') {
+            foreach ($name in 'omni_accelerant.exe', 'oxidant.dll', 'ort-chain-stamp.json', 'onnxruntime_providers_shared.dll', 'onnxruntime_providers_cuda.dll') {
                 $content = if ($name -eq 'omni_accelerant.exe') { 'OMNI_ACCELERANT_GPU_VARIANT_cuda_V1' } else { $name }
                 Set-Content -LiteralPath (Join-Path $source $name) -Value $content
                 Copy-Item -LiteralPath (Join-Path $source $name) -Destination $hostDir

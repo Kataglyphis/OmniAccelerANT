@@ -43,7 +43,7 @@ Describe 'WindowsOrtRunner.Common' {
                     $n.GetCommandName() -eq 'Invoke-BuildStep' -and $n.Extent.Text -match '-StepName "MSIX Packaging"' }, $true)
     }
 
-    # A chain ONNX_ROOT, and a runner whose exe hosts AccelerANTgine.dll and oxidant.dll (both use ORT).
+    # A chain ONNX_ROOT, and a runner whose exe hosts oxidant.dll, which dlopens ORT by name.
     function New-Case([string] $Name) {
         $case = Join-Path $TestDrive $Name
         $bin = Join-Path $case 'onnx\bin'
@@ -52,7 +52,6 @@ Describe 'WindowsOrtRunner.Common' {
         New-OrtTestPe -Path (Join-Path $bin 'DirectML.dll') -Text 'directml'
         $runner = Join-Path $case 'runner'
         New-OrtTestPe -Path (Join-Path $runner 'omni_accelerant.exe') -Text 'main'
-        New-OrtTestPe -Path (Join-Path $runner 'AccelerANTgine.dll') -Text 'OrtGetApiBase'
         New-OrtTestPe -Path (Join-Path $runner 'oxidant.dll') -Text 'OrtGetApiBase'
         $wheels = Join-Path $case 'onnx\wheels'
         New-OrtCaseWheel -Path (Join-Path $wheels 'onnxruntime-1.31.0-cp315-cp315-win_amd64.whl') -Dll (Join-Path $bin 'onnxruntime.dll')

@@ -11,7 +11,6 @@
 #include <memory>
 #include <sstream>
 
-#include "kataglyphis_c_api.h"
 #include "kataglyphis_texture.h"
 
 namespace kataglyphis_native_inference {
@@ -97,25 +96,6 @@ void KataglyphisNativeInferencePlugin::HandleMethodCall(const flutter::MethodCal
             version_stream << "7";
         }
         result->Success(flutter::EncodableValue(version_stream.str()));
-    } else if (method == "add") {
-        const auto *args = std::get_if<flutter::EncodableMap>(method_call.arguments());
-        if (args) {
-            int a = 0, b = 0;
-            auto itA = args->find(flutter::EncodableValue("a"));
-            auto itB = args->find(flutter::EncodableValue("b"));
-            // get_if, not get: std::get throws on another type, and nothing here catches it.
-            const int *a_val = itA != args->end() ? std::get_if<int>(&itA->second) : &a;
-            const int *b_val = itB != args->end() ? std::get_if<int>(&itB->second) : &b;
-            if (!a_val || !b_val) {
-                result->Error("bad_args", "Expected integer a and b");
-                return;
-            }
-
-            int sum = kataglyphis_add(*a_val, *b_val);
-            result->Success(flutter::EncodableValue(sum));
-        } else {
-            result->Error("bad_args", "Expected map with a and b");
-        }
     } else if (method == "create") {
         if (texture_) {
             result->Success(flutter::EncodableValue(texture_->texture_id()));

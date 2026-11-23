@@ -28,7 +28,7 @@ function Assert-InstallerChecksUseHubRunner {
 function Assert-GpuPackageByteCheck {
     $ast = Get-TestScriptAst -ScriptPath (Join-Path $PSScriptRoot '..\Package-OmniAccelerANT.ps1')
     $text = $ast.Extent.Text
-    foreach ($name in 'onnxruntime.dll', 'onnxruntime_providers_shared.dll', 'onnxruntime_providers_cuda.dll', 'ort-chain-stamp.json', 'omni_accelerant.exe', 'oxidant.dll', 'AccelerANTgine.dll') {
+    foreach ($name in 'onnxruntime.dll', 'onnxruntime_providers_shared.dll', 'onnxruntime_providers_cuda.dll', 'ort-chain-stamp.json', 'omni_accelerant.exe', 'oxidant.dll') {
         $text.Contains("'$name'") | Should Be $true
     }
     $text.Contains("[ValidateSet('cpu', 'cuda', 'directml')][string]`$OrtProvider = 'cpu'") | Should Be $true

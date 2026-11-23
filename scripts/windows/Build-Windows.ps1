@@ -427,13 +427,6 @@ try {
             }
 
             if ($currentPreset) {
-                $sourcePreset = Join-Path $workspace "third_party\AccelerANTgine\CMakePresets.json"
-                $destPreset = Join-Path $windowsSrc "CMakePresets.json"
-                if ((Test-Path $sourcePreset) -and -not (Test-Path $destPreset)) {
-                    Write-BuildLog -Context $context -Message "Copying CMakePresets.json to windows directory..."
-                    Copy-Item -Path $sourcePreset -Destination $destPreset -Force
-                }
-
                 $cmakeArgs = @(
                     "-S", $windowsSrc,
                     "--preset", $currentPreset,
@@ -585,7 +578,7 @@ try {
             }
         }
 
-        # Last: AccelerANTgine.dll imports onnxruntime.dll and the Rust core dlopens it; G6 then proves it.
+        # Last: the Rust core dlopens onnxruntime.dll from the exe's folder; G6 then proves it with omni_accelerant.exe as host.
         Invoke-BuildStep -Context $context -StepName "Stage Chain ONNX Runtime$stepSuffix" -Critical -Script {
             if ($OrtProvider -eq 'cuda') {
                 $providerDll = 'onnxruntime_providers_cuda.dll'

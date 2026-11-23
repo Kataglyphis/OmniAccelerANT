@@ -3,7 +3,7 @@
 .SYNOPSIS
     Packages the OmniAccelerANT runner as an MSI and a signed MSIX, for x64 or arm64.
 .DESCRIPTION
-    The runner folder is the app as it ships: omni_accelerant.exe with AccelerANTgine.dll, the VC++ runtime, the
+    The runner folder is the app as it ships: omni_accelerant.exe with oxidant.dll, the VC++ runtime, the
     chain ONNX Runtime, the GStreamer subset and data\ beside it. The MSI installs it per machine under Program Files
     with a Start menu shortcut; the MSIX carries the identity pubspec.yaml's msix_config names and its msix_version.
     Without -MsixPfx a throwaway test certificate signs the MSIX, and its .cer lands beside it. Needs WiX 7 (in
@@ -34,7 +34,7 @@ Import-BuildModule @('WindowsBuild.Common', 'WindowsMsix.Common', 'WindowsMsix.S
 # The GPU runtime and app bytes both installers must carry unchanged from the proven runner.
 function Get-GpuPackageFile {
     param([Parameter(Mandatory)][string]$RunnerDir, [Parameter(Mandatory)][string]$Provider)
-    $files = @('omni_accelerant.exe', 'oxidant.dll', 'AccelerANTgine.dll', 'kataglyphis_native_inference_plugin.dll', 'onnxruntime.dll', 'onnxruntime_providers_shared.dll', 'ort-chain-stamp.json')
+    $files = @('omni_accelerant.exe', 'oxidant.dll', 'kataglyphis_native_inference_plugin.dll', 'onnxruntime.dll', 'onnxruntime_providers_shared.dll', 'ort-chain-stamp.json')
     $files += @(& (Join-Path $PSScriptRoot 'Get-DetectorModelFile.ps1') | ForEach-Object { "resources/models/$_" })
     if ($Provider -eq 'cuda') { $files += 'onnxruntime_providers_cuda.dll' }
     if (Test-Path -LiteralPath (Join-Path $RunnerDir 'DirectML.dll') -PathType Leaf) { $files += 'DirectML.dll' }
@@ -45,7 +45,7 @@ $AppDir = (Resolve-Path -LiteralPath $AppDir).Path
 if (-not (Test-Path -LiteralPath (Join-Path $AppDir 'omni_accelerant.exe') -PathType Leaf)) { throw "no omni_accelerant.exe in $AppDir" }
 & (Join-Path $PSScriptRoot 'Stage-DetectorModel.ps1') -WorkspaceDir $repoRoot -RunnerDir $AppDir -VerifyOnly
 Assert-WindowsInstallerCandidate -RunnerDir $AppDir -Provider $OrtProvider -Arch $Arch
-# A runner from before 9f4438e kept AccelerANTgine.dll there, where the loader never looks.
+# A runner from before 9f4438e kept a native DLL in bin\, where the loader never looks.
 if (Test-Path -LiteralPath (Join-Path $AppDir 'bin') -PathType Container) { throw "$AppDir has a bin\ folder; rebuild it, no installer may ship that layout" }
 $version = Get-PackageVersion -WorkspacePath $repoRoot -VersionFile 'pubspec.yaml' -Components 3 -Required
 $pubspec = Get-Content -LiteralPath (Join-Path $repoRoot 'pubspec.yaml') -Raw

@@ -39,14 +39,6 @@ const List<PluginMethod> kNativeInferenceMethods = <PluginMethod>[
     },
   ),
   PluginMethod(
-    'add',
-    arguments: "{'a': int, 'b': int}",
-    result: 'int',
-    errors: {
-      PluginPlatform.windows: ['bad_args'],
-    },
-  ),
-  PluginMethod(
     'create',
     arguments: '[width, height]',
     result: 'int texture id; a second create answers the first id',
@@ -138,9 +130,6 @@ abstract final class NativeInferenceChannel {
 
   static Future<String?> getPlatformVersion() =>
       channel.invokeMethod<String>('getPlatformVersion');
-
-  static Future<int> add(int a, int b) async =>
-      await channel.invokeMethod<int>('add', {'a': a, 'b': b}) ?? 0;
 
   static Future<int?> create(int width, int height) =>
       channel.invokeMethod<int>('create', <int>[width, height]);

@@ -66,7 +66,7 @@ function Assert-WindowsGpuDelivery {
     $exe = 'omni_accelerant.exe'
     $variant = Get-WindowsGpuExecutableProvider -ExePath (Join-Path $SourceDir $exe)
     if ($variant -ne $Provider) { throw "Built runner is marked '$variant', not the requested '$Provider' provider." }
-    foreach ($name in @($exe, 'oxidant.dll', 'AccelerANTgine.dll', 'ort-chain-stamp.json')) {
+    foreach ($name in @($exe, 'oxidant.dll', 'ort-chain-stamp.json')) {
         $source = Join-Path $SourceDir $name
         $destination = Join-Path $DestinationDir $name
         if (-not (Test-Path -LiteralPath $source -PathType Leaf) -or -not (Test-Path -LiteralPath $destination -PathType Leaf)) {

@@ -5,8 +5,8 @@
 .SYNOPSIS
     The native half of the Windows arm64 app, cross-built in the family image's arm64 bundle.
 .DESCRIPTION
-    Under -OutDir: accelerantgine\ (for KATAGLYPHIS_ACCELERANTGINE_PREBUILT) and runtime\, everything the exe
-    loads beside it (for CARGOKIT_PREBUILT_DIR). Flutter cannot cross-build windows-arm64 (flutter/flutter#62597).
+    Under -OutDir: runtime\, everything the exe loads beside it (for CARGOKIT_PREBUILT_DIR).
+    Flutter cannot cross-build windows-arm64 (flutter/flutter#62597).
 #>
 [CmdletBinding()]
 param(
@@ -19,7 +19,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'Resolve-BuildModule.ps1')
-Import-BuildModule 'WindowsCrossBundle.Common'
+Import-BuildModule @('WindowsCrossBundle.Common', 'WindowsMsvcRuntimeNotice.Common')
 # G6 and its stamp, as the x64 runner gets them; the app job re-proves the stamp on the device.
 Import-BuildModule @('WindowsOrtProvenance.Common', 'WindowsOrtPayload.Common', 'WindowsOrtLicense.Common', 'WindowsOrtRunner.Common')
 
@@ -28,21 +28,6 @@ $runtime = Join-Path $out 'runtime'
 if (Test-Path -LiteralPath $out) { Remove-Item -LiteralPath $out -Recurse -Force }
 $null = New-Item -ItemType Directory -Force -Path (Join-Path $runtime 'gstreamer-1.0')
 & (Join-Path $PSScriptRoot 'Stage-DetectorModel.ps1') -WorkspaceDir $WorkspaceDir -RunnerDir $runtime
-
-# AccelerANTgine: its own arm64 lane, so this is exactly what its windows-arm64-cross.yml ships.
-$kci = Join-Path $WorkspaceDir 'third_party\AccelerANTgine'
-& pwsh -NoProfile -ExecutionPolicy Bypass -File (Join-Path $kci 'scripts\windows\Build-Windows.ps1') `
-    -WorkspaceDir $kci -TargetArch arm64 -BuildTargets clangcl-release -SkipFormat
-if ($LASTEXITCODE) { throw "AccelerANTgine's arm64 build failed (exit $LASTEXITCODE)." }
-$kciBundle = Join-Path $kci 'dist\windows-arm64\bundle'
-foreach ($file in 'bin\AccelerANTgine.dll', 'lib\AccelerANTgine.lib') {
-    if (-not (Test-Path -LiteralPath (Join-Path $kciBundle $file))) { throw "AccelerANTgine's arm64 bundle lacks $file ($kciBundle)." }
-}
-Copy-Item -LiteralPath $kciBundle -Destination (Join-Path $out 'accelerantgine') -Recurse
-# The C API headers travel with the DLL: on windows-11-arm REALPATH leaves the plugin junction unresolved.
-$kciInclude = Join-Path $out 'accelerantgine\include'
-$null = New-Item -ItemType Directory -Force -Path $kciInclude
-foreach ($header in 'kataglyphis_c_api.h', 'kataglyphis_export.h') { Copy-Item -LiteralPath (Join-Path $kci "Src\$header") -Destination $kciInclude }
 
 # Target tree off the bind mount (AGENTS.md § 5); the cross opt-in lets pkg-config read arm64 .pc files.
 $env:PKG_CONFIG_ALLOW_CROSS = '1'
@@ -55,7 +40,6 @@ if ($LASTEXITCODE) { throw "cargo build of oxidant.dll for aarch64-pc-windows-ms
 Copy-Item -LiteralPath (Join-Path $cargoTarget 'aarch64-pc-windows-msvc\release\oxidant.dll') -Destination $runtime
 
 # ORT and the plugins are loaded by name, never imported, so they seed the closure by copy.
-Copy-Item -LiteralPath (Join-Path $kciBundle 'bin\AccelerANTgine.dll') -Destination $runtime
 $ortDll = Join-Path "$env:ONNX_ROOT" 'bin\onnxruntime.dll'
 if (-not (Test-Path -LiteralPath $ortDll)) { throw "No chain ONNX Runtime at $ortDll (ONNX_ROOT='$env:ONNX_ROOT')." }
 Copy-Item -LiteralPath $ortDll -Destination $runtime
@@ -68,13 +52,21 @@ $seeds = @(Get-ChildItem -LiteralPath $runtime -Filter '*.dll' -File -Recurse | 
 $added = @(Copy-PeImportClosure -Path $seeds -SearchDirectory @(Get-ProductDllSearchPath -Arch arm64) -Destination $runtime -Arch arm64)
 Write-Host "arm64 natives in $out`: $($seeds.Count) seed(s), $($added.Count) closure DLL(s) in runtime\"
 
-# G6 places ORT from a host exe's folder, and runtime\ has none yet: a copy with AccelerANTgine.exe standing in is proved.
+# G6 needs a host exe, and the app's is built later on the device: an arm64 stub sits where it will; the app job re-proves with the real one.
 $env:WINDOWS_TARGET_ARCH = 'arm64'
 $proofDir = Join-Path $env:TEMP "omni-arm64-g6-$([guid]::NewGuid().ToString('N'))"
 Copy-Item -LiteralPath $runtime -Destination $proofDir -Recurse
-Copy-Item -LiteralPath (Join-Path $kciBundle 'bin\AccelerANTgine.exe') -Destination $proofDir
+$hostCrate = Join-Path $env:TEMP "omni-arm64-g6-host-$([guid]::NewGuid().ToString('N'))"
+$null = New-Item -ItemType Directory -Force -Path (Join-Path $hostCrate 'src')
+Set-Content -LiteralPath (Join-Path $hostCrate 'Cargo.toml') -Value "[package]`nname = `"omni_accelerant`"`nversion = `"0.0.0`"`nedition = `"2021`"`n`n[workspace]`n"
+Set-Content -LiteralPath (Join-Path $hostCrate 'src\main.rs') -Value 'fn main() {}'
+& cargo build --manifest-path (Join-Path $hostCrate 'Cargo.toml') --release --target aarch64-pc-windows-msvc --target-dir (Join-Path $hostCrate 'target')
+if ($LASTEXITCODE) { throw "cargo build of the G6 host stub for aarch64-pc-windows-msvc failed (exit $LASTEXITCODE)." }
+Copy-Item -LiteralPath (Join-Path $hostCrate 'target\aarch64-pc-windows-msvc\release\omni_accelerant.exe') -Destination $proofDir
 $proof = Invoke-RunnerOrtProof -RunnerDir $proofDir
 Copy-Item -LiteralPath (Join-Path $proofDir 'ort-chain-stamp.json') -Destination $runtime
 Copy-Item -LiteralPath (Join-Path $proofDir 'licenses') -Destination $runtime -Recurse
-Remove-Item -LiteralPath $proofDir -Recurse -Force
+Remove-Item -LiteralPath $proofDir, $hostCrate -Recurse -Force
 Write-Host "G6: the chain ONNX Runtime in runtime\ is proved and stamped: $(@($proof.Stamp.sha256.Keys) -join ', ')"
+# After the proof's licenses\ copy, which would otherwise nest into an existing folder; x64 installs the same notice from CMake.
+$null = Copy-MsvcRuntimeNotice -Root $runtime

@@ -128,7 +128,7 @@ Run the app on the host after a build:
 | `docker commit` (or `docker start` of a stopped container) fails `hcsshim::ActivateLayer ... (0x20)` | The container was created with `--isolation process`; on this host its writable layer stays locked after stop and cannot be snapshotted | Create any container you will **commit** with `--isolation hyperv` (kept alive + `docker exec` build + stop + commit works; that is why the ANTfrastructure orchestrator uses hyperv for run+commit). `docker export` is **not** a workaround (the daemon refuses to export Windows containers). Keep `--isolation process` for throwaway runs whose output you extract *live* via `tar` over `docker exec` before stopping. |
 | `mediafoundation` plugin registers "0 features" / `gst-inspect mfvideosrc` says "no such element"; debug shows `MFStartup` → `0x80004001` (E_NOTIMPL) | The build image's **Server Core** base ships no Media Foundation platform; copying `mfplat.dll`/`mf.dll` does not help (the `Server-Media-Foundation` feature is *Removed* with no servicing source; `Install-WindowsFeature` fails `0x800f0916`) | **Not a build defect.** `gstmediafoundation.dll` compiles, links and loads; it registers `mfvideosrc` only on a **Windows client host** (Win10/11), where MF is present. Verify the webcam source on the host, never in the container (which has no camera either). The Rust capture path falls back `mfvideosrc → ksvideosrc → autovideosrc`, so `ksvideosrc` covers hosts without MF. |
 | CMake configure: `add_subdirectory ... .plugin_symlinks/kataglyphis_native_inference/windows which is not an existing directory` (only this one plugin) | `Fix-FlutterPluginSymlinks` (now `Repair-FlutterPluginSymlink`, the old name kept as an alias) used to **copy** each plugin dir into `.plugin_symlinks`; it now makes a junction first and copies only when that does not resolve. For `kataglyphis_native_inference` the recursive copy of its deep `native/AccelerANTgine/third_party/*` tree overran the 260-char path limit and aborted before `windows\` was copied, leaving a broken junction. Since 2026-09-05 the inference core is a sibling submodule at `third_party/AccelerANTgine` and the plugin directory is about 100 files, so a copy would no longer overrun; the junction stays as the cheaper, more robust option | Use a **junction** (`mklink /J`), not a copy, for container-local workspaces: immune to MAX_PATH (the "copy avoids symlink access-denied" rationale applies only to bind-mounted paths). Clear stale `windows\flutter\ephemeral` + `.dart_tool` first: a broken junction from a prior run makes `flutter build --config-only` crash `PathExistsException` (errno 183, "already exists"). |
-| App window flashes then exits on the host (~6 MB, no window title) | The native C++ plugin cannot load its dependency `AccelerANTgine.dll`. Before 2026-10-17 the x64 build left it, the VC++ runtime and a second ORT in a `bin\` **subdirectory** of the runner, where the loader never looks, so the released zip started only with `bin\` on `PATH` | Fixed at the source: the plugin's `CMakeLists.txt` sets `CMAKE_INSTALL_BINDIR` to `.` before it embeds AccelerANTgine, and the app's `windows/CMakeLists.txt` installs the x64 VC++ runtime with `CMAKE_INSTALL_SYSTEM_RUNTIME_DESTINATION` `.` (since 2026-11-21, ahead of AccelerANTgine's removal), so both land beside the exe, as on arm64. The x64 launch smoke starts the runner without any `-SearchPath`, as a double-click does. A runner that still has a `bin\` is from an older build: rebuild. A fully initialized app is ~130 MB with a real window handle. |
+| App window flashes then exits on the host (~6 MB, no window title) | A DLL the exe or a plugin imports is not beside the exe (until 2026-11 the plugin's `AccelerANTgine.dll`). Before 2026-10-17 the x64 build left it, the VC++ runtime and a second ORT in a `bin\` **subdirectory** of the runner, where the loader never looks, so the released zip started only with `bin\` on `PATH` | Fixed at the source: the plugin's `CMakeLists.txt` sets `CMAKE_INSTALL_BINDIR` to `.` before it embeds AccelerANTgine, and the app's `windows/CMakeLists.txt` installs the x64 VC++ runtime with `CMAKE_INSTALL_SYSTEM_RUNTIME_DESTINATION` `.` (since 2026-11-21, ahead of AccelerANTgine's removal), so both land beside the exe, as on arm64. The x64 launch smoke starts the runner without any `-SearchPath`, as a double-click does. A runner that still has a `bin\` is from an older build: rebuild. A fully initialized app is ~130 MB with a real window handle. |
 | ARM64 arch gate reports `dartjni.dll` → `jvm.dll` unresolved | Flutter's transitive `jni` FFI plugin found the runner JDK and built an unused desktop DLL; the app bundle has no JVM | `windows/CMakeLists.txt` disables optional JNI discovery before `generated_plugins.cmake`. Keep `Test-TargetArch.ps1 -ImportWalk` strict, and rebuild the app from a fresh CMake configure. |
 
 ### Tar-pipe inbound exclusions
@@ -436,8 +436,8 @@ the part ObservANT's packaging shares.
   out unsigned or signed by another subject. Its `-testcert.cer` ships beside it, and a tester
   trusts that `.cer` under `LocalMachine\TrustedPeople` before installing.
 - **`Test-OmniAccelerANTInstallers.ps1`** installs the MSI with `msiexec /qn` and checks that
-  `AccelerANTgine.dll` sits beside the exe with no `bin\`, that the exe, the plugin and
-  AccelerANTgine.dll match the lane's architecture through ANTfrastructure's
+  `oxidant.dll` sits beside the exe with no `bin\`, that the exe, the plugin and
+  `oxidant.dll` match the lane's architecture through ANTfrastructure's
   `WindowsTargetArch.Common` PE reader, and that the Start menu shortcut exists. Invalid PE
   files fail this check rather than being treated as matching binaries. It then starts the
   installed app through `Test-LaunchSmoke.ps1` without any `-SearchPath`, as the
@@ -619,9 +619,12 @@ rule 2026-09-23). Never copy an ORT into the runner by hand.
   first preset on every build, host copy too, and re-proven before `msix:create`: § *Windows
   build-step traps and MSIX packaging*.
 - **arm64.** The natives get the same proof and stamp in `Build-WindowsArm64Natives.ps1`, over a
-  copy of `runtime\` with `AccelerANTgine.exe` standing in for the app's exe (G6 places ORT from a
-  host exe's folder, and without one it calls every importer `UNRESOLVED`, run 36891845685); the
-  device re-proves the stamp before the launch smoke.
+  copy of `runtime\` with an arm64 stub named `omni_accelerant.exe` at its root, where the app's
+  exe sits once the app job copies `runtime\` beside it. G6 places ORT from a host exe's folder,
+  and without one it calls every importer `UNRESOLVED` (run 36891845685). The stub is a one-line
+  Rust `main`, built with the toolchain that built `oxidant.dll`; until 2026-11 the cross-built
+  `AccelerANTgine.exe` stood there (owner D1). The device then re-proves the stamp with the real
+  `omni_accelerant.exe` before the launch smoke, and again before packaging.
 
 Every verdict is the hub's, so both scripts stop with the hub commit to move to when the pinned
 hub predates either module. The Linux bundle's twin is `check-bundle-closure.sh` (AGENTS.md § 4,
@@ -784,13 +787,13 @@ local checkout is the worst case: § *The Windows CI lane and the `$GIT_DIR` lim
 2026-09-27). Flutter cannot cross-build `windows-arm64` from an x64 host (flutter/flutter#62597),
 so the lane has three build jobs (and the `ort-runner-suite` Pester job, below):
 - `natives` runs `scripts/windows/Build-WindowsArm64Natives.ps1` in the hub's arm64 container
-  lane. It cross-builds AccelerANTgine and `oxidant.dll` without DirectML, because the arm64 ORT
-  has no DirectML EP.
+  lane. It cross-builds `oxidant.dll` without DirectML, because the arm64 ORT has no DirectML EP,
+  and stages the VC++ runtime's notice under `runtime\licenses\msvc-runtime` (hub
+  `Copy-MsvcRuntimeNotice`).
 - `app` builds the Flutter part natively on `windows-11-arm` against those, with clang-cl like
-  every other Windows build here: `scripts/windows/Build-WindowsArm64App.ps1`. Two environment
-  switches do it: `CARGOKIT_PREBUILT_DIR`, a local Cargokit patch, copies the DLL and skips
-  cargo; `KATAGLYPHIS_ACCELERANTGINE_PREBUILT` makes the plugin link an imported AccelerANTgine
-  instead of `add_subdirectory`. With both unset, x64 builds exactly as before.
+  every other Windows build here: `scripts/windows/Build-WindowsArm64App.ps1`.
+  `CARGOKIT_PREBUILT_DIR`, a local Cargokit patch, copies the DLL and skips cargo; unset, x64
+  builds exactly as before. The plugin links no native library since 2026-11 (owner D1).
 - `app-debug` builds the same app as a Debug (ASan) one:
   `Build-WindowsArm64App.ps1 -Configuration Debug`, /MD like the natives (clang-cl strips /MDd
   under ASan, so no debug CRT), the aarch64 ASan runtime staged from the runner's own VS; the
@@ -812,7 +815,7 @@ and the app stays up 20 s at 147 MB with a real window. Two traps surfaced on th
   `APPLY_STANDARD_SETTINGS` still gives the `-Wno-…` flags to clang only; that guard is for the
   MSVC presets.
 - `.plugin_symlinks` is a junction there that `REALPATH` leaves unresolved. That is why the
-  cross-built AccelerANTgine brings its own C API headers.
+  cross-built AccelerANTgine brought its own C API headers, until the plugin stopped linking it.
 
 The app job tests what it built with the x64 lane's scripts: `Invoke-FlutterTests.ps1` (the
 app's and the plugin's Dart suites on the arm64 Dart VM, one `TESTS:` line), `Test-KntAbi.ps1`,

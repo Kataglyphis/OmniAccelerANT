@@ -27,8 +27,8 @@ texture and inference code to Dart.
 
 ### Dependencies
 
-- AccelerANTgine, the C++ inference core (`third_party/AccelerANTgine` in OmniAccelerANT),
-  linked on Linux and Windows.
+- No inference library: the desktop plugins dropped AccelerANTgine and its `add` demo (owner D1,
+  2026-11); OxidANT's texture ABI header (`third_party/OxidANT/include`) is the one native input.
 - GStreamer on Android only, from the Android GStreamer SDK (`GSTREAMER_ROOT_ANDROID`); on Linux and
   Windows the Rust core captures.
 

@@ -33,8 +33,8 @@ jobs:
         third_party/DocumANTation
       artifact-name: omni-accelerant-natives-windows-arm64
       artifact-dir: dist/windows-arm64-natives
-      # AccelerANTgine.exe and .dll, oxidant.dll, the chain ORT and the VC++ runtime at the least.
-      arch-gate-min-inspected: 5
+      # oxidant.dll, the chain ORT and the ten GStreamer plugins Build-WindowsArm64Natives.ps1 requires at the least.
+      arch-gate-min-inspected: 12
       timeout-minutes: 240
     secrets:
       GHCR_PAT: ${{ secrets.GHCR_PAT }}
@@ -45,9 +45,8 @@ jobs:
     runs-on: windows-11-arm
     timeout-minutes: 90
     env:
-      # Local patches: Cargokit copies the cross-built oxidant.dll, the plugin links the cross-built AccelerANTgine.
+      # A local patch: Cargokit copies the cross-built oxidant.dll.
       CARGOKIT_PREBUILT_DIR: ${{ github.workspace }}\natives\runtime
-      KATAGLYPHIS_ACCELERANTGINE_PREBUILT: ${{ github.workspace }}\natives\accelerantgine
       APP_DIR: build\windows\arm64\runner\Release
     steps:
       - name: Checkout
@@ -105,9 +104,10 @@ jobs:
       - name: Stage the runtime beside the exe
         run: Copy-Item -Path natives\runtime\* -Destination $env:APP_DIR -Recurse -Force
 
+      # The floor: the exe, flutter_windows.dll, the plugin, oxidant.dll, the chain ORT and the ten GStreamer plugins.
       - name: Arch gate (the app's tree, on the device)
         run: |
-          & third_party\ANTfrastructure\windows\scripts\build\Test-TargetArch.ps1 -Path $env:APP_DIR -Arch arm64 -MinInspected 6 -ImportWalk
+          & third_party\ANTfrastructure\windows\scripts\build\Test-TargetArch.ps1 -Path $env:APP_DIR -Arch arm64 -MinInspected 16 -ImportWalk
           if ($LASTEXITCODE) { throw "the arch gate failed (exit $LASTEXITCODE)" }
 
       # The Windows twin of scripts/linux/check-knt-abi.sh, loaded in-process by the arm64 pwsh: the Rust side resolves these by name.
@@ -176,7 +176,6 @@ jobs:
     timeout-minutes: 90
     env:
       CARGOKIT_PREBUILT_DIR: ${{ github.workspace }}\natives\runtime
-      KATAGLYPHIS_ACCELERANTGINE_PREBUILT: ${{ github.workspace }}\natives\accelerantgine
       APP_DIR: build\windows\arm64\runner\Debug
     steps:
       - name: Checkout

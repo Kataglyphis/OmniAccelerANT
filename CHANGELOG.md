@@ -5,6 +5,21 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ## Unreleased
 
+### 2026-11-23 — the Windows plugin builds no AccelerANTgine (add-demo retirement, step c)
+
+- The Windows x64 and arm64 plugin no longer builds or links AccelerANTgine: the `add` handler and its gtest case, the
+  `add_subdirectory`, the arm64 `KATAGLYPHIS_ACCELERANTGINE_PREBUILT` import and its C API includes went. On the Dart
+  side `NativeInferenceChannel.add`, its `kNativeInferenceMethods` row and the About page's add(3,4) line went; the
+  channel test now holds that no platform answers `add`.
+- The arm64 natives build only `oxidant.dll` and the runtime closure. G6 needs a host exe in the tree it proves, and
+  `AccelerANTgine.exe` stood in for the app's until now: a one-line Rust stub, built with the toolchain that built
+  `oxidant.dll`, sits where `omni_accelerant.exe` will sit, and the app job re-proves the stamp with the real exe. The
+  natives also stage the VC++ runtime's notice (`Copy-MsvcRuntimeNotice`), which the arm64 runner lacked since step (a).
+- The scripts follow: no preset copy from AccelerANTgine (`windows/CMakePresets.json` is tracked), the plugin gtest
+  copies no DLL beside itself, and the packaging lists, the GPU delivery check and the installer checks name
+  `oxidant.dll` where they named `AccelerANTgine.dll`. The arm64 arch-gate floors rise to what the trees must hold:
+  12 for the natives, 16 for the app.
+
 ### 2026-11-23 — the Linux plugin takes the hub's warnings and hardening
 
 - `packages/kataglyphis_native_inference/linux/CMakeLists.txt` links the plugin and its gtest runner to

@@ -6,14 +6,13 @@ import 'package:anthology/locale_helpers.dart';
 import 'package:omni_accelerant/src/boot/rust_core.dart';
 import 'package:omni_accelerant/src/db/sqlite3_storage.dart';
 import 'package:omni_accelerant/src/rust/api/simple.dart';
-import 'package:kataglyphis_native_inference/kataglyphis_native_inference.dart';
 import 'package:anthology/Layout/ResponsiveDesign/one_two_transition_widget.dart';
 import 'package:anthology/Pages/Footer/footer.dart';
 import 'package:anthology/app_attributes.dart';
 import 'package:anthology/constants.dart';
 import 'package:anthology/user_settings.dart';
 
-/// About Me page: personal info, skills, and the Rust, SQLite and native-plugin demos.
+/// About Me page: personal info, skills, and the Rust and SQLite demos.
 class AboutMePage extends StatefulWidget {
   /// The application-wide attributes for theming and layout.
   final AppAttributes appAttributes;
@@ -53,8 +52,6 @@ class AboutMePageState extends State<AboutMePage> {
       const Center(
         child: Sqlite3HealthcheckWidget(check: runOmniSqliteHealthcheck),
       ),
-      if (pluginAnswers('add', currentPluginPlatform()))
-        _buildNativePluginDemo(),
     ];
 
     final childWidgetsRightPage = <Widget>[
@@ -62,24 +59,6 @@ class AboutMePageState extends State<AboutMePage> {
     ];
 
     return [childWidgetsLeftPage, childWidgetsRightPage];
-  }
-
-  Widget _buildNativePluginDemo() {
-    return Center(
-      child: FutureBuilder<int>(
-        future: KataglyphisNativeInference.add(3, 4),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const CircularProgressIndicator();
-          }
-          if (snapshot.hasError) {
-            return Text('Error: ${snapshot.error}');
-          }
-          final value = snapshot.data ?? 0;
-          return Text('Native result: $value');
-        },
-      ),
-    );
   }
 
   @override

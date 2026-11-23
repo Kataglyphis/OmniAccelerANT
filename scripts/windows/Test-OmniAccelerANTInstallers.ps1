@@ -46,12 +46,12 @@ $selfCheck = Join-Path $PSScriptRoot 'Test-OnnxSelfCheck.ps1'
 Write-Host "=== the MSI: $Msi ==="
 $log = Join-Path $env:TEMP "omni-accelerant-msi-$PID.log"
 $p = Install-MsiSilently -Msi $Msi -LogPath $log
-Assert-Test -Name "it installs into $prefix, AccelerANTgine.dll beside the exe and no bin\" {
-    (Test-Path -LiteralPath (Join-Path $prefix $exeName)) -and (Test-Path -LiteralPath (Join-Path $prefix 'AccelerANTgine.dll')) -and
+Assert-Test -Name "it installs into $prefix, oxidant.dll beside the exe and no bin\" {
+    (Test-Path -LiteralPath (Join-Path $prefix $exeName)) -and (Test-Path -LiteralPath (Join-Path $prefix 'oxidant.dll')) -and
     -not (Test-Path -LiteralPath (Join-Path $prefix 'bin'))
 }
-Assert-Test -Name ('the exe, the plugin and AccelerANTgine.dll are {0} binaries (0x{1:X4})' -f $Arch, $machine) {
-    @($exeName, 'kataglyphis_native_inference_plugin.dll', 'AccelerANTgine.dll' | Where-Object { (Get-PeFileMachine -Path (Join-Path $prefix $_)) -ne $machine }).Count -eq 0
+Assert-Test -Name ('the exe, the plugin and oxidant.dll are {0} binaries (0x{1:X4})' -f $Arch, $machine) {
+    @($exeName, 'kataglyphis_native_inference_plugin.dll', 'oxidant.dll' | Where-Object { (Get-PeFileMachine -Path (Join-Path $prefix $_)) -ne $machine }).Count -eq 0
 }
 Assert-Test -Name 'the Start menu shortcut exists' {
     Test-Path -LiteralPath (Join-Path $env:ProgramData "Microsoft\Windows\Start Menu\Programs\$product\$product.lnk")
@@ -78,7 +78,7 @@ $view = Get-CheckedMsixView -Path $Msix -Publisher $Publisher
 $entries = $view.Entries
 Assert-MsixIdentity -Identity $view.Identity -Label "its identity is $identityName for $Arch, published by $Publisher" `
     -Expected @{ Name = $identityName; ProcessorArchitecture = $Arch; Publisher = $Publisher }
-Assert-Test -Name 'it carries the exe and AccelerANTgine.dll side by side' { $entries -contains $exeName -and $entries -contains 'AccelerANTgine.dll' }
+Assert-Test -Name 'it carries the exe and oxidant.dll side by side' { $entries -contains $exeName -and $entries -contains 'oxidant.dll' }
 Assert-Test -Name 'the MSIX contains the model and its notices' {
     @($modelFiles | Where-Object { $entries -cnotcontains "resources/models/$_" }).Count -eq 0
 }

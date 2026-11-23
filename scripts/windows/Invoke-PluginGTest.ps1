@@ -8,7 +8,7 @@
 .PARAMETER BuildDir
     The app's CMake build tree, configured with -Dinclude_kataglyphis_native_inference_tests=ON.
 .PARAMETER RuntimeDir
-    Folders that hold AccelerANTgine.dll, the chain onnxruntime.dll and their closure (the runner folder).
+    Folders that hold the plugin's runtime closure, put on PATH (the runner folder).
 .PARAMETER Build
     Build the test target first, with the CMake that configured the tree.
 .PARAMETER NoRun
@@ -42,13 +42,6 @@ if ($NoRun) { return "built $exe" }
 
 if ($RuntimeDir.Count -eq 0) { throw '-RuntimeDir is required to run the test.' }
 $runtime = @($RuntimeDir | ForEach-Object { (Resolve-Path -LiteralPath $_).Path })
-# Beside the exe, the one folder searched before System32, which holds Windows ML's own onnxruntime.dll on a client.
-foreach ($name in 'AccelerANTgine.dll', 'onnxruntime.dll') {
-    $source = $runtime | ForEach-Object { Join-Path $_ $name } | Where-Object { Test-Path -LiteralPath $_ -PathType Leaf } | Select-Object -First 1
-    if (-not $source) { throw "No $name in $($runtime -join ', ')." }
-    Copy-Item -LiteralPath $source -Destination $testDir -Force
-}
-
 $env:PATH = (@($runtime) + $env:PATH) -join [IO.Path]::PathSeparator
 $report = Join-Path ([IO.Path]::GetTempPath()) "plugin-gtest-$([guid]::NewGuid().ToString('N')).json"
 & $exe "--gtest_output=json:$report"

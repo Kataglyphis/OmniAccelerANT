@@ -23,7 +23,7 @@ OmniAccelerANT is a Flutter frontend over native Rust/C++ inference and GStreame
 | `scripts/` | Build, tooling, and documentation automation |
 | `docs/source/` | Human-authored guide pages included in generated docs |
 | `doc/api/` | Generated API and guide output: `scripts/linux/generate-docs.sh` runs the SDK's `dart doc`, `Build-Windows.ps1` a pub-activated `dartdoc` (see [Getting Started](getting-started.md#6-build-api-docs)) |
-| `packages/kataglyphis_native_inference` | Flutter plugin (Android, Linux, Windows) that bridges the native GStreamer/inference code to Dart; on Linux and Windows it links the C++ inference core. Plain files and a `pubspec.yaml` path dependency, not a submodule |
+| `packages/kataglyphis_native_inference` | Flutter plugin (Android, Linux, Windows) that bridges native textures (and GStreamer on Android) to Dart; it links no inference library since owner decision D1. Plain files and a `pubspec.yaml` path dependency, not a submodule |
 | `third_party/OxidANT` | Rust core (`oxidant` crate), bridged into `lib/src/rust/` by `flutter_rust_bridge` |
 | `third_party/AccelerANTgine` | The C++ inference core the plugin builds against |
 | `third_party/ANTfrastructure` | Shared build images, container actions, and CI helpers |
@@ -31,17 +31,16 @@ OmniAccelerANT is a Flutter frontend over native Rust/C++ inference and GStreame
 
 ## Desktop C++ integration
 
-Live webcam inference runs in Rust. The desktop plugin's `add` method remains an explicit
-Flutter → MethodChannel → AccelerANTgine integration demo: the About page calls `add(3, 4)`
-and displays `7` on Linux and Windows; Android's plugin has no `add`, so the page leaves the line out there. The
-channel's methods, per platform, are the table `kNativeInferenceMethods` in the plugin package. Keeping that API preserves the native-link and packaged-library smoke check;
-it does not introduce a second webcam inference path.
+Live webcam inference runs in Rust. Until 2026-11 the desktop plugins carried an `add` method,
+a Flutter → MethodChannel → AccelerANTgine integration demo: the About page called `add(3, 4)` and
+displayed `7`. The owner retired it (decision D1): Linux dropped it on 2026-11-21, Windows x64 and
+arm64 on 2026-11-23, and no plugin answers `add` now. The channel's methods, per platform, are the
+table `kNativeInferenceMethods` in the plugin package.
 
-The existing Linux bundle from 2026-10-19 contains a 590,793-byte `libAccelerANTgine.so` and a
-32,408,120-byte ONNX Runtime. Rust also needs ONNX Runtime, so removing the C++ smoke call would
-not imply removing that runtime payload. These are existing artifact sizes, not a new build-time
-benchmark. A future removal should measure the same preset, image and cache state and explicitly
-retire the demo API; this change retains it.
+The Linux bundle of 2026-10-19 contained a 590,793-byte `libAccelerANTgine.so` and a
+32,408,120-byte ONNX Runtime. Rust needs ONNX Runtime too, so the demo's removal does not remove
+that runtime payload: only the plugin's own copy went. The before/after build measurement on one
+preset, image and cache is in `BACKLOG.md`'s done item and the changelog.
 
 ## Core Design Goals
 

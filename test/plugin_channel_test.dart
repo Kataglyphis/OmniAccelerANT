@@ -92,10 +92,17 @@ void main() {
   });
 
   test('a platform without the method is told apart from one with it', () {
-    expect(pluginAnswers('add', PluginPlatform.windows), isTrue);
-    expect(pluginAnswers('add', PluginPlatform.linux), isFalse);
-    expect(pluginAnswers('add', PluginPlatform.android), isFalse);
-    expect(pluginAnswers('add', null), isFalse);
+    expect(pluginAnswers('setColor', PluginPlatform.windows), isTrue);
+    expect(pluginAnswers('setColor', PluginPlatform.linux), isFalse);
+    expect(pluginAnswers('hasPushedFrame', PluginPlatform.linux), isTrue);
+    expect(pluginAnswers('hasPushedFrame', PluginPlatform.android), isFalse);
+    expect(pluginAnswers('setColor', null), isFalse);
     expect(pluginAnswers('noSuchMethod', PluginPlatform.windows), isFalse);
+  });
+
+  test('no plugin answers the retired add demo (owner D1)', () {
+    for (final PluginPlatform platform in PluginPlatform.values) {
+      expect(pluginAnswers('add', platform), isFalse, reason: platform.name);
+    }
   });
 }

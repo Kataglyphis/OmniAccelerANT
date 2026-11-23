@@ -41,7 +41,7 @@ inference plugin.
 | --- | --- |
 | `lib/` | The Flutter/Dart frontend |
 | `third_party/OxidANT` | Rust core, bridged via `flutter_rust_bridge`. `lib/src/rust/` is committed generated code — no build lane regenerates it; how to regenerate: § 4, *The frb Dart bindings* |
-| `packages/kataglyphis_native_inference` | C++ inference plugin — **plain files, not a submodule**; a `pubspec.yaml` path dependency. Links AccelerANTgine (ONNX Runtime); GStreamer only on Android, from its SDK |
+| `packages/kataglyphis_native_inference` | C++ inference plugin — **plain files, not a submodule**; a `pubspec.yaml` path dependency. The texture bridge to the Rust core; links no inference library (owner D1); GStreamer only on Android, from its SDK |
 | `third_party/AccelerANTgine` | The inference core the plugin builds. Its own submodule, sibling to the plugin rather than nested inside it |
 | `scripts/windows/`, `scripts/linux/` | Thin wrappers over ANTfrastructure drivers + this repo's own glue; `scripts/windows/modules/WindowsGpuBuild.Common.psm1` holds the GPU candidate build's shared steps |
 | `third_party/ANTfrastructure` | The submodule owning every reusable script, module and doc |
@@ -288,10 +288,10 @@ and Rust module. Both desktop plugins include `kataglyphis_texture_abi.h` from t
 Rust refuses an incompatible `knt_api_version` before pushing a frame; do not duplicate the
 declarations here. Version 1's existing signatures are unchanged.
 
-**The desktop `add` API is an integration demo.** The About page's `add(3, 4)` reaches
-AccelerANTgine through the native plugin while live webcam inference stays in Rust. Keep the
-API and link until an explicit compatibility change retires that demo; the measured artifact
-sizes and decision are in [overview.md](docs/source/overview.md#desktop-c-integration).
+**The desktop `add` demo is retired** (owner D1, 2026-11): the About page's `add(3, 4)` reached
+AccelerANTgine through the native plugin while live inference stayed in Rust. No plugin answers
+`add` any more, and `test/plugin_channel_test.dart` holds that; the measured artifact sizes and
+the decision are in [overview.md](docs/source/overview.md#desktop-c-integration).
 
 Everything here is false or meaningless in another repo — that is why it is written out
 rather than linked.
@@ -485,9 +485,9 @@ rather than linked.
   negative case changes its source fingerprint, package bytes or PE signature.
 - **On an unprovisioned host** (`STATUS_DLL_NOT_FOUND`, or a ~6 MB process that exits) the
   runner lacks the image's runtime DLLs: stage `C:\runtime\bin` and its GStreamer plugins. Since
-  2026-10-17 AccelerANTgine.dll and the VC++ runtime sit beside the exe on x64 as on arm64 (the
-  plugin's CMake installs the DLL; since 2026-11-21 the app's `windows/CMakeLists.txt` installs the
-  x64 VC++ runtime and its `licenses/msvc-runtime` notice); a runner with a `bin\` is from an older build. Symptom table: [`docs/source/platforms.md`](docs/source/platforms.md) § *Troubleshooting containerized Windows builds*.
+  2026-10-17 the natives and the VC++ runtime sit beside the exe on x64 as on arm64 (since
+  2026-11-21 the app's `windows/CMakeLists.txt` installs the x64 VC++ runtime and its
+  `licenses/msvc-runtime` notice; arm64's natives stage the same notice); a runner with a `bin\` is from an older build. Symptom table: [`docs/source/platforms.md`](docs/source/platforms.md) § *Troubleshooting containerized Windows builds*.
 - **Dart file ops fail on bind-mounted paths.** `copySync`/`renameSync` fail (plain writes
   and cmd `copy`/`ren` work), so junction `.dart_tool` and `build` from the mounted workspace
   to container-local dirs before building. The bind-mount setup itself is upstream's (§ 2).
@@ -508,10 +508,11 @@ rather than linked.
   into Flutter's Linux and Windows discovery too. Both desktop `CMakeLists.txt` files disable JNI
   package discovery before the generated plugin rules; otherwise a build-host JDK enables
   `libdartjni.so` or `dartjni.dll` with an unbundled JVM dependency. Android's JNI path is unaffected.
-- **The Linux plugin builds no AccelerANTgine since 2026-11-21** (owner D1, step b): its `add`
-  handler, the link and the overrides its embedded build needed went, and the method table answers
-  `add` on Windows only, so the About page shows that demo there alone. Detail:
-  [`docs/source/platforms.md`](docs/source/platforms.md) § *The Linux plugin's AccelerANTgine build*.
+- **The desktop plugins build no AccelerANTgine** (owner D1): Linux since 2026-11-21 (step b),
+  Windows x64 and arm64 since 2026-11-23 (step c). The `add` handlers, the links, the arm64
+  prebuilt import and the overrides the embedded builds needed went. The arm64 natives' G6 proof uses an arm64
+  stub where the app's exe will sit. Detail: [`docs/source/platforms.md`](docs/source/platforms.md)
+  § *The Linux plugin's AccelerANTgine build* and § *ONNX Runtime in the Windows runner*.
 - **Vendored ANTLR** (pulled in unconditionally by newer FUZZTEST) needs
   `WITH_STATIC_CRT OFF`, `ANTLR_BUILD_CPP_TESTS OFF`, `ANTLR_BUILD_SHARED OFF`, `/FIchrono`,
   and `LICENSE.txt` staged at the build root — its install rule assumes a monorepo layout.
