@@ -12,6 +12,13 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
   {fmt}, nlohmann/json, toml++, Microsoft GSL) with their texts, and is regenerated with
   `generate-third-party-licenses.py --write`. CodeQL's scope, Renovate's note, the VS Code CMake source directory
   (now `windows/`), AGENTS.md and the docs follow; the Linux test fixtures no longer name the library.
+- Measured on one preset, image and cache (`x64-ClangCL-Windows-Release` in the winamd64 image, the lane's sccache
+  restore at its 0.94 % hit rate, so in effect cold), the Windows x64 lane's `build-clang` job before (run
+  44937953066, job 136950975412) and after (run 45203326534, job 137792539390): the container step 21:25 → 17:04 min,
+  `CMake Configure` 38.3 → 13.2 s, `CMake Build & Install` 768.3 → 589.2 s, the runner folder 195 → 192 files
+  (79.41 → 79.08 MB), its arch gate 115 → 114 PE files; the plugin gtest runs 11 → 10 cases (the `add` case went).
+  The arm64 natives' build step went 11:38 → 6:32 min (run 44947497052 → 45203326534), their tree from 57 to 32 PE
+  files. The step (d) run 45214116738 repeats it: 17:23 min, 192 files.
 
 ### 2026-11-23 — the Windows plugin builds no AccelerANTgine (add-demo retirement, step c)
 

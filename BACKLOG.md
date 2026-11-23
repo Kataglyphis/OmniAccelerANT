@@ -308,22 +308,6 @@ flutter_rust_bridge, drops its AccelerANTgine submodule, and takes new Rust API 
   tests pass). The native failure test is in source too: `text_generate_test.dart` expects a missing model
   directory to end the stream with `model_load_failed: the model directory could not be loaded`. Left: the four
   lanes' run and that test's first green Linux run.
-- [ ] **Retire the add(3,4) demo and `third_party/AccelerANTgine`** (M, ★★★; owner D1). The app builds all of
-  AccelerANTgine (8 nested submodules, a second libonnxruntime on Linux) for one call, `kataglyphis_add`. In four
-  steps: (a) the Windows x64 VC++ runtime and its notice move into the app's own CMake, with the runner's file list
-  unchanged (**done 2026-11-21**: run 44937953066's x64 runner holds the same 195 files, and the arm64 lanes are green
-  in run 44947497052; `windows/CMakeLists.txt` installs them, the plugin's AccelerANTgine skips its copies; the arm64
-  runner ships the runtime without `licenses/msvc-runtime`, as the natives' import closure stages no notice, which (c)
-  fixes with `Copy-MsvcRuntimeNotice`); (b) Linux drops the call and the link (**done 2026-11-21**, green in runs
-  44947497149 and 44947497052: the handler, the link and the embed's overrides went, the method table answers `add` on
-  Windows only), the plugin target takes the hub's warning and hardening modules (**done 2026-11-23**: `kci_plugin_quality`
-  carries them, warnings not as errors; the plugin's objects get `_FORTIFY_SOURCE=3`, the stack protector and clash
-  protection, `-Wshadow` and `-Wconversion`, its `.so` RELRO and BIND_NOW, and the 8 plugin gtests pass), and the `.so.1` copy goes once `readelf`
-  shows nothing needs it (**done 2026-11-21**: no ELF of run 44947497149's Linux bundle needed it, and runs
-  44952383332 and 44952383316 are green without it); (c) Windows and arm64 get a new host exe for the ORT provenance
-  proof, new architecture-gate counts and packaging lists; (d) the license inventory, tests and docs follow, the
-  submodule goes, and a before/after measurement on one preset, image and cache is recorded. It comes before
-  AccelerANTgine takes OxidANT, or the app would carry two OxidANT pins.
 - [ ] **The bundled regeneration** (M, ★★; owner D12 to D14). After OxidANT's side: `TextEvent` carries a typed
   failure (a plain kind enum, the message, the HTTP status), a typed kind and finish reason, and the thinking count
   in `done`; `default_score_threshold()` starts the webcam slider at CON235's 0.25; `detector_latency_json()` replaces
@@ -342,11 +326,11 @@ CON294.
   job instruments nothing (job 132999561812): rename it and drop its unused flag (`Build-WindowsArm64App.ps1:99-100`).
   Then an ASan+UBSan plugin gtest in the Linux Debug tree, a seeded case for random sizes, null buffers and unknown
   texture ids, `size_t` size math in `windows/kataglyphis_texture.cpp:12,16` (width*height overflows `uint32` from
-  2^32), and in OxidANT a length check before `knt_push_frame`.
-- [ ] **Smaller native steps** (S each, ★). The AccelerANTgine pin moves for its tomlplusplus fix (41468fb), unless
-  the add-demo removal comes first; Release hardening on the plugin before `add_subdirectory` (plugin
-  `linux/CMakeLists.txt:39-45`), and the hub's ELF gate once CON294 lands; `/guard:cf` on the Windows runner after
-  CON290, CET only after a launch smoke on CET-capable hardware (D8); `!cancelled()` on the three uploads
+  2^32), and in OxidANT a length check before `knt_push_frame`. Since a6ee053 the x64 Debug plugin and gtest take
+  ASan and UBSan from the hub's `Sanitizers.cmake` through `kci_plugin_quality`; AccelerANTgine's PUBLIC options
+  carried them until then.
+- [ ] **Smaller native steps** (S each, ★). The hub's ELF gate on the Linux plugin once CON294 lands; `/guard:cf`
+  on the Windows runner after CON290, CET only after a launch smoke on CET-capable hardware (D8); `!cancelled()` on the three uploads
   (`reusable-linux.yml:119-140`) and a googletest `URL_HASH`; `--privileged` dropped from `web.yml:56` and
   `linux-gpu-candidates.yml:119` if the lanes stay green; the Windows compiler cache fixed (0.94 % hits, save skipped,
   job 133499378065) before the hub hands its key to the other repos; D3's size change, read from the release
