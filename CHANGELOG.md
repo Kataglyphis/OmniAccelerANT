@@ -5,6 +5,14 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ## Unreleased
 
+### 2026-11-22 — the playground's endpoint reader follows owner decision D8
+
+- The hub pin moves to 44d37673 (ANTfrastructure CON288). `endpoint_reply.dart` keeps the raw `finish_reason`
+  (`tool_calls` read as `stop` before), and a usage needs both counts as whole, non-negative numbers, a whole-number
+  float among them; a count left out read as 0 before. `endpoint_stream_lines_test.dart` replays the 22 stream
+  cases, stopping at `[DONE]` as the playground does, and the 10 whole answers of `openai-chat-answers.json`
+  through `parseWholeAnswer`.
+
 ### 2026-11-21 — the Linux bundle drops `libonnxruntime.so.1` (add-demo retirement, step b)
 
 - `rust_builder/linux/CMakeLists.txt` stages only `libonnxruntime.so`, which `ort` dlopens: the `.so.1` copy served

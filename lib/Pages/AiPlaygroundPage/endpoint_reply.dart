@@ -12,7 +12,7 @@ class EndpointFailure implements Exception {
   String toString() => reason;
 }
 
-/// What one stream line or one whole answer carries; `finish` is `stop` or `length`, and `done` says nothing follows.
+/// What one stream line or one whole answer carries; `finish` is the raw finish_reason, and `done` says nothing follows.
 typedef ReplyPart = ({
   String thinking,
   String text,
@@ -107,20 +107,24 @@ String _thinking(Map<dynamic, dynamic> said) {
 
 String _string(Object? value) => value is String ? value : '';
 
-String? _finish(Object? reason) => switch (reason) {
-  'length' => 'length',
-  String() => 'stop',
-  _ => null,
-};
+/// The server's finish_reason as sent, `content_filter` too (owner D8, ANTfrastructure CON288).
+String? _finish(Object? reason) =>
+    reason is String && reason.isNotEmpty ? reason : null;
 
-({int prompt, int completion})? _usage(Object? usage) => usage is Map
-    ? (
-        prompt: _count(usage['prompt_tokens']),
-        completion: _count(usage['completion_tokens']),
-      )
+/// Both counts or none: a usage with one count missing is no usage (owner D8).
+({int prompt, int completion})? _usage(Object? usage) {
+  if (usage is! Map) return null;
+  final prompt = _count(usage['prompt_tokens']);
+  final completion = _count(usage['completion_tokens']);
+  if (prompt == null || completion == null) return null;
+  return (prompt: prompt, completion: completion);
+}
+
+/// A whole, non-negative number, 7.0 among them; anything else is missing (owner D8).
+int? _count(Object? value) =>
+    value is num && value.isFinite && value >= 0 && value % 1 == 0
+    ? value.toInt()
     : null;
-
-int _count(Object? value) => value is num ? value.toInt() : 0;
 
 /// Reads a reply line by line: `data:` lines as a stream, and a body without any as one whole answer.
 class ReplyReader {

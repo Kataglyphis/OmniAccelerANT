@@ -68,20 +68,34 @@ void main() {
         ),
         _part(usage: (prompt: 9, completion: 3)),
       );
-      // A count the server left out reads as 0, as the native client reads it.
+      // A count left out, or a negative one, leaves no usage (owner D8, ANTfrastructure CON288).
       expect(
         parseStreamLine('data: {"usage":{"completion_tokens":3}}'),
-        _part(usage: (prompt: 0, completion: 3)),
+        _part(),
+      );
+      expect(
+        parseStreamLine(
+          'data: {"usage":{"prompt_tokens":-1,"completion_tokens":3}}',
+        ),
+        _part(),
+      );
+      // A whole-number float counts.
+      expect(
+        parseStreamLine(
+          'data: {"usage":{"prompt_tokens":7.0,"completion_tokens":2.0}}',
+        ),
+        _part(usage: (prompt: 7, completion: 2)),
       );
     });
 
-    test('a finish reason is length, or stop for every other word', () {
+    test('a finish reason keeps the word the server sent', () {
       String? finish(String reason) => parseStreamLine(
         'data: {"choices":[{"delta":{},"finish_reason":$reason}]}',
       )?.finish;
       expect(finish('"length"'), 'length');
       expect(finish('"stop"'), 'stop');
-      expect(finish('"tool_calls"'), 'stop');
+      // Owner D8 (ANTfrastructure CON288): the raw value, which read as stop before.
+      expect(finish('"tool_calls"'), 'tool_calls');
       expect(finish('null'), isNull);
     });
 
@@ -149,11 +163,12 @@ void main() {
       ]) {
         expect(parseStreamLine('data: $chunk'), _part(), reason: chunk);
       }
+      // A count of the wrong type is missing, and so is the usage (owner D8, ANTfrastructure CON288).
       expect(
         parseStreamLine(
           'data: {"usage":{"prompt_tokens":"9","completion_tokens":3.0}}',
         ),
-        _part(usage: (prompt: 0, completion: 3)),
+        _part(),
       );
     });
 
