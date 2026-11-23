@@ -4,10 +4,10 @@ name: CI · retry a runner disk refusal
 on:
   workflow_run:
     workflows:
-      - "Linux x64 · build + test"
-      - "Web · build + test"
-      - "Docs · build + publish"
-      - "Android · build + test"
+      - 'Linux x64 · build \+ test'
+      - 'Web · build \+ test'
+      - 'Docs · build \+ publish'
+      - 'Android · build \+ test'
     types: [completed]
 
 permissions:
