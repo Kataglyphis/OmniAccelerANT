@@ -316,8 +316,9 @@ flutter_rust_bridge, drops its AccelerANTgine submodule, and takes new Rust API 
   runner ships the runtime without `licenses/msvc-runtime`, as the natives' import closure stages no notice, which (c)
   fixes with `Copy-MsvcRuntimeNotice`); (b) Linux drops the call and the link (**done 2026-11-21**, green in runs
   44947497149 and 44947497052: the handler, the link and the embed's overrides went, the method table answers `add` on
-  Windows only), the plugin target takes the hub's warning and hardening modules (left: the embedded AccelerANTgine
-  built with hardening off, so this adds them, against Flutter's `-Werror`), and the `.so.1` copy goes once `readelf`
+  Windows only), the plugin target takes the hub's warning and hardening modules (**done 2026-11-23**: `kci_plugin_quality`
+  carries them, warnings not as errors; the plugin's objects get `_FORTIFY_SOURCE=3`, the stack protector and clash
+  protection, `-Wshadow` and `-Wconversion`, its `.so` RELRO and BIND_NOW, and the 8 plugin gtests pass), and the `.so.1` copy goes once `readelf`
   shows nothing needs it (**done 2026-11-21**: no ELF of run 44947497149's Linux bundle needed it, and runs
   44952383332 and 44952383316 are green without it); (c) Windows and arm64 get a new host exe for the ORT provenance
   proof, new architecture-gate counts and packaging lists; (d) the license inventory, tests and docs follow, the

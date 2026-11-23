@@ -5,6 +5,14 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ## Unreleased
 
+### 2026-11-23 — the Linux plugin takes the hub's warnings and hardening
+
+- `packages/kataglyphis_native_inference/linux/CMakeLists.txt` links the plugin and its gtest runner to
+  `kci_plugin_quality`, an INTERFACE target the hub's `CompilerWarnings.cmake` and `Hardening.cmake` fill (owner D1
+  (b)). Warnings stay warnings, as Flutter's and GTK's headers are not this plugin's. A release build in the CI image
+  shows `_FORTIFY_SOURCE=3`, `-fstack-protector-strong`, `-fstack-clash-protection`, `_GLIBCXX_ASSERTIONS`,
+  `-Wshadow` and `-Wconversion` on the plugin's objects and RELRO with BIND_NOW on its `.so`; the 8 plugin gtests pass.
+
 ### 2026-11-23 — the think split replays here
 
 - The hub pin moves to 7b1e32d2 (ANTfrastructure CON288 (b)). `endpoint_think_split_test.dart` replays the 11 cases of

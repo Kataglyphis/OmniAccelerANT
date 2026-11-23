@@ -67,6 +67,14 @@ target_include_directories(${PLUGIN_NAME} PRIVATE "${KCI_TEXTURE_ABI_DIR}")
 
 target_link_libraries(${PLUGIN_NAME} PRIVATE flutter)
 target_link_libraries(${PLUGIN_NAME} PRIVATE PkgConfig::GTK)
+# The hub's warning set and hardening, not as errors: Flutter's and GTK's headers are not this plugin's (owner D1 b).
+list(APPEND CMAKE_MODULE_PATH "${_KCI_REPO_ROOT}/third_party/ANTfrastructure/cmake")
+include(CompilerWarnings)
+include(Hardening)
+add_library(kci_plugin_quality INTERFACE)
+myproject_set_project_warnings(kci_plugin_quality OFF "" "" "" "")
+myproject_enable_hardening(kci_plugin_quality OFF FALSE)
+target_link_libraries(${PLUGIN_NAME} PRIVATE kci_plugin_quality)
 # The plugin bundles no library of its own since AccelerANTgine left it (owner D1); the Rust core ships beside it.
 set(kataglyphis_native_inference_bundled_libraries
     ""
@@ -106,7 +114,7 @@ if(${include_${PROJECT_NAME}_tests})
     target_include_directories(${TEST_RUNNER} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
     target_include_directories(${TEST_RUNNER} PRIVATE "${KCI_TEXTURE_ABI_DIR}")
     target_link_libraries(${TEST_RUNNER} PRIVATE flutter)
-    target_link_libraries(${TEST_RUNNER} PRIVATE PkgConfig::GTK)
+    target_link_libraries(${TEST_RUNNER} PRIVATE PkgConfig::GTK kci_plugin_quality)
     target_link_libraries(${TEST_RUNNER} PRIVATE gtest_main gmock)
 
     # PRE_TEST: listing the tests runs the binary, which belongs in ctest, not in the build.
