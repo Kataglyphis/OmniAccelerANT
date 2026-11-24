@@ -9,10 +9,8 @@
 </div>
 
 [![Linux x64 · build + test](https://github.com/Kataglyphis/OmniAccelerANT/actions/workflows/linux-x64.yml/badge.svg)](https://github.com/Kataglyphis/OmniAccelerANT/actions/workflows/linux-x64.yml)
-[![Linux arm64 · build + test](https://github.com/Kataglyphis/OmniAccelerANT/actions/workflows/linux-arm64.yml/badge.svg)](https://github.com/Kataglyphis/OmniAccelerANT/actions/workflows/linux-arm64.yml)
-[![Windows x64 · build + test](https://github.com/Kataglyphis/OmniAccelerANT/actions/workflows/windows-x64.yml/badge.svg)](https://github.com/Kataglyphis/OmniAccelerANT/actions/workflows/windows-x64.yml) [![Linux GPU candidates](https://github.com/Kataglyphis/OmniAccelerANT/actions/workflows/linux-gpu-candidates.yml/badge.svg?branch=develop)](https://github.com/Kataglyphis/OmniAccelerANT/actions/workflows/linux-gpu-candidates.yml) [![Windows GPU candidates](https://github.com/Kataglyphis/OmniAccelerANT/actions/workflows/windows-gpu-candidates.yml/badge.svg?branch=develop)](https://github.com/Kataglyphis/OmniAccelerANT/actions/workflows/windows-gpu-candidates.yml)
-[![Windows arm64 · cross build + test](https://github.com/Kataglyphis/OmniAccelerANT/actions/workflows/windows-arm64.yml/badge.svg)](https://github.com/Kataglyphis/OmniAccelerANT/actions/workflows/windows-arm64.yml)
-[![Web · build + test](https://github.com/Kataglyphis/OmniAccelerANT/actions/workflows/web.yml/badge.svg)](https://github.com/Kataglyphis/OmniAccelerANT/actions/workflows/web.yml)
+[![Linux arm64 · build + test](https://github.com/Kataglyphis/OmniAccelerANT/actions/workflows/linux-arm64.yml/badge.svg)](https://github.com/Kataglyphis/OmniAccelerANT/actions/workflows/linux-arm64.yml) [![Windows x64 · build + test](https://github.com/Kataglyphis/OmniAccelerANT/actions/workflows/windows-x64.yml/badge.svg)](https://github.com/Kataglyphis/OmniAccelerANT/actions/workflows/windows-x64.yml) [![Linux GPU candidates](https://github.com/Kataglyphis/OmniAccelerANT/actions/workflows/linux-gpu-candidates.yml/badge.svg?branch=develop)](https://github.com/Kataglyphis/OmniAccelerANT/actions/workflows/linux-gpu-candidates.yml) [![Windows GPU candidates](https://github.com/Kataglyphis/OmniAccelerANT/actions/workflows/windows-gpu-candidates.yml/badge.svg?branch=develop)](https://github.com/Kataglyphis/OmniAccelerANT/actions/workflows/windows-gpu-candidates.yml)
+[![Windows arm64 · cross build + test](https://github.com/Kataglyphis/OmniAccelerANT/actions/workflows/windows-arm64.yml/badge.svg)](https://github.com/Kataglyphis/OmniAccelerANT/actions/workflows/windows-arm64.yml) [![Web · build + test](https://github.com/Kataglyphis/OmniAccelerANT/actions/workflows/web.yml/badge.svg)](https://github.com/Kataglyphis/OmniAccelerANT/actions/workflows/web.yml)
 [![Android · build + test](https://github.com/Kataglyphis/OmniAccelerANT/actions/workflows/android.yml/badge.svg)](https://github.com/Kataglyphis/OmniAccelerANT/actions/workflows/android.yml)
 [![Automatic Dependency Submission](https://github.com/Kataglyphis/OmniAccelerANT/actions/workflows/dependency-graph/auto-submission/badge.svg)](https://github.com/Kataglyphis/OmniAccelerANT/actions/workflows/dependency-graph/auto-submission)
 [![TopLang](https://img.shields.io/github/languages/top/Kataglyphis/OmniAccelerANT)]()
@@ -20,7 +18,9 @@
 [![Twitter](https://img.shields.io/twitter/follow/Cataglyphis_?style=social)](https://twitter.com/Cataglyphis_)
 [![YouTube](https://img.shields.io/youtube/channel/subscribers/UC3LZiH4sZzzaVBCUV8knYeg?style=social)](https://www.youtube.com/channel/UC3LZiH4sZzzaVBCUV8knYeg)
 
-[**Official homepage**](https://kataglyphisinferenceengine.jonasheinle.de)
+[**Try the app in your browser**](https://kataglyphisinferenceengine.jonasheinle.de/app/) · [Docs](https://kataglyphisinferenceengine.jonasheinle.de)
+
+[![The OmniAccelerANT web app in the browser](images/web-app.png)](https://kataglyphisinferenceengine.jonasheinle.de/app/)
 
 A Flutter/Dart app on a Rust/C++ inference core with GStreamer camera pipelines, for Windows,
 Linux, Android and the web: an end-to-end reference for cross-platform inference on desktop, web

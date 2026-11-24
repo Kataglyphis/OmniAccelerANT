@@ -1,4 +1,4 @@
-# The API docs site: generate-docs.sh through the hub's build-docs.yml, which checks its links and publishes it (AGENTS.md § 6).
+# The API docs site and the browser app at /app/ through the hub's build-docs.yml (docs/source/browser-port.md § Hosting).
 name: Docs · build + publish
 
 # Least privilege: the reusable workflow reads the repository and publishes with its own FTP secrets.
@@ -17,8 +17,9 @@ jobs:
   docs:
     uses: Kataglyphis/ANTfrastructure/.github/workflows/build-docs.yml@develop
     with:
-      command: bash scripts/linux/generate-docs.sh
+      command: bash scripts/linux/build-docs-site.sh
       site-dir: doc/api
+      isolated-apps: app
       link-allow: docs/site-links.allow
     secrets:
       FTP_SERVER: ${{ secrets.SERVER }}

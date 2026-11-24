@@ -332,9 +332,11 @@ dhttpd --path doc/api --host 127.0.0.1 --port 8080
 **CI builds and publishes the site in [`docs.yml`](../../.github/workflows/docs.yml)**
 (2026-10-19) through the hub's reusable `build-docs.yml`
 ([`docs-sites.md`](../../third_party/ANTfrastructure/docs/docs-sites.md)): it runs
-`generate-docs.sh` in the family image, adds the hub's `.htaccess` and 404 page, fails on a dead
-internal link or anchor in `doc/api`, and uploads the site over FTP on a push to `develop` or
-`main`, never from a pull request. The Linux lane builds no docs (`--run-docs false`);
+`scripts/linux/build-docs-site.sh` in the family image, which runs `generate-docs.sh` and then builds the
+web app into `doc/api/app` (see [Serving the web build](#serving-the-web-build)). The workflow adds the
+hub's `.htaccess` and 404 page, puts the isolated-app `.htaccess` into `app/`, fails on a dead internal
+link or anchor in `doc/api`, and uploads the site over FTP on a push to `develop` or `main`, never from a
+pull request. The Linux lane builds no docs (`--run-docs false`);
 `Invoke-LinuxLane.ps1 -Docs` still runs `generate-docs.sh` at the end of a local x64 lane.
 
 **Planned work lives in [`BACKLOG.md`](../../BACKLOG.md)**, in the format ANTfrastructure's
@@ -368,6 +370,7 @@ removal of two images nothing referenced (below); 2026-10-12 counted 4.7 MiB and
 | What | Size | Why it is tracked |
 |------|------|-------------------|
 | `assets/icons/kataglyphis_app_icon.png` | 0.26 MiB | Load-bearing: `flutter_launcher_icons` generates every platform icon set from it (`pubspec.yaml` names it four times, one of them msix's `logo_path`), so it stays at its 1024 px source resolution. It was 1.9 MiB as 16-bit RGBA until 2026-10-17; the 8-bit file is pixel-identical to what every icon tool decodes from that one. |
+| `images/web-app.png` | 0.04 MiB | The README's and the docs start page's picture of the hosted app at `/app/`: a 1280x800 headless-Chrome screenshot of `build-docs-site.sh`'s build. Retake it when the still-image page ships. |
 
 **The history was rewritten on 2026-10-17** (owner, reversing the earlier "document it and stop
 it growing"), family-wide ([`data-repositories.md` § *What moved, and why*](../../third_party/ANTfrastructure/docs/data-repositories.md#what-moved-and-why)):
@@ -411,19 +414,24 @@ core when it does not load (`lib/src/boot/rust_core.dart`), so `serve.sh --http`
 plain-HTTP LAN page with no certificate warning, where only the About page's Rust demo goes
 dark.
 
-| Where | Config |
+| Where | Server and config |
 | --- | --- |
-| The ObservANT demo, any board | `scripts/linux/observant/serve.sh` (generates its own nginx.conf) |
-| The hosted site | [`nginx.conf`](../../third_party/ANTfrastructure/linux/webserver/nginx.conf) + [`security-headers.conf`](../../third_party/ANTfrastructure/linux/webserver/security-headers.conf) |
+| The ObservANT demo, any board | nginx: `scripts/linux/observant/serve.sh` generates its own nginx.conf |
+| The hosted app, `/app/` on the docs site | Apache over FTP: the hub's [`flutter-web-isolated.htaccess`](../../third_party/ANTfrastructure/docs/docs-sites.md#an-isolated-apps-htaccess) as `app/.htaccess` |
 
-**There is no `web/.htaccess` any more** (deleted 2026-09-16). The site is served by nginx,
-which never reads one, so every rule in it (the headers, the wasm MIME type, the caching) was
-inert. Keeping it was worse than none: it read like the deployment's source of truth while
-changing nothing. Two of its mistakes, not to reintroduce: it sent
+The hosted app is `build-docs-site.sh`'s build with `--base-href /app/`, published with the docs
+([browser-port.md § Hosting](browser-port.md#hosting)). Its build sets no STUN server: the script
+empties `stunServers` in `webrtc_settings.json` for that build only and fails when the built copy names
+one. The repository carries no `.htaccess`: the hub's stager copies the template into `app/` (the
+workflow's `isolated-apps: app`). The template also sends `Permissions-Policy: camera=(self)` and
+`.mjs` as `text/javascript`.
+
+Two mistakes of the old `web/.htaccess`, deleted 2026-09-16, not to reintroduce: it sent
 `Cross-Origin-Embedder-Policy: credentialless`, which Safari does not implement, and it matched
 `\.(js|wasm|…)$` with `max-age=31536000, immutable`, which covers `main.dart.js`,
 `flutter_bootstrap.js` and `main.dart.wasm`; none is content-hashed, so a redeploy would never
-have reached a returning visitor. Upstream's nginx config gets both right.
+have reached a returning visitor. The hub template sends `require-corp`, `no-cache` for those
+files, and `immutable` only under the versioned `ort/` and `models/` paths.
 
 `web/index.html` carries three `<meta http-equiv>` COOP/COEP tags' worth of explanation and no
 tags: browsers honour those headers only as real HTTP responses, never as `<meta>`, so the tags

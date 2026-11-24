@@ -867,8 +867,8 @@ how to run it and what breaks; no filler, no marketing, no repetition.
   ([`docs/source/project-operations.md`](docs/source/project-operations.md)
   § *There is no Sphinx site here*).
 - **`docs.yml` builds and publishes that site** (2026-10-19): the hub's `build-docs.yml` runs
-  `generate-docs.sh` in the image, fails on a dead internal link in `doc/api` and uploads it on
-  a push to `develop` or `main`. The Linux lane builds no docs (`--run-docs false`). Detail:
+  `build-docs-site.sh` in the image (`generate-docs.sh`, then the web app into `doc/api/app`), fails on a
+  dead internal link in `doc/api` and uploads it on a push to `develop` or `main`. The Linux lane builds no docs (`--run-docs false`). Detail:
   [`docs/source/project-operations.md`](docs/source/project-operations.md) § *Documentation Workflow*.
 - [`docs/source/platforms.md`](docs/source/platforms.md) holds the full
   symptom→cause→fix table for containerized Windows builds.

@@ -195,6 +195,10 @@ what the owner's goal still lacks.
   6. Hub and here: hosting. The hub's isolated-app htaccess template with its test, the model mirror with a web
      manifest, the app in the docs job at `/app/`, the start page's link and picture, header asserts in the live
      check. Check: `curl -sI` on `/app/` and the live check.
+     Done 2026-11-24: the hub template with its suite, `isolated-apps` in `build-docs.yml`, the live check's
+     `--isolated`, `build-docs-site.sh` with the app at `/app/` and no STUN server, the README's link and picture.
+     Open: the model mirror with its web manifest (it needs a model the browser runs, step 5), and the live check
+     run after each publish in CI rather than by hand.
   7. Here: the webcam: `getUserMedia`, the camera list, frames to the worker, the overlay, fps and ms. Check: a
      Chrome test with a fake camera, a hand protocol on a real GPU.
   8. Here: the web part of the license inventory, texts in English and German. Check: the licenses page lists

@@ -5,6 +5,17 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ## Unreleased
 
+### 2026-11-24 — the browser app at /app/ of the docs site (browser port step 6)
+
+- `docs.yml` runs `scripts/linux/build-docs-site.sh`: `generate-docs.sh`, then the web app with
+  `--base-href /app/` into `doc/api/app`, published with the docs on a push to `develop` or `main`. The
+  hub's stager adds the isolated-app `.htaccess` there (`isolated-apps: app`): COOP `same-origin`, COEP
+  `require-corp`, `camera=(self)`, the `.wasm` and `.mjs` types and `no-cache`.
+- The hosted build sets no STUN server; the build fails if its `webrtc_settings.json` names one.
+- The web lane and the docs build share `scripts/linux/lib/web-app-build.sh` (`omni_web_app_build`).
+- The README links the app with a picture. `project-operations.md` no longer names nginx for the hosted
+  site: it is Apache over FTP with the hub's template.
+
 ### 2026-11-24 — the browser port's plan and decisions
 
 - `docs/source/browser-port.md` plans the browser app: the inventory of every function with its browser

@@ -7,6 +7,7 @@ repo="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 source "$(dirname "${BASH_SOURCE[0]}")/harness-bootstrap.sh"
 native="${SQLITE_WASM_NATIVE_LANE:-${repo}/scripts/linux/ci/lane-native-linux.sh}"
 web="${SQLITE_WASM_WEB_LANE:-${repo}/scripts/linux/ci/ci-container-run-web-linux.sh}"
+web_build="${SQLITE_WASM_WEB_BUILD:-${repo}/scripts/linux/lib/web-app-build.sh}"
 
 # first_line <file> <fixed-text>: the first line holding the text, or nothing.
 first_line() { grep -nF -e "$2" "$1" | head -1 | cut -d: -f1; }
@@ -24,7 +25,8 @@ for lane in "${native}" "${web}"; do
   t_assert_ok test "${fetch:-0}" -lt "${grade:-0}"
 done
 
-t_case "the web lane fails a build that lost the wasm"
-t_assert_ok grep -qE '^for artefact in .* sqlite3\.wasm' "${web}"
+t_case "the web build fails a build that lost the wasm, in the lane and the docs site's /app/ alike"
+t_assert_ok grep -qE '^[[:space:]]*for artefact in .* sqlite3\.wasm' "${web_build}"
+t_assert_ok grep -qE '^omni_web_app_build' "${web}"
 
 t_summary

@@ -28,7 +28,7 @@ that an ObservANT camera drew into its WebRTC picture.
 | About, blog, legal pages | Work | Work; `check-web-browser.sh` visits every route | No change. The About page's Rust `greet()` needs the core | Low |
 | Rust core (flutter_rust_bridge) | Must load | Optional, with a timeout; Firefox and Safari do not load it without isolation | Browser inference never needs the core | High |
 | `text_embed` | No Dart caller | None | Out of scope until a page uses it | Low |
-| Hosting | Not needed | None: `web.yml` uploads an artifact, and the release skips it | `/app/` on the docs site: see [Hosting](#hosting) | Medium |
+| Hosting | Not needed | `/app/` on the docs site, built in `docs.yml`; `web.yml` still uploads an artifact, and the release skips it | Stays: see [Hosting](#hosting) | Medium |
 
 ## Architecture
 
@@ -158,6 +158,12 @@ built and uploaded in this repo's docs job, as BeschleunigerBallett publishes it
 ([hub docs-sites.md](https://github.com/Kataglyphis/ANTfrastructure/blob/develop/docs/docs-sites.md#proving-a-webgpu-page)).
 It publishes on every push to develop or main after a green pipeline. The docs start page links it with a
 picture or a short video.
+
+`scripts/linux/build-docs-site.sh` runs `generate-docs.sh`, then builds the app with `--base-href /app/`
+into `doc/api/app`. `docs.yml` passes `isolated-apps: app`, so the hub's stager copies the template into
+`app/.htaccess` before the link gate. Check a publish with the hub's live check in the CI image:
+`node third_party/ANTfrastructure/linux/scripts/check-live-site.js <site>/app/ --isolated`, and
+`curl -sI` on `/app/` and on `/app/main.dart.wasm`.
 
 `/app/.htaccess` comes from the hub's template for isolated apps and sets:
 
