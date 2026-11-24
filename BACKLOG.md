@@ -158,27 +158,59 @@ what the owner's goal still lacks.
 ## Open — browser/WebAssembly feature parity
 
 - [ ] **Port the existing OmniAccelerANT feature set to browser/WebAssembly with local AI inference** (L, ★★★).
-  Owner request 2026-11-17: a hosted browser version preserving the application's existing
-  functionality and workflows, using the family's own ONNX Runtime Web builds.
-  - Inventory the current desktop, mobile and web functions and record their browser equivalents:
-    image/video detection, text AI, camera/stream controls, settings, storage and device integrations.
-    Native-only capabilities need a tested browser implementation or compatibility bridge;
-    unresolved feature gaps remain open.
-  - Reuse the Flutter web UI and connect a browser inference backend to matching, version-pinned
-    JS/MJS/WASM assets from ANTfrastructure. Support Asyncify and JSPI where available, detect
-    capabilities, expose actual WebGPU use and make CPU fallback visible.
-  - Port camera, file and persistence access to browser APIs while retaining existing WebRTC,
-    remote-endpoint and device workflows. Local inference keeps user inputs on the visitor's
-    device; remote modes remain explicit choices.
-  - Preserve model/runtime provenance and original license texts. Provide reproducible hosting
-    with HTTPS, correct asset paths/MIME types, required isolation headers and model caching.
-  - Test real model inference with the shipped assets against the CPU reference, using the
-    existing detector tolerances and actual GPU evidence over repeated runs. Cover supported
-    browsers, fallback/refusal paths and the inventoried workflows; retain native regression tests.
-  Done when the hosted application has tested browser equivalents for the inventoried functions
-  and runs its local AI on the visitor's device with the family's own web builds. Browser support,
-  remaining gaps and reproducible build/test/deployment commands are documented; recurring
-  functionality lives in versioned scripts in its owning repository.
+  Owner request 2026-11-17: a hosted browser version with the app's functions and workflows, its AI run on the
+  visitor's device with the family's own ONNX Runtime Web builds. The inventory, the architecture and the tests:
+  [docs/source/browser-port.md](docs/source/browser-port.md).
+  Owner decisions 2026-11-24:
+  - Hosting: the app lives at `/app/` on this repo's docs site, built and uploaded in the docs job as
+    BeschleunigerBallett's `/webgpu-demo` is (hub `docs/docs-sites.md` § *Proving a WebGPU page*). Its own
+    `/app/.htaccess` sets COOP `same-origin`, COEP `require-corp`, `Permissions-Policy: camera=(self)` and the
+    `.wasm` and `.mjs` types; the rest of the site stays as it is. The docs start page links the app
+    prominently, with a picture or a short video. The app is the project's public showcase.
+  - Updates: published like the docs, on every push to develop or main after a green pipeline.
+  - Image detection: a new small page for still images: pick or drop a file; boxes and classes; WebGPU or CPU;
+    ms per image; model provenance.
+  - Text AI comes later, as a generation loop of its own on the hub's ORT Web in OxidANT, after image
+    detection, hosting and the webcam. It needs a change to hub `docs/language-ai.md` (the local-engine row and
+    the web row), made when that step starts. A JSON schema is refused visibly in the browser.
+  - Defaults: models mirrored from the locks to the same origin and checked by SHA-256 in the browser; pre- and
+    postprocessing from OxidANT's `vision_core` as wasm; Chromium with WebGPU, Safari and Firefox with WebGPU
+    where present and the CPU build otherwise, checked by a hand protocol; ORT builds in the order JSPI,
+    Asyncify, CPU; no STUN server by default on the public site; no tract in the browser; a separate hub
+    htaccess template for isolated apps, so jotrockenmitlocken's stays untouched.
+  Steps in order, each with its repo and check:
+  1. Hub, coordinated with CON233: stage ORT Web per build (JSPI, Asyncify, CPU) from the amd64 image under
+     `ort/<version>-<build hash>/`, with a manifest of hashes from the image's receipts and ORT's LICENSE and
+     ThirdPartyNotices. Check: the manifest's hashes and file list.
+  2. Hub: a headless-Chrome harness runs DEIM on `two_cats.jpg` in each build against the native ORT CPU run
+     (`compare_detector_parity.py`), with each provider's share of nodes (`verify_ort_profile.py` gains WebGPU).
+     Check: a parity report per build; it decides which builds ship.
+  3. OxidANT: `crates/vision_core_web`, `vision_core` as wasm with the COCO names, a wasm32 clippy gate, the
+     contract cases in node. Check: every case bit for bit equal to native.
+  4. Hub and here: the OxidANT pin (*Move the OxidANT pin to develop*, then at least the wasm module); the
+     ORT-Web loader in hub `shared/web/`; here the `InferenceBackend` stub and web part, the worker binding,
+     capability detection and the provenance panel, under dart2js and dart2wasm. Check: unit tests and a Chrome
+     test showing each fallback reason.
+  5. Here: the still-image page. Check: two cats at 0.4 or more, and parity with the CPU reference in Chrome.
+  6. Hub and here: hosting. The hub's isolated-app htaccess template with its test, the model mirror with a web
+     manifest, the app in the docs job at `/app/`, the start page's link and picture, header asserts in the live
+     check. Check: `curl -sI` on `/app/` and the live check.
+  7. Here: the webcam: `getUserMedia`, the camera list, frames to the worker, the overlay, fps and ms. Check: a
+     Chrome test with a fake camera, a hand protocol on a real GPU.
+  8. Here: the web part of the license inventory, texts in English and German. Check: the licenses page lists
+     exactly what `/app/` ships.
+  9. Here: remote modes: an explicit ObservANT address, the mixed-content notice, Chrome's local-network prompt.
+     Check: a Chrome test with a fixture.
+  10. OxidANT and here, optional: the ESP32 over Web Serial, with a refusal where it is missing. Check: the
+      refusal in Firefox, a hand test in Chromium.
+  11. Hub, OxidANT and here: local text AI on the hub's tiny model, then SmolLM2 (tokenizer, chat template, KV
+      cache, greedy). Check: `text-generation-v1` on the CPU build; `must_contain` where exact ids differ.
+  12. Here and hub: the browser matrix, open gaps and the build, test and deploy commands in the docs. Check:
+      the docs gates.
+  Done when the hosted app has tested browser equivalents for the inventoried functions and runs its local AI
+  on the visitor's device with the family's own web builds; browser support, remaining gaps and reproducible
+  build, test and deployment commands are documented; recurring functionality lives in versioned scripts in
+  its owning repository.
 
 ## Open — packaging
 

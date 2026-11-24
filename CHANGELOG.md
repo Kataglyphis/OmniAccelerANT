@@ -5,6 +5,15 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ## Unreleased
 
+### 2026-11-24 — the browser port's plan and decisions
+
+- `docs/source/browser-port.md` plans the browser app: the inventory of every function with its browser
+  equivalent, the architecture (a worker with ORT Web from the hub and OxidANT's `vision_core` as wasm), the
+  models' mirror and hash check, provenance, hosting at `/app/` of the docs site, the tests and the traps. The
+  docs build lists it.
+- BACKLOG's browser item holds the owner's decisions of 2026-11-24 and twelve steps, each with its repo and
+  check.
+
 ### 2026-11-24 — the docs match the tree, without the test Pi's host name
 
 - The docs, BACKLOG and this changelog call the Pi the cameras were tested on "the test Pi", not its host name.

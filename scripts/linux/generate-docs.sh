@@ -38,6 +38,7 @@ DARTDOC_BUILD_GUIDES=(
 	"${DARTDOC_BUILD_PROJECT_ROOT}/docs/source/platforms.md|platforms|Platforms"
 	"${DARTDOC_BUILD_PROJECT_ROOT}/docs/source/camera-streaming.md|camera-streaming|Camera Streaming"
 	"${DARTDOC_BUILD_PROJECT_ROOT}/docs/source/ai-playground.md|ai-playground|AI Playground"
+	"${DARTDOC_BUILD_PROJECT_ROOT}/docs/source/browser-port.md|browser-port|Browser Port"
 	"${DARTDOC_BUILD_PROJECT_ROOT}/docs/source/esp32.md|esp32|ESP32-S3 Companion & Camera"
 	"${DARTDOC_BUILD_PROJECT_ROOT}/docs/source/testing.md|testing|Testing"
 	"${DARTDOC_BUILD_PROJECT_ROOT}/docs/source/readmes.md|readmes|Readmes"

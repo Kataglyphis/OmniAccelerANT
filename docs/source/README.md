@@ -16,6 +16,7 @@
 | [Getting Started](getting-started.md) | Prerequisites, clone, the lanes CI runs, run commands. |
 | [Platforms](platforms.md) | Container, Windows, Raspberry Pi and Web builds. |
 | [Camera Streaming](camera-streaming.md) | The installable ObservANT (packages, endpoints, arrival picture and video, [Home Assistant](camera-streaming.md#home-assistant) notifications and statistics, its tests), the Rust webcam inference, the GStreamer WebRTC pipelines. |
+| [Browser Port](browser-port.md) | The planned browser app at `/app/` of this site: the inventory of functions, local inference on ONNX Runtime Web, hosting, tests. |
 | [ESP32-S3 Companion & Camera](esp32.md) | The two firmware variants (Rust companion; ESP32-S3-EYE camera + ESP-DL), the shared USB-serial protocol (`Detection` and `CameraDetection`), the desktop-only Rust bridge, the Device page, the hardware probe, the on-device cat detection. |
 | [Testing](testing.md) | What each kind of test proves (unit, property, fuzz, integration, end-to-end, performance), what the app's Dart suite checks, the rules that keep a green run honest, how to run them, the known gaps. |
 | [Readmes](readmes.md) | Links to the key README files in this repository. |
