@@ -168,7 +168,7 @@ jobs:
         shell: pwsh
 
     steps:
-      # The short-path clone and DocumANTation pruning of windows-x64.yml: AGENTS.md § 5, "The CI lane".
+      # The short-path clone and DocumANTation pruning of windows-x64.yml: docs/source/platforms.md § "The Windows CI lane and the $GIT_DIR limit".
       - name: Prepare Windows container host
         id: prep
         uses: Kataglyphis/ANTfrastructure/.github/actions/prepare-windows-container-host@develop

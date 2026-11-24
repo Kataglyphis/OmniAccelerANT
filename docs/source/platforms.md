@@ -671,10 +671,10 @@ plugin embedded AccelerANTgine for one call, `kataglyphis_add`, and had to set `
 `myproject_ENABLE_CACHE` OFF before its `add_subdirectory`: AccelerANTgine's Debug default carried
 ASan and UBSan into the uninstrumented runner (58 undefined `__asan_*`/`__ubsan_*` references, run
 36900441698), and its tests pulled in FuzzTest, whose vendored ANTLR install rule names an unbuilt
-`.so`. Now the plugin links only Flutter and GTK, `kNativeInferenceMethods` lists `add` for Windows
-alone, and `pluginAnswers('add', linux)` is false. Embedded, AccelerANTgine built with
-`myproject_ENABLE_HARDENING` OFF, so the plugin lost no hardening; the hub's warning and hardening
-modules on the plugin target itself are the part of step (b) still open. The `libonnxruntime.so.1`
+`.so`. Now the plugin links only Flutter and GTK, and no platform answers `add`:
+`pluginAnswers('add', ...)` is false on all three. Embedded, AccelerANTgine built with
+`myproject_ENABLE_HARDENING` OFF, so the plugin lost no hardening. The plugin target now takes the
+hub's warning and hardening modules through `kci_plugin_quality`. The `libonnxruntime.so.1`
 copy that only AccelerANTgine needed went the same day: in run 44947497149's Linux bundle no ELF
 needed it (`readelf -d` over its 44 shared objects).
 

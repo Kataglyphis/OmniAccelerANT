@@ -47,7 +47,7 @@ jobs:
 
     steps:
 
-      # DocumANTation pruning and unset mounts: AGENTS.md § 5, "The CI lane"; no `image:`, the actions default it.
+      # DocumANTation pruning and unset mounts: docs/source/platforms.md § "The Windows CI lane and the $GIT_DIR limit"; no `image:`, the actions default it.
       - name: Prepare Windows container host
         id: prep
         uses: Kataglyphis/ANTfrastructure/.github/actions/prepare-windows-container-host@develop
@@ -214,7 +214,7 @@ jobs:
 
     steps:
 
-      # DocumANTation pruning and unset mounts: AGENTS.md § 5, "The CI lane"; no `image:`, the actions default it.
+      # DocumANTation pruning and unset mounts: docs/source/platforms.md § "The Windows CI lane and the $GIT_DIR limit"; no `image:`, the actions default it.
       - name: Prepare Windows container host
         id: prep
         uses: Kataglyphis/ANTfrastructure/.github/actions/prepare-windows-container-host@develop

@@ -159,7 +159,7 @@ which maps topic → owning document, so these links survive upstream reorganisa
 | Dependency upgrades: Renovate as a local CLI | `docs/dependency-updates.md` |
 | Docs sites: the reusable `build-docs.yml`, the built-site link gate and its allow file, the site's `.htaccess` | [`docs/docs-sites.md`](third_party/ANTfrastructure/docs/docs-sites.md) |
 
-Two upstream facts repeated here only because they bite before you reach a doc:
+Three upstream facts repeated here only because they bite before you reach a doc:
 
 - Every ANTfrastructure PowerShell module declares `#requires -Version 7.0`, so
   `Build-Windows.ps1` and `Start-Windows.ps1` do too — launch with `pwsh`, never
@@ -400,9 +400,9 @@ rather than linked.
   (Apache-2.0), released by [ModelANT](https://github.com/Kataglyphis/ModelANT);
   `third_party/OxidANT/resources/models/models.lock` pins each file's URL and SHA-256, and
   `third_party/OxidANT/scripts/linux/fetch-models.sh` (`--dest DIR`; Windows:
-  `scripts\windows\Get-Models.ps1`) is the only way in. A checkout has no model until it
-  runs, so the Rust webcam view on a dev build fails to load one: the native lane runs it
-  before the build, the bundle and package scripts call it themselves. No script names the
+  `third_party\OxidANT\scripts\windows\Get-Models.ps1`) is the only way in. A checkout has no
+  model until it runs, so the Rust webcam view on a dev build fails to load one: the native lane
+  runs it before the build, the bundle and package scripts call it themselves. No script names the
   model: `verify_detector_model.py` and `scripts/windows/Get-DetectorModelFile.ps1` read the
   lock's first `.onnx` row, and `runtime_paths.cc` the bundle's only `.onnx`. A new model goes
   into ModelANT and only the lock moves here; the old AGPL files left the history on 2026-10-17.
@@ -543,7 +543,8 @@ rather than linked.
   pinned in `third_party/OxidANT/Cargo.toml` (`=2.13.0` today) — a floating latest
   desynchronises the Dart bindings from the Rust runtime.
   The wrapper requires a clean OxidANT checkout at the index gitlink and clean generated
-  outputs; it rejects hidden Git index flags and ignored source inputs. The bridge input, flags,
+  outputs; it rejects hidden Git index flags and ignored source inputs. Stage a moved pin first
+  (`git add third_party/OxidANT`). The bridge input, flags,
   generator pin, full cross-target Cargo metadata and loader-stem check live once in OxidANT's
   `scripts/linux/frb-codegen.sh`; the wrapper passes only this app's Rust root and Dart output.
   The `frb-bindings` job in `linux-x64.yml` runs `verify-frb-bindings.py` over the committed pair
@@ -822,7 +823,7 @@ as it needs the image). On the Pi a push takes about 8 min, more beside another 
 `git push` 30 min or run it in the background, and do not reach for `--no-verify` because it is
 slow. **Every lane's Dart gate is strict** (format on the tracked files, analyze,
 test, the plugin's tests too), and `Invoke-LinuxLane.ps1` passes `-StrictChecks true` as CI
-does. The CMake format gate (13 hand-maintained files) and the plugin's C++ format gate (15
+does. The CMake format gate (17 hand-maintained files) and the plugin's C++ format gate (15
 files) are fatal; never widen either onto generated or vendored trees. Detail:
 [`docs/source/project-operations.md`](docs/source/project-operations.md) § *Gate strictness
 and the git hooks*, § *The CMake format gate*, § *The plugin's C++ format gate*.

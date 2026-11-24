@@ -56,8 +56,15 @@ come last), by the owner's decision of 2026-11-16 that replaced LAI-F2's whole a
 
 A streamed answer is read piece by piece, and the time to the first
 token and the decode rate are then measured as OxidANT measures them. Native builds read replies
-in OxidANT, not here. There an answer without words still ends as an empty bubble, because the
-bridge's `done` carries no thinking count.
+in OxidANT, not here. There a reply without words ends as the `noAnswer` failure, and the page
+shows its sentence.
+
+Each failure kind has its sentence in `lib/Pages/AiPlaygroundPage/text_failure.dart`. The switch
+is exhaustive, so a kind OxidANT adds fails the build until it has a case. To add one, put the
+`aiError…` key with its `@` entry and `{detail}` placeholder in `lib/l10n/app_en.arb`, and the
+German string in `app_de.arb`. Run `flutter gen-l10n` in the image and commit the regenerated
+`lib/l10n/app_localizations*.dart`. Then add the case to the switch and to
+`test/text_failure_test.dart`.
 
 ## Saved settings
 

@@ -14,7 +14,7 @@ consumes, so the loop this repo adopted on 2026-09-13 (`scripts/agentic-loop/`,
 ## Open — ObservANT
 
 The installable ObservANT: `docs/source/camera-streaming.md` § *The ObservANT package*.
-Linux amd64/arm64 ship as a .deb and an AppImage, proven on himbeere2 (Pi 5) on
+Linux amd64/arm64 ship as a .deb and an AppImage, proven on a Raspberry Pi 5 on
 2026-10-05, and as a flatpak, proven in `:latest` on 2026-10-06. Windows x64 ships as an MSI
 and an MSIX, proven on a Windows 11 host (2026-10-06); arm64 ships the same pair, its MSI
 installed and tested on `windows-11-arm` and its MSIX checked (2026-10-16). These rows are
@@ -22,11 +22,11 @@ what the owner's goal still lacks.
 
 - [b] **A USB webcam through `camera = "auto"` on amd64 or arm64.** Proven on riscv64:
   on 2026-10-13 mintberrycrunch's unit found its C270 by itself (`v4l2src /dev/video9 (C270
-  HD WEBCAM)`), `/healthz` named it and headless Chrome played 767 frames. himbeere2 and
+  HD WEBCAM)`), `/healthz` named it and headless Chrome played 767 frames. The test Pi and
   tabblscatcam have Pi cameras only. Blocked on a UVC camera at an amd64 or arm64 board.
   Done when `/healthz` names it there and a browser plays it.
 - [b] **A real cat's arrival on the owner's phone, picture first and video after.** Since
-  2026-10-12 himbeere2's ObservANT posts to the owner's Home Assistant, whose automation
+  2026-10-12 the test Pi's ObservANT posts to the owner's Home Assistant, whose automation
   (`docs/source/camera-streaming.md`, *A phone notification with the picture*) sends
   arrivals at 0.45 or more to the phone with `/arrival.jpg`, and updates that notification
   with a tap to `/arrival.mp4?t=` once the clip's event comes. Test arrivals posted to that
@@ -55,10 +55,10 @@ what the owner's goal still lacks.
       the uninstall;
     - started from its Startup shortcut, the exe served the page and a test pattern
       (`no camera found`), loading all 128 modules from its folder or Windows;
-    - himbeere2 reached the page through the rule, and a browser on another device on
+    - the test Pi reached the page through the rule, and a browser on another device on
       the LAN played the stream.
   - **The MSIX** (`-Msix`, 2026-10-06) passed `Test-ObservANTMsix.ps1 -Install` 12 of 12
-    on the dev box, with a per-build test certificate trusted. himbeere2 reached the page
+    on the dev box, with a per-build test certificate trusted. The test Pi reached the page
     through its port rules.
   - **Still unproven:**
     - a camera: Media Foundation or kernel-streaming capture on a Windows host that has
@@ -107,7 +107,7 @@ what the owner's goal still lacks.
   board's 8 min. Blocked on a runner, or on the hub making that QEMU path a lane.
 - [b] **A cheaper model, or a cheaper picture.** Measured 2026-10-14 at 01:00, one minute
   each, CPU of the service process:
-  - himbeere2 (Pi 5, imx219, rotate 180, dark): 3 % of a core, no model run;
+  - the test Pi (Pi 5, imx219, rotate 180, dark): 3 % of a core, no model run;
   - tabblscatcam (imx708, rotate 270): 21 %, no model run: resampling the turned picture,
     not the model. Since the camera captures 480x360 when turned a quarter (OxidANT
     `capture_size`, 2026-10-14) it is 4 % at night and 10 % by day with 11 model runs a
@@ -141,9 +141,9 @@ what the owner's goal still lacks.
   transport and a fake fetch, but nobody read a cross-origin body as it arrived. Next: one run in a real browser
   against a real endpoint with CORS (owner). Done when a real server's answer appears word by word and Stop ends it.
 - [ ] **A thinking model's reasoning can be read** (M, ★). It is counted and hidden on web and on native builds;
-  the audit puts a collapsed view last, and it needs a widget in ANThology. On native builds an answer without a
-  word is still an empty bubble, because the bridge's `done` carries no thinking count: that field needs the
-  bindings regenerated with an OxidANT pin. Done when the page shows the count, and the text on request.
+  the audit puts a collapsed view last, and it needs a widget in ANThology. Native builds get the count as
+  `done`'s `thinkingChars`, and a reply without words ends as the `noAnswer` failure. Done when the page shows
+  the count, and the text on request.
 - **llguidance accepts the hub tiny model's tokenizer** (probe 2026-11-01, GenAI 0.17.0 in
   `:latest` 7d4d4129). `set_guidance("json_schema", ...)` loaded on both the tiny model and
   SmolLM2-135M; a schema with `maxLength`, no extra properties and fixed whitespace makes the tiny
@@ -298,17 +298,11 @@ name is under `lib/Pages/StreamPage/`.
 The owner's decisions of 2026-11-21 on the oxidation review (D1 to D17, all as recommended): this app keeps
 flutter_rust_bridge, drops its AccelerANTgine submodule, and takes new Rust API in one bundled regeneration.
 
-- [ ] **Move the OxidANT pin to develop** (S–M, ★★★). The pin 7d33f96 is about 227 commits behind: it lacks the
-  native `error:` fix 2afd994 and OxidANT fee17c2, which sends a failed text turn and a refused ESP32 connect into the
-  stream (this repo already reads them as `AnyhowException.message`). `src/api` differs by one comment, but the bump
-  brings ort rc.15, jiff for chrono and a new Cargo.lock: regenerate the license inventory and run `[ci windows]
-  [ci arm64] [ci web] [ci android]`. Then a native test: a missing model directory shows the model-load sentence
-  (`integration_test/text_generate_test.dart` covers no failure today). **In source since 2026-11-21:** the pin is
-  56865c4 (ort rc.15, jiff for chrono and its helpers in the inventory; the bindings regenerate unchanged; 393 Dart
-  tests pass). The native failure test is in source too: `text_generate_test.dart` expects a missing model
-  directory to end the stream with a `failed` event of the kind `modelLoadFailed` (since the bundled regeneration of
-  2026-11-24, which moved the pin on to OxidANT's roadmap step 3). Left: the four lanes' run and that test's first
-  green Linux run.
+- [ ] **Move the OxidANT pin to develop** (S–M, ★★★). The pin is 5caf446, OxidANT's roadmap step 3. It carries the
+  native `error:` fix 2afd994 and fee17c2, which sends a failed text turn and a refused ESP32 connect into the
+  stream. `integration_test/text_generate_test.dart` expects a missing model directory to end the stream with a
+  `failed` event of the kind `modelLoadFailed`. Left: the `[ci windows] [ci arm64] [ci web] [ci android]` run and
+  that test's first green Linux run.
 
 ## Open — native C++ gates from the BeschleunigerBallett comparison
 
@@ -336,8 +330,8 @@ CON294.
 
 ## Open — waiting on the owner
 
-- [b] **False arrivals on himbeere2: nearly gone, one mark left.** On 2026-10-12 and 13 a drying rack at
-  the bottom edge of himbeere2's frame made dozens of "visits" a day at 0.26 to 0.65, each
+- [b] **False arrivals on the test Pi: nearly gone, one mark left.** On 2026-10-12 and 13 a drying rack at
+  the bottom edge of the test Pi's frame made dozens of "visits" a day at 0.26 to 0.65, each
   with a clip encode, and one reached the phone. Since 2026-10-14 two fixes are in place:
   a detection starts a visit only where something moved in the last 10 s, and the Camera
   page's "Not a cat" makes ObservANT ignore a boxed spot for good

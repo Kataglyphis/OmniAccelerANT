@@ -5,6 +5,16 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ## Unreleased
 
+### 2026-11-24 — the docs match the tree, without the test Pi's host name
+
+- The docs, BACKLOG and this changelog call the Pi the cameras were tested on "the test Pi", not its host name.
+- Stale facts match the tree again: the CMake format gate has 17 files, and clang-format runs at the hub's
+  `LLVM_RELEASE`. No platform answers `add`, and the Windows pipeline methods answer "not implemented". A native
+  reply without words ends as the `noAnswer` failure. BACKLOG names the current OxidANT pin, and the install steps
+  drop their 2.1.0 notes.
+- New how-tos: the Dart gate on a Linux host, staging a moved OxidANT pin before the bindings, and adding a failure
+  sentence. `testing.md` links the Dart gate commands.
+
 ### 2026-11-24 — the bundled regeneration (oxidation roadmap, owner D12 to D14)
 
 - `third_party/OxidANT` moves to OxidANT's roadmap step (3) and the bindings are regenerated with
@@ -1124,7 +1134,7 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
   bundle ships no scanner. The native lane starts the app flatpak for 20 s, and the bundle on both
   glibc paths (`KATAGLYPHIS_BUNDLED_GLIBC=1` forces the bundled one).
 - **Whole-frame false visits** (2026-10-17, owner): ObservANT drops a detection covering more
-  than `max_box_area` of the picture (default 0.9) before it counts. Eight of himbeere2's last
+  than `max_box_area` of the picture (default 0.9) before it counts. Eight of the test Pi's last
   20 visits were such boxes at scores near 0.3; `max_box_area = 1` keeps them.
 - **The Linux app starts outside the build image.** The bundle carried GStreamer and ONNX
   Runtime but took `libstdc++` from the system, and the image's is GCC 16.2's

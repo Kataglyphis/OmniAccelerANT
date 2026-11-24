@@ -243,12 +243,12 @@ not be reproduced locally at all.
 **Fatal in the native-Linux and Android lanes, and `run_cmake_format_check` takes no
 arguments.** It used to accept a strictness flag and ignore its own verdict when that flag was
 false, so it now errors (exit 2) if handed one rather than let a stale caller pass silently. That
-is safe for a measured reason: the gate's 13 files are already clean and the native-Linux lane
+is safe for a measured reason: the gate's 17 files are already clean and the native-Linux lane
 has passed `--strict-checks true` since f2e7118, so the Android lane can only catch drift that
 already blocks the merge on the other lane. Wrap the call in `run_gate` when you want the batch
 to decide; never reach for a flag. The web lane builds no native CMake code and does not run it.
 
-**It covers hand-maintained CMake only, 13 files today.** Both lanes build the same list
+**It covers hand-maintained CMake only, 17 files today.** Both lanes build the same list
 (`run_cmake_format_check` in `scripts/linux/lib/container-steps.sh`; the
 `CMake Format Verification` step in `scripts/windows/Build-Windows.ps1`) and exclude the same
 trees, each verified generated or vendored. Never widen the gate onto one: it would fight the
@@ -308,7 +308,8 @@ lane's code-quality batch on both architectures, beside
 `scripts/linux/tests/test-check-plugin-cpp-format.sh`, which plants a deviation and provokes
 each refusal. Windows has no C++ format step.
 
-To clear a red run, rewrite the named files with `clang-format -i` from the image (23.1.3).
+To clear a red run, rewrite the named files with `clang-format -i` from the image, at the release
+the hub pins as `LLVM_RELEASE`.
 The canonical config leaves comments as written (`ReflowComments: Never` since hub a5443e2c,
 2026-10-12): reflow put a comment past 120 columns onto a second line, which the comment-size
 gate rejects. The 2026-10-12 sweep is in `.git-blame-ignore-revs`.
@@ -895,6 +896,16 @@ nerdctl run --rm --platform linux/amd64 `
   bash -lc 'export PATH=/opt/flutter/bin:$PATH; git config --global --add safe.directory "*"; flutter test'
 ```
 
+On a Linux host with a rootless engine, run as the container's root, which is your own user,
+and skip the chown. Leave out `--platform`, so an arm64 host runs its own image:
+
+```bash
+nerdctl run --rm --user 0:0 -e TAR_OPTIONS=--no-same-owner -v "$PWD:/workspace" -w /workspace \
+  --mount type=volume,source=oa-fastloop-pub,target=/pubcache -e PUB_CACHE=/pubcache \
+  ghcr.io/kataglyphis/kataglyphis_beschleuniger:latest \
+  bash -lc 'export PATH=/opt/flutter/bin:$PATH; git config --global --add safe.directory "*"; flutter test'
+```
+
 Swap `flutter test` for `flutter analyze` (~164 s; it analyses the whole workspace) or run
 both. `PUB_CACHE` on a named volume makes the second run cheap, and follows AGENTS.md § 5,
 which keeps write-heavy paths off the host mount.
@@ -1002,7 +1013,8 @@ oxidant's codegen version (2.11.1) should be the same as runtime version (2.12.0
 ```
 
 **Cause:** the generated Dart binding files (in `lib/src/rust/`) are out of sync with the
-`pubspec.yaml` dependency version.
+`flutter_rust_bridge` package that `pubspec.lock` resolves. The message calls that package's
+version the runtime version.
 
 **Fix:** regenerate the Flutter Rust Bridge bindings:
 
@@ -1016,9 +1028,12 @@ agreement. It requires a clean OxidANT checkout matching the index
 gitlink, rejects hidden Git index flags and ignored source inputs, and refuses to
 overwrite changed generated files. It updates both
 the app bindings and OxidANT's generated Rust file, so review both outputs together.
+Run it in the `:latest` image, which has the pinned generator. After a pin move, stage the new
+gitlink first (`git add third_party/OxidANT`), or the wrapper stops with `OxidANT checkout
+differs from the recorded index gitlink`.
 
-It is a cargo binary baked into the build image, not a pub dependency. On a bare host install it
-first, at the version this repo pins, never at latest:
+The generator is a cargo binary baked into the build image, not a pub dependency. On a bare
+host install it first, at the version this repo pins, never at latest:
 `cargo install --locked --version 2.13.0 flutter_rust_bridge_codegen` (the `flutter_rust_bridge`
 pin in `third_party/OxidANT/Cargo.toml`; the image exports the same number as
 `FLUTTER_RUST_BRIDGE_VERSION`). Installing latest is how the mismatch above happens.
@@ -1029,8 +1044,9 @@ old codegen version; `Build-Windows.ps1`'s *Flutter AOT Freshness* step now catc
 rebuilds the snapshot (`scripts/windows/modules/WindowsFlutterAot.Common.psm1`). If it still
 fails, start a fresh container (`Build-Windows-Container.ps1 -FreshContainer`).
 
-**Prevention:** always regenerate bindings after updating the `flutter_rust_bridge` version in
-`pubspec.yaml` or modifying Rust API signatures.
+**Prevention:** regenerate the bindings when the `flutter_rust_bridge` version moves or an OxidANT
+pin changes `src/api`. The version moves in three places together: OxidANT's `Cargo.toml`, the
+hub's `FLUTTER_RUST_BRIDGE_VERSION` and this app's `pubspec.lock`.
 
 ## Contribution Checklist
 

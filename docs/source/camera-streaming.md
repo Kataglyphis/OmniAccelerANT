@@ -63,8 +63,8 @@ and OxidANT's git trees. It is DEIM's COCO checkpoint: 80 classes, 4 M parameter
   file with its URL and SHA-256. `third_party/OxidANT/scripts/linux/fetch-models.sh` puts
   them into `resources/models` (or `--dest DIR`) through a cache in
   `~/.cache/kataglyphis-models`, and fails on any other bytes; on Windows,
-  `scripts\windows\Get-Models.ps1`. The native lane, the Linux bundle, the ObservANT
-  packages and OxidANT's Windows build call it, so a fresh clone needs the network once.
+  `third_party\OxidANT\scripts\windows\Get-Models.ps1`. The native lane, the Linux bundle,
+  the ObservANT packages and OxidANT's Windows build call it, so a fresh clone needs the network once.
   Before you start the app from a checkout, run it yourself. Packaging and its tests take the
   file names from the lock's first `.onnx` row, so a lock naming another model needs no script edit;
   `test-verify-gpu-candidate.sh`, `test-profile-gpu-packages.sh` and the detector model suites run
@@ -422,7 +422,7 @@ with its Flutter-bundle options; the ObservANT packagers call it with `--ldd`:
 this app's flatpak is the case that forced it). The native lane starts the bundle 20 s on both
 paths (`KATAGLYPHIS_BUNDLED_GLIBC=1` forces the second) and the app flatpak 20 s on its runtime.
 **On a real desktop under the bundled loader** (2026-10-17, the 2.2.0 dry run's arm64 tarball
-unpacked on himbeere2: Debian 13, glibc 2.41, labwc on Wayland) the app drew its window and
+unpacked on a Raspberry Pi 5: Debian 13, glibc 2.41, labwc on Wayland) the app drew its window and
 pages with Impeller on OpenGL ES; the process mapped the bundled `libc.so.6` beside the host's
 `libEGL_mesa` and `libgallium-26.2.2`, so the host's Mesa runs under the newer bundled glibc.
 
@@ -594,7 +594,7 @@ its `settings.json`, so every device keeps its own.
   preview; "Watch again" forgets them all, and so does turning the picture, as they no longer
   fit it.
 - **"Recent detections"** (2026-10-14) lists the latest five arrivals with their pictures,
-  each with "Not a cat", since a false one is seldom on screen when it happens: himbeere2's
+  each with "Not a cat", since a false one is seldom on screen when it happens: the test Pi's
   drying rack counted once at 09:09 for under three minutes. Each visit in `/healthz`'s
   `recent` keeps the `boxes` it arrived with, and the button adds those as ignored spots; one
   already ignored reads "Ignored". Visits from before that keep no boxes and are not listed.
@@ -614,7 +614,7 @@ not an ObservANT camera's own, the Camera page says no ObservANT answers.
 **The web build ships compressed.** The packager runs the producer's `--precompress` over its
 copy of the web build, so each file the server gzips has a zopfli `.gz` beside it: about 5 %
 smaller than the server's own gzip, and nothing to compress on the board. A first visit from a
-phone on the LAN is 4.46 MB on the wire, about 4.62 MB before (himbeere2, 2026-10-12); over
+phone on the LAN is 4.46 MB on the wire, about 4.62 MB before (the test Pi, 2026-10-12); over
 loopback 3.75 MB, 3.93 before. The gap is Flutter's renderer: `skwasm_heavy` (2.2 MB gzipped,
 its own codecs inside) instead of `skwasm` (1.5 MB), because plain HTTP at a LAN address is no
 secure context (*What a browser downloads*); only a certificate the phones trust would change
@@ -633,20 +633,20 @@ follows.
 
 | Host | Board | Camera | Version | Updates | One detection |
 | --- | --- | --- | --- | --- | --- |
-| himbeere2 ("Cat Cam Büro") | Raspberry Pi 5, Debian 13 | imx219 (CSI), turned 180° | 2.1.0 | nightly, from the releases | 0.26 s |
+| the test Pi ("Cat Cam Büro") | Raspberry Pi 5, Debian 13 | imx219 (CSI), turned 180° | 2.1.0 | nightly, from the releases | 0.26 s |
 | tabblscatcam ("Cat Cam Futtertrog") | Raspberry Pi 5, Debian 13 | Camera Module 3, imx708 (CSI), turned 270° | 2.1.0 | nightly, from the releases | 0.30 s |
 | himbeerGsaelz (since 2026-10-15) | Raspberry Pi 3 Model B, Debian 13 | Camera Module 3 Wide, imx708_wide (CSI), turned 180° | 2.1.0 | nightly, from the releases | 2.05 s |
 | himbeergsaelzweckle (since 2026-10-16) | Raspberry Pi 4 Model B (8 GB), Debian 13 | Camera Module 3 Wide, imx708_wide (CSI), turned 180° | 2.1.0 | nightly, from the releases, as a user install (no sudo) | 0.91 s |
 | mintberrycrunch ("Mintberry Cat Cam") | SpacemiT K3 (riscv64), Ubuntu 26.04 | Logitech C270 (USB) | 2.1.0 | by hand: built on the board, since no release carries riscv64 | 0.59 s |
 
 - **The first release reached a camera by itself.** v2.1.0 was published at 22:32 on
-  2026-10-15. himbeere2's `omni-observant-update.service`, started by hand a minute later,
+  2026-10-15. The test Pi's `omni-observant-update.service`, started by hand a minute later,
   downloaded its `.deb`, checked it against `SHA256SUMS`, installed it over 2.0.0, and the
   service came back with its 155 visits; a second run said "2.1.0 is up to date".
   tabblscatcam did the same from its timer alone at 03:37 on 2026-10-16 and came back with all
   224 visits.
 - **himbeerGsaelz's config says `inference = "on"`.** A 1 GB Pi 3 reports 905 MiB, and 2.1.0's
-  `auto` skips the model below 1024 MiB; the next release's `auto` takes 768 MiB (OxidANT
+  `auto` skips the model below 1024 MiB; 2.2.0's `auto` takes 768 MiB (OxidANT
   f8a2dfc), so a new Pi 3 detects without the setting. Its model runs at 2 s, about seven times
   the Pi 5's, but only while something moves.
 - **himbeergsaelzweckle is a user install**, because no sudo password was at hand (*Without
@@ -682,15 +682,12 @@ follows.
    nightly update timer keeps it on the newest release from then on (*Updates from the
    releases*). With ufw on, `sudo ufw allow OmniObservANT`.
 4. Open `http://<host>.local:8080/`. Turn the picture upright with ⟲/⟳ beside the camera's
-   name on the Stream page (from the release after 2.1.0; on 2.1.0, on the Camera page),
-   and name the camera on the Camera page; until then it shows its host name (from the release
-   after 2.1.0; 2.1.0 calls every unnamed camera "ObservANT"). Each camera keeps both in its
-   `settings.json`.
+   name on the Stream page, and name the camera on the Camera page; until then it shows its
+   host name. Each camera keeps both in its `settings.json`.
 5. Add the camera to *Where it runs* above.
 
-**Without sudo** (from the release after 2.1.0), the tarball beside the `.deb` installs for the
-calling user instead of step 3. The user needs the `video` group, which Raspberry Pi OS and
-Debian give the first user:
+**Without sudo**, the tarball beside the `.deb` installs for the calling user instead of step 3.
+The user needs the `video` group, which Raspberry Pi OS and Debian give the first user:
 
 ```bash
 curl -fsSLO "$base/omni-observant-${v}-linux-${arch}.tar.gz"
@@ -771,7 +768,7 @@ must match the host kernel.
     world-readable; the next upgrade takes other users' read away and keeps its content.
   - **It is deliberately not a conffile.** dpkg asks about an edited conffile on every upgrade
     that changes it (keep or replace), and over SSH or in an unattended upgrade nobody
-    answers, so the install hangs. Found on himbeere2, 2026-10-05.
+    answers, so the install hangs. Found on the test Pi, 2026-10-05.
   - `apt purge` removes it.
 - `sudo ufw allow OmniObservANT` opens `8080/tcp` and the WebRTC range `40000:40099/udp`.
 
@@ -800,7 +797,7 @@ problem in orange above the cat.
 
 **A box over nearly the whole picture is not a cat** (2026-10-17, owner): a detection that
 covers more than `max_box_area` of the frame (default 0.9) is dropped before it can count, as
-one over a "Not a cat" spot is. Eight of himbeere2's last 20 visits on 2026-10-16/17 were such
+one over a "Not a cat" spot is. Eight of the test Pi's last 20 visits on 2026-10-16/17 were such
 boxes, 0.95 to 0.99 of the frame at scores near 0.3; a cat close to the lens fills about 0.7.
 `max_box_area = 1` keeps every box.
 
@@ -815,7 +812,7 @@ walking about had made 21 visits in an hour, 10 to 90 s apart. The departure eve
 (`idle_inference_fps`), and not at all while the picture is black; motion brings back
 `inference_fps`, and `/healthz` counts the runs (`model_runs`). On a Pi 5 that took a still,
 empty scene from 74 % to 12 % of a core, and a dark room at night to 2 %. A cat in view that
-does not move, asleep or a false one, is looked at half as often (2026-10-13): himbeere2's
+does not move, asleep or a false one, is looked at half as often (2026-10-13): the test Pi's
 drying rack, counted as a cat at 0.34 all afternoon, went from 69 % to 36 % of a core. Leaving
 is motion, so the cat is out of view as fast as before. `inference = "auto"` turns the model
 off below 768 MiB of RAM: a 512 MB Pi Zero 2 W reports about 430 MiB, a 1 GB Pi 3 905 MiB. It
@@ -823,7 +820,7 @@ was 1 GiB until 2026-10-15, which kept the Pi 3 from detecting at all.
 
 **A cat must move to arrive** (2026-10-14). A detection starts a visit only where the picture
 changed in the last 10 s, in at least two 8-pixel blocks inside its box or one block around
-it, so a still object the model takes for a cat, like himbeere2's drying rack (92 "visits" by
+it, so a still object the model takes for a cat, like the test Pi's drying rack (92 "visits" by
 13:40 on 2026-10-13), can no longer start one. Once a cat is in view, every detection keeps its
 visit going, so a cat that sits down or falls asleep stays counted. What the camera sees as it
 starts counts as just arrived, so a cat already there when the service starts is counted then.
@@ -831,7 +828,7 @@ The motion comes from the same 2 Hz looks that pace the model; with that pacing 
 (`idle_inference_fps` at or above `inference_fps`, or `inference_fps = 0`), every detection
 may start a visit, as before.
 
-A live `/healthz` from himbeere2 (2026-10-14), its lists cut to two entries each and the
+A live `/healthz` from the test Pi (2026-10-14), its lists cut to two entries each and the
 peers' addresses left out:
 
 ```json
@@ -976,13 +973,13 @@ finished ones wait for the encoder.
 **The last five clips stay addressable by arrival**, as `clip-<time>.mp4` in the state
 directory, across a restart too: `/arrival.mp4?t=<time>` serves that arrival's own, and `404`
 once it is dropped, never a newer one. A false visit right after the cat (33 of them on
-himbeere2's morning of 2026-10-12) would otherwise have put its clip behind the cat's
+the test Pi's morning of 2026-10-12) would otherwise have put its clip behind the cat's
 notification. The arrival event carries the visit log's own time, the one the clip is kept
 under. The Stream page links the newest clip by its time once `detection.clip` is the newest
 visit, so it never offers the previous cat's clip, and lists the other kept ones beside it
 ("Earlier videos: ▶ 18:07 ▶ 18:05", from `detection.clips`).
 
-**Measured on himbeere2.** The packaged service, run on the cat photo at 30 fps (2026-10-12),
+**Measured on the test Pi.** The packaged service, run on the cat photo at 30 fps (2026-10-12),
 confirmed the arrival at 16:21:40 and served the clip at 16:21:47: seven seconds of
 post-roll, and encoding and writing in under one. It was H.264 Constrained Baseline, which
 every phone and browser plays, 640x480 at 10 fps, 78 frames (the pre-roll was short, as the
@@ -1005,7 +1002,7 @@ reaches the webhook, and that a restart keeps it.
 
 **A phone notification with the picture, through Home Assistant.** This automation sends an
 arrival to the Home Assistant companion app, with `/arrival.jpg` as its image and the live page
-behind a tap. Running on himbeere2 since 2026-10-12 (Home Assistant 2026.10.1):
+behind a tap. Running on the test Pi since 2026-10-12 (Home Assistant 2026.10.1):
 
 ```yaml
 # automations.yaml; both values live in secrets.yaml, so this file can be committed.
@@ -1045,7 +1042,7 @@ behind a tap. Running on himbeere2 since 2026-10-12 (Home Assistant 2026.10.1):
 - **A webhook id is a password.** Generate it (`python3 -c 'import secrets;
   print("catcam-" + secrets.token_urlsafe(24))'`) and keep it out of git.
 - **Notify above 0.45, count from `score`.** On 2026-10-12 a white object at the bottom of
-  himbeere2's frame made 33 "visits" between 0.26 and 0.44, and a real cat at the feeding
+  the test Pi's frame made 33 "visits" between 0.26 and 0.44, and a real cat at the feeding
   trough scored 0.72 (2026-10-14). The condition keeps those off the phone while the visit log
   still counts them; raising `score` instead would drop them from both. It is not enough on its
   own: at 21:57 the same object scored 0.65 and reached the phone (BACKLOG, *False arrivals*).
@@ -1055,13 +1052,13 @@ behind a tap. Running on himbeere2 since 2026-10-12 (Home Assistant 2026.10.1):
 - **The companion app's `minimal` build has no push service.** It receives notifications only
   over its own connection to Home Assistant, so set *Persistent connection* to *Always* in its
   server settings; the `full` build gets them through Firebase. A push while the app is not
-  connected fails with `not connected to local push notifications` and is gone, so himbeere2's
+  connected fails with `not connected to local push notifications` and is gone, so the test Pi's
   automations send each notification three times a minute apart under one `tag` with
   `alert_once: true`, and `continue_on_error` on the call: a repeat replaces a delivered one
   silently and reaches a phone that reconnected. Each run then lasts about two minutes, so give
   `mode: parallel` a `max` well above its default of 10: on the morning of 2026-10-14 three
   cameras' arrivals, clips and departures overran it and Home Assistant dropped 30 events
-  (`Maximum number of runs exceeded`), their counts included. himbeere2 runs `max: 40`.
+  (`Maximum number of runs exceeded`), their counts included. The test Pi runs `max: 40`.
 - **The picture loads from the phone,** so `catcam_base_url` must be an address the phone can
   reach: an IP or a name its network resolves, not loopback.
 
@@ -1070,10 +1067,10 @@ A test arrival posted to that webhook reached the owner's phone on 2026-10-12.
 **The same notification learns when the cat left.** The departure (a minute after the last
 sighting, *Detection, visits and `/healthz`*) names the arrival it ends (`arrived`) and that
 arrival's `best_score`, so an automation that lets `left` through its condition too
-(himbeere2's does; the one above does not) takes it under the same 0.45 and updates the
+(the test Pi's does; the one above does not) takes it under the same 0.45 and updates the
 notification by its `tag`: "Katze war da … War 4 Min. da." A clip event carries `stayed_s` too
 when the visit was over before its clip was encoded; with a visit lasting a minute past the
-last sighting and a clip of at most 60 s, that hardly happens. himbeere2's automation keeps the
+last sighting and a clip of at most 60 s, that hardly happens. The test Pi's automation keeps the
 last departure in an `input_text` (`"<arrival time> <seconds>"`), so its minute-apart tries of
 an arrival keep the stay a departure in between added.
 
@@ -1088,7 +1085,7 @@ ist am Futtertrog"). The `tag` carries the id (`catcam-arrival-<id>`), so one ca
 notification never replaces another's, and the stay is kept as `"<id> <arrival> <seconds>"`.
 The counters count both, and the summary names the place with each time ("21:57 Büro, 22:30
 Futtertrog"). A second `rest` entry polls the other camera's `/healthz`, and the outage alert
-watches both online sensors, under one tag per camera. Since 2026-10-12 himbeere2's Home
+watches both online sensors, under one tag per camera. Since 2026-10-12 the test Pi's Home
 Assistant takes its own cat cam ("Cat Cam Büro", on loopback) and tabblscatcam's ("Cat Cam
 Futtertrog", a second Pi 5 with a Camera Module 3); a departure posted from tabblscatcam to its
 webhook updated that camera's notification and stay.
@@ -1097,7 +1094,7 @@ webhook updated that camera's notification and stay.
 `http://127.0.0.1:8080/healthz` every 30 s when it runs on ObservANT's host:
 `detection.in_view`, `detection.last_seen`, `detection.visits`,
 `detection.recent[0].stayed_s` and `ok` become sensors, and with ObservANT unreachable they all
-turn `unavailable`. On himbeere2 (2026-10-12):
+turn `unavailable`. On the test Pi (2026-10-12):
 - the arrival automation increments two counters, *today* and *total*, so they count only what
   reached the phone; a template sensor with `state_class: total_increasing` mirrors *total*,
   which lets a `statistics-graph` card draw visits per day, and a time trigger resets *today*
@@ -1129,7 +1126,7 @@ turn `unavailable`. On himbeere2 (2026-10-12):
 #### The Stream page
 
 **An open page survives a restart of the service.** The page sees its producer go and come
-back and consumes the new one, with no reload: on himbeere2 (2026-10-12) headless Chrome's
+back and consumes the new one, with no reload: on the test Pi (2026-10-12) headless Chrome's
 video was playing at 30 fps again about 10 s after `systemctl restart omni-observant`, as an
 upgrade does it.
 
@@ -1143,7 +1140,7 @@ is retried after 3 s. In headless Chrome on a test pattern (2026-10-12) the vide
 about 33 frames a second through a switch to English and back, a theme toggle and two page
 changes. Before, a language switch left the box at "Connecting to the signalling server".
 
-**What a browser downloads** (measured on himbeere2, 2026-10-14, Chrome 154 on the LAN): the
+**What a browser downloads** (measured on the test Pi, 2026-10-14, Chrome 154 on the LAN): the
 first visit 4.5 MB in about 60 requests, the video playing after 3.6 s; every later visit
 0.11 MB, the video after 2.9 s, because the server answers each file with an ETag and
 `Cache-Control: no-cache`, and an unchanged one costs a `304` without a body. Half of the first
@@ -1305,7 +1302,7 @@ unit runs it, with a scrubbed environment as `omni-observant`:
   the sign-in entry, `--autostart off` removed it, and `flatpak uninstall` left nothing.
 
 Results: on amd64 in `:latest` (2026-10-06) all 32 checks passed, and Chrome played 572 frames
-from the sandboxed stream; the flatpak bundle is 63 MB. On arm64 on himbeere2 (2026-10-12) all
+from the sandboxed stream; the flatpak bundle is 63 MB. On arm64 on the test Pi (2026-10-12) all
 43 checks passed, with about 510 frames to Chrome each time, and all 47 once the arrival clip added
 four; all 51 on 2026-10-13, three of them on the precompressed web build; all 69 on 2026-10-14,
 in 244 s (each line names its seconds; the tab that comes back takes 113 of them, as it must
@@ -1317,7 +1314,7 @@ architectures (`web.yml` run 38197312619).
 What each board showed when a package or install path first ran on it; today's cameras are in
 *Where it runs*.
 
-**On a Raspberry Pi 5 (himbeere2: imx219, Debian 13, kernel 6.18), 2026-10-05.** The arm64
+**On a Raspberry Pi 5 (the test Pi: imx219, Debian 13, kernel 6.18), 2026-10-05.** The arm64
 packages were built natively on the board in `:latest` (CI's `web.yml` builds them on
 `ubuntu-26.04-arm`). The .deb ran as the systemd unit:
 - the camera came through `rpicam-vid`, with `rotate = 180` from the settings;
@@ -1328,7 +1325,7 @@ packages were built natively on the board in `:latest` (CI's `web.yml` builds th
 - after a reboot the unit was active about 11 s after the kernel started, on the Pi camera
   again, and the browser played about 30 fps;
 - **a firewall needs rules**: with ufw active, `sudo ufw allow OmniObservANT` opens 8080 and
-  the WebRTC UDP range; himbeere2's existing rules already covered both;
+  the WebRTC UDP range; the board's existing rules already covered both;
 - **a dark room is a black stream**: the imx219 has no IR, and the sensor itself read a mean Y
   of 0.5 out of 255 at night.
 
@@ -1339,10 +1336,10 @@ cannot emulate it, because its 16 KiB pages break QEMU on the image's libraries.
 - found the webcam on its own (`v4l2src /dev/video9 (C270 HD WEBCAM)`) among the SoC's
   codec and ISP nodes;
 - needed `sudo ufw allow OmniObservANT`, as the package says, before the LAN reached it;
-- streamed to headless Chrome on himbeere2 at about 24 fps (767 frames in 35 s);
+- streamed to headless Chrome on the test Pi at about 24 fps (767 frames in 35 s);
 - used 15 % of one core and 282 MB with the room empty, the model running every 5 s.
 
-**The AppImage on himbeere2, 2026-10-06:**
+**The AppImage on the test Pi, 2026-10-06:**
 - run plainly as the login user, it mounted through FUSE, and Chrome on another host played
   844 frames in 28 s;
 - the switch a user might make, `.deb` → `apt remove` → AppImage `--install` → `--uninstall`
@@ -1543,7 +1540,7 @@ An MSIX installs only when Windows trusts its signer:
   the package or Windows, and removes the package again.
 
 Server Core cannot deploy an MSIX (`0x80073D19`), so CI runs only the first half. On the dev
-box (2026-10-06), with the test certificate trusted: all 12 checks passed, himbeere2 reached the
+box (2026-10-06), with the test certificate trusted: all 12 checks passed, the test Pi reached the
 page through the MSIX's rules, and the certificate came out of the store afterwards.
 
 **Not verified yet:** a camera on Windows, the start at a real sign-in (the MSI's Startup

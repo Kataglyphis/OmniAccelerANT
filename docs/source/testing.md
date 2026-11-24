@@ -80,8 +80,9 @@ The lane copies the report to `logs/coverage/lcov.info` before `flutter clean` d
 and `reusable-linux.yml` uploads it as `omni-accelerant-linux-<arch>-coverage`: the x64 one is
 `quality-report.toml`'s coverage row, read from the same-SHA `linux-x64.yml` run.
 
-`flutter test` in the `:latest` image runs the suite in under a minute; the command is in
-[Getting started](getting-started.md#1-prerequisites).
+`flutter test` in the `:latest` image runs the suite in under a minute; the commands for a
+Windows and a Linux host are in
+[Project Operations](project-operations.md#the-dart-gate-without-a-lane).
 
 ## Rules that keep a green run honest
 
