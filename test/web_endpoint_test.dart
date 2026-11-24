@@ -84,7 +84,7 @@ void main() {
     );
     expect(
       (events.last.finishReason, events.last.completionTokens),
-      ('stop', 3),
+      (TextFinishReason.stop, 3),
     );
     final web.RequestInit init = requests.single.init!;
     expect(requests.single.url, 'http://127.0.0.1:18200/v1/chat/completions');
