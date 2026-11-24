@@ -402,7 +402,7 @@ Dart package texts are in Flutter's `NOTICES`. Maintenance and limits:
 | zune-inflate | 0.2.54 | MIT OR Apache-2.0 OR Zlib | kataglyphis_observant, oxidant |
 | zune-jpeg | 0.5.15 | MIT OR Apache-2.0 OR Zlib | kataglyphis_observant, oxidant |
 
-## Dart packages (106)
+## Dart packages (107)
 
 | Package | Version | Source |
 | --- | --- | --- |
@@ -454,6 +454,7 @@ Dart package texts are in Flutter's `NOTICES`. Maintenance and limits:
 | leak_tracker_flutter_testing | 3.0.10 | https://pub.dev |
 | leak_tracker_testing | 3.0.2 | https://pub.dev |
 | lints | 6.1.0 | https://pub.dev |
+| listen | 1.0.1 | https://pub.dev |
 | logging | 1.3.0 | https://pub.dev |
 | markdown | 7.3.1 | https://pub.dev |
 | markdown_widget | 2.3.2+8 | https://pub.dev |
@@ -495,7 +496,7 @@ Dart package texts are in Flutter's `NOTICES`. Maintenance and limits:
 | string_scanner | 1.4.1 | https://pub.dev |
 | sync_http | 0.3.1 | https://pub.dev |
 | term_glyph | 1.2.2 | https://pub.dev |
-| test_api | 0.7.12 | https://pub.dev |
+| test_api | 0.7.14 | https://pub.dev |
 | typed_data | 1.4.0 | https://pub.dev |
 | url_launcher | 6.3.3 | https://pub.dev |
 | url_launcher_android | 6.3.33 | https://pub.dev |
