@@ -103,7 +103,10 @@ const List<TextMessage> _hi = <TextMessage>[
   TextMessage(role: 'user', content: 'How often?'),
 ];
 const Duration _short = Duration(milliseconds: 40);
-const TextEvent _cancelled = TextEvent(kind: 'done', finishReason: 'cancelled');
+const TextEvent _cancelled = TextEvent(
+  kind: TextEventKind.done,
+  finishReason: TextFinishReason.cancelled,
+);
 
 String _data(Map<String, Object?> chunk) => 'data: ${jsonEncode(chunk)}\n\n';
 
@@ -145,7 +148,8 @@ String _whole(
     },
 });
 
-TextEvent _piece(String text) => TextEvent(kind: 'piece', text: text);
+TextEvent _piece(String text) =>
+    TextEvent(kind: TextEventKind.piece, text: text);
 
 /// What an answer's stream gave: its events, and the failure that ended it.
 Future<(List<TextEvent>, Object?)> _collect(Stream<TextEvent> answer) async {
@@ -169,8 +173,10 @@ Future<(List<TextEvent>, Object?)> _ask(
 );
 
 /// What the user reads of [events].
-String _shown(List<TextEvent> events) =>
-    events.where((e) => e.kind == 'piece').map((e) => e.text).join();
+String _shown(List<TextEvent> events) => events
+    .where((e) => e.kind == TextEventKind.piece)
+    .map((e) => e.text)
+    .join();
 
 Matcher _failure(Object reason) =>
     isA<EndpointFailure>().having((f) => f.reason, 'reason', reason);
@@ -258,12 +264,13 @@ void main() {
         expect(events, <TextEvent>[
           _piece('Twice.'),
           const TextEvent(
-            kind: 'done',
-            finishReason: 'stop',
+            kind: TextEventKind.done,
+            finishReason: TextFinishReason.stop,
             promptTokens: 9,
             completionTokens: 3,
             timeToFirstTokenMs: 1500,
             decodeTokensPerSecond: 0,
+            thinkingChars: 0,
           ),
         ]);
       },
@@ -275,7 +282,7 @@ void main() {
           _whole(<String, Object?>{'content': 'Twice.'}, finish: 'length'),
         ]),
       );
-      expect(events.last.finishReason, 'length');
+      expect(events.last.finishReason, TextFinishReason.length);
       expect(events.last.completionTokens, isNull);
     });
 
@@ -340,12 +347,13 @@ void main() {
           _piece('Twi'),
           _piece('ce.'),
           const TextEvent(
-            kind: 'done',
-            finishReason: 'stop',
+            kind: TextEventKind.done,
+            finishReason: TextFinishReason.stop,
             promptTokens: 9,
             completionTokens: 6,
             timeToFirstTokenMs: 200,
             decodeTokensPerSecond: 10,
+            thinkingChars: 0,
           ),
         ]);
       },
@@ -364,7 +372,7 @@ void main() {
           ]),
         );
         expect(failure, isNull);
-        expect(events.last.finishReason, 'length');
+        expect(events.last.finishReason, TextFinishReason.length);
         expect(events.last.completionTokens, 3);
         expect(events.last.promptTokens, isNull);
       },
@@ -394,7 +402,7 @@ void main() {
         final (events, failure) = await _ask(endpoint);
         expect(failure, isNull);
         expect(_shown(events), 'Twice.');
-        expect(events.last.finishReason, 'stop');
+        expect(events.last.finishReason, TextFinishReason.stop);
         expect(await endpoint.over, isTrue);
       },
     );
@@ -517,7 +525,7 @@ void main() {
           _done,
         ]),
       );
-      expect(events.where((e) => e.kind == 'piece'), <TextEvent>[
+      expect(events.where((e) => e.kind == TextEventKind.piece), <TextEvent>[
         _piece('\n\nTwice.'),
       ]);
     });
@@ -551,7 +559,7 @@ void main() {
           }),
         ]),
       );
-      expect(whole.where((e) => e.kind == 'piece'), <TextEvent>[
+      expect(whole.where((e) => e.kind == TextEventKind.piece), <TextEvent>[
         _piece('Twice.'),
       ]);
       // A stream has shown the start by then, and the answer follows it.
@@ -859,7 +867,7 @@ void main() {
       final (events, failure) = await _collect(chat.complete(_settings, _hi));
       expect(failure, isNull);
       expect(_shown(events), 'Twice.');
-      expect(events.last.finishReason, 'stop');
+      expect(events.last.finishReason, TextFinishReason.stop);
     });
 
     test('a Stop with nothing running does nothing', () async {

@@ -29,8 +29,8 @@ import 'package:omni_accelerant/src/rust/api/text.dart';
 import 'package:omni_accelerant/src/rust/frb_generated.dart';
 
 const TextEvent _done = TextEvent(
-  kind: 'done',
-  finishReason: 'stop',
+  kind: TextEventKind.done,
+  finishReason: TextFinishReason.stop,
   promptTokens: 9,
   completionTokens: 3,
   timeToFirstTokenMs: 40,
@@ -64,7 +64,7 @@ class _FakeClient implements TextClient {
 
   void answer(List<String> pieces, [TextEvent done = _done]) {
     for (final piece in pieces) {
-      running!.add(TextEvent(kind: 'piece', text: piece));
+      running!.add(TextEvent(kind: TextEventKind.piece, text: piece));
     }
     running!
       ..add(done)
@@ -224,9 +224,13 @@ void main() {
       expect(client.asked, hasLength(1));
       playground.stop();
       expect(client.cancels, 1);
-      client.answer(<String>[
-        'x',
-      ], const TextEvent(kind: 'done', finishReason: 'cancelled'));
+      client.answer(
+        <String>['x'],
+        const TextEvent(
+          kind: TextEventKind.done,
+          finishReason: TextFinishReason.cancelled,
+        ),
+      );
       await pumpEventQueue();
       expect(playground.messages.last.figures!.finish, ChatFinish.cancelled);
     },
@@ -245,16 +249,32 @@ void main() {
     expect(playground.busy, isFalse);
   });
 
-  test('a failure the bridge streams keeps its kind for the page', () async {
+  test('a failed event keeps its typed failure for the page', () async {
+    final client = _FakeClient();
+    final playground = AiPlaygroundController(client: client);
+    playground.send('a');
+    const failure = TextFailure(
+      kind: TextFailureKind.modelLoadFailed,
+      message: 'no model in /models/x',
+    );
+    client.running!
+      ..add(const TextEvent(kind: TextEventKind.failed, failure: failure))
+      ..close();
+    await pumpEventQueue();
+    expect((playground.failure, playground.error), (failure, null));
+    expect(playground.messages.map((m) => m.role), <ChatRole>[ChatRole.user]);
+    expect(playground.busy, isFalse);
+  });
+
+  test('a panic the bridge streams keeps its message', () async {
     final client = _FakeClient();
     final playground = AiPlaygroundController(client: client);
     playground.send('a');
     client.running!
-      ..addError(AnyhowException('model_load_failed: no model in /models/x'))
+      ..addError(AnyhowException('poisoned'))
       ..close();
     await pumpEventQueue();
-    expect(playground.error, 'model_load_failed: no model in /models/x');
-    expect(playground.busy, isFalse);
+    expect((playground.failure, playground.error), (null, 'poisoned'));
   });
 
   test('the bridge client hands the settings to the Rust core', () async {
@@ -456,4 +476,29 @@ void main() {
       expect(find.textContaining('The model failed'), findsNothing);
     },
   );
+
+  testWidgets('the page words a reply without words by its kind', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1280, 2400);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final client = _FakeClient();
+    final playground = AiPlaygroundController(client: client);
+    await tester.pumpWidget(_page(playground));
+    playground.send('hi');
+    client.running!
+      ..add(
+        const TextEvent(
+          kind: TextEventKind.failed,
+          failure: TextFailure(
+            kind: TextFailureKind.noAnswer,
+            message: 'the model gave no answer (finish_reason stop)',
+          ),
+        ),
+      )
+      ..close();
+    await tester.pumpAndSettle();
+    expect(find.textContaining('The model gave no answer;'), findsOneWidget);
+  });
 }

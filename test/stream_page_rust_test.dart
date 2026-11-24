@@ -33,6 +33,9 @@ class _FakeRustApi extends Fake implements RustLibApi {
 
   @override
   void crateApiWebcamStopWebcamInference() => stops++;
+
+  @override
+  double crateApiWebcamDefaultScoreThreshold() => 0.25;
 }
 
 void main() {

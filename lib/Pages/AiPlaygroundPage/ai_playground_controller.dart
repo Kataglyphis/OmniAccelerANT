@@ -15,9 +15,9 @@ ChatFigures figuresOf(TextEvent done) => ChatFigures(
   timeToFirstTokenMs: done.timeToFirstTokenMs ?? 0,
   decodeTokensPerSecond: done.decodeTokensPerSecond ?? 0,
   finish: switch (done.finishReason) {
-    'length' => ChatFinish.length,
-    'cancelled' => ChatFinish.cancelled,
-    _ => ChatFinish.stop,
+    TextFinishReason.length => ChatFinish.length,
+    TextFinishReason.cancelled => ChatFinish.cancelled,
+    TextFinishReason.stop || null => ChatFinish.stop,
   },
 );
 
@@ -39,8 +39,11 @@ class AiPlaygroundController extends ChangeNotifier {
   StreamSubscription<TextEvent>? _run;
   bool busy = false;
 
-  /// The last failure, cleared by the next message.
+  /// The last failure without a kind, such as a broken store, cleared by the next message.
   String? error;
+
+  /// The last failed turn, which the page words by its kind; cleared by the next message.
+  TextFailure? failure;
 
   List<ChatEntry> get messages => List<ChatEntry>.unmodifiable(_messages);
 
@@ -93,6 +96,7 @@ class AiPlaygroundController extends ChangeNotifier {
       );
     busy = true;
     error = null;
+    failure = null;
     notifyListeners();
     _run = client
         .generate(settings, history)
@@ -110,25 +114,35 @@ class AiPlaygroundController extends ChangeNotifier {
     _messages.clear();
     busy = false;
     error = null;
+    failure = null;
     notifyListeners();
   }
 
   void _onEvent(TextEvent event) {
     final last = _messages.last;
-    if (event.kind == 'piece') {
-      _messages.last = last.copyWith(text: last.text + (event.text ?? ''));
-    } else if (event.kind == 'done') {
-      _messages.last = last.copyWith(
-        streaming: false,
-        figures: figuresOf(event),
-      );
+    switch (event.kind) {
+      case TextEventKind.piece:
+        _messages.last = last.copyWith(text: last.text + (event.text ?? ''));
+      case TextEventKind.done:
+        _messages.last = last.copyWith(
+          streaming: false,
+          figures: figuresOf(event),
+        );
+      case TextEventKind.failed:
+        failure = event.failure;
+        _failed();
+        return;
     }
     notifyListeners();
   }
 
   void _onError(Object failure) {
-    // The bridge streams a failure as AnyhowException; its message alone is the `kind: text` the page reads.
+    // A panic or the web client's failure has no kind: the page shows its text as it is.
     error = failure is AnyhowException ? failure.message : '$failure';
+    _failed();
+  }
+
+  void _failed() {
     if (_messages.isNotEmpty && _messages.last.text.isEmpty) {
       _messages.removeLast();
     }

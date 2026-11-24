@@ -7,6 +7,9 @@ import '../frb_generated.dart';
 
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
+// These functions are ignored because they are not marked as `pub`: `event`, `failed`
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `clone`, `clone`, `clone`, `clone`, `eq`, `eq`, `eq`, `eq`, `fmt`, `fmt`, `fmt`, `fmt`
+
 TextOptions textDefaultOptions() =>
     RustLib.instance.api.crateApiTextTextDefaultOptions();
 
@@ -14,7 +17,7 @@ TextOptions textDefaultOptions() =>
 bool textLocalAvailable() =>
     RustLib.instance.api.crateApiTextTextLocalAvailable();
 
-/// Streams the answer into `sink` and returns after its `done` event; a second call waits for the first.
+/// Streams the answer into `sink` and returns after its `done` or `failed` event; a second call waits for the first.
 Stream<TextEvent> textGenerate({
   required TextSource source,
   required List<TextMessage> messages,
@@ -34,17 +37,19 @@ Future<List<Float32List>> textEmbed({
   required List<String> texts,
 }) => RustLib.instance.api.crateApiTextTextEmbed(source: source, texts: texts);
 
-/// A flattened stream event: `piece` sets `text`; `done`, the last one, sets the finish reason and the figures.
+/// A flattened stream event: `piece` sets `text`; the last, `done` or `failed`, sets the figures or the failure.
 class TextEvent {
-  final String kind;
+  final TextEventKind kind;
   final String? text;
-
-  /// `stop`, `length` or `cancelled`.
-  final String? finishReason;
+  final TextFinishReason? finishReason;
   final int? promptTokens;
   final int? completionTokens;
   final double? timeToFirstTokenMs;
   final double? decodeTokensPerSecond;
+
+  /// Characters of reasoning the answer leaves out.
+  final int? thinkingChars;
+  final TextFailure? failure;
 
   const TextEvent({
     required this.kind,
@@ -54,6 +59,8 @@ class TextEvent {
     this.completionTokens,
     this.timeToFirstTokenMs,
     this.decodeTokensPerSecond,
+    this.thinkingChars,
+    this.failure,
   });
 
   @override
@@ -64,7 +71,9 @@ class TextEvent {
       promptTokens.hashCode ^
       completionTokens.hashCode ^
       timeToFirstTokenMs.hashCode ^
-      decodeTokensPerSecond.hashCode;
+      decodeTokensPerSecond.hashCode ^
+      thinkingChars.hashCode ^
+      failure.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -77,8 +86,63 @@ class TextEvent {
           promptTokens == other.promptTokens &&
           completionTokens == other.completionTokens &&
           timeToFirstTokenMs == other.timeToFirstTokenMs &&
-          decodeTokensPerSecond == other.decodeTokensPerSecond;
+          decodeTokensPerSecond == other.decodeTokensPerSecond &&
+          thinkingChars == other.thinkingChars &&
+          failure == other.failure;
 }
+
+/// What a [`TextEvent`] is: a piece of the answer, the `done` that ends it, or the `failed` that ends it instead.
+enum TextEventKind { piece, done, failed }
+
+/// A failed turn: the kind the app words, OxidANT's English detail, and the status of an `EndpointStatus`.
+class TextFailure {
+  final TextFailureKind kind;
+  final String message;
+  final int? httpStatus;
+
+  const TextFailure({
+    required this.kind,
+    required this.message,
+    this.httpStatus,
+  });
+
+  @override
+  int get hashCode => kind.hashCode ^ message.hashCode ^ httpStatus.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is TextFailure &&
+          runtimeType == other.runtimeType &&
+          kind == other.kind &&
+          message == other.message &&
+          httpStatus == other.httpStatus;
+}
+
+/// `TextError::kind` as a plain enum, so the app words every kind and a new one fails its build; plus `NoAnswer`.
+enum TextFailureKind {
+  libraryUnavailable,
+  modelLoadFailed,
+  providerUnavailable,
+  tokenizerFailed,
+  chatTemplateFailed,
+  encodeFailed,
+  invalidOptions,
+  generationFailed,
+  endpointUnreachable,
+  endpointStatus,
+  endpointTimedOut,
+  streamLineTooLong,
+  jsonSchemaUnsupported,
+  embeddingsUnsupported,
+  contextLengthExceeded,
+
+  /// The run worked and the model said nothing (`GenerationResult::no_answer`).
+  noAnswer,
+}
+
+/// Why the answer ended, as `kataglyphis_text::FinishReason`.
+enum TextFinishReason { stop, length, cancelled }
 
 class TextMessage {
   /// `system`, `user`, `assistant` or `tool`.

@@ -9,6 +9,10 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
 // These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `from`
 
+/// The score a detection needs unless the caller sets one (hub CON235), where a threshold slider starts.
+double defaultScoreThreshold() =>
+    RustLib.instance.api.crateApiWebcamDefaultScoreThreshold();
+
 /// Whether this target runs the webcam pipeline (desktop: GStreamer); compile-time, cheap enough for a widget's build.
 bool webcamInferenceAvailable() =>
     RustLib.instance.api.crateApiWebcamWebcamInferenceAvailable();

@@ -521,6 +521,16 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String aiErrorContextLength(String detail) {
+    return 'The conversation is too long for the model; clear it or allow fewer new tokens. ($detail)';
+  }
+
+  @override
+  String aiErrorNoAnswer(String detail) {
+    return 'The model gave no answer; ask again or put the question differently. ($detail)';
+  }
+
+  @override
   String get visitQuestions => 'Ask about the visits';
 
   @override

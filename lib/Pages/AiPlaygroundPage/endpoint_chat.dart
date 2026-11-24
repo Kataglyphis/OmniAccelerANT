@@ -136,14 +136,18 @@ class _Answer {
     final end = _now();
     final first = _first ?? end;
     return TextEvent(
-      kind: 'done',
-      finishReason: _finish,
+      kind: TextEventKind.done,
+      // A server's other reasons, such as content_filter, end the answer as stop does.
+      finishReason: _finish == 'length'
+          ? TextFinishReason.length
+          : TextFinishReason.stop,
       promptTokens: _usage?.prompt,
       completionTokens: _completion,
       timeToFirstTokenMs: first.difference(_start).inMicroseconds / 1000,
       decodeTokensPerSecond: _reader.streamed
           ? _decodeRate(_completion ?? 0, end.difference(first))
           : 0,
+      thinkingChars: _thinking.thinkingChars,
     );
   }
 }
@@ -185,15 +189,22 @@ class EndpointChat {
       answered = true;
       await for (final line in await _lines(reply)) {
         final text = answer.line(line);
-        if (text.isNotEmpty) yield TextEvent(kind: 'piece', text: text);
+        if (text.isNotEmpty) {
+          yield TextEvent(kind: TextEventKind.piece, text: text);
+        }
         if (answer.ended) break;
       }
       final rest = answer.end();
-      if (rest.isNotEmpty) yield TextEvent(kind: 'piece', text: rest);
+      if (rest.isNotEmpty) {
+        yield TextEvent(kind: TextEventKind.piece, text: rest);
+      }
       yield answer.done();
     } on Object catch (failure) {
       if (!run.cancelled) throw _failure(failure, settings, answered: answered);
-      yield const TextEvent(kind: 'done', finishReason: 'cancelled');
+      yield const TextEvent(
+        kind: TextEventKind.done,
+        finishReason: TextFinishReason.cancelled,
+      );
     } finally {
       run.end();
     }

@@ -9,7 +9,7 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
 import 'webcam.dart';
 
-// These functions are ignored because they are not marked as `pub`: `detect_rgba_impl`, `get_or_load`, `new`, `profile_person_detection_impl`
+// These functions are ignored because they are not marked as `pub`: `detect_rgba_impl`, `detector_latency_samples`, `get_or_load`, `latency_json`, `new`, `profile_person_detection_impl`
 // These types are ignored because they are neither used by any `pub` functions nor (for structs and enums) marked `#[frb(unignore)]`: `ModelCache`
 
 /// The detector's class names, at their class ids.
@@ -27,6 +27,19 @@ List<DetectionBox> detectRgba({
   width: width,
   height: height,
   classes: classes,
+);
+
+/// Times `runs` every-class [`detect_rgba`] calls on one frame as the `{"p50_ms":..,"p95_ms":..}` line of `--perf-host`.
+String detectorLatencyJson({
+  required List<int> rgba,
+  required int width,
+  required int height,
+  required int runs,
+}) => RustLib.instance.api.crateApiOnnxDetectorLatencyJson(
+  rgba: rgba,
+  width: width,
+  height: height,
+  runs: runs,
 );
 
 /// Run the packaged detector twice in one profiled session on a real image.

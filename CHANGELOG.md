@@ -5,6 +5,21 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ## Unreleased
 
+### 2026-11-24 — the bundled regeneration (oxidation roadmap, owner D12 to D14)
+
+- `third_party/OxidANT` moves to OxidANT's roadmap step (3) and the bindings are regenerated with
+  `generate-frb-bindings.sh`. `TextEvent.kind` and `finishReason` are enums, `done` carries `thinkingChars`, and a
+  failed turn ends the stream with a `failed` event whose `TextFailure` holds a `TextFailureKind`, the English
+  message and an endpoint's HTTP status. The playground keeps it as `failure` and words it by an exhaustive switch,
+  so a kind OxidANT adds fails the build until it has a sentence: the regex table in `text_failure.dart` and the test
+  that scraped OxidANT's `TextError::kind` went. New sentences in English and German: `aiErrorNoAnswer` for a reply
+  without words (`no_answer`, owner D13) and `aiErrorContextLength` (`context_length_exceeded`). A failure without a
+  kind (a panic, the web client's) still shows its text as `error`.
+- The webcam slider starts at `defaultScoreThreshold()`, hub CON235's 0.25, instead of 0.5.
+- `--detect-latency` asks OxidANT's `detectorLatencyJson` for the p50 and p95 line; the Dart timing loop and
+  `latencyLine` went. The Rust timer leaves out the bridge's copy of the frame on every run, so the figures can read
+  lower than a `perf/baseline-<cpu>.json` measured before.
+
 ### 2026-11-23 — the AccelerANTgine submodule leaves (add-demo retirement, step d)
 
 - `third_party/AccelerANTgine` is gone with its `.gitmodules` entry: nothing builds or links it since step (c). The

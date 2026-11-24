@@ -8,6 +8,7 @@ import 'package:omni_accelerant/Pages/AiPlaygroundPage/playground_settings.dart'
 import 'package:omni_accelerant/Pages/AiPlaygroundPage/playground_settings_store.dart';
 import 'package:omni_accelerant/Pages/AiPlaygroundPage/text_failure.dart';
 import 'package:omni_accelerant/l10n/app_localizations.dart';
+import 'package:omni_accelerant/src/rust/api/text.dart';
 
 /// Chat with a language model: the chain GenAI in this process on Linux and Windows, or any OpenAI-compatible endpoint.
 class AiPlaygroundPage extends StatefulWidget {
@@ -87,13 +88,13 @@ class AiPlaygroundView extends StatelessWidget {
               ),
             ],
           ),
-          if (controller.error != null)
+          if (controller.failure != null || controller.error != null)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 8),
-              child: Text(
-                describeTextFailure(controller.error!, l10n),
-                style: TextStyle(color: Theme.of(context).colorScheme.error),
-              ),
+              child: Text(switch (controller.failure) {
+                final TextFailure failure => describeTextFailure(failure, l10n),
+                null => l10n.aiError(controller.error!),
+              }, style: TextStyle(color: Theme.of(context).colorScheme.error)),
             ),
           SizedBox(
             height: 520,

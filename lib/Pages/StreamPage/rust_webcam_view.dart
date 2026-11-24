@@ -74,7 +74,8 @@ class _RustWebcamViewState extends State<RustWebcamView> {
   bool _listing = false;
 
   final TextEditingController _modelPathController = TextEditingController();
-  double _scoreThreshold = 0.5;
+  // OxidANT's default, hub CON235's 0.25, so the slider starts where the camera service does.
+  late double _scoreThreshold = defaultScoreThreshold();
 
   @override
   void initState() {

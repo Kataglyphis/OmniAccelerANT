@@ -53,6 +53,17 @@ class _Detector extends Fake implements RustLibApi {
   List<double> catScores = const <double>[];
 
   @override
+  String crateApiOnnxDetectorLatencyJson({
+    required List<int> rgba,
+    required int width,
+    required int height,
+    required int runs,
+  }) {
+    expect((rgba.length, width, height, runs), (2 * 3 * 4, 2, 3, 2));
+    return '{"p50_ms":1.5,"p95_ms":2.0}';
+  }
+
+  @override
   List<DetectionBox> crateApiOnnxDetectRgba({
     required List<int> rgba,
     required int width,
@@ -76,31 +87,19 @@ class _Detector extends Fake implements RustLibApi {
 }
 
 void main() {
-  testWidgets('runDetectLatency decodes the image and times the bridge', (
-    WidgetTester tester,
-  ) async {
-    final Uint8List png = base64Decode(
-      'iVBORw0KGgoAAAANSUhEUgAAAAIAAAADCAYAAAC56t6BAAAAEUlEQVR4nGMQUDD4D8IMGAwAZpMIO34WcbIAAAAASUVORK5CYII=',
-    );
-    final String? line = await tester.runAsync(() => runDetectLatency(png, 2));
-    final Map<String, dynamic> figures =
-        jsonDecode(line!) as Map<String, dynamic>;
-    expect(figures.keys, <String>['p50_ms', 'p95_ms']);
-    expect(figures['p50_ms'] as double, greaterThanOrEqualTo(0));
-  });
-
-  test('latencyLine ranks the samples for --perf-host', () {
-    final List<double> samples = <double>[
-      for (int i = 20; i >= 1; i--) i.toDouble(),
-    ];
-    expect(latencyLine(samples), '{"p50_ms":11.0,"p95_ms":20.0}');
-  });
-
   final _Detector detector = _Detector();
   setUpAll(() => RustLib.initMock(api: detector));
   setUp(() {
     detector.fail = false;
     detector.profileCalls = 0;
+  });
+
+  // OxidANT times and ranks the runs; the app decodes the image and hands the frame over.
+  testWidgets('runDetectLatency decodes the image and asks the bridge', (
+    WidgetTester tester,
+  ) async {
+    final String? line = await tester.runAsync(() => runDetectLatency(_png, 2));
+    expect(line, '{"p50_ms":1.5,"p95_ms":2.0}');
   });
 
   test('the detect check counts only cats at score 0.4 or more', () {

@@ -139,6 +139,8 @@
   "aiErrorJsonSchema": "Diese Modellversion kann kein JSON-Schema einhalten; bitte das Schema leer lassen. ({detail})",
   "aiErrorEmbeddings": "Dieses Modell kann keine Embeddings erzeugen. ({detail})",
   "aiErrorInvalid": "Die Anfrage wurde abgelehnt; bitte die Einstellungen prüfen. ({detail})",
+  "aiErrorContextLength": "Das Gespräch ist zu lang für das Modell; bitte leeren oder weniger neue Tokens erlauben. ({detail})",
+  "aiErrorNoAnswer": "Das Modell hat keine Antwort gegeben; bitte erneut oder anders fragen. ({detail})",
   "visitQuestions": "Fragen zu den Besuchen",
   "visitQuestionsSummarise": "Heute zusammenfassen",
   "visitQuestionsHint": "Die Antworten stammen aus den Besuchszahlen. Ein Sprachmodell kann sich irren, und es sieht das Bild nicht.",

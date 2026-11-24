@@ -306,13 +306,9 @@ flutter_rust_bridge, drops its AccelerANTgine submodule, and takes new Rust API 
   (`integration_test/text_generate_test.dart` covers no failure today). **In source since 2026-11-21:** the pin is
   56865c4 (ort rc.15, jiff for chrono and its helpers in the inventory; the bindings regenerate unchanged; 393 Dart
   tests pass). The native failure test is in source too: `text_generate_test.dart` expects a missing model
-  directory to end the stream with `model_load_failed: the model directory could not be loaded`. Left: the four
-  lanes' run and that test's first green Linux run.
-- [ ] **The bundled regeneration** (M, ★★; owner D12 to D14). After OxidANT's side: `TextEvent` carries a typed
-  failure (a plain kind enum, the message, the HTTP status), a typed kind and finish reason, and the thinking count
-  in `done`; `default_score_threshold()` starts the webcam slider at CON235's 0.25; `detector_latency_json()` replaces
-  the Dart loop behind `--detect-latency`; the `no_answer` kind gets its English and German sentence. Then the regex
-  table in `text_failure.dart` and the test that scrapes OxidANT's source go.
+  directory to end the stream with a `failed` event of the kind `modelLoadFailed` (since the bundled regeneration of
+  2026-11-24, which moved the pin on to OxidANT's roadmap step 3). Left: the four lanes' run and that test's first
+  green Linux run.
 
 ## Open — native C++ gates from the BeschleunigerBallett comparison
 

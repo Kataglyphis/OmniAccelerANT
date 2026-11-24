@@ -47,9 +47,15 @@ class _StreamingClient implements TextClient {
     for (var start = 0; start < _answer.length; start += 4) {
       await Future<void>.delayed(interval);
       final end = start + 4 < _answer.length ? start + 4 : _answer.length;
-      yield TextEvent(kind: 'piece', text: _answer.substring(start, end));
+      yield TextEvent(
+        kind: TextEventKind.piece,
+        text: _answer.substring(start, end),
+      );
     }
-    yield const TextEvent(kind: 'done', finishReason: 'stop');
+    yield const TextEvent(
+      kind: TextEventKind.done,
+      finishReason: TextFinishReason.stop,
+    );
   }
 
   @override

@@ -370,6 +370,16 @@
     "description": "Shown when the messages or options are invalid (kind invalid_options).",
     "placeholders": { "detail": { "type": "String" } }
   },
+  "aiErrorContextLength": "The conversation is too long for the model; clear it or allow fewer new tokens. ({detail})",
+  "@aiErrorContextLength": {
+    "description": "Shown when the prompt and the token budget pass the model's context (kind context_length_exceeded).",
+    "placeholders": { "detail": { "type": "String" } }
+  },
+  "aiErrorNoAnswer": "The model gave no answer; ask again or put the question differently. ({detail})",
+  "@aiErrorNoAnswer": {
+    "description": "Shown when the model ran and said nothing (kind no_answer); the detail names the way out.",
+    "placeholders": { "detail": { "type": "String" } }
+  },
   "visitQuestions": "Ask about the visits",
   "@visitQuestions": {"description": "The button that opens questions about the camera's visit log"},
   "visitQuestionsSummarise": "Summarise today",

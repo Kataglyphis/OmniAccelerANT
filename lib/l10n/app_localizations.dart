@@ -938,6 +938,18 @@ abstract class AppLocalizations {
   /// **'The request was refused; check the settings. ({detail})'**
   String aiErrorInvalid(String detail);
 
+  /// Shown when the prompt and the token budget pass the model's context (kind context_length_exceeded).
+  ///
+  /// In en, this message translates to:
+  /// **'The conversation is too long for the model; clear it or allow fewer new tokens. ({detail})'**
+  String aiErrorContextLength(String detail);
+
+  /// Shown when the model ran and said nothing (kind no_answer); the detail names the way out.
+  ///
+  /// In en, this message translates to:
+  /// **'The model gave no answer; ask again or put the question differently. ({detail})'**
+  String aiErrorNoAnswer(String detail);
+
   /// The button that opens questions about the camera's visit log
   ///
   /// In en, this message translates to:

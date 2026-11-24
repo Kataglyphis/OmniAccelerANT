@@ -55,6 +55,9 @@ class _FakeRustApi extends Fake implements RustLibApi {
   @override
   void crateApiWebcamStopWebcamInference() => stops++;
 
+  @override
+  double crateApiWebcamDefaultScoreThreshold() => 0.25;
+
   /// Enough names to pick class 15; the real list comes from the core.
   @override
   List<String> crateApiOnnxDetectorLabels() => <String>[
@@ -150,7 +153,7 @@ void main() {
     expect(config.deviceIndex, isNull);
     expect((config.width, config.height, config.framerate), (640, 480, 30));
     expect(config.modelPath, 'models/cat.onnx');
-    expect(config.scoreThreshold, 0.5);
+    expect(config.scoreThreshold, 0.25);
     expect(config.textureId, 9);
 
     rust.session!.add(_event(boxes: 2, fps: 29.5, ms: 12.3));

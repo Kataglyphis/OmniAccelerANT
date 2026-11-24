@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
@@ -39,30 +38,15 @@ Future<int> runDetectCheck(Uint8List encoded) async {
   return countConfidentCats(rgba, width, height);
 }
 
-/// The detector's warm p50 and p95 as the JSON line `quality-report.sh --perf-host` reads.
-String latencyLine(List<double> milliseconds) {
-  final List<double> ranked = List<double>.of(milliseconds)..sort();
-  double rank(double fraction) =>
-      ranked[(fraction * ranked.length).floor().clamp(0, ranked.length - 1)];
-  return jsonEncode(<String, double>{
-    'p50_ms': rank(0.5),
-    'p95_ms': rank(0.95),
-  });
-}
-
-/// Times [runs] cat detections through the bridge, after a warm-up, on an encoded image.
+/// The detector's warm p50 and p95 on an encoded image, as the JSON line `quality-report.sh --perf-host` reads.
 Future<String> runDetectLatency(Uint8List encoded, int runs) async {
-  const int warmRuns = 5;
   final (Uint8List rgba, int width, int height) = await _decodedRgba(encoded);
-  final List<double> samples = <double>[];
-  for (int run = 0; run < warmRuns + runs; run++) {
-    final Stopwatch watch = Stopwatch()..start();
-    countConfidentCats(rgba, width, height);
-    if (run >= warmRuns) {
-      samples.add(watch.elapsedMicroseconds / 1000);
-    }
-  }
-  return latencyLine(samples);
+  return detectorLatencyJson(
+    rgba: rgba,
+    width: width,
+    height: height,
+    runs: runs,
+  );
 }
 
 /// Runs the configured detector on a blank frame; it does not prove GPU placement.

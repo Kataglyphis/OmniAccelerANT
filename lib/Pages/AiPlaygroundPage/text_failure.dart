@@ -1,28 +1,25 @@
 import 'package:omni_accelerant/l10n/app_localizations.dart';
+import 'package:omni_accelerant/src/rust/api/text.dart';
 
-final RegExp _kinded = RegExp(r'^([a-z_]+): (.*)$', dotAll: true);
-
-/// The bridge's `kind: text` failure (OxidANT's `TextError::kind`) as a sentence; an unknown kind keeps the raw text.
-String describeTextFailure(String error, AppLocalizations l10n) {
-  final match = _kinded.firstMatch(error);
-  if (match == null) {
-    return l10n.aiError(error);
-  }
-  final detail = match.group(2)!;
-  return switch (match.group(1)) {
-    'model_load_failed' => l10n.aiErrorModelLoad(detail),
-    'library_unavailable' => l10n.aiErrorLibrary(detail),
-    'provider_unavailable' => l10n.aiErrorProvider(detail),
-    'endpoint_unreachable' || 'endpoint_status' => l10n.aiErrorEndpoint(detail),
-    'endpoint_timed_out' => l10n.aiErrorTimedOut(detail),
-    'invalid_options' => l10n.aiErrorInvalid(detail),
-    'tokenizer_failed' => l10n.aiErrorTokenizer(detail),
-    'chat_template_failed' => l10n.aiErrorChatTemplate(detail),
-    'encode_failed' => l10n.aiErrorEncode(detail),
-    'generation_failed' => l10n.aiErrorGeneration(detail),
-    'stream_line_too_long' => l10n.aiErrorStreamLine(detail),
-    'json_schema_unsupported' => l10n.aiErrorJsonSchema(detail),
-    'embeddings_unsupported' => l10n.aiErrorEmbeddings(detail),
-    _ => l10n.aiError(error),
+/// A failed turn as a sentence, OxidANT's English detail kept behind it; a new kind fails this switch until it has one.
+String describeTextFailure(TextFailure failure, AppLocalizations l10n) {
+  final detail = failure.message;
+  return switch (failure.kind) {
+    TextFailureKind.modelLoadFailed => l10n.aiErrorModelLoad(detail),
+    TextFailureKind.libraryUnavailable => l10n.aiErrorLibrary(detail),
+    TextFailureKind.providerUnavailable => l10n.aiErrorProvider(detail),
+    TextFailureKind.endpointUnreachable ||
+    TextFailureKind.endpointStatus => l10n.aiErrorEndpoint(detail),
+    TextFailureKind.endpointTimedOut => l10n.aiErrorTimedOut(detail),
+    TextFailureKind.invalidOptions => l10n.aiErrorInvalid(detail),
+    TextFailureKind.tokenizerFailed => l10n.aiErrorTokenizer(detail),
+    TextFailureKind.chatTemplateFailed => l10n.aiErrorChatTemplate(detail),
+    TextFailureKind.encodeFailed => l10n.aiErrorEncode(detail),
+    TextFailureKind.generationFailed => l10n.aiErrorGeneration(detail),
+    TextFailureKind.streamLineTooLong => l10n.aiErrorStreamLine(detail),
+    TextFailureKind.jsonSchemaUnsupported => l10n.aiErrorJsonSchema(detail),
+    TextFailureKind.embeddingsUnsupported => l10n.aiErrorEmbeddings(detail),
+    TextFailureKind.contextLengthExceeded => l10n.aiErrorContextLength(detail),
+    TextFailureKind.noAnswer => l10n.aiErrorNoAnswer(detail),
   };
 }

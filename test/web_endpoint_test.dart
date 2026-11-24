@@ -47,7 +47,10 @@ const PlaygroundSettings _settings = PlaygroundSettings();
 const List<TextMessage> _hi = <TextMessage>[
   TextMessage(role: 'user', content: 'How often?'),
 ];
-const TextEvent _cancelled = TextEvent(kind: 'done', finishReason: 'cancelled');
+const TextEvent _cancelled = TextEvent(
+  kind: TextEventKind.done,
+  finishReason: TextFinishReason.cancelled,
+);
 const Duration _soon = Duration(seconds: 5);
 
 Stream<TextEvent> _complete() => web_endpoint.complete(_settings, _hi);
@@ -75,7 +78,10 @@ void main() {
     final events = await web_endpoint
         .complete(_settings.copyWith(apiKey: 'k'), _hi)
         .toList();
-    expect(events.first, const TextEvent(kind: 'piece', text: 'Twice.'));
+    expect(
+      events.first,
+      const TextEvent(kind: TextEventKind.piece, text: 'Twice.'),
+    );
     expect(
       (events.last.finishReason, events.last.completionTokens),
       ('stop', 3),
@@ -193,7 +199,9 @@ void main() {
         ..send(line.sublist(0, cut))
         ..send(line.sublist(cut));
       await _until(() => events.isNotEmpty);
-      expect(events, <TextEvent>[const TextEvent(kind: 'piece', text: 'été')]);
+      expect(events, <TextEvent>[
+        const TextEvent(kind: TextEventKind.piece, text: 'été'),
+      ]);
       web_endpoint.cancel();
       await ended.timeout(_soon);
       expect(events.last, _cancelled);

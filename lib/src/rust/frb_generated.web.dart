@@ -75,10 +75,19 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   int dco_decode_box_autoadd_i_32(dynamic raw);
 
   @protected
+  TextFailure dco_decode_box_autoadd_text_failure(dynamic raw);
+
+  @protected
+  TextFinishReason dco_decode_box_autoadd_text_finish_reason(dynamic raw);
+
+  @protected
   TextOptions dco_decode_box_autoadd_text_options(dynamic raw);
 
   @protected
   TextSource dco_decode_box_autoadd_text_source(dynamic raw);
+
+  @protected
+  int dco_decode_box_autoadd_u_16(dynamic raw);
 
   @protected
   int dco_decode_box_autoadd_u_32(dynamic raw);
@@ -165,6 +174,15 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   int? dco_decode_opt_box_autoadd_i_32(dynamic raw);
 
   @protected
+  TextFailure? dco_decode_opt_box_autoadd_text_failure(dynamic raw);
+
+  @protected
+  TextFinishReason? dco_decode_opt_box_autoadd_text_finish_reason(dynamic raw);
+
+  @protected
+  int? dco_decode_opt_box_autoadd_u_16(dynamic raw);
+
+  @protected
   int? dco_decode_opt_box_autoadd_u_32(dynamic raw);
 
   @protected
@@ -172,6 +190,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   TextEvent dco_decode_text_event(dynamic raw);
+
+  @protected
+  TextEventKind dco_decode_text_event_kind(dynamic raw);
+
+  @protected
+  TextFailure dco_decode_text_failure(dynamic raw);
+
+  @protected
+  TextFailureKind dco_decode_text_failure_kind(dynamic raw);
+
+  @protected
+  TextFinishReason dco_decode_text_finish_reason(dynamic raw);
 
   @protected
   TextMessage dco_decode_text_message(dynamic raw);
@@ -249,10 +279,21 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   int sse_decode_box_autoadd_i_32(SseDeserializer deserializer);
 
   @protected
+  TextFailure sse_decode_box_autoadd_text_failure(SseDeserializer deserializer);
+
+  @protected
+  TextFinishReason sse_decode_box_autoadd_text_finish_reason(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   TextOptions sse_decode_box_autoadd_text_options(SseDeserializer deserializer);
 
   @protected
   TextSource sse_decode_box_autoadd_text_source(SseDeserializer deserializer);
+
+  @protected
+  int sse_decode_box_autoadd_u_16(SseDeserializer deserializer);
 
   @protected
   int sse_decode_box_autoadd_u_32(SseDeserializer deserializer);
@@ -345,6 +386,19 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   int? sse_decode_opt_box_autoadd_i_32(SseDeserializer deserializer);
 
   @protected
+  TextFailure? sse_decode_opt_box_autoadd_text_failure(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  TextFinishReason? sse_decode_opt_box_autoadd_text_finish_reason(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  int? sse_decode_opt_box_autoadd_u_16(SseDeserializer deserializer);
+
+  @protected
   int? sse_decode_opt_box_autoadd_u_32(SseDeserializer deserializer);
 
   @protected
@@ -352,6 +406,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   TextEvent sse_decode_text_event(SseDeserializer deserializer);
+
+  @protected
+  TextEventKind sse_decode_text_event_kind(SseDeserializer deserializer);
+
+  @protected
+  TextFailure sse_decode_text_failure(SseDeserializer deserializer);
+
+  @protected
+  TextFailureKind sse_decode_text_failure_kind(SseDeserializer deserializer);
+
+  @protected
+  TextFinishReason sse_decode_text_finish_reason(SseDeserializer deserializer);
 
   @protected
   TextMessage sse_decode_text_message(SseDeserializer deserializer);
@@ -439,6 +505,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_box_autoadd_i_32(int self, SseSerializer serializer);
 
   @protected
+  void sse_encode_box_autoadd_text_failure(
+    TextFailure self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_text_finish_reason(
+    TextFinishReason self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_box_autoadd_text_options(
     TextOptions self,
     SseSerializer serializer,
@@ -449,6 +527,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
     TextSource self,
     SseSerializer serializer,
   );
+
+  @protected
+  void sse_encode_box_autoadd_u_16(int self, SseSerializer serializer);
 
   @protected
   void sse_encode_box_autoadd_u_32(int self, SseSerializer serializer);
@@ -566,6 +647,21 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_opt_box_autoadd_i_32(int? self, SseSerializer serializer);
 
   @protected
+  void sse_encode_opt_box_autoadd_text_failure(
+    TextFailure? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_text_finish_reason(
+    TextFinishReason? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_u_16(int? self, SseSerializer serializer);
+
+  @protected
   void sse_encode_opt_box_autoadd_u_32(int? self, SseSerializer serializer);
 
   @protected
@@ -573,6 +669,24 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_text_event(TextEvent self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_text_event_kind(TextEventKind self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_text_failure(TextFailure self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_text_failure_kind(
+    TextFailureKind self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_text_finish_reason(
+    TextFinishReason self,
+    SseSerializer serializer,
+  );
 
   @protected
   void sse_encode_text_message(TextMessage self, SseSerializer serializer);

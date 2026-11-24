@@ -278,5 +278,5 @@ As found on 2026-10-15, so a green run is read for what it is:
 
 `bash scripts/linux/quality-report.sh --perf-host` runs `omni_accelerant --detect-latency IMAGE RUNS`
 from the release bundle in the CI image, against `perf/baseline-<cpu>.json`: hub
-`docs/fleet-health.md` § perf-host. The flag prints warm p50 and p95 through the bridge as one JSON
-line. It is not run in CI, whose hosted wall time varies too much to grade.
+`docs/fleet-health.md` § perf-host. The flag prints the warm p50 and p95 that OxidANT's
+`detector_latency_json` times as one JSON line. It is not run in CI, whose hosted wall time varies too much to grade.

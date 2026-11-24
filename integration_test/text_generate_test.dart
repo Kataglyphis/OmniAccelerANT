@@ -2,8 +2,6 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
-import 'package:flutter_rust_bridge/flutter_rust_bridge.dart'
-    show AnyhowException;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:omni_accelerant/Pages/AiPlaygroundPage/ai_playground_controller.dart';
@@ -31,7 +29,10 @@ Future<(String, TextEvent)> _answer(
       stop: const <String>[],
     ),
   ).toList();
-  final text = events.where((e) => e.kind == 'piece').map((e) => e.text).join();
+  final text = events
+      .where((e) => e.kind == TextEventKind.piece)
+      .map((e) => e.text)
+      .join();
   return (text, events.last);
 }
 
@@ -63,26 +64,21 @@ void main() {
     expect(text, 'defg');
     expect(
       (done.kind, done.finishReason, done.completionTokens),
-      ('done', 'length', 4),
+      (TextEventKind.done, TextFinishReason.length, 4),
     );
   });
 
-  // A failed turn reaches the stream since OxidANT fee17c2; before, it only closed it and the page said nothing.
-  test('a missing model directory fails the stream with the model-load sentence', () async {
+  // A failed turn ends the stream as a typed `failed` event since OxidANT's roadmap step 3.
+  test('a missing model directory fails the stream with the model-load kind', () async {
     final missing =
         '${Directory.systemTemp.path}${Platform.pathSeparator}omni-no-model-$pid';
     expect(Directory(missing).existsSync(), isFalse);
-    await expectLater(
-      _answer(missing, 'abc', 4),
-      throwsA(
-        isA<AnyhowException>().having(
-          (e) => e.message,
-          'message',
-          startsWith(
-            'model_load_failed: the model directory could not be loaded',
-          ),
-        ),
-      ),
+    final (text, last) = await _answer(missing, 'abc', 4);
+    expect((text, last.kind), ('', TextEventKind.failed));
+    expect(last.failure?.kind, TextFailureKind.modelLoadFailed);
+    expect(
+      last.failure?.message,
+      startsWith('the model directory could not be loaded'),
     );
   });
 
