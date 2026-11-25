@@ -7,7 +7,8 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ### 2026-11-25 — the hub pin carries the font-lock fallback for the published Flutter
 
-- `third_party/ANTfrastructure` moves ccc834c4 -> 8a9e92c7. Its 88b76cdd lets the fallback-font lock accept the
+- `third_party/ANTfrastructure` moves ccc834c4 -> 8a9e92c7, then -> 9ae7b5bf for 7480ebf0, whose web smoke test
+  accepts the transition lock's fonts the build placed. 88b76cdd lets the fallback-font lock accept the
   Flutter 3.47.9 engine the published `:latest` still ships, so the docs and web builds stop failing on fonts
   the lock names for 3.50.1.
 
