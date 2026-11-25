@@ -5,6 +5,12 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ## Unreleased
 
+### 2026-11-25 — the hub pin carries the font-lock fallback for the published Flutter
+
+- `third_party/ANTfrastructure` moves ccc834c4 -> 8a9e92c7. Its 88b76cdd lets the fallback-font lock accept the
+  Flutter 3.47.9 engine the published `:latest` still ships, so the docs and web builds stop failing on fonts
+  the lock names for 3.50.1.
+
 ### 2026-11-25 — the web app starts in the browser's language
 
 - Without `?lang=`, the web app starts in the first language from the browser's list (`navigator.languages`)
