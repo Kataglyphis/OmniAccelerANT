@@ -49,17 +49,17 @@ verify_plugin_module() {
 
 verify_tree() {
   local root="$1" bundle="$2"
-  local -a libs=() modules=(libonnxruntime_providers_shared.so libonnxruntime_providers_cuda.so) exact=(--require-unstripped)
+  local -a libs=() cores=(libonnxruntime.so) modules=(libonnxruntime_providers_shared.so libonnxruntime_providers_cuda.so) exact=(--require-unstripped)
   root="$(realpath -e "$root")"
   bundle="$(realpath -e "$bundle")"
   case "$bundle/" in "$root/"*) ;; *) echo 'Bundle escapes extracted package' >&2; return 1 ;; esac
   ort_assert_no_bundled_host_runtime "$root" "$provider"
   if [[ "$provider" == migraphx ]]; then
-    # The NVIDIA prefix holds its wheel's own bytes; the CPU core an AMD package carries is the wheel's library stripped.
-    modules=("$ORT_AMDGPU_EP_MODULE") exact=()
+    # AMD carries the wheel's core stripped, plus the versioned soname its plugin module imports.
+    modules=("$ORT_AMDGPU_EP_MODULE") exact=() cores+=(libonnxruntime.so.1)
     verify_plugin_module "$bundle"
   fi
-  ort_package_collect_libraries "$root" "$bundle/lib" libs libonnxruntime.so libonnxruntime.so.1 "${modules[@]}"
+  ort_package_collect_libraries "$root" "$bundle/lib" libs "${cores[@]}" "${modules[@]}"
   mkdir -p "$work/proven"
   python3 "$hub/stage-ort-wheel-licenses.py" "${exact[@]}" \
     --wheel-dir "${ORT_CHAIN_WHEEL_DIR:-/opt/onnxruntime-wheels}" --destination "$work/proven" \

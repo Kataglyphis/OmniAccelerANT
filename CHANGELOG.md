@@ -5,6 +5,13 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ## Unreleased
 
+### 2026-11-25 — the NVIDIA candidate check asks for the core the bundle ships
+
+- `verify-gpu-candidate.sh` required `libonnxruntime.so.1` in every GPU bundle, but 7e822d7 stages only the bare
+  `libonnxruntime.so` ort dlopens, so every NVIDIA candidate failed its last check (a run at 647bccb, before the
+  CON231 pins, failed the same way). NVIDIA now requires the bare soname and its two providers; AMD still
+  requires `.so.1`, which AMD's plugin module imports. Two mutations hold both.
+
 ### 2026-11-25 — the hub pin carries the font-lock fallback for the published Flutter
 
 - `third_party/ANTfrastructure` moves ccc834c4 -> 8a9e92c7, then -> 9ae7b5bf for 7480ebf0, whose web smoke test

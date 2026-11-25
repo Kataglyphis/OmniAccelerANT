@@ -530,8 +530,8 @@
  {
   "id": "consumer.omni-nvidia-core-is-the-wheels-bytes",
   "target": "scripts/linux/verify-gpu-candidate.sh",
-  "find": "  local -a libs=() modules=(libonnxruntime_providers_shared.so libonnxruntime_providers_cuda.so) exact=(--require-unstripped)",
-  "replace": "  local -a libs=() modules=(libonnxruntime_providers_shared.so libonnxruntime_providers_cuda.so) exact=()",
+  "find": "  local -a libs=() cores=(libonnxruntime.so) modules=(libonnxruntime_providers_shared.so libonnxruntime_providers_cuda.so) exact=(--require-unstripped)",
+  "replace": "  local -a libs=() cores=(libonnxruntime.so) modules=(libonnxruntime_providers_shared.so libonnxruntime_providers_cuda.so) exact=()",
   "test": "bash scripts/linux/tests/test-verify-gpu-candidate.sh",
   "why": "An NVIDIA package must still carry its wheel's exact bytes."
  },
@@ -782,5 +782,21 @@
   "replace": "    require_text(packaging / \"bundle-loader.sh\", \"--external-library-path\")\n",
   "test": "python3 -I scripts/linux/tests/test-gpu-candidate-preflight.py",
   "why": "An AMD launcher built by a hub without --gcc-unwinder aborts on its first GPU session."
+ },
+ {
+  "id": "consumer.omni-nvidia-core-bare-soname",
+  "target": "scripts/linux/verify-gpu-candidate.sh",
+  "find": "cores=(libonnxruntime.so) modules=",
+  "replace": "cores=(libonnxruntime.so libonnxruntime.so.1) modules=",
+  "test": "bash scripts/linux/tests/test-verify-gpu-candidate.sh",
+  "why": "An NVIDIA bundle stages only the bare soname ort dlopens; requiring .so.1 refused every real candidate."
+ },
+ {
+  "id": "consumer.omni-amd-core-versioned-soname",
+  "target": "scripts/linux/verify-gpu-candidate.sh",
+  "find": " exact=() cores+=(libonnxruntime.so.1)\n",
+  "replace": " exact=()\n",
+  "test": "bash scripts/linux/tests/test-verify-gpu-candidate.sh",
+  "why": "AMD's plugin module imports libonnxruntime.so.1; an AMD bundle without it cannot load the module."
  }
 ]

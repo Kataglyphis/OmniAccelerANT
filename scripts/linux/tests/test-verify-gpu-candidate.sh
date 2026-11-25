@@ -92,6 +92,13 @@ dpkg-deb --build "$work/deb" "$work/out/${variant}_1.0_${host_deb}.deb" >/dev/nu
 rm "$work/appimage/usr/lib/$variant/lib/libonnxruntime.so"
 fixture_refuses_quiet 'missing AppImage ORT dynamic-load alias passed' bash "$verifier" nvidia "$host_arch"
 ln -s libonnxruntime.so.1 "$work/appimage/usr/lib/$variant/lib/libonnxruntime.so"
+# The bundle stages the bare soname only (rust_builder/linux/CMakeLists.txt): no ELF of an NVIDIA bundle imports .so.1.
+rm "$work/tar/$variant-bundle/lib/libonnxruntime.so"
+mv "$work/tar/$variant-bundle/lib/libonnxruntime.so.1" "$work/tar/$variant-bundle/lib/libonnxruntime.so"
+tar -C "$work/tar" -czf "$work/out/$variant-linux-${host_arch}.tar.gz" "$variant-bundle"
+bash "$verifier" nvidia "$host_arch" >/dev/null
+mv "$work/tar/$variant-bundle/lib/libonnxruntime.so" "$work/tar/$variant-bundle/lib/libonnxruntime.so.1"
+ln -s libonnxruntime.so.1 "$work/tar/$variant-bundle/lib/libonnxruntime.so"
 printf x >> "$work/tar/$variant-bundle/lib/libonnxruntime_providers_cuda.so"
 tar -C "$work/tar" -czf "$work/out/$variant-linux-${host_arch}.tar.gz" "$variant-bundle"
 fixture_refuses_quiet 'changed tar provider passed' bash "$verifier" nvidia "$host_arch"
@@ -231,6 +238,8 @@ cp "$image_ep/lib/libmigraphx-ep.so" "$amd_tar/lib/libamdhip64.so.7"
 amd_refuses 'host GPU runtime library was bundled' 'an AMD tar with a bundled ROCm library passed'
 printf x >> "$amd_deb/lib/libonnxruntime.so.1"
 amd_refuses 'expected one wheel' 'a changed AMD core passed'
+rm "$amd_tar/lib/libonnxruntime.so.1"
+amd_refuses 'Missing GPU ORT library: libonnxruntime.so.1' 'an AMD tar without the core its plugin module imports passed'
 # Set but pointing elsewhere, as a host's own root would: the package must still be compared with the image named here.
 mkdir -p "$work/other-ep/lib"
 printf 'other\n' > "$work/other-ep/lib/libmigraphx-ep.so"
