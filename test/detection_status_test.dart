@@ -1,6 +1,8 @@
+import 'package:anthology/material_compatibility.dart';
+
 import 'dart:async';
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:omni_accelerant/Pages/StreamPage/detection_status.dart';
@@ -25,7 +27,11 @@ Widget _fakeArrival(String url, String label) =>
 Future<void> _pumpLine(WidgetTester tester, Future<String?> Function() fetch) {
   return tester.pumpWidget(
     MaterialApp(
-      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      builder: anthologyMaterialBuilder,
+      localizationsDelegates: const [
+        AppLocalizations.delegate,
+        ...anthologyLocalizationsDelegates,
+      ],
       supportedLocales: AppLocalizations.supportedLocales,
       locale: const Locale('en'),
       home: Scaffold(
@@ -320,7 +326,11 @@ void main() {
       addTearDown(tester.view.reset);
       await tester.pumpWidget(
         MaterialApp(
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          builder: anthologyMaterialBuilder,
+          localizationsDelegates: const [
+            AppLocalizations.delegate,
+            ...anthologyLocalizationsDelegates,
+          ],
           supportedLocales: AppLocalizations.supportedLocales,
           locale: const Locale('de'),
           home: Scaffold(
@@ -363,7 +373,11 @@ void main() {
       late StateSetter flip;
       await tester.pumpWidget(
         MaterialApp(
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          builder: anthologyMaterialBuilder,
+          localizationsDelegates: const [
+            AppLocalizations.delegate,
+            ...anthologyLocalizationsDelegates,
+          ],
           supportedLocales: AppLocalizations.supportedLocales,
           locale: const Locale('en'),
           home: Scaffold(
@@ -556,7 +570,11 @@ void main() {
         '"detection":{"in_view":true,"visits":1}}';
     await tester.pumpWidget(
       MaterialApp(
-        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        builder: anthologyMaterialBuilder,
+        localizationsDelegates: const [
+          AppLocalizations.delegate,
+          ...anthologyLocalizationsDelegates,
+        ],
         supportedLocales: AppLocalizations.supportedLocales,
         locale: const Locale('de'),
         home: Scaffold(
@@ -581,7 +599,11 @@ void main() {
       required Future<String?> Function() fetch,
       Future<bool> Function(Map<String, Object> update)? save,
     }) => MaterialApp(
-      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      builder: anthologyMaterialBuilder,
+      localizationsDelegates: const [
+        AppLocalizations.delegate,
+        ...anthologyLocalizationsDelegates,
+      ],
       supportedLocales: AppLocalizations.supportedLocales,
       locale: const Locale('en'),
       home: Scaffold(

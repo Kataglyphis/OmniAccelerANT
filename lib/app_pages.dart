@@ -2,7 +2,7 @@ import 'package:anthology/Pages/Footer/footer.dart';
 import 'package:anthology/Pages/LandingPage/landing_page.dart';
 import 'package:anthology/Pages/navbar_page_config.dart';
 import 'package:anthology/app_attributes.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:omni_accelerant/Pages/AboutMePage/about_me_page.dart';
 import 'package:omni_accelerant/Pages/AiPlaygroundPage/ai_playground_page.dart';
 import 'package:omni_accelerant/Pages/CameraSettingsPage/camera_settings_page.dart';

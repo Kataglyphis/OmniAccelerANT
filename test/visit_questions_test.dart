@@ -1,9 +1,11 @@
 // The Stream page's questions against a fake ObservANT; the HTTP half is `observant_api_web_test.dart`.
+import 'package:anthology/material_compatibility.dart';
+
 import 'dart:async';
 import 'dart:convert';
 
 import 'package:anthology/l10n/anthology_localizations.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:omni_accelerant/Pages/StreamPage/visit_questions.dart';
 import 'package:omni_accelerant/l10n/app_localizations.dart';
@@ -56,8 +58,10 @@ Future<void> _pump(
   String? health = '{"ok":true,"ask":true}',
 }) => tester.pumpWidget(
   MaterialApp(
+    builder: anthologyMaterialBuilder,
     localizationsDelegates: const [
-      ...AppLocalizations.localizationsDelegates,
+      AppLocalizations.delegate,
+      ...anthologyLocalizationsDelegates,
       AnthologyLocalizations.delegate,
     ],
     supportedLocales: AppLocalizations.supportedLocales,
@@ -269,8 +273,10 @@ void main() {
         _answer('Zweimal.', 'f'),
       ]);
       Widget app(Locale locale) => MaterialApp(
+        builder: anthologyMaterialBuilder,
         localizationsDelegates: const [
-          ...AppLocalizations.localizationsDelegates,
+          AppLocalizations.delegate,
+          ...anthologyLocalizationsDelegates,
           AnthologyLocalizations.delegate,
         ],
         supportedLocales: AppLocalizations.supportedLocales,
@@ -323,8 +329,10 @@ void main() {
         var answers = false;
         var probes = 0;
         Widget app({required bool shown}) => MaterialApp(
+          builder: anthologyMaterialBuilder,
           localizationsDelegates: const [
-            ...AppLocalizations.localizationsDelegates,
+            AppLocalizations.delegate,
+            ...anthologyLocalizationsDelegates,
             AnthologyLocalizations.delegate,
           ],
           supportedLocales: AppLocalizations.supportedLocales,

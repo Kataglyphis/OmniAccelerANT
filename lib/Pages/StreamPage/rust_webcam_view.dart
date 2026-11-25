@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:kataglyphis_native_inference/kataglyphis_native_inference.dart';
 // PlatformInt64Util: i64 is `int` natively and `BigInt` on web — AGENTS.md § 4.

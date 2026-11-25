@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:anthology/Pages/AboutMePage/Widgets/about_me_table.dart';
 import 'package:anthology/Widgets/skill_table.dart';
 import 'package:anthology/Sqlite/sqlite3_healthcheck_widget.dart';

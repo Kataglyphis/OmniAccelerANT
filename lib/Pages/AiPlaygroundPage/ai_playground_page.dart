@@ -2,7 +2,7 @@ import 'package:anthology/Layout/ResponsiveDesign/single_page.dart';
 import 'package:anthology/Pages/Footer/footer.dart';
 import 'package:anthology/Widgets/Chat/chat_panel.dart';
 import 'package:anthology/app_attributes.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:omni_accelerant/Pages/AiPlaygroundPage/ai_playground_controller.dart';
 import 'package:omni_accelerant/Pages/AiPlaygroundPage/playground_settings.dart';
 import 'package:omni_accelerant/Pages/AiPlaygroundPage/playground_settings_store.dart';

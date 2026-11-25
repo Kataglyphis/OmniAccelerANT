@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:go_router/go_router.dart';
 import 'package:omni_accelerant/app_pages.dart';
 import 'package:anthology/Pages/DataPage/BlockOverviewPage/block_overview_page.dart';

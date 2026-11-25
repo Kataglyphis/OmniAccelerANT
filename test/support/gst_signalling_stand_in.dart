@@ -1,7 +1,9 @@
+import 'package:anthology/material_compatibility.dart';
+
 import 'dart:js_interop';
 import 'dart:js_interop_unsafe';
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:web/web.dart' as web;
 
@@ -137,8 +139,12 @@ final AppLocalizations l10n = lookupAppLocalizations(const Locale('en'));
 
 /// [view] as the Stream page holds it, in English.
 Widget webrtcViewApp(Widget view) => MaterialApp(
+  builder: anthologyMaterialBuilder,
   locale: const Locale('en'),
-  localizationsDelegates: AppLocalizations.localizationsDelegates,
+  localizationsDelegates: const [
+    AppLocalizations.delegate,
+    ...anthologyLocalizationsDelegates,
+  ],
   supportedLocales: AppLocalizations.supportedLocales,
   home: Scaffold(body: SizedBox(width: 320, height: 240, child: view)),
 );

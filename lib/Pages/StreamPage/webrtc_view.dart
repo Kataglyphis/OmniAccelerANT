@@ -4,7 +4,7 @@ import 'dart:ui_web' as ui_web;
 
 import 'package:web/web.dart' as web;
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import 'package:omni_accelerant/js/gstwebrtc_api_interop.dart';
 import 'package:omni_accelerant/l10n/app_localizations.dart';

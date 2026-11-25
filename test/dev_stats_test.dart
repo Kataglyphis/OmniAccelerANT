@@ -1,5 +1,6 @@
+import 'package:anthology/material_compatibility.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:omni_accelerant/Pages/StreamPage/dev_stats.dart';
 import 'package:omni_accelerant/Pages/StreamPage/stream_controller.dart';
@@ -18,7 +19,11 @@ Future<void> _pumpPanel(
 ) {
   return tester.pumpWidget(
     MaterialApp(
-      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      builder: anthologyMaterialBuilder,
+      localizationsDelegates: const [
+        AppLocalizations.delegate,
+        ...anthologyLocalizationsDelegates,
+      ],
       supportedLocales: AppLocalizations.supportedLocales,
       locale: const Locale('en'),
       home: Scaffold(

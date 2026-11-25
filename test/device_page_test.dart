@@ -7,7 +7,7 @@ import 'package:anthology/app_attributes.dart';
 import 'package:anthology/app_settings.dart';
 import 'package:anthology/constants.dart';
 import 'package:anthology/user_settings.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:omni_accelerant/Pages/DevicePage/device_page.dart';
 import 'package:omni_accelerant/Pages/DevicePage/esp32_controller.dart';

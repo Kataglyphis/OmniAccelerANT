@@ -1,6 +1,7 @@
 // Frame timings of the app's main paths, through Flutter's own tooling: run by flutter drive --profile and test_driver/perf_driver.dart.
+import 'package:anthology/material_compatibility.dart';
 import 'package:anthology/l10n/anthology_localizations.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:omni_accelerant/Pages/AiPlaygroundPage/ai_playground_controller.dart';
@@ -118,8 +119,10 @@ void main() {
       addTearDown(controller.dispose);
       await tester.pumpWidget(
         MaterialApp(
+          builder: anthologyMaterialBuilder,
           localizationsDelegates: <LocalizationsDelegate<dynamic>>[
-            ...AppLocalizations.localizationsDelegates,
+            AppLocalizations.delegate,
+            ...anthologyLocalizationsDelegates,
             AnthologyLocalizations.delegate,
           ],
           supportedLocales: AppLocalizations.supportedLocales,

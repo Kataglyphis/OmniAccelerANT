@@ -1,6 +1,8 @@
+import 'package:anthology/material_compatibility.dart';
+
 import 'dart:convert';
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:omni_accelerant/Pages/CameraSettingsPage/camera_settings.dart';
 import 'package:omni_accelerant/l10n/app_localizations.dart';
@@ -53,7 +55,11 @@ Future<void> _pump(
 }) {
   return tester.pumpWidget(
     MaterialApp(
-      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      builder: anthologyMaterialBuilder,
+      localizationsDelegates: const [
+        AppLocalizations.delegate,
+        ...anthologyLocalizationsDelegates,
+      ],
       supportedLocales: AppLocalizations.supportedLocales,
       locale: locale,
       home: Scaffold(
@@ -357,7 +363,11 @@ void main() {
       late StateSetter flip;
       await tester.pumpWidget(
         MaterialApp(
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          builder: anthologyMaterialBuilder,
+          localizationsDelegates: const [
+            AppLocalizations.delegate,
+            ...anthologyLocalizationsDelegates,
+          ],
           supportedLocales: AppLocalizations.supportedLocales,
           locale: const Locale('en'),
           home: Scaffold(

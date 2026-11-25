@@ -1,6 +1,8 @@
+import 'package:anthology/material_compatibility.dart';
+
 import 'dart:convert';
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:omni_accelerant/Pages/StreamPage/visit_stats.dart';
 import 'package:omni_accelerant/l10n/app_localizations.dart';
@@ -20,7 +22,11 @@ String _visits(List<(DateTime, int?)> visits) => jsonEncode({
 Future<void> _pump(WidgetTester tester, Future<String?> Function() fetch) =>
     tester.pumpWidget(
       MaterialApp(
-        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        builder: anthologyMaterialBuilder,
+        localizationsDelegates: const [
+          AppLocalizations.delegate,
+          ...anthologyLocalizationsDelegates,
+        ],
         supportedLocales: AppLocalizations.supportedLocales,
         locale: const Locale('en'),
         home: Scaffold(

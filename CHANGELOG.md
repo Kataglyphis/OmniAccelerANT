@@ -5,6 +5,15 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ## Unreleased
 
+### 2026-11-25 — Material and Cupertino from the split packages
+
+- Every import of `flutter/material` and `flutter/cupertino` moves to `material_ui` and `cupertino_ui`, which
+  Flutter 3.50 asks for and the Windows lane's analyzer failed on. `third_party/ANThology` moves to 1bde27f, whose
+  `material_compatibility.dart` gives packages still on `flutter/material` the app's theme and localizations. Tests
+  that build their own `MaterialApp` pass `anthologyLocalizationsDelegates` and `anthologyMaterialBuilder`, never
+  gen-l10n's `localizationsDelegates`. gen-l10n's output carries an `ignore_for_file: deprecated_member_use`
+  header (owner-approved) until it emits the new delegates. 433 tests pass under Flutter 3.50.1.
+
 ### 2026-11-25 — the NVIDIA candidate check asks for the core the bundle ships
 
 - `verify-gpu-candidate.sh` required `libonnxruntime.so.1` in every GPU bundle, but 7e822d7 stages only the bare

@@ -422,7 +422,7 @@ Dart package texts are in Flutter's `NOTICES`. Maintenance and limits:
 | console | 4.1.0 | https://pub.dev |
 | csv | 8.0.0 | https://pub.dev |
 | cupertino_icons | 2.0.0 | https://pub.dev |
-| cupertino_ui | 1.1.2 | https://pub.dev |
+| cupertino_ui | 1.1.7 | https://pub.dev |
 | equatable | 2.1.0 | https://pub.dev |
 | fake_async | 1.3.3 | https://pub.dev |
 | ffi | 2.2.0 | https://pub.dev |
@@ -461,7 +461,7 @@ Dart package texts are in Flutter's `NOTICES`. Maintenance and limits:
 | markdown_widget | 2.3.2+8 | https://pub.dev |
 | matcher | 0.12.20 | https://pub.dev |
 | material_color_utilities | 0.13.0 | https://pub.dev |
-| material_ui | 1.6.0 | https://pub.dev |
+| material_ui | 1.11.1 | https://pub.dev |
 | meta | 1.19.0 | https://pub.dev |
 | mime | 2.1.0 | https://pub.dev |
 | native_toolchain_c | 0.19.5 | https://pub.dev |

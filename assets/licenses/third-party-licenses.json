@@ -11305,7 +11305,7 @@
    "note": "Text in Flutter's NOTICES; dev-only transitive packages are included.",
    "source": "https://pub.dev",
    "texts": [],
-   "version": "1.1.2"
+   "version": "1.1.7"
   },
   {
    "ecosystem": "dart",
@@ -11617,7 +11617,7 @@
    "note": "Text in Flutter's NOTICES; dev-only transitive packages are included.",
    "source": "https://pub.dev",
    "texts": [],
-   "version": "1.6.0"
+   "version": "1.11.1"
   },
   {
    "ecosystem": "dart",
@@ -12037,7 +12037,7 @@
   }
  ],
  "inputs": {
-  "pubspec.lock": "c17fda9db4cf410d486368e9a285439b085f876ab784129091d8808d517ec038",
+  "pubspec.lock": "f3f6ddaa2a031c8c5eb6f29445db844ef4c6422723aded603f17d7798ace9eac",
   "scripts/licenses/cargo-policy.json": "27c0d43b53f23f72f3b33f1b1e1078e03a28915d5888966a4c6d4d99d640a4b1",
   "scripts/licenses/native-components.json": "ba1d9ea0ffb77a7d6ace8d8e267aab740bda618a36c20d51612e03db567ee8d8",
   "third_party/OxidANT/Cargo.lock": "31dcacb49bbdf1e1005adee83989c463ed62d30711b2b071efe8804b54a5054e"

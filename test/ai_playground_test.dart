@@ -2,6 +2,8 @@
 @TestOn('vm')
 library;
 
+import 'package:anthology/material_compatibility.dart';
+
 import 'dart:async';
 
 import 'package:anthology/Pages/Footer/default_footer_config.dart';
@@ -13,7 +15,7 @@ import 'package:anthology/app_settings.dart';
 import 'package:anthology/constants.dart';
 import 'package:anthology/user_settings.dart';
 import 'package:anthology/l10n/anthology_localizations.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge.dart'
     show AnyhowException;
 import 'package:flutter_test/flutter_test.dart';
@@ -99,8 +101,10 @@ class _FakeRustApi extends Fake implements RustLibApi {
 }
 
 Widget _localized(Widget child) => MaterialApp(
+  builder: anthologyMaterialBuilder,
   localizationsDelegates: <LocalizationsDelegate<dynamic>>[
-    ...AppLocalizations.localizationsDelegates,
+    AppLocalizations.delegate,
+    ...anthologyLocalizationsDelegates,
     AnthologyLocalizations.delegate,
   ],
   supportedLocales: AppLocalizations.supportedLocales,
@@ -311,8 +315,10 @@ void main() {
     final playground = AiPlaygroundController(client: client);
     await tester.pumpWidget(
       MaterialApp(
+        builder: anthologyMaterialBuilder,
         localizationsDelegates: <LocalizationsDelegate<dynamic>>[
-          ...AppLocalizations.localizationsDelegates,
+          AppLocalizations.delegate,
+          ...anthologyLocalizationsDelegates,
           AnthologyLocalizations.delegate,
         ],
         supportedLocales: AppLocalizations.supportedLocales,

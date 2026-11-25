@@ -1,7 +1,7 @@
 import 'package:anthology/Layout/ResponsiveDesign/single_page.dart';
 import 'package:anthology/Pages/Footer/footer.dart';
 import 'package:anthology/app_attributes.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:omni_accelerant/Pages/DevicePage/esp32_controller.dart';
 import 'package:omni_accelerant/src/rust/api/esp32.dart';
 

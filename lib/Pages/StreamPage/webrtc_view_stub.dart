@@ -1,5 +1,5 @@
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import 'package:omni_accelerant/Pages/StreamPage/stream_controller.dart';
 import 'package:omni_accelerant/Pages/StreamPage/webrtc_view_api.dart';

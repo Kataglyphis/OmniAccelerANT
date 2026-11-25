@@ -24,6 +24,9 @@ dependencies:
   font_awesome_flutter: ^11.0.0
   flutter_localizations:
     sdk: flutter
+  # Flutter 3.50 deprecates flutter/material and flutter/cupertino for these split packages; ANThology uses the same.
+  material_ui: ^1.11.1
+  cupertino_ui: ^1.1.7
   intl: ^0.20.2
   oxidant:
     path: rust_builder

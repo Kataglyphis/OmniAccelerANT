@@ -1,5 +1,5 @@
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:kataglyphis_native_inference/kataglyphis_native_inference.dart';
 import 'package:anthology/Pages/Footer/footer.dart';

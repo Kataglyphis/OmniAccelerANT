@@ -2,11 +2,13 @@
 @TestOn('vm')
 library;
 
+import 'package:anthology/material_compatibility.dart';
+
 import 'dart:convert';
 import 'dart:io';
 
 import 'package:anthology/l10n/anthology_localizations.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:omni_accelerant/Pages/AiPlaygroundPage/ai_playground_controller.dart';
@@ -217,8 +219,10 @@ void main() {
     final playground = AiPlaygroundController(client: _NoClient());
     await tester.pumpWidget(
       MaterialApp(
+        builder: anthologyMaterialBuilder,
         localizationsDelegates: <LocalizationsDelegate<dynamic>>[
-          ...AppLocalizations.localizationsDelegates,
+          AppLocalizations.delegate,
+          ...anthologyLocalizationsDelegates,
           AnthologyLocalizations.delegate,
         ],
         supportedLocales: AppLocalizations.supportedLocales,

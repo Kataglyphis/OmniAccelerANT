@@ -1,4 +1,5 @@
-import 'package:flutter/material.dart';
+import 'package:anthology/material_compatibility.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:omni_accelerant/Pages/StreamPage/camera_peers.dart';
@@ -23,7 +24,11 @@ Future<void> _pump(
 }) {
   return tester.pumpWidget(
     MaterialApp(
-      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      builder: anthologyMaterialBuilder,
+      localizationsDelegates: const [
+        AppLocalizations.delegate,
+        ...anthologyLocalizationsDelegates,
+      ],
       supportedLocales: AppLocalizations.supportedLocales,
       locale: const Locale('en'),
       home: Scaffold(
@@ -117,7 +122,11 @@ void main() {
       var others = 0;
       Future<void> pump(String body) => tester.pumpWidget(
         MaterialApp(
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          builder: anthologyMaterialBuilder,
+          localizationsDelegates: const [
+            AppLocalizations.delegate,
+            ...anthologyLocalizationsDelegates,
+          ],
           supportedLocales: AppLocalizations.supportedLocales,
           home: Scaffold(
             body: CameraPeers(
