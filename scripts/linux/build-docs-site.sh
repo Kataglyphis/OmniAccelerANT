@@ -39,7 +39,8 @@ cp "${WEBRTC_SETTINGS}" "${settings_backup}"
 trap 'cp "${settings_backup}" "${WEBRTC_SETTINGS}"; rm -f "${settings_backup}"' EXIT
 hosted_webrtc_settings "${WEBRTC_SETTINGS}"
 
-omni_web_app_build --base-href /app/
+# The static host has no ObservANT, so the showcase opens on the local-AI page instead of the camera.
+omni_web_app_build --base-href /app/ --dart-define=OMNI_START_ROUTE=/aiPlayground
 
 built_stun="$(python3 -I -c 'import json, sys; print(len(json.load(open(sys.argv[1]))["stunServers"]))' \
 	"build/web/assets/${WEBRTC_SETTINGS}")"

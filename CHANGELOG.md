@@ -5,6 +5,19 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ## Unreleased
 
+### 2026-11-25 — the showcase app: English by URL, its own start page, a live check after each publish
+
+- `?lang=en` (or `de`) on the app's address picks the starting language: `main.dart` passes it to ANThology's new
+  `KataglyphisAppShell.initialLocale`. The `third_party/ANThology` pin moves to carry it.
+- The hosted build opens on the AI playground (`--dart-define=OMNI_START_ROUTE=/aiPlayground`, read by
+  `OmniRoutes.getRouterConfig`). The camera page called `/healthz` and `/webrtc-ws` on the static host, and both
+  answered 404.
+- `docs.yml` passes `live-url`, so the hub's `build-docs.yml` runs `check-live-site.js --isolated` on `/app/` after
+  each publish.
+- `scripts/linux/web-app-screenshot.js` takes `images/web-app.png` with the hub's Chrome launcher. It sets the
+  consent cookie first, so the cookie notice is not in the picture.
+- Suites: `test/url_options_test.dart` (new), `test-build-docs-site.sh`.
+
 ### 2026-11-25 — the OxidANT pin at its roadmap step 4
 
 - `third_party/OxidANT` moves from 5caf446 to 33ba88e: `vision_core` (preprocess and decode without ORT, which

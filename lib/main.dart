@@ -23,6 +23,7 @@ import 'package:omni_accelerant/l10n/app_localizations.dart';
 import 'package:omni_accelerant/settings/webrtc_settings.dart';
 import 'package:omni_accelerant/src/boot/rust_core.dart';
 import 'package:omni_accelerant/src/boot/onnx_self_check.dart';
+import 'package:omni_accelerant/src/boot/url_options.dart';
 import 'package:omni_accelerant/src/boot/self_check_exit_stub.dart'
     if (dart.library.io) 'package:omni_accelerant/src/boot/self_check_exit_io.dart';
 import 'package:omni_accelerant/src/rust/frb_generated.dart';
@@ -136,6 +137,8 @@ class App extends StatelessWidget {
   Widget build(BuildContext context) {
     return KataglyphisAppShell<OmniBootstrapData>(
       loadBootstrapData: loadAppSettings,
+      // Uri.base is the page's address on the web; a native app's has no query, so its first language stays.
+      initialLocale: localeFromUrl(Uri.base),
       appLocalizationsDelegates: const <LocalizationsDelegate<dynamic>>[
         AppLocalizations.delegate,
       ],

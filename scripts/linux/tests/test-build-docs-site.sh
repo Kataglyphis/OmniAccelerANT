@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# build-docs-site.sh: the hosted app's settings carry no STUN server, the app lands at /app/, and docs.yml isolates it.
+# build-docs-site.sh: the hosted app's settings carry no STUN server, the app lands at /app/ on the AI page, and docs.yml isolates and live-checks it.
 set -uo pipefail
 
 repo="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
@@ -20,13 +20,14 @@ t_assert_eq "$(_field "${repo}/assets/settings/webrtc_settings.json" '{k: v for 
   "$(_field "${work}/settings.json" '{k: v for k, v in s.items() if k != "stunServers"}')"
 
 t_case "the app is built for /app/ and copied into the site's app/, the checkout's settings restored on exit"
-t_assert_ok grep -qx 'omni_web_app_build --base-href /app/' "${script}"
+t_assert_ok grep -qx 'omni_web_app_build --base-href /app/ --dart-define=OMNI_START_ROUTE=/aiPlayground' "${script}"
 t_assert_ok grep -qx 'APP_DIR="${SITE_DIR}/app"' "${script}"
 t_assert_ok grep -q '^trap .*cp "${settings_backup}" "${WEBRTC_SETTINGS}"' "${script}"
 t_assert_ok grep -q 'names ${built_stun} STUN server(s)' "${script}"
 
-t_case "docs.yml builds through it and has the hub isolate app/"
+t_case "docs.yml builds through it, has the hub isolate app/ and check it live after the publish"
 t_assert_ok grep -qx '      command: bash scripts/linux/build-docs-site.sh' "${repo}/.github/workflows/docs.yml"
 t_assert_ok grep -qx '      isolated-apps: app' "${repo}/.github/workflows/docs.yml"
+t_assert_ok grep -qx '      live-url: https://kataglyphisinferenceengine.jonasheinle.de' "${repo}/.github/workflows/docs.yml"
 
 t_summary

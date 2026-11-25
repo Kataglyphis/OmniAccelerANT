@@ -161,9 +161,17 @@ picture or a short video.
 
 `scripts/linux/build-docs-site.sh` runs `generate-docs.sh`, then builds the app with `--base-href /app/`
 into `doc/api/app`. `docs.yml` passes `isolated-apps: app`, so the hub's stager copies the template into
-`app/.htaccess` before the link gate. Check a publish with the hub's live check in the CI image:
+`app/.htaccess` before the link gate. It also passes `live-url`, so the hub's `live-check` job runs
+`check-live-site.js <site>/app/ --isolated` after each publish: the isolation headers, a boot without console
+errors, and every published file answered with 200. By hand in the CI image:
 `node third_party/ANTfrastructure/linux/scripts/check-live-site.js <site>/app/ --isolated`, and
 `curl -sI` on `/app/` and on `/app/main.dart.wasm`.
+
+The hosted build passes `--dart-define=OMNI_START_ROUTE=/aiPlayground`. The static host has no ObservANT, and the
+camera page would call `/healthz` and the `/webrtc-ws` signalling socket there, so the app opens on the local-AI page.
+`?lang=en` or `?lang=de` before the `#` picks the starting language, for example `/app/?lang=en#/aiPlayground`.
+`scripts/linux/web-app-screenshot.js <URL> images/web-app.png` takes the README's picture in the CI image. It sets
+the consent cookie first, so the cookie notice stays hidden as it does for a returning visitor.
 
 `/app/.htaccess` comes from the hub's template for isolated apps and sets:
 

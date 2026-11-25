@@ -20,6 +20,8 @@ jobs:
       command: bash scripts/linux/build-docs-site.sh
       site-dir: doc/api
       isolated-apps: app
+      # After each publish the hub checks /app/ live: isolation headers, a clean boot, every published file.
+      live-url: https://kataglyphisinferenceengine.jonasheinle.de
       link-allow: docs/site-links.allow
     secrets:
       FTP_SERVER: ${{ secrets.SERVER }}

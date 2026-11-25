@@ -370,7 +370,7 @@ removal of two images nothing referenced (below); 2026-10-12 counted 4.7 MiB and
 | What | Size | Why it is tracked |
 |------|------|-------------------|
 | `assets/icons/kataglyphis_app_icon.png` | 0.26 MiB | Load-bearing: `flutter_launcher_icons` generates every platform icon set from it (`pubspec.yaml` names it four times, one of them msix's `logo_path`), so it stays at its 1024 px source resolution. It was 1.9 MiB as 16-bit RGBA until 2026-10-17; the 8-bit file is pixel-identical to what every icon tool decodes from that one. |
-| `images/web-app.png` | 0.04 MiB | The README's and the docs start page's picture of the hosted app at `/app/`: a 1280x800 headless-Chrome screenshot of `build-docs-site.sh`'s build. Retake it when the still-image page ships. |
+| `images/web-app.png` | 0.04 MiB | The README's and the docs start page's picture of the hosted app at `/app/`: a 1280x800 headless-Chrome screenshot of the live `/app/?lang=en` by `scripts/linux/web-app-screenshot.js`, without the cookie notice. Retake it when the still-image page ships. |
 
 **The history was rewritten on 2026-10-17** (owner, reversing the earlier "document it and stop
 it growing"), family-wide ([`data-repositories.md` § *What moved, and why*](../../third_party/ANTfrastructure/docs/data-repositories.md#what-moved-and-why)):
