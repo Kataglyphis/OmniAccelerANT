@@ -69,7 +69,7 @@ class CandidatePreflightTests(unittest.TestCase):
         )
         self.write(
             base + "06-packaging/verify-ort-appimage-payload.sh",
-            "--require-unstripped ort_assert_no_bundled_host_runtime",
+            "--require-unstripped ort_assert_no_bundled_host_runtime --nvidia-core",
         )
         self.write(
             base + "01-core/versions.env",
@@ -237,6 +237,11 @@ class CandidatePreflightTests(unittest.TestCase):
             ),
             (packaging + "check-ort-provenance.sh", "no option", "--library-path"),
             (packaging + "bundle-loader.sh", "--external-library-path", "--gcc-unwinder"),
+            (
+                packaging + "verify-ort-appimage-payload.sh",
+                "--require-unstripped ort_assert_no_bundled_host_runtime",
+                "--nvidia-core",
+            ),
         ):
             with self.subTest(relative=relative):
                 path = self.root / relative

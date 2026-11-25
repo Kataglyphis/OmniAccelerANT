@@ -798,5 +798,21 @@
   "replace": " exact=()\n",
   "test": "bash scripts/linux/tests/test-verify-gpu-candidate.sh",
   "why": "AMD's plugin module imports libonnxruntime.so.1; an AMD bundle without it cannot load the module."
+ },
+ {
+  "id": "consumer.omni-nvidia-appimage-bare-core",
+  "target": "scripts/linux/verify-gpu-candidate.sh",
+  "find": "  bash \"$hub/verify-ort-appimage-payload.sh\" --nvidia-core libonnxruntime.so \"$image\" \"$arch\" \\\n",
+  "replace": "  bash \"$hub/verify-ort-appimage-payload.sh\" \"$image\" \"$arch\" \\\n",
+  "test": "bash scripts/linux/tests/test-verify-gpu-candidate.sh",
+  "why": "The NVIDIA AppImage ships only the bare soname; without the option the hub check refuses every real candidate."
+ },
+ {
+  "id": "consumer.omni-preflight-nvidia-core",
+  "target": "scripts/linux/preflight-gpu-candidate.py",
+  "find": "        \"ort_assert_no_bundled_host_runtime\",\n        \"--nvidia-core\",\n",
+  "replace": "        \"ort_assert_no_bundled_host_runtime\",\n",
+  "test": "python3 -I scripts/linux/tests/test-gpu-candidate-preflight.py",
+  "why": "No image is pulled for a hub whose AppImage check cannot take the bare core."
  }
 ]

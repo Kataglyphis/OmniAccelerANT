@@ -80,7 +80,8 @@ if [[ "$vendor" == amd ]]; then
   (cd "$work/appimage-tree" && "$image" --appimage-extract > /dev/null)
   verify_tree "$work/appimage-tree/squashfs-root" "$work/appimage-tree/squashfs-root/usr/lib/$variant"
 else
-  bash "$hub/verify-ort-appimage-payload.sh" "$image" "$arch" \
+  # The bundle stages only the bare soname ort dlopens (rust_builder/linux/CMakeLists.txt).
+  bash "$hub/verify-ort-appimage-payload.sh" --nvidia-core libonnxruntime.so "$image" "$arch" \
     "usr/lib/$variant/lib" "usr/lib/$variant/licenses/onnxruntime" "$vendor"
 fi
 mkdir "$work/appimage"

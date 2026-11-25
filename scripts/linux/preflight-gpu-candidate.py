@@ -185,6 +185,7 @@ def validate(root: Path) -> str:
         packaging / "verify-ort-appimage-payload.sh",
         "--require-unstripped",
         "ort_assert_no_bundled_host_runtime",
+        "--nvidia-core",
     )
     versions = hub / "01-core/versions.env"
     try:

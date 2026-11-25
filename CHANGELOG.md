@@ -5,6 +5,13 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ## Unreleased
 
+### 2026-11-25 — the NVIDIA AppImage passes with the core the bundle ships
+
+- `verify-gpu-candidate.sh` calls the hub's AppImage check with `--nvidia-core libonnxruntime.so`: the bundle stages
+  only that bare soname, and the check still asked for `libonnxruntime.so.1` after the TAR and DEB passed. The hub pin
+  moves to 8063fed3, which has the option and builds NVIDIA arm64 by SBSA cross by default; the GPU preflight
+  requires the option. Two mutations hold both.
+
 ### 2026-11-25 — Material and Cupertino from the split packages
 
 - Every import of `flutter/material` and `flutter/cupertino` moves to `material_ui` and `cupertino_ui`, which

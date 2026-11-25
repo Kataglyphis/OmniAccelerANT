@@ -138,6 +138,14 @@ fixture_refuses_quiet 'changed AppImage model license passed' bash "$verifier" n
 cp "$work/bundle/data/resources/models/fixture_detector.LICENSE" "$work/appimage/usr/lib/$variant/data/resources/models/"
 printf x >> "$work/appimage/usr/lib/$variant/lib/libonnxruntime_providers_cuda.so"
 fixture_refuses_quiet 'changed AppImage provider passed' bash "$verifier" nvidia "$host_arch"
+# As the bundle ships it: the bare soname alone, which the hub's AppImage check accepts only with --nvidia-core.
+cp "$work/bundle/lib/libonnxruntime_providers_cuda.so" "$work/appimage/usr/lib/$variant/lib/"
+rm "$work/appimage/usr/lib/$variant/lib/libonnxruntime.so"
+mv "$work/appimage/usr/lib/$variant/lib/libonnxruntime.so.1" "$work/appimage/usr/lib/$variant/lib/libonnxruntime.so"
+bash "$verifier" nvidia "$host_arch" >/dev/null
+mv "$work/appimage/usr/lib/$variant/lib/libonnxruntime.so" "$work/appimage/usr/lib/$variant/lib/libonnxruntime.so.1"
+ln -s libonnxruntime.so.1 "$work/appimage/usr/lib/$variant/lib/libonnxruntime.so"
+printf x >> "$work/appimage/usr/lib/$variant/lib/libonnxruntime_providers_cuda.so"
 fixture_refuses_quiet 'unsupported AMD arm64 passed' bash "$verifier" amd arm64
 # The image strips its CPU core: that twin of the wheel's library is right for AMD and wrong for NVIDIA, whose prefix holds the wheel's bytes.
 cp "$work/bundle/lib/libonnxruntime_providers_cuda.so" "$work/appimage/usr/lib/$variant/lib/"
