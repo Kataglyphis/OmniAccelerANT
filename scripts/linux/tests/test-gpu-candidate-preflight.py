@@ -41,8 +41,8 @@ class CandidatePreflightTests(unittest.TestCase):
             '[package.metadata.kataglyphis]\nort-devices = ["cuda", "migraphx"]\n',
         )
         self.write(
-            "third_party/OxidANT/crates/inference/src/ort_plugin.rs",
-            'root_var: "ORT_AMDGPU_EP_ROOT",',
+            "third_party/OxidANT/crates/inference/src/ort_plugin_eps.rs",
+            'root_variable: "ORT_AMDGPU_EP_ROOT",',
         )
         self.write(
             "third_party/OxidANT/scripts/linux/lib/ort-runtime-bundle.sh",
@@ -63,7 +63,7 @@ class CandidatePreflightTests(unittest.TestCase):
         self.write(
             base + "06-packaging/elf-closure.sh", "--direct-only --reject-source-root"
         )
-        self.write(base + "06-packaging/bundle-loader.sh", "--external-library-path")
+        self.write(base + "06-packaging/bundle-loader.sh", "--external-library-path\n--gcc-unwinder")
         self.write(
             base + "06-packaging/stage-ort-wheel-licenses.py", "--require-unstripped"
         )
@@ -225,7 +225,7 @@ class CandidatePreflightTests(unittest.TestCase):
 
     def test_pins_without_the_plugin_module_support_fail_closed(self):
         packaging = "third_party/ANTfrastructure/linux/scripts/06-packaging/"
-        plugin = "third_party/OxidANT/crates/inference/src/ort_plugin.rs"
+        plugin = "third_party/OxidANT/crates/inference/src/ort_plugin_eps.rs"
         texts = "third_party/OxidANT/scripts/linux/lib/ort-runtime-bundle.sh"
         for relative, contents, message in (
             (plugin, "no plugin row", "ORT_AMDGPU_EP_ROOT"),
@@ -236,6 +236,7 @@ class CandidatePreflightTests(unittest.TestCase):
                 "ORT_AMDGPU_EP_MODULE=",
             ),
             (packaging + "check-ort-provenance.sh", "no option", "--library-path"),
+            (packaging + "bundle-loader.sh", "--external-library-path", "--gcc-unwinder"),
         ):
             with self.subTest(relative=relative):
                 path = self.root / relative

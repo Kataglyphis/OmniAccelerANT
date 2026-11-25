@@ -155,7 +155,7 @@ def validate(root: Path) -> str:
         )
 
     oxidant = root / "third_party/OxidANT"
-    require_text(oxidant / "crates/inference/src/ort_plugin.rs", '"ORT_AMDGPU_EP_ROOT"')
+    require_text(oxidant / "crates/inference/src/ort_plugin_eps.rs", 'root_variable: "ORT_AMDGPU_EP_ROOT"')
     require_text(
         oxidant / "scripts/linux/lib/ort-runtime-bundle.sh",
         "stage_amdgpu_ep_notices()",
@@ -179,7 +179,7 @@ def validate(root: Path) -> str:
         "ort_package_verify_notices()",
     )
     require_text(packaging / "elf-closure.sh", "--direct-only", "--reject-source-root")
-    require_text(packaging / "bundle-loader.sh", "--external-library-path")
+    require_text(packaging / "bundle-loader.sh", "--external-library-path", "--gcc-unwinder")
     require_text(packaging / "stage-ort-wheel-licenses.py", "--require-unstripped")
     require_text(
         packaging / "verify-ort-appimage-payload.sh",

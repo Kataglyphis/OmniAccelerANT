@@ -13,6 +13,8 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
   ccc834c4): without it every AMD GPU start aborted with an uncaught `filesystem_error`, because the Flutter
   engine's exported unwinder could not catch an exception ROCm handles internally. `verify_gpu_host_launchers`
   refuses an AMD launcher without the preload; two mutations hold both halves.
+- `preflight-gpu-candidate.py` reads `ORT_AMDGPU_EP_ROOT` from OxidANT's exact hub copy `ort_plugin_eps.rs`, where
+  02f7c97 moved it, and requires the pinned hub's `--gcc-unwinder`; the GPU lanes' preflight failed on the old file.
 - A release bundle built in the ROCm image ran MIGraphX operators on an RX 9070 XT, and
   `profile-gpu-candidate.sh` passed CPU/GPU detector parity. Not yet measured here: the packaged TAR, DEB and
   AppImage: local packaging stopped because `libwayland-client.so.0` and `libwayland-egl.so.1` have no

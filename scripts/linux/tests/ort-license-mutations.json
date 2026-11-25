@@ -666,7 +666,7 @@
  {
   "id": "consumer.omni-amd-preflight-oxidant-registers",
   "target": "scripts/linux/preflight-gpu-candidate.py",
-  "find": "    require_text(oxidant / \"crates/inference/src/ort_plugin.rs\", '\"ORT_AMDGPU_EP_ROOT\"')\n",
+  "find": "    require_text(oxidant / \"crates/inference/src/ort_plugin_eps.rs\", 'root_variable: \"ORT_AMDGPU_EP_ROOT\"')\n",
   "replace": "",
   "test": "python3 -I scripts/linux/tests/test-gpu-candidate-preflight.py",
   "why": "No image is pulled for an OxidANT pin that cannot register the plugin module."
@@ -774,5 +774,13 @@
   "replace": "    if false; then\n",
   "test": "bash scripts/linux/tests/test-gpu-host-runtime.sh",
   "why": "A finished AMD bundle whose launcher does not preload the unwinder aborts on the first GPU session."
+ },
+ {
+  "id": "consumer.omni-amd-preflight-gcc-unwinder",
+  "target": "scripts/linux/preflight-gpu-candidate.py",
+  "find": "    require_text(packaging / \"bundle-loader.sh\", \"--external-library-path\", \"--gcc-unwinder\")\n",
+  "replace": "    require_text(packaging / \"bundle-loader.sh\", \"--external-library-path\")\n",
+  "test": "python3 -I scripts/linux/tests/test-gpu-candidate-preflight.py",
+  "why": "An AMD launcher built by a hub without --gcc-unwinder aborts on its first GPU session."
  }
 ]
