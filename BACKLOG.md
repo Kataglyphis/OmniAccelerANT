@@ -334,11 +334,11 @@ name is under `lib/Pages/StreamPage/`.
 The owner's decisions of 2026-11-21 on the oxidation review (D1 to D17, all as recommended): this app keeps
 flutter_rust_bridge, drops its AccelerANTgine submodule, and takes new Rust API in one bundled regeneration.
 
-- [ ] **Move the OxidANT pin to develop** (S–M, ★★★). The pin is 5caf446, OxidANT's roadmap step 3. It carries the
-  native `error:` fix 2afd994 and fee17c2, which sends a failed text turn and a refused ESP32 connect into the
-  stream. `integration_test/text_generate_test.dart` expects a missing model directory to end the stream with a
-  `failed` event of the kind `modelLoadFailed`. Left: the `[ci windows] [ci arm64] [ci web] [ci android]` run and
-  that test's first green Linux run.
+- [ ] **Move the OxidANT pin to develop** (S–M, ★★★). The pin is 33ba88e, OxidANT's roadmap step 4 with
+  `vision_core_web`. It carries the native `error:` fix 2afd994 and fee17c2, which sends a failed text turn and a
+  refused ESP32 connect into the stream. `integration_test/text_generate_test.dart` expects a missing model directory
+  to end the stream with a `failed` event of the kind `modelLoadFailed`. Left: the `[ci windows] [ci arm64] [ci web]
+  [ci android]` run and that test's first green Linux run.
 
 ## Open — native C++ gates from the BeschleunigerBallett comparison
 

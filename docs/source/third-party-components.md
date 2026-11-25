@@ -61,7 +61,7 @@ Dart package texts are in Flutter's `NOTICES`. Maintenance and limits:
 | Noto Color Emoji and Noto Sans Symbols 2 | OFL-1.1 | https://github.com/notofonts | Web fallback fonts; the OFL text ships as assets/licenses/noto-fallback-fonts-OFL.txt and is on the app's licenses page. |
 | DEIM-D-FINE-N COCO detection model | Apache-2.0 | https://github.com/Kataglyphis/ModelANT | Data, not code: the model's own LICENSE and NOTICE ship beside its .onnx file in every package that bundles it. |
 
-## Rust crates (336)
+## Rust crates (337)
 
 | Crate | Version | License | Used by |
 | --- | --- | --- | --- |
@@ -214,6 +214,7 @@ Dart package texts are in Flutter's `NOTICES`. Maintenance and limits:
 | kataglyphis_observant | 3.0.0 | MIT | kataglyphis_observant |
 | kataglyphis_telemetry | 3.0.0 | MIT | oxidant |
 | kataglyphis_text | 3.0.0 | MIT | kataglyphis_observant, oxidant |
+| kataglyphis_vision_core | 3.0.0 | MIT | kataglyphis_observant, oxidant |
 | kstring | 2.0.5 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
 | lazy_static | 1.5.1 | MIT OR Apache-2.0 | kataglyphis_observant, oxidant |
 | lebe | 0.5.3 | BSD-3-Clause | kataglyphis_observant, oxidant |

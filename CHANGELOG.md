@@ -5,6 +5,14 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ## Unreleased
 
+### 2026-11-25 — the OxidANT pin at its roadmap step 4
+
+- `third_party/OxidANT` moves from 5caf446 to 33ba88e: `vision_core` (preprocess and decode without ORT, which
+  `kataglyphis_core` now depends on for `Detection`), `bridge_support`, `accel_bridge` and `vision_core_web`. The
+  bridge's `src/api` is unchanged, so the bindings regenerate byte for byte.
+- `scripts/licenses/cargo-policy.json` names `kataglyphis_vision_core`'s licence, the workspace LICENSE, and the
+  third-party inventory is regenerated from the new lock.
+
 ### 2026-11-24 — the browser app at /app/ of the docs site (browser port step 6)
 
 - `docs.yml` runs `scripts/linux/build-docs-site.sh`: `generate-docs.sh`, then the web app with
