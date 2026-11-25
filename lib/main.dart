@@ -139,6 +139,11 @@ class App extends StatelessWidget {
       loadBootstrapData: loadAppSettings,
       // Uri.base is the page's address on the web; a native app's has no query, so its first language stays.
       initialLocale: localeFromUrl(Uri.base),
+      // Without a supported ?lang=, the browser's first supported language; otherwise the first in the settings.
+      preferredLocales: browserLocales(
+        isWeb: kIsWeb,
+        platformLocales: WidgetsBinding.instance.platformDispatcher.locales,
+      ),
       appLocalizationsDelegates: const <LocalizationsDelegate<dynamic>>[
         AppLocalizations.delegate,
       ],

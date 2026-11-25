@@ -11,6 +11,13 @@ Locale? localeFromUrl(Uri url) {
   return Locale(lang.toLowerCase());
 }
 
+/// The browser's languages, in its order, for the shell to try after `?lang=`; a native app passes none, so
+/// its first language stays. On the web, [platformLocales] is `navigator.languages`.
+List<Locale> browserLocales({
+  required bool isWeb,
+  required List<Locale> platformLocales,
+}) => isWeb ? platformLocales : const <Locale>[];
+
 /// The rail page to open on when the address names none; the hosted showcase sets it, since its static host has no camera.
 const String hostedStartRoute = String.fromEnvironment('OMNI_START_ROUTE');
 

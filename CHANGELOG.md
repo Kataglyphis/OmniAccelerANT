@@ -5,6 +5,13 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ## Unreleased
 
+### 2026-11-25 — the web app starts in the browser's language
+
+- Without `?lang=`, the web app starts in the first language from the browser's list (`navigator.languages`)
+  that it offers, otherwise in its first one. `main.dart` passes them as ANThology's new
+  `KataglyphisAppShell.preferredLocales`, tried after `initialLocale`; the `third_party/ANThology` pin moves to
+  carry it. A native app passes none. The language menu still changes it afterwards.
+
 ### 2026-11-25 — AMD bundles run MIGraphX on the card (ANTfrastructure CON231)
 
 - `third_party/OxidANT` moves from 33ba88e to 02f7c97, whose MIGraphX registration is the hub's shared plugin

@@ -34,6 +34,15 @@ void main() {
   );
 
   test(
+    'the web passes the browser\'s languages in order, a native app none',
+    () {
+      const List<Locale> browser = <Locale>[Locale('de', 'DE'), Locale('en')];
+      expect(browserLocales(isWeb: true, platformLocales: browser), browser);
+      expect(browserLocales(isWeb: false, platformLocales: browser), isEmpty);
+    },
+  );
+
+  test(
     'a start route picks its rail page, anything else keeps the fallback',
     () {
       final int playground = appPages.indexWhere(

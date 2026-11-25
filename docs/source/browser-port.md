@@ -170,6 +170,8 @@ errors, and every published file answered with 200. By hand in the CI image:
 The hosted build passes `--dart-define=OMNI_START_ROUTE=/aiPlayground`. The static host has no ObservANT, and the
 camera page would call `/healthz` and the `/webrtc-ws` signalling socket there, so the app opens on the local-AI page.
 `?lang=en` or `?lang=de` before the `#` picks the starting language, for example `/app/?lang=en#/aiPlayground`.
+Without it, the app starts in the browser's first language it offers, otherwise in its first one; the language
+menu changes it afterwards.
 `scripts/linux/web-app-screenshot.js <URL> images/web-app.png` takes the README's picture in the CI image. It sets
 the consent cookie first, so the cookie notice stays hidden as it does for a returning visitor.
 
