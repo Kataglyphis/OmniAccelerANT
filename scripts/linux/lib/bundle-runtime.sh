@@ -46,7 +46,7 @@ load_gpu_runtime_helpers() {
   if ! declare -F ort_host_runtime_needed >/dev/null || ! declare -F ort_assert_no_bundled_host_runtime >/dev/null ||
     ! declare -F ort_python_provider_file >/dev/null || ! declare -F ort_assert_plugin_module >/dev/null ||
     ! grep -Fq -- '--direct-only' "$closure" || ! grep -Fq -- '--reject-source-root' "$closure" ||
-    ! grep -Fq -- '--external-library-path' "$loader"; then
+    ! grep -Fq -- '--external-library-path' "$loader" || ! grep -Fq -- '--gcc-unwinder' "$loader"; then
     echo 'Error: GPU bundles require ANTfrastructure host-runtime packaging support' >&2
     return 1
   fi
@@ -139,6 +139,10 @@ verify_gpu_host_launchers() {
     if ! grep -Fxq 'export LD_LIBRARY_PATH="$here/lib${external_library_path}"' "$launcher" ||
       ! grep -Fq -- '--library-path "$here/lib/glibc:$here/lib${external_library_path}"' "$launcher"; then
       echo 'FAIL GPU bundle launcher does not preserve its bundled and host library paths' >&2
+      return 1
+    fi
+    if [[ "${GPU_RUNTIME_KIND:-}" == migraphx ]] && ! grep -Fxq '# The bundled libgcc_s unwinder is preloaded.' "$launcher"; then
+      echo 'FAIL AMD bundle launcher does not preload the bundled libgcc_s unwinder' >&2
       return 1
     fi
   done

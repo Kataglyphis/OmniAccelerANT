@@ -159,6 +159,8 @@ for file in "$BUNDLE_DIR"/*; do
   is_system_soname "$(basename "$file")" && continue
   loader_args=(--beside)
   if [[ -n "$GPU_RUNTIME_KIND" ]]; then loader_args+=(--external-library-path); fi
+  # Flutter's own _Unwind_* cannot catch ROCm's internal exceptions: docs/source/camera-streaming.md
+  if [[ "$GPU_RUNTIME_KIND" == migraphx ]]; then loader_args+=(--gcc-unwinder); fi
   bash "$(antfrastructure_path linux/scripts/06-packaging/bundle-loader.sh)" "${loader_args[@]}" "$BUNDLE_DIR" "$bundle_lib" "$(basename "$file")"
 done
 

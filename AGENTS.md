@@ -345,7 +345,10 @@ rather than linked.
   asked for NVIDIA only: the image strips its CPU core. The plugin's texts come from OxidANT's
   `stage_amdgpu_ep_notices` (hub CON256 j) and one name, `GPU_AMD_PLUGIN_MODULE`, repeats the hub's
   for the clean-host job, which has no hub checkout. Never put `libonnxruntime_providers_migraphx.so`,
-  a GPU prefix for AMD or a `patchelf` of the module back. Nothing here has run with AMD's module:
+  a GPU prefix for AMD or a `patchelf` of the module back. An AMD launcher is built with the hub's
+  `bundle-loader.sh --gcc-unwinder` and `verify_gpu_host_launchers` refuses one without it: Flutter's own
+  `_Unwind_*` would end ROCm's internal exceptions in `std::terminate`. With it a release bundle ran MIGraphX
+  on an RX 9070 XT and passed CPU detector parity:
   [`docs/source/camera-streaming.md`](docs/source/camera-streaming.md) § *Linux GPU build selection*.
 - **Linux bundle fixtures come from the hub.** The closure and GStreamer element tests source
   `synthetic-elf-fixture.sh` and `gst-inspect-fixture.sh`; preserve their DT_STRSZ and Name-field

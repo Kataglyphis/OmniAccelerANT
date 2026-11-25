@@ -74,6 +74,16 @@ EOF
   verify_gpu_host_launchers "$work/actual"
   [[ "$(LD_LIBRARY_PATH=/sdk "$work/actual/omni_accelerant")" == "$work/actual/lib:/sdk" ]]
   [[ "$(KATAGLYPHIS_BUNDLED_GLIBC=1 LD_LIBRARY_PATH=/sdk "$work/actual/omni_accelerant")" == "$work/actual/lib:/sdk" ]]
+  fixture_refuses 'An AMD launcher without the GCC unwinder passed' env GPU_RUNTIME_KIND=migraphx bash -c \
+    'source "$1" && verify_gpu_host_launchers "$2"' _ "$root/scripts/linux/lib/bundle-runtime.sh" "$work/actual"
+  mkdir -p "$work/amd-launch/lib"
+  "${CC:-cc}" "$work/launcher.c" -o "$work/amd-launch/omni_accelerant"
+  cp -L "$("${CC:-cc}" -print-file-name=libgcc_s.so.1)" "$work/amd-launch/lib/libgcc_s.so.1"
+  bash "$hub/linux/scripts/06-packaging/bundle-loader.sh" --beside --external-library-path --gcc-unwinder \
+    "$work/amd-launch" "$work/amd-launch/lib" omni_accelerant >/dev/null
+  GPU_RUNTIME_KIND=migraphx verify_gpu_host_launchers "$work/amd-launch"
+  [[ "$(LD_LIBRARY_PATH=/sdk "$work/amd-launch/omni_accelerant")" == "$work/amd-launch/lib:/sdk" ]]
+  grep -Fxq '  if [[ "$GPU_RUNTIME_KIND" == migraphx ]]; then loader_args+=(--gcc-unwinder); fi' "$root/scripts/linux/bundle-runtime-closure.sh"
   # AMD's plugin module: the hub names it, and the three libraries it imports are the bundle's core and the host's ROCm.
   mkdir -p "$work/amd/lib" "$work/stubs"
   for soname in libonnxruntime.so.1 libmigraphx_c.so.3 libamdhip64.so.7; do

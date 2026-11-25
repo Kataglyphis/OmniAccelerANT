@@ -5,6 +5,19 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ## Unreleased
 
+### 2026-11-25 — AMD bundles run MIGraphX on the card (ANTfrastructure CON231)
+
+- `third_party/OxidANT` moves from 33ba88e to 02f7c97, whose MIGraphX registration is the hub's shared plugin
+  policy. The bridge's `src/api` and `Cargo.lock` are unchanged, so the bindings and the licence inventory stay.
+- An AMD bundle's launcher preloads its own `libgcc_s.so.1` (hub `bundle-loader.sh --gcc-unwinder`, hub pin
+  ccc834c4): without it every AMD GPU start aborted with an uncaught `filesystem_error`, because the Flutter
+  engine's exported unwinder could not catch an exception ROCm handles internally. `verify_gpu_host_launchers`
+  refuses an AMD launcher without the preload; two mutations hold both halves.
+- A release bundle built in the ROCm image ran MIGraphX operators on an RX 9070 XT, and
+  `profile-gpu-candidate.sh` passed CPU/GPU detector parity. Not yet measured here: the packaged TAR, DEB and
+  AppImage: local packaging stopped because `libwayland-client.so.0` and `libwayland-egl.so.1` have no
+  `native-components.json` row, which CI against the published image has not reported.
+
 ### 2026-11-25 — the showcase app: English by URL, its own start page, a live check after each publish
 
 - `?lang=en` (or `de`) on the app's address picks the starting language: `main.dart` passes it to ANThology's new

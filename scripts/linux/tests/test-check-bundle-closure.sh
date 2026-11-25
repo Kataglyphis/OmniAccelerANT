@@ -99,7 +99,7 @@ _elf "${_amd}/lib/libmigraphx-ep.so" 'libonnxruntime.so.1,libmigraphx_c.so.3,lib
 _elf "${_amd}/omni_accelerant.bin" '' ''
 chmod +x "${_amd}/omni_accelerant.bin"
 mkdir -p "${_amd}/lib/glibc"
-fixture_gpu_launcher "${_amd}/omni_accelerant"
+fixture_gpu_launcher "${_amd}/omni_accelerant" --gcc-unwinder
 _census="$(antfrastructure_path linux/scripts/06-packaging/check-ort-provenance.sh)"
 t_assert_contains "$(bash "${_census}" --reference "${_ref}/lib" "${_amd}" 2>&1)" "UNRESOLVED   /lib/libmigraphx-ep.so" \
   "the fixture needs the option: alone the census cannot resolve the module's import"

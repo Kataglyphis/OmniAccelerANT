@@ -264,6 +264,10 @@ names the ONNX Runtime it loads into with `ORT_LIB_LOCATION` while configuring t
 The rocm image builds no GPU ONNX Runtime and no in-tree MIGraphX provider: AMD's plugin module
 loads into the CPU build, and OxidANT registers it under the name `MIGraphX`
 ([hub contract](../../third_party/ANTfrastructure/docs/consumer-image-contract.md#amds-plugin-migraphx-ep)).
+The AMD launcher preloads the bundle's `libgcc_s.so.1` (`bundle-loader.sh --gcc-unwinder`): the Flutter
+engine exports its own `_Unwind_*`, which ends the exception ROCm throws and catches while MIGraphX
+loads in `std::terminate`
+([hub failure mode](../../third_party/ANTfrastructure/docs/failure-modes.md#a-flutter-app-on-rocm-aborts-with-filesystem_error)).
 `rust_builder/linux/ort-device.cmake` asks the pinned hub for the module's name and place. The
 plugin build resolves the same runtime and sets the provider as the app's default
 device. A conflicting `ONNXRUNTIME_ROOT` fails configuration; an explicit

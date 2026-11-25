@@ -758,5 +758,21 @@
   "replace": "    const reason = '';",
   "test": "PUB_CACHE=/tmp/recipe-pub-cache bash -c 'source scripts/linux/lib/antfrastructure.sh && antfrastructure_source linux/scripts/05-frameworks/flutter/lane-prologue.sh && flutter_lane_prepare_env && flutter test test/endpoint_chat_test.dart'",
   "why": "A failed request shows the server's own reason beside its HTTP status, not the status alone."
+ },
+ {
+  "id": "consumer.omni-amd-gcc-unwinder",
+  "target": "scripts/linux/bundle-runtime-closure.sh",
+  "find": "  if [[ \"$GPU_RUNTIME_KIND\" == migraphx ]]; then loader_args+=(--gcc-unwinder); fi\n",
+  "replace": "",
+  "test": "bash scripts/linux/tests/test-gpu-host-runtime.sh",
+  "why": "Flutter's own unwinder turns ROCm's internal exceptions into std::terminate; an AMD launcher must preload libgcc_s."
+ },
+ {
+  "id": "consumer.omni-amd-unwinder-unchecked",
+  "target": "scripts/linux/lib/bundle-runtime.sh",
+  "find": "    if [[ \"${GPU_RUNTIME_KIND:-}\" == migraphx ]] && ! grep -Fxq '# The bundled libgcc_s unwinder is preloaded.' \"$launcher\"; then\n",
+  "replace": "    if false; then\n",
+  "test": "bash scripts/linux/tests/test-gpu-host-runtime.sh",
+  "why": "A finished AMD bundle whose launcher does not preload the unwinder aborts on the first GPU session."
  }
 ]

@@ -90,7 +90,7 @@ fixture_lock_models() {
   done
 }
 
-# fixture_gpu_launcher <path>: an external-runtime launcher with both loader branches, which the host-runtime gate looks for.
+# fixture_gpu_launcher <path> [--gcc-unwinder]: an external-runtime launcher with both loader branches, which the host-runtime gate looks for.
 fixture_gpu_launcher() {
   cat > "$1" <<'EOF_LAUNCHER'
 #!/bin/bash
@@ -98,6 +98,8 @@ external_library_path=""
 export LD_LIBRARY_PATH="$here/lib${external_library_path}"
 exec "$here/loader" --library-path "$here/lib/glibc:$here/lib${external_library_path}" "$@"
 EOF_LAUNCHER
+  # An AMD launcher carries the hub's unwinder marker, which verify_gpu_host_launchers requires.
+  [[ "${2:-}" != --gcc-unwinder ]] || sed -i '1a # The bundled libgcc_s unwinder is preloaded.' "$1"
   chmod +x "$1"
 }
 
