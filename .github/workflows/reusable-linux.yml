@@ -64,6 +64,8 @@ jobs:
           submodules: recursive
           # A measurement: the 28 GiB pull took 318-325 s on x64 at docker's default of 3 (2026-10-16/17).
           max-concurrent-downloads: '10'
+          # The build, the bundle and the text models outgrow the room the fast cleanup leaves beside the image.
+          free-disk-space: 'true'
 
       # sccache (Rust via RUSTC_WRAPPER, C++ via the CMake launcher) outlives the container; only pushes to develop save.
       - name: Restore compiler cache

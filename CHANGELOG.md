@@ -5,6 +5,14 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ## Unreleased
 
+### 2026-11-27 — the Linux build job runs the full disk cleanup on the larger image
+
+- The first `:latest` built for x86-64-v3 is larger. With 91 GB free before the pull the fast cleanup was chosen, and
+  the text generation test's app stopped without a word on its first error case (`did not complete`, run 45976516080)
+  after the earlier app tests had passed, as OxidANT's link died of a full disk on the same image. The build job now
+  asks for the full cleanup (`free-disk-space: 'true'`), as the GPU candidates do; the next run tells whether the disk
+  was the cause.
+
 ### 2026-11-25 — the NVIDIA AppImage passes with the core the bundle ships
 
 - `verify-gpu-candidate.sh` calls the hub's AppImage check with `--nvidia-core libonnxruntime.so`: the bundle stages
