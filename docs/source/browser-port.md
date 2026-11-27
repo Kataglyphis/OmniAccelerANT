@@ -49,7 +49,7 @@ proxy worker does not work with the WebGPU provider.
 
 | Piece | Repo |
 | --- | --- |
-| ORT Web per build, staged with a manifest of hashes and its license texts | hub |
+| ORT Web per build, staged with a manifest of hashes and its license texts | hub `linux/scripts/lib/stage-ort-web.py` |
 | The ORT-Web loader: build choice, capability probe, provenance JSON | hub `shared/web/` |
 | A browser harness for ORT Web in headless Chrome, with detector parity | hub |
 | The isolated-app `.htaccess` template and its test | hub |
@@ -215,6 +215,7 @@ stays unchanged.
   receipts when staging, never from a pinned list.
 - ORT's file names carry no hash. A returning visitor could get a new `.mjs` with an old `.wasm`, so ORT files
   live under a path per build.
-- Upstream's LICENSE and ThirdPartyNotices are missing from the hub's web output today. Only the MIT notice
-  of the hub's WebGPU probe is there.
+- Upstream's LICENSE and ThirdPartyNotices are missing from the image's web output until its next media build.
+  Until then the hub's stager takes them from the image's onnxruntime wheel, and only when that wheel is the
+  receipt's ORT version.
 - `model.onnx.data` is large, and the FTP upload is slow: the first upload of the text model takes long.

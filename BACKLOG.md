@@ -182,6 +182,11 @@ what the owner's goal still lacks.
   1. Hub, coordinated with CON233: stage ORT Web per build (JSPI, Asyncify, CPU) from the amd64 image under
      `ort/<version>-<build hash>/`, with a manifest of hashes from the image's receipts and ORT's LICENSE and
      ThirdPartyNotices. Check: the manifest's hashes and file list.
+     Done 2026-11-27: hub `linux/scripts/lib/stage-ort-web.py` with its suite and mutations
+     ([hub docs-sites.md](https://github.com/Kataglyphis/ANTfrastructure/blob/develop/docs/docs-sites.md#staging-ort-web-for-an-app)).
+     It refuses a missing build and bytes that differ from the image's receipt. Checked on the arm64 image's
+     files without bundles. Open: the run with the `ort.*.mjs` bundles in the amd64 docs job, with step 6's
+     site build; CPU and JSEP have no image receipt yet (hub CON306).
   2. Hub: a headless-Chrome harness runs DEIM on `two_cats.jpg` in each build against the native ORT CPU run
      (`compare_detector_parity.py`), with each provider's share of nodes (`verify_ort_profile.py` gains WebGPU).
      Check: a parity report per build; it decides which builds ship.
