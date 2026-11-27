@@ -5,6 +5,14 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ## Unreleased
 
+### 2026-11-27 — the Linux packages name Wayland's client libraries
+
+- Flutter 3.50's `libflutter_linux_gtk.so` needs `libwayland-client.so.0` and `libwayland-egl.so.1`, so the bundle
+  now ships both, and every Linux package failed its inventory check (`has no component in
+  native-components.json`) once the text generation test no longer aborted first. `native-components.json` gains
+  the `wayland` component (MIT) with upstream's `COPYING`; the inventory and docs/source/third-party-components.md
+  are regenerated.
+
 ### 2026-11-27 — the first C++ exception no longer aborts the Linux app
 
 - Flutter 3.50's `libflutter_linux_gtk.so` exports LLVM libunwind's `_Unwind_*`, and the runner loaded it ahead

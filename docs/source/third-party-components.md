@@ -7,7 +7,7 @@ lockfiles and `scripts/licenses/native-components.json`. The texts ship in every
 Dart package texts are in Flutter's `NOTICES`. Maintenance and limits:
 [project operations](project-operations.md#third-party-license-inventory).
 
-## Native code and data (49)
+## Native code and data (50)
 
 | Component | License | Source | Shipped files |
 | --- | --- | --- | --- |
@@ -55,6 +55,7 @@ Dart package texts are in Flutter's `NOTICES`. Maintenance and limits:
 | PCRE2 | BSD-3-Clause WITH PCRE2-exception | https://github.com/PCRE2Project/pcre2 | windows: `pcre2-*.dll` |
 | GNU libiconv | LGPL-2.1-or-later | https://www.gnu.org/software/libiconv | windows: `iconv*.dll` |
 | libdrm | MIT | https://gitlab.freedesktop.org/mesa/drm | linux: `libdrm.so*` |
+| Wayland client libraries | MIT | https://gitlab.freedesktop.org/wayland/wayland | linux: `libwayland-client.so*`, `libwayland-egl.so*` |
 | libv4l (v4l-utils) | LGPL-2.1-or-later | https://git.linuxtv.org/v4l-utils.git | linux: `libv4l2.so*`, `libv4lconvert.so*` |
 | libudev (systemd) | LGPL-2.1-or-later | https://github.com/systemd/systemd | linux: `libudev.so*` |
 | libgudev | LGPL-2.1-or-later | https://gitlab.gnome.org/GNOME/libgudev | linux: `libgudev-1.0.so*` |
