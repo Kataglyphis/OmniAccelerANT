@@ -680,7 +680,7 @@ A Rust panic in `liboxidant` takes the same path.
 **Fix.** `linux/CMakeLists.txt` links `gcc_s` (with `--no-as-needed`) before `flutter`, so
 `libgcc_s.so.1` leads the runner's NEEDED list. `scripts/linux/check-unwinder-order.sh` fails the
 release bundle when any other object defines `_Unwind_RaiseException` ahead of libgcc_s in
-`ldd`'s load order. Its suite, `test-check-unwinder-order.sh`, runs with the script suites. The text
+`ldd`'s load order; a launcher is graded by the `.bin` it starts. Its suite, `test-check-unwinder-order.sh`, runs with the script suites. The text
 generation test's missing-model case is the behavioural check.
 
 ### The Linux plugin's AccelerANTgine build

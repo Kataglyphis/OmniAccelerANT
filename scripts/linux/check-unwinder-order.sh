@@ -11,6 +11,10 @@ if [[ ! -f "$exe" ]]; then
   echo "Error: no executable at ${exe}" >&2
   exit 1
 fi
+# bundle-loader.sh's launcher starts the .bin beside it, so that ELF's load order is the one that counts.
+if [[ "$(head -c 2 -- "$exe")" == '#!' && -f "${exe}.bin" ]]; then
+  exe="${exe}.bin"
+fi
 for tool in ldd readelf; do
   if ! command -v "$tool" > /dev/null 2>&1; then
     echo "Error: ${tool} is required" >&2

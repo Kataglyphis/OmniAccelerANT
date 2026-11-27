@@ -23,6 +23,10 @@ printf 'int g(void) { return 1; }\n' > "${work}/gone.c"
 cc -shared -fPIC -o "${work}/libgone.so" "${work}/gone.c" || exit 1
 link unresolved -lgcc_s -lgone
 rm -f "${work}/libgone.so"
+# A relocatable bundle's launcher: a script, with the ELF it starts beside it as <name>.bin.
+for name in good-launcher bad-launcher bare-launcher; do printf '#!/bin/sh\nexec "$0.bin" "$@"\n' > "${work}/${name}"; done
+cp "${work}/gcc-first" "${work}/good-launcher.bin"
+cp "${work}/engine-first" "${work}/bad-launcher.bin"
 
 t_case "libgcc_s ahead of an engine that exports the unwinder"
 t_assert_rc 0 bash "$gate" "${work}/gcc-first"
@@ -32,6 +36,12 @@ t_case "only libgcc_s defines the unwinder"
 t_assert_rc 0 bash "$gate" "${work}/gcc-only"
 t_case "an unresolved library is not graded on a partial list"
 t_assert_rc 1 bash "$gate" "${work}/unresolved"
+t_case "a launcher is graded by the .bin it starts"
+t_assert_rc 0 bash "$gate" "${work}/good-launcher"
+t_case "a launcher whose .bin loads the engine's unwinder first"
+t_assert_rc 1 bash "$gate" "${work}/bad-launcher"
+t_case "a launcher without its .bin"
+t_assert_rc 1 bash "$gate" "${work}/bare-launcher"
 t_case "a missing executable"
 t_assert_rc 1 bash "$gate" "${work}/absent"
 t_case "nothing to check"
