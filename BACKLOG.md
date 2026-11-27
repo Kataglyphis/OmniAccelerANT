@@ -190,6 +190,13 @@ what the owner's goal still lacks.
   2. Hub: a headless-Chrome harness runs DEIM on `two_cats.jpg` in each build against the native ORT CPU run
      (`compare_detector_parity.py`), with each provider's share of nodes (`verify_ort_profile.py` gains WebGPU).
      Check: a parity report per build; it decides which builds ship.
+     Harness 2026-11-28: hub `shared/python/ort_web_parity.py` with `ort-web-detector-parity.js` and its suite
+     ([hub docs-sites.md](https://github.com/Kataglyphis/ANTfrastructure/blob/develop/docs/docs-sites.md#detector-parity-of-the-ort-web-builds)).
+     On the Pi 5 with the npm package's JS layer, so deciding nothing: Asyncify and CPU match the native run
+     (worst IoU 0.999999, score difference 0.00003, two cats); JSPI failed once in four runs in a `Conv2dMM`
+     (`No cached or pending pipeline for deferred dispatch`). JSEP cannot run DEIM: its WebGPU MaxPool lacks
+     `ceil_mode`, so it is no fallback. GridSample, GatherElements and TopK run on WebGPU in the reduced builds.
+     Open: the deciding reports with the image's own bundles from hub `ort-web-parity.yml` (amd64).
   3. OxidANT: `crates/vision_core_web`, `vision_core` as wasm with the COCO names, a wasm32 clippy gate, the
      contract cases in node. Check: every case bit for bit equal to native.
   4. Hub and here: the OxidANT pin (*Move the OxidANT pin to develop*, then at least the wasm module); the
