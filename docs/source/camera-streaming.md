@@ -6,7 +6,7 @@ WebRTC streaming and inference pipelines for Kataglyphis.
 service: it finds the camera, looks for cats with a detection model and serves the web app
 on port 8080.
 - **Install:** [a new camera in five steps](#installing-it): the release's `.deb` on Debian,
-  Ubuntu or Raspberry Pi OS (amd64, arm64; riscv64 builds on the board), or without sudo the
+  Ubuntu or Raspberry Pi OS (amd64 [from Haswell on](#the-amd64-cpu-floor), arm64; riscv64 builds on the board), or without sudo the
   tarball's `observant --install --user`. It starts at once and at every boot, and updates
   itself from the releases every night.
 - **Watch:** `http://<board>:8080/`. The Stream page plays the camera, says whether a cat
@@ -26,6 +26,7 @@ on port 8080.
 - [Rust-owned webcam inference (local, no WebRTC)](#rust-owned-webcam-inference-local-no-webrtc)
   - [Checking the knt ABI](#checking-the-knt-abi)
   - [Relocatable Linux bundles](#relocatable-linux-bundles)
+    - [The amd64 CPU floor](#the-amd64-cpu-floor)
 - [WebRTC pipelines (Linux / web)](#webrtc-pipelines-linux--web)
   - [ObservANT package](#the-observant-package)
     - [Where it runs](#where-it-runs)
@@ -496,6 +497,26 @@ Runtime and the camera stack are deliberately not in it, they are the bundle's j
 `.deb` declares only the desktop libraries, which assumes the target has a desktop stack. Not
 covered by any of this: a frame from a real camera (the lane pushes a test pattern, *Rust-owned
 webcam inference* above).
+
+#### The amd64 CPU floor
+
+Every amd64 package needs an `x86-64-v3` CPU: AVX, AVX2, FMA, BMI1/2, LZCNT, MOVBE and F16C.
+That holds for the tarball, `.deb`, AppImage and flatpak of the app and of the ObservANT. Intel
+before Haswell (2013), AMD before Excavator (2015), and the Celeron, Pentium and Atom parts
+without AVX2 cannot run them. arm64 and riscv64 keep their own levels.
+
+The libraries the bundle takes from the image need that level already
+([`amd64-x86-64-v3-baseline.md`](../../third_party/ANTfrastructure/docs/amd64-x86-64-v3-baseline.md)),
+so the app's own clang and Rust code is built for it too (owner decision):
+- `scripts/linux/lib/cpu-floor.sh` exports `-march=x86-64-v3` in `CFLAGS` and `CXXFLAGS`, and
+  `-C target-cpu=x86-64-v3` in `CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_RUSTFLAGS`. The native
+  lane calls it before `flutter build linux`, and `package-observant.sh` before its `cargo build`.
+- The Rust variable is target-scoped, so the wasm32 build keeps its flags. Cargo lets `RUSTFLAGS`
+  or `CARGO_ENCODED_RUSTFLAGS` replace it, so the export refuses to run beside either.
+- The lane's `cpu floor` gate fails unless `CMakeCache.txt` records the flag in both
+  `CMAKE_C_FLAGS` and `CMAKE_CXX_FLAGS`. Nothing reads the Rust code generation back from
+  `liboxidant.so`: that half rests on Cargokit, which passes `--target` and the environment
+  through unchanged. `scripts/linux/tests/test-cpu-floor.sh` covers the export and the gate.
 
 ## WebRTC pipelines (Linux / web)
 

@@ -277,15 +277,6 @@ what the owner's goal still lacks.
   `scripts/licenses/native-components.json`, and their fixtures. Done when an NVIDIA candidate builds on the new
   image and its package checks pass.
 
-- [ ] **The amd64 packages get a CPU floor that nothing here states** (S, ★★). The hub pin of 2026-11-13 carries
-  the x86-64-v3 compiler default (hub CON264, `third_party/ANTfrastructure/docs/amd64-x86-64-v3-baseline.md`). The
-  hub's `:latest` `abb3030d…` (2026-11-27) is the first image built with it and passes its x86-64-v3 check. The libraries the tar, DEB and AppImage take from the
-  image (ONNX Runtime, GStreamer, the compiler's libstdc++) need AVX2, FMA and BMI2, while this app's own clang and
-  Rust code keeps the generic level. Now: name the floor where the docs describe the Linux
-  packages, and decide whether the lane hands the level to clang and Rust
-  (`CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_RUSTFLAGS`, which leaves the wasm build alone). Done when the docs name
-  the floor and the decision is recorded.
-
 ## Open — code audit of 2026-11-12
 
 What the code audit of 2026-11-12 found in the Stream page, the native plugin and this repo's gates; its ObservANT and

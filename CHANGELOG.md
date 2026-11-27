@@ -5,6 +5,17 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ## Unreleased
 
+### 2026-11-27 — the app's own amd64 code is built for x86-64-v3
+
+- The amd64 packages needed AVX2, FMA and BMI2 already, through the image's ONNX Runtime, GStreamer and
+  libstdc++, while this app's clang and Rust code kept the generic level and nothing stated the floor. The owner
+  decided the app's code follows: `scripts/linux/lib/cpu-floor.sh` exports `-march=x86-64-v3` to clang and
+  `-C target-cpu=x86-64-v3` to cargo's x86_64 target, called by the native lane before `flutter build linux` and by
+  `package-observant.sh` before its `cargo build`. It refuses a set `RUSTFLAGS` or `CARGO_ENCODED_RUSTFLAGS`, which
+  cargo would let replace the floor. The lane's new `cpu floor` gate reads the build tree's `CMakeCache.txt`;
+  `test-cpu-floor.sh` covers both. `camera-streaming.md` § *The amd64 CPU floor* names the CPUs that cannot run
+  the packages.
+
 ### 2026-11-27 — the GPU installers' provider check is the hub's
 
 - `Package-OmniAccelerANT.ps1` checks the GPU MSI's and MSIX's ORT providers with the hub's

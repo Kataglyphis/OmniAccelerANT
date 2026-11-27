@@ -9,6 +9,8 @@ source "${script_dir}/../lib/antfrastructure.sh"
 source "${script_dir}/../lib/flutter-package-license.sh"
 # shellcheck source=scripts/linux/lib/bundle-runtime.sh
 source "${script_dir}/../lib/bundle-runtime.sh"
+# shellcheck source=scripts/linux/lib/cpu-floor.sh
+source "${script_dir}/../lib/cpu-floor.sh"
 # shellcheck source=scripts/linux/observant/lib/locked-model.sh
 source "${script_dir}/lib/locked-model.sh"
 antfrastructure_source linux/scripts/06-packaging/ort-wheel-licenses.sh
@@ -75,6 +77,7 @@ if [ -z "${producer}" ]; then
   # /healthz names it; a copy of the tree without .git, as a board's build gets, keeps the version alone.
   commit="$(git -C "${repo_root}" rev-parse --short HEAD 2>/dev/null || true)"
   export OBSERVANT_VERSION="${OBSERVANT_VERSION:-${version}${commit:+ (${commit})}}"
+  omni_export_cpu_floor "$(uname -m)"
   # Release with panic = "unwind": a panic in one answer costs a 502, not the camera (owner decision).
   (cd "${repo_root}/third_party/OxidANT" && cargo build --profile observant --locked -p kataglyphis_observant)
   producer="${CARGO_TARGET_DIR}/observant/kataglyphis_observant"
