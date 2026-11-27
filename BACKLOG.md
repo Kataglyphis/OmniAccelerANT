@@ -277,11 +277,11 @@ what the owner's goal still lacks.
   `scripts/licenses/native-components.json`, and their fixtures. Done when an NVIDIA candidate builds on the new
   image and its package checks pass.
 
-- [b] **The amd64 packages get a CPU floor that nothing here states** (S, ★★). The hub pin of 2026-11-13 carries
-  the x86-64-v3 compiler default (hub CON264, `third_party/ANTfrastructure/docs/amd64-x86-64-v3-baseline.md`); no
-  published image is built with it yet. From the first one, the libraries the tar, DEB and AppImage take from the
+- [ ] **The amd64 packages get a CPU floor that nothing here states** (S, ★★). The hub pin of 2026-11-13 carries
+  the x86-64-v3 compiler default (hub CON264, `third_party/ANTfrastructure/docs/amd64-x86-64-v3-baseline.md`). The
+  hub's `:latest` `abb3030d…` (2026-11-27) is the first image built with it and passes its x86-64-v3 check. The libraries the tar, DEB and AppImage take from the
   image (ONNX Runtime, GStreamer, the compiler's libstdc++) need AVX2, FMA and BMI2, while this app's own clang and
-  Rust code keeps the generic level. Blocked on that image. Then: name the floor where the docs describe the Linux
+  Rust code keeps the generic level. Now: name the floor where the docs describe the Linux
   packages, and decide whether the lane hands the level to clang and Rust
   (`CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_RUSTFLAGS`, which leaves the wasm build alone). Done when the docs name
   the floor and the decision is recorded.
@@ -327,10 +327,10 @@ name is under `lib/Pages/StreamPage/`.
   requests, a stop during a start) and a source test that fails on `invokeMethod(` under `lib/Pages`; that test
   also needs the typed `create` of the MethodChannel row (`rust_webcam_view.dart:95`).
 
-- [b] **The Pester suites still speak Pester 3.4** (M, ★). 13 suites under `scripts/windows/tests` hold
+- [ ] **The Pester suites still speak Pester 3.4** (M, ★). 13 suites under `scripts/windows/tests` hold
   261 dash-less `Should Be` lines, so `windows-x64.yml`, `windows-arm64.yml` and `windows-gpu-candidates.yml` pin Pester 3.4.0, the runner's inbox copy, and nothing runs
-  them on Linux. The hub's next image carries Pester 6.2.0 in `pwsh` (hub CON273, CON283), which refuses that
-  dialect. Blocked on that chain. Then: `Should -Be` and its kin, setup moved into `BeforeAll` or `BeforeEach`
+  them on Linux. Since 2026-11-27 the hub's `:latest` (`abb3030d…`) carries Pester 6.2.0 in `pwsh` (hub CON283;
+  the owner keeps 6.2), which refuses that dialect. Now: `Should -Be` and its kin, setup moved into `BeforeAll` or `BeforeEach`
   (Pester 5 and 6 discover a file before they run it), the `3.4.0` pins dropped, and the suites run in the image
   as well. Done when no workflow pins 3.4.0.
 
