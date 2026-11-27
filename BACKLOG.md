@@ -393,7 +393,7 @@ Owner decision 2026-11-20: only real code duplicates are merged; a pair that sha
 or fixture stubs stays, and a deliberate one gets a `code-dupes.allow` row with its reason. The rows below are of that kind.
 
 - [ ] `code-dupes.allow:2` budget 103 (allow_budget_total): libjpeg-turbo's and pcre2's verbatim BSD licence texts
-- [ ] `code-dupes.allow:3` budget 71 (allow_budget_total): `overview.md`'s feature tables repeat their header row
-- [ ] `code-dupes.allow:4` budget 46 (allow_budget_total): the two packagers' MSI step and its three licence checks
 - [ ] `scripts/linux/tests/test-check-packaged-onnx-runtime.sh:1` 48 shared shingles with scripts/linux/tests/test-check-packaged-onnx-runtime.sh:58 (duplicated_blocks)
-- [ ] `scripts/windows/tests/OrtRunner.Tests.ps1:154` 41 shared shingles with scripts/windows/tests/OrtRunner.Tests.ps1:234 (duplicated_blocks)
+- [ ] `scripts/windows/tests/OrtRunner.Tests.ps1:153` 41 shared shingles with scripts/windows/tests/OrtRunner.Tests.ps1:233 (duplicated_blocks)
+- [ ] `scripts/windows/tests/DetectorModel.Tests.ps1:31` 32 shared shingles with scripts/windows/tests/OnnxSelfCheck.Tests.ps1:3 (duplicated_blocks)
+- [ ] `scripts/windows/Build-Windows.ps1:5` 29 shared shingles with scripts/windows/Invoke-LinuxLane.ps1:8 (duplicated_blocks)

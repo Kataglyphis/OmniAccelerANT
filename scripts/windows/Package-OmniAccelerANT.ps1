@@ -79,19 +79,16 @@ if ($OrtProvider -ne 'cpu') {
     $gpuFiles = @(Get-GpuPackageFile -RunnerDir $AppDir -Provider $OrtProvider)
     $base = "$base-$vendor"
 }
-$fragment = Join-Path $work 'msi-payload-files.wxs'
 Assert-NativeLicenseCoverage -Path $AppDir -RepoRoot $repoRoot
-$licenseAssets = Get-ThirdPartyLicenseAsset -RepoRoot $repoRoot
+$plan = New-AppInstallerPlan -AppDir $AppDir -Arch $Arch -OutBase $base -WorkDir $work -RepoRoot $repoRoot `
+    -Notice '*flutter_assets/NOTICES.Z' -OrtLicenseDirectory $ortLicenses
 
-New-AppMsi -Context $context -AppDir $AppDir -ExeName 'omni_accelerant.exe' -WxsFile (Join-Path $installer 'omni-accelerant.wxs') `
-    -LicenseFile (Join-Path $installer 'License.rtf') -ProductName 'OmniAccelerANT' -Version $version -Arch $Arch `
-    -OutFile "$base.msi" -FragmentPath $fragment
-Assert-MsiPackageLicense -Path "$base.msi" -FileName 'NOTICES.Z' -LicensePath (Join-Path $repoRoot 'LICENSE')
-Assert-ThirdPartyLicensePackage -Path "$base.msi" -RepoRoot $repoRoot -Asset $licenseAssets
-Assert-OrtWheelLicensesInPackage -Path "$base.msi" -LicenseDirectory $ortLicenses -Format msi -WixPath $fragment
+New-AppMsi -Context $context -Plan $plan -ExeName 'omni_accelerant.exe' -WxsFile (Join-Path $installer 'omni-accelerant.wxs') `
+    -ProductName 'OmniAccelerANT' -Version $version
+Assert-AppInstallerLicense -Plan $plan -Path $plan.Msi
 if ($gpuFiles.Count -gt 0) {
     $gpuPaths = @($gpuFiles | ForEach-Object { Join-Path $AppDir $_ })
-    $gpuMsiIds = @('exe0') + @($gpuPaths | Select-Object -Skip 1 | ForEach-Object { Get-WixSourceFileId -WixPath $fragment -SourcePath $_ })
+    $gpuMsiIds = @('exe0') + @($gpuPaths | Select-Object -Skip 1 | ForEach-Object { Get-WixSourceFileId -WixPath $plan.Fragment -SourcePath $_ })
     $gpuProviders = @($gpuFiles | Where-Object { $_ -clike 'onnxruntime_providers_*.dll' } | Sort-Object)
     Assert-PackageBinary -Path "$base.msi" -Member $gpuMsiIds -SourcePath $gpuPaths
     & (Join-Path $PSScriptRoot 'Stage-DetectorModel.ps1') -WorkspaceDir $repoRoot -RunnerDir $AppDir -VerifyOnly
@@ -99,12 +96,9 @@ if ($gpuFiles.Count -gt 0) {
     if (($gpuProviders -join ',') -cne ($msiProviders -join ',')) { throw 'MSI ORT provider set differs from the proven runner.' }
     Assert-WindowsInstallerCandidate -RunnerDir $AppDir -Provider $OrtProvider -Arch $Arch
 }
-New-AppMsix -Context $context -AppDir $AppDir -ManifestTemplate (Join-Path $installer 'AppxManifest.xml') `
-    -LogoPath (Join-Path $repoRoot 'web\icons\Icon-512.png') -Version $msixVersion -Arch $Arch -OutFile "$base.msix" `
-    -WorkDir $work -Publisher $MsixPublisher -Pfx $MsixPfx
-Assert-PackageLicense -Path "$base.msix" -Pattern '*flutter_assets/NOTICES.Z' -LicensePath (Join-Path $repoRoot 'LICENSE')
-Assert-ThirdPartyLicensePackage -Path "$base.msix" -RepoRoot $repoRoot -Asset $licenseAssets
-Assert-OrtWheelLicensesInPackage -Path "$base.msix" -LicenseDirectory $ortLicenses -Format archive
+New-AppMsix -Context $context -Plan $plan -ManifestTemplate (Join-Path $installer 'AppxManifest.xml') `
+    -LogoPath (Join-Path $repoRoot 'web\icons\Icon-512.png') -Version $msixVersion -Publisher $MsixPublisher -Pfx $MsixPfx
+Assert-AppInstallerLicense -Plan $plan -Path $plan.Msix
 if ($gpuFiles.Count -gt 0) {
     Assert-PackageBinary -Path "$base.msix" -Member $gpuFiles -SourcePath $gpuPaths
     & (Join-Path $PSScriptRoot 'Stage-DetectorModel.ps1') -WorkspaceDir $repoRoot -RunnerDir $AppDir -VerifyOnly

@@ -415,8 +415,11 @@ Three consequences, each easy to undo by accident:
 
 Since 2026-10-17 every release carries the app as an MSI and a signed MSIX for x64 and arm64,
 beside the zip. `scripts/windows/Package-OmniAccelerANT.ps1` makes both from the runner folder;
-`scripts/windows/modules/WindowsAppInstallers.Common.psm1` (`New-AppMsi`, `New-AppMsix`) holds
-the part ObservANT's packaging shares.
+`scripts/windows/modules/WindowsAppInstallers.Common.psm1` holds the part ObservANT's packaging
+shares. `New-AppInstallerPlan` names, once per app, the folder both installers pack, their arch,
+output and scratch paths and the licences they carry; `New-AppMsi` and `New-AppMsix` build from
+it, and `Assert-AppInstallerLicense` runs the same three checks on each installer: the project
+`LICENSE` in Flutter's `NOTICES`, the third-party inventory beside it, and the ONNX Runtime texts.
 
 - **Built where the app is**: the x64 lane's `build-clang` job on the `windows-2025` host and the
   arm64 lane's `app` job on `windows-11-arm`. Each installs WiX 7.0.0 (the image's pin) as a

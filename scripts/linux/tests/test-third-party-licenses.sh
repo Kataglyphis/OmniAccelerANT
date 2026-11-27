@@ -103,10 +103,15 @@ for lane in lane-android.sh ci-container-run-android.sh; do
 done
 omni_ps="$(cat "${repo}/scripts/windows/Package-OmniAccelerANT.ps1")"
 t_assert_contains "$omni_ps" 'Assert-NativeLicenseCoverage -Path $AppDir -RepoRoot $repoRoot'
-t_assert_contains "$omni_ps" 'Assert-ThirdPartyLicensePackage -Path "$base.msi" -RepoRoot $repoRoot -Asset $licenseAssets'
-t_assert_contains "$omni_ps" 'Assert-ThirdPartyLicensePackage -Path "$base.msix" -RepoRoot $repoRoot -Asset $licenseAssets'
+t_assert_contains "$omni_ps" "-Notice '*flutter_assets/NOTICES.Z'"
 observant_ps="$(cat "${repo}/scripts/windows/observant/Package-ObservANT.ps1")"
-t_assert_contains "$observant_ps" 'Assert-ThirdPartyLicensePackage -Path "$msixBase.msi" -RepoRoot $repoRoot -Asset $licenseAssets'
-t_assert_contains "$observant_ps" "Assert-ThirdPartyLicensePackage -Path \"\$msixBase.msix\" -RepoRoot \$repoRoot -Asset \$licenseAssets -MemberPrefix '*web/assets/'"
+t_assert_contains "$observant_ps" "-Notice '*web/assets/NOTICES'"
+for packager_ps in "$omni_ps" "$observant_ps"; do
+  t_assert_contains "$packager_ps" 'Assert-AppInstallerLicense -Plan $plan -Path $plan.Msi'
+  t_assert_contains "$packager_ps" 'Assert-AppInstallerLicense -Plan $plan -Path $plan.Msix'
+done
+installers_ps="$(cat "${repo}/scripts/windows/modules/WindowsAppInstallers.Common.psm1")"
+t_assert_contains "$installers_ps" 'Asset = @(Get-ThirdPartyLicenseAsset -RepoRoot $RepoRoot)'
+t_assert_contains "$installers_ps" 'Assert-ThirdPartyLicensePackage -Path $Path -RepoRoot $Plan.RepoRoot -Asset $Plan.Asset -MemberPrefix $prefix'
 
 t_summary

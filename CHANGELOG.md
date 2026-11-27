@@ -5,6 +5,17 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ## Unreleased
 
+### 2026-11-27 — the Windows packagers share one installer plan and licence check
+
+- `Package-OmniAccelerANT.ps1` and `Package-ObservANT.ps1` each ran their own copy of the same three licence checks
+  on their MSI and MSIX: the project `LICENSE` in Flutter's `NOTICES`, the third-party inventory and ONNX Runtime's
+  wheel texts. `WindowsAppInstallers.Common` now holds them once in `Assert-AppInstallerLicense`, and
+  `New-AppInstallerPlan` states once per app what both installers share; `New-AppMsi` and `New-AppMsix` build from
+  it, and `License.rtf` is `New-AppMsi`'s default. Same checks, same order, same files. `ThirdPartyLicense.Tests.ps1`
+  runs the check on synthetic archives and recorded hub calls; ten mutations of it go red.
+- `overview.md`'s four feature tables are one table with an Area column; every row and status stays.
+- Both `code-dupes.allow` rows go. One row is left (budget 103), and the scan's findings fall from 71 to 69.
+
 ### 2026-11-27 — the Linux packages name Wayland's client libraries
 
 - Flutter 3.50's `libflutter_linux_gtk.so` needs `libwayland-client.so.0` and `libwayland-egl.so.1`, so the bundle
