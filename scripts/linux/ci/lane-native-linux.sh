@@ -83,6 +83,7 @@ if [[ "$BUILD_MODE" == "release" ]]; then
   run_gate "bundled GStreamer elements" bash scripts/linux/check-bundle-gst-elements.sh --arch "$MATRIX_ARCH" --build-mode "$BUILD_MODE"
   run_gate "plugin gtest" run_plugin_gtest "$build_dir"
   run_gate "rust toolchain" bash scripts/linux/check-rust-toolchain.sh --require-unwind "${build_dir}/bundle/lib/liboxidant.so"
+  run_gate "unwinder order" bash scripts/linux/check-unwinder-order.sh "${build_dir}/bundle/$(linux_binary_name)"
   assert_gates
 
   # Under the image's xvfb-run: the packaged bundle starts, and the app drives its integration test.

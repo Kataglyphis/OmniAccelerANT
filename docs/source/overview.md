@@ -53,43 +53,26 @@ preset, image and cache is in `BACKLOG.md`'s done item and the changelog.
 From the README (2026-10-19). ✔️ done (implemented and tested), 🔶 in progress, ❌ not started
 (planned), N/A not applicable to the platform.
 
-### Core Features
-
-| Category | Feature | Win x64 | Linux x64 | Linux ARM64 | Linux RISC-V | Android |
-|----------|---------|:-------:|:---------:|:-----------:|:------------:|:-------:|
-| **Camera Streaming** | GStreamer WebRTC Livestream | ✔️ | ✔️ | ✔️ | ✔️ | N/A |
-| | Local Webcam ONNX Inference (Rust) | ✔️ | 🔶 | 🔶 | ❌ | ❌ |
-| **Supported Cameras** | USB Devices | ✔️ | ✔️ | ✔️ | ✔️ | N/A |
-| | Raspberry Pi Camera | N/A | N/A | ✔️ | N/A | N/A |
-| | Native Camera API | N/A | N/A | N/A | N/A | ✔️ |
-
-### Infrastructure & Build
-
-| Category | Feature | Win x64 | Linux x64 | Linux ARM64 | Linux RISC-V | Android |
-|----------|---------|:-------:|:---------:|:-----------:|:------------:|:-------:|
-| **Containerization** | Builds in ANTfrastructure `:latest` (linux) / `:winamd64` (windows) images; the Windows arm64 app cross-builds its natives in the hub's `:winarm64` bundle and its Flutter part natively on `windows-11-arm` | ✔️ | ✔️ | ✔️ | ✔️ | ✔️ |
-| **Native Integration** | GTK Integration | N/A | ✔️ | ✔️ | ❌ | N/A |
-| | Win32 API | ✔️ | N/A | N/A | N/A | N/A |
-| | Android NDK | N/A | N/A | N/A | N/A | ✔️ |
-| **Bridge Layer** | flutter_rust_bridge | ✔️ | ✔️ | ✔️ | ❌ | ✔️ |
-| **Compiler** | Clang-CL | ✔️ | N/A | N/A | N/A | N/A |
-| | GCC/Clang | N/A | ✔️ | ✔️ | ✔️ | ✔️ |
-
-### Testing & Quality Assurance
-
-| Category | Feature | Win x64 | Linux x64 | Linux ARM64 | Linux RISC-V | Android |
-|----------|---------|:-------:|:---------:|:-----------:|:------------:|:-------:|
-| **Unit Testing** | Advanced unit testing | 🔶 | 🔶 | 🔶 | 🔶 | 🔶 |
-| **Performance** | Advanced performance testing | 🔶 | 🔶 | 🔶 | 🔶 | 🔶 |
-| **Security** | Advanced fuzz testing | 🔶 | 🔶 | 🔶 | 🔶 | 🔶 |
-
-### Frontend Platforms
-
-| Category | Feature | Win x64 | Linux x64 | Linux ARM64 | Linux RISC-V | Android |
-|----------|---------|:-------:|:---------:|:-----------:|:------------:|:-------:|
-| **Flutter UI** | Flutter Web Support | ✔️ | ✔️ | ✔️ | ✔️ | ✔️ |
-| | Flutter Desktop | ✔️ | ✔️ | ✔️ | ❌ | N/A |
-| | Flutter Mobile | N/A | N/A | N/A | N/A | ✔️ |
+| Area | Category | Feature | Win x64 | Linux x64 | Linux ARM64 | Linux RISC-V | Android |
+| --- | --- | --- | :---: | :---: | :---: | :---: | :---: |
+| Core features | **Camera Streaming** | GStreamer WebRTC Livestream | ✔️ | ✔️ | ✔️ | ✔️ | N/A |
+| | | Local Webcam ONNX Inference (Rust) | ✔️ | 🔶 | 🔶 | ❌ | ❌ |
+| | **Supported Cameras** | USB Devices | ✔️ | ✔️ | ✔️ | ✔️ | N/A |
+| | | Raspberry Pi Camera | N/A | N/A | ✔️ | N/A | N/A |
+| | | Native Camera API | N/A | N/A | N/A | N/A | ✔️ |
+| Infrastructure & build | **Containerization** | Builds in ANTfrastructure `:latest` (linux) / `:winamd64` (windows) images; the Windows arm64 app cross-builds its natives in the hub's `:winarm64` bundle and its Flutter part natively on `windows-11-arm` | ✔️ | ✔️ | ✔️ | ✔️ | ✔️ |
+| | **Native Integration** | GTK Integration | N/A | ✔️ | ✔️ | ❌ | N/A |
+| | | Win32 API | ✔️ | N/A | N/A | N/A | N/A |
+| | | Android NDK | N/A | N/A | N/A | N/A | ✔️ |
+| | **Bridge Layer** | flutter_rust_bridge | ✔️ | ✔️ | ✔️ | ❌ | ✔️ |
+| | **Compiler** | Clang-CL | ✔️ | N/A | N/A | N/A | N/A |
+| | | GCC/Clang | N/A | ✔️ | ✔️ | ✔️ | ✔️ |
+| Testing & quality assurance | **Unit Testing** | Advanced unit testing | 🔶 | 🔶 | 🔶 | 🔶 | 🔶 |
+| | **Performance** | Advanced performance testing | 🔶 | 🔶 | 🔶 | 🔶 | 🔶 |
+| | **Security** | Advanced fuzz testing | 🔶 | 🔶 | 🔶 | 🔶 | 🔶 |
+| Frontend platforms | **Flutter UI** | Flutter Web Support | ✔️ | ✔️ | ✔️ | ✔️ | ✔️ |
+| | | Flutter Desktop | ✔️ | ✔️ | ✔️ | ❌ | N/A |
+| | | Flutter Mobile | N/A | N/A | N/A | N/A | ✔️ |
 
 On RISC-V only ObservANT builds (its `.deb`, natively on the X100); no lane builds the Flutter
 app for it, so the app-side rows read ❌ there. The Rust camera view runs on Windows and Linux

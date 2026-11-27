@@ -5,6 +5,34 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ## Unreleased
 
+### 2026-11-27 — the Windows packagers share one installer plan and licence check
+
+- `Package-OmniAccelerANT.ps1` and `Package-ObservANT.ps1` each ran their own copy of the same three licence checks
+  on their MSI and MSIX: the project `LICENSE` in Flutter's `NOTICES`, the third-party inventory and ONNX Runtime's
+  wheel texts. `WindowsAppInstallers.Common` now holds them once in `Assert-AppInstallerLicense`, and
+  `New-AppInstallerPlan` states once per app what both installers share; `New-AppMsi` and `New-AppMsix` build from
+  it, and `License.rtf` is `New-AppMsi`'s default. Same checks, same order, same files. `ThirdPartyLicense.Tests.ps1`
+  runs the check on synthetic archives and recorded hub calls; ten mutations of it go red.
+- `overview.md`'s four feature tables are one table with an Area column; every row and status stays.
+- Both `code-dupes.allow` rows go. One row is left (budget 103), and the scan's findings fall from 71 to 69.
+
+### 2026-11-27 — the Linux packages name Wayland's client libraries
+
+- Flutter 3.50's `libflutter_linux_gtk.so` needs `libwayland-client.so.0` and `libwayland-egl.so.1`, so the bundle
+  now ships both, and every Linux package failed its inventory check (`has no component in
+  native-components.json`) once the text generation test no longer aborted first. `native-components.json` gains
+  the `wayland` component (MIT) with upstream's `COPYING`; the inventory and docs/source/third-party-components.md
+  are regenerated.
+
+### 2026-11-27 — the first C++ exception no longer aborts the Linux app
+
+- Flutter 3.50's `libflutter_linux_gtk.so` exports LLVM libunwind's `_Unwind_*`, and the runner loaded it ahead
+  of libgcc_s. GenAI's refusal of a missing model directory, a caught exception, then aborted the app (SIGABRT in
+  `__cxa_call_terminate`), and every later text generation test reported `did not complete` (hub develop-red #408
+  on x64, #411 on arm64). `linux/CMakeLists.txt` links `gcc_s` before `flutter`; `check-unwinder-order.sh` fails a
+  release bundle whose load order puts another `_Unwind_RaiseException` first, and its suite plants both orders.
+  docs/source/platforms.md § Two unwinders has the trace.
+
 ### 2026-11-25 — the NVIDIA AppImage passes with the core the bundle ships
 
 - `verify-gpu-candidate.sh` calls the hub's AppImage check with `--nvidia-core libonnxruntime.so`: the bundle stages

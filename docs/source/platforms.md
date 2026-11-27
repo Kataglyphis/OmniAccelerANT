@@ -415,8 +415,11 @@ Three consequences, each easy to undo by accident:
 
 Since 2026-10-17 every release carries the app as an MSI and a signed MSIX for x64 and arm64,
 beside the zip. `scripts/windows/Package-OmniAccelerANT.ps1` makes both from the runner folder;
-`scripts/windows/modules/WindowsAppInstallers.Common.psm1` (`New-AppMsi`, `New-AppMsix`) holds
-the part ObservANT's packaging shares.
+`scripts/windows/modules/WindowsAppInstallers.Common.psm1` holds the part ObservANT's packaging
+shares. `New-AppInstallerPlan` names, once per app, the folder both installers pack, their arch,
+output and scratch paths and the licences they carry; `New-AppMsi` and `New-AppMsix` build from
+it, and `Assert-AppInstallerLicense` runs the same three checks on each installer: the project
+`LICENSE` in Flutter's `NOTICES`, the third-party inventory beside it, and the ONNX Runtime texts.
 
 - **Built where the app is**: the x64 lane's `build-clang` job on the `windows-2025` host and the
   arm64 lane's `app` job on `windows-11-arm`. Each installs WiX 7.0.0 (the image's pin) as a
@@ -662,6 +665,26 @@ for its own `cargo build`; keep it when bumping the vendored copy. The native Li
 with `check-rust-toolchain.sh --require-unwind`: a linux-gnu library that can unwind imports
 libgcc_s's `_Unwind_RaiseException`, one built to abort does not. Android links its unwinder
 statically, so its APK shows no such import.
+
+### Two unwinders
+
+**Symptom.** The Linux app dies with SIGABRT at the first C++ exception, even one its own library
+catches. The integration test reports `did not complete` for every test after it, and nothing
+reaches the log. The core's stack runs `__cxa_throw` → `_Unwind_RaiseException`
+(`libflutter_linux_gtk.so`) → `__gxx_personality_v0` → `__cxa_call_terminate`. Seen first in
+GenAI's refusal of a missing model directory.
+
+**Cause.** Flutter 3.50's engine library exports LLVM libunwind's `_Unwind_*` functions, which 3.47
+did not. The runner lists `libflutter_linux_gtk.so` first among its libraries, so the global lookup
+finds Flutter's `_Unwind_RaiseException` before libgcc_s's. `_Unwind_GetIPInfo` is not among the
+exports, so libstdc++'s personality reads Flutter's unwind context through libgcc_s and terminates.
+A Rust panic in `liboxidant` takes the same path.
+
+**Fix.** `linux/CMakeLists.txt` links `gcc_s` (with `--no-as-needed`) before `flutter`, so
+`libgcc_s.so.1` leads the runner's NEEDED list. `scripts/linux/check-unwinder-order.sh` fails the
+release bundle when any other object defines `_Unwind_RaiseException` ahead of libgcc_s in
+`ldd`'s load order; a launcher is graded by the `.bin` it starts. Its suite, `test-check-unwinder-order.sh`, runs with the script suites. The text
+generation test's missing-model case is the behavioural check.
 
 ### The Linux plugin's AccelerANTgine build
 

@@ -1,4 +1,2 @@
 # a | b | budget | reason -- pairs the duplicate-block scan keeps on purpose (hub docs/scripts/verify_code_dupes.py).
 scripts/licenses/texts/native/libjpeg-turbo/LICENSE.md | scripts/licenses/texts/native/pcre2/LICENCE.md | 103 | both ship the BSD licence verbatim; a licence text is never edited
-docs/source/overview.md | docs/source/overview.md | 71 | the feature tables repeat one header row on purpose, one table per topic
-scripts/windows/Package-OmniAccelerANT.ps1 | scripts/windows/observant/Package-ObservANT.ps1 | 46 | each packager builds its own MSI with its own WiX file, notice name and extensions, then the same three licence checks

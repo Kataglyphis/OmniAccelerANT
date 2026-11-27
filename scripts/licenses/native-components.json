@@ -913,6 +913,25 @@
    ]
   },
   {
+   "id": "wayland",
+   "name": "Wayland client libraries",
+   "license": "MIT",
+   "source": "https://gitlab.freedesktop.org/wayland/wayland",
+   "files": {
+    "linux": [
+     "libwayland-client.so*",
+     "libwayland-egl.so*"
+    ]
+   },
+   "texts": [
+    {
+     "path": "scripts/licenses/texts/native/wayland/COPYING",
+     "sha256": "6eefcb023622a463168a5c20add95fd24a38c7482622a9254a23b99b7c153061",
+     "provenance": "https://gitlab.freedesktop.org/wayland/wayland/-/raw/main/COPYING (fetched 2026-11-27)"
+    }
+   ]
+  },
+  {
    "id": "v4l-utils",
    "name": "libv4l (v4l-utils)",
    "license": "LGPL-2.1-or-later",

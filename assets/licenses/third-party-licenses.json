@@ -914,6 +914,25 @@
    "ecosystem": "native",
    "files": {
     "linux": [
+     "libwayland-client.so*",
+     "libwayland-egl.so*"
+    ]
+   },
+   "license": "MIT",
+   "name": "Wayland client libraries",
+   "source": "https://gitlab.freedesktop.org/wayland/wayland",
+   "texts": [
+    {
+     "name": "COPYING",
+     "provenance": "https://gitlab.freedesktop.org/wayland/wayland/-/raw/main/COPYING (fetched 2026-11-27)",
+     "sha256": "6eefcb023622a463168a5c20add95fd24a38c7482622a9254a23b99b7c153061"
+    }
+   ]
+  },
+  {
+   "ecosystem": "native",
+   "files": {
+    "linux": [
      "libv4l2.so*",
      "libv4lconvert.so*"
     ]
@@ -12039,7 +12058,7 @@
  "inputs": {
   "pubspec.lock": "f3f6ddaa2a031c8c5eb6f29445db844ef4c6422723aded603f17d7798ace9eac",
   "scripts/licenses/cargo-policy.json": "27c0d43b53f23f72f3b33f1b1e1078e03a28915d5888966a4c6d4d99d640a4b1",
-  "scripts/licenses/native-components.json": "ba1d9ea0ffb77a7d6ace8d8e267aab740bda618a36c20d51612e03db567ee8d8",
+  "scripts/licenses/native-components.json": "6b74c8aa9eba54db5c7506acdde5f3b3cfbee5f8b0f662144a5dc5f655fc4e70",
   "third_party/OxidANT/Cargo.lock": "31dcacb49bbdf1e1005adee83989c463ed62d30711b2b071efe8804b54a5054e"
  },
  "schema": 1,

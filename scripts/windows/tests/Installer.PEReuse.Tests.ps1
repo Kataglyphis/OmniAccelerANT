@@ -25,6 +25,26 @@ function Assert-InstallerChecksUseHubRunner {
     }
 }
 
+function Assert-PackagerLicenseWiring([string] $Relative, [string] $Notice, [string] $OrtSource, [string] $OrtText) {
+    $ast = Get-SiblingScriptAst $Relative
+    $plan = @(Get-TestAstCommands -Ast $ast -Name 'New-AppInstallerPlan')
+    Get-CommandTextCount $plan -Contains "-Notice '$Notice'", '-RepoRoot $repoRoot', '-OrtLicenseDirectory $ortLicenses' | Should Be 1
+    $source = @(Get-TestAstCommands -Ast $ast -Name $OrtSource)
+    Get-CommandTextCount $source -Contains $OrtText | Should Be 1
+    Get-ScriptCommandCount $ast 'Copy-OrtWheelLicenses' | Should Be ([int]($OrtSource -eq 'Copy-OrtWheelLicenses'))
+    $checks = @(Get-TestAstCommands -Ast $ast -Name 'Assert-AppInstallerLicense')
+    $checks.Count | Should Be 2
+    foreach ($installer in 'Msi', 'Msix') {
+        $built = @(Get-TestAstCommands -Ast $ast -Name "New-App$installer")
+        $check = @($checks | Where-Object { $_.Extent.Text -ceq "Assert-AppInstallerLicense -Plan `$plan -Path `$plan.$installer" })
+        "$($built.Count) $($check.Count)" | Should Be '1 1'
+        Test-CommandAfter $check[0] $built[0] | Should Be $true
+    }
+    # Only the shared check verifies an installer; ObservANT's zip keeps its own ONNX Runtime check.
+    foreach ($name in 'Assert-MsiPackageLicense', 'Assert-PackageLicense', 'Assert-ThirdPartyLicensePackage') { Get-ScriptCommandCount $ast $name | Should Be 0 }
+    Get-ScriptCommandCount $ast 'Assert-OrtWheelLicensesInPackage' | Should Be ([int]($OrtSource -eq 'Copy-OrtWheelLicenses'))
+}
+
 function Assert-GpuPackageByteCheck {
     $ast = Get-TestScriptAst -ScriptPath (Join-Path $PSScriptRoot '..\Package-OmniAccelerANT.ps1')
     $text = $ast.Extent.Text
@@ -98,44 +118,17 @@ Describe 'Installer shared Windows checks' {
         Assert-TestAstCommand -Command $calls -Text 'Initialize-BuildDirectory -Path @($signing, $stage) -Empty'
     }
 
-    It 'checks the project license in the built MSI and MSIX through the hub' {
-        foreach ($case in @(
-                @{ Path = 'Package-OmniAccelerANT.ps1'; Msi = 'NOTICES.Z'; Msix = 'flutter_assets/NOTICES.Z' },
-                @{ Path = 'observant/Package-ObservANT.ps1'; Msi = 'NOTICES'; Msix = 'web/assets/NOTICES' }
-            )) {
-            $ast = Get-SiblingScriptAst $case.Path
-            $msi = @(Get-TestAstCommands -Ast $ast -Name 'Assert-MsiPackageLicense')
-            $msix = @(Get-TestAstCommands -Ast $ast -Name 'Assert-PackageLicense')
-            $msi.Count | Should Be 1
-            $msix.Count | Should Be 1
-            $msi[0].Extent.Text.Contains($case.Msi) | Should Be $true
-            $msix[0].Extent.Text.Contains($case.Msix) | Should Be $true
-            $msi[0].Extent.Text.Contains("'LICENSE'") | Should Be $true
-            $msix[0].Extent.Text.Contains("'LICENSE'") | Should Be $true
-        }
+    It 'checks both installers of both packagers through one plan and the shared licence check (mutation)' {
+        # The host-side app packager takes the texts the image build matched and stamped; ObservANT packs in the image.
+        Assert-PackagerLicenseWiring -Relative 'Package-OmniAccelerANT.ps1' -Notice '*flutter_assets/NOTICES.Z' -OrtSource 'Resolve-RunnerOrtLicense' -OrtText '-RunnerDir $AppDir'
+        Assert-PackagerLicenseWiring -Relative 'observant/Package-ObservANT.ps1' -Notice '*web/assets/NOTICES' -OrtSource 'Copy-OrtWheelLicenses' -OrtText 'Get-OrtChainWheelStore'
+        $zip = @(Get-TestAstCommands -Ast (Get-SiblingScriptAst 'observant/Package-ObservANT.ps1') -Name 'Assert-OrtWheelLicensesInPackage')
+        Assert-TestAstCommand -Command $zip -Text 'Assert-OrtWheelLicensesInPackage -Path $zip -LicenseDirectory $ortLicenses -Format archive -ArchivePrefix $package'
     }
 
     It 'gives the x64 host packager a real Python before its native-license gate (mutation)' {
         $yaml = [IO.File]::ReadAllText((Join-Path $PSScriptRoot '..\..\..\.github\workflows\windows-x64.yml'))
         Test-TextOrder -Text $yaml -Marker 'uses: actions/setup-python@', 'Package-OmniAccelerANT.ps1 -AppDir $env:BUILD_DIR_RELEASE' | Should Be $true
-    }
-
-    It 'copies wheel-matched ONNX texts and checks every Windows package' {
-        # The host-side app packager takes the texts the image build matched and stamped; ObservANT packs in the image.
-        foreach ($case in @(
-                @{ Path = 'Package-OmniAccelerANT.ps1'; Checks = 2; Name = 'Resolve-RunnerOrtLicense'; Text = '-RunnerDir $AppDir' },
-                @{ Path = 'observant/Package-ObservANT.ps1'; Checks = 3; Name = 'Copy-OrtWheelLicenses'; Text = 'Get-OrtChainWheelStore' }
-            )) {
-            $ast = Get-SiblingScriptAst $case.Path
-            $commands = @(Get-TestAstCommands -Ast $ast -Name $case.Name)
-            $checks = @(Get-TestAstCommands -Ast $ast -Name 'Assert-OrtWheelLicensesInPackage')
-            $commands.Count | Should Be 1
-            $commands[0].Extent.Text.Contains($case.Text) | Should Be $true
-            Get-ScriptCommandCount $ast 'Copy-OrtWheelLicenses' | Should Be ([int]($case.Name -eq 'Copy-OrtWheelLicenses'))
-            $checks.Count | Should Be $case.Checks
-            Get-CommandTextCount $checks -Contains '-Format msi', '-WixPath $fragment' | Should Be 1
-            Get-CommandTextCount $checks -Contains '-Format archive' | Should Be ($case.Checks - 1)
-        }
     }
 
     It 'checks GPU runtime and app bytes in both installers using their real package mappings' { Assert-GpuPackageByteCheck }
