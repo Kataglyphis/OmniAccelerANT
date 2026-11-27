@@ -61,6 +61,9 @@ add_executable(${BINARY_NAME} "main.cc" "my_application.cc" "${FLUTTER_MANAGED_D
 
 apply_standard_settings(${BINARY_NAME})
 
+# Flutter 3.50's engine exports _Unwind_*; libgcc_s must load first. See docs/source/platforms.md § Two unwinders
+target_link_libraries(${BINARY_NAME} PRIVATE "-Wl,--push-state,--no-as-needed" gcc_s "-Wl,--pop-state")
+
 # Add dependency libraries. Add any application-specific dependencies here.
 target_link_libraries(${BINARY_NAME} PRIVATE flutter)
 target_link_libraries(${BINARY_NAME} PRIVATE PkgConfig::GTK)
