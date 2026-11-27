@@ -59,7 +59,7 @@ function Assert-GpuPackageByteCheck {
     $checks.Count | Should Be 2
     Get-CommandTextCount $checks -Contains '"$base.msi"', '-Member $gpuMsiIds', '-SourcePath $gpuPaths' | Should Be 1
     Get-CommandTextCount $checks -Contains '"$base.msix"', '-Member $gpuFiles', '-SourcePath $gpuPaths' | Should Be 1
-    $inventories = @(Get-TestAstCommands -Ast $ast -Name 'Get-PackageOrtProviderNames')
+    $inventories = @(Get-TestAstCommands -Ast $ast -Name 'Assert-PackageOrtProviderSet')
     $inventories.Count | Should Be 2
     Get-CommandTextCount $inventories -Contains '-RootDirectoryId APPLICATIONFOLDER' | Should Be 1
     $proofs = @(Get-TestAstCommands -Ast $ast -Name 'Assert-WindowsInstallerCandidate')

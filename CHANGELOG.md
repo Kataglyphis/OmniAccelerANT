@@ -5,6 +5,12 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ## Unreleased
 
+### 2026-11-27 — the GPU installers' provider check is the hub's
+
+- `Package-OmniAccelerANT.ps1` checks the GPU MSI's and MSIX's ORT providers with the hub's
+  `Assert-PackageOrtProviderSet` instead of two hand comparisons (hub #364); `Test-WindowsGpuPins.ps1` asks the pinned
+  hub for it, and `Installer.PEReuse.Tests.ps1` pins both calls. The hub pin moves to 5f8bc07ae.
+
 ### 2026-11-27 — the Windows packagers share one installer plan and licence check
 
 - `Package-OmniAccelerANT.ps1` and `Package-ObservANT.ps1` each ran their own copy of the same three licence checks
