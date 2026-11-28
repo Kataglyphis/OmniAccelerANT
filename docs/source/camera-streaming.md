@@ -342,7 +342,9 @@ host runtime.
 `scripts/linux/check-knt-abi.sh` verifies the C ABI the Rust webcam engine depends on:
 `knt_api_version` and `knt_push_frame` are exported from the built plugin, callable from
 outside the library, and return their documented error codes (`-1` bad arguments, `-2`
-unknown texture id). Its Windows twin, `scripts/windows/Test-KntAbi.ps1`, loads the plugin
+unknown texture id). Bad arguments are a null buffer, a zero side, or a size whose RGBA byte
+count does not fit `size_t`, such as 2^31 x 2^31; both plugins' gtests hold them to that
+through `shared/texture_abi_cases.inc`. The script's Windows twin, `scripts/windows/Test-KntAbi.ps1`, loads the plugin
 DLL into `pwsh` on the device: `windows-x64.yml` runs it on the host after the container
 build, `windows-arm64.yml` on `windows-11-arm`.
 

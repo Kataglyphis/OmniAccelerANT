@@ -38,10 +38,10 @@ void KataglyphisTexture::SetTextureRegistrar(flutter::TextureRegistrar *registra
 
 bool KataglyphisTexture::PushFrame(const uint8_t *rgba, uint32_t width, uint32_t height)
 {
-    if (!rgba || width == 0 || height == 0) { return false; }
+    const size_t size = BufferBytes(width, height);
+    if (!rgba || size == 0) { return false; }
     {
         std::lock_guard<std::mutex> lock(frame_mutex_);
-        const size_t size = BufferBytes(width, height);
         if (width != width_ || height != height_) {
             buffer_.reset(new uint8_t[size]);
             width_ = width;
@@ -118,7 +118,7 @@ void UnregisterPushTarget(int64_t texture_id)
 int32_t knt_push_frame(int64_t texture_id, const uint8_t *rgba, uint32_t width, uint32_t height)
 {
     using namespace kataglyphis_native_inference;
-    if (!rgba || width == 0 || height == 0) { return KNT_BAD_ARGUMENTS; }
+    if (!rgba || KataglyphisTexture::BufferBytes(width, height) == 0) { return KNT_BAD_ARGUMENTS; }
     // Held across PushFrame so the texture cannot be destroyed mid-copy.
     std::lock_guard<std::mutex> lock(g_push_targets_mutex);
     auto it = PushTargets().find(texture_id);

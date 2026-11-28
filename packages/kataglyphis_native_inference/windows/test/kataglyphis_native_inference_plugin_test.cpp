@@ -77,6 +77,10 @@ namespace test {
         // In uint32_t, 65536 x 65536 wrapped to 0, and a same-size PushFrame then copied 16 GiB into it.
         EXPECT_EQ(KataglyphisTexture::BufferBytes(65536, 65536), size_t{ 1 } << 34);
         EXPECT_EQ(KataglyphisTexture::BufferBytes(3, 2), size_t{ 24 });
+        // In size_t, 2^31 x 2^31 x 4 wraps to 0; one row fewer is the largest that fits.
+        EXPECT_EQ(KataglyphisTexture::BufferBytes(1U << 31, (1U << 31) - 1U), SIZE_MAX - (size_t{ 1 } << 33) + 1U);
+        EXPECT_EQ(KataglyphisTexture::BufferBytes(1U << 31, 1U << 31), size_t{ 0 });
+        EXPECT_EQ(KataglyphisTexture::BufferBytes(UINT32_MAX, UINT32_MAX), size_t{ 0 });
     }
 
     TEST(KataglyphisTexture, SetColorRepaintsEveryPixelOpaque)

@@ -76,6 +76,20 @@ namespace test {
 
 #include "../../shared/texture_abi_cases.inc"
 
+    TEST(MyTexture, ASizeWhoseByteCountWrapsIsRefused)
+    {
+        EXPECT_EQ(my_texture_frame_bytes(3, 2), size_t{ 24 });
+        EXPECT_EQ(my_texture_frame_bytes(65536, 65536), size_t{ 1 } << 34);
+        // The largest that fits: one row short of 2^31 x 2^31, whose 2^64 bytes wrap to 0.
+        EXPECT_EQ(my_texture_frame_bytes(1U << 31, (1U << 31) - 1U), SIZE_MAX - (size_t{ 1 } << 33) + 1U);
+        EXPECT_EQ(my_texture_frame_bytes(1U << 31, 1U << 31), size_t{ 0 });
+        EXPECT_EQ(my_texture_frame_bytes(UINT32_MAX, UINT32_MAX), size_t{ 0 });
+        EXPECT_EQ(my_texture_frame_bytes(0, 7), size_t{ 0 });
+        FlTexture *texture = my_texture_new(1U << 31, 1U << 31, 1, 2, 3);
+        EXPECT_EQ(texture, nullptr);
+        if (texture != nullptr) { g_object_unref(texture); }
+    }
+
     TEST(MyTexture, HasPushedFrameFollowsTheRegistry)
     {
         AbiTexture texture(2, 2, 0, 0, 255);

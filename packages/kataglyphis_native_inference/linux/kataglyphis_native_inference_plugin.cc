@@ -83,14 +83,19 @@ static FlMethodResponse *handle_create(KataglyphisNativeInferencePlugin *self, F
 
     const uint32_t width = clamp_to_u32(fl_value_get_int(width_value));
     const uint32_t height = clamp_to_u32(fl_value_get_int(height_value));
-    if (width == 0U || height == 0U) {
-        return FL_METHOD_RESPONSE(fl_method_error_response_new("bad_args", "Width and height must be > 0", nullptr));
+    // 0 for a zero side, and for 2^31 x 2^31, whose byte count wraps size_t.
+    if (my_texture_frame_bytes(width, height) == 0U) {
+        return FL_METHOD_RESPONSE(fl_method_error_response_new(
+          "bad_args", "Width and height must be > 0, and their RGBA bytes must fit in size_t", nullptr));
     }
 
     FlEngine *engine = fl_view_get_engine(self->view);
     FlTextureRegistrar *texture_registrar = fl_engine_get_texture_registrar(engine);
 
     self->texture = my_texture_new(width, height, 0x05U, 0x53U, 0xb1U);
+    if (self->texture == nullptr) {
+        return FL_METHOD_RESPONSE(fl_method_error_response_new("create_failed", "Failed to allocate texture", nullptr));
+    }
 
     // Pushed frames reach Flutter through the registrar.
     my_texture_set_texture_registrar(self->texture, texture_registrar);

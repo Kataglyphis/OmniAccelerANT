@@ -32,6 +32,18 @@ TEST(TextureAbi, BadArgumentsAreRefusedAndChangeNothing)
     AbiTexture::unregister(7102);
 }
 
+// 2^31 x 2^31 x 4 wraps a 64-bit size_t to 0, so an unchecked copy of nothing would be reported as that frame.
+TEST(TextureAbi, ASizeWhoseByteCountWrapsIsRefusedAndChangesNothing)
+{
+    AbiTexture texture(1, 1, 9, 9, 9);
+    texture.register_as(7106);
+    const std::vector<uint8_t> pixel{ 1, 2, 3, 4 };
+    EXPECT_EQ(knt_push_frame(7106, pixel.data(), 1U << 31, 1U << 31), KNT_BAD_ARGUMENTS);
+    EXPECT_EQ(knt_push_frame(7106, pixel.data(), UINT32_MAX, UINT32_MAX), KNT_BAD_ARGUMENTS);
+    EXPECT_EQ(texture.frame().bytes, (std::vector<uint8_t>{ 9, 9, 9, 255 }));
+    AbiTexture::unregister(7106);
+}
+
 // Owner decision 2026-11-13: Windows is the rule, so the texture takes the pushed frame's size and its alpha as sent.
 TEST(TextureAbi, APushedFrameWinsAtItsOwnSizeWithItsAlphaAsSent)
 {

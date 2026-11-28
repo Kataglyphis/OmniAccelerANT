@@ -1,10 +1,15 @@
 module;
 
+#include <cstddef>
 #include <cstdint>
 #include <flutter_linux/flutter_linux.h>
 
 export module kataglyphis.my_texture;
 
+// Bytes of one packed RGBA frame, or 0 for a zero side or a count size_t cannot hold.
+export size_t my_texture_frame_bytes(uint32_t width, uint32_t height);
+
+// nullptr when the frame's bytes do not fit or cannot be allocated.
 export FlTexture *my_texture_new(uint32_t width, uint32_t height, uint8_t r, uint8_t g, uint8_t b);
 
 export void my_texture_set_color(FlTexture *texture, uint8_t r, uint8_t g, uint8_t b);

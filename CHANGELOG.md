@@ -5,7 +5,17 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ## Unreleased
 
-### 2026-11-28 — the rust-stamp gate names an ELF without a stamp, and the web lane keeps its sccache drain
+### 2026-11-28 — the Linux texture refuses a size whose bytes wrap, the rust-stamp gate names a stamp-less ELF, and the web lane keeps its sccache drain
+
+- The Linux texture sized `create` and `knt_push_frame` as `width * height * 4` in `size_t`, which wraps to 0 at
+  2^31 x 2^31: `malloc(0)` handed back a block the queued colour then overran on the raster thread, and a push of
+  that size copied nothing and reported a frame. `my_texture_frame_bytes` returns 0 for a zero side or a count
+  `size_t` cannot hold; `create` answers `bad_args` for it and `create_failed` when the allocation fails, where
+  `my_texture_new` now returns `nullptr`, and `knt_push_frame` answers `KNT_BAD_ARGUMENTS`. The Windows
+  `BufferBytes` and `knt_push_frame` follow, so the ABI stays one: the shared case
+  `TextureAbi.ASizeWhoseByteCountWrapsIsRefusedAndChangesNothing` failed on both textures before (Linux returned
+  `KNT_OK`, Windows `KNT_OK` and then aborted on a 16 EiB `new`), as did `MyTexture.ASizeWhoseByteCountWrapsIsRefused`.
+  Both gtests ran under ASan and UBSan in WSL against stub Flutter headers; a `>=` mutant of either check fails them.
 
 - The web lane's smoke server set `trap … EXIT` in the lane's own shell, which replaced the sccache drain
   `setup_compiler_cache` had installed there, so a local run with the S3 level dropped the wasm build's queued

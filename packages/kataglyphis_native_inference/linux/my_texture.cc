@@ -138,7 +138,7 @@ static gboolean my_texture_copy_pixels(FlPixelBufferTexture *texture,
     (void)error;
     MyTexture *self = MY_TEXTURE(texture);
 
-    // A failed allocation leaves buffer null; failing makes Flutter skip the frame instead of crashing.
+    // Null only once disposed; failing makes Flutter skip the frame instead of crashing.
     if (!self->buffer) { return FALSE; }
 
     // A pushed frame wins over the colour at its own size, alpha as sent: Windows' rule (owner decision).
@@ -219,18 +219,25 @@ static void my_texture_init(MyTexture *self)
     g_mutex_init(&self->buffer_mutex);
 }
 
+size_t my_texture_frame_bytes(uint32_t width, uint32_t height)
+{
+    // 2^31 x 2^31 wraps a 64-bit size_t to 0, and malloc(0) hands back a block the colour fill then overruns.
+    if (width == 0U || height == 0U || height > SIZE_MAX / 4U / width) { return 0U; }
+    return static_cast<size_t>(width) * height * 4U;
+}
+
 FlTexture *my_texture_new(uint32_t width, uint32_t height, uint8_t r, uint8_t g, uint8_t b)
 {
+    const size_t buffer_bytes = my_texture_frame_bytes(width, height);
+    uint8_t *buffer = buffer_bytes == 0U ? nullptr : static_cast<uint8_t *>(malloc(buffer_bytes));
+    if (!buffer) {
+        g_warning("[my_texture] cannot allocate a %ux%u RGBA texture", width, height);
+        return nullptr;
+    }
     MyTexture *self = MY_TEXTURE(g_object_new(my_texture_get_type(), nullptr));
     self->width = width;
     self->height = height;
-    // size_t: the 32-bit product wraps past ~4096x4096 and would under-allocate.
-    const size_t buffer_bytes = static_cast<size_t>(width) * static_cast<size_t>(height) * 4U;
-    self->buffer = static_cast<uint8_t *>(malloc(buffer_bytes));
-    if (!self->buffer) {
-        g_warning("[my_texture] out of memory for a %ux%u texture (%zu bytes)", width, height, buffer_bytes);
-        return FL_TEXTURE(self);
-    }
+    self->buffer = buffer;
     self->buffer_capacity = buffer_bytes;
     memset(self->buffer, 0, buffer_bytes);
 
@@ -315,7 +322,9 @@ extern "C" {
 // 0 on success; -1 bad arguments, -2 unknown texture id, -3 copy failed (the Windows codes).
 int32_t knt_push_frame(int64_t texture_id, const uint8_t *rgba, uint32_t width, uint32_t height)
 {
-    if (!rgba || width == 0U || height == 0U) { return KNT_BAD_ARGUMENTS; }
+    // 0 for a zero side, and for a size whose byte count would wrap and copy nothing.
+    const size_t needed = my_texture_frame_bytes(width, height);
+    if (!rgba || needed == 0U) { return KNT_BAD_ARGUMENTS; }
 
     // Held across the copy so the texture cannot be destroyed mid-memcpy.
     g_mutex_lock(PushTargetsMutex());
@@ -325,8 +334,6 @@ int32_t knt_push_frame(int64_t texture_id, const uint8_t *rgba, uint32_t width, 
         return KNT_UNKNOWN_TEXTURE;
     }
     MyTexture *self = it->second;
-
-    const size_t needed = static_cast<size_t>(width) * static_cast<size_t>(height) * 4U;
 
     g_mutex_lock(&self->pushed_mutex);
     if (self->pushed_capacity < needed) {
