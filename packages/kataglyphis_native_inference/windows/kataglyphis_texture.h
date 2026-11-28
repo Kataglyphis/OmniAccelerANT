@@ -36,9 +36,7 @@ class KataglyphisTexture
 
     /// Bytes of one packed RGBA frame, in size_t so a frame of 2^32 pixels or more does not wrap.
     static constexpr size_t BufferBytes(uint32_t width, uint32_t height)
-    {
-        return static_cast<size_t>(width) * height * kBytesPerPixel;
-    }
+    { return static_cast<size_t>(width) * height * kBytesPerPixel; }
 
   private:
     static constexpr size_t kBytesPerPixel = 4;

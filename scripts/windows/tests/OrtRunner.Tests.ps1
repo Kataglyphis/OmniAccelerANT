@@ -62,11 +62,14 @@ Describe 'WindowsOrtRunner.Common' {
             New-TestZipFile -Path $Path -Member $member -FileValues
             Remove-TestDir -Path $texts
         }
+        # An image's free-threaded store would join G6's reference set, so each case gets its own, empty one.
         function Invoke-WithOnnxRoot([string] $Root, [scriptblock] $Block) {
-            $saved = $env:ONNX_ROOT, $env:PYTHON_WHEELS
+            $saved = $env:ONNX_ROOT, $env:PYTHON_WHEELS, $env:PYTHON_WHEELS_FREE_THREADED, $env:PYTHON_WHEELS_CP314T
             $env:ONNX_ROOT = $Root
             $env:PYTHON_WHEELS = Join-Path $Root 'wheels'
-            try { & $Block } finally { $env:ONNX_ROOT, $env:PYTHON_WHEELS = $saved }
+            $env:PYTHON_WHEELS_FREE_THREADED = Join-Path $Root 'wheels-free-threaded'
+            $env:PYTHON_WHEELS_CP314T = $null
+            try { & $Block } finally { $env:ONNX_ROOT, $env:PYTHON_WHEELS, $env:PYTHON_WHEELS_FREE_THREADED, $env:PYTHON_WHEELS_CP314T = $saved }
         }
     }
 

@@ -27,7 +27,12 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
   eight `OrtRunner` cases that run G6 (the hub's provenance module reads Windows paths) skip off Windows. Under pwsh
   7.6 and Pester 6.2.0 on Linux 72 pass and 16 skip; on Windows all 88 still pass.
   Linux x64's `pester-linux` job runs them in the image through the hub's `Invoke-PesterSuite.ps1` (hub pin
-  b224ed005).
+  b224ed005). Its first run was red (#421): the image's `PYTHON_WHEELS_FREE_THREADED` names
+  `/opt/wheels-free-threaded`, whose chain ORT twins joined G6's reference set in the CUDA provider case. Each
+  `OrtRunner` case now gets its own empty free-threaded store; with a foreign twin in that variable the case fails
+  before the fix and passes after it.
+- `KataglyphisTexture::BufferBytes` takes clang-format 23.1.5's one-line body; the Linux x64 and arm64 code-quality
+  steps refused the four-line form (#421, #422).
 - Both plugin gtests fetch googletest 1.18.0 as its release asset, `googletest-1.18.0.tar.gz`, checked by
   `URL_HASH SHA256=6e3191c1…`, the digest GitHub publishes for the asset; the generated tag zip they fetched before
   was checked by nothing. The hub's Renovate refuses to move a URL behind a `URL_HASH`, so a bump moves both by hand.
