@@ -1,17 +1,19 @@
 #requires -Version 7.0
 
 Describe 'Windows GPU preflight' {
-    Import-Module (Join-Path $PSScriptRoot '..\modules\WindowsGpuBuild.Common.psm1') -Force
-    $workspace = (Resolve-Path (Join-Path $PSScriptRoot '..\..\..')).Path
-    Import-Module (Join-Path $PSScriptRoot 'OmniTestFixtures.psm1') -Force
-    Import-Module (Join-Path $PSScriptRoot '..\..\..\third_party\ANTfrastructure\windows\scripts\tests\TestHarness.psm1') -Function Invoke-WithTestFunction -ErrorAction Stop
-    function Get-CandidateError([string] $Runner) { Get-ThrowMessage { Assert-WindowsInstallerCandidate -RunnerDir $Runner } }
-    function New-CandidateDir([string] $Name) {
-        $path = Join-Path $TestDrive $Name
-        New-Item -ItemType Directory -Force -Path $path | Out-Null
-        return $path
+    BeforeAll {
+        Import-Module (Join-Path $PSScriptRoot '..\modules\WindowsGpuBuild.Common.psm1') -Force
+        $script:workspace = (Resolve-Path (Join-Path $PSScriptRoot '..\..\..')).Path
+        Import-Module (Join-Path $PSScriptRoot 'OmniTestFixtures.psm1') -Force
+        Import-Module (Join-Path $PSScriptRoot '..\..\..\third_party\ANTfrastructure\windows\scripts\tests\TestHarness.psm1') -Function Invoke-WithTestFunction -ErrorAction Stop
+        function Get-CandidateError([string] $Runner) { Get-ThrowMessage { Assert-WindowsInstallerCandidate -RunnerDir $Runner } }
+        function New-CandidateDir([string] $Name) {
+            $path = Join-Path $TestDrive $Name
+            New-Item -ItemType Directory -Force -Path $path | Out-Null
+            return $path
+        }
+        function Read-RepoText([string] $Relative) { return Get-Content -LiteralPath (Join-Path $script:workspace $Relative) -Raw }
     }
-    function Read-RepoText([string] $Relative) { return Get-Content -LiteralPath (Join-Path $workspace $Relative) -Raw }
 
     BeforeEach {
         $script:oldCopy = Get-Item Function:\global:Copy-ChainOrtBeside -ErrorAction SilentlyContinue
@@ -43,14 +45,14 @@ Describe 'Windows GPU preflight' {
     }
 
     It 'keeps the CPU path independent of the new GPU capabilities' {
-        Get-ThrowMessage { Assert-WindowsGpuBuild -Provider cpu -Workspace $workspace -OxidantDir 'missing' } | Should Be ''
+        Get-ThrowMessage { Assert-WindowsGpuBuild -Provider cpu -Workspace $script:workspace -OxidantDir 'missing' } | Should -Be ''
     }
 
     It 'requires no built-in MSIX packaging for either GPU provider' {
-        Get-ThrowMessage { Assert-WindowsGpuPackagingMode -Provider cpu } | Should Be ''
+        Get-ThrowMessage { Assert-WindowsGpuPackagingMode -Provider cpu } | Should -Be ''
         foreach ($provider in 'cuda', 'directml') {
-            Get-ThrowMessage { Assert-WindowsGpuPackagingMode -Provider $provider } | Should Match 'require -SkipMsixPackaging'
-            Get-ThrowMessage { Assert-WindowsGpuPackagingMode -Provider $provider -SkipMsixPackaging } | Should Be ''
+            Get-ThrowMessage { Assert-WindowsGpuPackagingMode -Provider $provider } | Should -Match 'require -SkipMsixPackaging'
+            Get-ThrowMessage { Assert-WindowsGpuPackagingMode -Provider $provider -SkipMsixPackaging } | Should -Be ''
         }
     }
 
@@ -58,29 +60,29 @@ Describe 'Windows GPU preflight' {
         $runner = New-CandidateDir 'candidate'
         $exe = Join-Path $runner 'omni_accelerant.exe'
         [IO.File]::WriteAllBytes($exe, [Text.Encoding]::ASCII.GetBytes('ordinary CPU runner'))
-        Get-CandidateError $runner | Should Be ''
+        Get-CandidateError $runner | Should -Be ''
         foreach ($provider in 'cuda', 'directml') {
             $bytes = [Text.Encoding]::ASCII.GetBytes(('x' * 65530) + "OMNI_ACCELERANT_GPU_VARIANT_${provider}_V1")
             [IO.File]::WriteAllBytes($exe, $bytes)
-            Get-CandidateError $runner | Should Match 'GPU-marked runner'
+            Get-CandidateError $runner | Should -Match 'GPU-marked runner'
         }
         [IO.File]::WriteAllBytes($exe, [Text.Encoding]::ASCII.GetBytes('ordinary CPU runner'))
         Set-Content -LiteralPath (Join-Path $runner 'onnxruntime_providers_cuda.dll') -Value 'fixture'
-        Get-CandidateError $runner | Should Match 'CUDA runner'
+        Get-CandidateError $runner | Should -Match 'CUDA runner'
     }
 
     It 'checks the executable before creating installer outputs' {
         $packager = Read-RepoText 'scripts\windows\Package-OmniAccelerANT.ps1'
-        Test-TextBefore -Text $packager -First 'Assert-WindowsInstallerCandidate -RunnerDir $AppDir' -Later 'New-AppMsi', 'New-AppMsix' | Should Be $true
+        Test-TextBefore -Text $packager -First 'Assert-WindowsInstallerCandidate -RunnerDir $AppDir' -Later 'New-AppMsi', 'New-AppMsix' | Should -Be $true
     }
 
     It 'publishes GPU installer candidates only after both finished-package checks' {
         $packager = Read-RepoText 'scripts\windows\Package-OmniAccelerANT.ps1'
         $publish = 'Move-Item -LiteralPath $outRoot -Destination $gpuDestination'
-        Test-TextBefore -Text $packager -First 'Assert-PackageBinary -Path "$base.msi"' -Later 'Assert-PackageBinary -Path "$base.msix"' | Should Be $true
-        Test-TextBefore -Text $packager -First 'Assert-PackageBinary -Path "$base.msix"' -Later $publish | Should Be $true
-        $packager.Contains('unverified-omni-windows-x64-$vendor-installers') | Should Be $true
-        $packager.Contains('.pending-omni-$vendor-') | Should Be $true
+        Test-TextBefore -Text $packager -First 'Assert-PackageBinary -Path "$base.msi"' -Later 'Assert-PackageBinary -Path "$base.msix"' | Should -Be $true
+        Test-TextBefore -Text $packager -First 'Assert-PackageBinary -Path "$base.msix"' -Later $publish | Should -Be $true
+        $packager.Contains('unverified-omni-windows-x64-$vendor-installers') | Should -Be $true
+        $packager.Contains('.pending-omni-$vendor-') | Should -Be $true
     }
 
     It 'accepts only an explicit matching x64 GPU installer candidate' {
@@ -90,28 +92,28 @@ Describe 'Windows GPU preflight' {
                 Set-Content -LiteralPath (Join-Path $runner $name) -Value $name
             }
             Set-Content -LiteralPath (Join-Path $runner 'omni_accelerant.exe') -Value 'OMNI_ACCELERANT_GPU_VARIANT_directml_V1'
-            Get-CandidateError $runner | Should Match 'GPU-marked runner'
-            Get-ThrowMessage { Assert-WindowsInstallerCandidate -RunnerDir $runner -Provider directml -Arch arm64 } | Should Match 'require x64'
-            Get-ThrowMessage { Assert-WindowsInstallerCandidate -RunnerDir $runner -Provider cuda -Arch x64 } | Should Match 'not the requested'
-            Get-ThrowMessage { Assert-WindowsInstallerCandidate -RunnerDir $runner -Provider directml -Arch x64 } | Should Be ''
+            Get-CandidateError $runner | Should -Match 'GPU-marked runner'
+            Get-ThrowMessage { Assert-WindowsInstallerCandidate -RunnerDir $runner -Provider directml -Arch arm64 } | Should -Match 'require x64'
+            Get-ThrowMessage { Assert-WindowsInstallerCandidate -RunnerDir $runner -Provider cuda -Arch x64 } | Should -Match 'not the requested'
+            Get-ThrowMessage { Assert-WindowsInstallerCandidate -RunnerDir $runner -Provider directml -Arch x64 } | Should -Be ''
             Remove-Item -LiteralPath (Join-Path $runner 'DirectML.dll')
-            Get-ThrowMessage { Assert-WindowsInstallerCandidate -RunnerDir $runner -Provider directml -Arch x64 } | Should Match 'missing DirectML.dll'
+            Get-ThrowMessage { Assert-WindowsInstallerCandidate -RunnerDir $runner -Provider directml -Arch x64 } | Should -Match 'missing DirectML.dll'
         }
     }
 
     It 'preflights before initializing either compiler cache' {
         $driver = Read-RepoText 'scripts\windows\Build-Windows.ps1'
-        Test-TextBefore -Text $driver -First 'Assert-WindowsGpuBuild -Provider $OrtProvider' -Later 'Initialize-BuildCacheEnvironment', 'Restore-CiCompilerCache' | Should Be $true
+        Test-TextBefore -Text $driver -First 'Assert-WindowsGpuBuild -Provider $OrtProvider' -Later 'Initialize-BuildCacheEnvironment', 'Restore-CiCompilerCache' | Should -Be $true
     }
 
     It 'gates every GPU preset after the host sync even when errors may continue' {
         $driver = Read-RepoText 'scripts\windows\Build-Windows.ps1'
         $proof = $driver.IndexOf('-StepName "Verify GPU Delivery" -Critical')
         $check = $driver.IndexOf('Assert-WindowsGpuDelivery -SourceDir')
-        Test-TextBefore -Text $driver -First 'Sync-FastLocalArtifactsToHost -Context' -Later '-StepName "Verify GPU Delivery" -Critical' | Should Be $true
-        ($proof -ge 0 -and $proof -lt $check) | Should Be $true
-        Test-TextBefore -Text $driver -First 'Assert-WindowsGpuDelivery -SourceDir' -Later 'if (-not $gpuDelivered)' | Should Be $true
-        $driver.Substring($proof, $check - $proof).Contains('foreach ($currentPreset in $presetsToRun)') | Should Be $true
+        Test-TextBefore -Text $driver -First 'Sync-FastLocalArtifactsToHost -Context' -Later '-StepName "Verify GPU Delivery" -Critical' | Should -Be $true
+        ($proof -ge 0 -and $proof -lt $check) | Should -Be $true
+        Test-TextBefore -Text $driver -First 'Assert-WindowsGpuDelivery -SourceDir' -Later 'if (-not $gpuDelivered)' | Should -Be $true
+        $driver.Substring($proof, $check - $proof).Contains('foreach ($currentPreset in $presetsToRun)') | Should -Be $true
     }
 
     It 'requires a delivered CUDA provider and re-proves both source and host' {
@@ -126,10 +128,10 @@ Describe 'Windows GPU preflight' {
                 Set-Content -LiteralPath (Join-Path $source $name) -Value $content
                 Copy-Item -LiteralPath (Join-Path $source $name) -Destination $hostDir
             }
-            Get-ThrowMessage { Assert-WindowsGpuDelivery -SourceDir $source -DestinationDir $hostDir -Provider cuda } | Should Be ''
-            @($script:gpuProofPaths).Count | Should Be 2
+            Get-ThrowMessage { Assert-WindowsGpuDelivery -SourceDir $source -DestinationDir $hostDir -Provider cuda } | Should -Be ''
+            @($script:gpuProofPaths).Count | Should -Be 2
             Remove-Item -LiteralPath (Join-Path $hostDir 'onnxruntime_providers_cuda.dll')
-            Get-ThrowMessage { Assert-WindowsGpuDelivery -SourceDir $source -DestinationDir $hostDir -Provider cuda } | Should Match 'missing the CUDA provider'
+            Get-ThrowMessage { Assert-WindowsGpuDelivery -SourceDir $source -DestinationDir $hostDir -Provider cuda } | Should -Match 'missing the CUDA provider'
             }
         } finally {
             Remove-Variable -Name gpuProofPaths -Scope Script -ErrorAction SilentlyContinue
@@ -137,29 +139,29 @@ Describe 'Windows GPU preflight' {
     }
 
     It 'accepts CUDA only when the runtime and shared APIs are present' {
-        Get-ThrowMessage { Assert-WindowsGpuBuild -Provider cuda -Workspace $workspace -OxidantDir $oxidant -OnnxRoot (Split-Path $bin) } | Should Be ''
-        Get-ThrowMessage { Assert-WindowsGpuBuild -Provider CUDA -Workspace $workspace -OxidantDir $oxidant -OnnxRoot (Split-Path $bin) } | Should Be ''
+        Get-ThrowMessage { Assert-WindowsGpuBuild -Provider cuda -Workspace $script:workspace -OxidantDir $oxidant -OnnxRoot (Split-Path $bin) } | Should -Be ''
+        Get-ThrowMessage { Assert-WindowsGpuBuild -Provider CUDA -Workspace $script:workspace -OxidantDir $oxidant -OnnxRoot (Split-Path $bin) } | Should -Be ''
         Remove-Item -LiteralPath (Join-Path $bin 'onnxruntime_providers_shared.dll')
-        Get-ThrowMessage { Assert-WindowsGpuBuild -Provider cuda -Workspace $workspace -OxidantDir $oxidant -OnnxRoot (Split-Path $bin) } | Should Match 'is missing'
+        Get-ThrowMessage { Assert-WindowsGpuBuild -Provider cuda -Workspace $script:workspace -OxidantDir $oxidant -OnnxRoot (Split-Path $bin) } | Should -Match 'is missing'
     }
 
     It 'requires newer hub staging and wheel matching APIs' {
         function global:Copy-ChainOrtBeside { param($OnnxRoot) }
-        Get-ThrowMessage { Assert-WindowsGpuBuild -Provider cuda -Workspace $workspace -OxidantDir $oxidant -OnnxRoot (Split-Path $bin) } | Should Match 'pinned ANTfrastructure'
+        Get-ThrowMessage { Assert-WindowsGpuBuild -Provider cuda -Workspace $script:workspace -OxidantDir $oxidant -OnnxRoot (Split-Path $bin) } | Should -Match 'pinned ANTfrastructure'
         function global:Copy-ChainOrtBeside { param($RequiredProvider) }
         function global:Copy-OrtWheelLicenses { param($OrtDll) }
-        Get-ThrowMessage { Assert-WindowsGpuBuild -Provider cuda -Workspace $workspace -OxidantDir $oxidant -OnnxRoot (Split-Path $bin) } | Should Match 'pinned ANTfrastructure'
+        Get-ThrowMessage { Assert-WindowsGpuBuild -Provider cuda -Workspace $script:workspace -OxidantDir $oxidant -OnnxRoot (Split-Path $bin) } | Should -Match 'pinned ANTfrastructure'
     }
 
     It 'requires DirectML and the advertised DirectML capability' {
-        Get-ThrowMessage { Assert-WindowsGpuBuild -Provider directml -Workspace $workspace -OxidantDir $oxidant -OnnxRoot (Split-Path $bin) } | Should Be ''
+        Get-ThrowMessage { Assert-WindowsGpuBuild -Provider directml -Workspace $script:workspace -OxidantDir $oxidant -OnnxRoot (Split-Path $bin) } | Should -Be ''
         function global:Copy-OrtWheelLicenses { param($ProviderDll) }
-        Get-ThrowMessage { Assert-WindowsGpuBuild -Provider directml -Workspace $workspace -OxidantDir $oxidant -OnnxRoot (Split-Path $bin) } | Should Match 'DirectMlDll'
+        Get-ThrowMessage { Assert-WindowsGpuBuild -Provider directml -Workspace $script:workspace -OxidantDir $oxidant -OnnxRoot (Split-Path $bin) } | Should -Match 'DirectMlDll'
         function global:Copy-OrtWheelLicenses { param($ProviderDll, $DirectMlDll) }
         Remove-Item -LiteralPath (Join-Path $bin 'DirectML.dll')
-        Get-ThrowMessage { Assert-WindowsGpuBuild -Provider directml -Workspace $workspace -OxidantDir $oxidant -OnnxRoot (Split-Path $bin) } | Should Match 'is missing'
+        Get-ThrowMessage { Assert-WindowsGpuBuild -Provider directml -Workspace $script:workspace -OxidantDir $oxidant -OnnxRoot (Split-Path $bin) } | Should -Match 'is missing'
         Set-Content -LiteralPath (Join-Path $oxidant 'crates\inference\Cargo.toml') -Value @('[package]', 'name = "old"')
-        Get-ThrowMessage { Assert-WindowsGpuBuild -Provider directml -Workspace $workspace -OxidantDir $oxidant -OnnxRoot (Split-Path $bin) } | Should Match 'does not support strict'
+        Get-ThrowMessage { Assert-WindowsGpuBuild -Provider directml -Workspace $script:workspace -OxidantDir $oxidant -OnnxRoot (Split-Path $bin) } | Should -Match 'does not support strict'
     }
 
     It 'checks image architecture and selected wheel members before building' {
@@ -176,20 +178,20 @@ Describe 'Windows GPU preflight' {
         }
         try {
             foreach ($provider in 'cuda', 'directml') {
-                Get-ThrowMessage { Assert-WindowsGpuImage -Provider $provider -Workspace $workspace -OxidantDir $oxidant -OnnxRoot (Split-Path $bin) -WheelDir 'wheel-store' -ScratchRoot $TestDrive } | Should Be ''
-                $script:gpuImageProof.Arch | Should Be 'amd64'
-                (Split-Path $script:gpuImageProof.Core -Leaf) | Should Be 'onnxruntime.dll'
+                Get-ThrowMessage { Assert-WindowsGpuImage -Provider $provider -Workspace $script:workspace -OxidantDir $oxidant -OnnxRoot (Split-Path $bin) -WheelDir 'wheel-store' -ScratchRoot $TestDrive } | Should -Be ''
+                $script:gpuImageProof.Arch | Should -Be 'amd64'
+                (Split-Path $script:gpuImageProof.Core -Leaf) | Should -Be 'onnxruntime.dll'
                 if ($provider -eq 'cuda') {
-                    @($script:gpuImageProof.Provider | ForEach-Object { Split-Path $_ -Leaf }) -join ',' | Should Be 'onnxruntime_providers_shared.dll,onnxruntime_providers_cuda.dll'
+                    @($script:gpuImageProof.Provider | ForEach-Object { Split-Path $_ -Leaf }) -join ',' | Should -Be 'onnxruntime_providers_shared.dll,onnxruntime_providers_cuda.dll'
                 } else {
-                    @($script:gpuImageProof.Provider | ForEach-Object { Split-Path $_ -Leaf }) -join ',' | Should Be 'onnxruntime_providers_shared.dll'
-                    (Split-Path $script:gpuImageProof.DirectMl -Leaf) | Should Be 'DirectML.dll'
+                    @($script:gpuImageProof.Provider | ForEach-Object { Split-Path $_ -Leaf }) -join ',' | Should -Be 'onnxruntime_providers_shared.dll'
+                    (Split-Path $script:gpuImageProof.DirectMl -Leaf) | Should -Be 'DirectML.dll'
                 }
-                Test-Path -LiteralPath $script:gpuImageProof.Scratch | Should Be $false
+                Test-Path -LiteralPath $script:gpuImageProof.Scratch | Should -Be $false
             }
             $script:gpuImageProof.Reject = $true
-            Get-ThrowMessage { Assert-WindowsGpuImage -Provider cuda -Workspace $workspace -OxidantDir $oxidant -OnnxRoot (Split-Path $bin) -WheelDir 'wheel-store' -ScratchRoot $TestDrive } | Should Match 'wheel mismatch'
-            Test-Path -LiteralPath $script:gpuImageProof.Scratch | Should Be $false
+            Get-ThrowMessage { Assert-WindowsGpuImage -Provider cuda -Workspace $script:workspace -OxidantDir $oxidant -OnnxRoot (Split-Path $bin) -WheelDir 'wheel-store' -ScratchRoot $TestDrive } | Should -Match 'wheel mismatch'
+            Test-Path -LiteralPath $script:gpuImageProof.Scratch | Should -Be $false
         } finally {
             Remove-Item Function:\global:Assert-PeTargetMachine -ErrorAction SilentlyContinue
             if ($oldArch) { Set-Item Function:\global:Assert-PeTargetMachine -Value $oldArch.ScriptBlock }
@@ -199,18 +201,18 @@ Describe 'Windows GPU preflight' {
 
     It 'keeps the Windows GPU candidates x64, separately labelled and preflighted' {
         $workflow = Read-RepoText '.github\workflows\windows-gpu-candidates.yml'
-        $workflow.Contains('options: [all, nvidia, amd]') | Should Be $true
-        @([regex]::Matches($workflow, '(?m)^\s+default: all\r?$')).Count | Should Be 2
-        $workflow | Should Not Match '(?m)^concurrency:'
-        $workflow.Contains('group: omni-windows-gpu-${{ github.ref }}-${{ github.workflow }}-${{ needs.preflight.outputs.selection }}-${{ needs.preflight.outputs.scope }}-${{ matrix.vendor }}') | Should Be $true
-        $workflow.Contains('matrix: ${{ fromJSON(needs.preflight.outputs.matrix) }}') | Should Be $true
-        $workflow.Contains('--windows-matrix $env:GPU_VENDOR') | Should Be $true
-        $workflow.Contains('--scope $env:CALLER_SCOPE') | Should Be $true
-        $workflow.Contains('winarm64') | Should Be $false
-        $workflow.Contains('unverified-omni-windows-x64-${{ matrix.vendor }}-runner') | Should Be $true
-        $workflow | Should Match 'name: unverified-omni-windows-x64-\$\{\{ matrix\.vendor \}\}-runner-\$\{\{ needs\.preflight\.outputs\.selection \}\}-\$\{\{ needs\.preflight\.outputs\.scope \}\}-attempt-\$\{\{ github\.run_attempt \}\}\s+overwrite: false'
-        $workflow | Should Match 'name: unverified-omni-windows-x64-\$\{\{ matrix\.vendor \}\}-installers-\$\{\{ needs\.preflight\.outputs\.selection \}\}-\$\{\{ needs\.preflight\.outputs\.scope \}\}-attempt-\$\{\{ github\.run_attempt \}\}\s+overwrite: false'
-        Test-TextOrder -Text $workflow -Marker 'Test-WindowsGpuPins.ps1', 'prepare-windows-container-host@', 'Test-WindowsGpuImage.ps1', 'Build-Windows.ps1', 'actions/upload-artifact@' | Should Be $true
-        Test-TextOrder -Text $workflow -Marker 'Build-Windows.ps1', 'Package-OmniAccelerANT.ps1', 'Test-OmniAccelerANTInstallers.ps1', 'name: unverified-omni-windows-x64-${{ matrix.vendor }}-installers' | Should Be $true
+        $workflow.Contains('options: [all, nvidia, amd]') | Should -Be $true
+        @([regex]::Matches($workflow, '(?m)^\s+default: all\r?$')).Count | Should -Be 2
+        $workflow | Should -Not -Match '(?m)^concurrency:'
+        $workflow.Contains('group: omni-windows-gpu-${{ github.ref }}-${{ github.workflow }}-${{ needs.preflight.outputs.selection }}-${{ needs.preflight.outputs.scope }}-${{ matrix.vendor }}') | Should -Be $true
+        $workflow.Contains('matrix: ${{ fromJSON(needs.preflight.outputs.matrix) }}') | Should -Be $true
+        $workflow.Contains('--windows-matrix $env:GPU_VENDOR') | Should -Be $true
+        $workflow.Contains('--scope $env:CALLER_SCOPE') | Should -Be $true
+        $workflow.Contains('winarm64') | Should -Be $false
+        $workflow.Contains('unverified-omni-windows-x64-${{ matrix.vendor }}-runner') | Should -Be $true
+        $workflow | Should -Match 'name: unverified-omni-windows-x64-\$\{\{ matrix\.vendor \}\}-runner-\$\{\{ needs\.preflight\.outputs\.selection \}\}-\$\{\{ needs\.preflight\.outputs\.scope \}\}-attempt-\$\{\{ github\.run_attempt \}\}\s+overwrite: false'
+        $workflow | Should -Match 'name: unverified-omni-windows-x64-\$\{\{ matrix\.vendor \}\}-installers-\$\{\{ needs\.preflight\.outputs\.selection \}\}-\$\{\{ needs\.preflight\.outputs\.scope \}\}-attempt-\$\{\{ github\.run_attempt \}\}\s+overwrite: false'
+        Test-TextOrder -Text $workflow -Marker 'Test-WindowsGpuPins.ps1', 'prepare-windows-container-host@', 'Test-WindowsGpuImage.ps1', 'Build-Windows.ps1', 'actions/upload-artifact@' | Should -Be $true
+        Test-TextOrder -Text $workflow -Marker 'Build-Windows.ps1', 'Package-OmniAccelerANT.ps1', 'Test-OmniAccelerANTInstallers.ps1', 'name: unverified-omni-windows-x64-${{ matrix.vendor }}-installers' | Should -Be $true
     }
 }

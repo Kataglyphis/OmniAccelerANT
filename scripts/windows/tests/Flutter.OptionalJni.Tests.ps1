@@ -4,13 +4,15 @@
 # NOT covered: a Flutter build or DLL bytes; the Windows import walk checks the packaged app.
 
 Describe 'Windows Flutter optional JNI' {
-    function Assert-JniDiscoveryDisabled([string]$Text) {
-        $active = ($Text -split "`n" | Where-Object { $_ -notmatch '^[ \t]*#' }) -join "`n"
-        $guard = [regex]::Matches($active, '(?m)^[ \t]*set\s*\(\s*CMAKE_DISABLE_FIND_PACKAGE_JNI\s+TRUE\s*\)')
-        $plugins = [regex]::Matches($active, '(?m)^[ \t]*include\s*\(\s*flutter/generated_plugins\.cmake\s*\)')
-        $guard.Count | Should Be 1
-        $plugins.Count | Should Be 1
-        ($guard[0].Index -lt $plugins[0].Index) | Should Be $true
+    BeforeAll {
+        function Assert-JniDiscoveryDisabled([string]$Text) {
+            $active = ($Text -split "`n" | Where-Object { $_ -notmatch '^[ \t]*#' }) -join "`n"
+            $guard = [regex]::Matches($active, '(?m)^[ \t]*set\s*\(\s*CMAKE_DISABLE_FIND_PACKAGE_JNI\s+TRUE\s*\)')
+            $plugins = [regex]::Matches($active, '(?m)^[ \t]*include\s*\(\s*flutter/generated_plugins\.cmake\s*\)')
+            $guard.Count | Should -Be 1
+            $plugins.Count | Should -Be 1
+            ($guard[0].Index -lt $plugins[0].Index) | Should -Be $true
+        }
     }
 
     It 'disables optional JNI before the generated Windows plugins' {
@@ -30,7 +32,7 @@ Describe 'Windows Flutter optional JNI' {
         )) {
             $threw = $false
             try { Assert-JniDiscoveryDisabled $bad } catch { $threw = $true }
-            $threw | Should Be $true
+            $threw | Should -Be $true
         }
     }
 }

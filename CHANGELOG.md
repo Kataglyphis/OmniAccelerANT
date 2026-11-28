@@ -5,6 +5,18 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ## Unreleased
 
+### 2026-11-28 — the Pester suites speak Pester 6
+
+- The 13 suites under `scripts/windows/tests` run under Pester 6.2.0, the hub's `:latest` copy, and
+  `windows-x64.yml`, `windows-arm64.yml`, `windows-gpu-candidates.yml` and `submodule-pins.yml` pin it instead of
+  3.4.0; the two steps that count exact passes install it through the hub's pinned installer. `Should Be` and its kin
+  take their dashed forms, a `Throw` message keeps its substring match as `*message*`, and `Assert-MockCalled` is
+  `Should -Invoke`. Block- and file-level setup moved into `BeforeAll`, which Pester 5 and 6 run after discovering a
+  file, and what it sets for the tests is a `$script:` variable; `LaneSccache` closes its listener in `AfterAll`, and
+  `GpuImage`'s two `-Skip` probes stay at file level, which discovery runs. All 88 tests pass under 6.2.0 locally,
+  three runs in a row, as under 3.4.0 before; the counted steps still see 4 and 5. The hub's lint gate finds no trap
+  and no analyzer warning, as before.
+
 ### 2026-11-27 — the app's own amd64 code is built for x86-64-v3
 
 - The amd64 packages needed AVX2, FMA and BMI2 already, through the image's ONNX Runtime, GStreamer and

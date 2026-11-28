@@ -27,5 +27,5 @@ jobs:
   pins:
     uses: Kataglyphis/ANTfrastructure/.github/workflows/submodule-pins.yml@develop
     with:
-      # Pinned: 5.7.1 prints nothing on a red run and 6.1.0 rejects -Quiet.
-      pester-version: '3.4.0'
+      # Pinned so a hub default change cannot move the lane: the pin suite runs under the image's Pester.
+      pester-version: '6.2.0'

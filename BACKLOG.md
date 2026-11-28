@@ -325,12 +325,11 @@ name is under `lib/Pages/StreamPage/`.
   requests, a stop during a start) and a source test that fails on `invokeMethod(` under `lib/Pages`; that test
   also needs the typed `create` of the MethodChannel row (`rust_webcam_view.dart:95`).
 
-- [ ] **The Pester suites still speak Pester 3.4** (M, ★). 13 suites under `scripts/windows/tests` hold
-  261 dash-less `Should Be` lines, so `windows-x64.yml`, `windows-arm64.yml` and `windows-gpu-candidates.yml` pin Pester 3.4.0, the runner's inbox copy, and nothing runs
-  them on Linux. Since 2026-11-27 the hub's `:latest` (`abb3030d…`) carries Pester 6.2.0 in `pwsh` (hub CON283;
-  the owner keeps 6.2), which refuses that dialect. Now: `Should -Be` and its kin, setup moved into `BeforeAll` or `BeforeEach`
-  (Pester 5 and 6 discover a file before they run it), the `3.4.0` pins dropped, and the suites run in the image
-  as well. Done when no workflow pins 3.4.0.
+- [ ] **The Pester suites run only on Windows** (M, ★). Since 2026-11-28 the 13 suites under `scripts/windows/tests`
+  speak Pester 6.2.0, the hub's `:latest` copy, and every workflow pins 6.2.0. Nothing runs them in the image yet:
+  their `..\` paths, `OnnxSelfCheck`'s `csc.exe` and the `C:\` sources in `OrtRunner`'s cases are Windows-only. Now:
+  paths through `Join-Path` segments, the Windows-only cases behind `$IsWindows`, and a Linux step through the hub's
+  `run-pester-suite` in the image. Done when the Linux lane runs every suite.
 
 ## Open — oxidation roadmap
 

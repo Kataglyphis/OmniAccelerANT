@@ -269,4 +269,4 @@ jobs:
         uses: Kataglyphis/ANTfrastructure/.github/actions/run-pester-suite@develop
         with:
           path: scripts/windows/tests
-          version: '3.4.0'
+          version: '6.2.0'

@@ -1,9 +1,10 @@
 #requires -Version 7.0
 
 Describe 'Windows packaged ONNX self-check' {
-    $check = Join-Path $PSScriptRoot '..\Test-OnnxSelfCheck.ps1'
-    $compiler = Join-Path $env:WINDIR 'Microsoft.NET\Framework64\v4.0.30319\csc.exe'
-    $source = @'
+    BeforeAll {
+        $script:check = Join-Path $PSScriptRoot '..\Test-OnnxSelfCheck.ps1'
+        $script:compiler = Join-Path $env:WINDIR 'Microsoft.NET\Framework64\v4.0.30319\csc.exe'
+        $script:source = @'
 using System;
 using System.IO;
 using System.Runtime.InteropServices;
@@ -45,6 +46,8 @@ class Probe {
     }
 }
 '@
+    }
+
     BeforeEach {
         $script:oldMode = $env:OMNI_FIXTURE_MODE
         $script:oldDevice = $env:KATAGLYPHIS_ORT_DEVICE
@@ -59,8 +62,8 @@ class Probe {
         Set-Content -LiteralPath (Join-Path $models 'deim_dfine_n_coco.onnx') -Value 'fixture'
         Set-Content -LiteralPath (Join-Path $script:dir 'onnxruntime.dll') -Value 'fixture'
         $fixture = Join-Path $script:dir 'probe.cs'
-        Set-Content -LiteralPath $fixture -Value $source
-        & $compiler /nologo "/out:$(Join-Path $script:dir 'omni_accelerant.exe')" $fixture
+        Set-Content -LiteralPath $fixture -Value $script:source
+        & $script:compiler /nologo "/out:$(Join-Path $script:dir 'omni_accelerant.exe')" $fixture
         if ($LASTEXITCODE -ne 0) { throw 'Could not compile standalone process fixture.' }
         $env:KATAGLYPHIS_ORT_DEVICE = 'cuda'
         $env:KATAGLYPHIS_ONNX_BACKEND = 'tract'
@@ -78,31 +81,31 @@ class Probe {
         $env:ONNX_ROOT = $script:oldOnnxRoot
     }
     It 'passes the argument and isolated CPU environment without changing the parent' {
-        { & $check -AppDir $script:dir } | Should Not Throw
-        $env:KATAGLYPHIS_ORT_DEVICE | Should Be 'cuda'
-        $env:KATAGLYPHIS_ONNX_MODEL | Should Be 'external-model.onnx'
-        $env:ORT_DYLIB_PATH | Should Be 'external-ort.dll'
-        $env:ONNX_ROOT | Should Be 'external-runtime'
+        { & $script:check -AppDir $script:dir } | Should -Not -Throw
+        $env:KATAGLYPHIS_ORT_DEVICE | Should -Be 'cuda'
+        $env:KATAGLYPHIS_ONNX_MODEL | Should -Be 'external-model.onnx'
+        $env:ORT_DYLIB_PATH | Should -Be 'external-ort.dll'
+        $env:ONNX_ROOT | Should -Be 'external-runtime'
     }
     It 'rejects a nonzero self-check exit' {
         $env:OMNI_FIXTURE_MODE = 'fail'
-        $message = try { & $check -AppDir $script:dir; '' } catch { $_.Exception.Message }
-        $message | Should Match 'exit code 17'
+        $message = try { & $script:check -AppDir $script:dir; '' } catch { $_.Exception.Message }
+        $message | Should -Match 'exit code 17'
     }
     It 'requires the model in the package before starting' {
         Remove-Item -LiteralPath (Join-Path $script:dir 'resources\models\deim_dfine_n_coco.onnx')
-        $message = try { & $check -AppDir $script:dir; '' } catch { $_.Exception.Message }
-        $message | Should Match 'No bundled ONNX model'
+        $message = try { & $script:check -AppDir $script:dir; '' } catch { $_.Exception.Message }
+        $message | Should -Match 'No bundled ONNX model'
     }
     It 'requires the ONNX Runtime in the package even when a host runtime is configured' {
         Remove-Item -LiteralPath (Join-Path $script:dir 'onnxruntime.dll')
-        $message = try { & $check -AppDir $script:dir; '' } catch { $_.Exception.Message }
-        $message | Should Match 'No bundled ONNX Runtime'
+        $message = try { & $script:check -AppDir $script:dir; '' } catch { $_.Exception.Message }
+        $message | Should -Match 'No bundled ONNX Runtime'
     }
     It 'terminates a self-check that does not finish' {
         $env:OMNI_FIXTURE_MODE = 'hang'
-        $message = try { & $check -AppDir $script:dir -TimeoutSeconds 1; '' } catch { $_.Exception.Message }
-        $message | Should Match 'did not finish'
+        $message = try { & $script:check -AppDir $script:dir -TimeoutSeconds 1; '' } catch { $_.Exception.Message }
+        $message | Should -Match 'did not finish'
     }
     It 'checks the installed MSIX path and records a failed self-check' {
         # The actual installer conditional runs against the fixture, not an installed package.
@@ -110,16 +113,16 @@ class Probe {
         $tokens = $null
         $errors = $null
         $ast = [Management.Automation.Language.Parser]::ParseFile($installer, [ref]$tokens, [ref]$errors)
-        $errors.Count | Should Be 0
+        $errors.Count | Should -Be 0
         $conditional = @($ast.FindAll({
                     param($node)
                     $node -is [Management.Automation.Language.IfStatementAst] -and
                     $node.Clauses[0].Item1.Extent.Text -eq '$CheckOnnx' -and
                     $node.Extent.Text.Contains('the installed MSIX runs the bundled model')
                 }, $true))
-        $conditional.Count | Should Be 1
+        $conditional.Count | Should -Be 1
         $run = [scriptblock]::Create($conditional[0].Extent.Text)
-        Set-Variable -Name selfCheck -Value $check
+        Set-Variable -Name selfCheck -Value $script:check
         Set-Variable -Name installed -Value ([pscustomobject]@{ InstallLocation = $script:dir })
         Set-Variable -Name CheckOnnx -Value $true
         $script:assertionCount = 0
@@ -138,22 +141,22 @@ class Probe {
             }
         }
         & $run
-        $script:assertionCount | Should Be 1
-        $script:assertionPassed | Should Be 1
+        $script:assertionCount | Should -Be 1
+        $script:assertionPassed | Should -Be 1
         $env:OMNI_FIXTURE_MODE = 'fail'
         & $run
-        $script:assertionCount | Should Be 2
-        $script:assertionFailed | Should Be 1
-        $script:assertionError | Should Match 'exit code 17'
+        $script:assertionCount | Should -Be 2
+        $script:assertionFailed | Should -Be 1
+        $script:assertionError | Should -Match 'exit code 17'
         Set-Variable -Name CheckOnnx -Value $false
         & $run
-        $script:assertionCount | Should Be 2
+        $script:assertionCount | Should -Be 2
     }
     It 'checks the runner and installed packages before publishing candidates' {
         $root = (Resolve-Path (Join-Path $PSScriptRoot '..\..\..')).Path
         $workflow = Get-Content (Join-Path $root '.github\workflows\windows-gpu-candidates.yml') -Raw
-        $workflow | Should Match 'Test-OnnxSelfCheck\.ps1'
-        $workflow | Should Match 'Test-OmniAccelerANTInstallers\.ps1[^\r\n]+-CheckOnnx'
-        (Get-Content (Join-Path $root 'scripts\windows\Test-OmniAccelerANTInstallers.ps1') -Raw) | Should Match 'Test-OnnxSelfCheck\.ps1'
+        $workflow | Should -Match 'Test-OnnxSelfCheck\.ps1'
+        $workflow | Should -Match 'Test-OmniAccelerANTInstallers\.ps1[^\r\n]+-CheckOnnx'
+        (Get-Content (Join-Path $root 'scripts\windows\Test-OmniAccelerANTInstallers.ps1') -Raw) | Should -Match 'Test-OnnxSelfCheck\.ps1'
     }
 }

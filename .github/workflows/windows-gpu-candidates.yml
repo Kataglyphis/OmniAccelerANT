@@ -85,9 +85,11 @@ jobs:
         run: |
           python -I scripts/windows/tests/test_verify_detector_model.py
           if ($LASTEXITCODE -ne 0) { throw 'Locked model containment tests failed' }
-          Import-Module Pester -RequiredVersion 3.4.0
-          $result = Invoke-Pester -Script scripts/windows/tests/DetectorModel.Tests.ps1 -PassThru
-          if ($result.FailedCount -ne 0 -or $result.PassedCount -ne 5) { throw 'Model staging fixtures failed or did not all run' }
+          Import-Module (Resolve-Path -LiteralPath 'third_party/ANTfrastructure/windows/scripts/modules/WindowsCi.ModuleBootstrap.psm1').Path -ErrorAction Stop
+          $null = Install-PinnedPowerShellModule -Name Pester -Version '6.2.0' -SkipPublisherCheck
+          Import-Module Pester -RequiredVersion 6.2.0 -ErrorAction Stop
+          $result = Invoke-Pester -Path scripts/windows/tests/DetectorModel.Tests.ps1 -PassThru
+          if ($result.FailedCount -ne 0 -or $result.FailedContainersCount -ne 0 -or $result.PassedCount -ne 5) { throw 'Model staging fixtures failed or did not all run' }
           # The negative fixtures leave the verifier's exit 1 in LASTEXITCODE, which the runner's wrapper would return.
           exit 0
       - name: Check recorded GPU dependencies before pulling images

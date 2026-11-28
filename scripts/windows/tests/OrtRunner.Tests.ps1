@@ -1,97 +1,86 @@
 #requires -Version 7.0
 
-# Pester 3.4.0 dialect: no BeforeAll outside Describe, dash-less Should, no `Should Throw` under pwsh 7.
-
 Describe 'WindowsOrtRunner.Common' {
-
-    . (Join-Path $PSScriptRoot '..\Resolve-BuildModule.ps1')
-    Import-BuildModule @('WindowsOrtRunner.Common', 'WindowsGpuBuild.Common', 'WindowsOrtProvenance.Common', 'WindowsOrtPayload.Common', 'WindowsOrtLicense.Common')
-    Import-Module (Join-Path $PSScriptRoot '..\..\..\third_party\ANTfrastructure\windows\scripts\tests\TestHarness.psm1') -Function Get-TestScriptAst, Get-TestAstCommands, New-OrtTestPe, New-TestZipFile, Remove-TestDir, Write-TestFileTree -ErrorAction Stop
-
-    # NUL-terminated like a compiler's __FILE__: G6 takes only a whole terminated path as a fingerprint.
-    $chainSrc = 'C:\temp\onnx-src\onnxruntime\core\session\inference_session.cc'
-    $foreignSrc = 'C:\__w\1\s\onnxruntime\core\session\inference_session.cc'
-
-    Import-Module (Join-Path $PSScriptRoot 'OmniTestFixtures.psm1') -Force
-
-    function Test-WheelApi([string] $Parameter) { return (Get-Command Copy-OrtWheelLicenses).Parameters.ContainsKey($Parameter) }
-
-    # A chain ONNX_ROOT with its ORT already staged beside the case's runner.
-    function Invoke-ChainRunnerCase([object] $Case, [scriptblock] $Body) {
-        Invoke-WithOnnxRoot $Case.Root {
-            $null = Copy-ChainOrtBeside -OnnxRoot $Case.Root -Destination $Case.Runner
-            & $Body
+    BeforeAll {
+        . (Join-Path $PSScriptRoot '..\Resolve-BuildModule.ps1')
+        Import-BuildModule @('WindowsOrtRunner.Common', 'WindowsGpuBuild.Common', 'WindowsOrtProvenance.Common', 'WindowsOrtPayload.Common', 'WindowsOrtLicense.Common')
+        Import-Module (Join-Path $PSScriptRoot '..\..\..\third_party\ANTfrastructure\windows\scripts\tests\TestHarness.psm1') -Function Get-TestScriptAst, Get-TestAstCommands, New-OrtTestPe, New-TestZipFile, Remove-TestDir, Write-TestFileTree -ErrorAction Stop
+        # NUL-terminated like a compiler's __FILE__: G6 takes only a whole terminated path as a fingerprint.
+        $script:chainSrc = 'C:\temp\onnx-src\onnxruntime\core\session\inference_session.cc'
+        $script:foreignSrc = 'C:\__w\1\s\onnxruntime\core\session\inference_session.cc'
+        Import-Module (Join-Path $PSScriptRoot 'OmniTestFixtures.psm1') -Force
+        function Test-WheelApi([string] $Parameter) { return (Get-Command Copy-OrtWheelLicenses).Parameters.ContainsKey($Parameter) }
+        # A chain ONNX_ROOT with its ORT already staged beside the case's runner.
+        function Invoke-ChainRunnerCase([object] $Case, [scriptblock] $Body) {
+            Invoke-WithOnnxRoot $Case.Root {
+                $null = Copy-ChainOrtBeside -OnnxRoot $Case.Root -Destination $Case.Runner
+                & $Body
+            }
         }
-    }
-
-    function Get-ProofError([object] $Case, [hashtable] $Proof) {
-        Get-ThrowMessage { Invoke-RunnerOrtProof -RunnerDir $Case.Runner @Proof }
-    }
-
-    # Replaces the case's single wheel, which holds the core DLL and any -ProviderDll given.
-    function Reset-CaseWheel([object] $Case, [string[]] $ProviderDll = @()) {
-        $wheel = Join-Path $Case.Wheels 'onnxruntime-1.31.0-cp315-cp315-win_amd64.whl'
-        Remove-Item -LiteralPath $wheel
-        $extra = if ($ProviderDll.Count -gt 0) { @{ ProviderDll = $ProviderDll } } else { @{} }
-        New-OrtCaseWheel -Path $wheel -Dll (Join-Path $Case.Root 'bin\onnxruntime.dll') @extra
-    }
-
-    function Get-MsixPackagingStep([string] $ScriptPath = '') {
-        $source = if ($ScriptPath) { $ScriptPath } else { Join-Path $PSScriptRoot '..\Build-Windows.ps1' }
-        $ast = Get-TestScriptAst -ScriptPath $source
-        $ast.FindAll({ param($n) $n -is [System.Management.Automation.Language.CommandAst] -and
-                    $n.GetCommandName() -eq 'Invoke-BuildStep' -and $n.Extent.Text -match '-StepName "MSIX Packaging"' }, $true)
-    }
-
-    # A chain ONNX_ROOT, and a runner whose exe hosts oxidant.dll, which dlopens ORT by name.
-    function New-Case([string] $Name) {
-        $case = Join-Path $TestDrive $Name
-        $bin = Join-Path $case 'onnx\bin'
-        New-OrtTestPe -Path (Join-Path $bin 'onnxruntime.dll') -Text "$chainSrc`0OrtGetApiBase"
-        New-OrtTestPe -Path (Join-Path $bin 'onnxruntime_providers_shared.dll') -Text 'provider bridge'
-        New-OrtTestPe -Path (Join-Path $bin 'DirectML.dll') -Text 'directml'
-        $runner = Join-Path $case 'runner'
-        New-OrtTestPe -Path (Join-Path $runner 'omni_accelerant.exe') -Text 'main'
-        New-OrtTestPe -Path (Join-Path $runner 'oxidant.dll') -Text 'OrtGetApiBase'
-        $wheels = Join-Path $case 'onnx\wheels'
-        New-OrtCaseWheel -Path (Join-Path $wheels 'onnxruntime-1.31.0-cp315-cp315-win_amd64.whl') -Dll (Join-Path $bin 'onnxruntime.dll')
-        return [pscustomobject]@{ Root = (Join-Path $case 'onnx'); Runner = $runner; Wheels = $wheels }
-    }
-
-    # The image's chain wheel: the core DLL's exact bytes beside ORT's own two texts.
-    function New-OrtCaseWheel([string] $Path, [string] $Dll, [string] $Notice = 'chain notices', [string[]] $ProviderDll = @()) {
-        $texts = "$Path.texts"
-        Write-TestFileTree -Root $texts -Files @{ LICENSE = 'chain MIT text'; 'ThirdPartyNotices.txt' = $Notice }
-        $member = @{
-            'onnxruntime/capi/onnxruntime.dll' = $Dll
-            'onnxruntime/LICENSE' = Join-Path $texts 'LICENSE'
-            'onnxruntime/ThirdPartyNotices.txt' = Join-Path $texts 'ThirdPartyNotices.txt'
+        function Get-ProofError([object] $Case, [hashtable] $Proof) {
+            Get-ThrowMessage { Invoke-RunnerOrtProof -RunnerDir $Case.Runner @Proof }
         }
-        foreach ($provider in $ProviderDll) { $member["onnxruntime/capi/$(Split-Path $provider -Leaf)"] = $provider }
-        Add-Type -AssemblyName System.IO.Compression.FileSystem
-        New-TestZipFile -Path $Path -Member $member -FileValues
-        Remove-TestDir -Path $texts
-    }
-
-    function Invoke-WithOnnxRoot([string] $Root, [scriptblock] $Block) {
-        $saved = $env:ONNX_ROOT, $env:PYTHON_WHEELS
-        $env:ONNX_ROOT = $Root
-        $env:PYTHON_WHEELS = Join-Path $Root 'wheels'
-        try { & $Block } finally { $env:ONNX_ROOT, $env:PYTHON_WHEELS = $saved }
+        # Replaces the case's single wheel, which holds the core DLL and any -ProviderDll given.
+        function Reset-CaseWheel([object] $Case, [string[]] $ProviderDll = @()) {
+            $wheel = Join-Path $Case.Wheels 'onnxruntime-1.31.0-cp315-cp315-win_amd64.whl'
+            Remove-Item -LiteralPath $wheel
+            $extra = if ($ProviderDll.Count -gt 0) { @{ ProviderDll = $ProviderDll } } else { @{} }
+            New-OrtCaseWheel -Path $wheel -Dll (Join-Path $Case.Root 'bin\onnxruntime.dll') @extra
+        }
+        function Get-MsixPackagingStep([string] $ScriptPath = '') {
+            $source = if ($ScriptPath) { $ScriptPath } else { Join-Path $PSScriptRoot '..\Build-Windows.ps1' }
+            $ast = Get-TestScriptAst -ScriptPath $source
+            $ast.FindAll({ param($n) $n -is [System.Management.Automation.Language.CommandAst] -and
+                        $n.GetCommandName() -eq 'Invoke-BuildStep' -and $n.Extent.Text -match '-StepName "MSIX Packaging"' }, $true)
+        }
+        # A chain ONNX_ROOT, and a runner whose exe hosts oxidant.dll, which dlopens ORT by name.
+        function New-Case([string] $Name) {
+            $case = Join-Path $TestDrive $Name
+            $bin = Join-Path $case 'onnx\bin'
+            New-OrtTestPe -Path (Join-Path $bin 'onnxruntime.dll') -Text "$script:chainSrc`0OrtGetApiBase"
+            New-OrtTestPe -Path (Join-Path $bin 'onnxruntime_providers_shared.dll') -Text 'provider bridge'
+            New-OrtTestPe -Path (Join-Path $bin 'DirectML.dll') -Text 'directml'
+            $runner = Join-Path $case 'runner'
+            New-OrtTestPe -Path (Join-Path $runner 'omni_accelerant.exe') -Text 'main'
+            New-OrtTestPe -Path (Join-Path $runner 'oxidant.dll') -Text 'OrtGetApiBase'
+            $wheels = Join-Path $case 'onnx\wheels'
+            New-OrtCaseWheel -Path (Join-Path $wheels 'onnxruntime-1.31.0-cp315-cp315-win_amd64.whl') -Dll (Join-Path $bin 'onnxruntime.dll')
+            return [pscustomobject]@{ Root = (Join-Path $case 'onnx'); Runner = $runner; Wheels = $wheels }
+        }
+        # The image's chain wheel: the core DLL's exact bytes beside ORT's own two texts.
+        function New-OrtCaseWheel([string] $Path, [string] $Dll, [string] $Notice = 'chain notices', [string[]] $ProviderDll = @()) {
+            $texts = "$Path.texts"
+            Write-TestFileTree -Root $texts -Files @{ LICENSE = 'chain MIT text'; 'ThirdPartyNotices.txt' = $Notice }
+            $member = @{
+                'onnxruntime/capi/onnxruntime.dll' = $Dll
+                'onnxruntime/LICENSE' = Join-Path $texts 'LICENSE'
+                'onnxruntime/ThirdPartyNotices.txt' = Join-Path $texts 'ThirdPartyNotices.txt'
+            }
+            foreach ($provider in $ProviderDll) { $member["onnxruntime/capi/$(Split-Path $provider -Leaf)"] = $provider }
+            Add-Type -AssemblyName System.IO.Compression.FileSystem
+            New-TestZipFile -Path $Path -Member $member -FileValues
+            Remove-TestDir -Path $texts
+        }
+        function Invoke-WithOnnxRoot([string] $Root, [scriptblock] $Block) {
+            $saved = $env:ONNX_ROOT, $env:PYTHON_WHEELS
+            $env:ONNX_ROOT = $Root
+            $env:PYTHON_WHEELS = Join-Path $Root 'wheels'
+            try { & $Block } finally { $env:ONNX_ROOT, $env:PYTHON_WHEELS = $saved }
+        }
     }
 
     It 'stages the chain ORT over stale copies, proves it with G6 and re-proves the stamp on a host' {
         $c = New-Case 'green'
-        New-OrtTestPe -Path (Join-Path $c.Runner 'onnxruntime.dll') -Text $foreignSrc
+        New-OrtTestPe -Path (Join-Path $c.Runner 'onnxruntime.dll') -Text $script:foreignSrc
         Invoke-WithOnnxRoot $c.Root {
             $null = Copy-ChainOrtBeside -OnnxRoot $c.Root -Destination $c.Runner
             $proof = Invoke-RunnerOrtProof -RunnerDir $c.Runner
-            @($proof.Stamp.sha256.Keys).Count | Should Be 3
+            @($proof.Stamp.sha256.Keys).Count | Should -Be 3
         }
         # The host has no image: the stamped copy is G6's reference.
         Invoke-WithOnnxRoot (Join-Path $TestDrive 'no-image') {
-            Get-ThrowMessage { Assert-RunnerOrtStamp -RunnerDir $c.Runner } | Should Be ''
-            Get-ThrowMessage { Assert-RunnerOrtOverride -Value 'onnxruntime.dll' -ExeDir $c.Runner -RunnerDir $c.Runner } | Should Be ''
+            Get-ThrowMessage { Assert-RunnerOrtStamp -RunnerDir $c.Runner } | Should -Be ''
+            Get-ThrowMessage { Assert-RunnerOrtOverride -Value 'onnxruntime.dll' -ExeDir $c.Runner -RunnerDir $c.Runner } | Should -Be ''
         }
     }
 
@@ -102,35 +91,35 @@ Describe 'WindowsOrtRunner.Common' {
             $null = Copy-ChainOrtBeside -OnnxRoot $c.Root -Destination $c.Runner
             $null = Invoke-RunnerOrtProof -RunnerDir $c.Runner
         }
-        Get-ThrowMessage { Assert-WindowsGpuDelivery -SourceDir $c.Runner -DestinationDir $c.Runner -Provider directml } | Should Match 'UNPROVEN'
-        Get-ThrowMessage { Assert-WindowsInstallerCandidate -RunnerDir $c.Runner -Provider directml -Arch x64 } | Should Match 'UNPROVEN'
+        Get-ThrowMessage { Assert-WindowsGpuDelivery -SourceDir $c.Runner -DestinationDir $c.Runner -Provider directml } | Should -Match 'UNPROVEN'
+        Get-ThrowMessage { Assert-WindowsInstallerCandidate -RunnerDir $c.Runner -Provider directml -Arch x64 } | Should -Match 'UNPROVEN'
         if (-not (Get-Command Copy-OrtWheelLicenses).Parameters.ContainsKey('DirectMlDll')) { return }
         Invoke-WithOnnxRoot $c.Root {
             Reset-CaseWheel $c @((Join-Path $c.Root 'bin\onnxruntime_providers_shared.dll'), (Join-Path $c.Root 'bin\DirectML.dll'))
             $null = Invoke-RunnerOrtProof -RunnerDir $c.Runner -RequiredProvider 'onnxruntime_providers_shared.dll'
-            Get-ThrowMessage { Assert-WindowsGpuDelivery -SourceDir $c.Runner -DestinationDir $c.Runner -Provider directml } | Should Match 'UNPROVEN DirectML'
+            Get-ThrowMessage { Assert-WindowsGpuDelivery -SourceDir $c.Runner -DestinationDir $c.Runner -Provider directml } | Should -Match 'UNPROVEN DirectML'
             $null = Invoke-RunnerOrtProof -RunnerDir $c.Runner -RequiredProvider 'onnxruntime_providers_shared.dll' -RequireDirectMl
         }
         $hostDir = Join-Path $TestDrive 'gpu-delivery-host'
         Copy-Item -LiteralPath $c.Runner -Destination $hostDir -Recurse
         Invoke-WithOnnxRoot (Join-Path $TestDrive 'no-image') {
-            Get-ThrowMessage { Assert-WindowsGpuDelivery -SourceDir $c.Runner -DestinationDir $hostDir -Provider directml } | Should Be ''
-            Get-ThrowMessage { Assert-WindowsInstallerCandidate -RunnerDir $hostDir -Provider directml -Arch x64 } | Should Be ''
+            Get-ThrowMessage { Assert-WindowsGpuDelivery -SourceDir $c.Runner -DestinationDir $hostDir -Provider directml } | Should -Be ''
+            Get-ThrowMessage { Assert-WindowsInstallerCandidate -RunnerDir $hostDir -Provider directml -Arch x64 } | Should -Be ''
             New-OrtTestPe -Path (Join-Path $hostDir 'DirectML.dll') -Text 'tampered DirectML'
-            Get-ThrowMessage { Assert-WindowsGpuDelivery -SourceDir $c.Runner -DestinationDir $hostDir -Provider directml } | Should Match 'CHANGED .*DirectML'
+            Get-ThrowMessage { Assert-WindowsGpuDelivery -SourceDir $c.Runner -DestinationDir $hostDir -Provider directml } | Should -Match 'CHANGED .*DirectML'
             Copy-Item -LiteralPath (Join-Path $c.Runner 'DirectML.dll') -Destination $hostDir -Force
-            Get-ThrowMessage { Assert-WindowsGpuDelivery -SourceDir $c.Runner -DestinationDir $hostDir -Provider cuda } | Should Match 'not the requested'
+            Get-ThrowMessage { Assert-WindowsGpuDelivery -SourceDir $c.Runner -DestinationDir $hostDir -Provider cuda } | Should -Match 'not the requested'
             New-OrtTestPe -Path (Join-Path $hostDir 'omni_accelerant.exe') -Text 'old'
-            Get-ThrowMessage { Assert-WindowsGpuDelivery -SourceDir $c.Runner -DestinationDir $hostDir -Provider directml } | Should Match 'stale or incomplete omni_accelerant'
+            Get-ThrowMessage { Assert-WindowsGpuDelivery -SourceDir $c.Runner -DestinationDir $hostDir -Provider directml } | Should -Match 'stale or incomplete omni_accelerant'
             Copy-Item -LiteralPath (Join-Path $c.Runner 'omni_accelerant.exe') -Destination $hostDir -Force
             New-OrtTestPe -Path (Join-Path $hostDir 'oxidant.dll') -Text 'old'
-            Get-ThrowMessage { Assert-WindowsGpuDelivery -SourceDir $c.Runner -DestinationDir $hostDir -Provider directml } | Should Match 'stale or incomplete oxidant'
+            Get-ThrowMessage { Assert-WindowsGpuDelivery -SourceDir $c.Runner -DestinationDir $hostDir -Provider directml } | Should -Match 'stale or incomplete oxidant'
             Copy-Item -LiteralPath (Join-Path $c.Runner 'oxidant.dll') -Destination $hostDir -Force
             New-OrtTestPe -Path (Join-Path $hostDir 'onnxruntime_providers_cuda.dll') -Text 'stale CUDA'
-            Get-ThrowMessage { Assert-WindowsGpuDelivery -SourceDir $c.Runner -DestinationDir $hostDir -Provider directml } | Should Match 'stale CUDA provider'
+            Get-ThrowMessage { Assert-WindowsGpuDelivery -SourceDir $c.Runner -DestinationDir $hostDir -Provider directml } | Should -Match 'stale CUDA provider'
             Remove-Item -LiteralPath (Join-Path $hostDir 'onnxruntime_providers_cuda.dll')
             New-OrtTestPe -Path (Join-Path $hostDir 'onnxruntime.dll') -Text 'different ORT'
-            Get-ThrowMessage { Assert-WindowsGpuDelivery -SourceDir $c.Runner -DestinationDir $hostDir -Provider directml } | Should Match 'CHANGED .*onnxruntime'
+            Get-ThrowMessage { Assert-WindowsGpuDelivery -SourceDir $c.Runner -DestinationDir $hostDir -Provider directml } | Should -Match 'CHANGED .*onnxruntime'
         }
     }
 
@@ -138,15 +127,15 @@ Describe 'WindowsOrtRunner.Common' {
         $c = New-Case 'build-red'
         Invoke-WithOnnxRoot $c.Root {
             $null = Copy-ChainOrtBeside -OnnxRoot $c.Root -Destination $c.Runner
-            New-OrtTestPe -Path (Join-Path $c.Runner 'onnxruntime.dll') -Text $foreignSrc
-            Get-ThrowMessage { Invoke-RunnerOrtProof -RunnerDir $c.Runner } | Should Match 'FOREIGN'
-            New-OrtTestPe -Path (Join-Path $c.Runner 'onnxruntime.dll') -Text "$chainSrc`0FileVersion 1.27.0"
-            Get-ThrowMessage { Invoke-RunnerOrtProof -RunnerDir $c.Runner } | Should Match 'STALE'
+            New-OrtTestPe -Path (Join-Path $c.Runner 'onnxruntime.dll') -Text $script:foreignSrc
+            Get-ThrowMessage { Invoke-RunnerOrtProof -RunnerDir $c.Runner } | Should -Match 'FOREIGN'
+            New-OrtTestPe -Path (Join-Path $c.Runner 'onnxruntime.dll') -Text "$script:chainSrc`0FileVersion 1.27.0"
+            Get-ThrowMessage { Invoke-RunnerOrtProof -RunnerDir $c.Runner } | Should -Match 'STALE'
             Remove-Item -LiteralPath (Join-Path $c.Runner 'onnxruntime.dll')
-            Get-ThrowMessage { Invoke-RunnerOrtProof -RunnerDir $c.Runner } | Should Match 'MISSING'
+            Get-ThrowMessage { Invoke-RunnerOrtProof -RunnerDir $c.Runner } | Should -Match 'MISSING'
             $null = Copy-ChainOrtBeside -OnnxRoot $c.Root -Destination $c.Runner
             New-OrtTestPe -Path (Join-Path $c.Runner 'gstreamer-1.0\onnxruntime-genai.dll') -Text 'genai'
-            Get-ThrowMessage { Invoke-RunnerOrtProof -RunnerDir $c.Runner } | Should Match 'STRAY .*onnxruntime-genai'
+            Get-ThrowMessage { Invoke-RunnerOrtProof -RunnerDir $c.Runner } | Should -Match 'STRAY .*onnxruntime-genai'
         }
     }
 
@@ -155,35 +144,35 @@ Describe 'WindowsOrtRunner.Common' {
         $name = 'onnxruntime_providers_cuda.dll'
         Invoke-WithOnnxRoot $c.Root {
             $null = Copy-ChainOrtBeside -OnnxRoot $c.Root -Destination $c.Runner
-            Get-ProofError $c @{ RequiredProvider = $name } | Should Match 'MISSING required ONNX Runtime provider'
-            New-OrtTestPe -Path (Join-Path $c.Root "bin\$name") -Text "$chainSrc`0CUDA provider"
+            Get-ProofError $c @{ RequiredProvider = $name } | Should -Match 'MISSING required ONNX Runtime provider'
+            New-OrtTestPe -Path (Join-Path $c.Root "bin\$name") -Text "$script:chainSrc`0CUDA provider"
             Copy-Item -LiteralPath (Join-Path $c.Root "bin\$name") -Destination $c.Runner
-            Get-ThrowMessage { Invoke-RunnerOrtProof -RunnerDir $c.Runner } | Should Match 'STRAY .*onnxruntime_providers_cuda'
+            Get-ThrowMessage { Invoke-RunnerOrtProof -RunnerDir $c.Runner } | Should -Match 'STRAY .*onnxruntime_providers_cuda'
             if (-not (Get-Command Copy-OrtWheelLicenses).Parameters.ContainsKey('ProviderDll')) {
-                Get-ProofError $c @{ RequiredProvider = $name } | Should Match 'cannot verify provider DLLs'
+                Get-ProofError $c @{ RequiredProvider = $name } | Should -Match 'cannot verify provider DLLs'
                 return
             }
             Reset-CaseWheel $c @((Join-Path $c.Root 'bin\onnxruntime_providers_shared.dll'), (Join-Path $c.Root "bin\$name"))
-            New-OrtTestPe -Path (Join-Path $c.Runner $name) -Text "$chainSrc`0stale CUDA provider"
-            Get-ProofError $c @{ RequiredProvider = $name } | Should Match 'STALE .*onnxruntime_providers_cuda'
+            New-OrtTestPe -Path (Join-Path $c.Runner $name) -Text "$script:chainSrc`0stale CUDA provider"
+            Get-ProofError $c @{ RequiredProvider = $name } | Should -Match 'STALE .*onnxruntime_providers_cuda'
             Copy-Item -LiteralPath (Join-Path $c.Root "bin\$name") -Destination $c.Runner -Force
             $proof = Invoke-RunnerOrtProof -RunnerDir $c.Runner -RequiredProvider $name
-            $proof.Stamp.sha256.ContainsKey($name) | Should Be $true
-            @($proof.Stamp.verified_providers) -contains $name | Should Be $true
+            $proof.Stamp.sha256.ContainsKey($name) | Should -Be $true
+            @($proof.Stamp.verified_providers) -contains $name | Should -Be $true
         }
         if ((Get-Command Copy-OrtWheelLicenses).Parameters.ContainsKey('ProviderDll')) { Invoke-WithOnnxRoot (Join-Path $TestDrive 'no-image') {
-            Get-ThrowMessage { Assert-RunnerOrtStamp -RunnerDir $c.Runner -RequiredProvider @('onnxruntime_providers_shared.dll', $name) } | Should Be ''
+            Get-ThrowMessage { Assert-RunnerOrtStamp -RunnerDir $c.Runner -RequiredProvider @('onnxruntime_providers_shared.dll', $name) } | Should -Be ''
             $stampPath = Join-Path $c.Runner 'ort-chain-stamp.json'
             $stamp = Get-Content -LiteralPath $stampPath -Raw | ConvertFrom-Json -AsHashtable
             $stamp['verified_providers'] = @('onnxruntime_providers_shared.dll')
             $stamp | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $stampPath -Encoding utf8
-            Get-ThrowMessage { Assert-RunnerOrtStamp -RunnerDir $c.Runner -RequiredProvider $name } | Should Match 'UNPROVEN'
+            Get-ThrowMessage { Assert-RunnerOrtStamp -RunnerDir $c.Runner -RequiredProvider $name } | Should -Match 'UNPROVEN'
             $stamp['verified_providers'] = @('onnxruntime_providers_shared.dll', $name)
             $stamp | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $stampPath -Encoding utf8
             New-OrtTestPe -Path (Join-Path $c.Runner $name) -Text 'tampered CUDA provider'
-            Get-ThrowMessage { Assert-RunnerOrtStamp -RunnerDir $c.Runner } | Should Match 'CHANGED .*onnxruntime_providers_cuda'
+            Get-ThrowMessage { Assert-RunnerOrtStamp -RunnerDir $c.Runner } | Should -Match 'CHANGED .*onnxruntime_providers_cuda'
             Remove-Item -LiteralPath (Join-Path $c.Runner $name)
-            Get-ThrowMessage { Assert-RunnerOrtStamp -RunnerDir $c.Runner } | Should Match 'MISSING .*onnxruntime_providers_cuda'
+            Get-ThrowMessage { Assert-RunnerOrtStamp -RunnerDir $c.Runner } | Should -Match 'MISSING .*onnxruntime_providers_cuda'
         } }
     }
 
@@ -192,16 +181,16 @@ Describe 'WindowsOrtRunner.Common' {
         $name = 'onnxruntime_providers_shared.dll'
         Invoke-ChainRunnerCase $c {
             if (-not (Test-WheelApi 'ProviderDll')) {
-                Get-ProofError $c @{ RequiredProvider = $name } | Should Match 'cannot verify provider DLLs'
+                Get-ProofError $c @{ RequiredProvider = $name } | Should -Match 'cannot verify provider DLLs'
                 return
             }
             $wrong = Join-Path $c.Root "wrong\$name"
             New-OrtTestPe -Path $wrong -Text 'wrong provider bridge'
             Reset-CaseWheel $c $wrong
-            Get-ProofError $c @{ RequiredProvider = $name } | Should Match 'differs from the matching wheel'
+            Get-ProofError $c @{ RequiredProvider = $name } | Should -Match 'differs from the matching wheel'
             Reset-CaseWheel $c (Join-Path $c.Root "bin\$name")
             $proof = Invoke-RunnerOrtProof -RunnerDir $c.Runner -RequiredProvider $name
-            $proof.Stamp.sha256.ContainsKey($name) | Should Be $true
+            $proof.Stamp.sha256.ContainsKey($name) | Should -Be $true
         }
     }
 
@@ -209,24 +198,24 @@ Describe 'WindowsOrtRunner.Common' {
         $c = New-Case 'directml-wheel'
         Invoke-ChainRunnerCase $c {
             if (-not (Test-WheelApi 'DirectMlDll')) {
-                Get-ProofError $c @{ RequireDirectMl = $true } | Should Match 'cannot verify DirectML'
+                Get-ProofError $c @{ RequireDirectMl = $true } | Should -Match 'cannot verify DirectML'
                 return
             }
             Reset-CaseWheel $c
-            Get-ProofError $c @{ RequireDirectMl = $true } | Should Match 'matched 0 entries'
+            Get-ProofError $c @{ RequireDirectMl = $true } | Should -Match 'matched 0 entries'
             $wrong = Join-Path $c.Root 'wrong\DirectML.dll'
             New-OrtTestPe -Path $wrong -Text 'wrong directml'
             Reset-CaseWheel $c $wrong
-            Get-ProofError $c @{ RequireDirectMl = $true } | Should Match 'DirectML runtime differs'
+            Get-ProofError $c @{ RequireDirectMl = $true } | Should -Match 'DirectML runtime differs'
             Reset-CaseWheel $c (Join-Path $c.Root 'bin\DirectML.dll')
             $proof = Invoke-RunnerOrtProof -RunnerDir $c.Runner -RequireDirectMl
-            $proof.Stamp.verified_directml | Should Be $true
-            Get-ThrowMessage { Assert-RunnerOrtStamp -RunnerDir $c.Runner -RequireDirectMl } | Should Be ''
+            $proof.Stamp.verified_directml | Should -Be $true
+            Get-ThrowMessage { Assert-RunnerOrtStamp -RunnerDir $c.Runner -RequireDirectMl } | Should -Be ''
             $stampPath = Join-Path $c.Runner 'ort-chain-stamp.json'
             $stamp = Get-Content -LiteralPath $stampPath -Raw | ConvertFrom-Json -AsHashtable
             $stamp['verified_directml'] = 'true'
             $stamp | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $stampPath -Encoding utf8
-            Get-ThrowMessage { Assert-RunnerOrtStamp -RunnerDir $c.Runner -RequireDirectMl } | Should Match 'UNPROVEN DirectML'
+            Get-ThrowMessage { Assert-RunnerOrtStamp -RunnerDir $c.Runner -RequireDirectMl } | Should -Match 'UNPROVEN DirectML'
         }
     }
 
@@ -239,14 +228,14 @@ Describe 'WindowsOrtRunner.Common' {
         $stamp = Join-Path $c.Runner 'ort-chain-stamp.json'
         $saved = Get-Content -LiteralPath $stamp -Raw
         New-OrtTestPe -Path (Join-Path $c.Runner 'DirectML.dll') -Text 'other directml'
-        Get-ThrowMessage { Assert-RunnerOrtStamp -RunnerDir $c.Runner } | Should Match 'CHANGED .*DirectML'
+        Get-ThrowMessage { Assert-RunnerOrtStamp -RunnerDir $c.Runner } | Should -Match 'CHANGED .*DirectML'
         Copy-Item -LiteralPath (Join-Path $c.Root 'bin\DirectML.dll') -Destination $c.Runner -Force
         New-OrtTestPe -Path (Join-Path $c.Runner 'onnxruntime_extra.dll') -Text 'extra'
-        Get-ThrowMessage { Assert-RunnerOrtStamp -RunnerDir $c.Runner } | Should Match 'STRAY .*onnxruntime_extra'
+        Get-ThrowMessage { Assert-RunnerOrtStamp -RunnerDir $c.Runner } | Should -Match 'STRAY .*onnxruntime_extra'
         Remove-Item -LiteralPath (Join-Path $c.Runner 'onnxruntime_extra.dll')
         # A renamed ORT is invisible to the family names; G6 still sees its fingerprint.
-        New-OrtTestPe -Path (Join-Path $c.Runner 'helper.dll') -Text $foreignSrc
-        Get-ThrowMessage { Assert-RunnerOrtStamp -RunnerDir $c.Runner } | Should Match 'FOREIGN .*helper.dll'
+        New-OrtTestPe -Path (Join-Path $c.Runner 'helper.dll') -Text $script:foreignSrc
+        Get-ThrowMessage { Assert-RunnerOrtStamp -RunnerDir $c.Runner } | Should -Match 'FOREIGN .*helper.dll'
         Remove-Item -LiteralPath (Join-Path $c.Runner 'helper.dll')
         # Stamp and bytes swapped together for an ORT with no source root at all: G6 alone cannot tell.
         New-OrtTestPe -Path (Join-Path $c.Runner 'onnxruntime.dll') -Text 'OrtGetApiBase no fingerprint'
@@ -254,9 +243,9 @@ Describe 'WindowsOrtRunner.Common' {
         $forged = $saved | ConvertFrom-Json -AsHashtable
         $forged['sha256']['onnxruntime.dll'] = $sha
         $forged | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $stamp -Encoding utf8
-        Get-ThrowMessage { Assert-RunnerOrtStamp -RunnerDir $c.Runner } | Should Match 'UNPROVEN'
+        Get-ThrowMessage { Assert-RunnerOrtStamp -RunnerDir $c.Runner } | Should -Match 'UNPROVEN'
         Remove-Item -LiteralPath $stamp
-        Get-ThrowMessage { Assert-RunnerOrtStamp -RunnerDir $c.Runner } | Should Match 'UNSTAMPED'
+        Get-ThrowMessage { Assert-RunnerOrtStamp -RunnerDir $c.Runner } | Should -Match 'UNSTAMPED'
     }
 
     It 'stages the wheel-matched texts in the image and re-checks their stamped bytes on a host (mutation)' {
@@ -267,19 +256,19 @@ Describe 'WindowsOrtRunner.Common' {
         }
         Invoke-WithOnnxRoot (Join-Path $TestDrive 'no-image') {
             $dir = Resolve-RunnerOrtLicense -RunnerDir $c.Runner
-            $dir | Should Be (Join-Path $c.Runner 'licenses\onnxruntime')
-            [IO.File]::ReadAllText((Join-Path $dir 'ThirdPartyNotices.txt')) | Should Be 'chain notices'
+            $dir | Should -Be (Join-Path $c.Runner 'licenses\onnxruntime')
+            [IO.File]::ReadAllText((Join-Path $dir 'ThirdPartyNotices.txt')) | Should -Be 'chain notices'
             [IO.File]::WriteAllText((Join-Path $dir 'ThirdPartyNotices.txt'), 'edited notices')
-            Get-ThrowMessage { Resolve-RunnerOrtLicense -RunnerDir $c.Runner } | Should Match 'CHANGED .*ThirdPartyNotices'
+            Get-ThrowMessage { Resolve-RunnerOrtLicense -RunnerDir $c.Runner } | Should -Match 'CHANGED .*ThirdPartyNotices'
             [IO.File]::WriteAllText((Join-Path $dir 'ThirdPartyNotices.txt'), 'chain notices')
             Remove-Item -LiteralPath (Join-Path $dir 'LICENSE')
-            Get-ThrowMessage { Resolve-RunnerOrtLicense -RunnerDir $c.Runner } | Should Match 'MISSING .*LICENSE'
+            Get-ThrowMessage { Resolve-RunnerOrtLicense -RunnerDir $c.Runner } | Should -Match 'MISSING .*LICENSE'
             [IO.File]::WriteAllText((Join-Path $dir 'LICENSE'), 'chain MIT text')
             $stamp = Join-Path $c.Runner 'ort-chain-stamp.json'
             $json = Get-Content -LiteralPath $stamp -Raw | ConvertFrom-Json -AsHashtable
             $json.Remove('licenses')
             $json | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $stamp -Encoding utf8
-            Get-ThrowMessage { Resolve-RunnerOrtLicense -RunnerDir $c.Runner } | Should Match 'UNSTAMPED .*license texts'
+            Get-ThrowMessage { Resolve-RunnerOrtLicense -RunnerDir $c.Runner } | Should -Match 'UNSTAMPED .*license texts'
         }
     }
 
@@ -288,20 +277,20 @@ Describe 'WindowsOrtRunner.Common' {
         Invoke-WithOnnxRoot $c.Root {
             $null = Copy-ChainOrtBeside -OnnxRoot $c.Root -Destination $c.Runner
             Remove-Item -Path (Join-Path $c.Wheels '*.whl')
-            Get-ThrowMessage { Invoke-RunnerOrtProof -RunnerDir $c.Runner } | Should Match 'matched 0 wheels'
+            Get-ThrowMessage { Invoke-RunnerOrtProof -RunnerDir $c.Runner } | Should -Match 'matched 0 wheels'
             foreach ($v in '1.31.0', '1.31.1') { New-OrtCaseWheel -Path (Join-Path $c.Wheels "onnxruntime-$v-cp315-cp315-win_amd64.whl") -Dll (Join-Path $c.Root 'bin\onnxruntime.dll') }
-            Get-ThrowMessage { Invoke-RunnerOrtProof -RunnerDir $c.Runner } | Should Match 'matched 2 wheels'
-            Test-Path -LiteralPath (Join-Path $c.Runner 'licenses') | Should Be $false
+            Get-ThrowMessage { Invoke-RunnerOrtProof -RunnerDir $c.Runner } | Should -Match 'matched 2 wheels'
+            Test-Path -LiteralPath (Join-Path $c.Runner 'licenses') | Should -Be $false
         }
     }
 
     It 'carries the arm64 proof copy''s matched texts into the natives artifact with its stamp (mutation)' {
         $ast = Get-TestScriptAst -ScriptPath (Join-Path $PSScriptRoot '..\Build-WindowsArm64Natives.ps1')
         $copies = @(Get-TestAstCommands -Ast $ast -Name 'Copy-Item' | Where-Object { $_.Extent.Text -match [regex]::Escape("(Join-Path `$proofDir 'licenses') -Destination `$runtime -Recurse") })
-        $copies.Count | Should Be 1
+        $copies.Count | Should -Be 1
         $proof = @(Get-TestAstCommands -Ast $ast -Name 'Invoke-RunnerOrtProof')
-        $proof.Count | Should Be 1
-        Test-CommandAfter $copies[0] $proof[0] | Should Be $true
+        $proof.Count | Should -Be 1
+        Test-CommandAfter $copies[0] $proof[0] | Should -Be $true
     }
 
     It 'lets ORT_DYLIB_PATH name only the proven bytes' {
@@ -311,26 +300,26 @@ Describe 'WindowsOrtRunner.Common' {
             $null = Invoke-RunnerOrtProof -RunnerDir $c.Runner
         }
         $other = Join-Path $TestDrive 'override\sys\onnxruntime.dll'
-        New-OrtTestPe -Path $other -Text "$chainSrc`0FileVersion 1.27.0"
-        Get-ThrowMessage { Assert-RunnerOrtOverride -Value $other -ExeDir $c.Runner -RunnerDir $c.Runner } | Should Match 'not the chain ONNX Runtime the build proved'
-        Get-ThrowMessage { Assert-RunnerOrtOverride -Value '' -ExeDir $c.Runner -RunnerDir $c.Runner } | Should Be ''
+        New-OrtTestPe -Path $other -Text "$script:chainSrc`0FileVersion 1.27.0"
+        Get-ThrowMessage { Assert-RunnerOrtOverride -Value $other -ExeDir $c.Runner -RunnerDir $c.Runner } | Should -Match 'not the chain ONNX Runtime the build proved'
+        Get-ThrowMessage { Assert-RunnerOrtOverride -Value '' -ExeDir $c.Runner -RunnerDir $c.Runner } | Should -Be ''
     }
 
     It 'wires G6 into MSIX packaging: the packed runner\Release is proved before msix:create (mutation)' {
         $step = @(Get-MsixPackagingStep)
-        $step.Count | Should Be 1
+        $step.Count | Should -Be 1
         $text = $step[0].Extent.Text
-        Test-TextBefore -Text $text -First 'Invoke-RunnerOrtProof -RunnerDir (Resolve-NormalizedPath -Path (Join-Path $workspace "build/windows/x64/runner/Release"))' -Later 'msix:create' | Should Be $true
+        Test-TextBefore -Text $text -First 'Invoke-RunnerOrtProof -RunnerDir (Resolve-NormalizedPath -Path (Join-Path $workspace "build/windows/x64/runner/Release"))' -Later 'msix:create' | Should -Be $true
     }
 
     It 'rejects malformed build source before inspecting MSIX wiring (mutation)' {
         $broken = Join-Path $TestDrive 'Build-Windows.ps1'
         Set-Content -LiteralPath $broken -Value @('Invoke-BuildStep -StepName "MSIX Packaging" -Script {}', 'if (')
-        Get-ThrowMessage { $null = Get-MsixPackagingStep -ScriptPath $broken } | Should Match 'parse errors'
+        Get-ThrowMessage { $null = Get-MsixPackagingStep -ScriptPath $broken } | Should -Match 'parse errors'
     }
 
     It 'refuses to stage without a chain ONNX_ROOT' {
         $c = New-Case 'noroot'
-        Get-ThrowMessage { Copy-ChainOrtBeside -OnnxRoot '' -Destination $c.Runner } | Should Match 'ONNX_ROOT is not set'
+        Get-ThrowMessage { Copy-ChainOrtBeside -OnnxRoot '' -Destination $c.Runner } | Should -Match 'ONNX_ROOT is not set'
     }
 }
