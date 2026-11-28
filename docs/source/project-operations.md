@@ -957,7 +957,10 @@ backed by the S3 bucket the image chain and the Windows builds share:
   0700 directory. The driver binds that file at `/run/secrets/sccache_s3`.
 - In the container, the hub's `sccache_start_server` hands the key to the server alone.
   `setup_compiler_cache` prints the server's `Cache location` (`Multi-level (2 levels)`) and
-  waits for the uploads on exit. The container's end would otherwise drop them.
+  waits for the uploads on exit. The container's end would otherwise drop them. The wait is
+  an EXIT trap, and a later `trap … EXIT` in the lane's shell would replace it. So the web
+  lane sets its smoke server's trap in a subshell, and `test-web-lane-exit-trap.sh` holds it
+  to that.
 - CI has no route to the bucket and gets none of this. Its sccache cache moves between runs
   through `actions/cache` instead, and its native lane hits about 95 %. The rest are CMake's
   configure probes ([`platforms.md`](platforms.md) § *Image gaps and image-tag history*).

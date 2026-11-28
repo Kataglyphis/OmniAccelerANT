@@ -55,13 +55,16 @@ omni_web_app_build
 
 echo "=== Smoke test: the build served, the shared web shell in place ==="
 antfrastructure_source linux/scripts/01-core/http-readiness.sh
-python3 -m http.server 8080 --bind 127.0.0.1 --directory build/web >/dev/null 2>&1 &
-smoke_server=$!
-trap 'kill "$smoke_server" 2>/dev/null || true' EXIT
-wait_for_http http://127.0.0.1:8080/ "http.server (pid $smoke_server)" || exit 1
-# No CSP here (the stream's hosts vary per board); CHECK_LOCAL_ENGINE fails on an engine from Google's CDN (owner, 2026-10-21: nothing from Google).
-REQUIRED_CSP_HOSTS="" CHECK_LOADING_SHELL=1 CHECK_LOCAL_ENGINE=1 CHECK_FALLBACK_FONTS=1 \
-  bash "$(antfrastructure_path linux/webserver/scripts/flutter_integration_smoke_test.sh)" http://127.0.0.1:8080
+# A subshell, so the server's EXIT trap cannot replace setup_compiler_cache's sccache drain.
+(
+  python3 -m http.server 8080 --bind 127.0.0.1 --directory build/web >/dev/null 2>&1 &
+  smoke_server=$!
+  trap 'kill "$smoke_server" 2>/dev/null || true; wait "$smoke_server" 2>/dev/null || true' EXIT
+  wait_for_http http://127.0.0.1:8080/ "http.server (pid $smoke_server)" || exit 1
+  # No CSP here (the stream's hosts vary per board); CHECK_LOCAL_ENGINE fails on an engine from Google's CDN (owner, 2026-10-21: nothing from Google).
+  REQUIRED_CSP_HOSTS="" CHECK_LOADING_SHELL=1 CHECK_LOCAL_ENGINE=1 CHECK_FALLBACK_FONTS=1 \
+    bash "$(antfrastructure_path linux/webserver/scripts/flutter_integration_smoke_test.sh)" http://127.0.0.1:8080
+)
 
 echo "=== Browser smoke: all routes, local assets, no external hosts ==="
 bash scripts/linux/check-web-browser.sh

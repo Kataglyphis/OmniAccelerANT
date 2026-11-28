@@ -5,7 +5,14 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ## Unreleased
 
-### 2026-11-28 — the rust-stamp gate names an ELF without a stamp
+### 2026-11-28 — the rust-stamp gate names an ELF without a stamp, and the web lane keeps its sccache drain
+
+- The web lane's smoke server set `trap … EXIT` in the lane's own shell, which replaced the sccache drain
+  `setup_compiler_cache` had installed there, so a local run with the S3 level dropped the wasm build's queued
+  uploads at the container's end. The server and its trap now live in a subshell, which also waits for the server
+  it kills. `test-web-lane-exit-trap.sh` runs the real lane script on stubs (the real `setup_compiler_cache`, a
+  sleeping `python3 -m http.server`) and requires the drain once on a green run, a failed integration smoke and a
+  failed browser check, and the server gone; the three drain checks failed before.
 
 - `check-rust-toolchain.sh` read the `.comment` stamps through a bare `grep` under `pipefail`, so an ELF with no
   `rustc version` entry ended the gate on that assignment: exit 1, no `FAIL … carries no rustc stamp` line, and no
