@@ -357,12 +357,13 @@ CON294.
   and OxidANT's length check before `knt_push_frame` (OxidANT 7a97c60, here with the next OxidANT pin).
 - [ ] **Smaller native steps** (S each, ★). The hub's ELF gate on the Linux plugin once CON294 lands; `/guard:cf`
   on the Windows runner after CON290, CET only after a launch smoke on CET-capable hardware (D8); `!cancelled()` on the three uploads
-  (`reusable-linux.yml:119-140`) and a googletest `URL_HASH`; `--privileged` dropped from `web.yml:56` and
+  (`reusable-linux.yml:119-140`); `--privileged` dropped from `web.yml:56` and
   `linux-gpu-candidates.yml:119` if the lanes stay green; the Windows compiler cache fixed (0.94 % hits, save skipped,
   job 133499378065) before the hub hands its key to the other repos; D3's size change, read from the release
   artifacts before and after 9236da02, and a panic provoked in a profile build. D3 itself is in since 2026-11-21
   (`liboxidant.so` unwinds on Linux x64 and arm64, runs 44911736528 and 44911736662), and D12 too (CodeQL default
-  setup for c-cpp and actions, the 96 alerts of three deleted workflows dismissed).
+  setup for c-cpp and actions, the 96 alerts of three deleted workflows dismissed), and googletest's `URL_HASH` since
+  2026-11-28.
 
 ## Open — waiting on the owner
 

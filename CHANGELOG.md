@@ -22,6 +22,9 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
   Windows texture on Linux with stub Flutter headers it passes, and it fails for a zero height accepted, an unknown
   id answered as bad arguments and a texture that never shrinks. OxidANT 7a97c60 refuses a slice shorter than its
   frame before it calls `knt_push_frame`; this app takes it with the next OxidANT pin.
+- Both plugin gtests fetch googletest 1.18.0 as its release asset, `googletest-1.18.0.tar.gz`, checked by
+  `URL_HASH SHA256=6e3191c1…`, the digest GitHub publishes for the asset; the generated tag zip they fetched before
+  was checked by nothing. The hub's Renovate refuses to move a URL behind a `URL_HASH`, so a bump moves both by hand.
 
 ### 2026-11-28 — the Pester suites speak Pester 6
 
