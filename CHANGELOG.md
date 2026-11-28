@@ -7,6 +7,13 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ### 2026-11-28 — the Linux texture refuses a size whose bytes wrap, the rust-stamp gate names a stamp-less ELF, and the web lane keeps its sccache drain
 
+- `settings_asset_paths_test.dart` kept a `filePath` only under `assets/`, and every `filePath` in
+  `blog_settings.json` is `packages/anthology/...`, so it never checked the blog pages' markdown, only the one zip
+  the `docsDesc` entries name. It now takes `packages/<name>/` keys and looks them up in that package's root from
+  `.dart_tool/package_config.json`, an unknown package counting as missing. Two cases hold it: every `filePath` in
+  `blog_settings.json` is collected, and on a fixture package config a missing package file and an unknown package
+  are named while a present file is not. No Flutter SDK was at hand, so CI's Dart run is their first.
+
 - The Linux texture sized `create` and `knt_push_frame` as `width * height * 4` in `size_t`, which wraps to 0 at
   2^31 x 2^31: `malloc(0)` handed back a block the queued colour then overran on the raster thread, and a push of
   that size copied nothing and reported a frame. `my_texture_frame_bytes` returns 0 for a zero side or a count

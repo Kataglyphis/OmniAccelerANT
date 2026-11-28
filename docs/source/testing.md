@@ -57,8 +57,10 @@ From the README (2026-10-19). `test/` checks, among the rest:
   a fake core (`rust_webcam_view_test.dart`);
 - the GStreamer pipeline strings, which otherwise fail only on a machine with a camera
   (`gstreamer_pipeline_builder_test.dart`);
-- the settings files: a malformed key named in the error, and the web's signalling URL resolved
-  against the page (`webrtc_settings_test.dart`, `settings_asset_paths_test.dart`);
+- the settings files: a malformed key named in the error, the web's signalling URL resolved
+  against the page, and each file `blog_settings.json` names found in the app or, for a
+  `packages/<name>/` path, in that package's root from `.dart_tool/package_config.json`
+  (`webrtc_settings_test.dart`, `settings_asset_paths_test.dart`);
 - the web booting without the Rust core, and native refusing to (`rust_core_test.dart`);
 - what no build step checks: the bridge's versions, the version written twice, and the browser
   database's name (`pinned_artefacts_test.dart`); and that every social link has an icon
