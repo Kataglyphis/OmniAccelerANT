@@ -108,7 +108,7 @@ void main() {
   });
 
   testWidgets(
-    'an unreachable camera names the page origin its peers must list',
+    'an unreachable camera names the page origin its read_origins must list',
     (tester) async {
       final browser = FakeRemoteBrowser(page: 'http://127.0.0.1:8000/app/')
         ..answer = (_) async => const ProbeNetworkError();
@@ -116,7 +116,7 @@ void main() {
       await _connect(tester, 'http://192.168.1.20:8080');
       expect(
         find.textContaining(
-          'origin, http://127.0.0.1:8000, is in its peers list',
+          'origin, http://127.0.0.1:8000, is in its read_origins list',
         ),
         findsOneWidget,
       );

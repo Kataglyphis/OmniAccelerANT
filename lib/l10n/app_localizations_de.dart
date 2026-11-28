@@ -715,7 +715,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String observantAddressUnreachable(String address, String origin) {
-    return '$address gab keine Antwort, die diese Seite lesen darf. Prüfen Sie die Adresse und ob ObservANT dort läuft. ObservANT antwortet einer anderen Seite nur, wenn deren Ursprung $origin in seiner peers-Liste steht.';
+    return '$address gab keine Antwort, die diese Seite lesen darf. Prüfen Sie die Adresse und ob ObservANT dort läuft. ObservANT antwortet einer anderen Seite nur, wenn deren Ursprung $origin in seiner read_origins-Liste steht.';
   }
 
   @override

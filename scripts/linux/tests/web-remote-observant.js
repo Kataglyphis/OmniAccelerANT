@@ -56,7 +56,7 @@ async function appServers(root, tls) {
   return { app, secure, httpPort: await listen(app), httpsPort: await listen(secure) };
 }
 
-// ObservANT's read rule (web.rs add_page_headers): CORS and CORP only for an origin in its peers, no preflight.
+// ObservANT's read rule (web.rs add_page_headers): CORS and CORP only for an origin in its peers or read_origins, no preflight.
 function observant(peers, seen) {
   const idle = JSON.parse(fs.readFileSync(IDLE, 'utf8'));
   return http.createServer((req, res) => {

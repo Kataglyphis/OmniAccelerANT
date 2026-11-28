@@ -184,7 +184,7 @@ class _RemoteObservantPanelState extends State<RemoteObservantPanel> {
     NotAnObservant() => [l10n.observantNotObservant(address)],
   };
 
-  /// The page's origin, which ObservANT's `peers` must list before it answers this page.
+  /// The page's origin, which ObservANT's `read_origins` must list before it answers this page.
   String _pageOrigin() {
     final Uri page = widget.controller.page;
     return page.hasAuthority ? page.origin : page.toString();

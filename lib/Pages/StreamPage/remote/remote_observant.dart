@@ -69,7 +69,7 @@ final class LocalNetworkRefused extends ObservantConnectionError {
   final AddressSpace space;
 }
 
-/// No answer the page may read: wrong address, ObservANT down, or this page's origin not in its `peers`.
+/// No answer the page may read: wrong address, ObservANT down, or this page's origin not in its `read_origins`.
 final class ObservantUnreachable extends ObservantConnectionError {
   const ObservantUnreachable({required this.localNetwork});
 

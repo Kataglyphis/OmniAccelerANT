@@ -163,7 +163,7 @@ picture and clip link to that origin; native builds keep their stub. The address
 | `https` page, `http` address other than loopback | The mixed-content notice, no request: serve ObservANT over https (`serve.sh`, or a reverse proxy named in `allowed_hosts`), or open the app over http in the network, from the camera's own page |
 | Address more private than the page: a public page and a LAN address or loopback | While Chrome's prompt is open, a line asking the visitor to choose Allow; the request then waits up to 60 s |
 | The same, permission refused | The refusal and where to allow it (site settings, Local network access); no request while it stands |
-| No answer the page may read | The address, the causes the page cannot tell apart (down, wrong address, CORS), and the page's origin, which ObservANT's `peers` must list |
+| No answer the page may read | The address, the causes the page cannot tell apart (down, wrong address, CORS), and the page's origin, which ObservANT's `read_origins` must list |
 | Timeout, error status, not ObservANT | Each its own line; an error status shows ObservANT's own reason |
 
 The page places addresses by their form: loopback, RFC 1918 and link-local IPs, `localhost`, dotless names
@@ -172,7 +172,9 @@ the Permissions API under `local-network`, `loopback-network` or the older `loca
 `denied` before a request refuses at once. `denied` after a failed request tells a "Block" from a dead
 host.
 
-ObservANT answers another origin's reads only for the origins in its `peers`, with CORS and CORP. It
+ObservANT answers another origin's reads only for the origins in its `peers` or `read_origins`, with CORS and
+CORP. `read_origins` (OxidANT 06f0f63, owner decision) is the list for a page such as the hosted app: it reads
+without being listed as a camera. It
 refuses that origin's acting requests: `POST /settings`, `/ask` and the signalling socket. From another page,
 status, visits and pictures work; the live picture, settings and questions stay on the camera's own page,
 and the panel says so.
@@ -181,7 +183,7 @@ The check is `bash scripts/linux/check-web-browser.sh --remote [build dir]` in t
 it after the other browser checks. `scripts/linux/tests/web-remote-observant.js` serves the build behind
 COOP and COEP, over http and, with a throwaway certificate, as `https://app.test`. Chrome places that
 server in the public address space (`--ip-address-space-overrides`). A fixture ObservANT on loopback answers
-`/healthz` under ObservANT's `peers` rule. The check covers an http page connecting to an http address, the
+`/healthz` under ObservANT's `read_origins` rule. The check covers an http page connecting to an http address, the
 https page refusing an http address with no request sent, and a denied permission refusing unsent. Under that
 denial Chrome itself must refuse a plain `fetch` from the page, so the fixture reproduces the real block. Once
 the permission is granted, the same page connects. The decisions themselves have unit tests:

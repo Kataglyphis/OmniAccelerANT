@@ -1230,7 +1230,7 @@ abstract class AppLocalizations {
   /// Notice when fetch failed: unreachable, CORS or a refusal the page cannot tell apart.
   ///
   /// In en, this message translates to:
-  /// **'{address} gave no answer this page may read. Check the address and that ObservANT runs there. ObservANT answers another page only when that page\'s origin, {origin}, is in its peers list.'**
+  /// **'{address} gave no answer this page may read. Check the address and that ObservANT runs there. ObservANT answers another page only when that page\'s origin, {origin}, is in its read_origins list.'**
   String observantAddressUnreachable(String address, String origin);
 
   /// Added to the unreachable notice when Local Network Access applies.

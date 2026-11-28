@@ -5,6 +5,13 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ## Unreleased
 
+### 2026-11-28 — the remote panel names ObservANT's read_origins
+
+- OxidANT 06f0f63 gave ObservANT `read_origins`, origins that may read status, visits and pictures without
+  being listed as cameras (owner decision). The remote panel's unreachable text, in English and German, now
+  names that list for the page's origin instead of `peers`, as do browser-port.md and the remote check's
+  fixture comment.
+
 ### 2026-11-28 — the web Stream page asks an explicit ObservANT address and says what blocks it
 
 - Browser port step 9. The web build's Stream page has an ObservANT address field. Empty, the page asks

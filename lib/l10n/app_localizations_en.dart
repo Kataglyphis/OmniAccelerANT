@@ -708,7 +708,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String observantAddressUnreachable(String address, String origin) {
-    return '$address gave no answer this page may read. Check the address and that ObservANT runs there. ObservANT answers another page only when that page\'s origin, $origin, is in its peers list.';
+    return '$address gave no answer this page may read. Check the address and that ObservANT runs there. ObservANT answers another page only when that page\'s origin, $origin, is in its read_origins list.';
   }
 
   @override
