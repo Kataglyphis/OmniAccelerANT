@@ -6,6 +6,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/../lib/ci-lane-libs.sh"
 REPO_ROOT="$OMNI_LANE_REPO_ROOT"
 source "$SCRIPT_DIR/../lib/gpu-ci-smoke.sh"
+# shellcheck source=scripts/linux/lib/cpu-floor.sh
+source "$SCRIPT_DIR/../lib/cpu-floor.sh"
 
 usage() {
   omni_ci_usage lane-native-linux arch-auto build-mode-linux app-name-default package-formats-all no-package strict-checks run-docs flutter-dir-optional help
@@ -67,7 +69,8 @@ bash third_party/OxidANT/scripts/linux/fetch-models.sh
 # linux/CMakeLists.txt reads it at configure time: the plugin's gtest target, built only by run_plugin_gtest.
 export KATAGLYPHIS_PLUGIN_TESTS=1
 
-# Clean and build (pub get already done above, skip duplicate call)
+# CMake reads CFLAGS and CXXFLAGS only on a build tree's first configure, which the clean guarantees.
+omni_export_cpu_floor "$MATRIX_ARCH"
 flutter clean
 flutter build linux --"$BUILD_MODE"
 
@@ -84,6 +87,9 @@ if [[ "$BUILD_MODE" == "release" ]]; then
   run_gate "plugin gtest" run_plugin_gtest "$build_dir"
   run_gate "rust toolchain" bash scripts/linux/check-rust-toolchain.sh --require-unwind "${build_dir}/bundle/lib/liboxidant.so"
   run_gate "unwinder order" bash scripts/linux/check-unwinder-order.sh "${build_dir}/bundle/$(linux_binary_name)"
+  if [[ "$MATRIX_ARCH" == "x64" ]]; then
+    run_gate "cpu floor" omni_check_cpu_floor "$build_dir"
+  fi
   assert_gates
 
   # Under the image's xvfb-run: the packaged bundle starts, and the app drives its integration test.

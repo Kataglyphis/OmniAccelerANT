@@ -89,11 +89,9 @@ Assert-AppInstallerLicense -Plan $plan -Path $plan.Msi
 if ($gpuFiles.Count -gt 0) {
     $gpuPaths = @($gpuFiles | ForEach-Object { Join-Path $AppDir $_ })
     $gpuMsiIds = @('exe0') + @($gpuPaths | Select-Object -Skip 1 | ForEach-Object { Get-WixSourceFileId -WixPath $plan.Fragment -SourcePath $_ })
-    $gpuProviders = @($gpuFiles | Where-Object { $_ -clike 'onnxruntime_providers_*.dll' } | Sort-Object)
     Assert-PackageBinary -Path "$base.msi" -Member $gpuMsiIds -SourcePath $gpuPaths
     & (Join-Path $PSScriptRoot 'Stage-DetectorModel.ps1') -WorkspaceDir $repoRoot -RunnerDir $AppDir -VerifyOnly
-    $msiProviders = @(Get-PackageOrtProviderNames -Path "$base.msi" -Directory '' -RootDirectoryId APPLICATIONFOLDER -RootDirectoryName OmniAccelerANT)
-    if (($gpuProviders -join ',') -cne ($msiProviders -join ',')) { throw 'MSI ORT provider set differs from the proven runner.' }
+    Assert-PackageOrtProviderSet -Path "$base.msi" -Expected $gpuFiles -Label 'MSI' -RootDirectoryId APPLICATIONFOLDER -RootDirectoryName OmniAccelerANT
     Assert-WindowsInstallerCandidate -RunnerDir $AppDir -Provider $OrtProvider -Arch $Arch
 }
 New-AppMsix -Context $context -Plan $plan -ManifestTemplate (Join-Path $installer 'AppxManifest.xml') `
@@ -102,8 +100,7 @@ Assert-AppInstallerLicense -Plan $plan -Path $plan.Msix
 if ($gpuFiles.Count -gt 0) {
     Assert-PackageBinary -Path "$base.msix" -Member $gpuFiles -SourcePath $gpuPaths
     & (Join-Path $PSScriptRoot 'Stage-DetectorModel.ps1') -WorkspaceDir $repoRoot -RunnerDir $AppDir -VerifyOnly
-    $msixProviders = @(Get-PackageOrtProviderNames -Path "$base.msix" -Directory '')
-    if (($gpuProviders -join ',') -cne ($msixProviders -join ',')) { throw 'MSIX ORT provider set differs from the proven runner.' }
+    Assert-PackageOrtProviderSet -Path "$base.msix" -Expected $gpuFiles -Label 'MSIX'
     Assert-WindowsInstallerCandidate -RunnerDir $AppDir -Provider $OrtProvider -Arch $Arch
     Move-Item -LiteralPath $outRoot -Destination $gpuDestination
     Write-Host "Unverified GPU installer candidate: $gpuDestination"
