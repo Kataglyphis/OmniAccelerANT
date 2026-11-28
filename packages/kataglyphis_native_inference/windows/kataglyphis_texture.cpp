@@ -9,13 +9,18 @@
 namespace kataglyphis_native_inference {
 
 KataglyphisTexture::KataglyphisTexture(uint32_t width, uint32_t height, uint8_t r, uint8_t g, uint8_t b)
-  : texture_id_(-1), width_(width), height_(height), buffer_(new uint8_t[width * height * kBytesPerPixel]),
+  : texture_id_(-1), width_(width), height_(height), buffer_(new uint8_t[BufferBytes(width, height)]),
     texture_registrar_(nullptr)
 {
     OutputDebugStringA("[kataglyphis_texture] Constructor called\n");
-    const uint32_t pixels = width * height;
-    for (uint32_t i = 0; i < pixels; ++i) {
-        uint8_t *p = buffer_.get() + i * kBytesPerPixel;
+    FillBuffer(r, g, b);
+}
+
+void KataglyphisTexture::FillBuffer(uint8_t r, uint8_t g, uint8_t b)
+{
+    const size_t bytes = BufferBytes(width_, height_);
+    for (size_t i = 0; i < bytes; i += kBytesPerPixel) {
+        uint8_t *p = buffer_.get() + i;
         p[0] = r;
         p[1] = g;
         p[2] = b;
@@ -36,7 +41,7 @@ bool KataglyphisTexture::PushFrame(const uint8_t *rgba, uint32_t width, uint32_t
     if (!rgba || width == 0 || height == 0) { return false; }
     {
         std::lock_guard<std::mutex> lock(frame_mutex_);
-        const size_t size = static_cast<size_t>(width) * height * kBytesPerPixel;
+        const size_t size = BufferBytes(width, height);
         if (width != width_ || height != height_) {
             buffer_.reset(new uint8_t[size]);
             width_ = width;
@@ -51,7 +56,7 @@ bool KataglyphisTexture::PushFrame(const uint8_t *rgba, uint32_t width, uint32_t
 const FlutterDesktopPixelBuffer *KataglyphisTexture::CopyPixelBufferCallback(size_t /*width*/, size_t /*height*/)
 {
     std::lock_guard<std::mutex> lock(frame_mutex_);
-    const size_t size = static_cast<size_t>(width_) * height_ * kBytesPerPixel;
+    const size_t size = BufferBytes(width_, height_);
     if (present_width_ != width_ || present_height_ != height_) {
         present_buffer_.reset(new uint8_t[size]);
         present_width_ = width_;
@@ -80,14 +85,7 @@ void KataglyphisTexture::SetColor(uint8_t r, uint8_t g, uint8_t b)
     OutputDebugStringA("[kataglyphis_texture] SetColor called\n");
     {
         std::lock_guard<std::mutex> lock(frame_mutex_);
-        const uint32_t pixels = width_ * height_;
-        for (uint32_t i = 0; i < pixels; ++i) {
-            uint8_t *p = buffer_.get() + i * kBytesPerPixel;
-            p[0] = r;
-            p[1] = g;
-            p[2] = b;
-            p[3] = 255;
-        }
+        FillBuffer(r, g, b);
     }
     if (texture_registrar_ && texture_id_ >= 0) { texture_registrar_->MarkTextureFrameAvailable(texture_id_); }
 }

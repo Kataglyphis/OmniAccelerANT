@@ -5,6 +5,17 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ## Unreleased
 
+### 2026-11-28 — the Windows texture sizes in size_t, and the arm64 Debug job is named for what it checks
+
+- The Windows texture's constructor and `SetColor` computed `width * height` in `uint32_t`, so a texture of 2^32
+  pixels or more got a wrapped buffer, and a same-size `PushFrame`, sized in `size_t`, then copied past its end;
+  `create` accepts any positive `int` size. All four sites now take `KataglyphisTexture::BufferBytes`, in `size_t`,
+  and the gtest case `BufferBytesDoesNotWrapAtTwoToTheThirtyTwoPixels` checks 65536 x 65536 against 2^34 bytes.
+- `windows-arm64.yml`'s `app-debug` job was "Flutter app Debug/ASan" but instruments nothing: the plugin takes ASan
+  and UBSan on x64 only (`kci_plugin_quality`), and the runner never took them. The job, its steps and
+  `Build-WindowsArm64App.ps1` drop the ASan name and the `myproject_ENABLE_SANITIZER_ADDRESS` switch nothing read on
+  arm64; the build is otherwise unchanged.
+
 ### 2026-11-28 — the Pester suites speak Pester 6
 
 - The 13 suites under `scripts/windows/tests` run under Pester 6.2.0, the hub's `:latest` copy, and

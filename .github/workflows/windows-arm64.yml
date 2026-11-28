@@ -168,9 +168,9 @@ jobs:
             out/omni-accelerant-*-windows-arm64.msix
             out/omni-accelerant-*-windows-arm64-testcert.cer
 
-  # The same app as a Debug build: ASan on, /MD like the natives (clang-cl strips /MDd under ASan), runtime staged from the runner's VS.
+  # The same app as a Debug build, /MD like the natives, runtime staged from the runner's VS; the plugin takes ASan on x64 only.
   app-debug:
-    name: Flutter app Debug/ASan (windows-11-arm)
+    name: Flutter app Debug (windows-11-arm)
     needs: natives
     runs-on: windows-11-arm
     timeout-minutes: 90
@@ -198,8 +198,8 @@ jobs:
           name: omni-accelerant-natives-windows-arm64
           path: natives
 
-      # The Debug twin of the app job's build; the natives are /MD Release DLLs, the app /MD + ASan.
-      - name: Build the app (Debug, ASan)
+      # The Debug twin of the app job's build; the natives are /MD Release DLLs, the app /MD as well.
+      - name: Build the app (Debug)
         run: |
           pwsh -NoProfile -File scripts\windows\Build-WindowsArm64App.ps1 -Configuration Debug -BuildDir build\windows\arm64-clangcl-debug *>&1 | Tee-Object -FilePath flutter-build-debug.log
           if ($LASTEXITCODE) { throw "Build-WindowsArm64App.ps1 -Configuration Debug failed (exit $LASTEXITCODE); the whole log is the artifact" }
@@ -213,14 +213,14 @@ jobs:
           path: flutter-build-debug.log
           if-no-files-found: error
 
-      - name: Stage the runtime + the ASan runtime beside the exe
+      - name: Stage the runtime beside the exe
         run: |
           Copy-Item -Path natives\runtime\* -Destination $env:APP_DIR -Recurse -Force
           $env:WINDOWS_TARGET_ARCH = 'arm64'
           & ./third_party/ANTfrastructure/windows/scripts/build/Copy-Arm64VsRuntime.ps1 -InstallDir $env:APP_DIR -Flat
 
-      # G6 re-proves the stamp the natives wrote; the ASan runtime sits beside the exe, so a missing one ends the process at once.
-      - name: Launch smoke (Debug/ASan)
+      # G6 re-proves the stamp the natives wrote.
+      - name: Launch smoke (Debug)
         env:
           WINDOWS_TARGET_ARCH: arm64
         run: '& ./scripts/windows/Test-LaunchSmoke.ps1 -AppDir $env:APP_DIR -OrtStamp'

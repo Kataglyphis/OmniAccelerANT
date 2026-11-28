@@ -350,13 +350,11 @@ CON294.
 - [ ] **The sanitizer jobs check what their names say** (S, ★★). The x64 Debug job builds an ASan+UBSan plugin gtest
   that no step runs (job 132992805094, log 9886-9907): copy the exe, `flutter_windows.dll` and the pdb out of the
   `x64_x64-ClangCL-Windows-Debug` tree the hub's sync skips (`WindowsFlutter.Common.psm1:193-195`) and run
-  `Invoke-PluginGTest.ps1` with the staged ASan runtime and `UBSAN_OPTIONS=halt_on_error=1`. The arm64 "Debug/ASan"
-  job instruments nothing (job 132999561812): rename it and drop its unused flag (`Build-WindowsArm64App.ps1:99-100`).
-  Then an ASan+UBSan plugin gtest in the Linux Debug tree, a seeded case for random sizes, null buffers and unknown
-  texture ids, `size_t` size math in `windows/kataglyphis_texture.cpp:12,16` (width*height overflows `uint32` from
-  2^32), and in OxidANT a length check before `knt_push_frame`. Since a6ee053 the x64 Debug plugin and gtest take
-  ASan and UBSan from the hub's `Sanitizers.cmake` through `kci_plugin_quality`; AccelerANTgine's PUBLIC options
-  carried them until then.
+  `Invoke-PluginGTest.ps1` with the staged ASan runtime and `UBSAN_OPTIONS=halt_on_error=1`. Then an ASan+UBSan
+  plugin gtest in the Linux Debug tree, a seeded case for random sizes, null buffers and unknown texture ids, and in
+  OxidANT a length check before `knt_push_frame`. Since a6ee053 the x64 Debug plugin and gtest take ASan and UBSan
+  from the hub's `Sanitizers.cmake` through `kci_plugin_quality`; AccelerANTgine's PUBLIC options carried them until
+  then. Done since 2026-11-28: the arm64 Debug job's name and the Windows texture's `size_t` size math.
 - [ ] **Smaller native steps** (S each, ★). The hub's ELF gate on the Linux plugin once CON294 lands; `/guard:cf`
   on the Windows runner after CON290, CET only after a launch smoke on CET-capable hardware (D8); `!cancelled()` on the three uploads
   (`reusable-linux.yml:119-140`) and a googletest `URL_HASH`; `--privileged` dropped from `web.yml:56` and

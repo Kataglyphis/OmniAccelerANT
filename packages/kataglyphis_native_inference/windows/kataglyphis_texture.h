@@ -34,8 +34,17 @@ class KataglyphisTexture
     void SetTextureRegistrar(flutter::TextureRegistrar *registrar);
     flutter::TextureVariant GetTextureVariant();
 
+    /// Bytes of one packed RGBA frame, in size_t so a frame of 2^32 pixels or more does not wrap.
+    static constexpr size_t BufferBytes(uint32_t width, uint32_t height)
+    {
+        return static_cast<size_t>(width) * height * kBytesPerPixel;
+    }
+
   private:
     static constexpr size_t kBytesPerPixel = 4;
+
+    // Caller holds frame_mutex_, or owns the texture alone.
+    void FillBuffer(uint8_t r, uint8_t g, uint8_t b);
 
     int64_t texture_id_;
     uint32_t width_;

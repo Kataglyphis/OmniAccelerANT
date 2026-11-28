@@ -71,6 +71,13 @@ namespace test {
 
 #include "../../shared/texture_abi_cases.inc"
 
+    TEST(KataglyphisTexture, BufferBytesDoesNotWrapAtTwoToTheThirtyTwoPixels)
+    {
+        // In uint32_t, 65536 x 65536 wrapped to 0, and a same-size PushFrame then copied 16 GiB into it.
+        EXPECT_EQ(KataglyphisTexture::BufferBytes(65536, 65536), size_t{ 1 } << 34);
+        EXPECT_EQ(KataglyphisTexture::BufferBytes(3, 2), size_t{ 24 });
+    }
+
     TEST(KataglyphisTexture, SetColorRepaintsEveryPixelOpaque)
     {
         KataglyphisTexture texture(1, 2, 0, 0, 0);

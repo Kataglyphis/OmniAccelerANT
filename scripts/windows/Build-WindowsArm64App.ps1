@@ -15,7 +15,7 @@ param(
     [string]$BuildDir = 'build\windows\arm64-clangcl',
     # What windows-arm64.yml stages, gates and uploads (APP_DIR). Empty = derived from -Configuration below.
     [string]$InstallDir = '',
-    # Release, or Debug with ASan on (the aarch64 runtime ships since 2026-10-03); /MD stays, the x64 lane's Debug flags strip _DEBUG.
+    # Release, or Debug without a sanitizer (the plugin takes ASan on x64 only); /MD stays, the x64 lane's Debug flags strip _DEBUG.
     [ValidateSet('Release', 'Debug')][string]$Configuration = 'Release',
     # Dart entrypoint; empty = lib/main.dart. The integration app sets integration_test/simple_test.dart.
     [string]$FlutterTarget = ''
@@ -94,10 +94,8 @@ try {
     # Forward slashes: cmake_install.cmake quotes the prefix, where a backslash is an escape.
     $clangClCMake = $clangCl -replace '\\', '/'
     $installPrefix = (Join-Path $workspace $InstallDir) -replace '\\', '/'
-    # ASan's sanitizer block picks Microsoft's aarch64 runtime by CMAKE_SYSTEM_PROCESSOR (hub Sanitizers.cmake).
     $cmakeArgs = @('-S', 'windows', '-B', $BuildDir, '-G', 'Ninja', "-DCMAKE_BUILD_TYPE=$Configuration")
     if ($Configuration -eq 'Debug') {
-        $cmakeArgs += '-Dmyproject_ENABLE_SANITIZER_ADDRESS=ON'
         # The x64 lane's recipe: Flutter needs /MD, and clang-cl's STL under _DEBUG wants /MDd (_CrtDbgReport missing).
         $cmakeArgs += '-DCMAKE_CXX_FLAGS_DEBUG=/MD /Zi /Ob0 /Od /RTC1 /U_DEBUG /DNDEBUG /D_ITERATOR_DEBUG_LEVEL=0'
         $cmakeArgs += '-DCMAKE_C_FLAGS_DEBUG=/MD /Zi /Ob0 /Od /RTC1 /U_DEBUG /DNDEBUG /D_ITERATOR_DEBUG_LEVEL=0'

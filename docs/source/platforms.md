@@ -817,10 +817,11 @@ so the lane has three build jobs (and the `ort-runner-suite` Pester job, below):
   every other Windows build here: `scripts/windows/Build-WindowsArm64App.ps1`.
   `CARGOKIT_PREBUILT_DIR`, a local Cargokit patch, copies the DLL and skips cargo; unset, x64
   builds exactly as before. The plugin links no native library since 2026-11 (owner D1).
-- `app-debug` builds the same app as a Debug (ASan) one:
-  `Build-WindowsArm64App.ps1 -Configuration Debug`, /MD like the natives (clang-cl strips /MDd
-  under ASan, so no debug CRT), the aarch64 ASan runtime staged from the runner's own VS; the
-  launch smoke proves the instrumented app starts.
+- `app-debug` builds the same app as a Debug one: `Build-WindowsArm64App.ps1 -Configuration Debug`,
+  /MD like the natives, the runtime staged from the runner's own VS; the launch smoke proves the
+  Debug app starts. Nothing in it is instrumented: the plugin takes ASan and UBSan on x64 only
+  (`kci_plugin_quality`), and the runner never took them, so the job no longer passes the ASan
+  switch or carries ASan in its name.
 
 The lane went green in run 36322839058 and has built with clang-cl since test run 36622834879
 (2026-09-29). On the device the app tree passes the hub's import walk (40 files, 0 unresolved),
