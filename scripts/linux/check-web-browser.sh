@@ -5,6 +5,11 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=scripts/linux/lib/web-smoke-env.sh
 source "$SCRIPT_DIR/lib/web-smoke-env.sh"
 
+# --remote: the Stream page's explicit ObservANT address against a fixture camera; it serves the build itself.
+if [[ "${1:-}" == "--remote" ]]; then
+  exec node "$SCRIPT_DIR/tests/web-remote-observant.js" "$(antfrastructure_path linux/scripts/check-docs-sidebars.js)" "${2:-build/web}"
+fi
+
 # --empty: the Stream page with nothing behind it, as on the hosted site, must back off its polls and socket.
 server_args=()
 if [[ "${1:-}" == "--empty" ]]; then

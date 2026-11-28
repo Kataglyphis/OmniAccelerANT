@@ -20,7 +20,7 @@ import 'package:omni_accelerant/Pages/StreamPage/dev_stats.dart';
 import 'package:omni_accelerant/Pages/StreamPage/visit_questions.dart';
 import 'package:omni_accelerant/Pages/StreamPage/visit_stats.dart';
 import 'package:omni_accelerant/Pages/StreamPage/observant_api.dart';
-// Nothing on native; on web ObservANT that serves the page (its /healthz, here).
+// Nothing on native; on web the explicit ObservANT address, or the ObservANT that serves the page.
 import 'package:omni_accelerant/Pages/StreamPage/observant_api_stub.dart'
     if (dart.library.js_interop) 'package:omni_accelerant/Pages/StreamPage/observant_api_web.dart';
 
@@ -386,6 +386,7 @@ class StreamPageState extends State<StreamPage> with WidgetsBindingObserver {
             mainAxisAlignment: MainAxisAlignment.center,
             spacing: 10,
             children: [
+              if (remoteObservantPanel() case final Widget panel) panel,
               _buildWebRTCContainer(
                 child: webrtc_import.buildWebRTCView(
                   settings: widget.webrtcSettings,
@@ -397,6 +398,7 @@ class StreamPageState extends State<StreamPage> with WidgetsBindingObserver {
                 fetch: _observant.fetchHealthz,
                 fallbackName: 'ObservANT',
                 saveSettings: _observant.saveObservantSettings,
+                observantUrl: observantUrl,
               ),
               VisitStatsPanel(fetch: _observant.fetchVisits),
               VisitQuestionsPanel(

@@ -175,6 +175,8 @@ Widget arrivalPicture(String url, String label) => Image.network(
   errorBuilder: (_, _, _) => const SizedBox.shrink(),
 );
 
+String _asGiven(String path) => path;
+
 /// ObservANT's name and its cat, polled from `/healthz`; with no ObservANT behind the page, [fallbackName] alone.
 class DetectionStatusLine extends StatefulWidget {
   const DetectionStatusLine({
@@ -184,6 +186,7 @@ class DetectionStatusLine extends StatefulWidget {
     this.interval = const Duration(seconds: 5),
     this.arrivalImage = arrivalPicture,
     this.saveSettings,
+    this.observantUrl = _asGiven,
   });
 
   /// The `/healthz` body, or `null` when nothing answers it.
@@ -196,6 +199,9 @@ class DetectionStatusLine extends StatefulWidget {
 
   /// Posts to ObservANT's `/settings`; with it the picture can be turned right here, as on the Camera page.
   final Future<bool> Function(Map<String, Object> update)? saveSettings;
+
+  /// Where a picture or clip path lives: on the web an explicit ObservANT address replaces the page's origin.
+  final String Function(String path) observantUrl;
 
   @override
   State<DetectionStatusLine> createState() => _DetectionStatusLineState();
@@ -400,7 +406,7 @@ class _DetectionStatusLineState extends State<DetectionStatusLine> {
           ClipRRect(
             borderRadius: BorderRadius.circular(6),
             child: widget.arrivalImage(
-              '/arrival.jpg?visit=${status.visits}',
+              widget.observantUrl('/arrival.jpg?visit=${status.visits}'),
               l10n.detectionLastArrival,
             ),
           ),
@@ -408,7 +414,9 @@ class _DetectionStatusLineState extends State<DetectionStatusLine> {
           Link(
             // Its arrival's own clip, even after a newer visit replaces the picture above.
             uri: Uri.parse(
-              '/arrival.mp4?t=${status.clip!.millisecondsSinceEpoch ~/ 1000}',
+              widget.observantUrl(
+                '/arrival.mp4?t=${status.clip!.millisecondsSinceEpoch ~/ 1000}',
+              ),
             ),
             target: LinkTarget.blank,
             builder: (context, followLink) => TextButton.icon(
@@ -433,7 +441,9 @@ class _DetectionStatusLineState extends State<DetectionStatusLine> {
                 if (!(status.hasLatestClip && t == status.clip))
                   Link(
                     uri: Uri.parse(
-                      '/arrival.mp4?t=${t.millisecondsSinceEpoch ~/ 1000}',
+                      widget.observantUrl(
+                        '/arrival.mp4?t=${t.millisecondsSinceEpoch ~/ 1000}',
+                      ),
                     ),
                     target: LinkTarget.blank,
                     builder: (context, followLink) => InkWell(
@@ -466,7 +476,9 @@ class _DetectionStatusLineState extends State<DetectionStatusLine> {
                                         fit: BoxFit.cover,
                                         clipBehavior: Clip.hardEdge,
                                         child: widget.arrivalImage(
-                                          '/arrival.jpg?t=${t.millisecondsSinceEpoch ~/ 1000}',
+                                          widget.observantUrl(
+                                            '/arrival.jpg?t=${t.millisecondsSinceEpoch ~/ 1000}',
+                                          ),
                                           '',
                                         ),
                                       ),

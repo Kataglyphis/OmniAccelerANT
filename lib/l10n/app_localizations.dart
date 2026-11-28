@@ -1088,6 +1088,174 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'The camera could not answer: {reason}'**
   String visitQuestionsFailed(String reason);
+
+  /// Heading of the Stream page's panel for an explicit ObservANT address (web only).
+  ///
+  /// In en, this message translates to:
+  /// **'ObservANT address'**
+  String get observantAddressTitle;
+
+  /// Help under the address field.
+  ///
+  /// In en, this message translates to:
+  /// **'Empty: the ObservANT that serves this page. Another camera: its address, such as http://catcam.local:8080.'**
+  String get observantAddressHelp;
+
+  /// Label of the address field.
+  ///
+  /// In en, this message translates to:
+  /// **'Address'**
+  String get observantAddressLabel;
+
+  /// Saves the typed address and asks it.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect'**
+  String get observantAddressConnect;
+
+  /// Forgets the address; the page asks its own origin again.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear'**
+  String get observantAddressClear;
+
+  /// Asks the saved address again.
+  ///
+  /// In en, this message translates to:
+  /// **'Check again'**
+  String get observantAddressCheckAgain;
+
+  /// Link to the ObservANT's own page at the typed address.
+  ///
+  /// In en, this message translates to:
+  /// **'Open the camera\'s own page'**
+  String get observantAddressOpenOwn;
+
+  /// Status without an explicit address.
+  ///
+  /// In en, this message translates to:
+  /// **'No address set: this page reads the ObservANT that serves it.'**
+  String get observantAddressOwn;
+
+  /// Status while the address's /healthz is asked.
+  ///
+  /// In en, this message translates to:
+  /// **'Asking {address} …'**
+  String observantAddressChecking(String address);
+
+  /// Status while Chrome's Local Network Access prompt is open.
+  ///
+  /// In en, this message translates to:
+  /// **'Chrome asks whether this site may reach devices on your local network. Choose Allow to read {address}.'**
+  String observantAddressPrompting(String address);
+
+  /// Status once the address answered as an ObservANT.
+  ///
+  /// In en, this message translates to:
+  /// **'Connected to {name} (ObservANT {version}) at {address}.'**
+  String observantAddressConnected(String name, String version, String address);
+
+  /// Under the connected status: what a remote page can and cannot do.
+  ///
+  /// In en, this message translates to:
+  /// **'From another page, ObservANT gives its status, visits and pictures. The live picture, settings and questions work on the camera\'s own page: ObservANT accepts them only from there.'**
+  String get observantAddressRemoteLimits;
+
+  /// Validation: the text is no URL.
+  ///
+  /// In en, this message translates to:
+  /// **'This is not an address.'**
+  String get observantAddressNotUrl;
+
+  /// Validation: no http or https scheme.
+  ///
+  /// In en, this message translates to:
+  /// **'Start with http:// or https://.'**
+  String get observantAddressScheme;
+
+  /// Validation: no host.
+  ///
+  /// In en, this message translates to:
+  /// **'The address needs a host, such as catcam.local.'**
+  String get observantAddressNoHost;
+
+  /// Validation: user info in the URL.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave out user and password.'**
+  String get observantAddressCredentials;
+
+  /// Validation: a path, query or fragment.
+  ///
+  /// In en, this message translates to:
+  /// **'Only the camera\'s address: no path, query or #.'**
+  String get observantAddressPath;
+
+  /// Validation: a port out of range.
+  ///
+  /// In en, this message translates to:
+  /// **'The port must be between 1 and 65535.'**
+  String get observantAddressPort;
+
+  /// Heading of the notice when the page is https and the address http.
+  ///
+  /// In en, this message translates to:
+  /// **'Blocked: this https page cannot reach an http address (mixed content)'**
+  String get observantMixedContentTitle;
+
+  /// Body of the mixed-content notice; two fixes follow.
+  ///
+  /// In en, this message translates to:
+  /// **'Browsers block every request from a page loaded over https to a plain http address, so {address} was not asked. Either:'**
+  String observantMixedContentBody(String address);
+
+  /// First fix in the mixed-content notice.
+  ///
+  /// In en, this message translates to:
+  /// **'serve ObservANT over https (scripts/linux/observant/serve.sh, or a reverse proxy whose name is in ObservANT\'s allowed_hosts) and enter its https:// address, or'**
+  String get observantMixedContentFixHttps;
+
+  /// Second fix in the mixed-content notice.
+  ///
+  /// In en, this message translates to:
+  /// **'open the app over http in your network: the camera\'s own page at {address} serves it.'**
+  String observantMixedContentFixHttp(String address);
+
+  /// Notice when Chrome's Local Network Access permission is denied.
+  ///
+  /// In en, this message translates to:
+  /// **'Local network access is blocked for this site, so Chrome refuses every request to {address}. To allow it: click the icon left of the address bar, open Site settings, set Local network access to Allow, then check again.'**
+  String observantLocalNetworkRefused(String address);
+
+  /// Notice when fetch failed: unreachable, CORS or a refusal the page cannot tell apart.
+  ///
+  /// In en, this message translates to:
+  /// **'{address} gave no answer this page may read. Check the address and that ObservANT runs there. ObservANT answers another page only when that page\'s origin, {origin}, is in its peers list.'**
+  String observantAddressUnreachable(String address, String origin);
+
+  /// Added to the unreachable notice when Local Network Access applies.
+  ///
+  /// In en, this message translates to:
+  /// **'If Chrome asked about local network access and the prompt was closed, check again and choose Allow.'**
+  String get observantUnreachableLocalNetwork;
+
+  /// Notice when the probe timed out.
+  ///
+  /// In en, this message translates to:
+  /// **'{address} did not answer within {seconds} s.'**
+  String observantTimedOut(String address, String seconds);
+
+  /// Notice when ObservANT answered with an error status; reason is its own English text.
+  ///
+  /// In en, this message translates to:
+  /// **'{address} refused with HTTP {status}: {reason}'**
+  String observantRefusedStatus(String address, String status, String reason);
+
+  /// Notice when the answer is no ObservANT /healthz.
+  ///
+  /// In en, this message translates to:
+  /// **'{address} answered, but not as an ObservANT camera.'**
+  String observantNotObservant(String address);
 }
 
 class _AppLocalizationsDelegate

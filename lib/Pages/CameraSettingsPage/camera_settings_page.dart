@@ -35,6 +35,9 @@ class CameraSettingsPage extends StatelessWidget {
               fetchSettings: _observant.fetchObservantSettings,
               saveSettings: _observant.saveObservantSettings,
               fetchHealthz: _observant.fetchHealthz,
+              preview: (url) => cameraPreview(observantUrl(url)),
+              detectionPicture: (url) =>
+                  recentArrivalPicture(observantUrl(url)),
             ),
           ),
         ),

@@ -5,6 +5,22 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ## Unreleased
 
+### 2026-11-28 — the web Stream page asks an explicit ObservANT address and says what blocks it
+
+- Browser port step 9. The web build's Stream page has an ObservANT address field. Empty, the page asks
+  the ObservANT that served it, as before. Filled, `observant_api_web.dart` sends every request, picture and
+  clip link there. The address is checked as an `http(s)` origin and kept in the browser's local storage;
+  native builds keep their stub. Before a request the page decides what the browser would do. An https
+  page and an http address get the mixed-content notice and its two ways out, with nothing sent. An address
+  more private than the page asks for Chrome's Local Network Access: the panel tells the visitor to choose
+  Allow, waits up to 60 s, and names a refused permission and where to change it. The status has typed
+  errors: unreachable (with the page origin ObservANT's `peers` must list), timeout, an error status with
+  ObservANT's reason, and an answer that is not ObservANT. `check-web-browser.sh --remote` runs it in
+  headless Chrome against a fixture ObservANT: an http page connects, an https page refuses an http
+  address unsent, a denied permission refuses unsent, and the same public page connects once it is granted.
+  The web lane runs it after the other browser checks.
+  [browser-port.md](docs/source/browser-port.md#remote-modes) § *Remote modes*.
+
 ### 2026-11-28 — the web build's licenses page lists what `/app/` ships
 
 - `scripts/licenses/web-license-inventory.py --write --app <dir>` writes `assets/web-licenses/index.json` and its

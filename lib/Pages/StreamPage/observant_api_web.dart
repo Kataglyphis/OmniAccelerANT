@@ -2,20 +2,36 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:js_interop';
 
+import 'package:flutter/widgets.dart';
 import 'package:web/web.dart' as web;
 
 import 'package:omni_accelerant/Pages/StreamPage/observant_api.dart';
+import 'package:omni_accelerant/Pages/StreamPage/remote/remote_observant.dart';
+import 'package:omni_accelerant/Pages/StreamPage/remote/remote_observant_panel.dart';
+import 'package:omni_accelerant/Pages/StreamPage/remote/remote_platform_web.dart';
 import 'package:omni_accelerant/utils/fetch_body_web.dart';
 
 /// How long a request may take: one on a socket that died unnoticed would otherwise wait for minutes.
 const int _timeoutMs = 8000;
 
-/// The body of a GET to [path] on the page's own origin, ObservANT; `null` when nothing answers it.
+/// This browser's explicit ObservANT address; every request below resolves against it, or the page without one.
+final RemoteObservantController remoteObservant = RemoteObservantController(
+  const WebRemoteObservantPlatform(),
+);
+
+/// [path] on the explicit ObservANT, or on the page's own origin; pictures and clip links take it too.
+String observantUrl(String path) => remoteObservant.resolve(path);
+
+/// The Stream page's address field and connection status.
+Widget? remoteObservantPanel() =>
+    RemoteObservantPanel(controller: remoteObservant);
+
+/// The body of a GET to [path] on ObservANT; `null` when nothing answers it.
 Future<String?> _get(String path) async {
   try {
     final response = await web.window
         .fetch(
-          path.toJS,
+          observantUrl(path).toJS,
           web.RequestInit(signal: web.AbortSignal.timeout(_timeoutMs)),
         )
         .toDart;
@@ -28,7 +44,7 @@ Future<String?> _get(String path) async {
   }
 }
 
-/// The web build's side: ObservANT is the origin that served the page.
+/// The web build's side: ObservANT is the explicit address, or the origin that served the page.
 ObservantApi createObservantApi() => const _WebObservant();
 
 class _WebObservant implements ObservantApi {
@@ -79,7 +95,7 @@ Future<ObservantReply?> _post(
   try {
     final response = await web.window
         .fetch(
-          path.toJS,
+          observantUrl(path).toJS,
           web.RequestInit(
             signal: abort.signal,
             method: 'POST',
@@ -112,7 +128,7 @@ Future<ObservantStream?> _stream(
   try {
     final response = await web.window
         .fetch(
-          path.toJS,
+          observantUrl(path).toJS,
           web.RequestInit(
             signal: abort.signal,
             method: 'POST',
@@ -149,7 +165,7 @@ Future<bool> _save(Map<String, Object> update) async {
   try {
     final response = await web.window
         .fetch(
-          '/settings'.toJS,
+          observantUrl('/settings').toJS,
           web.RequestInit(
             signal: web.AbortSignal.timeout(_timeoutMs),
             method: 'POST',

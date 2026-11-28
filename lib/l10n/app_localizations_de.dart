@@ -617,4 +617,123 @@ class AppLocalizationsDe extends AppLocalizations {
   String visitQuestionsFailed(String reason) {
     return 'Die Kamera konnte nicht antworten: $reason';
   }
+
+  @override
+  String get observantAddressTitle => 'ObservANT-Adresse';
+
+  @override
+  String get observantAddressHelp =>
+      'Leer: das ObservANT, das diese Seite ausliefert. Eine andere Kamera: ihre Adresse, etwa http://catcam.local:8080.';
+
+  @override
+  String get observantAddressLabel => 'Adresse';
+
+  @override
+  String get observantAddressConnect => 'Verbinden';
+
+  @override
+  String get observantAddressClear => 'Leeren';
+
+  @override
+  String get observantAddressCheckAgain => 'Erneut prüfen';
+
+  @override
+  String get observantAddressOpenOwn => 'Eigene Seite der Kamera öffnen';
+
+  @override
+  String get observantAddressOwn =>
+      'Keine Adresse gesetzt: Diese Seite liest das ObservANT, das sie ausliefert.';
+
+  @override
+  String observantAddressChecking(String address) {
+    return 'Frage $address …';
+  }
+
+  @override
+  String observantAddressPrompting(String address) {
+    return 'Chrome fragt, ob diese Website Geräte in Ihrem lokalen Netzwerk erreichen darf. Wählen Sie Zulassen, um $address zu lesen.';
+  }
+
+  @override
+  String observantAddressConnected(
+    String name,
+    String version,
+    String address,
+  ) {
+    return 'Verbunden mit $name (ObservANT $version) unter $address.';
+  }
+
+  @override
+  String get observantAddressRemoteLimits =>
+      'Einer anderen Seite gibt ObservANT Status, Besuche und Bilder. Livebild, Einstellungen und Fragen gehen auf der eigenen Seite der Kamera: ObservANT nimmt sie nur von dort an.';
+
+  @override
+  String get observantAddressNotUrl => 'Das ist keine Adresse.';
+
+  @override
+  String get observantAddressScheme =>
+      'Beginnen Sie mit http:// oder https://.';
+
+  @override
+  String get observantAddressNoHost =>
+      'Die Adresse braucht einen Host, etwa catcam.local.';
+
+  @override
+  String get observantAddressCredentials =>
+      'Lassen Sie Benutzer und Passwort weg.';
+
+  @override
+  String get observantAddressPath =>
+      'Nur die Adresse der Kamera: kein Pfad, keine Abfrage, kein #.';
+
+  @override
+  String get observantAddressPort =>
+      'Der Port muss zwischen 1 und 65535 liegen.';
+
+  @override
+  String get observantMixedContentTitle =>
+      'Blockiert: Diese https-Seite kann keine http-Adresse erreichen (gemischte Inhalte)';
+
+  @override
+  String observantMixedContentBody(String address) {
+    return 'Browser blockieren jede Anfrage einer über https geladenen Seite an eine reine http-Adresse, daher wurde $address nicht gefragt. Entweder:';
+  }
+
+  @override
+  String get observantMixedContentFixHttps =>
+      'ObservANT über https ausliefern (scripts/linux/observant/serve.sh oder ein Reverse Proxy, dessen Name in allowed_hosts von ObservANT steht) und seine https://-Adresse eintragen, oder';
+
+  @override
+  String observantMixedContentFixHttp(String address) {
+    return 'die App im eigenen Netz über http öffnen: Die eigene Seite der Kamera unter $address liefert sie aus.';
+  }
+
+  @override
+  String observantLocalNetworkRefused(String address) {
+    return 'Der Zugriff auf das lokale Netzwerk ist für diese Website blockiert, daher verweigert Chrome jede Anfrage an $address. Zum Erlauben: auf das Symbol links neben der Adressleiste klicken, Website-Einstellungen öffnen, Zugriff auf lokales Netzwerk auf Zulassen stellen und erneut prüfen.';
+  }
+
+  @override
+  String observantAddressUnreachable(String address, String origin) {
+    return '$address gab keine Antwort, die diese Seite lesen darf. Prüfen Sie die Adresse und ob ObservANT dort läuft. ObservANT antwortet einer anderen Seite nur, wenn deren Ursprung $origin in seiner peers-Liste steht.';
+  }
+
+  @override
+  String get observantUnreachableLocalNetwork =>
+      'Falls Chrome nach dem Zugriff auf das lokale Netzwerk gefragt hat und die Frage geschlossen wurde, erneut prüfen und Zulassen wählen.';
+
+  @override
+  String observantTimedOut(String address, String seconds) {
+    return '$address hat nicht innerhalb von $seconds s geantwortet.';
+  }
+
+  @override
+  String observantRefusedStatus(String address, String status, String reason) {
+    return '$address lehnte mit HTTP $status ab: $reason';
+  }
+
+  @override
+  String observantNotObservant(String address) {
+    return '$address hat geantwortet, aber nicht als ObservANT-Kamera.';
+  }
 }

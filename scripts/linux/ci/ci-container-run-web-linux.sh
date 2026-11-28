@@ -73,4 +73,7 @@ bash scripts/linux/tests/test-check-web-browser.sh
 echo "=== Browser smoke: the Stream page with nothing behind it backs off ==="
 bash scripts/linux/check-web-browser.sh --empty
 
+echo "=== Browser check: an explicit ObservANT address over http, mixed content, a refused local network ==="
+bash scripts/linux/check-web-browser.sh --remote
+
 echo "=== Web build completed successfully ==="

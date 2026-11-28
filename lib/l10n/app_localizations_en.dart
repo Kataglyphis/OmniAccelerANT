@@ -613,4 +613,120 @@ class AppLocalizationsEn extends AppLocalizations {
   String visitQuestionsFailed(String reason) {
     return 'The camera could not answer: $reason';
   }
+
+  @override
+  String get observantAddressTitle => 'ObservANT address';
+
+  @override
+  String get observantAddressHelp =>
+      'Empty: the ObservANT that serves this page. Another camera: its address, such as http://catcam.local:8080.';
+
+  @override
+  String get observantAddressLabel => 'Address';
+
+  @override
+  String get observantAddressConnect => 'Connect';
+
+  @override
+  String get observantAddressClear => 'Clear';
+
+  @override
+  String get observantAddressCheckAgain => 'Check again';
+
+  @override
+  String get observantAddressOpenOwn => 'Open the camera\'s own page';
+
+  @override
+  String get observantAddressOwn =>
+      'No address set: this page reads the ObservANT that serves it.';
+
+  @override
+  String observantAddressChecking(String address) {
+    return 'Asking $address …';
+  }
+
+  @override
+  String observantAddressPrompting(String address) {
+    return 'Chrome asks whether this site may reach devices on your local network. Choose Allow to read $address.';
+  }
+
+  @override
+  String observantAddressConnected(
+    String name,
+    String version,
+    String address,
+  ) {
+    return 'Connected to $name (ObservANT $version) at $address.';
+  }
+
+  @override
+  String get observantAddressRemoteLimits =>
+      'From another page, ObservANT gives its status, visits and pictures. The live picture, settings and questions work on the camera\'s own page: ObservANT accepts them only from there.';
+
+  @override
+  String get observantAddressNotUrl => 'This is not an address.';
+
+  @override
+  String get observantAddressScheme => 'Start with http:// or https://.';
+
+  @override
+  String get observantAddressNoHost =>
+      'The address needs a host, such as catcam.local.';
+
+  @override
+  String get observantAddressCredentials => 'Leave out user and password.';
+
+  @override
+  String get observantAddressPath =>
+      'Only the camera\'s address: no path, query or #.';
+
+  @override
+  String get observantAddressPort => 'The port must be between 1 and 65535.';
+
+  @override
+  String get observantMixedContentTitle =>
+      'Blocked: this https page cannot reach an http address (mixed content)';
+
+  @override
+  String observantMixedContentBody(String address) {
+    return 'Browsers block every request from a page loaded over https to a plain http address, so $address was not asked. Either:';
+  }
+
+  @override
+  String get observantMixedContentFixHttps =>
+      'serve ObservANT over https (scripts/linux/observant/serve.sh, or a reverse proxy whose name is in ObservANT\'s allowed_hosts) and enter its https:// address, or';
+
+  @override
+  String observantMixedContentFixHttp(String address) {
+    return 'open the app over http in your network: the camera\'s own page at $address serves it.';
+  }
+
+  @override
+  String observantLocalNetworkRefused(String address) {
+    return 'Local network access is blocked for this site, so Chrome refuses every request to $address. To allow it: click the icon left of the address bar, open Site settings, set Local network access to Allow, then check again.';
+  }
+
+  @override
+  String observantAddressUnreachable(String address, String origin) {
+    return '$address gave no answer this page may read. Check the address and that ObservANT runs there. ObservANT answers another page only when that page\'s origin, $origin, is in its peers list.';
+  }
+
+  @override
+  String get observantUnreachableLocalNetwork =>
+      'If Chrome asked about local network access and the prompt was closed, check again and choose Allow.';
+
+  @override
+  String observantTimedOut(String address, String seconds) {
+    return '$address did not answer within $seconds s.';
+  }
+
+  @override
+  String observantRefusedStatus(String address, String status, String reason) {
+    return '$address refused with HTTP $status: $reason';
+  }
+
+  @override
+  String observantNotObservant(String address) {
+    return '$address answered, but not as an ObservANT camera.';
+  }
 }

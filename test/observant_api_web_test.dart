@@ -11,6 +11,9 @@ import 'package:web/web.dart' as web;
 
 import 'package:omni_accelerant/Pages/StreamPage/observant_api.dart';
 import 'package:omni_accelerant/Pages/StreamPage/observant_api_web.dart';
+import 'package:omni_accelerant/Pages/StreamPage/remote/remote_access.dart';
+import 'package:omni_accelerant/Pages/StreamPage/remote/remote_observant.dart';
+import 'package:omni_accelerant/Pages/StreamPage/remote/remote_platform_web.dart';
 
 import 'support/fake_fetch.dart';
 
@@ -102,5 +105,92 @@ void main() {
     }, cancel: cancel.future);
     await Future<void>.delayed(Duration.zero);
     expect(requests.single.init?.signal?.aborted, isTrue);
+  });
+
+  group('an explicit ObservANT address', () {
+    tearDown(() => remoteObservant.setAddress(''));
+
+    test('carries every request and stays in local storage', () async {
+      final requests = fakeFetch(
+        (url) => respond('{"ok":true,"name":"Futtertrog","from":"$url"}'),
+      );
+      await remoteObservant.setAddress('http://192.0.2.10:8080/');
+      expect(remoteObservant.status, isA<ObservantConnected>());
+      expect(
+        web.window.localStorage.getItem(observantAddressKey),
+        'http://192.0.2.10:8080',
+      );
+      await api.fetchHealthz();
+      await api.fetchVisits();
+      await api.postToObservant('/ask', <String, Object>{'question': 'hi'});
+      expect(requests.map((r) => r.url), [
+        'http://192.0.2.10:8080/healthz',
+        'http://192.0.2.10:8080/healthz',
+        'http://192.0.2.10:8080/visits',
+        'http://192.0.2.10:8080/ask',
+      ]);
+      expect(
+        observantUrl('/arrival.jpg?t=1'),
+        'http://192.0.2.10:8080/arrival.jpg?t=1',
+      );
+      // A peer keeps its own address.
+      await api.fetchFrom('http://192.168.1.20:8080/healthz');
+      expect(requests.last.url, 'http://192.168.1.20:8080/healthz');
+    });
+
+    test('cleared, the page asks its own origin again', () async {
+      fakeFetch((url) => respond('{"ok":true}'));
+      await remoteObservant.setAddress('http://192.0.2.10:8080');
+      await remoteObservant.setAddress('');
+      expect(web.window.localStorage.getItem(observantAddressKey), isNull);
+      final requests = fakeFetch((url) => respond(''));
+      await api.fetchHealthz();
+      expect(requests.single.url, '/healthz');
+    });
+  });
+
+  group('the browser probe', () {
+    const platform = WebRemoteObservantPlatform();
+    final url = Uri.parse('http://192.0.2.10:8080/healthz');
+
+    test('keeps an answer\'s status and body', () async {
+      final requests = fakeFetch((_) => respond('forbidden', status: 403));
+      final result = await platform.probe(url, const Duration(seconds: 1));
+      expect((result as ProbeAnswer).status, 403);
+      expect(result.body, 'forbidden');
+      expect(requests.single.url, url.toString());
+      expect(requests.single.init?.cache, 'no-store');
+    });
+
+    test('tells a rejected request from one that timed out', () async {
+      fakeFetch((_) => null);
+      expect(
+        await platform.probe(url, const Duration(seconds: 1)),
+        isA<ProbeNetworkError>(),
+      );
+      fakeFetchWith((request) {
+        final aborted = Completer<web.Response>();
+        request.init!.signal!.addEventListener(
+          'abort',
+          ((web.Event _) => aborted.completeError(StateError('aborted'))).toJS,
+        );
+        return aborted.future;
+      });
+      expect(
+        await platform.probe(url, const Duration(milliseconds: 50)),
+        isA<ProbeTimeout>(),
+      );
+    });
+
+    test('asks the newest permission name first, then the first one Chrome shipped', () {
+      expect(localNetworkPermissionNames(AddressSpace.loopback), [
+        'loopback-network',
+        'local-network-access',
+      ]);
+      expect(localNetworkPermissionNames(AddressSpace.local), [
+        'local-network',
+        'local-network-access',
+      ]);
+    });
   });
 }

@@ -227,6 +227,11 @@ what the owner's goal still lacks.
      other file it stages; the first run on a fresh build is the docs job's.
   9. Here: remote modes: an explicit ObservANT address, the mixed-content notice, Chrome's local-network prompt.
      Check: a Chrome test with a fixture.
+     Done 2026-11-28: the Stream page's address field (`lib/Pages/StreamPage/remote/`) behind the web
+     `ObservantApi`, with typed errors, and `check-web-browser.sh --remote` in the web lane
+     ([browser-port.md](docs/source/browser-port.md#remote-modes)). Open: settings, questions and the live
+     picture from another origin, which ObservANT refuses by design (`own_page`); reads from another origin
+     need it in ObservANT's `peers`, which also lists it as a camera.
   10. OxidANT and here, optional: the ESP32 over Web Serial, with a refusal where it is missing. Check: the
       refusal in Firefox, a hand test in Chromium.
   11. Hub, OxidANT and here: local text AI on the hub's tiny model, then SmolLM2 (tokenizer, chat template, KV
