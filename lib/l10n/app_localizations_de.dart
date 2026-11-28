@@ -59,6 +59,65 @@ class AppLocalizationsDe extends AppLocalizations {
   String get follow => 'Hier geht\'s weiter';
 
   @override
+  String get webLicensesIntro =>
+      'Alles, was diese Web-App ausliefert, aus ihrem eigenen Build gelesen: jede Komponente, ihre Lizenz und die Dateien, die sie abdeckt.';
+
+  @override
+  String webLicensesSummary(int files, int components) {
+    return '$files Dateien in $components Komponenten';
+  }
+
+  @override
+  String get webLicensesMissing =>
+      'Dieser Build enthält kein Lizenzverzeichnis seiner Web-Dateien.';
+
+  @override
+  String get webLicensesTextFailed =>
+      'Der Lizenztext konnte nicht geladen werden.';
+
+  @override
+  String webLicensesFiles(int count) {
+    return 'Ausgelieferte Dateien ($count)';
+  }
+
+  @override
+  String webLicensesIncludes(String names) {
+    return 'Enthaltene Hinweise: $names';
+  }
+
+  @override
+  String webLicensesSource(String url) {
+    return 'Quelle: $url';
+  }
+
+  @override
+  String get webLicensesGroupApp => 'Diese App';
+
+  @override
+  String get webLicensesGroupEngine => 'Flutter-Web-Engine';
+
+  @override
+  String get webLicensesGroupDart => 'Dart-Pakete';
+
+  @override
+  String get webLicensesGroupWasm => 'WebAssembly-Module';
+
+  @override
+  String get webLicensesGroupCargo => 'Rust-Crates in den WebAssembly-Modulen';
+
+  @override
+  String get webLicensesGroupOrt => 'ONNX Runtime Web';
+
+  @override
+  String get webLicensesGroupModels => 'KI-Modelle';
+
+  @override
+  String get webLicensesGroupFonts => 'Schriften';
+
+  @override
+  String get webLicensesGroupJavascript => 'JavaScript-Bibliotheken';
+
+  @override
   String detectionInView(String what) {
     return '$what im Bild';
   }

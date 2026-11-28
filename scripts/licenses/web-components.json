@@ -1,0 +1,252 @@
+{
+ "schema": 1,
+ "scope": "Files the browser app at /app/ ships that no build output describes. Dart packages come from the build's depfiles and NOTICES, wasm crates from the native inventory, ORT Web from ort/manifest.json and models from models/manifest.json; see docs/source/project-operations.md#the-web-builds-license-inventory.",
+ "components": [
+  {
+   "id": "omni-accelerant",
+   "group": "app",
+   "name": "OmniAccelerANT",
+   "license": "MIT",
+   "source": "https://github.com/Kataglyphis/OmniAccelerANT",
+   "files": [
+    "index.html",
+    "manifest.json",
+    "favicon.png",
+    "icons/*",
+    "css/*",
+    "javascript/*.js",
+    "flutter_bootstrap.js",
+    "assets/assets/**",
+    "assets/web-licenses/**"
+   ],
+   "texts": [
+    {
+     "path": "LICENSE",
+     "sha256": "260fa7ba290c2a4ba5a694005917bb976a2e2dbf84ec3ecca6e3fe145b9785be",
+     "provenance": "this repository"
+    }
+   ]
+  },
+  {
+   "id": "flutter-web-engine",
+   "group": "engine",
+   "name": "Flutter web engine (CanvasKit, Skwasm) and build output",
+   "license": "BSD-3-Clause, with the engine's third-party notices",
+   "source": "https://github.com/flutter/flutter",
+   "files": [
+    "canvaskit/**",
+    "flutter.js",
+    "flutter_bootstrap.js",
+    "flutter_service_worker.js",
+    "main.dart.js",
+    "main.dart.mjs",
+    "main.dart.wasm",
+    "version.json",
+    ".last_build_id",
+    "assets/AssetManifest.bin",
+    "assets/AssetManifest.bin.json",
+    "assets/FontManifest.json",
+    "assets/NOTICES",
+    "assets/shaders/*"
+   ],
+   "texts": [
+    {
+     "notices": "engine"
+    }
+   ]
+  },
+  {
+   "id": "oxidant-wasm",
+   "group": "wasm",
+   "name": "OxidANT Rust core (WebAssembly)",
+   "license": "MIT",
+   "source": "https://github.com/Kataglyphis/OxidANT",
+   "files": [
+    "pkg/oxidant.js",
+    "pkg/oxidant_bg.wasm",
+    "pkg/package.json",
+    "pkg/README.md",
+    "pkg/LICENSE",
+    "pkg/.gitignore"
+   ],
+   "texts": [
+    {
+     "shipped": "pkg/LICENSE"
+    }
+   ],
+   "cargo_root": "oxidant"
+  },
+  {
+   "id": "vision-core-web",
+   "group": "wasm",
+   "name": "OxidANT vision_core (WebAssembly)",
+   "license": "MIT",
+   "source": "https://github.com/Kataglyphis/OxidANT/tree/develop/crates/vision_core_web",
+   "files": [
+    "**/kataglyphis_vision_core_web.js",
+    "**/kataglyphis_vision_core_web_bg.wasm"
+   ],
+   "texts": [
+    {
+     "path": "third_party/OxidANT/LICENSE",
+     "sha256": "586ec400195558a35f3895d08f8e089f3de6206ab8512fe58d6e4b47fb342e7b",
+     "provenance": "submodule third_party/OxidANT"
+    }
+   ],
+   "cargo_root": "kataglyphis_vision_core_web"
+  },
+  {
+   "id": "sqlite3-wasm",
+   "group": "wasm",
+   "name": "SQLite (sqlite3.wasm of sqlite3.dart)",
+   "license": "blessing AND MIT",
+   "source": "https://github.com/simolus3/sqlite3.dart",
+   "files": [
+    "sqlite3.wasm"
+   ],
+   "texts": [
+    {
+     "path": "scripts/licenses/texts/native/sqlite/LICENSE.md",
+     "sha256": "c9053892d578840a196d588ff68baa9bc0f5240eb215fb9cf91cd6b0b3209305",
+     "provenance": "https://raw.githubusercontent.com/sqlite/sqlite/master/LICENSE.md (fetched 2026-10-27)"
+    },
+    {
+     "notices": "sqlite3"
+    }
+   ]
+  },
+  {
+   "id": "gstwebrtc-api",
+   "group": "javascript",
+   "name": "gstwebrtc-api with webrtc-adapter, sdp and the webpack runtime",
+   "license": "MPL-2.0 AND BSD-3-Clause AND MIT",
+   "source": "https://gitlab.freedesktop.org/gstreamer/gst-plugins-rs/-/tree/main/net/webrtc/gstwebrtc-api",
+   "files": [
+    "javascript/webrtc/gstwebrtc-api-*.esm.js",
+    "javascript/webrtc/gstwebrtc-api-*.esm.js.map"
+   ],
+   "embeds": [
+    "sdp",
+    "webrtc-adapter"
+   ],
+   "texts": [
+    {
+     "path": "scripts/licenses/texts/web/gstwebrtc-api/LICENSE-MPL-2.0",
+     "sha256": "fab3dd6bdab226f1c08630b1dd917e11fcb4ec5e1e020e2c16f83a0a13863e85",
+     "provenance": "https://gitlab.freedesktop.org/gstreamer/gst-plugins-rs/-/raw/1afff3711855238433862c0ce3bf34918e500386/net/webrtc/gstwebrtc-api/LICENSE-MPL-2.0 (tag 0.15.4, gstwebrtc-api 3.0.0)"
+    },
+    {
+     "path": "scripts/licenses/texts/web/webrtc-adapter/LICENSE",
+     "sha256": "00a46c6cfc219593b97586398b477e188391556e70487225d3ff9d60ccda6dce",
+     "provenance": "https://raw.githubusercontent.com/webrtcHacks/adapter/v8.2.3/LICENSE.md"
+    },
+    {
+     "path": "scripts/licenses/texts/web/sdp/LICENSE",
+     "sha256": "798e82590af6a84bfbde3d6bb0fb9162c519edf16122404fea00acefdc55cbd9",
+     "provenance": "https://raw.githubusercontent.com/fippo/sdp/v3.2.0/LICENSE"
+    },
+    {
+     "path": "scripts/licenses/texts/web/webpack/LICENSE",
+     "sha256": "9068a8782d2fb4c6e432cfa25334efa56f722822180570802bf86e71b6003b1e",
+     "provenance": "https://raw.githubusercontent.com/webpack/webpack/v5.88.2/LICENSE"
+    }
+   ]
+  },
+  {
+   "id": "noto-fallback-fonts",
+   "group": "fonts",
+   "name": "Noto Color Emoji and Noto Sans Symbols 2",
+   "license": "OFL-1.1",
+   "source": "https://github.com/notofonts",
+   "files": [
+    "fallback-fonts/**"
+   ],
+   "texts": [
+    {
+     "shipped": "assets/assets/licenses/noto-fallback-fonts-OFL.txt"
+    }
+   ]
+  },
+  {
+   "id": "roboto-anthology",
+   "group": "fonts",
+   "name": "Roboto (ANThology)",
+   "license": "Apache-2.0",
+   "source": "https://github.com/googlefonts/roboto",
+   "files": [
+    "assets/packages/anthology/assets/fonts/Roboto/*"
+   ],
+   "texts": [
+    {
+     "shipped": "assets/packages/anthology/assets/fonts/Roboto/LICENSE.txt"
+    }
+   ]
+  },
+  {
+   "id": "roboto-flutter-fallback",
+   "group": "fonts",
+   "name": "Roboto (Flutter's offline fallback)",
+   "license": "Apache-2.0",
+   "source": "https://github.com/googlefonts/roboto",
+   "files": [
+    "assets/fonts/fallback/Roboto-*.ttf"
+   ],
+   "texts": [
+    {
+     "path": "scripts/licenses/texts/web/roboto/LICENSE",
+     "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4",
+     "provenance": "https://raw.githubusercontent.com/googlefonts/roboto/v2.138/LICENSE; the font's name table says Roboto 2.137 under Apache-2.0"
+    }
+   ]
+  },
+  {
+   "id": "material-icons",
+   "group": "fonts",
+   "name": "Material Icons",
+   "license": "Apache-2.0",
+   "source": "https://github.com/google/material-design-icons",
+   "files": [
+    "assets/fonts/MaterialIcons-Regular.otf"
+   ],
+   "texts": [
+    {
+     "path": "scripts/licenses/texts/web/material-icons/LICENSE",
+     "sha256": "58d1e17ffe5109a7ae296caafcadfdbe6a7d176f0bc4ab01e12a689b0499d8bd",
+     "provenance": "https://raw.githubusercontent.com/google/material-design-icons/4.0.0/LICENSE"
+    }
+   ]
+  },
+  {
+   "id": "font-awesome",
+   "group": "fonts",
+   "name": "Font Awesome Free 7.2.0 (font_awesome_flutter)",
+   "license": "OFL-1.1",
+   "source": "https://github.com/FortAwesome/Font-Awesome",
+   "files": [
+    "assets/packages/font_awesome_flutter/lib/fonts/*.otf"
+   ],
+   "texts": [
+    {
+     "path": "scripts/licenses/texts/web/font-awesome/LICENSE.txt",
+     "sha256": "20c6f40715a567c97b80f6944beb8bb325835cab47ea7dcab89ee3b8e077eced",
+     "provenance": "https://raw.githubusercontent.com/FortAwesome/Font-Awesome/7.2.0/LICENSE.txt; font_awesome_flutter 11.0.0 bundles Font Awesome 7.2.0"
+    }
+   ]
+  },
+  {
+   "id": "cupertino-icons",
+   "group": "fonts",
+   "name": "Cupertino Icons",
+   "license": "MIT",
+   "source": "https://pub.dev/packages/cupertino_icons",
+   "files": [
+    "assets/packages/cupertino_icons/assets/*.ttf"
+   ],
+   "texts": [
+    {
+     "notices": "cupertino_icons"
+    }
+   ]
+  }
+ ]
+}

@@ -58,6 +58,64 @@ class AppLocalizationsEn extends AppLocalizations {
   String get follow => 'Visit page';
 
   @override
+  String get webLicensesIntro =>
+      'Everything this web app ships, read from its own build: each component, its license and the files it covers.';
+
+  @override
+  String webLicensesSummary(int files, int components) {
+    return '$files files in $components components';
+  }
+
+  @override
+  String get webLicensesMissing =>
+      'This build carries no license inventory of its web files.';
+
+  @override
+  String get webLicensesTextFailed => 'The license text could not be loaded.';
+
+  @override
+  String webLicensesFiles(int count) {
+    return 'Shipped files ($count)';
+  }
+
+  @override
+  String webLicensesIncludes(String names) {
+    return 'Notices included: $names';
+  }
+
+  @override
+  String webLicensesSource(String url) {
+    return 'Source: $url';
+  }
+
+  @override
+  String get webLicensesGroupApp => 'This app';
+
+  @override
+  String get webLicensesGroupEngine => 'Flutter web engine';
+
+  @override
+  String get webLicensesGroupDart => 'Dart packages';
+
+  @override
+  String get webLicensesGroupWasm => 'WebAssembly modules';
+
+  @override
+  String get webLicensesGroupCargo => 'Rust crates in the WebAssembly modules';
+
+  @override
+  String get webLicensesGroupOrt => 'ONNX Runtime Web';
+
+  @override
+  String get webLicensesGroupModels => 'AI models';
+
+  @override
+  String get webLicensesGroupFonts => 'Fonts';
+
+  @override
+  String get webLicensesGroupJavascript => 'JavaScript libraries';
+
+  @override
   String detectionInView(String what) {
     return '$what in view';
   }

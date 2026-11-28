@@ -38,16 +38,19 @@ DESKTOP = [
     "x86_64-pc-windows-msvc",
     "aarch64-pc-windows-msvc",
 ]
+WASM = "wasm32-unknown-unknown"
 WORKSPACES: list[dict[str, Any]] = [
     {
         "path": "third_party/OxidANT",
-        "roots": ["oxidant", "kataglyphis_observant"],
+        "roots": ["oxidant", "kataglyphis_observant", "kataglyphis_vision_core_web"],
         "targets": [
             *DESKTOP,
             "riscv64gc-unknown-linux-gnu",
             "aarch64-linux-android",
-            "wasm32-unknown-unknown",
+            WASM,
         ],
+        # The browser's vision module ships only as wasm; a desktop closure would list crates no package carries.
+        "root_targets": {"kataglyphis_vision_core_web": [WASM]},
         "license": None,
     },
 ]
@@ -210,7 +213,7 @@ def stage_workspace(
     env = cargo_environment(spec["path"], cargo_homes, offline)
     subprocess.run(["cargo", "fetch", "--locked"], cwd=copy, check=True, env=env)
     for root in spec["roots"]:
-        for target in spec["targets"]:
+        for target in spec.get("root_targets", {}).get(root, spec["targets"]):
             out = scratch / f"out-{root}-{target}"
             subprocess.run(
                 [
@@ -245,10 +248,14 @@ def stage_workspace(
                         "texts": [],
                         "used_by": set(),
                         "targets": set(),
+                        "wasm_roots": set(),
                     },
                 )
                 entry["used_by"].add(root)
                 entry["targets"].add(target)
+                # The web inventory lists each wasm module's crates, so it needs the root per wasm closure.
+                if target == WASM:
+                    entry["wasm_roots"].add(root)
                 names = {text["name"] for text in entry["texts"]}
                 for copied in package["files"]:
                     data = (out / copied["path"]).read_bytes()
@@ -279,6 +286,9 @@ def cargo_crates(
     for entry in crates.values():
         entry["used_by"] = sorted(entry["used_by"])
         entry["targets"] = sorted(entry["targets"])
+        entry["wasm_roots"] = sorted(entry["wasm_roots"])
+        if not entry["wasm_roots"]:
+            del entry["wasm_roots"]
         entry["texts"].sort(key=lambda text: text["name"])
     return [crates[key] for key in sorted(crates)]
 

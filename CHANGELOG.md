@@ -5,6 +5,25 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ## Unreleased
 
+### 2026-11-28 — the web build's licenses page lists what `/app/` ships
+
+- `scripts/licenses/web-license-inventory.py --write --app <dir>` writes `assets/web-licenses/index.json` and its
+  text chunks into a built web app. Every component comes from what the directory ships: the Dart packages from the
+  build's own `dart2js.d` and `dart2wasm.d` with their `NOTICES` blocks (39 on the 2026-11-24 build, where `NOTICES`
+  names 175), the Flutter engine's notices, the crates of each wasm module, each ORT Web build from
+  `ort/manifest.json` with its `LICENSE`, `ThirdPartyNotices.txt` and probe license, each model from
+  `models/manifest.json`, and the app's files, fonts, `sqlite3.wasm` and `gstwebrtc-api` from
+  `scripts/licenses/web-components.json` with pinned upstream texts. A shipped file without an entry, an entry
+  without a file, bytes that differ from a manifest and a compiled package without a text fail it.
+  `omni_web_app_build` and, as its last step, `build-docs-site.sh` run it. On a copy of the 2026-11-24 `/app/` it
+  lists 142 files in 144 components: the app, the engine with 65 notice texts, 39 Dart packages, the Rust core and
+  `sqlite3.wasm`, 94 crates, six fonts and `gstwebrtc-api`.
+- On the web the licenses route shows that inventory, grouped, with each component's files and texts loaded on
+  opening, in English and German; native builds keep ANThology's page.
+- The native inventory records `wasm_roots` per crate and the wasm32 closure of `kataglyphis_vision_core_web` (29
+  crates; its own crate takes OxidANT's workspace `LICENSE` in `cargo-policy.json`), so the web inventory lists each
+  wasm module's crates.
+
 ### 2026-11-28 — the x64 Debug job runs the ASan + UBSan plugin gtest it builds
 
 - The `clangcl-debug` build compiled `kataglyphis_native_inference_test` with ASan and UBSan, but no step ran it:

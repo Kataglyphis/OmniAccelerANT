@@ -43,4 +43,6 @@ omni_web_app_build() {
       return 1
     fi
   done
+  # Last, so it reads every file the build wrote; the licences page shows it, and a file without an entry fails here.
+  python3 -I scripts/licenses/web-license-inventory.py --write --app build/web || return 1
 }

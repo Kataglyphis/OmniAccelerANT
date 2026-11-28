@@ -189,6 +189,102 @@ abstract class AppLocalizations {
   /// **'Visit page'**
   String get follow;
 
+  /// Opens the licenses page of the web build
+  ///
+  /// In en, this message translates to:
+  /// **'Everything this web app ships, read from its own build: each component, its license and the files it covers.'**
+  String get webLicensesIntro;
+
+  /// How many files the web build ships and how many inventory components cover them
+  ///
+  /// In en, this message translates to:
+  /// **'{files} files in {components} components'**
+  String webLicensesSummary(int files, int components);
+
+  /// The web build was made without scripts/licenses/web-license-inventory.py
+  ///
+  /// In en, this message translates to:
+  /// **'This build carries no license inventory of its web files.'**
+  String get webLicensesMissing;
+
+  /// One license text of a component did not load
+  ///
+  /// In en, this message translates to:
+  /// **'The license text could not be loaded.'**
+  String get webLicensesTextFailed;
+
+  /// Heading of the files a component covers
+  ///
+  /// In en, this message translates to:
+  /// **'Shipped files ({count})'**
+  String webLicensesFiles(int count);
+
+  /// The projects whose notices the Flutter engine entry carries
+  ///
+  /// In en, this message translates to:
+  /// **'Notices included: {names}'**
+  String webLicensesIncludes(String names);
+
+  /// Where a component comes from
+  ///
+  /// In en, this message translates to:
+  /// **'Source: {url}'**
+  String webLicensesSource(String url);
+
+  /// Group of the app's own files
+  ///
+  /// In en, this message translates to:
+  /// **'This app'**
+  String get webLicensesGroupApp;
+
+  /// Group of CanvasKit, Skwasm and the Flutter tool's output
+  ///
+  /// In en, this message translates to:
+  /// **'Flutter web engine'**
+  String get webLicensesGroupEngine;
+
+  /// Group of the Dart packages compiled into the app
+  ///
+  /// In en, this message translates to:
+  /// **'Dart packages'**
+  String get webLicensesGroupDart;
+
+  /// Group of the Rust and SQLite WebAssembly modules
+  ///
+  /// In en, this message translates to:
+  /// **'WebAssembly modules'**
+  String get webLicensesGroupWasm;
+
+  /// Group of the crates compiled into the wasm modules
+  ///
+  /// In en, this message translates to:
+  /// **'Rust crates in the WebAssembly modules'**
+  String get webLicensesGroupCargo;
+
+  /// Group of the staged ONNX Runtime Web builds
+  ///
+  /// In en, this message translates to:
+  /// **'ONNX Runtime Web'**
+  String get webLicensesGroupOrt;
+
+  /// Group of the mirrored models
+  ///
+  /// In en, this message translates to:
+  /// **'AI models'**
+  String get webLicensesGroupModels;
+
+  /// Group of the shipped fonts
+  ///
+  /// In en, this message translates to:
+  /// **'Fonts'**
+  String get webLicensesGroupFonts;
+
+  /// Group of bundled JavaScript such as gstwebrtc-api
+  ///
+  /// In en, this message translates to:
+  /// **'JavaScript libraries'**
+  String get webLicensesGroupJavascript;
+
   /// Status line while something it watches is in view; what is the watched classes, e.g. "Cat" or "Cat / dog".
   ///
   /// In en, this message translates to:

@@ -1,5 +1,8 @@
+import 'package:flutter/foundation.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:go_router/go_router.dart';
+import 'package:anthology/Pages/Footer/default_footer_pages.dart';
+import 'package:omni_accelerant/Pages/WebLicensesPage/web_licenses_page.dart';
 import 'package:omni_accelerant/app_pages.dart';
 import 'package:anthology/Pages/DataPage/BlockOverviewPage/block_overview_page.dart';
 import 'package:omni_accelerant/blog_dependent_app_attributes.dart';
@@ -12,7 +15,36 @@ import 'package:omni_accelerant/src/boot/url_options.dart';
 class OmniRoutes extends RoutesCreator {
   OmniBlogDependentAppAttributes blogDependentAppAttributes;
 
-  OmniRoutes({required this.blogDependentAppAttributes});
+  /// Whether the licences route lists the web build's inventory instead of the native registry.
+  final bool webLicenses;
+
+  OmniRoutes({
+    required this.blogDependentAppAttributes,
+    this.webLicenses = kIsWeb,
+  });
+
+  /// On the web the licences route shows what `/app/` ships; the registry's native entries do not apply there.
+  @override
+  List<(Widget, StatefulBranchInfoProvider)> footerPagesWithConfigs(
+    AppAttributes appAttributes,
+  ) {
+    final pages = super.footerPagesWithConfigs(appAttributes);
+    if (!webLicenses) {
+      return pages;
+    }
+    return [
+      for (final (page, config) in pages)
+        config.getRoutingName() == openSourceLicensesRoute
+            ? (
+                WebLicensesPage(
+                  footer: getFooter(appAttributes),
+                  appAttributes: appAttributes,
+                ),
+                config,
+              )
+            : (page, config),
+    ];
+  }
 
   /// Opens on [hostedStartRoute] when the build names one: the camera page would poll a server the static host lacks.
   @override

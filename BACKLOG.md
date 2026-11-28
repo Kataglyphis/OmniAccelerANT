@@ -215,6 +215,16 @@ what the owner's goal still lacks.
      Chrome test with a fake camera, a hand protocol on a real GPU.
   8. Here: the web part of the license inventory, texts in English and German. Check: the licenses page lists
      exactly what `/app/` ships.
+     Done 2026-11-28: `scripts/licenses/web-license-inventory.py` writes `assets/web-licenses/` into the built app
+     from the files it ships: Dart packages from the build's depfiles and `NOTICES`, the engine's notices, wasm
+     crates from the native inventory's new `wasm_roots`, ORT Web from `ort/manifest.json`, models from
+     `models/manifest.json`, the rest from `web-components.json`. It fails on a shipped file without an entry and
+     an entry without a file, runs at the end of `omni_web_app_build` and `build-docs-site.sh`, and the licenses
+     route shows it on the web in English and German
+     ([project operations](docs/source/project-operations.md#the-web-builds-license-inventory)).
+     Open: the models reach the page once step 6's mirror call runs in `build-docs-site.sh` above the inventory
+     line; the vision_core_web rule knows only the wasm-bindgen `.js` and `_bg.wasm` names, so step 4 adds any
+     other file it stages; the first run on a fresh build is the docs job's.
   9. Here: remote modes: an explicit ObservANT address, the mixed-content notice, Chrome's local-network prompt.
      Check: a Chrome test with a fixture.
   10. OxidANT and here, optional: the ESP32 over Web Serial, with a refusal where it is missing. Check: the

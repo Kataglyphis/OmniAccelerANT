@@ -187,6 +187,38 @@ Android plugin's GStreamer SDK); corresponding-source offers
 for LGPL components are not produced; DirectML and the Visual C++ runtime are proprietary
 redistributables, listed with their terms' URL; ObservANT's native payload is not yet gated.
 
+### The web build's license inventory
+
+The browser app at `/app/` ships its own inventory, `assets/web-licenses/index.json` with its texts in
+`texts-<n>.json` chunks, and its licenses page lists it on the web instead of the native registry.
+`scripts/licenses/web-license-inventory.py --write --app <dir>` derives it from the files the directory
+ships, then checks it. `omni_web_app_build` runs it on `build/web`, and `build-docs-site.sh` runs it again
+as its last step on `doc/api/app`, so files staged into the app go above that line.
+
+| Source | Where the list comes from | Texts |
+| --- | --- | --- |
+| Dart packages | the build's `dart2js.d` and `dart2wasm.d` under `.dart_tool/flutter_build/<.last_build_id>/`, mapped to packages by `package_config.json`, plus each `assets/packages/<name>/` | the package's blocks in the shipped `assets/NOTICES`; the SDK's own packages take Flutter's |
+| Flutter web engine | `canvaskit/`, `flutter.js`, the compiled outputs and Flutter's build files | every `NOTICES` block that names no Dart package, one text per project |
+| Rust in wasm | `pkg/oxidant_bg.wasm` and `kataglyphis_vision_core_web_bg.wasm` | the crates whose `wasm_roots` in the native inventory name the module's root, with their texts |
+| ORT Web | `ort/manifest.json` from the hub's `stage-ort-web.py` | each build's `LICENSE`, `ThirdPartyNotices.txt` and probe license, required |
+| Models | `models/manifest.json` from the hub's `mirror-app-models.py`, which `build-docs-site.sh` runs before the inventory | each model's `licenses`, at least one required |
+| Everything else | `scripts/licenses/web-components.json`: the app's files, fonts, `sqlite3.wasm`, `gstwebrtc-api` | pinned upstream texts under `scripts/licenses/texts/web/`, or a text the app ships |
+
+**The gate fails** on a shipped file without an entry, an entry or manifest file that is not shipped,
+bytes that differ from the ORT or model manifest, a compiled package without a `NOTICES` text, a source
+outside every package, an npm package a shipped source map names that the rule does not license, a pinned
+text that changed, and an index or chunk that is not what the files give. It writes nothing when the
+build has an error. `.ht*` files are server configuration that Apache never serves, so they are not
+listed. Suite: `scripts/licenses/tests/test_web_license_inventory.py`.
+
+The models' manifest is the one the hub's mirror writes
+([hub docs-sites.md](https://github.com/Kataglyphis/ANTfrastructure/blob/develop/docs/docs-sites.md#mirroring-an-apps-models)):
+the reader takes each model's `path`, `sha256`, `size` and `licenses`, and its `release` as the version.
+
+What it does not establish: which engine libraries CanvasKit links is not readable from the build, so the
+engine entry carries every engine notice Flutter ships; a crate's wasm32 closure is cargo's resolution, not
+a link map.
+
 ### Launcher icons from one logo
 
 `images/logo.svg` is the source. `assets/icons/kataglyphis_app_icon.svg` must stay a byte copy,

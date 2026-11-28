@@ -52,3 +52,6 @@ fi
 rm -rf "${APP_DIR}"
 cp -R build/web "${APP_DIR}"
 echo "[Info] The web app is in ${APP_DIR}, served at /app/"
+
+# Last: the licences page lists every file /app/ ships, so anything staged into the app goes above this line.
+python3 -I scripts/licenses/web-license-inventory.py --write --app "${APP_DIR}"

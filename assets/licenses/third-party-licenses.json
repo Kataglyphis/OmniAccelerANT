@@ -1065,7 +1065,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "2.0.1"
+   "version": "2.0.1",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -1097,7 +1100,11 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "1.1.5"
+   "version": "1.1.5",
+   "wasm_roots": [
+    "kataglyphis_observant",
+    "oxidant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -1124,7 +1131,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.6.4"
+   "version": "0.6.4",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -1156,7 +1166,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.4.3"
+   "version": "0.4.3",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -1213,7 +1226,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.2.21"
+   "version": "0.2.21",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -1295,7 +1311,11 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "1.0.0"
+   "version": "1.0.0",
+   "wasm_roots": [
+    "kataglyphis_observant",
+    "oxidant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -1327,7 +1347,11 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "1.0.0"
+   "version": "1.0.0",
+   "wasm_roots": [
+    "kataglyphis_observant",
+    "oxidant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -1359,7 +1383,11 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "1.1.5"
+   "version": "1.1.5",
+   "wasm_roots": [
+    "kataglyphis_observant",
+    "oxidant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -1418,7 +1446,11 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "1.0.14"
+   "version": "1.0.14",
+   "wasm_roots": [
+    "kataglyphis_observant",
+    "oxidant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -1450,7 +1482,11 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "1.0.104"
+   "version": "1.0.104",
+   "wasm_roots": [
+    "kataglyphis_observant",
+    "oxidant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -1477,7 +1513,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "1.1.0"
+   "version": "1.1.0",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -1504,7 +1543,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.3.4"
+   "version": "0.3.4",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -1536,7 +1578,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.7.8"
+   "version": "0.7.8",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -1568,7 +1613,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.2.1"
+   "version": "0.2.1",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -1604,7 +1652,10 @@
    "used_by": [
     "kataglyphis_observant"
    ],
-   "version": "1.1.2"
+   "version": "1.1.2",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -1666,7 +1717,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.1.14"
+   "version": "0.1.14",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -1693,7 +1747,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.14.1"
+   "version": "0.14.1",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -1720,7 +1777,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.2.5"
+   "version": "0.2.5",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -1747,7 +1807,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.8.9"
+   "version": "0.8.9",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -1809,7 +1872,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.23.1"
+   "version": "0.23.1",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -1841,7 +1907,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.11.1"
+   "version": "0.11.1",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -1873,7 +1942,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.10.1"
+   "version": "0.10.1",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -1905,7 +1977,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.10.3"
+   "version": "0.10.3",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -1937,7 +2012,11 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "1.3.2"
+   "version": "1.3.2",
+   "wasm_roots": [
+    "kataglyphis_observant",
+    "oxidant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -1969,7 +2048,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "2.13.2"
+   "version": "2.13.2",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -2001,7 +2083,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "4.10.0"
+   "version": "4.10.0",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -2032,7 +2117,10 @@
    "used_by": [
     "oxidant"
    ],
-   "version": "0.10.4"
+   "version": "0.10.4",
+   "wasm_roots": [
+    "oxidant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -2064,7 +2152,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "1.8.1"
+   "version": "1.8.1",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -2096,7 +2187,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "1.8.1"
+   "version": "1.8.1",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -2126,9 +2220,15 @@
    ],
    "used_by": [
     "kataglyphis_observant",
+    "kataglyphis_vision_core_web",
     "oxidant"
    ],
-   "version": "3.20.3"
+   "version": "3.20.3",
+   "wasm_roots": [
+    "kataglyphis_observant",
+    "kataglyphis_vision_core_web",
+    "oxidant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -2165,7 +2265,11 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "1.25.2"
+   "version": "1.25.2",
+   "wasm_roots": [
+    "kataglyphis_observant",
+    "oxidant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -2202,7 +2306,11 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "1.12.1"
+   "version": "1.12.1",
+   "wasm_roots": [
+    "kataglyphis_observant",
+    "oxidant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -2229,7 +2337,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.1.0"
+   "version": "0.1.0",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -2261,7 +2372,11 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "1.5.0"
+   "version": "1.5.0",
+   "wasm_roots": [
+    "kataglyphis_observant",
+    "oxidant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -2288,7 +2403,11 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "1.12.1"
+   "version": "1.12.1",
+   "wasm_roots": [
+    "kataglyphis_observant",
+    "oxidant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -2318,9 +2437,15 @@
    ],
    "used_by": [
     "kataglyphis_observant",
+    "kataglyphis_vision_core_web",
     "oxidant"
    ],
-   "version": "1.0.5"
+   "version": "1.0.5",
+   "wasm_roots": [
+    "kataglyphis_observant",
+    "kataglyphis_vision_core_web",
+    "oxidant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -2352,7 +2477,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.10.2"
+   "version": "0.10.2",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -2384,7 +2512,11 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "4.6.7"
+   "version": "4.6.7",
+   "wasm_roots": [
+    "kataglyphis_observant",
+    "oxidant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -2416,7 +2548,11 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "4.6.7"
+   "version": "4.6.7",
+   "wasm_roots": [
+    "kataglyphis_observant",
+    "oxidant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -2448,7 +2584,11 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "4.6.7"
+   "version": "4.6.7",
+   "wasm_roots": [
+    "kataglyphis_observant",
+    "oxidant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -2480,7 +2620,11 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "1.1.1"
+   "version": "1.1.1",
+   "wasm_roots": [
+    "kataglyphis_observant",
+    "oxidant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -2536,7 +2680,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "1.1.0"
+   "version": "1.1.0",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -2568,7 +2715,11 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "1.0.5"
+   "version": "1.0.5",
+   "wasm_roots": [
+    "kataglyphis_observant",
+    "oxidant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -2593,7 +2744,10 @@
    "used_by": [
     "oxidant"
    ],
-   "version": "0.1.7"
+   "version": "0.1.7",
+   "wasm_roots": [
+    "oxidant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -2652,7 +2806,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "1.5.3"
+   "version": "1.5.3",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -2682,9 +2839,15 @@
    ],
    "used_by": [
     "kataglyphis_observant",
+    "kataglyphis_vision_core_web",
     "oxidant"
    ],
-   "version": "1.2.0"
+   "version": "1.2.0",
+   "wasm_roots": [
+    "kataglyphis_observant",
+    "kataglyphis_vision_core_web",
+    "oxidant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -2716,7 +2879,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.8.8"
+   "version": "0.8.8",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -2748,7 +2914,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.9.21"
+   "version": "0.9.21",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -2780,7 +2949,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.8.23"
+   "version": "0.8.23",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -2811,7 +2983,10 @@
    "used_by": [
     "oxidant"
    ],
-   "version": "0.1.7"
+   "version": "0.1.7",
+   "wasm_roots": [
+    "oxidant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -2873,7 +3048,11 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "1.2.0"
+   "version": "1.2.0",
+   "wasm_roots": [
+    "kataglyphis_observant",
+    "oxidant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -2905,7 +3084,11 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "1.1.0"
+   "version": "1.1.0",
+   "wasm_roots": [
+    "kataglyphis_observant",
+    "oxidant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -2937,7 +3120,11 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "1.2.0"
+   "version": "1.2.0",
+   "wasm_roots": [
+    "kataglyphis_observant",
+    "oxidant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -2963,7 +3150,10 @@
    "used_by": [
     "oxidant"
    ],
-   "version": "0.3.1"
+   "version": "0.3.1",
+   "wasm_roots": [
+    "oxidant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -2990,7 +3180,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.7.0"
+   "version": "0.7.0",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -3021,7 +3214,10 @@
    "used_by": [
     "oxidant"
    ],
-   "version": "0.10.7"
+   "version": "0.10.7",
+   "wasm_roots": [
+    "oxidant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -3053,7 +3249,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "2.0.2"
+   "version": "2.0.2",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -3085,7 +3284,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "1.0.20"
+   "version": "1.0.20",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -3117,7 +3319,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "1.0.0"
+   "version": "1.0.0",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -3149,7 +3354,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "1.19.0"
+   "version": "1.19.0",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -3206,7 +3414,11 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "2.0.0"
+   "version": "2.0.0",
+   "wasm_roots": [
+    "kataglyphis_observant",
+    "oxidant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -3238,7 +3450,11 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.11.11"
+   "version": "0.11.11",
+   "wasm_roots": [
+    "kataglyphis_observant",
+    "oxidant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -3265,7 +3481,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.4.2"
+   "version": "0.4.2",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -3292,7 +3511,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.4.2"
+   "version": "0.4.2",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -3324,7 +3546,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "1.0.3"
+   "version": "1.0.3",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -3356,7 +3581,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.4.11"
+   "version": "0.4.11",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -3412,7 +3640,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "1.74.2"
+   "version": "1.74.2",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -3439,7 +3670,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.2.7"
+   "version": "0.2.7",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -3471,7 +3705,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.3.7"
+   "version": "0.3.7",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -3503,7 +3740,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.2.29"
+   "version": "0.2.29",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -3535,7 +3775,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "1.1.10"
+   "version": "1.1.10",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -3567,7 +3810,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.3.2"
+   "version": "0.3.2",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -3593,7 +3839,10 @@
    "used_by": [
     "oxidant"
    ],
-   "version": "2.13.0"
+   "version": "2.13.0",
+   "wasm_roots": [
+    "oxidant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -3619,7 +3868,10 @@
    "used_by": [
     "oxidant"
    ],
-   "version": "2.13.0"
+   "version": "2.13.0",
+   "wasm_roots": [
+    "oxidant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -3646,7 +3898,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.2.0"
+   "version": "0.2.0",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -3676,9 +3931,15 @@
    ],
    "used_by": [
     "kataglyphis_observant",
+    "kataglyphis_vision_core_web",
     "oxidant"
    ],
-   "version": "0.3.34"
+   "version": "0.3.34",
+   "wasm_roots": [
+    "kataglyphis_observant",
+    "kataglyphis_vision_core_web",
+    "oxidant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -3708,9 +3969,15 @@
    ],
    "used_by": [
     "kataglyphis_observant",
+    "kataglyphis_vision_core_web",
     "oxidant"
    ],
-   "version": "0.3.34"
+   "version": "0.3.34",
+   "wasm_roots": [
+    "kataglyphis_observant",
+    "kataglyphis_vision_core_web",
+    "oxidant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -3742,7 +4009,11 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.3.34"
+   "version": "0.3.34",
+   "wasm_roots": [
+    "kataglyphis_observant",
+    "oxidant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -3772,9 +4043,15 @@
    ],
    "used_by": [
     "kataglyphis_observant",
+    "kataglyphis_vision_core_web",
     "oxidant"
    ],
-   "version": "0.3.34"
+   "version": "0.3.34",
+   "wasm_roots": [
+    "kataglyphis_observant",
+    "kataglyphis_vision_core_web",
+    "oxidant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -3804,9 +4081,15 @@
    ],
    "used_by": [
     "kataglyphis_observant",
+    "kataglyphis_vision_core_web",
     "oxidant"
    ],
-   "version": "0.3.34"
+   "version": "0.3.34",
+   "wasm_roots": [
+    "kataglyphis_observant",
+    "kataglyphis_vision_core_web",
+    "oxidant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -3836,9 +4119,15 @@
    ],
    "used_by": [
     "kataglyphis_observant",
+    "kataglyphis_vision_core_web",
     "oxidant"
    ],
-   "version": "0.3.34"
+   "version": "0.3.34",
+   "wasm_roots": [
+    "kataglyphis_observant",
+    "kataglyphis_vision_core_web",
+    "oxidant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -3868,9 +4157,15 @@
    ],
    "used_by": [
     "kataglyphis_observant",
+    "kataglyphis_vision_core_web",
     "oxidant"
    ],
-   "version": "0.3.34"
+   "version": "0.3.34",
+   "wasm_roots": [
+    "kataglyphis_observant",
+    "kataglyphis_vision_core_web",
+    "oxidant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -3900,9 +4195,15 @@
    ],
    "used_by": [
     "kataglyphis_observant",
+    "kataglyphis_vision_core_web",
     "oxidant"
    ],
-   "version": "0.3.34"
+   "version": "0.3.34",
+   "wasm_roots": [
+    "kataglyphis_observant",
+    "kataglyphis_vision_core_web",
+    "oxidant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -3933,7 +4234,10 @@
    "used_by": [
     "oxidant"
    ],
-   "version": "0.3.34"
+   "version": "0.3.34",
+   "wasm_roots": [
+    "oxidant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -3959,7 +4263,10 @@
    "used_by": [
     "oxidant"
    ],
-   "version": "0.14.7"
+   "version": "0.14.7",
+   "wasm_roots": [
+    "oxidant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -3991,7 +4298,11 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.2.17"
+   "version": "0.2.17",
+   "wasm_roots": [
+    "kataglyphis_observant",
+    "oxidant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -4023,7 +4334,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.4.3"
+   "version": "0.4.3",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -4055,7 +4369,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.14.2"
+   "version": "0.14.2",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -4110,7 +4427,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.22.9"
+   "version": "0.22.9",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -4137,7 +4457,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.22.9"
+   "version": "0.22.9",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -4164,7 +4487,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.22.9"
+   "version": "0.22.9",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -4191,7 +4517,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.22.10"
+   "version": "0.22.10",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -4218,7 +4547,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.22.9"
+   "version": "0.22.9",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -4245,7 +4577,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.25.4"
+   "version": "0.25.4",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -4277,7 +4612,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.25.2"
+   "version": "0.25.2",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -4304,7 +4642,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.25.4"
+   "version": "0.25.4",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -4336,7 +4677,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.25.4"
+   "version": "0.25.4",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -4363,7 +4707,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.25.4"
+   "version": "0.25.4",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -4390,7 +4737,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.25.4"
+   "version": "0.25.4",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -4422,7 +4772,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.25.4"
+   "version": "0.25.4",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -4454,7 +4807,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.25.4"
+   "version": "0.25.4",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -4486,7 +4842,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "2.7.1"
+   "version": "2.7.1",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -4518,7 +4877,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.16.1"
+   "version": "0.16.1",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -4550,7 +4912,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.17.1"
+   "version": "0.17.1",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -4582,7 +4947,11 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.5.0"
+   "version": "0.5.0",
+   "wasm_roots": [
+    "kataglyphis_observant",
+    "oxidant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -4613,7 +4982,10 @@
    "used_by": [
     "oxidant"
    ],
-   "version": "0.4.3"
+   "version": "0.4.3",
+   "wasm_roots": [
+    "oxidant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -4639,7 +5011,10 @@
    "used_by": [
     "kataglyphis_observant"
    ],
-   "version": "0.1.5"
+   "version": "0.1.5",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -4665,7 +5040,10 @@
    "used_by": [
     "kataglyphis_observant"
    ],
-   "version": "1.1.0"
+   "version": "1.1.0",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -4697,7 +5075,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "1.5.0"
+   "version": "1.5.0",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -4729,7 +5110,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "1.10.1"
+   "version": "1.10.1",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -4760,7 +5144,10 @@
    "used_by": [
     "kataglyphis_observant"
    ],
-   "version": "1.0.3"
+   "version": "1.0.3",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -4786,7 +5173,10 @@
    "used_by": [
     "kataglyphis_observant"
    ],
-   "version": "0.1.21"
+   "version": "0.1.21",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -4812,7 +5202,10 @@
    "used_by": [
     "kataglyphis_observant"
    ],
-   "version": "1.12.0"
+   "version": "1.12.0",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -4844,7 +5237,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.2.4"
+   "version": "0.2.4",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -4876,7 +5272,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.25.10"
+   "version": "0.25.10",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -4908,7 +5307,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "1.12.3"
+   "version": "1.12.3",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -4940,7 +5342,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "2.14.2"
+   "version": "2.14.2",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -4972,7 +5377,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.3.25"
+   "version": "0.3.25",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -5004,7 +5412,11 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "1.70.2"
+   "version": "1.70.2",
+   "wasm_roots": [
+    "kataglyphis_observant",
+    "oxidant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -5036,7 +5448,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.14.0"
+   "version": "0.14.0",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -5068,7 +5483,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.15.0"
+   "version": "0.15.0",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -5100,7 +5518,11 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "1.0.18"
+   "version": "1.0.18",
+   "wasm_roots": [
+    "kataglyphis_observant",
+    "oxidant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -5132,7 +5554,11 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.1.1"
+   "version": "0.1.1",
+   "wasm_roots": [
+    "kataglyphis_observant",
+    "oxidant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -5164,7 +5590,11 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.2.38"
+   "version": "0.2.38",
+   "wasm_roots": [
+    "kataglyphis_observant",
+    "oxidant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -5192,7 +5622,11 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.1.3"
+   "version": "0.1.3",
+   "wasm_roots": [
+    "kataglyphis_observant",
+    "oxidant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -5220,7 +5654,11 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.1.10"
+   "version": "0.1.10",
+   "wasm_roots": [
+    "kataglyphis_observant",
+    "oxidant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -5252,7 +5690,11 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.2.38"
+   "version": "0.2.38",
+   "wasm_roots": [
+    "kataglyphis_observant",
+    "oxidant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -5276,9 +5718,15 @@
    ],
    "used_by": [
     "kataglyphis_observant",
+    "kataglyphis_vision_core_web",
     "oxidant"
    ],
-   "version": "0.3.106"
+   "version": "0.3.106",
+   "wasm_roots": [
+    "kataglyphis_observant",
+    "kataglyphis_vision_core_web",
+    "oxidant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -5305,7 +5753,11 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "3.0.0"
+   "version": "3.0.0",
+   "wasm_roots": [
+    "kataglyphis_observant",
+    "oxidant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -5380,7 +5832,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "3.0.0"
+   "version": "3.0.0",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -5407,7 +5862,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "3.0.0"
+   "version": "3.0.0",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -5433,7 +5891,10 @@
    "used_by": [
     "kataglyphis_observant"
    ],
-   "version": "3.0.0"
+   "version": "3.0.0",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -5459,7 +5920,10 @@
    "used_by": [
     "oxidant"
    ],
-   "version": "3.0.0"
+   "version": "3.0.0",
+   "wasm_roots": [
+    "oxidant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -5486,7 +5950,11 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "3.0.0"
+   "version": "3.0.0",
+   "wasm_roots": [
+    "kataglyphis_observant",
+    "oxidant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -5511,9 +5979,38 @@
    ],
    "used_by": [
     "kataglyphis_observant",
+    "kataglyphis_vision_core_web",
     "oxidant"
    ],
-   "version": "3.0.0"
+   "version": "3.0.0",
+   "wasm_roots": [
+    "kataglyphis_observant",
+    "kataglyphis_vision_core_web",
+    "oxidant"
+   ]
+  },
+  {
+   "ecosystem": "cargo",
+   "license": "MIT",
+   "name": "kataglyphis_vision_core_web",
+   "source": "path",
+   "targets": [
+    "wasm32-unknown-unknown"
+   ],
+   "texts": [
+    {
+     "name": "workspace/LICENSE",
+     "provenance": "OxidANT workspace LICENSE (license.workspace = true)",
+     "sha256": "586ec400195558a35f3895d08f8e089f3de6206ab8512fe58d6e4b47fb342e7b"
+    }
+   ],
+   "used_by": [
+    "kataglyphis_vision_core_web"
+   ],
+   "version": "3.0.0",
+   "wasm_roots": [
+    "kataglyphis_vision_core_web"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -5545,7 +6042,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "2.0.5"
+   "version": "2.0.5",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -5577,7 +6077,11 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "1.5.1"
+   "version": "1.5.1",
+   "wasm_roots": [
+    "kataglyphis_observant",
+    "oxidant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -5604,7 +6108,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.5.3"
+   "version": "0.5.3",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -5636,7 +6143,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.2.191"
+   "version": "0.2.191",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -5663,7 +6173,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.9.0"
+   "version": "0.9.0",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -5690,7 +6203,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.2.16"
+   "version": "0.2.16",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -5756,7 +6272,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.4.14"
+   "version": "0.4.14",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -5788,7 +6307,11 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.4.34"
+   "version": "0.4.34",
+   "wasm_roots": [
+    "kataglyphis_observant",
+    "oxidant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -5815,7 +6338,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.1.5"
+   "version": "0.1.5",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -5847,7 +6373,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "1.0.2"
+   "version": "1.0.2",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -5879,7 +6408,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.3.11"
+   "version": "0.3.11",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -5906,7 +6438,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.1.1"
+   "version": "0.1.1",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -5937,7 +6472,10 @@
    "used_by": [
     "oxidant"
    ],
-   "version": "0.10.6"
+   "version": "0.10.6",
+   "wasm_roots": [
+    "oxidant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -5967,9 +6505,15 @@
    ],
    "used_by": [
     "kataglyphis_observant",
+    "kataglyphis_vision_core_web",
     "oxidant"
    ],
-   "version": "2.8.3"
+   "version": "2.8.3",
+   "wasm_roots": [
+    "kataglyphis_observant",
+    "kataglyphis_vision_core_web",
+    "oxidant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -6001,7 +6545,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.9.12"
+   "version": "0.9.12",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -6043,7 +6590,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.8.9"
+   "version": "0.8.9",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -6085,7 +6635,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.9.1"
+   "version": "0.9.1",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -6112,7 +6665,11 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "1.2.4"
+   "version": "1.2.4",
+   "wasm_roots": [
+    "kataglyphis_observant",
+    "oxidant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -6144,7 +6701,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.8.1"
+   "version": "0.8.1",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -6171,7 +6731,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "1.0.1"
+   "version": "1.0.1",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -6203,7 +6766,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.17.2"
+   "version": "0.17.2",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -6230,7 +6796,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "1.0.6"
+   "version": "1.0.6",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -6284,7 +6853,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.9.4"
+   "version": "0.9.4",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -6311,7 +6883,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.1.0"
+   "version": "0.1.0",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -6338,7 +6913,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "8.0.0"
+   "version": "8.0.0",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -6365,7 +6943,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.3.0"
+   "version": "0.3.0",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -6424,7 +7005,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.4.8"
+   "version": "0.4.8",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -6456,7 +7040,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.4.6"
+   "version": "0.4.6",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -6488,7 +7075,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.4.2"
+   "version": "0.4.2",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -6520,7 +7110,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.1.47"
+   "version": "0.1.47",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -6552,7 +7145,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.4.2"
+   "version": "0.4.2",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -6584,7 +7180,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.2.19"
+   "version": "0.2.19",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -6672,9 +7271,15 @@
    ],
    "used_by": [
     "kataglyphis_observant",
+    "kataglyphis_vision_core_web",
     "oxidant"
    ],
-   "version": "1.21.4"
+   "version": "1.21.4",
+   "wasm_roots": [
+    "kataglyphis_observant",
+    "kataglyphis_vision_core_web",
+    "oxidant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -6733,7 +7338,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.6.1"
+   "version": "0.6.1",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -6819,7 +7427,10 @@
    "used_by": [
     "oxidant"
    ],
-   "version": "3.0.0"
+   "version": "3.0.0",
+   "wasm_roots": [
+    "oxidant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -6851,7 +7462,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.12.5"
+   "version": "0.12.5",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -6883,7 +7497,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.9.12"
+   "version": "0.9.12",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -6915,7 +7532,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "1.0.15"
+   "version": "1.0.15",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -6947,7 +7567,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.1.1"
+   "version": "0.1.1",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -6979,7 +7602,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.2.3"
+   "version": "0.2.3",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -7011,7 +7637,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "2.3.2"
+   "version": "2.3.2",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -7041,9 +7670,15 @@
    ],
    "used_by": [
     "kataglyphis_observant",
+    "kataglyphis_vision_core_web",
     "oxidant"
    ],
-   "version": "0.2.17"
+   "version": "0.2.17",
+   "wasm_roots": [
+    "kataglyphis_observant",
+    "kataglyphis_vision_core_web",
+    "oxidant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -7075,7 +7710,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.18.1"
+   "version": "0.18.1",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -7105,9 +7743,15 @@
    ],
    "used_by": [
     "kataglyphis_observant",
+    "kataglyphis_vision_core_web",
     "oxidant"
    ],
-   "version": "1.15.0"
+   "version": "1.15.0",
+   "wasm_roots": [
+    "kataglyphis_observant",
+    "kataglyphis_vision_core_web",
+    "oxidant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -7168,7 +7812,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.3.4"
+   "version": "0.3.4",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -7200,7 +7847,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "3.5.0"
+   "version": "3.5.0",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -7230,9 +7880,15 @@
    ],
    "used_by": [
     "kataglyphis_observant",
+    "kataglyphis_vision_core_web",
     "oxidant"
    ],
-   "version": "1.0.107"
+   "version": "1.0.107",
+   "wasm_roots": [
+    "kataglyphis_observant",
+    "kataglyphis_vision_core_web",
+    "oxidant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -7264,7 +7920,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "1.0.18"
+   "version": "1.0.18",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -7296,7 +7955,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "1.0.18"
+   "version": "1.0.18",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -7323,7 +7985,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.14.4"
+   "version": "0.14.4",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -7350,7 +8015,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.14.4"
+   "version": "0.14.4",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -7377,7 +8045,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.1.1"
+   "version": "0.1.1",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -7404,7 +8075,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.22.3"
+   "version": "0.22.3",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -7436,7 +8110,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.1.30"
+   "version": "0.1.30",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -7468,7 +8145,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.4.1"
+   "version": "0.4.1",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -7500,7 +8180,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "2.0.1"
+   "version": "2.0.1",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -7530,9 +8213,15 @@
    ],
    "used_by": [
     "kataglyphis_observant",
+    "kataglyphis_vision_core_web",
     "oxidant"
    ],
-   "version": "1.0.47"
+   "version": "1.0.47",
+   "wasm_roots": [
+    "kataglyphis_observant",
+    "kataglyphis_vision_core_web",
+    "oxidant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -7564,7 +8253,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.10.3"
+   "version": "0.10.3",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -7596,7 +8288,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.10.1"
+   "version": "0.10.1",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -7627,7 +8322,10 @@
    "used_by": [
     "oxidant"
    ],
-   "version": "0.6.4"
+   "version": "0.6.4",
+   "wasm_roots": [
+    "oxidant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -7659,7 +8357,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.6.0"
+   "version": "0.6.0",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -7686,7 +8387,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.8.1"
+   "version": "0.8.1",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -7713,7 +8417,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.13.0"
+   "version": "0.13.0",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -7767,7 +8474,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.2.1"
+   "version": "0.2.1",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -7799,7 +8509,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "1.13.0"
+   "version": "1.13.0",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -7831,7 +8544,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "1.12.0"
+   "version": "1.12.0",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -7858,7 +8574,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.5.5"
+   "version": "0.5.5",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -7890,7 +8609,11 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.4.18"
+   "version": "0.4.18",
+   "wasm_roots": [
+    "kataglyphis_observant",
+    "oxidant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -7922,7 +8645,11 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.8.11"
+   "version": "0.8.11",
+   "wasm_roots": [
+    "kataglyphis_observant",
+    "oxidant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -7954,7 +8681,11 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "1.13.1"
+   "version": "1.13.1",
+   "wasm_roots": [
+    "kataglyphis_observant",
+    "oxidant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -7981,7 +8712,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.8.53"
+   "version": "0.8.53",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -8018,7 +8752,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.17.14"
+   "version": "0.17.14",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -8080,7 +8817,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "6.4.1"
+   "version": "6.4.1",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -8146,7 +8886,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "1.15.1"
+   "version": "1.15.1",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -8173,7 +8916,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.103.16"
+   "version": "0.103.16",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -8210,7 +8956,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.23.46"
+   "version": "0.23.46",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -8235,7 +8984,10 @@
    "used_by": [
     "kataglyphis_observant"
    ],
-   "version": "1.0.23"
+   "version": "1.0.23",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -8267,7 +9019,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "1.0.6"
+   "version": "1.0.6",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -8299,7 +9054,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "1.2.0"
+   "version": "1.2.0",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -8329,9 +9087,15 @@
    ],
    "used_by": [
     "kataglyphis_observant",
+    "kataglyphis_vision_core_web",
     "oxidant"
    ],
-   "version": "1.0.229"
+   "version": "1.0.229",
+   "wasm_roots": [
+    "kataglyphis_observant",
+    "kataglyphis_vision_core_web",
+    "oxidant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -8361,9 +9125,15 @@
    ],
    "used_by": [
     "kataglyphis_observant",
+    "kataglyphis_vision_core_web",
     "oxidant"
    ],
-   "version": "1.0.229"
+   "version": "1.0.229",
+   "wasm_roots": [
+    "kataglyphis_observant",
+    "kataglyphis_vision_core_web",
+    "oxidant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -8393,9 +9163,15 @@
    ],
    "used_by": [
     "kataglyphis_observant",
+    "kataglyphis_vision_core_web",
     "oxidant"
    ],
-   "version": "1.0.229"
+   "version": "1.0.229",
+   "wasm_roots": [
+    "kataglyphis_observant",
+    "kataglyphis_vision_core_web",
+    "oxidant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -8427,7 +9203,11 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "1.0.154"
+   "version": "1.0.154",
+   "wasm_roots": [
+    "kataglyphis_observant",
+    "oxidant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -8458,7 +9238,10 @@
    "used_by": [
     "kataglyphis_observant"
    ],
-   "version": "1.1.2"
+   "version": "1.1.2",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -8538,7 +9321,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.3.10"
+   "version": "0.3.10",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -8565,7 +9351,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.1.0"
+   "version": "0.1.0",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -8590,9 +9379,15 @@
    ],
    "used_by": [
     "kataglyphis_observant",
+    "kataglyphis_vision_core_web",
     "oxidant"
    ],
-   "version": "0.4.12"
+   "version": "0.4.12",
+   "wasm_roots": [
+    "kataglyphis_observant",
+    "kataglyphis_vision_core_web",
+    "oxidant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -8624,7 +9419,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "1.16.4"
+   "version": "1.16.4",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -8656,7 +9454,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.6.5"
+   "version": "0.6.5",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -8688,7 +9489,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "1.2.1"
+   "version": "1.2.1",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -8720,7 +9524,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "1.1.0"
+   "version": "1.1.0",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -8752,7 +9559,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.2.4"
+   "version": "0.2.4",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -8784,7 +9594,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.20.0"
+   "version": "0.20.0",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -8811,7 +9624,11 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.11.1"
+   "version": "0.11.1",
+   "wasm_roots": [
+    "kataglyphis_observant",
+    "oxidant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -8838,7 +9655,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "2.6.1"
+   "version": "2.6.1",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -8870,7 +9690,11 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "2.0.119"
+   "version": "2.0.119",
+   "wasm_roots": [
+    "kataglyphis_observant",
+    "oxidant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -8900,9 +9724,15 @@
    ],
    "used_by": [
     "kataglyphis_observant",
+    "kataglyphis_vision_core_web",
     "oxidant"
    ],
-   "version": "3.0.9"
+   "version": "3.0.9",
+   "wasm_roots": [
+    "kataglyphis_observant",
+    "kataglyphis_vision_core_web",
+    "oxidant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -8929,7 +9759,11 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.39.6"
+   "version": "0.39.6",
+   "wasm_roots": [
+    "kataglyphis_observant",
+    "oxidant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -8961,7 +9795,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.4.46"
+   "version": "0.4.46",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -8993,7 +9830,11 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "2.0.21"
+   "version": "2.0.21",
+   "wasm_roots": [
+    "kataglyphis_observant",
+    "oxidant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -9025,7 +9866,11 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "2.0.21"
+   "version": "2.0.21",
+   "wasm_roots": [
+    "kataglyphis_observant",
+    "oxidant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -9082,7 +9927,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.11.3"
+   "version": "0.11.3",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -9109,7 +9957,11 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "2.7.2"
+   "version": "2.7.2",
+   "wasm_roots": [
+    "kataglyphis_observant",
+    "oxidant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -9136,7 +9988,11 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "1.54.1"
+   "version": "1.54.1",
+   "wasm_roots": [
+    "kataglyphis_observant",
+    "oxidant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -9167,7 +10023,10 @@
    "used_by": [
     "kataglyphis_observant"
    ],
-   "version": "1.1.8+spec-1.1.0"
+   "version": "1.1.8+spec-1.1.0",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -9199,7 +10058,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "1.1.2+spec-1.1.0"
+   "version": "1.1.2+spec-1.1.0",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -9231,7 +10093,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.25.17+spec-1.1.0"
+   "version": "0.25.17+spec-1.1.0",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -9263,7 +10128,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "1.1.5+spec-1.1.0"
+   "version": "1.1.5+spec-1.1.0",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -9294,7 +10162,10 @@
    "used_by": [
     "kataglyphis_observant"
    ],
-   "version": "1.1.3+spec-1.1.0"
+   "version": "1.1.3+spec-1.1.0",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -9406,7 +10277,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.23.8"
+   "version": "0.23.8",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -9443,7 +10317,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.23.8"
+   "version": "0.23.8",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -9475,7 +10352,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.23.8"
+   "version": "0.23.8",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -9512,7 +10392,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.23.8"
+   "version": "0.23.8",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -9549,7 +10432,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.23.8"
+   "version": "0.23.8",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -9586,7 +10472,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.23.8"
+   "version": "0.23.8",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -9623,7 +10512,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.23.8"
+   "version": "0.23.8",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -9660,7 +10552,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.23.8"
+   "version": "0.23.8",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -9692,7 +10587,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.23.8"
+   "version": "0.23.8",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -9724,7 +10622,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.2.3"
+   "version": "0.2.3",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -9756,7 +10657,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "1.0.3"
+   "version": "1.0.3",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -9792,7 +10696,10 @@
    "used_by": [
     "oxidant"
    ],
-   "version": "1.20.1"
+   "version": "1.20.1",
+   "wasm_roots": [
+    "oxidant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -9854,9 +10761,15 @@
    ],
    "used_by": [
     "kataglyphis_observant",
+    "kataglyphis_vision_core_web",
     "oxidant"
    ],
-   "version": "1.0.27"
+   "version": "1.0.27",
+   "wasm_roots": [
+    "kataglyphis_observant",
+    "kataglyphis_vision_core_web",
+    "oxidant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -9883,7 +10796,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.9.0"
+   "version": "0.9.0",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -9915,7 +10831,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.6.5"
+   "version": "0.6.5",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -9947,7 +10866,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "3.5.0"
+   "version": "3.5.0",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -9979,7 +10901,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.8.1"
+   "version": "0.8.1",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -10011,7 +10936,11 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.2.2"
+   "version": "0.2.2",
+   "wasm_roots": [
+    "kataglyphis_observant",
+    "oxidant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -10038,7 +10967,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.3.9"
+   "version": "0.3.9",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -10070,7 +11002,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "2.5.0"
+   "version": "2.5.0",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -10095,7 +11030,10 @@
    "used_by": [
     "oxidant"
    ],
-   "version": "0.4.79"
+   "version": "0.4.79",
+   "wasm_roots": [
+    "oxidant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -10125,9 +11063,15 @@
    ],
    "used_by": [
     "kataglyphis_observant",
+    "kataglyphis_vision_core_web",
     "oxidant"
    ],
-   "version": "0.2.129"
+   "version": "0.2.129",
+   "wasm_roots": [
+    "kataglyphis_observant",
+    "kataglyphis_vision_core_web",
+    "oxidant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -10157,9 +11101,15 @@
    ],
    "used_by": [
     "kataglyphis_observant",
+    "kataglyphis_vision_core_web",
     "oxidant"
    ],
-   "version": "0.2.129"
+   "version": "0.2.129",
+   "wasm_roots": [
+    "kataglyphis_observant",
+    "kataglyphis_vision_core_web",
+    "oxidant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -10189,9 +11139,15 @@
    ],
    "used_by": [
     "kataglyphis_observant",
+    "kataglyphis_vision_core_web",
     "oxidant"
    ],
-   "version": "0.2.129"
+   "version": "0.2.129",
+   "wasm_roots": [
+    "kataglyphis_observant",
+    "kataglyphis_vision_core_web",
+    "oxidant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -10221,9 +11177,15 @@
    ],
    "used_by": [
     "kataglyphis_observant",
+    "kataglyphis_vision_core_web",
     "oxidant"
    ],
-   "version": "0.2.129"
+   "version": "0.2.129",
+   "wasm_roots": [
+    "kataglyphis_observant",
+    "kataglyphis_vision_core_web",
+    "oxidant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -10248,7 +11210,10 @@
    "used_by": [
     "oxidant"
    ],
-   "version": "0.3.106"
+   "version": "0.3.106",
+   "wasm_roots": [
+    "oxidant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -10275,7 +11240,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "1.0.11"
+   "version": "1.0.11",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -10307,7 +11275,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.1.12"
+   "version": "0.1.12",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -10817,7 +11788,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "1.0.4"
+   "version": "1.0.4",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -10899,7 +11873,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.8.0"
+   "version": "0.8.0",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -10936,7 +11913,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.8.63"
+   "version": "0.8.63",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -10973,7 +11953,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.8.63"
+   "version": "0.8.63",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -11005,7 +11988,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "1.9.1"
+   "version": "1.9.1",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -11032,7 +12018,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.6.8"
+   "version": "0.6.8",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -11059,7 +12048,11 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "1.0.23"
+   "version": "1.0.23",
+   "wasm_roots": [
+    "kataglyphis_observant",
+    "oxidant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -11085,7 +12078,10 @@
    "used_by": [
     "kataglyphis_observant"
    ],
-   "version": "0.8.4"
+   "version": "0.8.4",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -11122,7 +12118,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.5.3"
+   "version": "0.5.3",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -11159,7 +12158,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.2.54"
+   "version": "0.2.54",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "cargo",
@@ -11196,7 +12198,10 @@
     "kataglyphis_observant",
     "oxidant"
    ],
-   "version": "0.5.15"
+   "version": "0.5.15",
+   "wasm_roots": [
+    "kataglyphis_observant"
+   ]
   },
   {
    "ecosystem": "dart",
@@ -12057,7 +13062,7 @@
  ],
  "inputs": {
   "pubspec.lock": "f3f6ddaa2a031c8c5eb6f29445db844ef4c6422723aded603f17d7798ace9eac",
-  "scripts/licenses/cargo-policy.json": "27c0d43b53f23f72f3b33f1b1e1078e03a28915d5888966a4c6d4d99d640a4b1",
+  "scripts/licenses/cargo-policy.json": "61fb4c6ac731128101f0872ae75af1af2eb754f3ab16408ef5f54432e959c92f",
   "scripts/licenses/native-components.json": "6b74c8aa9eba54db5c7506acdde5f3b3cfbee5f8b0f662144a5dc5f655fc4e70",
   "third_party/OxidANT/Cargo.lock": "31dcacb49bbdf1e1005adee83989c463ed62d30711b2b071efe8804b54a5054e"
  },

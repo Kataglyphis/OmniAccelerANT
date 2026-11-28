@@ -25,6 +25,11 @@ t_assert_ok grep -qx 'APP_DIR="${SITE_DIR}/app"' "${script}"
 t_assert_ok grep -q '^trap .*cp "${settings_backup}" "${WEBRTC_SETTINGS}"' "${script}"
 t_assert_ok grep -q 'names ${built_stun} STUN server(s)' "${script}"
 
+t_case "the web license inventory is the site build's last step, and the web build writes one too"
+t_assert_eq 'python3 -I scripts/licenses/web-license-inventory.py --write --app "${APP_DIR}"' \
+  "$(grep -v '^[[:space:]]*$' "${script}" | tail -n 1)"
+t_assert_ok grep -q 'web-license-inventory.py --write --app build/web || return 1' "${repo}/scripts/linux/lib/web-app-build.sh"
+
 t_case "docs.yml builds through it, has the hub isolate app/ and check it live after the publish"
 t_assert_ok grep -qx '      command: bash scripts/linux/build-docs-site.sh' "${repo}/.github/workflows/docs.yml"
 t_assert_ok grep -qx '      isolated-apps: app' "${repo}/.github/workflows/docs.yml"

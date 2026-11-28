@@ -14,6 +14,50 @@
   "aiPlayground": "AI Playground",
   "renderingPlayground": "Rendering Playground",
   "follow": "Visit page",
+  "webLicensesIntro": "Everything this web app ships, read from its own build: each component, its license and the files it covers.",
+  "@webLicensesIntro": {"description": "Opens the licenses page of the web build"},
+  "webLicensesSummary": "{files} files in {components} components",
+  "@webLicensesSummary": {
+    "description": "How many files the web build ships and how many inventory components cover them",
+    "placeholders": { "files": { "type": "int" }, "components": { "type": "int" } }
+  },
+  "webLicensesMissing": "This build carries no license inventory of its web files.",
+  "@webLicensesMissing": {"description": "The web build was made without scripts/licenses/web-license-inventory.py"},
+  "webLicensesTextFailed": "The license text could not be loaded.",
+  "@webLicensesTextFailed": {"description": "One license text of a component did not load"},
+  "webLicensesFiles": "Shipped files ({count})",
+  "@webLicensesFiles": {
+    "description": "Heading of the files a component covers",
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "webLicensesIncludes": "Notices included: {names}",
+  "@webLicensesIncludes": {
+    "description": "The projects whose notices the Flutter engine entry carries",
+    "placeholders": { "names": { "type": "String" } }
+  },
+  "webLicensesSource": "Source: {url}",
+  "@webLicensesSource": {
+    "description": "Where a component comes from",
+    "placeholders": { "url": { "type": "String" } }
+  },
+  "webLicensesGroupApp": "This app",
+  "@webLicensesGroupApp": {"description": "Group of the app's own files"},
+  "webLicensesGroupEngine": "Flutter web engine",
+  "@webLicensesGroupEngine": {"description": "Group of CanvasKit, Skwasm and the Flutter tool's output"},
+  "webLicensesGroupDart": "Dart packages",
+  "@webLicensesGroupDart": {"description": "Group of the Dart packages compiled into the app"},
+  "webLicensesGroupWasm": "WebAssembly modules",
+  "@webLicensesGroupWasm": {"description": "Group of the Rust and SQLite WebAssembly modules"},
+  "webLicensesGroupCargo": "Rust crates in the WebAssembly modules",
+  "@webLicensesGroupCargo": {"description": "Group of the crates compiled into the wasm modules"},
+  "webLicensesGroupOrt": "ONNX Runtime Web",
+  "@webLicensesGroupOrt": {"description": "Group of the staged ONNX Runtime Web builds"},
+  "webLicensesGroupModels": "AI models",
+  "@webLicensesGroupModels": {"description": "Group of the mirrored models"},
+  "webLicensesGroupFonts": "Fonts",
+  "@webLicensesGroupFonts": {"description": "Group of the shipped fonts"},
+  "webLicensesGroupJavascript": "JavaScript libraries",
+  "@webLicensesGroupJavascript": {"description": "Group of bundled JavaScript such as gstwebrtc-api"},
   "detectionInView": "{what} in view",
   "@detectionInView": {
     "description": "Status line while something it watches is in view; what is the watched classes, e.g. \"Cat\" or \"Cat / dog\".",
