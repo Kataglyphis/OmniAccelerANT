@@ -296,9 +296,10 @@ name is under `lib/Pages/StreamPage/`.
 - [ ] **Android: PLAYING as a requirement, and a faster Kotlin loop** (S, ★). The emulator check proves since
   2026-11-21 that the plugin loads, initialises GStreamer and recovers from a source's `bus error` (run 44909804182:
   `ahcsrc` missing, `autovideosrc`'s fake source fails, `videotestsrc` plays), and the Dart suite names
-  `command_failed`. Left: require a `play set_state(PLAYING): SUCCESS` once the wait covers two failing sources (15 s
-  each, `gstreamer_native.cpp:500-502`), and a dispatch-only workflow that compiles the Kotlin and runs its JVM test
-  without the APK; its Gradle command is untested and its time not measured.
+  `command_failed`. Since 2026-11-28 the check requires a `play set_state(PLAYING): SUCCESS` in a 45 s window, which
+  covers two failing sources at 15 s each (`gstreamer_native.cpp:500-502`), and prints when it first came (run
+  46132772625: 10:24:26.298). Left: a dispatch-only workflow that compiles the Kotlin and runs its JVM test without
+  the APK; its Gradle command is untested and its time not measured.
 
 - [ ] **On Android a camera that dies still shows "Playing"** (M, ★★). Read from the code, on no device. After the
   start nothing reads the GStreamer bus: `android/src/main/cpp/gstreamer_native.cpp` reads it only inside a failing

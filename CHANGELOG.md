@@ -5,6 +5,14 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ## Unreleased
 
+### 2026-11-28 — the Android emulator check requires a source that plays
+
+- `check-apk-on-emulator.sh` passed an app whose GStreamer initialised while no source ever reached PLAYING. It
+  now requires `play set_state(PLAYING): SUCCESS`, waits 45 s instead of 20 (two failing sources may wait 15 s
+  each before `videotestsrc` plays) and names the first PLAYING's time in its OK line. On the emulator of on-request
+  run 46132772625 the app played at 10:24:26.298 and stayed up the 45 s; `test-check-apk-on-emulator.sh` adds the
+  case of an initialised plugin with no source playing.
+
 ### 2026-11-28 — the Linux plugin's ELF hardening is a release gate, and a red Linux lane keeps its uploads
 
 - The native Linux lane's bundle checks run the hub's `verify-elf-hardening.sh` on

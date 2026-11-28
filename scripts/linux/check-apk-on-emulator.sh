@@ -4,7 +4,8 @@ set -euo pipefail
 
 apk=""
 package=""
-seconds=20
+# Two failing sources may each wait 15 s (gstreamer_native.cpp's wait_for_state) before videotestsrc plays.
+seconds=45
 # shellcheck source=scripts/linux/lib/entry-options.sh
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib/entry-options.sh"
 parse_entry_options '--apk FILE --package APPLICATION_ID [--seconds N]' '' \
@@ -88,6 +89,9 @@ if [ -n "$last_bus_error" ] && ! awk -v from="$last_bus_error" 'NR > from && /pl
 fi
 plugin_problem=""
 grep -q 'GStreamer initialized' "$logcat" || plugin_problem="no 'GStreamer initialized': create, the JNI or gst_init did not run"
+if [ -z "$plugin_problem" ] && ! grep -q 'play set_state(PLAYING): SUCCESS' "$logcat"; then
+  plugin_problem="no source reached PLAYING in ${seconds}s (no 'play set_state(PLAYING): SUCCESS')"
+fi
 if [ -z "$plugin_problem" ] && [ -n "$plugin_faults" ]; then plugin_problem="a fault in the plugin's lines above"; fi
 if [ -n "$plugin_problem" ]; then
   printf '%s\n' "$plugin_faults" >&2
@@ -96,5 +100,6 @@ if [ -n "$plugin_problem" ]; then
   fail "$package's plugin on ${serial}: ${plugin_problem}"
 fi
 # threadtime format: the third field is the pid.
-printf 'OK %s stayed up %ss on %s as arm64-v8a (pid %s, %s logcat line(s) of its own)\n' \
-  "$package" "$seconds" "$serial" "$pid" "$(awk -v p="$pid" '$3 == p' "$logcat" | wc -l)"
+printf 'OK %s stayed up %ss on %s as arm64-v8a (pid %s, %s logcat line(s) of its own, first PLAYING at %s)\n' \
+  "$package" "$seconds" "$serial" "$pid" "$(awk -v p="$pid" '$3 == p' "$logcat" | wc -l)" \
+  "$(awk '/play set_state\(PLAYING\): SUCCESS/ { print $2; exit }' "$logcat")"

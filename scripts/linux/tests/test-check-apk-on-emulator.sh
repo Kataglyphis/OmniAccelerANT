@@ -36,8 +36,9 @@ EOF
 chmod +x "${work}/bin/adb" "${work}/bin/android-avd.sh"
 export PATH="${work}/bin:${PATH}" STUB_CALLS="${work}/calls"
 
-# What a healthy start logs: the plugin's gst_init ran (gstreamer_native.cpp's "GStreamer initialized").
-healthy='I KataglyphisGStreamer: Registered 42 GStreamer plugins\nI KataglyphisGStreamer: GStreamer initialized\n'
+# What a healthy start logs: the plugin's gst_init ran (gstreamer_native.cpp's "GStreamer initialized"), then a source played.
+initialized='I KataglyphisGStreamer: Registered 42 GStreamer plugins\nI KataglyphisGStreamer: GStreamer initialized\n'
+healthy="${initialized}11-28 10:00:31.250  4242  4250 I KataglyphisGStreamer: play set_state(PLAYING): SUCCESS\n"
 
 # emulator [VAR=value ...]: the gate's rc on a healthy device, each VAR overriding one thing; 99 when the AVD was left running.
 emulator() {
@@ -53,8 +54,12 @@ emulator() {
   return "${rc}"
 }
 
-t_case "the app stays up as arm64-v8a"
+t_case "the app stays up as arm64-v8a, and the OK line says when a source first played"
 t_assert_rc 0 emulator
+t_assert_contains "$(emulator 2>&1)" 'first PLAYING at 10:00:31.250'
+t_case "GStreamer initialized but no source reached PLAYING in the window"
+t_assert_rc 1 emulator STUB_LOGCAT="${initialized}E KataglyphisGStreamer: setPipeline failed: no element ahcsrc\n"
+t_assert_contains "$(emulator STUB_LOGCAT="${initialized}" 2>&1)" 'no source reached PLAYING'
 t_case "that install granted the camera, so the start reached the plugin"
 t_assert_rc 0 grep -q -- '^adb -s emulator-5554 install -r -g ' "${STUB_CALLS}"
 t_case "another process's fatal signal is not the app's"
