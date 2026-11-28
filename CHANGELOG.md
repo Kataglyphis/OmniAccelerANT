@@ -5,15 +5,20 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ## Unreleased
 
-### 2026-11-28 — the Linux texture refuses a size whose bytes wrap, the rust-stamp gate names a stamp-less ELF, and the web lane keeps its sccache drain
+### 2026-11-28 — the Linux texture refuses a wrapping size, and the web lane, a gate and two tests do what they say
 
+- `test_profile_gpu_installers.py`'s only case that runs `Get-MsiPayloadSize.ps1` on a real MSI waited for
+  `OMNI_TEST_PWSH` and `OMNI_TEST_MSI_VALID`, which nothing sets, so it skipped on every run and a reader querying a
+  `Files` table stayed green. It now runs wherever Windows and `pwsh` are, through the hub's
+  `Test-WindowsInstallerPayloadFixture.ps1 -AdditionalReader`, which builds a 595-byte `File` table through the
+  Windows Installer COM object and requires 595 from this reader too. The `Files` mutant and a reader that counts
+  records instead of summing sizes both fail it now; against the old case the `Files` mutant left the suite green.
 - `settings_asset_paths_test.dart` kept a `filePath` only under `assets/`, and every `filePath` in
   `blog_settings.json` is `packages/anthology/...`, so it never checked the blog pages' markdown, only the one zip
   the `docsDesc` entries name. It now takes `packages/<name>/` keys and looks them up in that package's root from
   `.dart_tool/package_config.json`, an unknown package counting as missing. Two cases hold it: every `filePath` in
   `blog_settings.json` is collected, and on a fixture package config a missing package file and an unknown package
   are named while a present file is not. No Flutter SDK was at hand, so CI's Dart run is their first.
-
 - The Linux texture sized `create` and `knt_push_frame` as `width * height * 4` in `size_t`, which wraps to 0 at
   2^31 x 2^31: `malloc(0)` handed back a block the queued colour then overran on the raster thread, and a push of
   that size copied nothing and reported a frame. `my_texture_frame_bytes` returns 0 for a zero side or a count
@@ -21,16 +26,15 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
   `my_texture_new` now returns `nullptr`, and `knt_push_frame` answers `KNT_BAD_ARGUMENTS`. The Windows
   `BufferBytes` and `knt_push_frame` follow, so the ABI stays one: the shared case
   `TextureAbi.ASizeWhoseByteCountWrapsIsRefusedAndChangesNothing` failed on both textures before (Linux returned
-  `KNT_OK`, Windows `KNT_OK` and then aborted on a 16 EiB `new`), as did `MyTexture.ASizeWhoseByteCountWrapsIsRefused`.
-  Both gtests ran under ASan and UBSan in WSL against stub Flutter headers; a `>=` mutant of either check fails them.
-
+  `KNT_OK`, Windows `KNT_OK` and then aborted on a 16 EiB `new`), as did
+  `MyTexture.ASizeWhoseByteCountWrapsIsRefused`. Both gtests ran under ASan and UBSan in WSL against stub Flutter
+  headers; a `>=` mutant of either check fails them.
 - The web lane's smoke server set `trap … EXIT` in the lane's own shell, which replaced the sccache drain
   `setup_compiler_cache` had installed there, so a local run with the S3 level dropped the wasm build's queued
   uploads at the container's end. The server and its trap now live in a subshell, which also waits for the server
   it kills. `test-web-lane-exit-trap.sh` runs the real lane script on stubs (the real `setup_compiler_cache`, a
   sleeping `python3 -m http.server`) and requires the drain once on a green run, a failed integration smoke and a
   failed browser check, and the server gone; the three drain checks failed before.
-
 - `check-rust-toolchain.sh` read the `.comment` stamps through a bare `grep` under `pipefail`, so an ELF with no
   `rustc version` entry ended the gate on that assignment: exit 1, no `FAIL … carries no rustc stamp` line, and no
   later file or `--require-unwind` check graded. The empty match now reaches the branch that reports it, and the

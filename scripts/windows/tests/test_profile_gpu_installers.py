@@ -212,23 +212,32 @@ class ProfileInstallers(unittest.TestCase):
                 )
 
     @unittest.skipUnless(
-        os.environ.get("OMNI_TEST_PWSH") and os.environ.get("OMNI_TEST_MSI_VALID"),
-        "requires synthetic MSI and PowerShell",
+        os.name == "nt" and shutil.which("pwsh"),
+        "builds its MSI through the Windows Installer COM object",
     )
     def test_real_msi_file_table_size_without_installation(self):
+        # The hub's fixture writes a File table of 123 + 472 bytes and requires 595 from this reader as from its own.
+        fixture = (
+            ROOT
+            / "third_party/ANTfrastructure/windows/scripts/tests"
+            / "Test-WindowsInstallerPayloadFixture.ps1"
+        )
         result = subprocess.run(
             [
-                os.environ["OMNI_TEST_PWSH"],
+                shutil.which("pwsh"),
                 "-NoProfile",
+                "-NonInteractive",
                 "-File",
+                str(fixture),
+                "-AdditionalReader",
                 str(ROOT / "scripts/windows/Get-MsiPayloadSize.ps1"),
-                os.environ["OMNI_TEST_MSI_VALID"],
             ],
             capture_output=True,
             text=True,
-            check=True,
+            check=False,
         )
-        self.assertEqual(int(result.stdout.strip()), 595)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("Windows MSI payload fixture passed", result.stdout)
 
 
 if __name__ == "__main__":
