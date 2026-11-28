@@ -75,7 +75,8 @@ Describe 'WindowsThirdPartyLicense.Common' {
         }
 
         It 'names both installers, the MSI fragment and the shipped inventory once' {
-            "$($script:web.Msi)|$($script:web.Msix)|$($script:web.Fragment)" | Should -Be "$script:work\web-1.0.0-windows-x64.msi|$script:work\web-1.0.0-windows-x64.msix|$script:work\msi-payload-files.wxs"
+            $expected = @('web-1.0.0-windows-x64.msi', 'web-1.0.0-windows-x64.msix', 'msi-payload-files.wxs') | ForEach-Object { Join-Path $script:work $_ }
+            "$($script:web.Msi)|$($script:web.Msix)|$($script:web.Fragment)" | Should -Be ($expected -join '|')
             ($script:web.Asset -join ',') | Should -Be ($script:assets -join ',')
         }
 

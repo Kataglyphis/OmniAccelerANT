@@ -69,14 +69,14 @@ Describe 'WindowsFlutterAot.Common' {
     It 'catches an installed copy that is not the assembled bytes' {
         $c = New-Case 'installed'
         Set-Fixture (Join-Path $c.Data 'app.so') 'aot v1' $c.T0.AddSeconds(20)
-        Assert-OneStaleReason $c 'runner\\data\\app\.so is not the bytes'
+        Assert-OneStaleReason $c 'runner[\\/]data[\\/]app\.so is not the bytes'
     }
 
     It 'catches a stale CMake AOT_LIBRARY copy' {
         $c = New-Case 'aotlib'
         Set-Fixture $c.Lib 'aot v1' $c.T0.AddSeconds(15)
         $r = @(Get-CaseStaleness $c)
-        ($r -join ' ') -match 'build\\windows\\app\.so is not the bytes' | Should -Be $true
+        ($r -join ' ') -match 'build[\\/]windows[\\/]app\.so is not the bytes' | Should -Be $true
     }
 
     It 'grades against the newest kernel when several presets left assemble trees' {

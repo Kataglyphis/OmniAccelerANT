@@ -1,5 +1,6 @@
 #requires -Version 7.0
 
+# G6 censuses the runner with the hub's Windows-path provenance module, so the cases that run it skip elsewhere.
 Describe 'WindowsOrtRunner.Common' {
     BeforeAll {
         . (Join-Path $PSScriptRoot '..\Resolve-BuildModule.ps1')
@@ -69,7 +70,7 @@ Describe 'WindowsOrtRunner.Common' {
         }
     }
 
-    It 'stages the chain ORT over stale copies, proves it with G6 and re-proves the stamp on a host' {
+    It 'stages the chain ORT over stale copies, proves it with G6 and re-proves the stamp on a host' -Skip:(-not $IsWindows) {
         $c = New-Case 'green'
         New-OrtTestPe -Path (Join-Path $c.Runner 'onnxruntime.dll') -Text $script:foreignSrc
         Invoke-WithOnnxRoot $c.Root {
@@ -84,7 +85,7 @@ Describe 'WindowsOrtRunner.Common' {
         }
     }
 
-    It 're-proves GPU delivery and rejects stale executables, Rust binaries, ORT and CUDA leftovers' {
+    It 're-proves GPU delivery and rejects stale executables, Rust binaries, ORT and CUDA leftovers' -Skip:(-not $IsWindows) {
         $c = New-Case 'gpu-delivery'
         New-OrtTestPe -Path (Join-Path $c.Runner 'omni_accelerant.exe') -Text 'OMNI_ACCELERANT_GPU_VARIANT_directml_V1'
         Invoke-WithOnnxRoot $c.Root {
@@ -176,7 +177,7 @@ Describe 'WindowsOrtRunner.Common' {
         } }
     }
 
-    It 'requires the DirectML bridge from the core wheel before stamping' {
+    It 'requires the DirectML bridge from the core wheel before stamping' -Skip:(-not $IsWindows) {
         $c = New-Case 'directml-bridge'
         $name = 'onnxruntime_providers_shared.dll'
         Invoke-ChainRunnerCase $c {
@@ -194,7 +195,7 @@ Describe 'WindowsOrtRunner.Common' {
         }
     }
 
-    It 'requires the DirectML runtime from the core wheel before marking it verified' {
+    It 'requires the DirectML runtime from the core wheel before marking it verified' -Skip:(-not $IsWindows) {
         $c = New-Case 'directml-wheel'
         Invoke-ChainRunnerCase $c {
             if (-not (Test-WheelApi 'DirectMlDll')) {
@@ -219,7 +220,7 @@ Describe 'WindowsOrtRunner.Common' {
         }
     }
 
-    It 'refuses at launch an unstamped, changed, stray or unfingerprinted runner (mutation)' {
+    It 'refuses at launch an unstamped, changed, stray or unfingerprinted runner (mutation)' -Skip:(-not $IsWindows) {
         $c = New-Case 'host-red'
         Invoke-WithOnnxRoot $c.Root {
             $null = Copy-ChainOrtBeside -OnnxRoot $c.Root -Destination $c.Runner
@@ -248,7 +249,7 @@ Describe 'WindowsOrtRunner.Common' {
         Get-ThrowMessage { Assert-RunnerOrtStamp -RunnerDir $c.Runner } | Should -Match 'UNSTAMPED'
     }
 
-    It 'stages the wheel-matched texts in the image and re-checks their stamped bytes on a host (mutation)' {
+    It 'stages the wheel-matched texts in the image and re-checks their stamped bytes on a host (mutation)' -Skip:(-not $IsWindows) {
         $c = New-Case 'licenses'
         Invoke-WithOnnxRoot $c.Root {
             $null = Copy-ChainOrtBeside -OnnxRoot $c.Root -Destination $c.Runner
@@ -272,7 +273,7 @@ Describe 'WindowsOrtRunner.Common' {
         }
     }
 
-    It 'refuses in the image a runner ORT that matches no chain wheel, or two (mutation)' {
+    It 'refuses in the image a runner ORT that matches no chain wheel, or two (mutation)' -Skip:(-not $IsWindows) {
         $c = New-Case 'wheel-red'
         Invoke-WithOnnxRoot $c.Root {
             $null = Copy-ChainOrtBeside -OnnxRoot $c.Root -Destination $c.Runner
@@ -293,7 +294,7 @@ Describe 'WindowsOrtRunner.Common' {
         Test-CommandAfter $copies[0] $proof[0] | Should -Be $true
     }
 
-    It 'lets ORT_DYLIB_PATH name only the proven bytes' {
+    It 'lets ORT_DYLIB_PATH name only the proven bytes' -Skip:(-not $IsWindows) {
         $c = New-Case 'override'
         Invoke-WithOnnxRoot $c.Root {
             $null = Copy-ChainOrtBeside -OnnxRoot $c.Root -Destination $c.Runner

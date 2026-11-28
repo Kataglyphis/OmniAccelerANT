@@ -1,6 +1,7 @@
 #requires -Version 7.0
 
-Describe 'Windows packaged ONNX self-check' {
+# The fake self-check is a C# program built with the .NET Framework's csc.exe, which only Windows has.
+Describe 'Windows packaged ONNX self-check' -Skip:(-not $IsWindows) {
     BeforeAll {
         $script:check = Join-Path $PSScriptRoot '..\Test-OnnxSelfCheck.ps1'
         $script:compiler = Join-Path $env:WINDIR 'Microsoft.NET\Framework64\v4.0.30319\csc.exe'

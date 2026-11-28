@@ -61,7 +61,8 @@ Describe 'Windows detector model staging' {
         $message = try { & $script:stage -WorkspaceDir $script:workspace -RunnerDir $script:runner | Out-Null; '' } catch { $_.Exception.Message }
         $message | Should -Match 'verification failed'
     }
-    It 'rejects a model directory junction before writing to its target' {
+    # A junction exists only on NTFS.
+    It 'rejects a model directory junction before writing to its target' -Skip:(-not $IsWindows) {
         $case = Join-Path $TestDrive "junction-case-$([guid]::NewGuid().ToString('N'))"
         $runner = Join-Path $case 'runner'
         $resources = Join-Path $runner 'resources'
