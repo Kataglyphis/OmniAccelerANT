@@ -51,3 +51,32 @@ TEST(TextureAbi, APushedFrameWinsAtItsOwnSizeWithItsAlphaAsSent)
     EXPECT_EQ(frame.bytes, tall);
     AbiTexture::unregister(7103);
 }
+
+// Raw mt19937 output, not a distribution, so both standard libraries replay the same 300 steps.
+TEST(TextureAbi, SeededPushesOfRandomSizesNullBuffersAndUnknownIdsKeepTheLastGoodFrame)
+{
+    AbiTexture texture(1, 1, 0, 0, 0);
+    texture.register_as(7104);
+    std::mt19937 random(20261128U);
+    AbiFrame last{ 1, 1, { 0, 0, 0, 255 } };
+    for (int step = 0; step < 300; ++step) {
+        const auto kind = static_cast<uint32_t>(random() % 4U);
+        auto width = static_cast<uint32_t>(random() % 48U + 1U);
+        auto height = static_cast<uint32_t>(random() % 48U + 1U);
+        std::vector<uint8_t> rgba(static_cast<size_t>(width) * height * 4U);
+        for (uint8_t &value : rgba) { value = static_cast<uint8_t>(random()); }
+        // After the fill, so a zero side still comes with a real buffer and only the size check can refuse it.
+        if (kind == 3U) { (random() % 2U == 0U ? width : height) = 0U; }
+        // 7105 is never registered; a zero side and a null buffer go to the registered id.
+        const int64_t id = kind == 1U ? 7105 : 7104;
+        const uint8_t *data = kind == 2U ? nullptr : rgba.data();
+        const int32_t expected = kind == 0U ? KNT_OK : (kind == 1U ? KNT_UNKNOWN_TEXTURE : KNT_BAD_ARGUMENTS);
+        ASSERT_EQ(knt_push_frame(id, data, width, height), expected) << "step " << step << ", kind " << kind;
+        if (kind == 0U) { last = AbiFrame{ width, height, rgba }; }
+        const AbiFrame frame = texture.frame();
+        ASSERT_EQ(frame.width, last.width) << "step " << step;
+        ASSERT_EQ(frame.height, last.height) << "step " << step;
+        ASSERT_EQ(frame.bytes, last.bytes) << "step " << step;
+    }
+    AbiTexture::unregister(7104);
+}

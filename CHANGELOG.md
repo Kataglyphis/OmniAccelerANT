@@ -15,6 +15,13 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
   and UBSan on x64 only (`kci_plugin_quality`), and the runner never took them. The job, its steps and
   `Build-WindowsArm64App.ps1` drop the ASan name and the `myproject_ENABLE_SANITIZER_ADDRESS` switch nothing read on
   arm64; the build is otherwise unchanged.
+- Both desktop gtests run a seeded texture ABI case,
+  `TextureAbi.SeededPushesOfRandomSizesNullBuffersAndUnknownIdsKeepTheLastGoodFrame`: 300 pushes of random sizes up
+  to 48 x 48, a null buffer, a zero side or an unknown id, each checked for its return code and for the frame the
+  texture then shows. Raw `mt19937` output, so libstdc++ and MSVC's library replay the same steps. Against the
+  Windows texture on Linux with stub Flutter headers it passes, and it fails for a zero height accepted, an unknown
+  id answered as bad arguments and a texture that never shrinks. OxidANT 7a97c60 refuses a slice shorter than its
+  frame before it calls `knt_push_frame`; this app takes it with the next OxidANT pin.
 
 ### 2026-11-28 — the Pester suites speak Pester 6
 
