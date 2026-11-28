@@ -32,7 +32,7 @@ jobs:
       # Measured clean of tag-pinned actions, so the sha-pin convention is enforced here.
       workflow-conventions: sha-pin
 
-  # PowerShell twin of the drift gate; its own job because no hub Linux image ships pwsh, and no -Ignore while the manifest exists.
+  # PowerShell twin of the drift gate; on the bare runner's pwsh, so it pulls no image; no -Ignore while the manifest exists.
   shared-config:
     name: shared tool config matches ANTfrastructure (PowerShell twin)
     runs-on: ubuntu-26.04
@@ -50,6 +50,25 @@ jobs:
           pwsh -File third_party/ANTfrastructure/shared/config/Sync-SharedConfig.ps1
           -RepoRoot .
           -Check
+
+  # In the image: its pwsh carries the pinned Pester and the suites call python; the Windows-only cases skip off Windows.
+  pester-linux:
+    name: Pester suites on Linux (scripts/windows/tests)
+    runs-on: ubuntu-26.04
+    timeout-minutes: 30
+    steps:
+      - name: Prepare CI host (checkout + pull the family Linux image)
+        uses: Kataglyphis/ANTfrastructure/.github/actions/prepare-linux-ci-host@develop
+        with:
+          fetch-depth: '1'
+          submodules: 'true'
+          free-disk-space: 'true'
+          pull-first: 'false'
+
+      - name: Run scripts/windows/tests under the image's Pester 6.2.0
+        uses: Kataglyphis/ANTfrastructure/.github/actions/run-in-linux-container@develop
+        with:
+          script: pwsh -NoProfile -File third_party/ANTfrastructure/.github/actions/run-pester-suite/Invoke-PesterSuite.ps1 -Path scripts/windows/tests -Version 6.2.0
 
   # No image: the committed bridge pair and the generator wrapper's suites need only Python and Git.
   frb-bindings:

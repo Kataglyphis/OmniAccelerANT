@@ -25,7 +25,9 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 - The Pester suites pass on Linux as well: `FlutterAot`'s two patterns and `ThirdPartyLicense`'s installer paths take
   either separator, and the junction case, `OnnxSelfCheck` (it builds its fake self-check with `csc.exe`) and the
   eight `OrtRunner` cases that run G6 (the hub's provenance module reads Windows paths) skip off Windows. Under pwsh
-  7.6 and Pester 6.2.0 on Linux 72 pass and 16 skip; on Windows all 88 still pass. No lane runs them on Linux yet.
+  7.6 and Pester 6.2.0 on Linux 72 pass and 16 skip; on Windows all 88 still pass.
+  Linux x64's `pester-linux` job runs them in the image through the hub's `Invoke-PesterSuite.ps1` (hub pin
+  b224ed005).
 - Both plugin gtests fetch googletest 1.18.0 as its release asset, `googletest-1.18.0.tar.gz`, checked by
   `URL_HASH SHA256=6e3191c1…`, the digest GitHub publishes for the asset; the generated tag zip they fetched before
   was checked by nothing. The hub's Renovate refuses to move a URL behind a `URL_HASH`, so a bump moves both by hand.
