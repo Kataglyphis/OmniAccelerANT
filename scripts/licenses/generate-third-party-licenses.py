@@ -190,6 +190,52 @@ def cargo_environment(
     return env
 
 
+def merge_staged_package(
+    package: dict[str, Any],
+    out: Path,
+    root: str,
+    target: str,
+    crates: dict[str, dict[str, Any]],
+    texts: dict[str, str],
+) -> None:
+    """Add one staged crate's root, target and license texts to its inventory entry."""
+    key = f"{package['name']}@{package['version']}"
+    entry = crates.setdefault(
+        key,
+        {
+            "ecosystem": "cargo",
+            "name": package["name"],
+            "version": package["version"],
+            "license": package.get("license") or "",
+            "source": package.get("repository") or package.get("source") or "path",
+            "texts": [],
+            "used_by": set(),
+            "targets": set(),
+            "wasm_roots": set(),
+        },
+    )
+    entry["used_by"].add(root)
+    entry["targets"].add(target)
+    # The web inventory lists each wasm module's crates, so it needs the root per wasm closure.
+    if target == WASM:
+        entry["wasm_roots"].add(root)
+    names = {text["name"] for text in entry["texts"]}
+    for copied in package["files"]:
+        data = (out / copied["path"]).read_bytes()
+        name = copied["path"].split("/", 1)[1]
+        if name in names:
+            continue
+        sha = digest(data)
+        texts[sha] = decode(data)
+        entry["texts"].append(
+            {
+                "name": name,
+                "sha256": sha,
+                "provenance": copied.get("provenance") or f"crates.io {key}",
+            }
+        )
+
+
 def stage_workspace(
     spec: dict[str, Any],
     scratch: Path,
@@ -234,44 +280,7 @@ def stage_workspace(
                 env=env,
             )
             for package in load_json(out / "manifest.json")["packages"]:
-                key = f"{package['name']}@{package['version']}"
-                entry = crates.setdefault(
-                    key,
-                    {
-                        "ecosystem": "cargo",
-                        "name": package["name"],
-                        "version": package["version"],
-                        "license": package.get("license") or "",
-                        "source": package.get("repository")
-                        or package.get("source")
-                        or "path",
-                        "texts": [],
-                        "used_by": set(),
-                        "targets": set(),
-                        "wasm_roots": set(),
-                    },
-                )
-                entry["used_by"].add(root)
-                entry["targets"].add(target)
-                # The web inventory lists each wasm module's crates, so it needs the root per wasm closure.
-                if target == WASM:
-                    entry["wasm_roots"].add(root)
-                names = {text["name"] for text in entry["texts"]}
-                for copied in package["files"]:
-                    data = (out / copied["path"]).read_bytes()
-                    name = copied["path"].split("/", 1)[1]
-                    if name in names:
-                        continue
-                    sha = digest(data)
-                    texts[sha] = decode(data)
-                    entry["texts"].append(
-                        {
-                            "name": name,
-                            "sha256": sha,
-                            "provenance": copied.get("provenance")
-                            or f"crates.io {key}",
-                        }
-                    )
+                merge_staged_package(package, out, root, target, crates, texts)
 
 
 def cargo_crates(
