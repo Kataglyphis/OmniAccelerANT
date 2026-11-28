@@ -325,13 +325,6 @@ name is under `lib/Pages/StreamPage/`.
   requests, a stop during a start) and a source test that fails on `invokeMethod(` under `lib/Pages`; that test
   also needs the typed `create` of the MethodChannel row (`rust_webcam_view.dart:95`).
 
-- [ ] **The Pester suites run only on Windows** (S, ★). Since 2026-11-28 the 13 suites under `scripts/windows/tests`
-  pass on Linux too, under pwsh 7.6 and Pester 6.2.0 with a `python` on `PATH`, as the image has: 72 pass and 16 skip
-  there, the junction case, `OnnxSelfCheck` (`csc.exe`) and the eight `OrtRunner` cases that run G6, whose hub module
-  reads Windows paths. Windows still runs all 88. Left: a Linux lane step in the image through
-  `third_party/ANTfrastructure/.github/actions/run-pester-suite/Invoke-PesterSuite.ps1`, which needs a hub pin at or
-  after 4b8353a00. Done when the Linux lane runs every suite.
-
 ## Open — oxidation roadmap
 
 The owner's decisions of 2026-11-21 on the oxidation review (D1 to D17, all as recommended): this app keeps

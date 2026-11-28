@@ -78,6 +78,8 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
   `/opt/wheels-free-threaded`, whose chain ORT twins joined G6's reference set in the CUDA provider case. Each
   `OrtRunner` case now gets its own empty free-threaded store; with a foreign twin in that variable the case fails
   before the fix and passes after it.
+  On f48b571d the job passed (run 46126825103, 72 pass and 16 skip), so the BACKLOG item "The Pester suites run
+  only on Windows" is done.
 - `KataglyphisTexture::BufferBytes` takes clang-format 23.1.5's one-line body; the Linux x64 and arm64 code-quality
   steps refused the four-line form (#421, #422).
 - Both plugin gtests fetch googletest 1.18.0 as its release asset, `googletest-1.18.0.tar.gz`, checked by
