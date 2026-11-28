@@ -222,9 +222,12 @@ class ProfileInstallers(unittest.TestCase):
             / "third_party/ANTfrastructure/windows/scripts/tests"
             / "Test-WindowsInstallerPayloadFixture.ps1"
         )
+        pwsh = shutil.which("pwsh")
+        if pwsh is None:
+            self.skipTest("pwsh left PATH after the skip check")
         result = subprocess.run(
             [
-                shutil.which("pwsh"),
+                pwsh,
                 "-NoProfile",
                 "-NonInteractive",
                 "-File",
