@@ -5,6 +5,14 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ## Unreleased
 
+### 2026-11-28 — the rust-stamp gate names an ELF without a stamp
+
+- `check-rust-toolchain.sh` read the `.comment` stamps through a bare `grep` under `pipefail`, so an ELF with no
+  `rustc version` entry ended the gate on that assignment: exit 1, no `FAIL … carries no rustc stamp` line, and no
+  later file or `--require-unwind` check graded. The empty match now reaches the branch that reports it, and the
+  suite's new case runs `c-only.so pinned.so` and requires both the FAIL line and the `OK` for `pinned.so`, which it
+  missed before.
+
 ### 2026-11-28 — the Windows texture sizes in size_t, and the arm64 Debug job is named for what it checks
 
 - The Windows texture's constructor and `SetColor` computed `width * height` in `uint32_t`, so a texture of 2^32

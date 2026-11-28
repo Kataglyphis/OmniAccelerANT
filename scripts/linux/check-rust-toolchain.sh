@@ -54,7 +54,8 @@ for f in "${files[@]}"; do
     fails=$((fails + 1))
     continue
   fi
-  stamps="$(readelf -p .comment "$f" 2>/dev/null | grep -Eo 'rustc version [0-9][^ ]*' | awk '{print $3}' | sort -u | tr '\n' ' ')"
+  # No stamp is a verdict for the branch below, not an errexit kill under pipefail.
+  stamps="$(readelf -p .comment "$f" 2>/dev/null | { grep -Eo 'rustc version [0-9][^ ]*' || true; } | awk '{print $3}' | sort -u | tr '\n' ' ')"
   stamps="${stamps% }"
   if [ -z "$stamps" ]; then
     printf 'FAIL %s carries no rustc stamp\n' "$label" >&2
