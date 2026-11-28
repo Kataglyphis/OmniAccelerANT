@@ -87,6 +87,9 @@ if [[ "$BUILD_MODE" == "release" ]]; then
   run_gate "plugin gtest" run_plugin_gtest "$build_dir"
   run_gate "rust toolchain" bash scripts/linux/check-rust-toolchain.sh --require-unwind "${build_dir}/bundle/lib/liboxidant.so"
   run_gate "unwinder order" bash scripts/linux/check-unwinder-order.sh "${build_dir}/bundle/$(linux_binary_name)"
+  # Hardening.cmake builds it with _FORTIFY_SOURCE=3, but it calls nothing fortify can bound, so no __*_chk import can show it.
+  run_gate "plugin ELF hardening" bash "$(antfrastructure_path linux/scripts/06-packaging/verify-elf-hardening.sh)" \
+    "${build_dir}/bundle/lib/libkataglyphis_native_inference_plugin.so:library:no-fortify"
   if [[ "$MATRIX_ARCH" == "x64" ]]; then
     run_gate "cpu floor" omni_check_cpu_floor "$build_dir"
   fi

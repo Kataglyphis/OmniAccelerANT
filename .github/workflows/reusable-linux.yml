@@ -117,13 +117,16 @@ jobs:
 
       # Same-SHA input of quality-report.toml's coverage row; the lane copies it out of build/ before flutter clean.
       - name: Upload Dart coverage
+        if: ${{ !cancelled() }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: ${{ inputs.app-name }}-linux-${{ inputs.arch }}-coverage
           path: logs/coverage/lcov.info
           if-no-files-found: error
 
+      # Like the coverage and the packages, after a failed gate too: a red lane still leaves what it built.
       - name: Upload artifact
+        if: ${{ !cancelled() }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: ${{ inputs.app-name }}-linux-${{ inputs.arch }}-tar
@@ -132,6 +135,7 @@ jobs:
 
       # `error` fails only when NONE of the three globs matches.
       - name: Upload Linux packages
+        if: ${{ !cancelled() }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: ${{ inputs.app-name }}-linux-${{ inputs.arch }}-packages

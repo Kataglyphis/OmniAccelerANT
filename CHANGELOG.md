@@ -5,6 +5,17 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ## Unreleased
 
+### 2026-11-28 — the Linux plugin's ELF hardening is a release gate, and a red Linux lane keeps its uploads
+
+- The native Linux lane's bundle checks run the hub's `verify-elf-hardening.sh` on
+  `libkataglyphis_native_inference_plugin.so` as a library: RELRO, BIND_NOW and the stack protector's
+  `__stack_chk_fail` import. It takes `no-fortify`: `Hardening.cmake` compiles the plugin with `_FORTIFY_SOURCE=3`,
+  but nothing it calls can be bounded, so the shipped plugin of Linux x64 run 46082263143 has no `__*_chk` import and
+  fails the fortify check while it passes the other three. `test-plugin-elf-hardening.sh` reads the spec out of
+  the lane and runs it on a hardened fixture library and one each without BIND_NOW, the stack protector or RELRO.
+- `reusable-linux.yml`'s three uploads (Dart coverage, the tar, the packages) run unless the job was cancelled, so
+  a lane that fails a gate after packaging still uploads what it built.
+
 ### 2026-11-28 — the Linux texture refuses a wrapping size, and the web lane, a gate and two tests do what they say
 
 - `test_profile_gpu_installers.py`'s only case that runs `Get-MsiPayloadSize.ps1` on a real MSI waited for
