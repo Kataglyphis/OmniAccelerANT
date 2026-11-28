@@ -363,7 +363,11 @@ two more jobs:
   of its own rebuilt all 520 targets (11:45 of 14.9 min). Both carry Microsoft's ASan runtime
   (`Stage-AsanRuntime.ps1`), as `Start-Windows.ps1` stages it locally. The launch smoke runs the
   `…-Debug-app` copy; `Invoke-WindowsIntegrationTest.ps1` drives the integration twin, which stays
-  at `…-Debug`. The Release job keeps the lane's quality gates.
+  at `…-Debug`. Between the two it runs the plugin's ASan + UBSan gtest on the host with
+  `UBSAN_OPTIONS=halt_on_error=1`, against the `…-Debug-app` runtime: the hub's sync never copies a preset's
+  CMake tree (`x64_x64-ClangCL*`) or a pdb, so `Build-Windows.ps1` stages the exe and its pdb through
+  `Invoke-PluginGTest.ps1 -StageTo` into `build/windows/x64/plugin-gtest/<preset>`. The Release job keeps the
+  lane's quality gates.
 - `ort-runner-suite` is a plain checkout plus `run-pester-suite` over `scripts/windows/tests`,
   with no container.
 

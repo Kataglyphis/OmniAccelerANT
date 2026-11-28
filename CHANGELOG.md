@@ -5,6 +5,16 @@ the same three numbers with a fourth field of 0 (AGENTS.md § 4).
 
 ## Unreleased
 
+### 2026-11-28 — the x64 Debug job runs the ASan + UBSan plugin gtest it builds
+
+- The `clangcl-debug` build compiled `kataglyphis_native_inference_test` with ASan and UBSan, but no step ran it:
+  the hub's sync to the host skips a preset's CMake tree and every pdb. `Invoke-PluginGTest.ps1 -StageTo` copies
+  the exe and its pdb into a tree `-BuildDir` can name, `Build-Windows.ps1` stages a preset's gtest into
+  `build/windows/x64/plugin-gtest/<preset>`, and `windows-x64.yml`'s Debug job runs it on the host against the
+  `…-Debug-app` runtime (flutter_windows.dll and the staged ASan runtime) with `UBSAN_OPTIONS=halt_on_error=1`.
+  `PluginGTestStage.Tests.ps1` covers the staging; dropping the exe or the pdb copy fails it. On-request run
+  46132511591 staged it and passed 13 of 13 under the sanitizers.
+
 ### 2026-11-28 — the Android emulator check requires a source that plays
 
 - `check-apk-on-emulator.sh` passed an app whose GStreamer initialised while no source ever reached PLAYING. It

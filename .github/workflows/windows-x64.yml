@@ -236,6 +236,15 @@ jobs:
           & ./scripts/windows/Test-LaunchSmoke.ps1
           -AppDir "${env:BUILD_DIR_DEBUG}-app" -OrtStamp
 
+      # The instrumented gtest, staged by Build-Windows.ps1; a UBSan report ends it instead of scrolling past.
+      - name: Plugin gtest (x64, Debug/ASan + UBSan)
+        working-directory: ${{ steps.prep.outputs.workspace }}
+        env:
+          UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
+        run: >-
+          & ./scripts/windows/Invoke-PluginGTest.ps1 -BuildDir build/windows/x64/plugin-gtest/x64-ClangCL-Windows-Debug
+          -RuntimeDir "${env:BUILD_DIR_DEBUG}-app"
+
       # No Flutter SDK on the runner; the image's version, cloned as the arm64 lane does.
       - name: Flutter (the image's version)
         working-directory: ${{ steps.prep.outputs.workspace }}

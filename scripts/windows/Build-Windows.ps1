@@ -599,9 +599,11 @@ try {
         }
 
         if (-not $SkipTests) {
+            # A preset's CMake tree never reaches the host, so its gtest is staged where the Debug job runs it.
+            $gtestStage = if ($currentPreset) { Join-Path $originalBuildRoot "windows/x64/plugin-gtest/$currentPreset" } else { '' }
             # Built here, run on the host by windows-x64.yml: flutter_windows.dll does not load in Server Core.
             Invoke-BuildStep -Context $context -StepName "Build Native Plugin Tests (gtest)$stepSuffix" -Script {
-                & (Join-Path $PSScriptRoot 'Invoke-PluginGTest.ps1') -BuildDir $currentCMakeBuildDir -Build -NoRun *>&1 |
+                & (Join-Path $PSScriptRoot 'Invoke-PluginGTest.ps1') -BuildDir $currentCMakeBuildDir -Build -NoRun -StageTo $gtestStage *>&1 |
                     ForEach-Object { Write-BuildLog -Context $context -Message "$_" }
             }
         }

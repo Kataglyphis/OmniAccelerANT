@@ -342,11 +342,11 @@ flutter_rust_bridge, drops its AccelerANTgine submodule, and takes new Rust API 
 The owner's decisions of 2026-11-21 (D3, D8, D12 and the rest, as recommended); the shared pieces are hub CON290 to
 CON294.
 
-- [ ] **The sanitizer jobs check what their names say** (S, ★★). The x64 Debug job builds an ASan+UBSan plugin gtest
-  that no step runs (job 132992805094, log 9886-9907): copy the exe, `flutter_windows.dll` and the pdb out of the
-  `x64_x64-ClangCL-Windows-Debug` tree the hub's sync skips (`WindowsFlutter.Common.psm1:193-195`) and run
-  `Invoke-PluginGTest.ps1` with the staged ASan runtime and `UBSAN_OPTIONS=halt_on_error=1`. Then an ASan+UBSan
-  plugin gtest in the Linux Debug tree. Since a6ee053 the x64 Debug plugin and gtest take ASan and UBSan from the
+- [ ] **The sanitizer jobs check what their names say** (S, ★★). The x64 Debug job built an ASan+UBSan plugin gtest
+  that no step ran (job 132992805094, log 9886-9907). Since 2026-11-28 `Build-Windows.ps1` stages it and its pdb
+  out of the `x64_x64-ClangCL-Windows-Debug` tree the hub's sync skips (`Invoke-PluginGTest.ps1 -StageTo`), and
+  the Debug job runs it against the `…-Debug-app` runtime with `UBSAN_OPTIONS=halt_on_error=1` (13 of 13 in
+  on-request run 46132511591). Left: an ASan+UBSan plugin gtest in the Linux Debug tree. Since a6ee053 the x64 Debug plugin and gtest take ASan and UBSan from the
   hub's `Sanitizers.cmake` through `kci_plugin_quality`; AccelerANTgine's PUBLIC options carried them until then.
   Done since 2026-11-28: the arm64 Debug job's name, the Windows texture's `size_t` size math, the seeded ABI case,
   and OxidANT's length check before `knt_push_frame` (OxidANT 7a97c60, here with the next OxidANT pin).
